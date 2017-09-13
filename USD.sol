@@ -68,19 +68,16 @@ pragma solidity ^0.4.8;
          _;
      }
   
-     // Constructor
+     /// @dev Constructor
      function SupplyToken(string _symbol, string _name) {
          owner = msg.sender;
-        
          symbol=_symbol;
          name=_name;
      }
-  
+     /// @dev Returns the total number of token supplied till date.
      function totalSupply() constant returns (uint256 totalSupply) {
          totalSupply = _totalSupply;
      }
-  
-    
      function balanceOf(address _owner) constant returns (uint256 balance) {
          return balances[_owner];
      }
@@ -90,8 +87,9 @@ pragma solidity ^0.4.8;
             poolAddress = _add;
      }
 
-
-
+     /// @dev Uses tokens for giving fund amount. Debits tokens (given as funding) from token's balance of member. Credits tokens in Pool fund's balance.
+     /// @param tokens Number of tokens.
+     /// @param _of Member's address.
      function debitTokensForFunding(uint tokens , address _of)
      {
         if(msg.sender == fiatTokenAddress && balances[_of] >= tokens)
@@ -103,7 +101,9 @@ pragma solidity ^0.4.8;
         else
             throw;
      }
-
+     /// @dev Credits tokens in Member's balance and debits tokens from Pool Fund's balance.
+     /// @param _to Member's address.
+     /// @param tokens Number of tokens.
      function payoutTransfer(address _to , uint tokens)
      {
         if(msg.sender == fiatTokenAddress)
@@ -119,7 +119,10 @@ pragma solidity ^0.4.8;
             fiatTokenAddress=_add;
      }
   
-     
+    /// @dev Transfers the Tokens to the given Receiver's account.
+    /// @param _to Receiver's Address.
+    /// @param _amount Number of tokens.
+    /// @return success true if transfer is a success, false if transfer is a failure.
      function transfer(address _to, uint256 _amount) returns (bool success) {
          if (balances[msg.sender] >= _amount 
              && _amount > 0
@@ -133,7 +136,11 @@ pragma solidity ^0.4.8;
          }
      }
   
-     
+    /// @dev Transfers the Tokens from a given sender's Address to a given receiver's address.
+    /// @param _from Sender's address.
+    /// @param _to Receiver's address.
+    /// @param _amount Transfer tokens.
+    /// @return success true if transfer is a success, false if transfer is a failure.
      function transferFrom(
          address _from,
          address _to,
@@ -153,16 +160,23 @@ pragma solidity ^0.4.8;
          }
      }
   
-     
+    /// @dev Allows a given address (Spender) to spend a given amount of the money on behalf of the other user.
+    /// @param _spender Spender's address.
+    /// @param _amount Amount upto which Spender is allowed to transfer.
      function approve(address _spender, uint256 _amount) returns (bool success) {
          allowed[msg.sender][_spender] = _amount;
          Approval(msg.sender, _spender, _amount);
          return true;
      }
-  
+
+    /// @dev Gets number of tokens that are allowed to spend by Spender on behalf of the allower.
+    /// @param _owner Allower's address.
+    /// @param _spender Spender's address.
+    /// @return remaining Number of tokens.
      function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
          return allowed[_owner][_spender];
      }
+
      function mintToken( address _to,uint token)
      {
         if(msg.sender==fiatTokenAddress)

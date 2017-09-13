@@ -109,12 +109,12 @@ contract masters2 {
     {
         claims_RewardAddress = _to;
     }
-
+    /// @dev Adds Status master for a claim.
     function addStatusInClaims()  onlyOwner
     {
         c1=claims(claimsAddress);
         
-        c1.pushStatus("Pending-Claim Assessor Vote");
+            c1.pushStatus("Pending-Claim Assessor Vote");
             c1.pushStatus("Pending-Claim Assessor Vote Denied, pending RM Escalation");
             c1.pushStatus("Pending-Claim Assessor Vote Denied, Pending Member Vote");
             c1.pushStatus("Pending-CA Vote Threshold not Reached Accept, Pending Member Vote");
@@ -134,6 +134,7 @@ contract masters2 {
             c1.pushStatus("Claim Accepted No Payout ");
             c1.pushStatus("Claim Accepted Payout Done");
     }
+    /// @dev Adds statuses and categories master for a proposal.
     function changeStatusAndCAtegory() onlyOwner
     {
         g1=governance(governanceAddress);
@@ -162,8 +163,13 @@ contract masters2 {
             g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Quorum not Achieved");
             g1.addStatus("Proposal Accepted, Insufficient Funds");
     }
- 
-  function changeTimes(uint _mintime,uint _maxtime,uint escaltime,uint payouttime) onlyOwner
+     
+    /// @dev Changes the minimum, maximum claims assessment voting, escalation, payout retry times 
+    /// @param _mintime Minimum time (in seconds) for which claim assessment voting is open
+    /// @param _maxtime Maximum time (in seconds) for which claim assessment voting is open
+    /// @param escaltime Time (in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time (in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    function changeTimes(uint _mintime,uint _maxtime,uint escaltime,uint payouttime) onlyOwner
     {
         uint timeLeft;
         p1=pool(poolAddress);
@@ -218,7 +224,7 @@ contract masters2 {
         
         
     }
-
+    /// @dev Adds currency master 
     function addMCRCurr() onlyOwner
     {
         

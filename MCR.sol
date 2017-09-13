@@ -18,6 +18,7 @@
 pragma solidity ^0.4.8;
 
 import "./pool.sol";
+
 import "./NXMToken.sol";
 import "./fiatFaucet.sol";
 import "./MCRData.sol";
@@ -84,15 +85,19 @@ contract MCR
         MCRDataAddress = _add;
         md1 = MCRData(MCRDataAddress);
     }
+    /// @dev Changes minimum Capital Requirement for system to sustain.
     function changeMinReqMCR(uint minMCR) onlyInternal
     {
         md1.changeMinReqMCR(minMCR);
     }
+    /// @dev Gets minimum value of Capital Requirement.
     function getminMCRReq()constant returns(uint mcrmin)
     {
         md1 = MCRData(MCRDataAddress);
         mcrmin = md1.getMinMCR();
     }
+    /// @dev Checks if last notarised Minimum Capital Requirement(MCR) percentage is less than minimum capital required or not.
+    /// @return check 1 if last added MCR%<Minimum MCR value
     function checkForMinMCR()constant returns(uint check)
     {
         md1 = MCRData(MCRDataAddress);
@@ -100,11 +105,14 @@ contract MCR
         if(getlastMCRPerc() < md1.getMinMCR())
             check=1;
     }
+     /// @dev Changes time period for obtaining new MCR data from external oracle query.
     function changeMCRTime(uint _time) onlyOwner
     {
         md1 = MCRData(MCRDataAddress);
         md1.changeMCRTime(_time);
     }
+      /// @dev Stores name of currencies accepted by the system.
+      /// @param curr Currency Name.
     function addCurrency(bytes16 curr) 
     {
         ms1=master(masterAddress);
@@ -113,18 +121,22 @@ contract MCR
         md1.addCurrency(curr);
         
     }
-
+    /// @dev Gets number of currencies accepted by the system.
     function getCurrenciesLength()constant returns(uint len)
     {
         md1 = MCRData(MCRDataAddress);
         len = md1.getCurrLength();
     }
+    /// @dev Gets name of currency at a given index.
     function getCurrency_Index(uint index) constant returns(uint id ,bytes16 curr)
     {
         md1 = MCRData(MCRDataAddress);
         curr = md1.getCurrency_Index(index);
         id = index;
     }
+    /// @dev Gets the 3 day average exchange rate of a currency.
+    /// @param curr Currency Name.
+    /// @return rate Average exchange rate (of last 3 days) against ETH.
     function getCurrency3DaysAvg(bytes16 curr)constant returns(uint avg)
     {
         md1 = MCRData(MCRDataAddress);
@@ -135,6 +147,7 @@ contract MCR
     {
         poolAddress = _add;
     }
+    /// @dev Changes scaling factor.
     function changeSF(uint val) onlyOwner
     {
         md1 = MCRData(MCRDataAddress);
@@ -148,18 +161,32 @@ contract MCR
     {
         fiatFaucetAddress = _add;
     }
+     /// @dev Changes address which can notise MCR
      function changenotariseAddress(address nadd) onlyOwner
     {
         md1 = MCRData(MCRDataAddress);
         md1.changenotarise(nadd);
     }
-
-    function getGraphData(uint yearMonth) constant returns (uint mcrp ,uint mcre , uint vf , uint dc ,uint yearmonth)
+     /// @dev Gets MCR data for a year and month.
+    /// @param yearMonth Year and month number (yyyymm).
+    /// @return mcrp Minimum Capital Requirement MCR percentage.
+    /// @return mcre Minimum Capital Requirement MCR in ether.
+    /// @return vf Total Pool fund value in Ether.
+    /// @return dc Number of times MCR data has been added for the given year and month.
+    /// @return yearmonth Year and Month (in yyyymm) of MCR data.
+      function getGraphData(uint yearMonth) constant returns (uint mcrp ,uint mcre , uint vf , uint dc ,uint yearmonth)
     {
         md1 = MCRData(MCRDataAddress);
         (mcrp,mcre,vf,dc,yearmonth) = md1.getGraphData(yearMonth);
     }
-
+    /// @dev Adds new MCR data and calls for Surplus distribution.
+    /// @param mcrP  Minimum Capital Requirement in percentage.
+    /// @param mcrE  Minimum Capital Requirement in ether.
+    /// @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
+    /// @param curr array of Currency's name.
+    /// @param rates array of Currency's rate * 100.
+    /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
+    /// @param yearMonth Year and Month(yyyymm).
     function addMCRData(uint mcrP , uint mcrE , uint vF ,bytes16[] curr ,uint[] rates , uint onlyDate , uint yearMonth)
     {
 
@@ -179,47 +206,62 @@ contract MCR
         }
         md1.updateDateWiseMCR(onlyDate,len);
         changeAvgRateOfCurr();
+        // Oraclize call for next MCR calculation
         callOracliseForMCR();
-        
-      
-             t2.distributeSurplusDistrubution();
+        // Initiate Surplus Distribution
+      t2.distributeSurplusDistrubution();
         
     }
+    /// @dev Calls oraclize query to calculate MCR details after 24 hours.
     function callOracliseForMCR() internal
     {
         md1 = MCRData(MCRDataAddress);
         p1=pool(poolAddress);
         p1.MCROraclise(md1.getMCRTime());
     }
-
+    /// @dev Gets the details of last added MCR.
+    /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
+    /// @return mcrEtherx100 Total Minimum Capital Requirement in ether.(multiplied by 100)
+    /// @return vFull Total Pool fund value in Ether used in the last full daily calculation from the Capital model of that month of year.
+    /// @return date_add current timestamp.
+    /// @return blockNumber Block Number.
     function getLastMCR() constant returns( uint mcrPercx100,uint mcrEtherx100,uint vFull,uint date_add,uint blockNumber)
     {
         md1 = MCRData(MCRDataAddress);
        (mcrPercx100,mcrEtherx100,vFull,date_add,blockNumber) = md1.getLastMCR();
     }
-
-    function getMCRbyDate(uint date) constant returns( uint mcrPercx100,uint mcrEtherx100,uint vFull,uint date_add,uint blockNumber)
+    /// @dev Gets the details of last added MCR.
+    /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
+    /// @return mcrEtherx100 Total Minimum Capital Requirement in ether.(multiplied by 100)
+    /// @return vFull Total Pool fund value in Ether used in the last full daily calculation.
+    /// @return date_add Timestamp at which data was notarized.
+    /// @return blockNumber Block Number at which data was notarized.
+     function getMCRbyDate(uint date) constant returns( uint mcrPercx100,uint mcrEtherx100,uint vFull,uint date_add,uint blockNumber)
     {
         md1 = MCRData(MCRDataAddress);
         (mcrPercx100,mcrEtherx100,vFull,date_add,blockNumber) = md1.getMCRbyDate(date);
     }
-
+    /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
+    /// @return val MCR% value multiplied by 100.
     function getlastMCRPerc() constant returns(uint val)
     {
         md1 = MCRData(MCRDataAddress);
         val = md1.getlastMCRPerc();
     }
+    /// @dev Gets last Minimum Capital Requirement in Ether.
+    /// @return val MCR value in ether multiplied by 100.
     function getLastMCREtherFull()constant returns(uint val)
     {
         md1 = MCRData(MCRDataAddress);
         val = md1.getLastMCREtherFull();
     }
+    /// @dev Gets Fund value in Ether used in the last full daily calculation of the Capital model.
     function getLastVfull() constant returns( uint vf)
     {
         md1 = MCRData(MCRDataAddress);
         vf = md1.getLastVfull();
     }
-    
+    /// @dev Updates the 3 day average exchange rate against each currency.                               
     function changeAvgRateOfCurr() internal
     {
         md1 = MCRData(MCRDataAddress);
@@ -271,6 +313,9 @@ contract MCR
             }
         }
     }
+    /// @dev Calculates V(Tp), i.e., Pool Fund Value in Ether used for the Token Price Calculation and MCR%(Tp), i.e., MCR% used in the Token Price Calculation.
+    /// @return Vtp Pool Fund Value in Ether used for the Token Price Model 
+    /// @return MCRtp MCR% used in the Token Price Model.
     function calVtpAndMCRtp() constant returns(uint Vtp , uint MCRtp)
     {
         md1 = MCRData(MCRDataAddress);
@@ -293,6 +338,9 @@ contract MCR
         uint Vfull = md1.getLastVfull();
         MCRtp = (MCRfullperc * Vtp)/(Vfull);     
     }
+    /// @dev Calculates the Token Price of a currency.
+    /// @param curr Currency name.
+    /// @return tokenPrice Token price.
     function calculateTokenPrice(bytes16 curr) constant returns (uint tokenPrice)
     {
         md1 = MCRData(MCRDataAddress);
@@ -311,14 +359,6 @@ contract MCR
         tokenPrice = ((tokenPrice)*md1.getCurr3DaysAvg(curr)/100);                         
     }
 
-  
-
-
-
-    function provideEth() payable 
-    {
-        
-    }
     
     
 

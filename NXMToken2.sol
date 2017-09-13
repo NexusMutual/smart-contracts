@@ -90,6 +90,13 @@ contract NXMToken2{
         mcrAddress = _add;
         m1=MCR(mcrAddress);
     }
+    /// @dev Locks tokens against a cover.     
+    /// @param premiumCalculated Premium of quotation.
+    /// @param quoteCurr Currency type of quotation.
+    /// @param quoteCoverPeriod  Cover Period of quotation.
+    /// @param quoteCoverId Cover id of a quotation.
+    /// @param senderAddress Quotation owner's Ethereum address.
+    /// @return amount Number of tokens that are locked
     function lockCN ( uint256 premiumCalculated , bytes16 quoteCurr ,uint quoteCoverPeriod ,uint quoteCoverId , address senderAddress) onlyInternal returns (uint amount)
     {
         td1=NXMTokenData(tokenDataAddress);
@@ -102,6 +109,7 @@ contract NXMToken2{
      
         m1=MCR(mcrAddress);
         premiumCalculated = premiumCalculated*10000000000;
+        // Number of tokens to be locked=Tokens worth 5% premium
         amount = (premiumCalculated*50000000000000000)/m1.calculateTokenPrice(quoteCurr); 
        
         bytes16 curr = quoteCurr;
@@ -111,11 +119,12 @@ contract NXMToken2{
             td1.incMemberCounter();
 
         td1.changeBalanceOf(senderAddress,td1.getBalanceOf(senderAddress)+amount);  
-
+        // Adds the owner of cover as a member if not added already.
         if(td1.checkInallMemberArray(senderAddress)==0)
         {
             td1.addInAllMemberArray(senderAddress);
         }
+        // Updates the number of Supply Tokens and Pool fund value of a currency.
         td1.changeTotalSupply(td1.getTotalSupply() + amount); 
         uint ldays=quoteCoverPeriod;
         uint ld=now+ ldays*1 days;
@@ -127,14 +136,17 @@ contract NXMToken2{
         
     }
 
-   
+   /// @dev Burns tokens used for fraudulent voting against a claim
+   /// @param claimid Claim Id.
+   /// @param _value number of tokens to be burned
+   /// @param _to User's address.
     function burnCAToken(uint claimid , uint _value , address _to) onlyInternal {
          
         td1=NXMTokenData(tokenDataAddress);
         t1=NXMToken(tokenAddress);
         if( td1.getBalanceCAWithAddress(_to) < _value)throw;
         td1.pushInBurnCAToken(_to,claimid,now,_value);
-
+        //Change overall member token balance
         td1.changeBalanceOf(_to,td1.getBalanceOf(_to) - _value); 
 
         if(td1.getBalanceOf(_to)==0)
@@ -144,6 +156,7 @@ contract NXMToken2{
         uint len=td1.getLockedCALength(_to);
         uint vUpto;
         uint amount;
+        // Unlock tokens before burning
         for(uint i=0 ; i < len ;i++ )
         {
             (vUpto,amount) = td1.getLockedCA_index(_to , i);
@@ -162,6 +175,7 @@ contract NXMToken2{
                 }
             }
         }
+        // Change total supply of NXM Tokens
         t1.callBurnEvent(_to,"BurnCA",claimid,_value);
         td1.changeCurrencyTokens("ETH",td1.getCurrencyTokens("ETH")-_value);
         td1.changeTotalSupply(td1.getTotalSupply() - _value);
@@ -169,11 +183,15 @@ contract NXMToken2{
         t1.callTransferEvent(_to, 0, _value); // notify of the event
        
     }
-  
+    /// @dev Allocates tokens against a given address
+    /// @param _to User's address.
+    /// @param amount Number of tokens rewarded.
      function rewardToken(address _to,uint amount)  onlyInternal  {
       td1 = NXMTokenData(tokenDataAddress);
+      //Add new member where applicable
         if(td1.getBalanceOf(_to) == 0)
             td1.incMemberCounter();
+        // Change total supply and individual balance of user
         td1.changeBalanceOf(_to, td1.getBalanceOf(_to) + amount);// mint new tokens
         td1.changeTotalSupply(td1.getTotalSupply()+amount); // track the supply
         td1.changeCurrencyTokens("ETH" , td1.getCurrencyTokens("ETH") + amount);
@@ -184,6 +202,11 @@ contract NXMToken2{
         Transfer(0,_to, amount); // notify of the event
        
     }
+       
+    /// @dev Extends validity period of a given number of tokens, locked for Claim Assessment
+    /// @param _to  User's address.
+    /// @param _timestamp Timestamp for which tokens will be extended.
+    /// @param noOfTokens Number of tokens that will get extended. Should be less than or equal to the number of tokens of selected bond. 
     function extendCAWithAddress(address _to ,uint _timestamp ,uint noOfTokens) onlyInternal
     {
         td1=NXMTokenData(tokenDataAddress);
@@ -220,7 +243,8 @@ contract NXMToken2{
     }
     
     
-    
+    /// @dev Burns tokens deposited against a cover, called when a claim submitted against this cover is denied.
+    /// @param coverid Cover Id.
     function burnCNToken(uint coverid) onlyInternal {
         
         td1=NXMTokenData(tokenDataAddress);
@@ -232,6 +256,7 @@ contract NXMToken2{
         if(depositedTokens <= 0)throw;
         t1=NXMToken(tokenAddress);
         t3=NXMToken3(NXMToken3Address);
+        //Undeposit all tokens locked against the cover
         t3.undepositCN(coverid,1);
         uint validity;
         uint amount1;
@@ -252,6 +277,7 @@ contract NXMToken2{
         td1.updateLockedCN_Cover(_to,coverid,validity,amount1-depositedTokens);
         t1.callBurnEvent(_to,"Burn", coverid,depositedTokens);
         td1.changeCurrencyTokens(curr,td1.getCurrencyTokens(curr) - depositedTokens);
+        // Update NXM token balance against member address and remove member in case overall balance=0
         td1.changeBalanceOf(_to,td1.getBalanceOf(_to) - depositedTokens);
         if(td1.getBalanceOf(_to)==0)
             td1.decMemberCounter();
@@ -260,23 +286,30 @@ contract NXMToken2{
         t1.callTransferEvent(_to, 0, depositedTokens); // notify of the event
       
     }
+    /// @dev Deposits locked tokens against a given cover id, called whenever a claim is submitted against a coverid
+    /// @param coverid Cover Id.
+    /// @param _value number of tokens to deposit.
+    /// @param _days Validity of tokens.
+    /// @param _to User's address.
     function depositCN(uint coverid,uint _value,uint _days,address _to) onlyInternal
     {
         td1=NXMTokenData(tokenDataAddress);
         uint amount;
         (,amount) = td1.getLockedCN_Cover(_to,coverid);
-        if (amount - td1.getDepositCN(coverid,msg.sender) < _value) throw;           // Check if the sender has enough
+        if (amount - td1.getDepositCN(coverid,msg.sender) < _value) throw;           // Check if the sender has enough tokens to deposit
         if (_value<=0) throw;
         //_value = _value * 10000000000;
         td1.pushInDepositCN_Cover(_to,coverid,_days,_value);
     }
    
-   
+    /// @dev Checks whether a Surplus distribution should be initiated or not.
+    /// @return check 1 if Surplus Distribution can be started, 0 otherwise. 
     function checkForSurplusDistrubution() constant returns(uint check)
     {
         td1=NXMTokenData(tokenDataAddress);
         m1=MCR(mcrAddress);
         check=0;
+        //LAst MCR%>180% and time since last Surplus Distribution>SD Distribution Time
         if(td1.getSDLength()==0)
         {   
             if(m1.getlastMCRPerc() >= 18000)
@@ -286,16 +319,19 @@ contract NXMToken2{
             check=1;
         
     }
-
+    /// @dev Performs surplus distribution
+    /// @dev Calculates the weight of distribution for every members (have tokens locked for SD) and sends them the amount as per their weight value.
     function distributeSurplusDistrubution() 
     {
         td1=NXMTokenData(tokenDataAddress);
         t1=NXMToken(tokenAddress);
         p1=pool(poolAddress);
          t3=NXMToken3(NXMToken3Address);
+         // Recheck whether a surplus distribution should be made or not
          if(checkForSurplusDistrubution()==1)
          {
             uint index = td1.getSDLength();
+            // Calculate amount to be distributed
             uint distValue = t3.calSurplusDistributionValue();
             uint totalWeight =0;
             address _add;
@@ -305,6 +341,7 @@ contract NXMToken2{
             for(i=0;i<len;i++)
             {
                  _add = td1.getMember_index(i);
+                 // Calculate SD weight for each member
                 uint indWeight=t3.calIndWeightForSD(_add);
                 
                 if(indWeight > 0)
@@ -320,7 +357,8 @@ contract NXMToken2{
                 _add = td1.getMember_index(i);
                 uint amount = (td1.getSDDistributionIndWeight(index,_add) * distValue)/totalWeight;
                 if(amount > 0)
-                {
+                { 
+                    // Initiate SD payout
                     bool succ = p1.SDPayout(amount,_add);
                     if(succ == true)
                     {

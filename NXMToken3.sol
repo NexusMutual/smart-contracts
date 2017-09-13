@@ -79,13 +79,16 @@ contract NXMToken3 {
         tokenDataAddress = _add;
         td1 = NXMTokenData(tokenDataAddress);
     }
-
+    /// @dev Calculates the surplus distribution weight of an NXM member. 
+    /// @param _add User's address.
+    /// @return weight Weight represents the proportion of surplus distribution a member should receive
     function calIndWeightForSD(address _add)  constant returns(uint weight)  
     {
         td1=NXMTokenData(tokenDataAddress);
         weight =0;
         if(td1.checkInallMemberArray(_add)==1)
         {
+            //Get number of tokens locked for SD
             uint len1 = td1.getLockedSDLength(_add);
             uint vUpto;
             uint amount;
@@ -94,12 +97,17 @@ contract NXMToken3 {
                 (vUpto,amount) = td1.getLockedSD_index(_add,j);
                 if(vUpto > now)
                 {
+                    //Calculate weight based on number of tokens locked under SD and the time period for which they are valid
                     weight =weight + ((vUpto - now)*amount)/1 days;
                 }
             }
         }
     }
    
+    /// @dev Extends validity period of a given number of tokens locked for claims assessment.
+    /// @param index  index of existing bond.
+    /// @param _days number of days for which tokens will be extended.
+    /// @param noOfTokens Number of tokens that will get extended. Should be less than or equal to the no.of tokens of selected bond.
     function extendCA(uint index , uint _days ,uint noOfTokens)
     {
         td1=NXMTokenData(tokenDataAddress);
@@ -111,14 +119,16 @@ contract NXMToken3 {
         td1.lockCA(msg.sender,vUpto + (_days* 1 days ),noOfTokens);
                
     }
-    
-   
+    /// @dev Unlocks tokens deposited against a cover. Changes the validity timestamp of deposit tokens.
+    /// @dev In order to submit a claim,20% tokens are deposited by the owner. In case a claim is escalated, another 20% tokens are deposited.
+    /// @param coverid Cover Id.
+    /// @param all 0 in case we want only 1 undeposit against a cover,1 in order to undeposit all deposits against a cover
     function undepositCN(uint coverid, uint all) onlyInternal
     {   
         td1=NXMTokenData(tokenDataAddress);
         q1=quotation(quotationContact);
         address _to=q1.getMemberAddress(coverid);
-        if (td1.getDepositCN(coverid , _to) < 0) throw;           // Check if the sender has enough
+        if (td1.getDepositCN(coverid , _to) < 0) throw;           // Check if the cover has tokens
         uint len = td1.getDepositCN_CoverLength(_to,coverid);
         uint vUpto;
         uint amount;
@@ -134,7 +144,7 @@ contract NXMToken3 {
 
        }
     }
-    
+  /// @dev Calculates the number of tokens to be distributed in a Surplus Distribution  
   function calSurplusDistributionValue() constant returns(uint finalValue)
     {
         p1=pool(poolAddress);
@@ -162,8 +172,11 @@ contract NXMToken3 {
                 }
             }
         }
+        //val1 = 0.1 ETH per locked Token
         val1 = totalTokens/10;
+        //val2=5% of last MCR Eth
         val2 = ((5*m1.getLastMCREtherFull())/100)*10000000000000000;
+        //val3=50% of Total ETH in pool
         val3=(50*p1.getEtherPoolBalance())/100;
 
         if(val1 <= val2 && val1 <= val3)
@@ -175,11 +188,9 @@ contract NXMToken3 {
 
         finalValue = toDistributeValue;
     }
-    
-
-
-
-    
+    /// @dev Locks a given number of tokens for Claim Assessment.
+    /// @param _value number of tokens lock.
+    /// @param _days Validity(in days) of tokens.
     function lockCA(uint _value,uint _days)
     {
         td1 = NXMTokenData(tokenDataAddress);
@@ -187,7 +198,9 @@ contract NXMToken3 {
         if (_value<=0) throw;
         td1.lockCA(msg.sender,now+_days*1 days,_value);        
     }
-    
+    /// @dev Locks a given number of tokens for Surplus Distribution.
+    /// @param _value number of tokens lock.
+    /// @param _days Validity(in days) of tokens.
     function lockSD(uint _value,uint _days)
     {
         td1 = NXMTokenData(tokenDataAddress);
@@ -197,6 +210,10 @@ contract NXMToken3 {
         
     }
     
+    /// @dev Extends the lock period of member tokens, as a punishment, if a user's decision is against of final decision of claim.
+    /// @dev _to User's address
+    /// @dev _days Extended no. of days.
+    /// @dev token Number of tokens that will get extended.
     function lockSDWithAddress(address _to , uint _days , uint tokens) onlyInternal
     {
         td1 = NXMTokenData(tokenDataAddress);

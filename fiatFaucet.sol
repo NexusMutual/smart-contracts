@@ -51,10 +51,13 @@ contract fiatFaucet
     function fiatFaucet(){
         fiatTokenPricex1e18 = 10000000000000000;
     }
+    /// @dev Gets the token price of fiat
     function getFiatTokenPrice() constant returns(uint price)
     {
         price = fiatTokenPricex1e18;
     }
+    /// @dev Transfers the Equivalent fiat ERC20Tokens for a given amount ETH.
+    /// @param curr Currency's Name.
     function  transferToken(bytes16 curr) payable
     {
         t1=NXMToken(tokenAddress);
@@ -68,6 +71,7 @@ contract fiatFaucet
     {
         tokenAddress = _add;
     }
+    /// @dev Stores the ERC20 Tokens contract address against the corresponding currency.
     function updateCurr(address usd,address eur,address gbp) onlyInternal
     {
         contract_add["USD"] = usd;
@@ -79,22 +83,35 @@ contract fiatFaucet
     {
         quotationAddress=_to;
     }
+    /// @dev Adds a new currency's ERC20 contract address.
+    /// @param _add Currency's address.
+    /// @param currName Currency's name.
     function addCurrency(address _add , bytes16 currName) onlyInternal
     {
         contract_add[currName] = _add;
     }
-    
+  
+    /// @dev Gets currency token balance of a given currency.
     function getBalance(address _of,bytes16 curr) constant returns(uint bal)
     {
          tok=SupplyToken(contract_add[curr]);
         return tok.balanceOf(_of);
     }
+    /// @dev Transfers a given amount of tokens of a given currency, from Pool contract to the given receiver's address.
+    /// @param _to Receiver's address.
+    /// @param curr Currency name.
+    /// @param tokens Number of tokens.
     function payoutTransferFromPool(address _to , bytes16 curr , uint tokens) onlyInternal
     {
         tok=SupplyToken(contract_add[curr]);
         tok.payoutTransfer(_to,tokens);
     }
 
+    /// @dev Funding of Quotations using ERC20 tokens.
+    /// @param amount Token Amount.
+    /// @param curr Currency Name.
+    /// @param fundArr fund amounts for each selected quotation.
+    /// @param fundIndexArr multiple quotations ID that will get funded.
     function funding(uint amount , bytes16 curr, uint[] fundArr , uint[] fundIndexArr)
     {
         tok=SupplyToken(contract_add[curr]);

@@ -47,8 +47,9 @@ contract master3 {
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
-   
-function changeAllAddress1(uint version) onlyInternal
+   /// @dev Sets the older version contract address as inactive and the latest one as active.
+   /// @param version Latest version number.
+  function changeAllAddress1(uint version) onlyInternal
     {
         ms1=master(masterAddress);
         ms1.addRemoveAddress(version,0);
@@ -64,12 +65,9 @@ function changeAllAddress1(uint version) onlyInternal
         ms1.addRemoveAddress(version,10);
         ms1.addRemoveAddress(version,11);
         ms1.addRemoveAddress(version,12);
-       
-
-       
-         
     }
-
+    /// @dev Sets the older version contract address as inactive and the latest one as active.
+   /// @param version Latest version number.
     function changeAllAddress2(uint version) onlyInternal
     {
         ms1=master(masterAddress);
@@ -91,6 +89,8 @@ function changeAllAddress1(uint version) onlyInternal
        
          
     }
+    /// @dev Creates a new version of contract addresses
+    /// @param arr Array of addresses of compiled contracts.
     function addNewVersion(address[] arr) onlyOwner
     {
        ms1=master(masterAddress);
@@ -115,6 +115,9 @@ function changeAllAddress1(uint version) onlyInternal
        
         
     }
+    /// @dev Creates a new version of contract addresses.
+    /// @param versionNo Latest version number to which addresses need to be added
+    /// @param arr Array of addresses of compiled contracts.
      function addNewVersion2(uint versionNo,address[] arr) onlyOwner
     {
        ms1=master(masterAddress);

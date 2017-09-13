@@ -22,7 +22,7 @@ import "./quotation.sol";
 import "./NXMToken2.sol";
 import "./MCR.sol";
 import "./master.sol";
-contract quotation2{
+contract quotation2 {
 
     NXMToken t1;
     pool p1;
@@ -101,29 +101,57 @@ contract quotation2{
         q1.changePoolAddress(_add);
     }
 
-
+    /// @dev Gets the number of the Quotations created by the address calling the function
+    /// @return Number of the quotations created by the user till date
     function getUserQuoteLength()constant returns (uint length){
          qd1 = quotationData(quotationDataAddress);
         return (qd1.getUserQuoteLength(msg.sender));
     }
+
+    /// @dev Gets the number of the Covers created by the address calling the function
+    /// @return Number of the covers created by the user till date
     function getUserCoverLength()constant returns (uint length){
          qd1 = quotationData(quotationDataAddress);
         return (qd1.getUserCoverLength(msg.sender));
     }
+
+    /// @dev Provides the information of a Quotation of a given quote id.
+    /// @param index Quotation Id
+    /// @param productId Insurance Product Id.
+    /// @param quoteId Quotation Id.
+    /// @param lat Latitude position of quotation
+    /// @param long Longitude position of quotation
+    /// @param currencyCode Currency in which sum is assured
+    /// @param sumAssured Sum assurance of quotation.
     function getQuoteByIndex1(uint index) constant returns(uint productId,uint quoteId,bytes16 lat , bytes16 long ,bytes16 currencyCode,uint sumAssured)
     {
          qd1 = quotationData(quotationDataAddress);
         (productId,quoteId,lat,long,currencyCode,sumAssured) = qd1.getQuoteByIndex1(index);
     }
+
+    
+    /// @dev Provides the information of a Quotation of a given quote id.
+    /// @param index Quotation Id.
+    /// @return coverPeriod Cover Period of a quotation in days.
+    /// @return premiumCalculated Premium of quotation.
+    /// @return dateAdd timestamp at which quotation is created.
+    /// @return status current status of Quotation.
+    /// @return amountFunded Amount funded to the quotation.
+    /// @return coverId cover id associated with the quotation.
     function getQuoteByIndex2(uint index) constant returns(uint coverPeriod,uint premiumCalculated,uint dateAdd,uint validUntil,bytes16 status,uint amountFunded,uint coverId)
     {
          qd1 = quotationData(quotationDataAddress);
         (coverPeriod,premiumCalculated,dateAdd,validUntil,status,amountFunded,coverId) = qd1.getQuoteByIndex2(index);
     }
 
-
-
-
+    /// @dev Provides the information of the quote id, mapped against the user  calling the function, at the given index
+    /// @param ind User's Quotation Index.
+    /// @return coverPeriod Cover Period of quotation in days.
+    /// @return premiumCalculated Premium of quotation.
+    /// @return dateAdd timestamp at which quotation is created.
+    /// @return status current status of Quotation.
+    /// @return amountFunded number of tokens funded to the quotation.
+    /// @return coverId cover of a quotation
     function getQuoteByAddressAndIndex2(uint ind) constant returns(uint coverPeriod,uint premiumCalculated,uint dateAdd,uint validUntil,bytes16 status,uint amountFunded,uint coverId)
     {
          qd1 = quotationData(quotationDataAddress);
@@ -131,7 +159,14 @@ contract quotation2{
         (coverPeriod,premiumCalculated,dateAdd,validUntil,status,amountFunded,coverId) = qd1.getQuoteByIndex2(index);
     }
 
-
+    /// @dev Provides the information of the quote id, mapped against the user calling the function, at the given index
+    /// @param ind User's Quotation Index.
+    /// @param productId Insurance Product id.
+    /// @param quoteId Quotation Id.
+    /// @param lat Latitude position of quotation
+    /// @param long Longitude position of quotation
+    /// @param currencyCode Currency in which sum is assured
+    /// @param sumAssured Sum assurance of quotation.
     function getQuoteByAddressAndIndex1(uint ind) constant returns(uint productId,uint quoteId,bytes16 lat , bytes16 long ,bytes16 currencyCode,uint sumAssured)
     {
          qd1 = quotationData(quotationDataAddress);
@@ -139,24 +174,43 @@ contract quotation2{
        (productId,quoteId,lat,long,currencyCode,sumAssured) = qd1.getQuoteByIndex1(index);
     }
     
+     /// @dev Provides the information of a Cover when given the cover id.
+    /// @param index Cover Id
+    /// @return quoteId Quotation id against which the cover was generated.
+    /// @return validUntil validity timestamp of cover.
+    /// @return claimCount Number of claims submitted against a cover.
+    /// @return lockedTokens Number of tokens locked against a cover.
+    /// @return status Current status of cover. 
     function getCoverByIndex(uint index) constant returns(uint quoteId,uint validUntil,uint claimCount,uint lockedTokens,bytes16 status)
     {
          qd1 = quotationData(quotationDataAddress);
        (quoteId,validUntil,claimCount,lockedTokens,status) = qd1.getCoverByIndex(index);
     }
     
+    /// @dev Provides the information of the cover id, mapped against the user  calling the function, at the given index
+    /// @param ind User's Cover Id
+    /// @return quoteId  Quotation id against which the cover was generated.
+    /// @return validUntil validity timestamp of cover.
+    /// @return claimCount Number of claims submitted against a cover.
+    /// @return lockedTokens Number of tokens locked against a cover.
+    /// @return status Current status of cover. 
     function getCoverByAddressAndIndex(uint ind) constant returns(uint coverId,uint quoteId,uint validUntil,uint claimCount,uint lockedTokens,bytes16 status)
     {
          qd1 = quotationData(quotationDataAddress);
         coverId=qd1.getCoverIdByAddressAndIndex(ind , msg.sender);
         (quoteId,validUntil,claimCount,lockedTokens,status) = qd1.getCoverByIndex(coverId);
     }
-    
+    /// @dev Gets cover id mapped against the user calling the function, at the given index
+    /// @param ind User's Cover Index.
+    /// @return coverId cover id.
     function getCoverIdByAddressAndIndex(uint ind) constant returns(uint coverId)
     {
          qd1 = quotationData(quotationDataAddress);
         coverId = qd1.getCoverIdByAddressAndIndex(ind , msg.sender);
     }
+
+    /// @dev Changes the time (in seconds) after which a quote expires.
+    /// @param time new Expiration time (in seconds)
     function changeQuoteExpireTime(uint time) onlyOwner
     {
          qd1 = quotationData(quotationDataAddress);
@@ -166,11 +220,13 @@ contract quotation2{
         uint quoteLength = qd1.getQuoteLength();
         for(uint i=qd1.pendingQuoteStart();i<quoteLength;i++)
         {
+            //Expire a quote, in case quote creation date+new expiry time<current timestamp
             if(qd1.getQuotationDateAdd(i) +time1 <now)
             {
                  q1=quotation(quotationAddress);
-                q1.expireQuotation(i);
+                    q1.expireQuotation(i);
             }
+            //Creates an oraclize call to expire the quote as per the new expiry time
             else{
                 uint timeLeft = qd1.getQuotationDateAdd(i) + qd1.getQuoteExpireTime() -now;
                 p1.closeQuotationOraclise(i , timeLeft);
@@ -178,7 +234,7 @@ contract quotation2{
         }
     }
    
-    
+     /// @dev Updates the pending quotation start variable, which is the lowest quotation id with "NEW" or "partiallyFunded" status.
     function changePendingQuoteStart()
     {
          qd1 = quotationData(quotationDataAddress);
@@ -194,6 +250,10 @@ contract quotation2{
         }
         qd1.updatePendingQuoteStart(currPendingQStart);
     }
+
+    /// @dev Checks if a quotation should get expired or not.
+    /// @param id Quotation Index.
+    /// @return expire 1 if the Quotation's should be expired, 0 otherwise.
     function checkQuoteExpired(uint id) constant returns (uint expire)
     {
          qd1 = quotationData(quotationDataAddress);
@@ -203,6 +263,12 @@ contract quotation2{
         else
             expire=0;
     }
+
+
+    /// @dev Expires a cover after a set period of time. 
+    /// @dev Changes the status of the Cover and reduces the current sum assured of all areas in which the quotation lies
+    /// @dev Unlocks the CN tokens of the cover. Updates the Total Sum Assured value.
+    /// @param coverid Cover Id.
     function expireCover(uint coverid) onlyInternal
     {
         qd1 = quotationData(quotationDataAddress);
@@ -220,14 +286,20 @@ contract quotation2{
         }
         
     }
+
+    /// @dev Calculates the Premium.
+    /// @param sumAssured Quotation's Sum Assured
+    /// @param CP Quotation's Cover Period 
+    /// @param risk Risk Cost fetched from the external oracle
+    /// @return premium Premium Calculated for a quote
     function calPremium(uint sumAssured , uint CP ,uint risk )  constant returns(uint premium) 
     {
         qd1 = quotationData(quotationDataAddress);
         uint minDays = qd1.getMinDays();
-        uint PM = qd1.getPM();
-        uint STL = qd1.getSTL();
-        uint STLP = qd1.getSTLP();
-        uint a=CP-minDays;
+        uint PM = qd1.getPM();   //Profit Margin
+        uint STL = qd1.getSTL(); // Short Term Load
+        uint STLP = qd1.getSTLP(); // Short Term Load period
+        uint a=CP-minDays; 
         if(STLP<a)
             a=STLP;
         a=a*a;
@@ -242,6 +314,16 @@ contract quotation2{
         premium=result*1000000000000000;
     }
 
+
+    /// @dev Provides the information of Quotation and Cover for a  given Cover Id.
+    /// @param coverId Cover Id.
+    /// @return claimCount number of claims submitted against a given cover.
+    /// @return lockedTokens number of tokens locked against a cover.
+    /// @return validity timestamp till which cover is valid.
+    /// @return lat Latitude of quotation
+    /// @return long Longitude of quotation
+    /// @return curr Currency in which quotation is assured.
+    /// @return sum Sum Assured of quotation.
     function getCoverAndQuoteDetails(uint coverId) constant returns(uint claimCount , uint lockedTokens, uint validity ,bytes16 lat , bytes16 long , bytes16 curr , uint sum)
     {
         qd1 = quotationData(quotationDataAddress);
@@ -256,6 +338,9 @@ contract quotation2{
         
     }
 
+    /// @dev Checks if a cover should get expired/closed or not.
+    /// @param coverid Cover Index.
+    /// @return expire 1 if the Cover's time has expired, 0 otherwise.
     function checkCoverExpired(uint coverid) constant returns (uint expire)
     {
          qd1 = quotationData(quotationDataAddress);
@@ -265,6 +350,10 @@ contract quotation2{
         else
             expire=0;
     }
+
+    /// @dev Updates the Sum Assured Amount of all the Areas in which a quotation lies.
+    /// @param id Quotation id
+    /// @param amount that will get subtracted from all the Areas' Current Sum Assured Amount that comes under a quotation.
     function removeSAFromAreaCSA(uint id , uint amount)
     {
         ms1=master(masterAddress);
@@ -280,6 +369,8 @@ contract quotation2{
     }
 
     
+    /// @dev Decreases the current sum assured of the areas in which the quotation lies.
+    /// @param qid Quotation Id
     function changeCSAAfterPayoutOrExpire(uint qid)
     {
         ms1=master(masterAddress);
@@ -288,6 +379,10 @@ contract quotation2{
         removeSAFromAreaCSA(qid,qd1.getQuotationSumAssured(qid));
     }    
 
+    /// @dev Creates a new Quotation
+    /// @param arr1 arr1=[productId(Insurance product),sumAssured,coverPeriod(in days)]
+    /// @param arr2 arr2=[currencyCode,Latitude,Longitude]
+    /// @param area area=[areaids in which the quotation lies]
     function addQuote(uint[] arr1 , bytes16[] arr2 ,uint32[] area ,int[] latlong) {
         qd1 = quotationData(quotationDataAddress);
         m1=MCR(mcrAddress);
@@ -316,6 +411,7 @@ contract quotation2{
             
             while(k1 > 0)
             {
+                // Add Sum assured amount in all the areas that comes under a quotation.
                 qd1.addAreaInQuotation(currentQuoteLen,area[areaIndex]);
                 qd1.addCSAFromArea(area[areaIndex],arr2[j+0],arr1[i+1]);
                 areaIndex++;
@@ -326,28 +422,6 @@ contract quotation2{
         }
     }
 
-    // function strConcat(string _a, string _b, string _c, string _d, string _e) internal returns (string)
-    // {
-    // bytes memory _ba = bytes(_a);
-    // bytes memory _bb = bytes(_b);
-    // bytes memory _bc = bytes(_c);
-    // bytes memory _bd = bytes(_d);
-    // bytes memory _be = bytes(_e);
-    // string memory abcde = new string(_ba.length + _bb.length + _bc.length + _bd.length + _be.length);
-    // bytes memory babcde = bytes(abcde);
-    // uint k = 0;
-    // for (uint i = 0; i < _ba.length; i++) babcde[k++] = _ba[i];
-    // for (i = 0; i < _bb.length; i++) babcde[k++] = _bb[i];
-    // for (i = 0; i < _bc.length; i++) babcde[k++] = _bc[i];
-    // for (i = 0; i < _bd.length; i++) babcde[k++] = _bd[i];
-    // for (i = 0; i < _be.length; i++) babcde[k++] = _be[i];
-    // return string(babcde);
-    // }
-
-    // function callQuoteOraclize(bytes16 lat , bytes16 long , uint quoteid) constant returns(string res)
-    // {
-    //    return strConcat("http://43.242.214.177/nexusmutual-api/api/pricing/getEarthquakeRisk/",bytes16ToString(lat),"/",bytes16ToString(long),"");
-    // }
-
+   
     
 }

@@ -115,34 +115,43 @@ contract pool2 {
     {
         quoteAddress = _to;
     }
+
+    /// @dev Handles the Callback of the Oraclize Query. Callback could be of type "quote", "quotation", "cover", "claim" etc.
+    /// @param myid Oraclize Query ID identifying the query for which the result is being received
+    /// @param res Result fetched by the external oracle.
     function delegateCallBack(bytes32 myid, string res)
     {
          pd1 = poolData1(poolDataAddress);
        
+       // If callback is of type "quote", then result contains the risk factor based on which premimum of quotation is calculated.
          if(pd1.getApiIdTypeOf(myid) =="quote")
         {
             q1=quotation(quoteAddress);
-            uint id = pd1.getIdOfApiId(myid);
+            uint id = pd1.getIdOfApiId(myid);  // Quotation id.
             q1.changePremium(id , res);  
             
-        }   
+        }  
+        // If callback is of type "quotation", then Quotation id associated with the myid is checked for expiry.
         else if(pd1.getApiIdTypeOf(myid) =="quotation")
         {
             q1=quotation(quoteAddress);
-            q1.expireQuotation(pd1.getIdOfApiId(myid));
+            q1.expireQuotation(pd1.getIdOfApiId(myid)); 
 
         }
+        // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
         else if(pd1.getApiIdTypeOf(myid) =="cover")
         {
             q2=quotation2(quotation2Address);
             q2.expireCover(pd1.getIdOfApiId(myid));
         }
+         // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
         else if(pd1.getApiIdTypeOf(myid) =="claim")
         {
             cr1=claims_Reward(claimRewardAddress);
             cr1.changeClaimStatus(pd1.getIdOfApiId(myid));
 
         }
+        // If callback is of type "proposal", then proposal id associated with the myid is checked for vote closure.
         else if(pd1.getApiIdTypeOf(myid) =="proposal")
         {
             g1=governance(governanceAddress);
@@ -153,6 +162,7 @@ contract pool2 {
             
         }
     }
+    /// @dev Transfers back the given amount to the owner.
     function transferBackEther(uint256 amount) onlyOwner  
     {
         amount = amount * 10000000000;  
@@ -160,9 +170,13 @@ contract pool2 {
         p1=pool(poolAddress);
         bool succ = p1.transferEther(amount , msg.sender);   
         t1=NXMToken(tokenAddress);
+        /// Subtracts the transferred amount from the Pool Fund.
         t1.removeFromPoolFund("ETH",amount);
        
     }
+    /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
+    /// @param valueETH Tokens Purchasing Amount in ETH. 
+    /// @param curr Currency Name.
     function getCurrTokensFromFaucet(uint valueETH , bytes16 curr) 
     {
         g1 = governance(governanceAddress);
@@ -172,7 +186,12 @@ contract pool2 {
         p1=pool(poolAddress);
         p1.getCurrencyTokensFromFaucet(valueWEI,curr);
     }
-    function  sendClaimPayout(uint coverid , uint claimid) onlyInternal  returns(bool succ)
+
+    ///  @dev Pays out the sum assured in case a claim is accepted
+    /// @param coverid Cover Id.
+    /// @param claimid Claim Id.
+    /// @return succ true if payout is successful, false otherwise.
+    function sendClaimPayout(uint coverid , uint claimid) onlyInternal  returns(bool succ)
     {
         q1=quotation(quoteAddress);
         q2=quotation2(quotation2Address);
@@ -184,10 +203,12 @@ contract pool2 {
         bytes16 curr = q1.getCurrencyOfCover(coverid);
         uint balance;
         uint quoteid;
+        //Payout in Ethers in case currency of quotation is ETH
         if(curr=="ETH")
         {
             sumAssured = sumAssured*1000000000000000000; 
             balance = p1.getEtherPoolBalance();
+            //Check if pool has enough ETH balance
             if(balance >= sumAssured)
             {
                 succ = p1.transferEther(sumAssured ,_to);   
@@ -202,11 +223,13 @@ contract pool2 {
                 succ=false;
             }
         }
+        //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
         else
         {
             f1=fiatFaucet(fiatFaucetAddress);
             sumAssured = sumAssured * 1000000000000000000;
             balance = f1.getBalance(poolAddress , curr);
+            //Check if pool has enough fiat crypto balance
             if(balance >= sumAssured)
             {
                 f1.payoutTransferFromPool(_to , curr , sumAssured);

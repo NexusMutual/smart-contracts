@@ -118,7 +118,7 @@ contract master  {
         require(isOwner(msg.sender) == 1);
         _; 
     }
-    
+    /// @dev Constructor
     function masterCon(){
         owner=msg.sender;
         contracts_active[masterAddress]=0;
@@ -129,11 +129,11 @@ contract master  {
     }
 
    
-   
+   /// @dev Changes all reference contract addresses in master
     function changeAddressinMaster(uint version) onlyInternal
     {
          ms3=master3(allContractVersions[version][25].contractAddress);
-       ms3.changeAllAddress1(version);
+         ms3.changeAllAddress1(version);
         ms3.changeAllAddress2(version);
         quoteDataAddress = allContractVersions[version][1].contractAddress;
         tokenDataAddress = allContractVersions[version][2].contractAddress;
@@ -161,6 +161,7 @@ contract master  {
         MCRAddress =allContractVersions[version][24].contractAddress;
         master3Address= allContractVersions[version][25].contractAddress;
     }
+    /// @dev Links all contracts to master.sol by passing address of Master contract to the functions of other contracts.
     function changeMasterAddress(address _add) onlyOwner
     {
         
@@ -231,6 +232,7 @@ contract master  {
         ms3.changeMasterAddress(_add);  
 
     }
+    /// @dev Link contracts to one another.
    function changeOtherAddress(uint version) onlyInternal
    {   
         q1=quotation(quotationAddress);       
@@ -361,7 +363,7 @@ contract master  {
         m2.changeClaimDataAddress(claimDataAddress);
         m2.changeMCRAddress(MCRAddress);   
    }
-   
+    /// @dev Updates the version of contracts and calls the oraclize query to update UI.
     function switchToRecentVersion() onlyInternal
     {
         uint version = versionLength-1;
@@ -371,16 +373,26 @@ contract master  {
         changeAddressinMaster(version);
         changeOtherAddress(version);
     }
-  
+    /// @dev Stores the date when version of contracts get switched.
+    /// @param _date Current date stamp.
+    /// @param vno Active version number to which contracts have been switched.
     function addInContractChangeDate(uint _date , uint vno) internal
     {
         contractChangeDate.push(changeVersion(_date,vno));
     }
-    
+    /// @dev Adds Contract's name  and its ethereum address in a given version.
+    /// @param vno Version Number.
+    /// @param name Contract's Name.
+    /// @param _add Contract's address.
     function addContractDetails(uint vno,bytes16 name,address _add) 
     {
         allContractVersions[vno].push(contractDetails(name,_add));        
     }
+    /// @dev Deactivates address of a contract from last version.
+    /// Sets value 0 for last version of contract address signifying that contract of last version is no longer active.
+    /// Sets value 1 signifying that contract of recent version is active.
+    /// @param version Recent version number.
+    /// @param index Index Number of contract whose address will be removed.
     function addRemoveAddress(uint version,uint index) 
     {
         uint version_old=0;
@@ -390,12 +402,11 @@ contract master  {
         contracts_active[allContractVersions[version][index].contractAddress]=1;
     }
   
-   
+   /// @dev Sets the length of version.
     function setVersionLength(uint len) 
     {
         versionLength = len;
     }
-   
     function isInternal(address _add) constant returns(uint check)
     {
         check=0;

@@ -15,7 +15,7 @@
 
 
 pragma solidity ^0.4.8;
-//import "./oraclizeAPI.sol";
+import "./oraclizeAPI.sol";
 
 import "./quotation.sol";
 import "./NXMToken.sol";
@@ -28,7 +28,7 @@ import "./quotation2.sol";
 import "./master.sol";
 
 import "./pool2.sol";
-import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
+//import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
 contract pool is usingOraclize{
     master ms1;
     address masterAddress;
@@ -100,6 +100,11 @@ contract pool is usingOraclize{
         pool2Address = _add;
        
     }
+
+    /// @dev Save the details of the Oraclize API.
+    /// @param myid Id return by the oraclize query.
+    /// @param _typeof type of the query for which oraclize call is made.
+    /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetails(bytes32 myid,bytes16 _typeof,uint id) internal
     {
         pd1 = poolData1(poolDataAddress);
@@ -107,7 +112,10 @@ contract pool is usingOraclize{
         pd1.addInAllApiCall(myid);
 
     }
-
+    
+    /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
+    /// @param id Claim Id to be closed
+    /// @param time Time (in seconds) after which claims assessment voting needs to be closed
     function closeClaimsOraclise(uint id , uint time) onlyInternal
     {
         
@@ -115,6 +123,9 @@ contract pool is usingOraclize{
          saveApiDetails(myid1,"claim",id);
             
     }
+    /// @dev Calls Oraclize Query to close a given Proposal after a given period of time.
+    /// @param id Proposal Id to be closed
+    /// @param time Time (in seconds) after which proposal voting needs to be closed
     function closeProposalOraclise(uint id , uint time) onlyInternal
     {
        
@@ -122,6 +133,9 @@ contract pool is usingOraclize{
 		saveApiDetails(myid2,"proposal",id);
        
     }
+    /// @dev Calls Oraclize Query to expire a given Quotation after a given period of time.
+    /// @param id Quote Id to be expired
+    /// @param time Time (in seconds) after which the quote should be expired
     function closeQuotationOraclise(uint id , uint time) onlyInternal
     {
       
@@ -129,6 +143,9 @@ contract pool is usingOraclize{
 		saveApiDetails(myid3,"quotation",id);
         
     }
+    /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
+    /// @param id Cover Id to be expired
+    /// @param time Time (in seconds) after which the cover should be expired
     function closeCoverOraclise(uint id , uint time) onlyInternal
     {
         
@@ -136,12 +153,14 @@ contract pool is usingOraclize{
 		saveApiDetails(myid4,"cover",id);
       
     }
+    /// @dev Calls the Oraclize Query to update the version of the contracts.    
     function versionOraclise(uint version) onlyInternal
     {
         bytes32 myid5 = oraclize_query("URL","http://a1.nexusmutual.io/api/mcr/setlatest/P");
 		saveApiDetails(myid5,"version",version);
     }
-
+    /// @dev Calls the Oraclize Query to initiate MCR calculation.
+    /// @param time Time (in seconds) after which the next MCR calculation should be initiated
     function MCROraclise(uint time) onlyInternal
     {
         
@@ -149,6 +168,7 @@ contract pool is usingOraclize{
 		saveApiDetails(myid4,"MCR",0);
        
     }
+    /// @dev Handles callback of external oracle query. 
     function __callback(bytes32 myid, string res) {
           ms1=master(masterAddress);
       
@@ -182,30 +202,39 @@ contract pool is usingOraclize{
     {
         claimAddress = _to;
     }
+
+    /// @dev Begins the funding of the Quotations.
+    /// @param fundAmt fund amounts for each selected quotation.
+    /// @param quoteId multiple quotations ID that will get funded.
     function fundQuoteBegin(uint[] fundAmt , uint[] quoteId ) payable {
 
         q1=quotation(quoteAddress);
         q1.fundQuote(fundAmt ,quoteId , msg.sender);
     }
 
+
+    /// @dev User can buy the NXMToken equivalent to the amount paid by the user.
     function buyTokenBegin() payable {
 
         t1=NXMToken(tokenAddress);
         uint amount= msg.value;
         t1.buyToken(amount , msg.sender);
     }
-    
     function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa)
     {
         Payout(_add,type1,id,sa);
     }
 
+    /// @dev Sends a given Ether amount to a given address.
+    /// @param amount amount (in wei) to send.
+    /// @param _add Receiver's address.
+    /// @return succ True if transfer is a success, otherwise False.
     function transferEther(uint amount , address _add) onlyInternal constant returns(bool succ)
     {
         succ = _add.send(amount);
     }
 
-    
+    /// @dev Converts byte16 data type into string type. 
     function bytes16ToString(bytes16 x)  constant returns (string) {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
@@ -222,6 +251,7 @@ contract pool is usingOraclize{
         }
         return string(bytesStringTrimmed);
     }
+    /// @dev Payable method for allocating some amount to the Pool. 
     function takeEthersOnly() payable
     {
         t1=NXMToken(tokenAddress);
@@ -229,24 +259,33 @@ contract pool is usingOraclize{
         t1.addToPoolFund("ETH",amount);
     }
 
-      
+    /// @dev Oraclize call to an external oracle for fetching the risk cost for a given latitude and longitude
+    /// @param  lat Latitude of quotation
+    /// @param  long Longitude of quotation
+    /// @param  quoteid Quotation Id for which risk cost needs to be fetched
     function callQuotationOracalise(bytes16 lat , bytes16 long , uint quoteid) onlyInternal
     {
         bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getEarthquakeRisk/",bytes16ToString(lat),"/",bytes16ToString(long),""),1500000); 
         saveApiDetails(apiid,"quote",quoteid);
     }
-    
+    /// @dev Allocates currency tokens to the pool fund.
+    /// @param valueWEI  Purchasing Amount(in wei). 
+    /// @param curr Currency's Name.
     function getCurrencyTokensFromFaucet(uint valueWEI , bytes16 curr) onlyInternal
     {
         f1=fiatFaucet(fiatFaucetAddress);
         f1.transferToken.value(valueWEI)(curr);
     }
-
+    /// @dev Gets the Balance of the Pool in wei.
     function getEtherPoolBalance()constant returns(uint bal)
     {
         bal = this.balance;
     }
-
+    /// @dev Sends the amount requested by a given proposal to an address, after the Proposal gets passed.
+    /// @dev Used for proposals categorized under Engage in external services   
+    /// @param _to Receiver's address.
+    /// @param amount Sending amount.
+    /// @param id Proposal Id.
     function proposalExtServicesPayout(address _to , uint amount , uint id) onlyInternal
     {
         g1 = governance(governanceAddress);
@@ -267,6 +306,10 @@ contract pool is usingOraclize{
            }
         }
     }
+    /// @dev Sends a surplus distribution amount to an address.
+    /// @param amount Amount to be sent.
+    /// @param _add receiver's address.
+    /// @return success true if payout is successful, false otherwise.
     function SDPayout(uint amount , address _add) onlyInternal  returns(bool success)
     {
         success = _add.send(amount);

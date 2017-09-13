@@ -99,6 +99,8 @@ contract claims2{
         c1 = claims(claimsAddress);
     }
 
+    /// @dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
+    /// @param coverid Cover Id.
     function submitClaim(uint coverid) 
     {
         
@@ -124,6 +126,11 @@ contract claims2{
         p1.closeClaimsOraclise(len,cd1.maxtime());
         
     }
+    /// @dev Members who have tokens locked under Claims Assessment can assess and Vote As a CLAIM ASSESSOR for a given claim id.
+    /// @param claimid  claim id. 
+    /// @param verdict 1 for Accept,-1 for Deny.
+    /// @param tokens number of CAtokens  a voter wants to use for the claim assessment. 
+    /// These tokens are booked for a specified period for time and hence cannot be used to cst another vote for the specified period
     function submitCAVote(uint claimid,int verdict,uint tokens)
     {  
         cd1=claimsData(claimsDataAddress);
@@ -151,7 +158,9 @@ contract claims2{
         }
 
     }
-
+    /// @dev Escalates a specified claim id. If a claim is denied by the Claim Assessors, the owner of that claim can Escalate the Claim to a member vote.
+    /// @param coverId Cover Id associated with claim to be escalated.
+    /// @param claimId Claim Id.
     function escalateClaim(uint coverId , uint claimId)
     {  
         tc2 = NXMToken2(token2Address);
@@ -171,6 +180,11 @@ contract claims2{
         p1=pool(poolAddress);
         p1.closeClaimsOraclise(claimId,cd1.maxtime());
     } 
+
+    /// @dev Submits a member vote for assessing a claim. Tokens other than those locked under Claims Assessment can be used to cast a vote for a given claim id.
+    /// @param claimid Selected claim id. 
+    /// @param verdict 1 for Accept,-1 for Deny.
+    /// @param tokens Number of tokens used to case a vote
     function submitMemberVote(uint claimid,int verdict,uint tokens)
     {
          cd1=claimsData(claimsDataAddress);

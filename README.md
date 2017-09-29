@@ -14,6 +14,7 @@ Token contracts maintain details of NXM Members and the NXM Tokens held by each 
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/NXMToken3.sol" style="text-decoration: none;">NXMToken3.sol</a></li>
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/NXMTokenData.sol" style="text-decoration: none;">NXMTokenData.sol</a></li>
 </ol>
+<p>Note: The smart contracts of this module had to be split in multiple smart contracts to cater to the Ethereum Gas limits. The above mentioned contracts need to be seen in conjunction</p>   
 <p><u>Some important functions</u></p>
 <ol>
 <li>lockCN : Tokens are locked against a cover note, at the time of cover generation. These can be used to submit a claim and unused tokens can be unlocked for general use once the cover expires.</li>
@@ -31,6 +32,7 @@ Quotation contracts contain all logic associated with creating and expiring of q
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/quotation2.sol" style="text-decoration: none;">quotation2.sol</a></li>
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/quotationData.sol" style="text-decoration: none;">quotationData.sol</a></li>
 </ol>
+<p>Note: The smart contracts of this module had to be split in multiple smart contracts to cater to the Ethereum Gas limits. The above mentioned contracts need to be seen in conjunction</p>
 <p><u>Some important functions</u></p>
 <ol>
 <li>addQuote : Creates a new Quotation.</li>
@@ -48,6 +50,7 @@ Claim contracts contain functions for submitting a claim against a cover note or
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/claims2.sol" style="text-decoration: none;">claims2.sol</a></li>
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/claimsData.sol" style="text-decoration: none;">claimsData.sol</a></li>
 </ol>
+<p>Note: The smart contracts of this module had to be split in multiple smart contracts to cater to the Ethereum Gas limits. The above mentioned contracts need to be seen in conjunction</p>
 <p><u>Some important functions</u></p>
 <ol>
 <li>submitClaim: Submits a claim against a cover note.</li>
@@ -78,6 +81,7 @@ Pool contracts contain all logic associated with calling External oracles throug
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/pool2.sol" style="text-decoration: none;">pool2.sol</a></li>
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/poolData1.sol" style="text-decoration: none;">poolData1.sol</a></li>
 </ol>
+<p>Note: The smart contracts of this module had to be split in multiple smart contracts to cater to the Ethereum Gas limits. The above mentioned contracts need to be seen in conjunction</p>
 <p><u>Some important functions</u></p>
 <ol>
 <li>closeProposalOraclise: Closes Proposal’s voting.
@@ -111,6 +115,7 @@ Governance contracts contain all logic associated with creating, editing, catego
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/governance2.sol" style="text-decoration: none;">governance2.sol</a></li>
 <li><a href="https://github.com/support-somish/NexusMutual/blob/master/governanceData.sol" style="text-decoration: none;">governanceData.sol</a></li>
 </ol>
+<p>Note: The smart contracts of this module had to be split in multiple smart contracts to cater to the Ethereum Gas limits. The above mentioned contracts need to be seen in conjunction</p>
 <p><u>Some important functions</u></p>
 <ol>
 <li>addProposal : Creates a New Proposal</li>
@@ -122,6 +127,3 @@ Governance contracts contain all logic associated with creating, editing, catego
  <img src="https://nexusmutual.io/img/readme/Governance.png" style="height: 300px;">
 
 </p>
-
-
-

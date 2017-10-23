@@ -22,9 +22,8 @@ import "./NXMTokenData.sol";
 import "./master.sol";
 import "./MCR.sol";
 import "./pool.sol";
-pragma solidity ^0.4.8;
-
-contract NXMToken3 {
+contract NXMToken3 
+{
 
     master ms1;
     address masterAddress;
@@ -105,7 +104,7 @@ contract NXMToken3 {
     }
    
     /// @dev Extends validity period of a given number of tokens locked for claims assessment.
-    /// @param index  index of existing bond.
+    /// @param index  index of exisiting bond.
     /// @param _days number of days for which tokens will be extended.
     /// @param noOfTokens Number of tokens that will get extended. Should be less than or equal to the no.of tokens of selected bond.
     function extendCA(uint index , uint _days ,uint noOfTokens)
@@ -114,12 +113,12 @@ contract NXMToken3 {
         uint vUpto;
         uint amount;
         (vUpto,amount) = td1.getLockedCA_index(msg.sender,index);
-        if(amount < noOfTokens )throw;
+        if(vUpto < now || amount < noOfTokens )throw;
         td1.changeLockedCA_Index(msg.sender,index,amount-noOfTokens);
         td1.lockCA(msg.sender,vUpto + (_days* 1 days ),noOfTokens);
                
     }
-    /// @dev Unlocks tokens deposited against a cover. Changes the validity timestamp of deposit tokens.
+    /// @dev Unlocks tokens deposited against a cover.Changes the validity timestamp of deposit tokens.
     /// @dev In order to submit a claim,20% tokens are deposited by the owner. In case a claim is escalated, another 20% tokens are deposited.
     /// @param coverid Cover Id.
     /// @param all 0 in case we want only 1 undeposit against a cover,1 in order to undeposit all deposits against a cover

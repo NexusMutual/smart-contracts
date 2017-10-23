@@ -141,7 +141,7 @@ contract NXMTokenData {
     {
         weigh =SDMemberPayHistory[index][_add].amount;
     }
-    /// @dev Gets the minimum time (in seconds), after which a surplus distribution is made.
+    /// @dev Gets the minimum time (in milliseconds), after which a surplus distribution is made.
     function getsdDistributionTime() constant returns(uint _time)
     {
         _time = sdDistTime;
@@ -155,7 +155,7 @@ contract NXMTokenData {
     {
         SDHistory.push(SDidAndTime(value,_time,blockno,total));
     }
-    /// @dev Sets the minimum time (in seconds), after which a Surplus Distribution is made.
+    /// @dev Sets the minimum time (in milliseconds), after which a Surplus Distribution is made.
     function setSDDistributionTime(uint _time) onlyOwner
     {
         sdDistTime = _time;
@@ -170,7 +170,7 @@ contract NXMTokenData {
     /// @return index Surplus Distribution's Id.
     /// @return amount Amount distributed in this Distribution.
     /// @return date Date on which Surplus Distribution occurred.
-    /// @return totalAmount total amount that was distributed till the specified surplus distribution id.
+    /// @return totalAmount total amount that was  distributed till the specified surplus distribution id.
     function getSDDistDetailById(uint id) constant returns(uint index , uint amount, uint date , uint totalAmount)
     {
         index = id;
@@ -188,17 +188,17 @@ contract NXMTokenData {
     {
         datedone = SDHistory[SDHistory.length -1].time_done;
     }
-    /// @dev Gets the number of NXM Tokens that are allotted by the creator to the founders.
+    /// @dev Gets the number of NXM Tokens that are alloted by the creator to the founders.
     function getCurrentFounderTokens() constant returns(uint tokens) 
     {
         tokens = currentFounderTokens;
     }
-    /// @dev Gets the minimum time(in seconds) for which CA tokens should be locked, in order to participate in claims assessment.
+    /// @dev Gets the minimum time(in milliseconds) for which CA tokens should be locked, in order to participate in claims assessment.
     function getMinVoteLockPeriod() constant returns(uint period)
     {
         period = minVoteLockPeriod;
     }
-    /// @dev Sets the minimum time(in seconds) for which CA tokens should be locked, in order to be used in claims assessment.
+    /// @dev Sets the minimum time(in milliseconds) for which CA tokens should be locked, in order to be used in claims assessment.
     function changeMinVoteLockPeriod(uint period) onlyOwner
     {
         minVoteLockPeriod = period;
@@ -228,7 +228,7 @@ contract NXMTokenData {
     {
         bookTime = _time;
     }
-    /// @dev Gets the time period(in seconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
+    /// @dev Gets the time period(in milliseconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
     function getBookTime() constant returns(uint _time)
     {
         _time = bookTime;
@@ -338,14 +338,13 @@ contract NXMTokenData {
     {
         poolFundValue[curr] = val;
     }
-    /// @dev books the user's tokens for maintaining Assessor Velocity, i.e. once a token is used to cast a vote as a claims assessor, the same token cannot be used to cast another vote before a fixed period of time(in seconds)
+    /// @dev books the user's tokens for maintaining Assessor Velocity, i.e. once a token is used to cast a vote as a claims assessor, the same token cannot be used to cast another vote before a fixed period of time(in milliseconds)
     /// @param _of user's address.
-    /// @param timestamp Current date.
-    /// @param forTime time period upto which tokens will be locked.
     /// @param value number of tokens that will be locked for a period of time. 
-    function pushBookedCA(address _of ,uint timestamp , uint forTime , uint value) onlyInternal
+    function pushBookedCA(address _of ,uint value) onlyInternal
     {
-        bookedCA[_of].push(lockToken(timestamp + forTime , value));
+        //bookedCA[_of].push(lockToken(timestamp + forTime , value));
+        bookedCA[_of].push(lockToken(now + bookTime , value));
     }
     /// @dev Gets number of times a user has locked tokens for claim assessment.
     /// @param _of User's address.
@@ -526,16 +525,17 @@ contract NXMTokenData {
         }
     }  
     /// @dev Calculates the total number of tokens that are available for booking for Claim Assessment. 
-    function getAvailableCAToken(address _of) constant returns (uint sum)
-    {
-        sum=0;
-        for(uint i=0 ; i < lockedCA[_of].length ;i++ )
-        {
-            if(now + minVoteLockPeriod < lockedCA[_of][i].validUpto)
-                sum+=lockedCA[_of][i].amount;
-        }
-        sum=sum-getBookedCA(_of);
-    }  
+    // function getAvailableCAToken(address _of) constant returns (uint sum)
+    // {
+    //     sum=0;
+    //     for(uint i=0 ; i < lockedCA[_of].length ;i++ )
+    //     {
+    //         if(now + minVoteLockPeriod < lockedCA[_of][i].validUpto)
+    //             sum+=lockedCA[_of][i].amount;
+    //     }
+    //     sum=sum-getBookedCA(_of);
+    // }  
+    
     /// @dev Calculates the total number of tokens deposited in a cover by a user.
     /// @param coverId cover id.
     /// @param _of user's address.
@@ -580,10 +580,12 @@ contract NXMTokenData {
     /// @param _of User's address.
     /// @param _timestamp Validity of tokens.
     /// @param amount number of tokens lock.
-    function pushInLockedCN(address _of , uint _timestamp , uint amount) onlyInternal
-    {
-        lockedCN[_of].push(lockToken(_timestamp,amount));
-    }
+
+    // function pushInLockedCN(address _of , uint _timestamp , uint amount) onlyInternal
+    // {
+    //     lockedCN[_of].push(lockToken(_timestamp,amount));
+    // }
+    
     /// @dev Adds details of tokens that are locked against a given cover by a user.
     /// @param _of User's address.
     /// @param coverid Cover Id.
@@ -591,6 +593,7 @@ contract NXMTokenData {
     /// @param amount number of tokens lock.
     function pushInLockedCN_Cover(address _of ,uint coverid , uint _timestamp , uint amount) onlyInternal
     {
+        lockedCN[_of].push(lockToken(_timestamp,amount));
         lockedCN_Cover[_of][coverid]=lockToken(_timestamp,amount);
     }
     /// @dev Adds details of tokens that are burned against a given claim of a user.

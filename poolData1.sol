@@ -120,7 +120,7 @@ contract poolData1{
     /// @dev Saves the details of the Oraclize API.
     /// @param myid Id return by the oraclize query.
     /// @param _typeof type of the query for which oraclize call is made.
-    /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made
+    /// @param id ID of the proposal,quote,cover etc. for which oraclize call is made
     function saveApiDetails(bytes32 myid,bytes16 _typeof,uint id) onlyInternal
     {
         allAPIid[myid] = apiId(_typeof,"",id);
@@ -148,7 +148,7 @@ contract poolData1{
     }
     /// @dev Get Details of Oraclize API when given Oraclize Id.
     /// @param myid ID return by the oraclize query.
-    /// @return _typeof type of the query for which oraclize call is made.("proposal","quote","quotation" etc.)
+    /// @return _typeof ype of the query for which oraclize call is made.("proposal","quote","quotation" etc.)
     function getApiCallDetails(bytes32 myid)constant returns(bytes16 _typeof,bytes16 curr,uint id)
     {
         return(allAPIid[myid].type_of,allAPIid[myid].currency,allAPIid[myid].id);

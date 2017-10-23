@@ -101,7 +101,7 @@ contract claims2{
 
     /// @dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
     /// @param coverid Cover Id.
-    function submitClaim(uint coverid) 
+   function submitClaim(uint coverid) 
     {
         
         q1=quotation(quotationAddress);
@@ -129,7 +129,7 @@ contract claims2{
     /// @dev Members who have tokens locked under Claims Assessment can assess and Vote As a CLAIM ASSESSOR for a given claim id.
     /// @param claimid  claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
-    /// @param tokens number of CAtokens  a voter wants to use for the claim assessment. 
+    /// @param tokens number of CAtokens a voter wants to use for the claim assessment. 
     /// These tokens are booked for a specified period for time and hence cannot be used to cst another vote for the specified period
     function submitCAVote(uint claimid,int verdict,uint tokens)
     {  
@@ -201,8 +201,6 @@ contract claims2{
         cd1.setvote_length(vote_length+1);
       
         cd1.setclaim_tokensMV(claimid,verdict,tokens);
-        
-        
 
         int close = c1.checkVoteClosing(claimid);
         if(close==1)

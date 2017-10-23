@@ -149,12 +149,12 @@ contract governanceData {
     {
         quorumPerc = perc;
     }
-    /// @dev Changes the time (in seconds) after which proposal voting is closed.
+    /// @dev Changes the time(in milliseconds) after which proposal voting is closed.
     function changeClosingTime(uint _time) onlyInternal
     {
         closingTime = _time;   
     }
-    /// @dev Gets the time (in seconds) after which proposal voting is closed.
+    /// @dev Gets the time(in milliseconds) after which proposal voting is closed.
     function getClosingTime()constant returns(uint time)
     {
         time = closingTime;
@@ -180,9 +180,9 @@ contract governanceData {
         dateupd = allPro[id].date_upd;
     }
      /// @dev Sets the timestamp of a given proposal at which Proposal's details has been updated/changed.
-    function updateProposalDateUpd(uint id , uint _date) onlyInternal
+    function updateProposalDateUpd(uint id) onlyInternal
     {
-        allPro[id].date_upd =_date;
+        allPro[id].date_upd =now;
     }
     /// @dev Sets the verdict of a given Proposal Id. 1 if the given proposal has been accepted ,-1 if declined. 
     function changeProposalFinalVerdict(uint id ,int verdict) onlyInternal
@@ -224,7 +224,7 @@ contract governanceData {
     {
         vers = allPro[id].version;
     }
-    /// @dev Gets the date of creation of a given proposal.
+    /// @dev Gets the date of creation  of a given proposal.
     function getProposalDateAdd(uint id) constant returns(uint _dateadd)
     {
         _dateadd = allPro[id].date_add;
@@ -318,10 +318,9 @@ contract governanceData {
     /// @dev Stores the Status information of a given proposal.
     /// @param id Proposal Id.
     /// @param status Status number of the proposal.
-    /// @param time Current timestamp. 
-    function pushInProposalStatus(uint id , uint status,uint time) onlyInternal
+    function pushInProposalStatus(uint id , uint status) onlyInternal
     {
-        proposalStatus[id].push(Status(status,time));
+        proposalStatus[id].push(Status(status,now));
     }
     /// @dev Provides the information of a Proposal when given the id and address.
     /// @param id Proposal Id.
@@ -455,7 +454,7 @@ contract governanceData {
     {
         return(allVotes[voteid].voter,allVotes[voteid].proposalId,allVotes[voteid].verdict,allVotes[voteid].date_submit);
     }
-    /// @dev Checks if a proposal has been categorized or not.
+    /// @dev Checks if a proposal has been categorised or not.
     /// @param proposalid Proposal id.
     /// @return res 1 if categorised, 0 otherwise.
     function isCategorised(uint proposalid) constant returns(uint res)
@@ -488,7 +487,7 @@ contract governanceData {
         member_status[_add].push(Status(status,time));
     }
     /// @dev Gets the Details of a given Proposal.
-    /// @param id proposal ID.
+    /// @param id proposaL ID.
     /// @return categorizedBy address of the Advisory Board member who has done categorization of proposal.
     /// @return address_effect Address of user that will be effected with proposal's decision.
     /// @return value Amount, i.e. number of tokens to be burned or amount to be transferred in case of external services 

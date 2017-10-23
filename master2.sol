@@ -134,7 +134,7 @@ contract masters2 {
             c1.pushStatus("Claim Accepted No Payout ");
             c1.pushStatus("Claim Accepted Payout Done");
     }
-    /// @dev Adds statuses and categories master for a proposal.
+    /// @dev Adds  statuses and categories master for a proposal.
     function changeStatusAndCAtegory() onlyOwner
     {
         g1=governance(governanceAddress);
@@ -164,11 +164,11 @@ contract masters2 {
             g1.addStatus("Proposal Accepted, Insufficient Funds");
     }
      
-    /// @dev Changes the minimum, maximum claims assessment voting, escalation, payout retry times 
-    /// @param _mintime Minimum time (in seconds) for which claim assessment voting is open
-    /// @param _maxtime Maximum time (in seconds) for which claim assessment voting is open
-    /// @param escaltime Time (in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time (in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    /// @dev Changes the  minimum,maximum claims assessment voting,escalation,payout retry times 
+    /// @param _mintime Minimum time(in milliseconds) for which claim assessment voting is open
+    /// @param _maxtime Maximum time(in milliseconds) for which claim assessment voting is open
+    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
     function changeTimes(uint _mintime,uint _maxtime,uint escaltime,uint payouttime) onlyOwner
     {
         uint timeLeft;

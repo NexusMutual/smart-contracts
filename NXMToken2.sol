@@ -112,8 +112,8 @@ contract NXMToken2{
         // Number of tokens to be locked=Tokens worth 5% premium
         amount = (premiumCalculated*50000000000000000)/m1.calculateTokenPrice(quoteCurr); 
        
-        bytes16 curr = quoteCurr;
-        td1.changeCurrencyTokens(curr , td1.getCurrencyTokens(curr) + amount);
+        //bytes16 curr = quoteCurr;
+        td1.changeCurrencyTokens(quoteCurr , td1.getCurrencyTokens(quoteCurr) + amount);
         
         if(td1.getBalanceOf(senderAddress) == 0)
             td1.incMemberCounter();
@@ -126,13 +126,13 @@ contract NXMToken2{
         }
         // Updates the number of Supply Tokens and Pool fund value of a currency.
         td1.changeTotalSupply(td1.getTotalSupply() + amount); 
-        uint ldays=quoteCoverPeriod;
-        uint ld=now+ ldays*1 days;
-        td1.pushInLockedCN(senderAddress,ld,amount);
+        //uint ldays=quoteCoverPeriod;
+        uint ld=now+ quoteCoverPeriod*1 days;
+        //td1.pushInLockedCN(senderAddress,ld,amount);
         td1.pushInLockedCN_Cover(senderAddress,quoteCoverId,ld,amount);
-        td1.changePoolFundValue(curr , td1.getPoolFundValue(curr) + premiumCalculated );
+        td1.changePoolFundValue(quoteCurr , td1.getPoolFundValue(quoteCurr) + premiumCalculated );
         t1=NXMToken(tokenAddress);
-        t1.callTransferEvent(0,senderAddress, amount); 
+        t1.callTransferEvent(0,senderAddress,amount); 
         
     }
 
@@ -324,9 +324,9 @@ contract NXMToken2{
     function distributeSurplusDistrubution() 
     {
         td1=NXMTokenData(tokenDataAddress);
-        t1=NXMToken(tokenAddress);
+        //t1=NXMToken(tokenAddress);
         p1=pool(poolAddress);
-         t3=NXMToken3(NXMToken3Address);
+        t3=NXMToken3(NXMToken3Address);
          // Recheck whether a surplus distribution should be made or not
          if(checkForSurplusDistrubution()==1)
          {

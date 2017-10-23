@@ -90,13 +90,13 @@ contract governance {
     }
     /// @dev Adds category details.
     /// @param cat Category name.
-    /// @param mvr Member vote Required/not, 1 if both members and advisory board members vote required, 0 if only advisory board voting is required  
-    /// @param maj Majority% required by this category to get the proposal passed. 
+    /// @param mvr Member vote Required 1 if both members and advisory board members vote required, 0 if only advisory board members vote required  
+    /// @param maj Majority required for this category to pass. 
     function addCategory(string cat,uint mvr,uint maj) onlyInternal
     {
         allCategory.push(category(cat,mvr,maj));
     }
-    /// @dev Checks if the Tokens of a given User for a given Claim Id has been burnt or not.
+    /// @dev Checks if the Tokens of a given User for given Claim Id has been burnt or not.
     /// @return check 1 if the tokens are burnt,0 otherwise. 
     function checkIfTokensAlreadyBurned(uint claimid , address voter) constant returns(uint check)
     {
@@ -113,11 +113,11 @@ contract governance {
         claimAd=claimAdd;
         poolAd=pooladd;
     }
-    /// @dev Gets Category details at a given index.
+    /// @dev Gets Category details of a given index.
     /// @param id Index value.
     /// @param cat Category name.
-    /// @param mvr Member vote Required/not, 1 if both members and advisory board members vote required, 0 if only advisory board voting is required  
-    /// @param perc Majority% required by this category to get the proposal passed. 
+    /// @param mvr Member vote Required 1 if both members and advisory board members vote required, 0 if only advisory board members vote required  
+    /// @param perc Majority required by this category to get passed. 
     function getCategory(uint index) constant returns ( uint id , string cat , uint mvr , uint perc)
     {
         cat = allCategory[index].name;
@@ -125,19 +125,19 @@ contract governance {
         perc = allCategory[index].majority;
         id=index;
     } 
-    /// @dev Changes the total number of members.
+    /// @dev Changes the number of total member.
     function changeTotalMember(uint num) onlyInternal
     {
         gd1=governanceData(governanceDataAddress);
         gd1.changeTotalMember(num);
     }
-    /// @dev Changes the Quorum Percentage required.
+    /// @dev Changes the Quorum Percentage number.
     function changeQuorumperc(uint perc) onlyOwner
     {
         gd1=governanceData(governanceDataAddress);
         gd1.changeQuorumperc(perc);
     }
-    /// @dev Changes the time (in seconds) after which voting for a proposal is closed.
+    /// @dev Changes the closing time of the vote.
     function changeClosingTime(uint _time) onlyOwner
     {
         gd1=governanceData(governanceDataAddress);
@@ -166,9 +166,9 @@ contract governance {
         len = gd1.getAllProLength();
     }
 
-    /// @dev Verifies whether a given address is an Advisory Board(AB) Member or not.
+    /// @dev Verifies whether a given address is a Advisory Board(AB) Member or not.
     /// @param add User address.
-    /// @return _AB 1 if the address is an AB member,0 otherwise.
+    /// @return _AB 1 if the address is AB member,0 otherwise.
     function isAB(address add) constant returns(uint _AB)
     {
         gd1=governanceData(governanceDataAddress);
@@ -183,10 +183,10 @@ contract governance {
         len = gd1.getAllProLengthFromNewStart();
     }
 
-    /// @dev Provides the information of a given Proposal id.
+    /// @dev Provides the information of a Proposal when given the id.
     /// @param id Proposal id.
     /// @return proposalId Proposal Id.
-    /// @return vote final decision, 1 if proposal has been accepted,-1 if proposal has been declined,0 pending voting decision.
+    /// @return vote final decision of voting, 1 if proposal has been accepted,-1 if proposal has been declined,0 pending voting decision.
     /// @return date timestamp at which proposal has been created.
     /// @return cat Category of proposal.
     /// @return stat Status of proposal.
@@ -206,16 +206,16 @@ contract governance {
     {
         gd1=governanceData(governanceDataAddress);
         if(gd1.getProposalOwner(id) != msg.sender || gd1.getProposalStatus(id)!=0) throw;
-        uint time= now;
-        gd1.pushInProposalStatus(id,1,time);
+        //uint time= now;
+        gd1.pushInProposalStatus(id,1);
         gd1.updateProposalStatus(id,1);
-        gd1.updateProposalDateUpd(id,time);
+        gd1.updateProposalDateUpd(id);
         p1=pool(poolAd);
         p1.closeProposalOraclise(id,gd1.getClosingTime());
 
     }
 
-    /// @dev Checks if voting on a proposal should be closed or not.
+    /// @dev Checks if voting time of a given proposal should be closed or not.
     /// @param id Proposal Id.
     /// @return close 1 if voting should be closed,0 in case voting should not be closed.
     function checkProposalVoteClosing(uint id) constant returns(uint close)
@@ -227,7 +227,7 @@ contract governance {
             close=0;
     }
    
-    /// @dev Closes the voting of a given proposal. Changes the status and verdict of the proposal by calculating the votes. 
+    /// @dev Closes the voting of a given proposal.Changes the status and verdict of the proposal by calculating the votes. 
     /// @param id Proposal id.
     function closeProposalVote(uint id)
     {
@@ -247,24 +247,24 @@ contract governance {
             if(gd1.getProposalStatus(id)==1)
             {
                 (accept,deny,,) = gd1.getProposalAllVotesCount(id);
-                /// if proposal accept% >=majority required% (by Advisory board)
+                /// if proposal accepted% >=majority % (by Advisory board)
                 if(accept*100/(accept+deny)>=maj)
-                {   /// If Member vote is required 
+                {   /// Member vote required 
                     if(mvr==1)
                     {
                         gd1.updateProposalStatus(id,2);
-                        gd1.pushInProposalStatus(id,2,now);
-                        gd1.updateProposalDateUpd(id,now);
+                        gd1.pushInProposalStatus(id,2);
+                        gd1.updateProposalDateUpd(id);
                         p1=pool(poolAd);
                         p1.closeProposalOraclise(id,gd1.getClosingTime());
                     }
-                    /// If Member vote is not required
+                    /// Member vote not required
                     else
                     {
                         gd1.updateProposalStatus(id,4);
-                        gd1.pushInProposalStatus(id,4,now);
+                        gd1.pushInProposalStatus(id,4);
                         gd1.changeProposalFinalVerdict(id,1);
-                        gd1.updateProposalDateUpd(id,now);
+                        gd1.updateProposalDateUpd(id);
                         if(category==2 || category==6 ||category==7)
                         {
                             actionAfterProposalPass(id , category);
@@ -275,21 +275,21 @@ contract governance {
                 else
                 {
                     gd1.updateProposalStatus(id,3);
-                    gd1.pushInProposalStatus(id,3,now);
+                    gd1.pushInProposalStatus(id,3);
                     gd1.changeProposalFinalVerdict(id,-1);
-                    gd1.updateProposalDateUpd(id,now);
+                    gd1.updateProposalDateUpd(id);
                 }
             }
             else if(gd1.getProposalStatus(id)==2)
             {
                 (,,accept,deny) = gd1.getProposalAllVotesCount(id);
-                /// If Member Vote Quorum not Achieved
+                /// when Member Vote Quorum not Achieved
                 if((accept+deny)*100/totalMember < gd1.getQuorumPerc())
                 {
                     gd1.updateProposalStatus(id,7);
                     gd1.changeProposalFinalVerdict(id,1);
-                    gd1.pushInProposalStatus(id,7,now);
-                    gd1.updateProposalDateUpd(id,now);
+                    gd1.pushInProposalStatus(id,7);
+                    gd1.updateProposalDateUpd(id);
                     if(category==2 || category==6 || category==7 || category==10)
                     {
                         actionAfterProposalPass(id , category);
@@ -300,8 +300,8 @@ contract governance {
                 {
                     gd1.updateProposalStatus(id,5);
                     gd1.changeProposalFinalVerdict(id,1);
-                    gd1.pushInProposalStatus(id,5,now);
-                    gd1.updateProposalDateUpd(id,now);
+                    gd1.pushInProposalStatus(id,5);
+                    gd1.updateProposalDateUpd(id);
                     if(category==2 || category==6 || category==7 || category==10)
                     {
                         actionAfterProposalPass(id , category);
@@ -312,8 +312,8 @@ contract governance {
                 {
                     gd1.updateProposalStatus(id,6);
                     gd1.changeProposalFinalVerdict(id,-1);
-                    gd1.pushInProposalStatus(id,6,now);
-                    gd1.updateProposalDateUpd(id,now);
+                    gd1.pushInProposalStatus(id,6);
+                    gd1.updateProposalDateUpd(id);
                 }
             }
         }
@@ -326,7 +326,6 @@ contract governance {
             else
                 break;
         }
-        
         if(j!=pendingProposalStart)
         {
             gd1.changePendingProposalStart(j);
@@ -334,7 +333,7 @@ contract governance {
         
     }
 
-    /// @dev When proposal gets accepted, different functions are performed on the basis of Proposal's category number. 
+    /// @dev When proposal gets accepted,different functions are performed on the basis of Proposal's category number. 
     function actionAfterProposalPass(uint propid , uint cat) internal
     {
         gd1=governanceData(governanceDataAddress);
@@ -382,10 +381,10 @@ contract governance {
         gd1=governanceData(governanceDataAddress);
         if(msg.sender == poolAd)
         {
-            uint time=now;
+            //uint time=now;
             gd1.updateProposalStatus(propid,8);
-            gd1.pushInProposalStatus(propid,8,time);
-            gd1.updateProposalDateUpd(propid,now);
+            gd1.pushInProposalStatus(propid,8);
+            gd1.updateProposalDateUpd(propid);
         }
     }
 

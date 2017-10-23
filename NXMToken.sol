@@ -161,8 +161,9 @@ contract NXMToken {
     function bookCATokens(address _to , uint value)  onlyInternal
     {
         td1 = NXMTokenData(tokenDataAddress);
-        uint bookTime = td1.getBookTime();
-        td1.pushBookedCA(_to ,now,td1.getBookTime(),value);
+        //td1.pushBookedCA(_to ,now,td1.getBookTime(),value);
+        td1.pushBookedCA(_to,value);
+
     }
 
 

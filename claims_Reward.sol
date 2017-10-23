@@ -104,19 +104,10 @@ contract claims_Reward{
         q1=quotation(quotationAddress);
         //Check if voting should be closed or not
         if(c1.checkVoteClosing(claimid)==1)
-            { 
+        { 
               uint status=cd1.getClaimStatus(claimid);
-              uint reward_claim=0;
-             uint CATokens=c1.getCATokens(claimid,0);
-             uint coverid=cd1.getClaimCoverId(claimid);
-             uint sumassured=q1.getSumAssured(coverid);
-             uint threshold_unreached=0;
-             //Minimum threshold for CA voting is reached only when value of tokens used for voting > 5* sum assured of claim id
-             if(CATokens<5*sumassured*1000000000000000000)
-                threshold_unreached=1;
-            uint accept=cd1.getClaimVote(claimid,1);
-            uint deny=cd1.getClaimVote(claimid,-1);
-            
+              uint CATokens=c1.getCATokens(claimid,0);
+              uint reward_claim=0;            
             if(CATokens==0)
             {
                 status=4;
@@ -124,6 +115,16 @@ contract claims_Reward{
             }
             else
             {
+                 
+                 uint coverid=cd1.getClaimCoverId(claimid);
+                 uint sumassured=q1.getSumAssured(coverid);
+                 uint threshold_unreached=0;
+                 //Minimum threshold for CA voting is reached only when value of tokens used for voting > 5* sum assured of claim id
+                 if(CATokens<5*sumassured*1000000000000000000)
+                    threshold_unreached=1;
+
+                uint accept=cd1.getClaimVote(claimid,1);
+                uint deny=cd1.getClaimVote(claimid,-1);
                 // If tokens used for acceptance >70%, claim is accepted
                 if(accept*100/(accept+deny) > 70 &&  threshold_unreached==0)
                 {
@@ -132,7 +133,10 @@ contract claims_Reward{
                    reward_claim=1;
                 }
                 else if(deny*100/(accept+deny) > 70 &&  threshold_unreached==0)
+                {
                     status=1;
+                    //p1.closeClaimsOraclise(len,cd1.escalationTime());
+                }
                 else if(deny*100/(accept+deny) > accept*100/(accept+deny) &&  threshold_unreached==0)
                     status=6;
                else if(deny*100/(accept+deny) <= accept*100/(accept+deny) &&  threshold_unreached==0)
@@ -157,19 +161,11 @@ contract claims_Reward{
          cd1=claimsData(claimsDataAddress);    
          //Check if voting should be closed or not 
         if(c1.checkVoteClosing(claimid)==1)
-            { 
+        { 
              bytes16 coverStatus;
              uint status_orig=cd1.getClaimStatus(claimid);
              uint status=status_orig;
              uint MVTokens=c1.getCATokens(claimid,1);
-             uint coverid=cd1.getClaimCoverId(claimid);
-             uint sumassured=q1.getSumAssured(coverid);
-             uint threshold_unreached=0;
-             //Minimum threshold for member voting is reached only when value of tokens used for voting > 5* sum assured of claim id
-             if(MVTokens<5*sumassured*1000000000000000000)
-                threshold_unreached=1;
-            uint accept=cd1.getClaimMVote(claimid,1);
-            uint deny=cd1.getClaimMVote(claimid,-1);    
             // In case noone votes, claim is denied
             if(MVTokens==0 )
             {
@@ -178,6 +174,15 @@ contract claims_Reward{
             }
             else
             {   // If tokens used for acceptance >50%, claim is accepted
+                uint coverid=cd1.getClaimCoverId(claimid);
+                uint sumassured=q1.getSumAssured(coverid);
+                uint threshold_unreached=0;
+             //Minimum threshold for member voting is reached only when value of tokens used for voting > 5* sum assured of claim id
+                if(MVTokens<5*sumassured*1000000000000000000)
+                    threshold_unreached=1;
+                uint accept=cd1.getClaimMVote(claimid,1);
+                uint deny=cd1.getClaimMVote(claimid,-1);  
+
                 if(accept*100/(accept+deny) >= 50 &&  threshold_unreached==0 && status_orig==2)
                  { status=9;coverStatus="Claim Accepted";}
                 else if(deny*100/(accept+deny) > 50 &&  threshold_unreached==0 && status_orig==2)
@@ -242,7 +247,7 @@ contract claims_Reward{
 
         c1.changePendingClaimStart();
     }
-    /// @dev Rewards/Punishes users who participated in claims assessment.
+    /// @dev Rewards/Punishes users who  participated in claims assessment.
     /// Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
     function rewardAgainstClaim(uint claimid) internal
@@ -257,7 +262,7 @@ contract claims_Reward{
         uint status=cd1.getClaimStatus(claimid);
         p2=pool2(pool2Address);
         tc3=NXMToken3(token3Address);
-         if(status==7)
+            if(status==7)
              {
                 c1.changeFinalVerdict(claimid,-1);
                 rewardCAVoters(claimid,100);  // Rewards Claims Assessor only

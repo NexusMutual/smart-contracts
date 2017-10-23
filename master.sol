@@ -39,7 +39,6 @@ import "./MCRData.sol";
 import "./governanceData.sol";
 import "./master3.sol";
 
-
 contract master  {
 
     struct contractDetails{
@@ -132,8 +131,8 @@ contract master  {
    /// @dev Changes all reference contract addresses in master
     function changeAddressinMaster(uint version) onlyInternal
     {
-         ms3=master3(allContractVersions[version][25].contractAddress);
-         ms3.changeAllAddress1(version);
+        ms3=master3(allContractVersions[version][25].contractAddress);
+        ms3.changeAllAddress1(version);
         ms3.changeAllAddress2(version);
         quoteDataAddress = allContractVersions[version][1].contractAddress;
         tokenDataAddress = allContractVersions[version][2].contractAddress;
@@ -319,7 +318,7 @@ contract master  {
         p2.changeTokenAddress(NXMTokenAddress);
         p2.changeClaimAddress(claimsAddress);
         p2.changeFiatFaucetAddress(fiatFaucetAddress);
-     
+        p2.changeMCRAddress(MCRAddress);
 
         g1=governance(governanceAddress);
         g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress);
@@ -337,6 +336,7 @@ contract master  {
         m1.changeMCRDataAddress(mcrDataAddress);
         m1.changeToken2Address(NXMToken2Address);
         m1.changeTokenDataAddress(tokenDataAddress);
+        m1.changeQuotationDataAddress(quoteDataAddress);
 
         s1=SupplyToken(faucetUSDAddress);
         s1.changePoolAddress(poolAddress);

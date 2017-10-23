@@ -31,10 +31,10 @@ contract MCRData
     uint public growthStep;
     uint MCRTime;
     bytes16[] allCurrencies;
-    struct avg3Days{
-        bytes16 curr;
-        uint avgRateX100;
-    }
+    // struct avg3Days{
+    //     bytes16 curr;
+    //     uint avgRateX100;
+    // }
 
     struct monthlyAvg{
         uint MCRPercx100;
@@ -141,7 +141,18 @@ contract MCRData
     /// @param curr Currency Name.
     function addCurrency(bytes16 curr) onlyInternal
     {
-        allCurrencies.push(curr);
+        uint8 flag=0;
+        for(uint i=0;i<allCurrencies.length;i++)
+        {
+            if(allCurrencies[i]==curr)
+            {
+                flag=1;
+            }
+        }
+        if(flag==0)
+        {
+            allCurrencies.push(curr);
+        }
     }
     /// @dev Gets name of all the currencies accepted in the system.
     /// @return curr Array of currency's name.

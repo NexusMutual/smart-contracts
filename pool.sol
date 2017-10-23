@@ -15,8 +15,7 @@
 
 
 pragma solidity ^0.4.8;
-import "./oraclizeAPI.sol";
-
+//import "./oraclizeAPI.sol";
 import "./quotation.sol";
 import "./NXMToken.sol";
 import "./claims.sol";
@@ -26,9 +25,8 @@ import "./claims_Reward.sol";
 import "./poolData1.sol";
 import "./quotation2.sol";
 import "./master.sol";
-
 import "./pool2.sol";
-//import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
+import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
 contract pool is usingOraclize{
     master ms1;
     address masterAddress;
@@ -115,7 +113,7 @@ contract pool is usingOraclize{
     
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
     /// @param id Claim Id to be closed
-    /// @param time Time (in seconds) after which claims assessment voting needs to be closed
+    /// @param time Time (in milliseconds) after which claims assessment voting needs to be closed
     function closeClaimsOraclise(uint id , uint time) onlyInternal
     {
         
@@ -125,47 +123,55 @@ contract pool is usingOraclize{
     }
     /// @dev Calls Oraclize Query to close a given Proposal after a given period of time.
     /// @param id Proposal Id to be closed
-    /// @param time Time (in seconds) after which proposal voting needs to be closed
+    /// @param time Time (in milliseconds) after which proposal voting needs to be closed
     function closeProposalOraclise(uint id , uint time) onlyInternal
     {
        
         bytes32 myid2 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",4000000);
-		saveApiDetails(myid2,"proposal",id);
+        saveApiDetails(myid2,"proposal",id);
        
     }
     /// @dev Calls Oraclize Query to expire a given Quotation after a given period of time.
     /// @param id Quote Id to be expired
-    /// @param time Time (in seconds) after which the quote should be expired
+    /// @param time Time (in milliseconds) after which the quote should be expired
     function closeQuotationOraclise(uint id , uint time) onlyInternal
     {
       
         bytes32 myid3 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",1500000);
-		saveApiDetails(myid3,"quotation",id);
+        saveApiDetails(myid3,"quotation",id);
         
     }
     /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
     /// @param id Cover Id to be expired
-    /// @param time Time (in seconds) after which the cover should be expired
+    /// @param time Time (in milliseconds) after which the cover should be expired
     function closeCoverOraclise(uint id , uint time) onlyInternal
     {
         
         bytes32 myid4 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",1500000);
-		saveApiDetails(myid4,"cover",id);
+        saveApiDetails(myid4,"cover",id);
       
     }
     /// @dev Calls the Oraclize Query to update the version of the contracts.    
     function versionOraclise(uint version) onlyInternal
     {
         bytes32 myid5 = oraclize_query("URL","http://a1.nexusmutual.io/api/mcr/setlatest/P");
-		saveApiDetails(myid5,"version",version);
+        saveApiDetails(myid5,"version",version);
     }
     /// @dev Calls the Oraclize Query to initiate MCR calculation.
-    /// @param time Time (in seconds) after which the next MCR calculation should be initiated
+    /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function MCROraclise(uint time) onlyInternal
     {
         
         bytes32 myid4 = oraclize_query(time, "URL","http://a2.nexusmutual.io");
-		saveApiDetails(myid4,"MCR",0);
+        saveApiDetails(myid4,"MCR",0);
+       
+    }
+
+      function MCROracliseFail(uint id,uint time) onlyInternal
+    {
+        
+        bytes32 myid4 = oraclize_query(time, "URL","http://a2.nexusmutual.io");
+        saveApiDetails(myid4,"MCRFailed",id);
        
     }
     /// @dev Handles callback of external oracle query. 

@@ -29,10 +29,10 @@ import "./fiatFaucet.sol";
 
 contract pool2 {
 
-     master ms1;
+    master ms1;
     address masterAddress;
-   NXMToken t1;
-   address tokenAddress;
+    NXMToken t1;
+    address tokenAddress;
     address quoteAddress;
     pool p1;
     claims c1;
@@ -44,10 +44,10 @@ contract pool2 {
     address claimRewardAddress;
     address poolDataAddress;
     address quotation2Address;
-   
+    address MCRAddress;
     quotation q1;
     quotation2 q2;
-    
+    MCR m1;
     claims_Reward cr1;
     
     governance g1;
@@ -67,6 +67,10 @@ contract pool2 {
     function changeTokenAddress(address _add)
     {
         tokenAddress  = _add;
+    }
+    function changeMCRAddress(address _add)
+    {
+        MCRAddress = _add;   
     }
     function changeMasterAddress(address _add)
     {
@@ -161,6 +165,11 @@ contract pool2 {
         {
             
         }
+        else if(pd1.getApiIdTypeOf(myid) =="MCRFailed")
+        {
+            m1=MCR(MCRAddress);
+            m1.addLastMCRData(pd1.getIdOfApiId(myid));
+        }
     }
     /// @dev Transfers back the given amount to the owner.
     function transferBackEther(uint256 amount) onlyOwner  
@@ -175,7 +184,7 @@ contract pool2 {
        
     }
     /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
-    /// @param valueETH Tokens Purchasing Amount in ETH. 
+    /// @param valueETH  Tokens Purchasing Amount in ETH. 
     /// @param curr Currency Name.
     function getCurrTokensFromFaucet(uint valueETH , bytes16 curr) 
     {

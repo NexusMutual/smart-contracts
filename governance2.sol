@@ -50,7 +50,7 @@ contract governance2{
         governanceDataAddress = _add;
         gd1 = governanceData(governanceDataAddress);
     }
-    /// @dev Edits a proposal and uncategorizes it. Only owner of a proposal can edit it.
+    /// @dev Edits a proposal and uncategorizes it. Only owner of a proposal can edit the same.
     /// @param id Proposal Id.
     /// @param sd New Short Description of the proposal.
     /// @param ld New Long Description of the proposal.
@@ -58,8 +58,7 @@ contract governance2{
     {
         gd1 = governanceData(governanceDataAddress);
         if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
-        {
-            
+        { 
             uint time = now;
             gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
             gd1.updateProposal(id,sd,0,ld,now,gd1.getProposalVersion(id)+1);
@@ -93,9 +92,9 @@ contract governance2{
         gd1.addInUserProposals(len,msg.sender);
         gd1.pushInProposalStatus(len,0);
     }
-    /// @dev Registers an Advisroy Board Member's vote
+    /// @dev Registers an Advisory Board Member's vote.
     /// @param id Proposal id.
-    /// @param verdict 1 if vote is in favour,-1 if vote is in against.
+    /// @param verdict 1 if vote is in favour,-1 if vote is against the proposal.
     function voteABProposal(uint id , int verdict)
     {
         gd1 = governanceData(governanceDataAddress);
@@ -113,9 +112,9 @@ contract governance2{
             gd1.incPVCABDeny(id);
 
     }
-    /// @dev Members can give the votes(either in favor or in against) to a Proposal.
+    /// @dev Registers an Member Vote on a proposal.
     /// @param id Proposal id.
-    /// @param verdict 1 if vote is in favour,-1 if vote is in against.
+    /// @param verdict 1 if vote is in favour,-1 if vote is against the proposal.
     function voteMember(uint id , int verdict)
     {
         gd1 = governanceData(governanceDataAddress);
@@ -132,11 +131,11 @@ contract governance2{
         else if(verdict==-1)
             gd1.incPVCMemberDeny(id);
     }
-    /// @dev Allows advisory board members to categorize proposals.Updates the Categorization details of a given proposal. 
+    /// @dev Allows advisory board members to categorize proposals. Updates the Categorization details of a given proposal. 
     /// @param id Proposal Id.
     /// @param cat Category of proposal.
-    /// @param _effect address of user which will get effected by proposal's decision.
-    /// @param val depend upon the category of proposal. (Example: 1. if category is claim, then val will be Claim Id.2.For burning of tokens, val will be number of tokens that will be burned)
+    /// @param _effect Proposal's effective address, used in Burning CA tokens or Engaging in external services.
+    /// @param val Amount, i.e. number of tokens to be burned or amount to be transferred in case of external services. 
     function categorizeProposal(uint id , uint cat , address _effect , uint val)
     {
         gd1 = governanceData(governanceDataAddress);

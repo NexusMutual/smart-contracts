@@ -113,7 +113,7 @@ contract pool is usingOraclize{
     
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
     /// @param id Claim Id to be closed
-    /// @param time Time (in milliseconds) after which claims assessment voting needs to be closed
+    /// @param time Time (in seconds) after which claims assessment voting needs to be closed
     function closeClaimsOraclise(uint id , uint time) onlyInternal
     {
         
@@ -123,7 +123,7 @@ contract pool is usingOraclize{
     }
     /// @dev Calls Oraclize Query to close a given Proposal after a given period of time.
     /// @param id Proposal Id to be closed
-    /// @param time Time (in milliseconds) after which proposal voting needs to be closed
+    /// @param time Time (in seconds) after which proposal voting needs to be closed
     function closeProposalOraclise(uint id , uint time) onlyInternal
     {
        
@@ -133,7 +133,7 @@ contract pool is usingOraclize{
     }
     /// @dev Calls Oraclize Query to expire a given Quotation after a given period of time.
     /// @param id Quote Id to be expired
-    /// @param time Time (in milliseconds) after which the quote should be expired
+    /// @param time Time (in seconds) after which the quote should be expired
     function closeQuotationOraclise(uint id , uint time) onlyInternal
     {
       
@@ -143,7 +143,7 @@ contract pool is usingOraclize{
     }
     /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
     /// @param id Cover Id to be expired
-    /// @param time Time (in milliseconds) after which the cover should be expired
+    /// @param time Time (in seconds) after which the cover should be expired
     function closeCoverOraclise(uint id , uint time) onlyInternal
     {
         
@@ -158,7 +158,7 @@ contract pool is usingOraclize{
         saveApiDetails(myid5,"version",version);
     }
     /// @dev Calls the Oraclize Query to initiate MCR calculation.
-    /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
+    /// @param time Time (in seconds) after which the next MCR calculation should be initiated
     function MCROraclise(uint time) onlyInternal
     {
         

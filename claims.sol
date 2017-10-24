@@ -76,10 +76,10 @@ contract claims{
     }
     
     /// @dev Sets the minimum, maximum claims assessment voting, escalation and payout retry times 
-    /// @param _mintime Minimum time(in milliseconds) for which claim assessment voting is open
-    /// @param _maxtime Maximum time(in milliseconds) for which claim assessment voting is open
-    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    /// @param _mintime Minimum time(in seconds) for which claim assessment voting is open
+    /// @param _maxtime Maximum time(in seconds) for which claim assessment voting is open
+    /// @param escaltime Time(in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
     function setTimes(uint _mintime,uint _maxtime,uint escaltime,uint payouttime)  onlyInternal
     {
         c1=claimsData(claimsDataAddress);
@@ -331,7 +331,7 @@ contract claims{
         Tokens=(acceptMV+denyMV)*tokenx1e18/1000000000000000000;
         
     }
-    /// @dev Checks if voting of a claim should be closed or not.Internally called by checkVoteClosing method for claims whose status number is 0 or status number lie between 2 and 6.
+    /// @dev Checks if voting of a claim should be closed or not. Internally called by checkVoteClosing method for claims whose status number is 0 or status number lie between 2 and 6.
     /// @param claimid Claim Id.
     /// @param status Current status of claim.
     /// @return close 1 if voting should be closed,0 in case voting should not be closed,-1 if voting has already been closed.

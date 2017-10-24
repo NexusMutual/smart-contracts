@@ -31,11 +31,6 @@ contract MCRData
     uint public growthStep;
     uint MCRTime;
     bytes16[] allCurrencies;
-    // struct avg3Days{
-    //     bytes16 curr;
-    //     uint avgRateX100;
-    // }
-
     struct monthlyAvg{
         uint MCRPercx100;
         uint mcrEtherx100;
@@ -112,7 +107,7 @@ contract MCRData
     {
         sf = SFx100000;
     }
-    /// @dev Gets Growth Step
+    /// @dev Gets Growth Step.
     function getGrowthStep() constant returns(uint gs)
     {
         gs = growthStep;

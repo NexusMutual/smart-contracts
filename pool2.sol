@@ -184,7 +184,7 @@ contract pool2 {
        
     }
     /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
-    /// @param valueETH  Tokens Purchasing Amount in ETH. 
+    /// @param valueETH Tokens Purchasing Amount in ETH. 
     /// @param curr Currency Name.
     function getCurrTokensFromFaucet(uint valueETH , bytes16 curr) 
     {

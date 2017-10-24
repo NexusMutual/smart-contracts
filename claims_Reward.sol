@@ -247,7 +247,7 @@ contract claims_Reward{
 
         c1.changePendingClaimStart();
     }
-    /// @dev Rewards/Punishes users who  participated in claims assessment.
+    /// @dev Rewards/Punishes users who participated in claims assessment.
     /// Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
     function rewardAgainstClaim(uint claimid) internal

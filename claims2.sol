@@ -101,7 +101,7 @@ contract claims2{
 
     /// @dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
     /// @param coverid Cover Id.
-   function submitClaim(uint coverid) 
+    function submitClaim(uint coverid) 
     {
         
         q1=quotation(quotationAddress);
@@ -198,10 +198,8 @@ contract claims2{
         cd1.addclaim_vote_member(claimid,vote_length);
         cd1.setvote_member(msg.sender,claimid,vote_length);
         cd1.addvote_address_member(msg.sender,vote_length);
-        cd1.setvote_length(vote_length+1);
-      
+        cd1.setvote_length(vote_length+1);      
         cd1.setclaim_tokensMV(claimid,verdict,tokens);
-
         int close = c1.checkVoteClosing(claimid);
         if(close==1)
         {

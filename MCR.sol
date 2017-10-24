@@ -210,7 +210,7 @@ contract MCR
     /// @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
     /// @param curr array of Currency's name.
     /// @param rates array of Currency's rate * 100.
-    /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added..
+     /// @param onlyDate Date(yyyymmdd) at which MCR details are getting added.
     function addMCRData(uint mcrP , uint mcrE , uint vF ,bytes16[] curr ,uint[] rates , uint onlyDate)
     {
 
@@ -250,8 +250,6 @@ contract MCR
         }    
          if(len==1 || ((mcrP/100)>=lowerThreshold && (mcrP/100)<=upperThreshold))
         {
-           // md1.addGraphDataForYearMonth(yearMonth,mcrP,mcrE,vF,md1.getYearMonthDataCount(yearMonth)+1);
-            
             md1.pushMCRData(mcrP,mcrE,vF,now,block.number);
             for(uint i=0;i<curr.length;i++)
             {
@@ -259,7 +257,6 @@ contract MCR
             }
           
             changeAvgRateOfCurr();
-            // Oraclize call for next MCR calculation
             uint index=md1.dateWiseMCR(onlyDate);
             if(index==0)
             {
@@ -304,7 +301,8 @@ contract MCR
             t2.distributeSurplusDistrubution();
         }
     }
-     function getAllSumAssurance() constant returns(uint amount1)
+    
+    function getAllSumAssurance() constant returns(uint amount1)
     {
         md1 = MCRData(MCRDataAddress);
         qd1=quotationData(quotationDataAddress);
@@ -333,7 +331,7 @@ contract MCR
         p1.MCROraclise(md1.getMCRTime());
     }
 
-    
+    /// @dev Calls oraclize query to calculate MCR details after 6 hours on MCR failure.
     function callOracliseForMCRFail(uint failDate)
     {
         md1 = MCRData(MCRDataAddress);
@@ -436,9 +434,9 @@ contract MCR
             }
         }
     }
-    /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation and MCR%(Tp) ,i.e, MCR% used in the Token Price Calculation.
-    /// @return Vtp  Pool Fund Value in Ether used for the Token Price Model 
-    /// @return MCRtp MCR% used in the Token Price Model.
+    /// @dev Calculates V(Tp), i.e., Pool Fund Value in Ether used for the Token Price Calculation and MCR%(Tp), i.e., MCR% used in the Token Price Calculation.
+   /// @return Vtp Pool Fund Value in Ether used for the Token Price Model.
+   /// @return MCRtp MCR% used in the Token Price Model. 
     function calVtpAndMCRtp() constant returns(uint Vtp , uint MCRtp)
     {
         md1 = MCRData(MCRDataAddress);
@@ -486,6 +484,8 @@ contract MCR
 
         tokenPrice = ((tokenPrice)*getCurr3DaysAvg/100);                         
     }
+    /// @dev Gets Scaling factor, Growth step and Average rate (last 3 days) of a given currency.
+    /// @param curr Currency name.
     function getTokenPriceDetails(bytes16 curr) constant returns(uint SF,uint GS,uint Average)
     {
          md1 = MCRData(MCRDataAddress);

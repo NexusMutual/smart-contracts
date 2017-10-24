@@ -111,12 +111,12 @@ contract claimsData{
     {
         escalationTime=_time;
     }
-    /// @dev Sets Maximum time(in milliseconds) for which claim assessment voting is open
+    /// @dev Sets Maximum time(in seconds) for which claim assessment voting is open
      function setMaxTime(uint _time) onlyInternal
     {
         maxtime=_time;
     }
-    /// @dev Sets Minimum time(in milliseconds) for which claim assessment voting is open
+    /// @dev Sets Minimum time(in seconds) for which claim assessment voting is open
     function setMinTime(uint _time) onlyInternal
     {
         mintime=_time;
@@ -198,7 +198,7 @@ contract claimsData{
     {
         return allClaimsByAddress[_member];
     }
-    /// @dev Gets the number of tokens that has been locked while giving vote to a claim by  Claim Assessors.
+    /// @dev Gets the number of tokens that has been locked while giving vote to a claim by Claim Assessors.
     /// @param claimid Claim Id.
     /// @return accept Total number of tokens when CA accepts the claim. CA gives vote in favor.
     /// @return deny Total number of tokens when CA declines the claim. CA gives vote in against.
@@ -214,7 +214,7 @@ contract claimsData{
     {
          return (claim_tokensMV[claimid].accept,claim_tokensMV[claimid].deny);
     }
-    /// @dev Gets the total number of tokens of a given Claim ,received during voting period done by Claims Assessors.
+    /// @dev Gets the total number of tokens of a given Claim, received during voting period done by Claims Assessors.
     function getCaClaimVotes_token(uint claimid) constant returns(uint cnt)
     {   cnt=0;
         for(uint i=0;i<claim_vote_ca[claimid].length;i++)
@@ -222,7 +222,7 @@ contract claimsData{
             cnt+=allvotes[claim_vote_ca[claimid][i]].tokens;
         }
     }
-     /// @dev Gets the total number of tokens of a given Claim ,received during voting period done by Members.
+     /// @dev Gets the total number of tokens of a given Claim, received during voting period done by Members.
     function getMemberClaimVotes_token(uint claimid) constant returns(uint cnt)
     {   cnt=0;
         for(uint i=0;i<claim_vote_member[claimid].length;i++)
@@ -450,18 +450,19 @@ contract claimsData{
     {
         verdict = allClaims[claimId].vote;
     }
+
+    /// @dev Creates a New Claim of a given cover.
+    /// @param claimId Claim Id. 
+    /// @param coverId Cover id for which claim is generated.
+    /// @param date_submit timestamp at which claim for a cover is submitted.
+    /// @param vote 0 at the time of submission of claim.
+    /// @param status Current staus of claim. Initial "active".
+    /// @param date_upd timestamp at which claim for a cover is last updated.
+    /// @param state16Count number of times payout has been retried. 0 initially
     function addClaim(uint claimId,uint coverId,uint date_submit,int vote,uint status,uint date_upd,uint state16Count) onlyInternal
     {
         allClaims.push(claim(claimId , coverId , date_submit,vote,status,date_upd,state16Count));
     }
-
-    // function addClaim(uint claimId,uint coverId,uint date_submit,address _from,uint blockNumber) onlyInternal
-    // {
-    //     allClaims.push(claim(claimId, coverId, date_submit,0,0,date_submit,0));
-    //     allClaimsByAddress[_from].push(claimId);
-    //     claim_status[claimId].push(claimStatus(0,date_submit,blockNumber));
-    //     cover_claim[coverId].push(claimId);
-    // }
 
     /// @dev Stores a given claim id in a given address. Maintains the record of all the claims created/submitted by a given user.
     /// @param _from address of a user.
@@ -501,7 +502,7 @@ contract claimsData{
     {
         vote_ca[_from][claimid]=voteid;
     }
-    /// @dev Stores the id of the vote given by a Claim Assessor.Maintains record of all the votes given by a user as a Claim assessor.
+    /// @dev Stores the id of the vote given by a Claim Assessor. Maintains record of all the votes given by a user as a Claim assessor.
     /// @param _from Claim Assessor Address.
     /// @param voteid Vote Id. 
     function addvote_address_ca(address _from,uint voteid) onlyInternal
@@ -536,7 +537,7 @@ contract claimsData{
         if(vote==-1)
          claim_tokensMV[claimid].deny += tokens;
     }
-     /// @dev Stores the id of the vote given to a claim.Maintains record of all votes given by all the Members to a claim.
+     /// @dev Stores the id of the vote given to a claim. Maintains record of all votes given by all the Members to a claim.
     /// @param claimid Claim Id to which vote has been given by the Member.
     /// @param voteid Vote Id.
     function addclaim_vote_member(uint claimid,uint voteid) onlyInternal
@@ -551,7 +552,7 @@ contract claimsData{
     {
         vote_member[_from][claimid]=voteid;
     }
-    /// @dev Stores the id of the vote given by a Member.Maintains record of all the votes given by a user as a Member.
+    /// @dev Stores the id of the vote given by a Member. Maintains record of all the votes given by a user as a Member.
     /// @param _from Member's Address.
     /// @param voteid Vote Id. 
     function addvote_address_member(address _from,uint voteid) onlyInternal

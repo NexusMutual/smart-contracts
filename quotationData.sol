@@ -49,8 +49,7 @@ contract quotationData{
     mapping (uint32=>mapping(bytes16=>uint)) area_CSA;
     mapping ( address=>uint[] ) quote_user;
     mapping ( address=>uint[] ) cover_user;
-    //quote[] quotations;
-    mapping(uint=>quote) quotations;
+    quote[] quotations;
     cover[] allCovers;
     uint quote_length;
     uint cover_length;
@@ -165,7 +164,7 @@ contract quotationData{
     /// @dev Gets total number of Quotations created till date.
     function getQuoteLength() constant returns(uint len)
     {
-        return quote_length;
+        return (quotations.length);
     }
 
     /// @dev Gets total number Covers created till date.
@@ -337,13 +336,12 @@ contract quotationData{
     /// @param qid Quotation id against which cover will be created.
     /// @param cid Cover Id.
     /// @param validuntill Timestamp till which cover is valid.
-    /// @param user User's address.
-    function addCover(uint qid,uint cid,uint validuntill,address user) onlyInternal
+    /// @param claimcount Number of claims that has been submitted for a cover. Initially 0.
+    /// @param lt Number of tokens locked against the cover.
+    /// @param stat Current status of cover.
+    function addCover(uint qid,uint cid,uint validuntill,uint claimcount,uint lt,bytes16 stat) onlyInternal
     {
-        
-        allCovers.push(cover(qid,cid,validuntill,0,0,"active"));
-        quotations[qid].coverId = cid;
-        cover_user[user].push(cid);
+        allCovers.push(cover(qid,cid,validuntill,claimcount,lt,stat));
     }
 
     /// @dev Maps the Cover Id to its owner's address.
@@ -420,48 +418,38 @@ contract quotationData{
     }  
 
     /// @dev Gets the Quote id associated to a given cover id.
-    
-    // function getQuoteId(uint coverId) constant returns (uint quoteId)
-    // {
-    //     quoteId = allCovers[coverId].quoteId;
-    // }
+    function getQuoteId(uint coverId) constant returns (uint quoteId)
+    {
+        quoteId = allCovers[coverId].quoteId;
+    }
 
     /// @dev Creates a blank new Quotation.
-    function addQuote(uint coverPeriod,uint SA) onlyInternal
+    function addQuote() onlyInternal
     { 
-        //quotations.push(quote(0,0,0,"",SA,coverPeriod,0,0,0,"",0,0,nullArr,"",""));
-        quotations[quote_length]=quote(0,0,0,"",SA,coverPeriod,0,0,0,"",0,0,nullArr,"","");
-        quote_length++;
-
+        quotations.push(quote(0,0,0,"",0,0,0,0,0,"",0,0,nullArr,"",""));
     }
     /// @dev Updates the Product id, quote id, owner address and currency of a given quotation
-    /// @param productId Insurance product id.
-    /// @param id Quotation Id.
-    /// @param userAddress Quotation's owner/creator address.
-    /// @param currencyCode Currency's Name.
-
-    function updateQuote1(uint productId,uint id,address userAddress,bytes16 currencyCode) onlyInternal
+    /// @param p1 Insurance product id.
+    /// @param p2 Quotation Id.
+    /// @param p3 Quotation's owner/creator address.
+    /// @param p4 Currency's Name.
+    function updateQuote1(uint p1,uint p2,address p3,bytes16 p4) onlyInternal
     {
-        quotations[id].productId = productId;
-        quotations[id].quoteId = id;
-        quotations[id].memberAddress = userAddress;
-        quotations[id].currencyCode = currencyCode;
-        quotations[id].dateAdd = now;
-        quotations[id].validUntil = now+quoteExpireTime;
-        quotations[id].status = "NEW";
-        quote_user[userAddress].push(id);
+        quotations[p2].productId = p1;
+        quotations[p2].quoteId = p2;
+        quotations[p2].memberAddress = p3;
+        quotations[p2].currencyCode = p4;
         
     }
 
-    /// @dev Updates the cover period,premium, date of creation, validity and status of a given quotation id.
+    /// @dev Updates the cover period, premium, date of creation, validity and status of a given quotation id.
     /// @param p6 Cover period in days.
-    /// @param p7 Premium of quoation.
+    /// @param p7 Premium of quotation.
     /// @param p8 timestamp at which quotation is created.
     /// @param p9 timestamp till which quotation is valid.
     /// @param p10 Status of quotation.
     /// @param id Quotation Id.
-
-     /*  function updateQuote2(uint p6,uint p7,uint p8,uint p9,bytes16 p10,uint id) onlyInternal
+    function updateQuote2(uint p6,uint p7,uint p8,uint p9,bytes16 p10,uint id) onlyInternal
     {
         quotations[id].coverPeriod = p6;
         quotations[id].premiumCalculated = p7;
@@ -469,43 +457,29 @@ contract quotationData{
         quotations[id].validUntil = p9;
         quotations[id].status = p10;
        
-    }*/
-
-    /// @dev Updates the Latitude, Longitude and sum assured of a given quotation.
+    }
+    /// @dev Updates the Fund amount, cover id and area of a given quotation.
     /// @param id Quotation id.
-    /// @param lat Latitude of quotation
-    /// @param long Longitude of quotation.
-    function updateQuote3(uint id,bytes16 lat,bytes16 long) onlyInternal
+    /// @param p11 amount funded by the owner for the given quotation.
+    /// @param p12 Cover id of quotation.
+    /// @param p13 array of area id in which a quotation lies.
+    function updateQuote3(uint id,uint p11,uint p12,uint32[] p13) onlyInternal
     {
-        quotations[id].latstring = lat;
-        quotations[id].longstring = long;
-        //quotations[id].sumAssured = SA;
-        //quotations[id].coverPeriod = coverPeriod;
+        quotations[id].amountFunded = p11;
+        quotations[id].coverId = p12;
+        quotations[id].area = p13;
         
     }
-    /// @dev Adds all Area Ids in which a given quotation lies.
-    /// @param id Quotation id.
-    /// @param areaId array of Area ids in which a quotation lies.
-    function updateQuoteArea(uint id,uint32[] areaId)
-    {
-        quotations[id].area = areaId;
-        bytes16 curr= quotations[id].currencyCode;
-        uint amount=quotations[id].sumAssured;
-        for(uint32 i=0;i<areaId.length;i++)
-        {
-            area_CSA[i][curr] +=amount;
-        }
-    }
+
     /// @dev Updates the Latitude and Longitude of a given quotation.
     /// @param id Quotation Id.
     /// @param p14 Latitude of quotation
     /// @param p15 Longitude of quotation.
-
-   /* function updateQuote4(uint id,bytes16 p14,bytes16 p15) onlyInternal
+    function updateQuote4(uint id,bytes16 p14,bytes16 p15) onlyInternal
     {
         quotations[id].latstring = p14;
         quotations[id].longstring = p15;
-    }*/
+    }
     /// @dev Updates the Sum Assured of a given quotation.    
     function changeTotalSumAssured(uint id , uint SA) onlyInternal
     {
@@ -572,13 +546,6 @@ contract quotationData{
     {
         qid = quote_user[_of][ind];
     }
-    function getPremiumDetails() constant returns(uint _minDays,uint _PM,uint _STL,uint _STLP)
-    {
-        _minDays=minDays;
-        _PM=PM;
-        _STL=STL;
-        _STLP=STLP;
-    }
 
     /// @dev Provides the details of a Quotation Id
     /// @param index Quotation Id
@@ -600,21 +567,13 @@ contract quotationData{
     /// @return dateAdd timestamp at which quotation is created.
     /// @return status current status of Quotation.
     /// @return amountFunded Amount funded to the quotation.
-    /// @return coverId cover of a quoation.
+    /// @return coverId cover of a quotation.
     function getQuoteByIndex2(uint index) constant returns(uint coverPeriod,uint premiumCalculated,uint dateAdd,uint validUntil,bytes16 status,uint amountFunded,uint coverId)
     {
         return (quotations[index].coverPeriod,quotations[index].premiumCalculated,quotations[index].dateAdd,quotations[index].validUntil,quotations[index].status,quotations[index].amountFunded,quotations[index].coverId);
     }
-    /// @dev Provides details of a Quotation Id
-    /// @param index Quotation Id
-    /// @param currencyCode Currency in which quotation is assured
-    /// @param sumAssured Sum assurance of quotation.
-    /// @return coverPeriod Cover Period of quotation (in days).
-    /// @return premiumCalculated Premium of quotation.
-    function getQuoteByIndex3(uint index) constant returns(bytes16 currencyCode, uint sumAssured,uint coverPeriod,uint premiumCalculated)
-    {
-        return (quotations[index].currencyCode,quotations[index].sumAssured,quotations[index].coverPeriod,quotations[index].premiumCalculated);
-    }
+    
+
     /// @dev Provides the information of a given Cover Id.
     /// @param index Cover Id.
     /// @return quoteId Quotation Id associated with the cover.

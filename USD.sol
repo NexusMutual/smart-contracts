@@ -141,7 +141,7 @@ contract NXMTokenData {
     {
         weigh =SDMemberPayHistory[index][_add].amount;
     }
-    /// @dev Gets the minimum time (in milliseconds), after which a surplus distribution is made.
+    /// @dev Gets the minimum time (in seconds), after which a surplus distribution is made.
     function getsdDistributionTime() constant returns(uint _time)
     {
         _time = sdDistTime;
@@ -155,7 +155,7 @@ contract NXMTokenData {
     {
         SDHistory.push(SDidAndTime(value,_time,blockno,total));
     }
-    /// @dev Sets the minimum time (in milliseconds), after which a Surplus Distribution is made.
+    /// @dev Sets the minimum time (in seconds), after which a Surplus Distribution is made.
     function setSDDistributionTime(uint _time) onlyOwner
     {
         sdDistTime = _time;
@@ -193,12 +193,12 @@ contract NXMTokenData {
     {
         tokens = currentFounderTokens;
     }
-    /// @dev Gets the minimum time(in milliseconds) for which CA tokens should be locked, in order to participate in claims assessment.
+    /// @dev Gets the minimum time(in seconds) for which CA tokens should be locked, in order to participate in claims assessment.
     function getMinVoteLockPeriod() constant returns(uint period)
     {
         period = minVoteLockPeriod;
     }
-    /// @dev Sets the minimum time(in milliseconds) for which CA tokens should be locked, in order to be used in claims assessment.
+    /// @dev Sets the minimum time(in seconds) for which CA tokens should be locked, in order to be used in claims assessment.
     function changeMinVoteLockPeriod(uint period) onlyOwner
     {
         minVoteLockPeriod = period;
@@ -228,7 +228,7 @@ contract NXMTokenData {
     {
         bookTime = _time;
     }
-    /// @dev Gets the time period(in milliseconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
+    /// @dev Gets the time period(in seconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
     function getBookTime() constant returns(uint _time)
     {
         _time = bookTime;
@@ -338,7 +338,7 @@ contract NXMTokenData {
     {
         poolFundValue[curr] = val;
     }
-    /// @dev books the user's tokens for maintaining Assessor Velocity, i.e. once a token is used to cast a vote as a claims assessor, the same token cannot be used to cast another vote before a fixed period of time(in milliseconds)
+    /// @dev books the user's tokens for maintaining Assessor Velocity, i.e. once a token is used to cast a vote as a claims assessor, the same token cannot be used to cast another vote before a fixed period of time(in seconds)
     /// @param _of user's address.
     /// @param value number of tokens that will be locked for a period of time. 
     function pushBookedCA(address _of ,uint value) onlyInternal

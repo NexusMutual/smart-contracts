@@ -220,9 +220,7 @@ contract MCR
             }
         }    
          if(len==1 || ((mcrP/100)>=lowerThreshold && (mcrP/100)<=upperThreshold))
-        {
-           // md1.addGraphDataForYearMonth(yearMonth,mcrP,mcrE,vF,md1.getYearMonthDataCount(yearMonth)+1);
-            
+        {            
             md1.pushMCRData(mcrP,mcrE,vF,now,block.number);
             for(uint i=0;i<curr.length;i++)
             {
@@ -428,7 +426,7 @@ contract MCR
             bytes4 currency = md1.getCurrency_Index(i);
             if(currency!="ETH")
             {
-               // uint currTokens = t1.getPoolFundValue(currency);
+
                 uint currTokens=f1.getBalance(poolAddress,currency); 
                 Vtp += (currTokens * 100/ md1.getCurr3DaysAvg(currency));
             }

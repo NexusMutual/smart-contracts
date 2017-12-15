@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
     
 
-pragma solidity ^0.4.8;
+pragma solidity 0.4.11;
 
 import "./claims.sol";
 import "./governance.sol";
@@ -23,6 +23,9 @@ import "./pool.sol";
 import "./claims_Reward.sol";
 import "./claimsData.sol";
 import "./MCR.sol";
+import "./quotationData.sol";
+import "./poolData1.sol";
+import "./USD.sol";
 contract masters2 {
     
      struct insurance{
@@ -31,22 +34,26 @@ contract masters2 {
         uint id;
     }
 
-
     address  claimsAddress;
     address  governanceAddress;
     address claims_RewardAddress;
     uint public product_length;
     address poolAddress;
+    address quotationDataAddress;
+    address poolDataAddress;
     governance g1;
     claims c1;
     master ms1;
     pool p1;
     claimsData cd1;
     claims_Reward cr1;
+    quotationData qd1;
+    poolData1 pd1;
     address masterAddress;
     address claimsDataAddress;
     address MCRAddress;
     MCR m1;
+    SupplyToken tok;
     insurance[]  public productType;
 
     function masters2()
@@ -109,6 +116,14 @@ contract masters2 {
     {
         claims_RewardAddress = _to;
     }
+    function changeQuotationDataAddress(address _to) onlyInternal
+    {
+        quotationDataAddress=_to;
+    }
+    function changePoolDataAddress(address _add) onlyInternal
+    {
+        poolDataAddress = _add;
+    }
     /// @dev Adds Status master for a claim.
     function addStatusInClaims()  onlyOwner
     {
@@ -134,7 +149,7 @@ contract masters2 {
             c1.pushStatus("Claim Accepted No Payout ");
             c1.pushStatus("Claim Accepted Payout Done");
     }
-    /// @dev Adds statuses and categories master for a proposal.
+    /// @dev Adds  statuses and categories master for a proposal.
     function changeStatusAndCAtegory() onlyOwner
     {
         g1=governance(governanceAddress);
@@ -164,14 +179,14 @@ contract masters2 {
             g1.addStatus("Proposal Accepted, Insufficient Funds");
     }
      
-    /// @dev Changes the minimum, maximum claims assessment voting, escalation, payout retry times 
-    /// @param _mintime Minimum time (in seconds) for which claim assessment voting is open
-    /// @param _maxtime Maximum time (in seconds) for which claim assessment voting is open
-    /// @param escaltime Time (in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time (in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
-    function changeTimes(uint _mintime,uint _maxtime,uint escaltime,uint payouttime) onlyOwner
+    /// @dev Changes the  minimum,maximum claims assessment voting,escalation,payout retry times 
+    /// @param _mintime Minimum time(in milliseconds) for which claim assessment voting is open
+    /// @param _maxtime Maximum time(in milliseconds) for which claim assessment voting is open
+    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    function changeTimes(uint32 _mintime,uint32 _maxtime,uint32 escaltime,uint32 payouttime) onlyOwner
     {
-        uint timeLeft;
+        uint64 timeLeft;
         p1=pool(poolAddress);
         cr1=claims_Reward(claims_RewardAddress);
         c1=claims(claimsAddress);
@@ -180,49 +195,47 @@ contract masters2 {
         for(uint i=cd1.pendingClaim_start();i<cd1.actualClaimLength();i++)
         {
             uint stat=cd1.getClaimStatus(i);
-            uint date_upd=c1.getClaimUpdate(i);
-            if(stat==1 && (date_upd + escaltime <= now))
+            uint date_upd=cd1.getClaimUpdate(i);
+            if(stat==1 && (date_upd + escaltime <= uint64(now)))
             {
                 cr1.changeClaimStatus(i);
             }
-            else if(stat==1 && (date_upd + escaltime > now))
+            else if(stat==1 && (date_upd + escaltime >uint64(now)))
             {
-                timeLeft = date_upd + escaltime - now;
+                timeLeft = uint64(date_upd + escaltime - now);
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if((stat==0 || (stat>=2 && stat<=6)) && (date_upd + _mintime <= now) )
+            if((stat==0 || (stat>=2 && stat<=6)) && (date_upd + _mintime <=uint64( now)) )
             {
                 cr1.changeClaimStatus(i);
             }
             else if( (stat==0 || (stat>=2 && stat<=6)) && (date_upd + _mintime > now))
             {
-                timeLeft = date_upd + _mintime - now;
+                timeLeft =uint64( date_upd + _mintime - now);
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if((stat==0 || (stat>=2 && stat<=6)) && (date_upd + _maxtime <= now) )
+            if((stat==0 || (stat>=2 && stat<=6)) && (date_upd + _maxtime <=uint64( now)) )
             {
                 cr1.changeClaimStatus(i);
             }
-            else if( (stat==0 || (stat>=2 && stat<=6)) && (date_upd + _maxtime > now))
+            else if( (stat==0 || (stat>=2 && stat<=6)) && (date_upd + _maxtime >uint64( now)))
             {
-                timeLeft = date_upd + _maxtime - now;
+                timeLeft =uint64( date_upd + _maxtime - now);
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if(stat==16 &&  (date_upd + payouttime <= now))
+            if(stat==16 &&  (date_upd + payouttime <=uint64( now)))
             {
                     cr1.changeClaimStatus(i);
             }
-            else if(stat==16 &&  (date_upd + payouttime > now))
+            else if(stat==16 &&  (date_upd + payouttime >uint64( now)))
             {
-                timeLeft = date_upd + payouttime -now;
+                timeLeft = uint64(date_upd + payouttime -now);
                 p1.closeClaimsOraclise(i,timeLeft);
             }
-        }
-        
-        
+        }       
     }
     /// @dev Adds currency master 
     function addMCRCurr() onlyOwner
@@ -232,11 +245,78 @@ contract masters2 {
         m1.addCurrency("ETH");
         m1.addCurrency("USD");
         m1.addCurrency("EUR");
-        m1.addCurrency("GBP");
-        
+        m1.addCurrency("GBP");        
     }
-    
-  
+    function addQuoteAndCoverStatus() onlyOwner
+    {
+        qd1=quotationData(quotationDataAddress);
+        qd1.pushQuoteStatus("NEW");
+        qd1.pushQuoteStatus("partiallyFunded");
+        qd1.pushQuoteStatus("coverGenerated");
+        qd1.pushQuoteStatus("Expired");
+        
+        qd1.pushCoverStatus("active");
+        qd1.pushCoverStatus("Claim Accepted");
+        qd1.pushCoverStatus("Claim Denied");
+        qd1.pushCoverStatus("Cover Expired");
+        qd1.pushCoverStatus("Claim Submitted");
+    }
+   
+    function addCurrencyAssetsDetails() internal
+    {
+        pd1 = poolData1(poolDataAddress);
+        pd1.pushCurrencyAssetsDetails("ETH",6); //original 64 baseMin
+        pd1.pushCurrencyAssetsDetails("USD",100);  // original 25000
+        pd1.pushCurrencyAssetsDetails("EUR",16272);
+        pd1.pushCurrencyAssetsDetails("GBP",19231);
+    }
+    function addInvestmentAssetsDetails() internal
+    {
+        pd1 = poolData1(poolDataAddress);
+        uint8 decimals;
+        //DGD
+        tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
+        decimals=tok.decimals();
+        pd1.pushInvestmentAssetsDetails("DGD",0xeee3870657e4716670f185df08652dd848fe8f7e,1,500,4000,decimals);
+        //ICN
+        tok=SupplyToken(0x21e6b27b23241a35d216f8641c72cfed33085fe9);
+         decimals=tok.decimals();
+        pd1.pushInvestmentAssetsDetails("ICN",0x21e6b27b23241a35d216f8641c72cfed33085fe9,1,1000,3000,decimals);
+        //ZRX
+        tok=SupplyToken(0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570);
+         decimals=tok.decimals();
+        pd1.pushInvestmentAssetsDetails("ZRX",0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570,1,500,2500,decimals);
+        //MKR
+        tok=SupplyToken(0x1dad4783cf3fe3085c1426157ab175a6119a04ba);
+         decimals=tok.decimals();
+        pd1.pushInvestmentAssetsDetails("MKR",0x1dad4783cf3fe3085c1426157ab175a6119a04ba,1,500,2000,decimals); 
+        //GNT
+        tok=SupplyToken(0xef7fff64389b814a946f3e92105513705ca6b990);
+         decimals=tok.decimals();
+        pd1.pushInvestmentAssetsDetails("GNT",0xef7fff64389b814a946f3e92105513705ca6b990,1,500,2000,decimals); 
+        //MLN
+        tok=SupplyToken(0x323b5d4c32345ced77393b3530b1eed0f346429d);
+         decimals=tok.decimals();
+        pd1.pushInvestmentAssetsDetails("MLN",0x323b5d4c32345ced77393b3530b1eed0f346429d,1,500,2000,decimals); 
+    }
+
+    function addInvestmentCurrencies() internal
+    {
+        pd1 = poolData1(poolDataAddress);
+        pd1.addInvestmentCurrency("DGD");
+        pd1.addInvestmentCurrency("ICN");
+        pd1.addInvestmentCurrency("ZRX");
+        pd1.addInvestmentCurrency("MKR");
+        pd1.addInvestmentCurrency("GNT");
+        pd1.addInvestmentCurrency("MLN");
+    }
+    function callPoolDataMethods() onlyOwner
+    {
+        addCurrencyAssetsDetails();
+        addInvestmentAssetsDetails();
+        addInvestmentCurrencies();
+    }
+
 
     
 }

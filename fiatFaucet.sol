@@ -13,9 +13,9 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.8;
+pragma solidity 0.4.11;
 import "./USD.sol";
-import "./quotation.sol";
+import "./quotation2.sol";
 import "./NXMToken.sol";
 import "./master.sol";
 
@@ -23,9 +23,9 @@ contract fiatFaucet
 {
     master ms1;
     address masterAddress;
-    quotation q1;
+    quotation2 q1;
     NXMToken t1;
-    address quotationAddress;
+    address quotation2Address;
     address tokenAddress;
     mapping(bytes16=>address) contract_add;
     SupplyToken tok;
@@ -56,9 +56,9 @@ contract fiatFaucet
     {
         price = fiatTokenPricex1e18;
     }
-    /// @dev Transfers the Equivalent fiat ERC20Tokens for a given amount ETH.
+    /// @dev Transfers the Equivalent ERC20Tokens for a given amount of a given currency.
     /// @param curr Currency's Name.
-    function  transferToken(bytes16 curr) payable
+    function  transferToken(bytes4 curr) payable
     {
         t1=NXMToken(tokenAddress);
         uint tokens=msg.value*100;
@@ -71,7 +71,7 @@ contract fiatFaucet
     {
         tokenAddress = _add;
     }
-     /// @dev Stores the ERC20 Tokens contract address against the corresponding currency.
+    /// @dev Stores the ERC20 TOkens address of different currency.
     function updateCurr(address usd,address eur,address gbp) onlyInternal
     {
         contract_add["USD"] = usd;
@@ -79,11 +79,12 @@ contract fiatFaucet
         contract_add["GBP"] = gbp;
      
     }
+  
     function changeQuotationAddress(address _to) onlyInternal
     {
-        quotationAddress=_to;
+        quotation2Address=_to;
     }
-     /// @dev Adds a new currency's ERC20 contract address.
+    /// @dev Adds a new currency's address.
     /// @param _add Currency's address.
     /// @param currName Currency's name.
     function addCurrency(address _add , bytes16 currName) onlyInternal
@@ -91,15 +92,15 @@ contract fiatFaucet
         contract_add[currName] = _add;
     }
   
-    /// @dev Gets currency token balance of a given currency.
+    /// @dev Gets the token's balance of a given currency of a given address.
     function getBalance(address _of,bytes16 curr) constant returns(uint bal)
     {
          tok=SupplyToken(contract_add[curr]);
         return tok.balanceOf(_of);
     }
-    /// @dev Transfers a given amount of tokens of a given currency, from Pool contract to the given receiver's address.
+    /// @dev Transfers the given tokens of a given currency from Pool contract to the given receiver's address.
     /// @param _to Receiver's address.
-    /// @param curr Currency name.
+    /// @param curr Currency's name.
     /// @param tokens Number of tokens.
     function payoutTransferFromPool(address _to , bytes16 curr , uint tokens) onlyInternal
     {
@@ -109,18 +110,21 @@ contract fiatFaucet
 
     /// @dev Funding of Quotations using ERC20 tokens.
     /// @param amount Token Amount.
-    /// @param curr Currency Name.
+    /// @param curr Currency's Name.
     /// @param fundArr fund amounts for each selected quotation.
     /// @param fundIndexArr multiple quotations ID that will get funded.
     function funding(uint amount , bytes16 curr, uint[] fundArr , uint[] fundIndexArr)
     {
         tok=SupplyToken(contract_add[curr]);
         tok.debitTokensForFunding(amount , msg.sender);
-        q1=quotation(quotationAddress);
+        q1=quotation2(quotation2Address);
         q1.fundQuote(fundArr , fundIndexArr , msg.sender);
     }
+      function getCurrAddress(bytes16 curr) constant returns(address currAddress)
+    {
+        return (contract_add[curr]);
+    }
 
-    
 }
 
 

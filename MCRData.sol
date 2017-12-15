@@ -15,41 +15,35 @@
 
 
 
-pragma solidity ^0.4.8;
+pragma solidity 0.4.11;
 import "./master.sol";
 
 contract MCRData
 {
     master ms1;
     address masterAddress;
-    struct currRates{
-        bytes16 currName;
-        uint ratex100;
-    }
-    uint public minMCRReq;
-    uint public SFx100000;
-    uint public growthStep;
-    uint MCRTime;
-    bytes16[] allCurrencies;
-    struct monthlyAvg{
-        uint MCRPercx100;
-        uint mcrEtherx100;
-        uint vFull;
-        uint dataCount;
-    }
+    uint32 public minMCRReq;
+    uint32 public SFx100000;
+    uint32 public growthStep;
+    uint16 public minCap;
+    uint64 public MCRFailTime;
+    uint16 public shockParameter;
+    uint64 MCRTime;
+    bytes4[] allCurrencies;
     struct mcrData
     { 
-        uint mcrPercx100;
+        uint32 mcrPercx100;
         uint mcrEtherx100;
-        uint vFull;    //pool funds
+        uint64 vFull;    //pool funds
         uint date_add;
         uint blockNumber;
-        mapping(bytes16=>uint) allCurrRates;
+        mapping(bytes4=>uint32) allCurrRates;
     }
     mcrData[] public allMCRData;
-    mapping(bytes16=>uint) public allCurr3DaysAvg;
-    mapping( uint => uint) public dateWiseMCR; 
-    mapping(uint=>monthlyAvg) graphData;
+    mapping(bytes4=>uint32) public allCurr3DaysAvg;
+    mapping(uint64 => uint) public dateWiseMCR;
+    mapping(uint=>uint64) public indexWiseDate; 
+   // mapping(uint64=>monthlyAvg) graphData;
     address notariseMCR;
 
     function MCRData()
@@ -57,8 +51,11 @@ contract MCRData
         growthStep = 1500000;
         SFx100000 = 140;
         MCRTime = 24*60*60;
+        MCRFailTime=5*60;
         minMCRReq = 0;
         allMCRData.push(mcrData(0,0,0,0,0));
+        minCap=1;
+        shockParameter=50;
     }
     function changeMasterAddress(address _add)
     {
@@ -97,66 +94,79 @@ contract MCRData
         if(nadd==notariseMCR)
         res=1;
     }
+    function changeMinCap(uint16 newCap) onlyOwner
+    {
+        minCap=newCap;
+    }
+    function changeShockParameter(uint16 newParam) onlyOwner
+    {
+        shockParameter=newParam;
+    }
     /// @dev Changes Growth Step
-    function changeGrowthStep(uint newGS) onlyOwner
+    function changeGrowthStep(uint32 newGS) onlyOwner
     {
         growthStep = newGS;
     }
     /// @dev Gets Scaling Factor.
-    function getSFx100000() constant returns(uint sf)
+    function getSFx100000() constant returns(uint32 sf)
     {
         sf = SFx100000;
     }
-    /// @dev Gets Growth Step.
-    function getGrowthStep() constant returns(uint gs)
+    /// @dev Gets Growth Step
+    function getGrowthStep() constant returns(uint32 gs)
     {
         gs = growthStep;
     }
+    function getMinCap() constant returns(uint16 _MinCap)
+    {
+        _MinCap=minCap;
+    }
+    function getShockParameter() constant returns(uint16 _shock)
+    {
+        _shock=shockParameter;
+    }
     /// @dev Changes time period for obtaining new MCR data from external oracle query.
-    function changeMCRTime(uint _time) onlyInternal
+    function changeMCRTime(uint64 _time) onlyInternal
     {
         MCRTime = _time;
     }
+    function changeMCRFailTime(uint64 _time) onlyInternal
+    {
+        MCRFailTime=_time;
+    }
     /// @dev Gets time interval after which MCR calculation is initiated.
-    function getMCRTime()constant returns(uint _time)
+    function getMCRTime()constant returns(uint64 _time)
     {
         _time = MCRTime;
     }
+    function getMCRFailTime() constant returns(uint64 _time)
+    {
+        _time=MCRFailTime;
+    }
     /// @dev Changes minimum value of MCR required for the system to be working.
-    function changeMinReqMCR(uint minMCR) onlyInternal
+    function changeMinReqMCR(uint32 minMCR) onlyInternal
     {
         minMCRReq = minMCR;
     }
     /// @dev Gets minimum  value of MCR required.
-    function getMinMCR()constant returns(uint mcr)
+    function getMinMCR()constant returns(uint32 mcr)
     {
         mcr = minMCRReq;
     }
     /// @dev Stores name of currency accepted in the system.
     /// @param curr Currency Name.
-    function addCurrency(bytes16 curr) onlyInternal
+    function addCurrency(bytes4 curr) onlyInternal
     {
-        uint8 flag=0;
-        for(uint i=0;i<allCurrencies.length;i++)
-        {
-            if(allCurrencies[i]==curr)
-            {
-                flag=1;
-            }
-        }
-        if(flag==0)
-        {
-            allCurrencies.push(curr);
-        }
+        allCurrencies.push(curr);
     }
     /// @dev Gets name of all the currencies accepted in the system.
     /// @return curr Array of currency's name.
-    function getAllCurrencies() constant returns(bytes16[] curr)
+    function getAllCurrencies() constant returns(bytes4[] curr)
     {
         return allCurrencies;
     }
     /// @dev Changes scaling factor.
-    function changeSF(uint val) onlyInternal
+    function changeSF(uint32 val) onlyInternal
     {
         SFx100000 = val;
     }
@@ -165,33 +175,14 @@ contract MCRData
     {
         len = allMCRData.length;
     }
-    /// @dev Gets number of times MCR data has been posted in a given month of a year.
-    /// @param yearMonth yyyymm.
-    /// @return dc Number of times MCR data has been added.
-    function getYearMonthDataCount(uint yearMonth)constant returns(uint dc)
-    {
-        dc = graphData[yearMonth].dataCount;
-    }
-    /// @dev Stores MCR data for a month of a year.
-    /// @param yearMonth Year and month number (format:yyyymm).
-    /// @param mcrp Minimum Capital Requirement percentage.(MCR% * 100 ,Ex:for 54.56% ,given 5456)
-    /// @param mcre Minimum Capital Requirement in Ether (*100)
-    /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
-    /// @param dc Counter variable used to count the number of times data has been posted in a month of a year.
-    function addGraphDataForYearMonth(uint yearMonth,uint mcrp,uint mcre,uint vf,uint dc) onlyInternal
-    {
-        graphData[yearMonth].MCRPercx100 += mcrp;
-        graphData[yearMonth].mcrEtherx100 += mcre;
-        graphData[yearMonth].vFull += vf;
-        graphData[yearMonth].dataCount = dc;
-    }
+   
     /// @dev Adds details of (Minimum Capital Requirement)MCR.
     /// @param mcrp Minimum Capital Requirement percentage (MCR% * 100 ,Ex:for 54.56% ,given 5456)
     /// @param mcre Minimum Capital Requirement in Ether (*100)
     /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
     /// @param time Current timestamp at which MCR details are getting added.
     /// @param block Block Number on which calculations have been made.
-    function pushMCRData(uint mcrp,uint mcre,uint vf,uint time,uint block) onlyInternal
+    function pushMCRData(uint32 mcrp,uint mcre,uint64 vf,uint time,uint block) onlyInternal
     {
         allMCRData.push(mcrData(mcrp,mcre,vf,time,block));
     }
@@ -199,17 +190,17 @@ contract MCRData
     /// @param id index value
     /// @param curr Currency Name
     /// @param rate rate of currency X 100.
-    function updateCurrRates(uint id,bytes16 curr , uint rate) onlyInternal
+    function updateCurrRates(uint id,bytes4 curr,uint32 rate) onlyInternal
     {
         allMCRData[id].allCurrRates[curr] = rate;
     }
     /// @dev Gets number of currencies that the system accepts.
-    function getCurrLength()constant returns(uint len)
+    function getCurrLength()constant returns(uint16 len)
     {
-        len = allCurrencies.length;
+        len = uint16(allCurrencies.length);
     }
     /// @dev Gets name of currency at a given index.
-    function getCurrency_Index(uint index)constant returns(bytes16 curr)
+    function getCurrency_Index(uint16 index)constant returns(bytes4 curr)
     {
         curr = allCurrencies[index];
     }
@@ -217,53 +208,44 @@ contract MCRData
     /// @param index index value
     /// @param curr Currency Name
     /// @return rate rate of currency X 100.
-    function getCurrencyRateByIndex(uint index,bytes16 curr) constant returns(uint rate)
+    function getCurrencyRateByIndex(uint index,bytes4 curr) constant returns(uint32 rate)
     {
         rate = allMCRData[index].allCurrRates[curr];
     }
     /// @dev Updates the 3 day average rate of a currency.
     /// @param curr Currency Name.
     /// @param rate Average exchange rate X 100 (of last 3 days).
-    function updateCurr3DaysAvg(bytes16 curr , uint rate) onlyInternal
+    function updateCurr3DaysAvg(bytes4 curr , uint32 rate) onlyInternal
     {
         allCurr3DaysAvg[curr] = rate;
     }
     /// @dev Gets the average rate of a currency.
     /// @param curr Currency Name.
     /// @return rate Average rate X 100(of last 3 days).
-    function getCurr3DaysAvg(bytes16 curr) constant returns(uint rate)
+    function getCurr3DaysAvg(bytes4 curr) constant returns(uint32 rate)
     {
         rate = allCurr3DaysAvg[curr];
     }
     /// @dev Stores the MCR to the date on which it is calculated. 
     /// @param _date date at which new MCR details are added (yyyyMMdd).
     /// @param id MCR id.
-    function updateDateWiseMCR(uint _date , uint id) onlyInternal
+    function updateDateWiseMCR(uint64 _date , uint id) onlyInternal
     {
         dateWiseMCR[_date] = id;
+        indexWiseDate[id]=_date;
     }
-    /// @dev Gets MCR data for a year and month.
-    /// @param yearMonth Year and month number (yyyymm).
-    /// @return mcrp Minimum Capital Requirement MCR percentage.
-    /// @return mcre Minimum Capital Requirement MCR in ether.
-    /// @return vf Total Pool fund value in Ether.
-    /// @return dc Number of times MCR data has been added for the given year and month.
-    /// @return yearmonth Year and Month (in yyyymm) of MCR data.
-    function getGraphData(uint yearMonth) constant returns (uint mcrp ,uint mcre , uint vf , uint dc ,uint yearmonth) 
+    function getIndexWiseDate(uint id) constant returns(uint64 date)
     {
-        mcrp = graphData[yearMonth].MCRPercx100;
-        mcre = graphData[yearMonth].mcrEtherx100;
-        vf =  graphData[yearMonth].vFull;
-        dc = graphData[yearMonth].dataCount;
-        yearmonth = yearMonth;
+        date= indexWiseDate[id];
     }
+    
      /// @dev Gets the details of last added MCR.
     /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
     /// @return mcrEtherx100 Total Minimum Capital Requirement in ether.(multiplied by 100)
     /// @return vFull Total Pool fund value in Ether used in the last full daily calculation.
     /// @return date_add Timestamp at which data was notarized.
     /// @return blockNumber Block Number at which data was notarized.
-    function getLastMCR() constant returns( uint mcrPercx100,uint mcrEtherx100,uint vFull,uint date_add,uint blockNumber)
+    function getLastMCR() constant returns( uint32 mcrPercx100,uint mcrEtherx100,uint64 vFull,uint date_add,uint blockNumber)
     {
        
         return (allMCRData[allMCRData.length-1].mcrPercx100,allMCRData[allMCRData.length-1].mcrEtherx100,allMCRData[allMCRData.length-1].vFull,allMCRData[allMCRData.length-1].date_add,allMCRData[allMCRData.length-1].blockNumber);
@@ -274,20 +256,24 @@ contract MCRData
     /// @return mcrEtherx100 Total Minimum Capital Requirement in ether * 100.
     /// @return vFull Pool Fund value in Ether used in calculation for the given date.
     /// @return date_add Timestamp at which data was notarized.
-    function getMCRbyDate(uint date) constant returns( uint mcrPercx100,uint mcrEtherx100,uint vFull,uint date_add,uint blockNumber)
+    function getMCRbyDate(uint64 date) constant returns( uint32 mcrPercx100,uint mcrEtherx100,uint64 vFull,uint date_add,uint blockNumber)
     {
         uint index = dateWiseMCR[date];
         return (allMCRData[index].mcrPercx100,allMCRData[index].mcrEtherx100,allMCRData[index].vFull,allMCRData[index].date_add,allMCRData[index].blockNumber);
     }
+    function getMCRIndexByDate(uint64 date)constant returns(uint index)
+    {
+        index = dateWiseMCR[date];
+    }
 
     /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
     /// @return val MCR% value,multiplied by 100.
-    function getlastMCRPerc() constant returns(uint val)
+    function getlastMCRPerc() constant returns(uint32 val)
     {
         val = allMCRData[allMCRData.length-1].mcrPercx100;
     }
     /// @dev Gets Pool fund value in Ether used in the last full daily calculation from the Capital model.
-    function getLastVfull()constant returns(uint vf)
+    function getLastVfull()constant returns(uint64 vf)
     {
         vf = allMCRData[allMCRData.length-1].vFull;
     }
@@ -298,6 +284,10 @@ contract MCRData
         val = allMCRData[allMCRData.length-1].mcrEtherx100;
     }
     
-
-    
+    function getTokenPriceDetails(bytes4 curr) constant returns(uint32 SF,uint32 gs,uint32 rate)
+    {
+        SF = SFx100000;
+        gs = growthStep;
+        rate = allCurr3DaysAvg[curr];
+    }
 }

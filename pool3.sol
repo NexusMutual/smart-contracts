@@ -456,6 +456,34 @@ contract pool3
         } 
        
     }
-    
+    function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[] curr_address)
+    {
+         f1=fiatFaucet(fiatFaucetAddress);
+          pd1=poolData1(poolDataAddress);
+          uint i;
+         if(_type==0) 
+         {
+            // return address of Currency assets
+             for(i=0;i<curr.length;i++)
+             {
+                if(curr[i]=="ETH")
+                {
+                    curr_address[i]=getWETHAddress();
+                }
+                else
+                {
+                    curr_address[i]=f1.getCurrAddress(curr[i]);
+                }
+             }
+        }
+        else if(_type==1)
+        {
+           // return address of Investment assets
+           for(i=0;i<curr.length;i++)
+             {
+                curr_address[i]=pd1.getInvestmentAssetAddress(curr[i]);
+             }
+        } 
+    }
 
 }

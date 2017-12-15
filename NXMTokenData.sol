@@ -14,23 +14,23 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 
-pragma solidity ^0.4.8;
+pragma solidity 0.4.11;
 import "./master.sol";
 contract NXMTokenData {
 
     master ms1;
     address masterAddress;
     string public version = 'NXM 0.1';
-    string public name;
-    string public symbol;
+    bytes8 public name;
+    bytes8 public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
     address owner;
     uint  initialTokens;
-    uint public  currentFounderTokens;
+    uint public currentFounderTokens;
     uint public memberCounter;
-    uint  bookTime;
-    uint  minVoteLockPeriod;
+    uint64  bookTime;
+    uint64  minVoteLockPeriod;
     struct lockToken
     {
         uint validUpto;
@@ -41,10 +41,11 @@ contract NXMTokenData {
         uint time_done;
         uint blockNumber;
         uint totalDistTillNow;
+        uint totalWeight;
     }
     struct incentive{
         uint amount;
-        uint success;
+        uint8 success;
     }
     struct allocatedTokens{
         address memberAdd;
@@ -55,7 +56,7 @@ contract NXMTokenData {
 
     allocatedTokens[] allocatedFounderTokens;
   
-
+    mapping (address => uint) memberSDClaimId;
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping(uint=>lockToken[])) public depositCN_Cover;
     mapping (address => lockToken[])   lockedCA;
@@ -64,24 +65,24 @@ contract NXMTokenData {
     mapping (address => lockToken[])  bookedCA;
     mapping (address => mapping(uint => lockToken)) public lockedCN_Cover;
     mapping (address => mapping (address => uint256)) public allowance;
-    mapping (bytes16 => uint) public currency_token; 
+    mapping (bytes4 => uint) public currency_token; 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _of,bytes16 eventName , uint coverId ,uint tokens);
     mapping (address => mapping (uint => lockToken[])) public burnCAToken; 
-    mapping (bytes16 => uint) public poolFundValue;
+    mapping (bytes4 => uint) public poolFundValue;
     address[] public allMembers;
     mapping (address => uint) isInallMembers; 
     SDidAndTime[] SDHistory;
     mapping(uint=>mapping(address=>incentive)) SDMemberPayHistory;    
-    uint lastSDDate;
-    uint sdDistTime;
+    uint64 lastSDDate;
+    uint64 sdDistTime;
     
     function NXMTokenDataCon(
     uint256 initialSupply,
-    string tokenName,
+    bytes8 tokenName,
     uint8 decimalUnits,
-    string tokenSymbol
+    bytes8 tokenSymbol
     ) {
         owner = msg.sender;
         initialTokens = 1500000;
@@ -122,7 +123,7 @@ contract NXMTokenData {
     /// @param _add Member address receiving surplus distribution.
     /// @param weight proportional share of surplus distribution of a member.
     /// @param done represents if surplus distribution amount has been transferred to the given member or not. 0 if not,1 if payout is done.
-    function addInSDMemberPayHistory(uint index ,address _add,uint weight ,uint done) onlyInternal
+    function addInSDMemberPayHistory(uint index ,address _add,uint weight ,uint8 done) onlyInternal
     {
         SDMemberPayHistory[index][_add] = incentive(weight,done);
     }
@@ -141,22 +142,25 @@ contract NXMTokenData {
     {
         weigh =SDMemberPayHistory[index][_add].amount;
     }
-    /// @dev Gets the minimum time (in seconds), after which a surplus distribution is made.
-    function getsdDistributionTime() constant returns(uint _time)
+    function getSDDistributionIndSuccess(uint index,address _add) constant returns(uint8 done)
+    {
+        done=SDMemberPayHistory[index][_add].success;
+    }
+    /// @dev Gets the minimum time (in milliseconds), after which a surplus distribution is made.
+    function getsdDistributionTime() constant returns(uint64 _time)
     {
         _time = sdDistTime;
     }
     /// @dev Adds Details of a Surplus Distribution.
     /// @param value Amount distributed.
-    /// @param _time Timestamp on which Surplus Distribution occur.
     /// @param blockno Block Number.
     /// @param total total amount that has been distributed in all the Surplus Distributions till date.
-    function pushInSDHistory(uint value , uint _time, uint blockno ,uint total) onlyInternal
+    function pushInSDHistory(uint value,uint blockno ,uint total,uint totalWeight) onlyInternal
     {
-        SDHistory.push(SDidAndTime(value,_time,blockno,total));
+        SDHistory.push(SDidAndTime(value,now,blockno,total,totalWeight));
     }
-    /// @dev Sets the minimum time (in seconds), after which a Surplus Distribution is made.
-    function setSDDistributionTime(uint _time) onlyOwner
+    /// @dev Sets the minimum time (in milliseconds), after which a Surplus Distribution is made.
+    function setSDDistributionTime(uint64 _time) onlyOwner
     {
         sdDistTime = _time;
     }
@@ -170,36 +174,64 @@ contract NXMTokenData {
     /// @return index Surplus Distribution's Id.
     /// @return amount Amount distributed in this Distribution.
     /// @return date Date on which Surplus Distribution occurred.
-    /// @return totalAmount total amount that was distributed till the specified surplus distribution id.
-    function getSDDistDetailById(uint id) constant returns(uint index , uint amount, uint date , uint totalAmount)
+    /// @return totalAmount total amount that was  distributed till the specified surplus distribution id.
+    function getSDDistDetailById(uint id) constant returns(uint index , uint amount, uint date , uint totalAmount,uint totalWeight)
     {
         index = id;
         amount = SDHistory[id].totalAmount;
         date = SDHistory[id].time_done;
         totalAmount = SDHistory[id].totalDistTillNow;
+        totalWeight=SDHistory[id].totalWeight;
     }
     /// @dev Gets total amount that has been distributed in all the Surplus Distribution till date.
     function getTotalSDTillNow()constant returns(uint tot)
     {
         tot = SDHistory[SDHistory.length -1].totalDistTillNow;
     }
+    function getTotalWeightAndAmountById(uint id) constant returns(uint amount,uint weight)
+    {
+        amount = SDHistory[id].totalAmount;
+        weight=SDHistory[id].totalWeight;
+    }
+    function getTotalSDAmountByAddress(address member) constant returns(uint sum)
+    {
+        uint totalSDAmount;uint totalSDWeight;
+        uint start=memberSDClaimId[member];
+        sum=0;
+        for(uint i=start;i<SDHistory.length;i++)
+        {
+            if(getSDDistributionIndSuccess(i,member)==0)
+            {
+                (totalSDAmount,totalSDWeight)=getTotalWeightAndAmountById(i);
+                 sum+= (getSDDistributionIndWeight(i,member) * totalSDAmount)/totalSDWeight;
+            }
+        }
+    }
     /// @dev Calculates the timestamp Surplus distribution.
     function getLastDistributionTime() constant returns(uint datedone)
     {
         datedone = SDHistory[SDHistory.length -1].time_done;
     }
-    /// @dev Gets the number of NXM Tokens that are allotted by the creator to the founders.
+    function addMemberClaimSDId(address member,uint id)
+    {
+        memberSDClaimId[member]=id;
+    }
+    function getMemberClaimSDId(address member) constant returns(uint SDId)
+    {
+        return  memberSDClaimId[member];
+    }
+    /// @dev Gets the number of NXM Tokens that are alloted by the creator to the founders.
     function getCurrentFounderTokens() constant returns(uint tokens) 
     {
         tokens = currentFounderTokens;
     }
-    /// @dev Gets the minimum time(in seconds) for which CA tokens should be locked, in order to participate in claims assessment.
-    function getMinVoteLockPeriod() constant returns(uint period)
+    /// @dev Gets the minimum time(in milliseconds) for which CA tokens should be locked, in order to participate in claims assessment.
+    function getMinVoteLockPeriod() constant returns(uint64 period)
     {
         period = minVoteLockPeriod;
     }
-    /// @dev Sets the minimum time(in seconds) for which CA tokens should be locked, in order to be used in claims assessment.
-    function changeMinVoteLockPeriod(uint period) onlyOwner
+    /// @dev Sets the minimum time(in milliseconds) for which CA tokens should be locked, in order to be used in claims assessment.
+    function changeMinVoteLockPeriod(uint64 period) onlyOwner
     {
         minVoteLockPeriod = period;
     } 
@@ -224,12 +256,12 @@ contract NXMTokenData {
         allocatedFounderTokens.push(allocatedTokens(_to , tokens , now , block.number));
     }
     /// @dev Changes the time period up to which tokens will be locked. Used to generate the validity period of tokens booked by a user for participating in claim's assessment/claim's voting.
-    function changeBookTime(uint _time) onlyOwner
+    function changeBookTime(uint64 _time) onlyOwner
     {
         bookTime = _time;
     }
-    /// @dev Gets the time period(in seconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
-    function getBookTime() constant returns(uint _time)
+    /// @dev Gets the time period(in milliseconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
+    function getBookTime() constant returns(uint64 _time)
     {
         _time = bookTime;
     }
@@ -277,21 +309,21 @@ contract NXMTokenData {
     /// @dev Gets number of NXM tokens generated by receiving funding in fiat crypto.
     /// @param curr Currency name.
     /// @return tokens Number of tokens.
-    function getCurrencyTokens(bytes16 curr) constant returns(uint tokens)
+    function getCurrencyTokens(bytes4 curr) constant returns(uint tokens)
     {
         tokens = currency_token[curr];
     }
     /// @dev Changes the number of NXM tokens generated by receiving funding in fiat crypto.
     /// @param curr Currency name.
     /// @param tokens Number of tokens.
-    function changeCurrencyTokens(bytes16 curr , uint tokens) onlyInternal
+    function changeCurrencyTokens(bytes4 curr , uint tokens) onlyInternal
     {
         currency_token[curr] = tokens;
     }
     /// @dev Checks if a given address is already an NXM Member or not.
     /// @param _add Address.
     /// @return check 0 not an existing member,1 existing member
-    function checkInallMemberArray(address _add) constant returns(uint check)
+    function checkInallMemberArray(address _add) constant returns(uint8 check)
     {
         check = 0;
         if(isInallMembers[_add]==1)
@@ -329,20 +361,21 @@ contract NXMTokenData {
         _add = allMembers[i];
     }
      /// @dev Gets the pool fund amount in a given currency.
-    function getPoolFundValue(bytes16 curr) constant returns(uint amount)
+    function getPoolFundValue(bytes4 curr) constant returns(uint amount)
     {
         amount=poolFundValue[curr];
     }
     /// @dev Sets the amount funded in a pool in a given currency
-    function changePoolFundValue(bytes16 curr , uint val) onlyInternal
+    function changePoolFundValue(bytes4 curr , uint val) onlyInternal
     {
         poolFundValue[curr] = val;
     }
-    /// @dev books the user's tokens for maintaining Assessor Velocity, i.e. once a token is used to cast a vote as a claims assessor, the same token cannot be used to cast another vote before a fixed period of time(in seconds)
+    /// @dev books the user's tokens for maintaining Assessor Velocity, i.e. once a token is used to cast a vote as a claims assessor, the same token cannot be used to cast another vote before a fixed period of time(in milliseconds)
     /// @param _of user's address.
     /// @param value number of tokens that will be locked for a period of time. 
     function pushBookedCA(address _of ,uint value) onlyInternal
     {
+        //bookedCA[_of].push(lockToken(timestamp + forTime , value));
         bookedCA[_of].push(lockToken(now + bookTime , value));
     }
     /// @dev Gets number of times a user has locked tokens for claim assessment.
@@ -405,7 +438,7 @@ contract NXMTokenData {
     /// @param index index position.
     /// @param timestamp New validity date(timestamp).
     /// @param amount1 New number of tokens.
-    function updateLockedCN(address _of , uint index , uint timestamp , uint amount1) onlyInternal
+    function updateLockedCN(address _of , uint index ,uint timestamp , uint amount1) onlyInternal
     {
         lockedCN[_of][index].validUpto = timestamp;
         lockedCN[_of][index].amount = amount1;
@@ -477,7 +510,7 @@ contract NXMTokenData {
         val = lockedCN_Cover[_of][coverid].amount;
     }
     /// @dev Updates the validity and number of tokens locked against a cover of a user.
-    function updateLockedCN_Cover(address _of , uint coverid,uint timestamp , uint amount1) onlyInternal
+    function updateLockedCN_Cover(address _of ,uint coverid, uint timestamp,uint amount1) onlyInternal
     {
         lockedCN_Cover[_of][coverid].validUpto = timestamp;
         lockedCN_Cover[_of][coverid].amount = amount1;
@@ -523,6 +556,7 @@ contract NXMTokenData {
                 sum+=bookedCA[_to][i].amount;
         }
     }  
+    
     /// @dev Calculates the total number of tokens deposited in a cover by a user.
     /// @param coverId cover id.
     /// @param _of user's address.
@@ -532,7 +566,7 @@ contract NXMTokenData {
         sum=0;
         for(uint i=0 ; i < depositCN_Cover[_of][coverId].length ;i++ )
         {
-            if(now < depositCN_Cover[_of][coverId][i].validUpto)
+            if(now<depositCN_Cover[_of][coverId][i].validUpto)
                 sum+=depositCN_Cover[_of][coverId][i].amount;
         }
     } 
@@ -540,7 +574,7 @@ contract NXMTokenData {
     function getBalanceLockedTokens(uint coverId , address _of) constant returns(uint amt)
     {
         uint lockedTokens=0;
-        if(lockedCN_Cover[_of][coverId].validUpto > now)
+        if(lockedCN_Cover[_of][coverId].validUpto > uint64(now))
             lockedTokens = lockedCN_Cover[_of][coverId].amount;
         amt = lockedTokens - getDepositCN(coverId , _of);
     }
@@ -563,7 +597,7 @@ contract NXMTokenData {
     {
         lockedSD[_of].push(lockToken(_timestamp,_value));        
     }
-    
+   
     /// @dev Adds details of tokens that are locked against a given cover by a user.
     /// @param _of User's address.
     /// @param coverid Cover Id.

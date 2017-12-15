@@ -14,8 +14,8 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
     
-pragma solidity ^0.4.8;
-import "./quotation.sol";
+pragma solidity 0.4.11;
+import "./quotation2.sol";
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
 import "./pool.sol";
@@ -24,33 +24,43 @@ import "./governance.sol";
 import "./claimsData.sol";
 import "./master.sol";
 import "./NXMTokenData.sol";
-
-
-
+import "./poolData1.sol";
+import "./fiatFaucet.sol";
+import "./MCRData.sol";
+import "./SafeMaths.sol";
+import "./pool2.sol";
+import "./pool3.sol";
 contract claims{
-    
+    using SafeMaths for uint;
     string[]  claimStatus_desc;
-    
-     NXMToken2 tc2;
+    NXMToken2 tc2;
     address public token2Address;
     address  tokenAddress;
-    address  quotationAddress;
+    address  quotation2Address;
     address  claims_rewardAddress;
     address poolAddress;
     address governanceAddress;    
     address claimsDataAddress;
-    address tokenDataAddress;   
+    address tokenDataAddress;  
+    address poolDataAddress; 
+    address fiatFaucetAddress;
+    address MCRDataAddress;
+    address pool2Address;
+    address pool3Address;
     NXMToken tc1;
-    quotation q1;
+    quotation2 q1;
     master ms1;
-     NXMTokenData td1;
+    NXMTokenData td1;
     address masterAddress;
     claims_Reward cr1;
     pool p1;
     governance g1;
     claimsData c1;
-    
-    
+    poolData1 pd1;
+    fiatFaucet f1;
+    MCRData md1;
+    pool2 p2;
+    pool3 p3;
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -69,27 +79,12 @@ contract claims{
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
-     function changeTokenDataAddress(address _add) onlyInternal
+    function changeTokenDataAddress(address _add) onlyInternal
     {
         tokenDataAddress = _add;
         td1 = NXMTokenData(tokenDataAddress);
     }
-    
-    /// @dev Sets the minimum, maximum claims assessment voting, escalation and payout retry times 
-    /// @param _mintime Minimum time(in seconds) for which claim assessment voting is open
-    /// @param _maxtime Maximum time(in seconds) for which claim assessment voting is open
-    /// @param escaltime Time(in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
-    function setTimes(uint _mintime,uint _maxtime,uint escaltime,uint payouttime)  onlyInternal
-    {
-        c1=claimsData(claimsDataAddress);
-        c1.setEscalationTime(escaltime);
-        c1.setPayoutRetryTime(payouttime);
-        c1.setMaxTime(_maxtime);
-        c1.setMinTime(_mintime);
-       
-    }
-    function changeToken2Address(address _add) onlyInternal
+     function changeToken2Address(address _add) onlyInternal
     {
         token2Address = _add;
         tc2 = NXMToken2(token2Address);
@@ -106,14 +101,48 @@ contract claims{
     {
         poolAddress = poolAdd;
     }
-     function changeTokenAddress(address newAddress) onlyInternal
+    function changeTokenAddress(address newAddress) onlyInternal
     {
         tokenAddress = newAddress;
     }
-      function changeQuotationAddress(address newAddress) onlyInternal
+    function changeQuotationAddress(address newAddress) onlyInternal
     {
-        quotationAddress = newAddress;
+        quotation2Address = newAddress;
     }
+    function changePoolDataAddress(address _add) onlyInternal
+    {
+        poolDataAddress = _add;
+    }
+    function changeFiatFaucetAddress(address _to) onlyInternal
+    {
+        fiatFaucetAddress = _to;
+    }
+    function changeMCRDataAddress(address _add) onlyInternal
+    {
+        MCRDataAddress = _add;
+    }
+    function changePool2Address(address _add)onlyInternal
+    {
+        pool2Address=_add;
+    }
+    function changePool3Address(address _add)onlyInternal
+    {
+        pool3Address=_add;
+    }
+    /// @dev Sets the minimum, maximum claims assessment voting, escalation and payout retry times 
+    /// @param _mintime Minimum time(in milliseconds) for which claim assessment voting is open
+    /// @param _maxtime Maximum time(in milliseconds) for which claim assessment voting is open
+    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    function setTimes(uint32 _mintime,uint32 _maxtime,uint32 escaltime,uint32 payouttime)  onlyInternal
+    {
+        c1=claimsData(claimsDataAddress);
+        c1.setEscalationTime(escaltime);
+        c1.setPayoutRetryTime(payouttime);
+        c1.setMaxTime(_maxtime);
+        c1.setMinTime(_mintime);
+       
+    }  
    
     /// @dev Adds status names for Claims.
     function pushStatus(string stat) onlyInternal
@@ -126,17 +155,17 @@ contract claims{
         claims_rewardAddress = _add;
     }
     /// @dev Gets the total number of claims assessor tokens used to vote for a given ClaimId
-    function getCaClaimVotes_token(uint claimid) constant returns(uint cnt)
-    {
-       c1=claimsData(claimsDataAddress);
-       return(c1.getCaClaimVotes_token(claimid));
-    }
+    // function getCaClaimVotes_token(uint claimid) constant returns(uint cnt)
+    // {
+    //    c1=claimsData(claimsDataAddress);
+    //    return(c1.getCaClaimVotes_token(claimid));
+    // }
     /// @dev Gets the total number of member tokens used to vote for a given ClaimId
-    function getMemberClaimVotes_token(uint claimid) constant returns(uint cnt)
-    {
-          c1=claimsData(claimsDataAddress);
-       return(c1.getMemberClaimVotes_token(claimid));
-    }
+    // function getMemberClaimVotes_token(uint claimid) constant returns(uint cnt)
+    // {
+    //       c1=claimsData(claimsDataAddress);
+    //    return(c1.getMemberClaimVotes_token(claimid));
+    // }
     /// @dev Rewards tokens to a Claim Assessor for a vote cast against a given claimid
     /// @param claimid Claim Id.
     /// @param index index of vote against claimid.
@@ -158,7 +187,7 @@ contract claims{
     /// @dev Gets the Number of tokens used in a specific vote, using claim id and index.
     /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
     /// @return tok Number of tokens.
-    function getvoteToken(uint claimid,uint index,uint ca) constant returns (uint tok)
+    function getvoteToken(uint claimid,uint index,uint8 ca) constant returns (uint tok)
     {
         c1=claimsData(claimsDataAddress);
         tok = c1.getvoteToken(claimid,index,ca);
@@ -166,38 +195,32 @@ contract claims{
     /// @dev Gets the Voter's address of a vote using claim id and index.
     /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
     /// @return voter Voter's address.
-    function getvoteVoter(uint claimid,uint index,uint ca) constant returns (address voter)
+    function getvoteVoter(uint claimid,uint index,uint8 ca) constant returns (address voter)
     {
         c1=claimsData(claimsDataAddress);
         voter = c1.getvoteVoter(claimid,index,ca);
     }
     /// @dev Gets claim details of claim id=pending claim start + given index
-    function getClaimFromNewStart(uint index)constant returns(string status , uint coverid , uint claimid , int voteCA , int voteMV , uint statusnumber)
+    function getClaimFromNewStart(uint index)constant returns(string status , uint coverid , uint claimid , int8 voteCA , int8 voteMV , uint8 statusnumber)
     {
-           c1=claimsData(claimsDataAddress);
+         c1=claimsData(claimsDataAddress);
        (coverid,claimid,voteCA,voteMV,statusnumber)=c1.getClaimFromNewStart(index,msg.sender);
        status = claimStatus_desc[statusnumber];
 
     }
      /// @dev Gets the voter's address of a given vote id.
-    function getvoter_vote(uint voteid) constant returns(address voter)
-    {
-        c1=claimsData(claimsDataAddress);
-        return (c1.getvoter_vote(voteid));
-    }
+    // function getvoter_vote(uint voteid) constant returns(address voter)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     return (c1.getvoter_vote(voteid));
+    // }
     /// @dev Gets claim details of a given claim id
     /// @param claimid Claim Id.
-    /// @return coverId cover against which claim has been submitted
-    /// @return date_submit timestamp at which claim is submitted
-    /// @return vote final verdict of claim
-    /// @return status current claim status
-    /// @return date_upd last timestamp at which claim has been updated
-    /// @return state16Count number of times payout has been retried
-    function getClaim(uint claimid) constant returns( uint claimId,uint coverId,uint date_submit,int vote,uint status,uint date_upd,uint state16Count)
-    {
-        c1=claimsData(claimsDataAddress);
-        return(c1.getClaim(claimid));
-    }
+    // function getClaim(uint claimid) constant returns(uint coverId,uint date_submit,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     return(c1.getClaim(claimid));
+    // }
     /// @dev Gets details of a claim submitted by the calling user, at a given index
     function getUserClaimByIndex(uint index)constant returns(string status , uint coverid , uint claimid)
     {
@@ -207,17 +230,17 @@ contract claims{
         status = claimStatus_desc[statusno];
     }
     /// @dev Gets last updated timestamp of a claim.
-    function getClaimUpdate(uint claimid) constant returns(uint upd)
-    {
-        c1=claimsData(claimsDataAddress);
-        upd=c1.getClaimUpdate(claimid);
-    }
+    // function getClaimUpdate(uint claimid) constant returns(uint upd)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     upd=c1.getClaimUpdate(claimid);
+    // }
    
     /// @dev Gets the total number of votes cast against given claim id.
     /// @param claimid Claim Id.
     /// @param ca if 1 : returns the number of votes cast as Claim Assessors , else returns the number of votes cast as a member
     /// @return len total number of votes cast against given claimid.
-    function getClaimVoteLength(uint claimid,uint ca) constant returns(uint len)
+    function getClaimVoteLength(uint claimid,uint8 ca) constant returns(uint len)
     {
         c1=claimsData(claimsDataAddress);
         len = c1.getClaimVoteLength(claimid,ca);
@@ -225,33 +248,33 @@ contract claims{
     /// @dev Sets the final vote result(either accept or decline)of a given claimid.
     /// @param claimid Claim Id.
     /// @param verdict 1 if claim is accepted,-1 if declined.
-    function changeFinalVerdict(uint claimid,int verdict) onlyInternal
+    function changeFinalVerdict(uint claimid,int8 verdict) onlyInternal
     {
         c1=claimsData(claimsDataAddress);
         c1.changeFinalVerdict(claimid,verdict);
     }
      
      /// @dev Gets total number of claims submitted by a user till date.
-    function getUserClaimCount() constant returns(uint len)
-    {
-        c1=claimsData(claimsDataAddress);
-        len = c1.getUserClaimCount(msg.sender);
-    }
+    // function getUserClaimCount() constant returns(uint len)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     len = c1.getUserClaimCount(msg.sender);
+    // }
 
     /// @dev Gets total number of claims pending for decision.
-    function getClaimLength() constant returns (uint len)
-    {
-        c1=claimsData(claimsDataAddress);
-        len = c1.getClaimLength(); 
-    }
+    // function getClaimLength() constant returns (uint len)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     len = c1.getClaimLength(); 
+    // }
      /// @dev Gets total number of claims submitted till date.
-    function actualClaimLength() constant returns (uint len)
-    {
-        c1=claimsData(claimsDataAddress);
-        len = c1.actualClaimLength();
-    }
+    // function actualClaimLength() constant returns (uint len)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     len = c1.actualClaimLength();
+    // }
   
-    // @dev Gets details of a given claim id.
+    /// @dev Gets details of a given claim id.
     /// @param ind Claim Id.
     /// @return quoteid QuoteId linked to the claim id
     /// @return status Current status of claim id
@@ -259,16 +282,15 @@ contract claims{
     /// @return finalVerdict Decision made on the claim, 1 in case of acceptance, -1 in case of denial
     /// @return claimOwner Address through which claim is submitted
     /// @return coverid Coverid associated with the claim id
-
-     function getClaimbyIndex(uint ind) constant returns( uint claimId,uint quoteid,string status,uint dateAdd ,int finalVerdict , address claimOwner ,uint coverid) 
+     function getClaimbyIndex(uint ind) constant returns( uint claimId,uint quoteid,string status,uint dateAdd ,int8 finalVerdict , address claimOwner ,uint coverid) 
     {
-        q1=quotation(quotationAddress);
+        q1=quotation2(quotation2Address);
          c1=claimsData(claimsDataAddress);
         
         uint stat;
-
-        (claimId,coverid,dateAdd,,,,)=c1.getClaim(ind);
-        (,,,finalVerdict,stat,,) = c1.getClaim(ind);
+        claimId=ind;
+        (coverid,dateAdd,finalVerdict,stat,,)=c1.getClaim(ind);
+       
         
         claimOwner = q1.getMemberAddress(coverid);
         quoteid=q1.getQuoteId(coverid);
@@ -283,15 +305,15 @@ contract claims{
     /// @return tokenRec Number of tokens received for the vote casted
     /// @return voter Voter Address
     /// @return burned Number of tokens burnt by advisory board(in case of fraudulent voting)
-    function getVoteDetailsForAB(uint voteid) constant returns(uint tokens,uint claimId,int verdict, uint date_submit,uint tokenRec,address voter,uint burned)
+    function getVoteDetailsForAB(uint voteid) constant returns(uint tokens,uint claimId,int8 verdict, uint date_submit,uint tokenRec,address voter,uint burned)
     {
         g1=governance(governanceAddress);
         c1=claimsData(claimsDataAddress);
         voter = c1.getvoter_vote(voteid);
         int claimVerdict;
         (tokens,claimId,verdict,date_submit,tokenRec,claimVerdict,) = c1.getVoteDetails(voteid);
-        uint ifburned = g1.checkIfTokensAlreadyBurned(claimId,voter);
-        return(tokens,claimId,verdict,date_submit,tokenRec,voter,ifburned);
+        burned = g1.checkIfTokensAlreadyBurned(claimId,voter);
+        return(tokens,claimId,verdict,date_submit,tokenRec,voter,burned);
     }
     /// @dev Gets number of tokens used by a given address to assess a given claimid 
     /// @param _of User's address.
@@ -308,48 +330,47 @@ contract claims{
             value = totalLockedCA;
     }
 
-    /// @dev Calculates total amount that has been used to assess a claim. 
-    /// Computaion:Adds acceptCA(tokens used for voting in favor a claim) and denyCA(tokens used for voting against a claim) *  current token price.
+    /// @dev Calculates total amount that has been used to assess a claim. Computaion:Adds acceptCA(tokens used for voting in favor a claim) and denyCA(tokens used for voting against a claim) *  current token price.
     /// @param claimid Claim Id.
     /// @param member Member type 0 for calculating the amount used by Claim Assessors, else result gives amount used by members.
     /// @return Tokens Total Amount used in claims assessment.
      function getCATokens(uint claimid,uint member) constant returns(uint Tokens)
     {
         tc1=NXMToken(tokenAddress);
-        q1=quotation(quotationAddress);
-         c1=claimsData(claimsDataAddress);
+        q1=quotation2(quotation2Address);
+        c1=claimsData(claimsDataAddress);
         uint coverid = c1.getClaimCoverId(claimid);
-        bytes16 curr = q1.getCurrencyOfCover(coverid);
-         uint tokenx1e18=tc1.getTokenPrice(curr);
-         uint acceptCA;uint acceptMV;
-         uint denyCA;uint denyMV;
-         (acceptCA,denyCA)=c1.getClaims_tokenCA(claimid);
-         (acceptMV,denyMV)=c1.getClaims_tokenMV(claimid);
-         if(member==0)
-              Tokens=(acceptCA+denyCA)*tokenx1e18/1000000000000000000; // amount (not in tokens)
+        bytes4 curr = q1.getCurrencyOfCover(coverid);
+        uint tokenx1e18=tc1.getTokenPrice(curr);
+        uint acceptCA;uint acceptMV;
+        uint denyCA;uint denyMV;
+        (acceptCA,denyCA)=c1.getClaims_tokenCA(claimid);
+        (acceptMV,denyMV)=c1.getClaims_tokenMV(claimid);
+        if(member==0)
+            Tokens=(acceptCA+denyCA)*tokenx1e18/1000000000000000000; // amount (not in tokens)
         else
-        Tokens=(acceptMV+denyMV)*tokenx1e18/1000000000000000000;
+            Tokens=(acceptMV+denyMV)*tokenx1e18/1000000000000000000;
         
     }
-    /// @dev Checks if voting of a claim should be closed or not. Internally called by checkVoteClosing method for claims whose status number is 0 or status number lie between 2 and 6.
+    /// @dev Checks if voting of a claim should be closed or not.Internally called by checkVoteClosing method for claims whose status number is 0 or status number lie between 2 and 6.
     /// @param claimid Claim Id.
     /// @param status Current status of claim.
     /// @return close 1 if voting should be closed,0 in case voting should not be closed,-1 if voting has already been closed.
-    function checkVoteClosingFinal(uint claimid,uint status) constant returns(int close)
+    function checkVoteClosingFinal(uint claimid,uint8 status) internal constant returns(int8 close)
     {
         close=0;
         tc1=NXMToken(tokenAddress);
-        q1=quotation(quotationAddress);
+        q1=quotation2(quotation2Address);
         c1=claimsData(claimsDataAddress);
         uint coverid = c1.getClaimCoverId(claimid);
-        bytes16 curr = q1.getCurrencyOfCover(coverid);
+        bytes4 curr = q1.getCurrencyOfCover(coverid);
         uint tokenx1e18=tc1.getTokenPrice(curr);
         uint acceptCA;uint acceptMV;
         uint denyCA;uint denyMV;
         (acceptCA,denyCA)=c1.getClaims_tokenCA(claimid);
         (acceptMV,denyMV)=c1.getClaims_tokenMV(claimid);
         uint CATokens=(acceptCA+denyCA)*tokenx1e18/1000000000000000000;
-            uint MVTokens=(acceptMV+denyMV)*tokenx1e18/1000000000000000000;
+        uint MVTokens=(acceptMV+denyMV)*tokenx1e18/1000000000000000000;
         uint sumassured=q1.getSumAssured(coverid)*1000000000000000000;
         if(status==0 && CATokens>=10*sumassured)
             close=1;
@@ -359,11 +380,11 @@ contract claims{
     /// @dev Checks if voting of a claim should be closed or not.
     /// @param claimid Claim Id.
     /// @return close 1 if voting should be closed, 0 if voting should not be closed,-1 if voting has already been closed.
-    function checkVoteClosing(uint claimid)constant returns(int close)
+    function checkVoteClosing(uint claimid)constant returns(int8 close)
     {   
         close=0;
          c1=claimsData(claimsDataAddress);
-         uint status=c1.getClaimStatusNumber(claimid); 
+         uint8 status=c1.getClaimStatusNumber(claimid); 
          uint date_upd = c1.getClaimDateUpd(claimid);
         if(status==16 && date_upd+ c1.payoutRetryTime() < now )
             if( c1.getClaimState16Count(claimid) < 60)
@@ -388,14 +409,14 @@ contract claims{
     /// @dev Changes the status of an existing claim id, based on current status and current conditions of the system
     /// @param claimid Claim Id.
     /// @param stat status number.
-    function setClaimStatus(uint claimid,uint stat) onlyInternal
+    function setClaimStatus(uint claimid,uint8 stat) onlyInternal
     {
         cr1=claims_Reward(claims_rewardAddress);
         c1=claimsData(claimsDataAddress);
          uint origstat;
          uint state16Count;
          uint date_upd;
-        (,,,,origstat,date_upd,state16Count)=c1.getAllClaimsByIndex(claimid);
+        (,,,origstat,date_upd,state16Count)=c1.getClaim(claimid);
         origstat=c1.getClaimStatus(claimid);
         if(stat==16 && origstat==16)
         {
@@ -403,22 +424,22 @@ contract claims{
         }
         c1.setClaimStatus(claimid,stat);
         if(state16Count >= 60 && stat==16)
-             c1.setClaimStatus(claimid,17);
-        c1.setClaimdate_upd(claimid,now);
-        c1.addClaimStatus(claimid,stat,now,block.number);
-         p1=pool(poolAddress);
+            c1.setClaimStatus(claimid,17);
+        uint time=now;     
+        c1.setClaimdate_upd(claimid,time);
+        c1.addClaimStatus(claimid,stat,time);
+        p1=pool(poolAddress);
         if(stat >=3 && stat<=6)
         {
-           
             p1.closeClaimsOraclise(claimid,c1.maxtime());
         }
         if(stat==16 &&  (date_upd + c1.payoutRetryTime() <= now) && (state16Count < 60))
         {
-                cr1.changeClaimStatus(claimid);
+            cr1.changeClaimStatus(claimid);
         }
         else if(stat==16 &&  (date_upd+ c1.payoutRetryTime() > now) && (state16Count < 60))
         {
-            uint timeLeft = date_upd+ c1.payoutRetryTime() -now;
+            uint64 timeLeft =uint64(date_upd+ c1.payoutRetryTime() -now);
             p1.closeClaimsOraclise(claimid,timeLeft);
         }
     }
@@ -427,13 +448,13 @@ contract claims{
     function changePendingClaimStart() onlyInternal
     {
          c1=claimsData(claimsDataAddress);
-         uint origstat;
-         uint state16Count;
+         uint8 origstat;
+         uint8 state16Count;
        
         for(uint i=c1.pendingClaim_start();i<c1.actualClaimLength();i++)
         {
          
-            (,,,,origstat,state16Count,)=c1.getAllClaimsByIndex(i);
+            (,,,origstat,,state16Count)=c1.getClaim(i);
          
             if(origstat>6 && ((origstat!=16) || (origstat==16 && state16Count >= 60)))
                 c1.setpendingClaim_start(i);
@@ -442,9 +463,132 @@ contract claims{
         }
     }
 
-   
-  
-   
- 
+   //Claims 2
+
+    /// @dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
+    /// @param coverid Cover Id.
+    function submitClaim(uint coverid) 
+    {
+        
+        q1=quotation2(quotation2Address);
+        address qadd=q1.getMemberAddress(coverid);
+        if(qadd != msg.sender) throw;
+        tc2=NXMToken2(token2Address);
+        c1=claimsData(claimsDataAddress);
+        uint tokens = q1.getLockedTokens(coverid);
+        tokens = tokens*20/100;
+        uint timeStamp = now + 1*7 days;
+        tc2.depositCN(coverid,tokens,timeStamp,msg.sender);
+        uint len = c1.actualClaimLength(); 
+        c1.addClaim(len,coverid,msg.sender);
+        q1.updateCoverStatusAndCount(coverid,4);
+        p1=pool(poolAddress);
+        p1.closeClaimsOraclise(len,c1.maxtime());
+        bytes4 curr=q1.getCurrencyOfCover(coverid);
+        uint sumAssured=q1.getSumAssured(coverid);
+        pd1 = poolData1(poolDataAddress);
+        pd1.changeCurrencyAssetVarMin(curr,pd1.getCurrencyAssetVarMin(curr)+uint64(sumAssured));
+        // p3=pool3(pool3Address);
+        // uint check;uint CABalance;
+        // (check,CABalance)= p3.checkLiquidity(curr);     
+        // if(check==1)
+        // {
+        //     p3.ExcessLiquidityTrading(curr,CABalance);
+        // }   
+        // else if(check==2)
+        // {
+        //     p3.InsufficientLiquidityTrading(curr,CABalance);
+        // }
+        checkLiquidity(curr);
+    }
+    // 12/1/2017
+     function checkLiquidity(bytes4 curr) onlyInternal
+    {
+        p3=pool3(pool3Address);
+        uint8 check;uint CABalance;
+        (check,CABalance)= p3.checkLiquidity(curr);     
+        if(check==1)
+        {
+            p3.ExcessLiquidityTrading(curr,CABalance);
+        }   
+        else if(check==2)
+        {
+            p3.InsufficientLiquidityTrading(curr,CABalance);
+        }
+    }
     
+    /// @dev Members who have tokens locked under Claims Assessment can assess and Vote As a CLAIM ASSESSOR for a given claim id.
+    /// @param claimid  claim id. 
+    /// @param verdict 1 for Accept,-1 for Deny.
+    /// @param tokens number of CAtokens a voter wants to use for the claim assessment.These tokens are booked for a specified period for time and hence cannot be used to cst another vote for the specified period
+    function submitCAVote(uint claimid,int8 verdict,uint tokens)
+    {  
+        c1=claimsData(claimsDataAddress);
+        if(checkVoteClosing(claimid) == 1) throw;
+        if(c1.getClaimStatus(claimid) != 0) throw;
+        if(c1.getvote_ca(claimid,msg.sender) != 0) throw;
+        tc1=NXMToken(tokenAddress);
+        tc1.bookCATokens(msg.sender , tokens);
+        c1.addVote(msg.sender,tokens,claimid,verdict,now,0);
+        uint vote_length=c1.vote_length();
+        c1.addclaim_vote_ca(claimid,vote_length);
+        c1.setvote_ca(msg.sender,claimid,vote_length);
+        c1.addvote_address_ca(msg.sender,vote_length);
+        c1.setvote_length(vote_length+1);
+        c1.setclaim_tokensCA(claimid,verdict,tokens);
+        int close = checkVoteClosing(claimid);
+        if(close==1)
+        {
+            cr1=claims_Reward(claims_rewardAddress);
+            cr1.changeClaimStatus(claimid);
+        }
+
+    }
+    /// @dev Escalates a specified claim id. If a claim is denied by the Claim Assessors, the owner of that claim can Escalate the Claim to a member vote.
+    /// @param coverId Cover Id associated with claim to be escalated.
+    /// @param claimId Claim Id.
+    function escalateClaim(uint coverId , uint claimId)
+    {  
+        tc2 = NXMToken2(token2Address);
+        q1=quotation2(quotation2Address);
+        tc1=NXMToken(tokenAddress);
+        address qadd=q1.getMemberAddress(coverId);
+        if(qadd != msg.sender) throw;
+        uint tokens = q1.getLockedTokens(coverId);
+        tokens = tokens*20/100;
+        c1=claimsData(claimsDataAddress);
+        uint d=864000 * c1.escalationTime() ;
+        uint timeStamp = now + d;
+        tc2.depositCN(coverId,tokens,timeStamp,msg.sender);
+        setClaimStatus(claimId,2);
+        q1.updateCoverStatusAndCount(coverId,4);
+        p1=pool(poolAddress);
+        p1.closeClaimsOraclise(claimId,c1.maxtime());
+    } 
+
+    /// @dev Submits a member vote for assessing a claim. Tokens other than those locked under Claims Assessment can be used to cast a vote for a given claim id.
+    /// @param claimid Selected claim id. 
+    /// @param verdict 1 for Accept,-1 for Deny.
+    /// @param tokens Number of tokens used to case a vote
+    function submitMemberVote(uint claimid,int8 verdict,uint tokens)
+    {
+        c1=claimsData(claimsDataAddress);
+        if(checkVoteClosing(claimid) == 1) throw;
+        uint stat=c1.getClaimStatus(claimid);
+        if(stat <2 || stat >6) throw;
+        if(c1.getvote_member(claimid,msg.sender) != 0) throw;
+        uint vote_length=c1.vote_length();
+        c1.addVote(msg.sender,tokens,claimid,verdict,now,0);
+        c1.addclaim_vote_member(claimid,vote_length);
+        c1.setvote_member(msg.sender,claimid,vote_length);
+        c1.addvote_address_member(msg.sender,vote_length);
+        c1.setvote_length(vote_length+1);
+        c1.setclaim_tokensMV(claimid,verdict,tokens);
+        int close = checkVoteClosing(claimid);
+        if(close==1)
+        {
+            cr1=claims_Reward(claims_rewardAddress);
+            cr1.changeClaimStatus(claimid);
+        }   
+    }   
 }

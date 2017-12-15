@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 
-pragma solidity ^0.4.8;
+pragma solidity 0.4.11;
 import "./NXMToken.sol";
 import "./claims.sol";
 import "./pool.sol";
@@ -65,8 +65,8 @@ contract governance {
     }
     struct category{
         string name;
-        uint memberVoteReq;
-        uint majority;
+        uint64 memberVoteReq;
+        uint16 majority;
     }
     function changeToken2Address(address _add) onlyInternal
     {
@@ -90,15 +90,15 @@ contract governance {
     }
     /// @dev Adds category details.
     /// @param cat Category name.
-    /// @param mvr Member vote Required/not, 1 if both members and advisory board members vote required, 0 if only advisory board voting is required  
--   /// @param maj Majority% required by this category to get the proposal passed. 
-    function addCategory(string cat,uint mvr,uint maj) onlyInternal
+    /// @param mvr Member vote Required 1 if both members and advisory board members vote required, 0 if only advisory board members vote required  
+    /// @param maj Majority required for this category to pass. 
+    function addCategory(string cat,uint64 mvr,uint16 maj) onlyInternal
     {
         allCategory.push(category(cat,mvr,maj));
     }
-    /// @dev Checks if the Tokens of a given User for a given Claim Id has been burnt or not.
+    /// @dev Checks if the Tokens of a given User for given Claim Id has been burnt or not.
     /// @return check 1 if the tokens are burnt,0 otherwise. 
-    function checkIfTokensAlreadyBurned(uint claimid , address voter) constant returns(uint check)
+    function checkIfTokensAlreadyBurned(uint claimid , address voter) constant returns(uint8 check)
     {
         gd1=governanceData(governanceDataAddress);
         check = gd1.checkIfTokensAlreadyBurned(claimid,voter);
@@ -113,48 +113,47 @@ contract governance {
         claimAd=claimAdd;
         poolAd=pooladd;
     }
-    /// @dev Gets Category details at a given index.
-    /// @param id Index value.
-    /// @param cat Category name.
-    /// @param mvr Member vote Required/not, 1 if both members and advisory board members vote required, 0 if only advisory board voting is required  
--   /// @param perc Majority% required by this category to get the proposal passed. 
-    function getCategory(uint index) constant returns ( uint id , string cat , uint mvr , uint perc)
+    /// @dev Gets Category details of a given index.
+    /// @return id Index value.
+    /// @return cat Category name.
+    /// @return mvr Member vote Required 1 if both members and advisory board members vote required, 0 if only advisory board members vote required  
+    /// @return perc Majority required by this category to get passed. 
+    function getCategory(uint index) constant returns ( uint id , string cat , uint64 mvr , uint16 perc)
     {
         cat = allCategory[index].name;
         mvr = allCategory[index].memberVoteReq;
         perc = allCategory[index].majority;
         id=index;
     } 
-   /// @dev Changes the total number of members.
+    /// @dev Changes the number of total member.
     function changeTotalMember(uint num) onlyInternal
     {
         gd1=governanceData(governanceDataAddress);
         gd1.changeTotalMember(num);
     }
-    /// @dev Changes the Quorum Percentage required.
-    function changeQuorumperc(uint perc) onlyOwner
+    /// @dev Changes the Quorum Percentage number.
+    function changeQuorumperc(uint32 perc) onlyOwner
     {
         gd1=governanceData(governanceDataAddress);
         gd1.changeQuorumperc(perc);
     }
-    /// @dev Changes the time (in seconds) after which voting for a proposal is closed.
+    /// @dev Changes the closing time of the vote.
     function changeClosingTime(uint _time) onlyOwner
     {
-        gd1=governanceData(governanceDataAddress);
-        uint closingTime = _time;  
+        gd1=governanceData(governanceDataAddress); 
         uint pendingProposalStart = gd1.getPendingProposalStart();
         uint len = gd1.getAllProLength();
         for(uint i=pendingProposalStart;i<len;i++)
         {
-            if(gd1.getProposalDateUpd(i) + closingTime <= now)
+            if(gd1.getProposalDateUpd(i) + _time <= now)
             {
                 closeProposalVote(i);
             }
             else
             {
-                uint timeleft = gd1.getProposalDateUpd(i)+closingTime -now;
+                uint64 timeleft = uint64(gd1.getProposalDateUpd(i)+_time -now);
                 p1=pool(poolAd);
-                p1.closeProposalOraclise(i,closingTime);
+                p1.closeProposalOraclise(i,timeleft);
             }
         }
     }
@@ -166,10 +165,10 @@ contract governance {
         len = gd1.getAllProLength();
     }
 
-    /// @dev Verifies whether a given address is an Advisory Board(AB) Member or not.
+    /// @dev Verifies whether a given address is a Advisory Board(AB) Member or not.
     /// @param add User address.
-    /// @return _AB 1 if the address is an AB member,0 otherwise.
-    function isAB(address add) constant returns(uint _AB)
+    /// @return _AB 1 if the address is AB member,0 otherwise.
+    function isAB(address add) constant returns(uint8 _AB)
     {
         gd1=governanceData(governanceDataAddress);
         _AB = gd1.isAB(add);
@@ -183,22 +182,21 @@ contract governance {
         len = gd1.getAllProLengthFromNewStart();
     }
 
-    /// @dev Provides the information of a given Proposal id.
+    /// @dev Provides the information of a Proposal when given the id.
     /// @param id Proposal id.
     /// @return proposalId Proposal Id.
-    /// @return vote final decision, 1 if proposal has been accepted,-1 if proposal has been declined,0 pending voting decision.
+    /// @return vote final decision of voting, 1 if proposal has been accepted,-1 if proposal has been declined,0 pending voting decision.
     /// @return date timestamp at which proposal has been created.
     /// @return cat Category of proposal.
     /// @return stat Status of proposal.
     /// @return versionNo Current version of proposal
-    function getProposalById2(uint id) constant returns(uint proposalId , int vote , uint date ,string cat ,string stat , uint statusNumber , uint versionNo)
+    function getProposalById2(uint id) constant returns(uint proposalId , int8 vote , uint date ,string cat ,string stat , uint16 statusNumber , uint64 versionNo)
     {
         gd1=governanceData(governanceDataAddress);
-        uint statno;
-        uint catno;
-        (proposalId,vote,date,catno,statno,statusNumber,versionNo) = gd1.getProposalById2(id);
+        uint16 catno;
+        (proposalId,vote,date,catno,statusNumber,versionNo) = gd1.getProposalById2(id);
         cat = allCategory[catno].name;
-        stat = status[statno]; 
+        stat = status[statusNumber]; 
     }    
     /// @dev Changes the status of a given proposal.
     /// @param id Proposal Id.
@@ -206,6 +204,7 @@ contract governance {
     {
         gd1=governanceData(governanceDataAddress);
         if(gd1.getProposalOwner(id) != msg.sender || gd1.getProposalStatus(id)!=0) throw;
+        //uint time= now;
         gd1.pushInProposalStatus(id,1);
         gd1.updateProposalStatus(id,1);
         gd1.updateProposalDateUpd(id);
@@ -214,10 +213,10 @@ contract governance {
 
     }
 
-    /// @dev Checks if voting on a proposal should be closed or not.
+    /// @dev Checks if voting time of a given proposal should be closed or not.
     /// @param id Proposal Id.
     /// @return close 1 if voting should be closed,0 in case voting should not be closed.
-    function checkProposalVoteClosing(uint id) constant returns(uint close)
+    function checkProposalVoteClosing(uint id) constant returns(uint8 close)
     {
         gd1=governanceData(governanceDataAddress);
         if( gd1.getProposalDateUpd(id) + gd1.getClosingTime() <= now && ((gd1.getProposalStatus(id) == 1)|| (gd1.getProposalStatus(id) == 2)))
@@ -226,18 +225,18 @@ contract governance {
             close=0;
     }
    
-    /// @dev Closes the voting of a given proposal. Changes the status and verdict of the proposal by calculating the votes. 
+    /// @dev Closes the voting of a given proposal.Changes the status and verdict of the proposal by calculating the votes. 
     /// @param id Proposal id.
     function closeProposalVote(uint id)
     {
         gd1=governanceData(governanceDataAddress);
         if(checkProposalVoteClosing(id)==1)
         {
-            uint accept;
-            uint deny;
-            uint maj;
-            uint category = gd1.getProposalCategoryNo(id);
-            uint mvr;
+            uint32 accept;
+            uint32 deny;
+            uint16 maj;
+            uint16 category = gd1.getProposalCategoryNo(id);
+            uint64 mvr;
             t1=NXMToken(nxad);
             
             td1=NXMTokenData(tokenDataAddress);
@@ -246,9 +245,9 @@ contract governance {
             if(gd1.getProposalStatus(id)==1)
             {
                 (accept,deny,,) = gd1.getProposalAllVotesCount(id);
-                 /// if proposal accept% >=majority required% (by Advisory board)
+                // if proposal accepted% >=majority % (by Advisory board)
                 if(accept*100/(accept+deny)>=maj)
-                {  /// If Member vote is required 
+                {   // Member vote required 
                     if(mvr==1)
                     {
                         gd1.updateProposalStatus(id,2);
@@ -257,7 +256,7 @@ contract governance {
                         p1=pool(poolAd);
                         p1.closeProposalOraclise(id,gd1.getClosingTime());
                     }
-                    /// If Member vote is not required
+                    // Member vote not required
                     else
                     {
                         gd1.updateProposalStatus(id,4);
@@ -270,7 +269,7 @@ contract governance {
                         }
                     }
                 }
-                /// if proposal is denied
+                // if proposal is denied
                 else
                 {
                     gd1.updateProposalStatus(id,3);
@@ -282,7 +281,7 @@ contract governance {
             else if(gd1.getProposalStatus(id)==2)
             {
                 (,,accept,deny) = gd1.getProposalAllVotesCount(id);
-                 /// If Member Vote Quorum not Achieved
+                // when Member Vote Quorum not Achieved
                 if((accept+deny)*100/totalMember < gd1.getQuorumPerc())
                 {
                     gd1.updateProposalStatus(id,7);
@@ -294,7 +293,7 @@ contract governance {
                         actionAfterProposalPass(id , category);
                     }
                 }
-                /// if proposal accepted% >=majority % (by Members)
+                // if proposal accepted% >=majority % (by Members)
                 else if(accept*100/(accept+deny)>=maj)
                 {
                     gd1.updateProposalStatus(id,5);
@@ -306,7 +305,7 @@ contract governance {
                         actionAfterProposalPass(id , category);
                     }
                 }
-                /// if proposal is denied
+                // if proposal is denied
                 else
                 {
                     gd1.updateProposalStatus(id,6);
@@ -332,8 +331,8 @@ contract governance {
         
     }
 
-    /// @dev When proposal gets accepted, different functions are performed on the basis of Proposal's category number. 
-    function actionAfterProposalPass(uint propid , uint cat) internal
+    /// @dev When proposal gets accepted,different functions are performed on the basis of Proposal's category number. 
+    function actionAfterProposalPass(uint propid , uint16 cat) internal
     {
         gd1=governanceData(governanceDataAddress);
         t2 = NXMToken2(token2Address);
@@ -351,22 +350,14 @@ contract governance {
             t2.burnCAToken(claimid,value,_add);
         }
         // when category is "Engage in external services up to the greater of $50,000USD " .
-        else if(cat == 6)
+        else if(cat == 6 || cat==7)
         {
             _add = gd1.getProposalAddress_Effect(propid);
             value = gd1.getProposalValue(propid);
             if(gd1.isAB(_add)==1)
                 p1.proposalExtServicesPayout( _add ,  value , propid);
         }
-        // when category is  "Engage in external services up to the greater of $50,000USD "and Member vote are required.
-        else if(cat == 7)
-        {
-             _add = gd1.getProposalAddress_Effect(propid);
-            value = gd1.getProposalValue(propid);
-            if(gd1.isAB(_add)==1)
-                p1.proposalExtServicesPayout( _add ,  value , propid);
-        }
-        /// when category is to create new version of contracts
+        // when category is to create new version of contracts
         else if(cat == 10)
         {
             ms1=master(masterAddress);
@@ -389,8 +380,8 @@ contract governance {
     /// @dev Adds the given address in the Advisory Board Members.
     function joinAB(address memAdd)
     {
-       ms1=master(masterAddress);
-       if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
+        ms1=master(masterAddress);
+        if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
         gd1=governanceData(governanceDataAddress);
         t1=NXMToken(nxad);
         uint tokensHeld = t1.balanceOf(memAdd);
@@ -411,6 +402,100 @@ contract governance {
         gd1.removeAB(memRem);
         gd1.addMemberStatusUpdate(memRem,0,now);
     }
+
+    //Governance 2
+    /// @dev Edits a proposal and uncategorizes it. Only owner of a proposal can edit it.
+    /// @param id Proposal Id.
+    /// @param sd New Short Description of the proposal.
+    /// @param ld New Long Description of the proposal.
+    function editProposal(uint id , string sd, string ld) 
+    {
+        gd1 = governanceData(governanceDataAddress);
+        if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
+        {
+            gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
+            gd1.updateProposal(id,sd,0,ld,gd1.getProposalVersion(id)+1);
+            //gd1.unCategoriseProposal(id);
+        }
+        else
+            throw;
+
+    }
+    /// @dev Creates a New Proposal 
+    /// @param shortDesc Short Description of Proposal.
+    /// @param longDesc Long Description of Proposal.
+    /// @param _effect Address of user that will be effected with proposal's decision.
+    /// @param value Amount, i.e. number of tokens to be burned or amount to be transferred in case of external services 
+    /// @param cat Category Number of Proposal.
+    function addProposal(string shortDesc , string longDesc , address _effect , uint value , uint16 cat)
+    {
+        gd1 = governanceData(governanceDataAddress);
+        if(cat==2 && gd1.checkBurnVoterTokenAgaintClaim(value,_effect)==1)
+            throw;
+        uint len = gd1.getAllProLength();
+        //uint64 time = uint64(now);
+        gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
+        if(gd1.isAB(msg.sender)==1 && cat==2)
+        {
+            gd1.updateCategorizeDetails(len,_effect,value,cat,msg.sender);
+            gd1.updateCategorisedProposal(len,1);
+            gd1.changeBurnVoterTokenAgaintClaim(value,_effect,1);
+        }
+        gd1.addInUserProposals(len,msg.sender);
+        gd1.pushInProposalStatus(len,0);
+    }
+    /// @dev Registers an Advisroy Board Member's vote
+    /// @param id Proposal id.
+    /// @param verdict 1 if vote is in favour,-1 if vote is in against.
+    function voteABProposal(uint id , int8 verdict)
+    {
+        gd1 = governanceData(governanceDataAddress);
+        
+        if(gd1.isAB(msg.sender)==0) throw;
+        uint len = gd1.getVoteLength();
+        gd1.incVoteLength();
+        gd1.addVote(msg.sender,id,verdict);
+        gd1.addInUserABVotes(len,msg.sender);
+        gd1.addInProposalABVotes(id,len);
+        gd1.updateUserProposalABVote(id,verdict,msg.sender);
+        if(verdict==1)
+            gd1.incPVCABAccept(id);
+        else if(verdict==-1)
+            gd1.incPVCABDeny(id);
+
+    }
+    /// @dev Members can give the votes(either in favor or in against) to a Proposal.
+    /// @param id Proposal id.
+    /// @param verdict 1 if vote is in favour,-1 if vote is in against.
+    function voteMember(uint id , int8 verdict)
+    {
+        gd1 = governanceData(governanceDataAddress);
+        
+        if(gd1.isAB(msg.sender)==1) throw;
+        uint len = gd1.getVoteLength();
+        gd1.incVoteLength();
+        gd1.addVote(msg.sender,id,verdict);
+        gd1.addInUserMemberVotes(len,msg.sender);
+        gd1.addInProposalMemberVotes(id,len);
+        gd1.updateUserProposalMemberVote(id,verdict,msg.sender);
+        if(verdict==1)
+            gd1.incPVCMemberAccept(id);
+        else if(verdict==-1)
+            gd1.incPVCMemberDeny(id);
+    }
+    /// @dev Allows advisory board members to categorize proposals.Updates the Categorization details of a given proposal. 
+    /// @param id Proposal Id.
+    /// @param cat Category of proposal.
+    /// @param _effect address of user which will get effected by proposal's decision.
+    /// @param val depend upon the category of proposal. (Example: 1. if category is claim, then val will be Claim Id.2.For burning of tokens, val will be number of tokens that will be burned)
+    function categorizeProposal(uint id , uint16 cat , address _effect , uint val)
+    {
+        gd1 = governanceData(governanceDataAddress);
+        if(gd1.isAB(msg.sender)==0) throw;
+        if(gd1.isProposalCategorised(id)==1) throw;
+        gd1.updateCategorizeDetails(id,_effect,val,cat,msg.sender);
+        gd1.updateCategorisedProposal(id,1);
+    }
 }
 
 
@@ -421,3 +506,4 @@ contract governance {
 
         
 
+    

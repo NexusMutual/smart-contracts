@@ -452,11 +452,11 @@ contract pool3
         }
         else
         {          
-            CABalance=f1.getBalance(poolAddress,curr); 
+            CABalance=f1.getBalance(poolAddress,bytes16(curr)); 
         } 
        
     }
-    function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[] curr_address)
+       function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[] curr_address)
     {
          f1=fiatFaucet(fiatFaucetAddress);
           pd1=poolData1(poolDataAddress);
@@ -484,6 +484,15 @@ contract pool3
                 curr_address[i]=pd1.getInvestmentAssetAddress(curr[i]);
              }
         } 
+    }
+    function getCurrencyAssetDetails(bytes4 curr) constant returns(uint CABalance,uint CARateX100,uint baseMin,uint varMin)
+    {
+        md1=MCRData(MCRDataAddress);
+        pd1=poolData1(poolDataAddress);
+        CABalance=getCurrencyAssetsBalance(curr);
+        (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
+        uint lastIndex=md1.getMCRDataLength();
+        CARateX100=md1.getCurrencyRateByIndex(lastIndex,curr);
     }
 
 }

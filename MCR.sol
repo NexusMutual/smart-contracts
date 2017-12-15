@@ -421,13 +421,15 @@ contract MCR
         Vtp = 0;
         p1=pool(poolAddress);
         t1 = NXMToken(tokenAddress);
+        f1=fiatFaucet(fiatFaucetAddress);
         uint len = md1.getCurrLength();
         for(uint16 i=0;i<len;i++)
         {   
             bytes4 currency = md1.getCurrency_Index(i);
             if(currency!="ETH")
             {
-                uint currTokens = t1.getPoolFundValue(currency);
+               // uint currTokens = t1.getPoolFundValue(currency);
+                uint currTokens=f1.getBalance(poolAddress,currency); 
                 Vtp += (currTokens * 100/ md1.getCurr3DaysAvg(currency));
             }
             else

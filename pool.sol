@@ -13,10 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-
-pragma solidity ^0.4.8;
-//import "./oraclizeAPI.sol";
-import "./quotation.sol";
+pragma solidity 0.4.11;
 import "./NXMToken.sol";
 import "./claims.sol";
 import "./fiatFaucet.sol";
@@ -26,22 +23,23 @@ import "./poolData1.sol";
 import "./quotation2.sol";
 import "./master.sol";
 import "./pool2.sol";
-import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
+import "./USD.sol";
+import "./MCR.sol";
+import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 contract pool is usingOraclize{
+  //  using SafeMaths for uint;
     master ms1;
     address masterAddress;
     address tokenAddress;
-    address quoteAddress;
     address claimAddress;
     address fiatFaucetAddress;
     address poolAddress;
     address governanceAddress;
     address claimRewardAddress;
     address poolDataAddress;
-    address quotation2Address;
-   
+    address quotation2Address; 
+    address MCRAddress;
     address pool2Address;
-    quotation q1;
     quotation2 q2;
     NXMToken t1;
     claims c1;
@@ -49,12 +47,18 @@ contract pool is usingOraclize{
     fiatFaucet f1;
     governance g1;
     poolData1 pd1;
-    address owner;
-   
     pool2 p2;
+    address owner;
+    MCR m1;
+    SupplyToken tok;
+    Exchange exchange1; //0x
+    address exchangeContractAddress; //0x
     event apiresult(address indexed sender,string msg,bytes32 myid);
-    event Payout(address indexed to, bytes16 eventName , uint coverId ,uint tokens );
-
+   // event Payout(address indexed to, bytes16 eventName , uint coverId ,uint tokens );
+     function changeExchangeContractAddress(address _add) onlyInternal
+    {
+        exchangeContractAddress=_add; //0x
+    }
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -93,96 +97,6 @@ contract pool is usingOraclize{
         poolDataAddress = _add;
         pd1 = poolData1(poolDataAddress);
     }
-    function changePool2Address(address _add) onlyInternal
-    {
-        pool2Address = _add;
-       
-    }
-
-    /// @dev Save the details of the Oraclize API.
-    /// @param myid Id return by the oraclize query.
-    /// @param _typeof type of the query for which oraclize call is made.
-    /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
-    function saveApiDetails(bytes32 myid,bytes16 _typeof,uint id) internal
-    {
-        pd1 = poolData1(poolDataAddress);
-        pd1.saveApiDetails(myid,_typeof,id);
-        pd1.addInAllApiCall(myid);
-
-    }
-    
-    /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
-    /// @param id Claim Id to be closed
-    /// @param time Time (in seconds) after which claims assessment voting needs to be closed
-    function closeClaimsOraclise(uint id , uint time) onlyInternal
-    {
-        
-        bytes32 myid1 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",3000000);
-         saveApiDetails(myid1,"claim",id);
-            
-    }
-    /// @dev Calls Oraclize Query to close a given Proposal after a given period of time.
-    /// @param id Proposal Id to be closed
-    /// @param time Time (in seconds) after which proposal voting needs to be closed
-    function closeProposalOraclise(uint id , uint time) onlyInternal
-    {
-       
-        bytes32 myid2 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",4000000);
-        saveApiDetails(myid2,"proposal",id);
-       
-    }
-    /// @dev Calls Oraclize Query to expire a given Quotation after a given period of time.
-    /// @param id Quote Id to be expired
-    /// @param time Time (in seconds) after which the quote should be expired
-    function closeQuotationOraclise(uint id , uint time) onlyInternal
-    {
-      
-        bytes32 myid3 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",1500000);
-        saveApiDetails(myid3,"quotation",id);
-        
-    }
-    /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
-    /// @param id Cover Id to be expired
-    /// @param time Time (in seconds) after which the cover should be expired
-    function closeCoverOraclise(uint id , uint time) onlyInternal
-    {
-        
-        bytes32 myid4 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",1500000);
-        saveApiDetails(myid4,"cover",id);
-      
-    }
-    /// @dev Calls the Oraclize Query to update the version of the contracts.    
-    function versionOraclise(uint version) onlyInternal
-    {
-        bytes32 myid5 = oraclize_query("URL","http://a1.nexusmutual.io/api/mcr/setlatest/P");
-        saveApiDetails(myid5,"version",version);
-    }
-    /// @dev Calls the Oraclize Query to initiate MCR calculation.
-    /// @param time Time (in seconds) after which the next MCR calculation should be initiated
-    function MCROraclise(uint time) onlyInternal
-    {
-        
-        bytes32 myid4 = oraclize_query(time, "URL","http://a2.nexusmutual.io");
-        saveApiDetails(myid4,"MCR",0);
-       
-    }
-
-      function MCROracliseFail(uint id,uint time) onlyInternal
-    {
-        
-        bytes32 myid4 = oraclize_query(time, "URL","http://a2.nexusmutual.io");
-        saveApiDetails(myid4,"MCRFailed",id);
-       
-    }
-    /// @dev Handles callback of external oracle query. 
-    function __callback(bytes32 myid, string res) {
-          ms1=master(masterAddress);
-      
-         if(msg.sender != oraclize_cbAddress() && ms1.isOwner(msg.sender)!=1) throw;
-         p2=pool2(pool2Address);
-         p2.delegateCallBack(myid,res);     
-    }
-
     function changeFiatFaucetAddress(address _to) onlyInternal
     {
         fiatFaucetAddress = _to;
@@ -196,26 +110,153 @@ contract pool is usingOraclize{
     {
         tokenAddress = _to;
     }
+     function changeMCRAddress(address _add) onlyInternal
+    {
+        MCRAddress = _add;   
+    }
     function changeQuotation2Address(address _add) onlyInternal
     {
         quotation2Address = _add;
-    }
-    function changeQuoteAddress(address _to) onlyInternal
-    {
-        quoteAddress = _to;
     }
     function changeClaimAddress(address _to) onlyInternal
     {
         claimAddress = _to;
     }
+    function changePool2Address(address _to)onlyInternal
+    {
+        pool2Address=_to;
+    }
+    /// @dev Save the details of the Oraclize API.
+    /// @param myid Id return by the oraclize query.
+    /// @param _typeof type of the query for which oraclize call is made.
+    /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
+    function saveApiDetails(bytes32 myid,bytes8 _typeof,uint id) internal
+    {
+        pd1 = poolData1(poolDataAddress);
+        pd1.saveApiDetails(myid,_typeof,id);
+        pd1.addInAllApiCall(myid);
+
+    }
+    function saveApiDetailsCurr(bytes32 myid,bytes8 _typeof,bytes4 curr,uint id) internal
+    {
+        pd1=poolData1(poolDataAddress);
+        pd1.saveApiDetailsCurr(myid,_typeof,curr,id);
+        pd1.addInAllApiCall(myid);
+    }
+    /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
+    /// @param id Claim Id to be closed
+    /// @param time Time (in milliseconds) after which claims assessment voting needs to be closed
+    function closeClaimsOraclise(uint id , uint64 time) onlyInternal
+    {
+        
+        bytes32 myid1 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",3000000);
+         saveApiDetails(myid1,"CLA",id);
+            
+    }
+    /// @dev Calls Oraclize Query to close a given Proposal after a given period of time.
+    /// @param id Proposal Id to be closed
+    /// @param time Time (in milliseconds) after which proposal voting needs to be closed
+    function closeProposalOraclise(uint id , uint64 time) onlyInternal
+    {
+       
+        bytes32 myid2 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",4000000);
+        saveApiDetails(myid2,"PRO",id);
+       
+    }
+    /// @dev Calls Oraclize Query to expire a given Quotation after a given period of time.
+    /// @param id Quote Id to be expired
+    /// @param time Time (in milliseconds) after which the quote should be expired
+    function closeQuotationOraclise(uint id , uint64 time) onlyInternal
+    {
+      
+        bytes32 myid3 = oraclize_query(time, "URL",strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/",uint2str(id)),500000);
+        saveApiDetails(myid3,"QUO",id);
+        
+    }
+    /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
+    /// @param id Quote Id to be expired
+    /// @param time Time (in milliseconds) after which the cover should be expired
+    function closeCoverOraclise(uint id , uint64 time) onlyInternal
+    {
+        bytes32 myid4 = oraclize_query(time, "URL",strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/",uint2str(id)),1000000);
+        saveApiDetails(myid4,"COV",id);
+      
+    }
+    /// @dev Calls the Oraclize Query to update the version of the contracts.    
+    function versionOraclise(uint version) onlyInternal
+    {
+        bytes32 myid5 = oraclize_query("URL","http://a1.nexusmutual.io/api/mcr/setlatest/T");
+        saveApiDetails(myid5,"VER",version);
+    }
+    /// @dev Calls the Oraclize Query to initiate MCR calculation.
+    /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
+    function MCROraclise(uint64 time) onlyInternal
+    {
+        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io",300000);
+        saveApiDetails(myid4,"MCR",0);
+    }
+
+    function MCROracliseFail(uint id,uint64 time) onlyInternal
+    {
+        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io",600000);
+        saveApiDetails(myid4,"MCRF",id);
+    }
+    
+    /// @dev Oraclize call to an external oracle for fetching the risk cost for a given latitude and longitude
+    /// @param  lat Latitude of quotation
+    /// @param  long Longitude of quotation
+    /// @param  quoteid Quotation Id for which risk cost needs to be fetched
+    function callQuotationOracalise(bytes16 lat , bytes16 long , uint quoteid) onlyInternal
+    {
+        bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getEarthquakeRisk_hash/",strConcat(bytes16ToString(lat),"/","","",""),bytes16ToString(long),"/",uint2str(quoteid)),300000); 
+        saveApiDetails(apiid,"PRE",quoteid);
+    }
+
+    function subtractQuotationOracalise(uint id) onlyInternal
+    {
+        bytes32 myid6 = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/claims/subtractQuoteSA_hash/",uint2str(id)),1500000);
+        saveApiDetails(myid6,"SUB",id);     
+    }
+
+    function saveIADetailsOracalise(uint64 time) onlyInternal
+    {
+         bytes32 myid6 = oraclize_query(time, "URL","http://a3.nexusmutual.io",300000);
+         saveApiDetails(myid6,"0X",0);     
+    }
+    //change1
+    function close0xOrders(bytes4 curr,uint id,uint time) onlyInternal
+    {
+        bytes32 myid= oraclize_query(time,"URL","http://a3.nexusmutual.io",300000);
+        saveApiDetailsCurr(myid,"Close0x",curr,id);
+    }
+    /// @dev Handles callback of external oracle query. 
+    function __callback(bytes32 myid, string res)
+    {
+        ms1=master(masterAddress);
+        p2=pool2(pool2Address);
+        if(msg.sender != oraclize_cbAddress() && ms1.isOwner(msg.sender)!=1) throw;
+        p2.delegateCallBack(myid,res);     
+    }
 
     /// @dev Begins the funding of the Quotations.
     /// @param fundAmt fund amounts for each selected quotation.
     /// @param quoteId multiple quotations ID that will get funded.
-    function fundQuoteBegin(uint[] fundAmt , uint[] quoteId ) payable {
-
-        q1=quotation(quoteAddress);
-        q1.fundQuote(fundAmt ,quoteId , msg.sender);
+    function fundQuoteBegin(uint[] fundAmt , uint[] quoteId ) payable 
+    {
+        q2=quotation2(quotation2Address);
+        uint sum=0;
+        for(uint i=0;i<fundAmt.length;i++)
+        {
+            sum+=fundAmt[i];
+        }
+        if(msg.value==sum)
+        {
+            q2.fundQuote(fundAmt ,quoteId , msg.sender);
+        }
+        else
+        {
+            throw;
+        }
     }
 
 
@@ -224,12 +265,9 @@ contract pool is usingOraclize{
 
         t1=NXMToken(tokenAddress);
         uint amount= msg.value;
-        t1.buyToken(amount , msg.sender);
+        t1.buyToken(amount,msg.sender);
     }
-    function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa)
-    {
-        Payout(_add,type1,id,sa);
-    }
+
 
     /// @dev Sends a given Ether amount to a given address.
     /// @param amount amount (in wei) to send.
@@ -241,7 +279,7 @@ contract pool is usingOraclize{
     }
 
     /// @dev Converts byte16 data type into string type. 
-    function bytes16ToString(bytes16 x)  constant returns (string) {
+    function bytes16ToString(bytes16 x) internal constant returns (string) {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
@@ -265,19 +303,11 @@ contract pool is usingOraclize{
         t1.addToPoolFund("ETH",amount);
     }
 
-    /// @dev Oraclize call to an external oracle for fetching the risk cost for a given latitude and longitude
-    /// @param  lat Latitude of quotation
-    /// @param  long Longitude of quotation
-    /// @param  quoteid Quotation Id for which risk cost needs to be fetched
-    function callQuotationOracalise(bytes16 lat , bytes16 long , uint quoteid) onlyInternal
-    {
-        bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getEarthquakeRisk/",bytes16ToString(lat),"/",bytes16ToString(long),""),1500000); 
-        saveApiDetails(apiid,"quote",quoteid);
-    }
+    
     /// @dev Allocates currency tokens to the pool fund.
     /// @param valueWEI  Purchasing Amount(in wei). 
     /// @param curr Currency's Name.
-    function getCurrencyTokensFromFaucet(uint valueWEI , bytes16 curr) onlyInternal
+    function getCurrencyTokensFromFaucet(uint valueWEI , bytes4 curr) onlyInternal
     {
         f1=fiatFaucet(fiatFaucetAddress);
         f1.transferToken.value(valueWEI)(curr);
@@ -294,6 +324,7 @@ contract pool is usingOraclize{
     /// @param id Proposal Id.
     function proposalExtServicesPayout(address _to , uint amount , uint id) onlyInternal
     {
+         p2=pool2(pool2Address);
         g1 = governance(governanceAddress);
         if(msg.sender == governanceAddress)
         {
@@ -306,7 +337,7 @@ contract pool is usingOraclize{
                 bool succ = _to.send(amount);                
                 if(succ == true)
                 {   
-                    Payout(_to,"PayoutAB",id,amount);
+                    p2.callPayoutEvent(_to,"PayoutAB",id,amount);
                     t1.removeFromPoolFund("ETH",amount);
                 }
            }
@@ -318,8 +349,58 @@ contract pool is usingOraclize{
     /// @return success true if payout is successful, false otherwise.
     function SDPayout(uint amount , address _add) onlyInternal  returns(bool success)
     {
+        p2=pool2(pool2Address);
         success = _add.send(amount);
-        Payout(_add,"PayoutSD",0,amount);
+        p2.callPayoutEvent(_add,"PayoutSD",0,amount);
     }
+
+    /// @dev Transfers back the given amount to the owner.
+    function transferBackEther(uint256 amount) onlyOwner  
+    {
+        amount = amount * 10000000000;  
+        //address own=msg.sender;
+        bool succ = transferEther(amount , msg.sender);   
+        t1=NXMToken(tokenAddress);
+        // Subtracts the transferred amount from the Pool Fund.
+        t1.removeFromPoolFund("ETH",amount);   
+    }
+    /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
+    /// @param valueETH  Tokens Purchasing Amount in ETH. 
+    /// @param curr Currency Name.
+    function getCurrTokensFromFaucet(uint valueETH , bytes4 curr) 
+    {
+        g1 = governance(governanceAddress);
+        uint valueWEI = valueETH*1000000000000000000;
+        if(g1.isAB(msg.sender) != 1 || (valueWEI > this.balance)) throw;
+        t1.removeFromPoolFund("ETH",valueWEI);
+        getCurrencyTokensFromFaucet(valueWEI,curr);
+    }
+
+     // Date:10/11/2017 
+    function transferIAFromPool(address _newPoolAddr,address curr_addr) onlyInternal
+    {
+            tok=SupplyToken(curr_addr);
+            if(tok.balanceOf(this)>0)
+            {
+                tok.transfer(_newPoolAddr,tok.balanceOf(this));
+            }           
+    }
+    
+    function transferFromPool(address to,address curr_addr,uint amount) onlyInternal
+    {
+        tok=SupplyToken(curr_addr);
+        if(tok.balanceOf(this)>=amount)
+        {
+            tok.transfer(to,amount);
+        }
+    }
+    function transferToPool(address currAddr,uint amount) onlyInternal returns (bool success)
+    {
+        tok=SupplyToken(currAddr);
+        success=tok.transferFrom(pd1.get0xMakerAddress(),poolAddress,amount);
+    }
+
+  
+
 
 }

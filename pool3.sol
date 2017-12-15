@@ -245,14 +245,15 @@ contract pool3
         uint64 varMin;
         (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
  
-        if(curr=="ETH")
-        {
-            CABalance=p1.getEtherPoolBalance()/(10**18);
-        }
-        else
-        {          
-            CABalance=f1.getBalance(poolAddress,curr)/(10**18); 
-        } 
+        // if(curr=="ETH")
+        // {
+        //     CABalance=p1.getEtherPoolBalance()/(10**18);
+        // }
+        // else
+        // {          
+        //     CABalance=f1.getBalance(poolAddress,curr)/(10**18); 
+        // } 
+        CABalance=getCurrencyAssetsBalance(curr)/(10**18);
         //Excess liquidity trade
         if(CABalance>2*(baseMin+varMin))
         {   
@@ -407,6 +408,7 @@ contract pool3
          uint8 decimals;
         tok=SupplyToken(curr);
         decimals=tok.decimals();
+        pd1.addInvestmentCurrency(curr_name);
         pd1.pushInvestmentAssetsDetails(curr_name,curr,1,_minHoldingPercX100,_maxHoldingPercX100,decimals);
      }
      function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
@@ -440,5 +442,20 @@ contract pool3
         makerFee=pd1.get0xMakerFee();
         takerFee=pd1.get0xTakerFee();
      }
+    function getCurrencyAssetsBalance(bytes4 curr) constant returns(uint CABalance)
+    {
+        f1=fiatFaucet(fiatFaucetAddress);   
+        p1=pool(poolAddress);
+         if(curr=="ETH")
+        {
+            CABalance=p1.getEtherPoolBalance();
+        }
+        else
+        {          
+            CABalance=f1.getBalance(poolAddress,curr); 
+        } 
+       
+    }
+    
 
 }

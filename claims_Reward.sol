@@ -177,6 +177,7 @@ contract claims_Reward
              uint8 status_orig=cd1.getClaimStatus(claimid);
              uint8 status=status_orig;
              uint MVTokens=c1.getCATokens(claimid,1);
+             uint coverid=cd1.getClaimCoverId(claimid);
             // In case noone votes, claim is denied
             if(MVTokens==0 )
             {
@@ -185,7 +186,7 @@ contract claims_Reward
             }
             else
             {   // If tokens used for acceptance >50%, claim is accepted
-                uint coverid=cd1.getClaimCoverId(claimid);
+
                 uint sumassured=q1.getSumAssured(coverid);
                 uint threshold_unreached=0;
              //Minimum threshold for member voting is reached only when value of tokens used for voting > 5* sum assured of claim id

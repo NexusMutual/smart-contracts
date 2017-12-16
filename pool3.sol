@@ -491,7 +491,7 @@ contract pool3
         pd1=poolData1(poolDataAddress);
         CABalance=getCurrencyAssetsBalance(curr);
         (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
-        uint lastIndex=md1.getMCRDataLength();
+        uint lastIndex=md1.getMCRDataLength()-1;
         CARateX100=md1.getCurrencyRateByIndex(lastIndex,curr);
     }
 

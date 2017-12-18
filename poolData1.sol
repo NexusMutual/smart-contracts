@@ -99,6 +99,7 @@ contract poolData1
         uint takerAmt;
         bytes16 orderHashType;
         uint orderExpireTime;
+        bytes32 cancelOrderHash;
       //  uint64 IArateX100; // of investmentAsset (could be makerToken or takerToken)
     }
     mapping(bytes4=>mapping(bytes16=>uint8)) liquidityOrderStatus;
@@ -136,9 +137,13 @@ contract poolData1
     {
         allOrders[orderHash]=Order(makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,orderExpireTime);
     }     
-    function getOrderDetailsByHash(bytes32 orderHash) constant returns(bytes4 makerCurr,uint makerAmt,bytes4 takerCurr,uint takerAmt,bytes16 orderHashType,uint orderExpireTime)
+    function getOrderDetailsByHash(bytes32 orderHash) constant returns(bytes4 makerCurr,uint makerAmt,bytes4 takerCurr,uint takerAmt,bytes16 orderHashType,uint orderExpireTime,bytes32 cancelOrderHash)
     {
-        return (allOrders[orderHash].makerCurr,allOrders[orderHash].makerAmt,allOrders[orderHash].takerCurr,allOrders[orderHash].takerAmt,allOrders[orderHash].orderHashType,allOrders[orderHash].orderExpireTime);
+        return (allOrders[orderHash].makerCurr,allOrders[orderHash].makerAmt,allOrders[orderHash].takerCurr,allOrders[orderHash].takerAmt,allOrders[orderHash].orderHashType,allOrders[orderHash].orderExpireTime.allOrders[orderHash].cancelOrderHash);
+    }
+    function setOrderCancelHashValue(bytes32 orderHash,bytes32 cancelOrderHash) onlyInternal
+    {
+        allOrders[orderHash].cancelOrderHash=cancelOrderHash;
     }
     function changeIARatesTime(uint64 _newTime) onlyInternal
     {

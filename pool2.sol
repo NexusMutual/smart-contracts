@@ -338,6 +338,9 @@ contract pool2
         p1=pool(poolAddress);
         m1=MCR(MCRAddress);
         p3=pool3(pool3Address);
+        bytes16 MAXIACurr;uint64 MAXRate;
+        ( MAXIACurr,MAXRate,,)= pd1.getIARankDetailsByDate(date);
+        require(pd1.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
         uint len=IARate.length;
         uint totalRiskBal=( pd1.getTotalRiskPoolBalance()*100000 )/(10**18);
         if(totalRiskBal>0 && len>0)  //if v=0 OR there is no IA, don't trade
@@ -351,8 +354,7 @@ contract pool2
                     if(check==1)
                     {
                         // ORDER 1 (max RHS IA to ETH)
-                        bytes16 MAXIACurr;uint64 MAXRate;
-                        ( MAXIACurr,MAXRate,,)= pd1.getIARankDetailsByDate(date);
+                   
                         // amount of asset to sell
                         uint makerAmt=((2*pd1.getVariationPercX100()*totalRiskBal*MAXRate)/(100*100 *100000) ); //*100);// ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
                         // amount of ETH to buy
@@ -368,7 +370,8 @@ contract pool2
                             pd1.saveRebalancingOrderHash(orderHash);
                             pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,"ETH",takerAmt,"RBT",expirationTimeInMilliSec);
                             
-                           // pd1.updateLiquidityOrderStatus(MAXIACurr,"RBT",1);
+                            pd1.updateLiquidityOrderStatus(bytes4(MAXIACurr),"RBT",1);
+                           
                             pd1.setCurrOrderHash(bytes4(MAXIACurr),orderHash);  
                             //events
                             ZeroExOrders("RBT",pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,orderHash);

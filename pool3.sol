@@ -339,7 +339,9 @@ contract pool3
         lastTakerAmt=lastTakerAmt/(10**18);
         if(lastTakerAmt<newTakerAmt)
         {
-            // cancel old order
+            // transfer previous order amount
+            // generate new 0x order
+            // cancel old order(off chain while signing the new order)
             
         }
    }
@@ -439,8 +441,8 @@ contract pool3
          salt=pd1.getOrderSalt();
          feeRecipient=pd1.get0xFeeRecipient();
          takerAddress=pd1.get0xTakerAddress();
-        makerFee=pd1.get0xMakerFee();
-        takerFee=pd1.get0xTakerFee();
+         makerFee=pd1.get0xMakerFee();
+         takerFee=pd1.get0xTakerFee();
      }
     function getCurrencyAssetsBalance(bytes4 curr) constant returns(uint CABalance)
     {
@@ -456,11 +458,12 @@ contract pool3
         } 
        
     }
-       function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[] curr_address)
+    function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[])
     {
-         f1=fiatFaucet(fiatFaucetAddress);
-          pd1=poolData1(poolDataAddress);
-          uint i;
+        f1=fiatFaucet(fiatFaucetAddress);
+        pd1=poolData1(poolDataAddress);
+        uint i;
+        address[] curr_address;
          if(_type==0) 
          {
             // return address of Currency assets
@@ -475,14 +478,16 @@ contract pool3
                     curr_address[i]=f1.getCurrAddress(curr[i]);
                 }
              }
+             return curr_address;
         }
         else if(_type==1)
         {
            // return address of Investment assets
-           for(i=0;i<curr.length;i++)
-             {
+            for(i=0;i<curr.length;i++)
+            {
                 curr_address[i]=pd1.getInvestmentAssetAddress(curr[i]);
-             }
+            }
+            return curr_address;
         } 
     }
     function getCurrencyAssetDetails(bytes4 curr) constant returns(uint CABalance,uint CARateX100,uint baseMin,uint varMin)

@@ -119,7 +119,7 @@ contract pool3
         pd1=poolData1(poolDataAddress);
         pd1.changeInvestmentAssetStatus(curr,0);
     }
-    function check0xOrderStatus(bytes4 curr,uint orderid) returns(bool success) onlyInternal
+    function check0xOrderStatus(bytes4 curr,uint orderid) onlyInternal
     {
         p1=pool(poolAddress);
         pd1=poolData1(poolDataAddress);

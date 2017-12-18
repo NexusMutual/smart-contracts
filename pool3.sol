@@ -119,7 +119,7 @@ contract pool3
         pd1=poolData1(poolDataAddress);
         pd1.changeInvestmentAssetStatus(curr,0);
     }
-    function check0xOrderStatus(bytes4 curr,uint orderid) onlyInternal
+    function check0xOrderStatus(bytes4 curr,uint orderid) returns(bool success) onlyInternal
     {
         p1=pool(poolAddress);
         pd1=poolData1(poolDataAddress);
@@ -134,19 +134,25 @@ contract pool3
        (makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,)=pd1.getOrderDetailsByHash(orderHash);
        if(orderHashType=="ELT")
        {
-           makerTokenAddr=f1.getCurrAddress(makerCurr);
+           if(makerCurr=="ETH")
+                makerTokenAddr=getWETHAddress();
+           else 
+                makerTokenAddr=f1.getCurrAddress(makerCurr);
            takerTokenAddr=pd1.getInvestmentAssetAddress(takerCurr);
        }
       else if(orderHashType=="ILT")
        {
             makerTokenAddr=pd1.getInvestmentAssetAddress(makerCurr);
-            takerTokenAddr=f1.getCurrAddress(takerCurr);
+            if(takerCurr=="ETH")
+                takerTokenAddr=getWETHAddress();
+            else    
+                takerTokenAddr=f1.getCurrAddress(takerCurr);
        } 
 
        else if(orderHashType=="RBT")
        {
             makerTokenAddr=pd1.getInvestmentAssetAddress(makerCurr);
-            takerTokenAddr=pd1.getWETHAddress();
+            takerTokenAddr=getWETHAddress();
        }
 
         if(filledAmt>0)
@@ -244,15 +250,6 @@ contract pool3
         uint64 baseMin;
         uint64 varMin;
         (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
- 
-        // if(curr=="ETH")
-        // {
-        //     CABalance=p1.getEtherPoolBalance()/(10**18);
-        // }
-        // else
-        // {          
-        //     CABalance=f1.getBalance(poolAddress,curr)/(10**18); 
-        // } 
         CABalance=getCurrencyAssetsBalance(curr)/(10**18);
         //Excess liquidity trade
         if(CABalance>2*(baseMin+varMin))
@@ -286,7 +283,7 @@ contract pool3
                 makerAmt=(SafeMaths.sub(CABalance, 3*((baseMin+varMin)/2)));//*10**18;
                 //amount of asset to buy investment asset
                 takerAmt=( minIARate*makerAmt* 10**pd1.getInvestmentAssetDecimals(MINIACurr) )/(md1.getCurr3DaysAvg(curr)) ;      
-                zeroExOrders(curr,makerAmt,takerAmt,"ELT"); 
+                zeroExOrders(curr,makerAmt,takerAmt,"ELT",0); 
                 Liquidity("ELT","0x");
              }
              else
@@ -295,7 +292,7 @@ contract pool3
              }      
        }
    }
-   function InsufficientLiquidityTrading(bytes4 curr,uint CABalance) onlyInternal
+   function InsufficientLiquidityTrading(bytes4 curr,uint CABalance,uint8 cancel) onlyInternal
    {
         pd1 = poolData1(poolDataAddress);
         p2=pool2(pool2Address);
@@ -310,12 +307,13 @@ contract pool3
             // amount of asset to buy currency asset
            takerAmt=(3*((baseMin+varMin)/2)-CABalance);//*10**18; // multiply with decimals
             // amount of assest to sell investment assest
-           makerAmt=(maxIARate*takerAmt* 10**pd1.getInvestmentAssetDecimals(MAXIACurr))/( md1.getCurr3DaysAvg(curr));  //  divide by decimals of makerToken;      
+          
         if(pd1.getLiquidityOrderStatus(curr,"ILT")==0)
         {    
+             makerAmt=(maxIARate*takerAmt* 10**pd1.getInvestmentAssetDecimals(MAXIACurr))/( md1.getCurr3DaysAvg(curr));  //  divide by decimals of makerToken;      
             if(makerAmt<=p2.getBalanceofInvestmentAsset(MAXIACurr))
             {
-                zeroExOrders(curr,makerAmt,takerAmt,"ILT"); 
+                zeroExOrders(curr,makerAmt,takerAmt,"ILT",cancel); 
                 Liquidity("ILT","0x");
             }  
             else
@@ -325,7 +323,7 @@ contract pool3
         }
         else
         {
-           // cancelLastInsufficientTradingOrder(curr,takerAmt);
+           cancelLastInsufficientTradingOrder(curr,takerAmt);
         }
    }
    function cancelLastInsufficientTradingOrder(bytes4 curr,uint newTakerAmt)
@@ -333,19 +331,26 @@ contract pool3
         pd1 = poolData1(poolDataAddress);
         uint index=pd1.getCurrAllOrderHashLength(curr)-1;
         bytes32 lastCurrHash=pd1.getCurrOrderHash(curr,index);
-        //get last order hash taker amount (currency asset amount)
+        //get last 0xOrderhash taker amount (currency asset amount)
         uint lastTakerAmt;
         (,,,lastTakerAmt,,)=pd1.getOrderDetailsByHash(lastCurrHash);
         lastTakerAmt=lastTakerAmt/(10**18);
         if(lastTakerAmt<newTakerAmt)
         {
-            // transfer previous order amount
-            // generate new 0x order
+            check0xOrderStatus(curr,index);// transfer previous order amount
+            // generate new 0x order if it is still insufficient
+            uint check;uint CABalance;
+            (check,CABalance)=checkLiquidity(curr);
+            if(check==1)
+            {
+                InsufficientLiquidityTrading(curr,CABalance,1);
+
+            }
             // cancel old order(off chain while signing the new order)
             
         }
    }
-   function zeroExOrders(bytes4 curr,uint makerAmt,uint takerAmt,bytes16 _type) internal
+   function zeroExOrders(bytes4 curr,uint makerAmt,uint takerAmt,bytes16 _type,uint8 cancel) internal
     {
       bytes16 MINIACurr;
       uint expirationTimeInMilliSec;
@@ -382,6 +387,7 @@ contract pool3
                 pd1.setCurrOrderHash(curr,orderHash);
                 pd1.updateLiquidityOrderStatus(curr,_type,1);
                 pd1.pushOrderDetails(orderHash,curr,makerAmt*10**18,bytes4(MINIACurr),takerAmt,_type,expirationTimeInMilliSec);
+                //event
                 ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,makerAmt*10**18,takerAmt,expirationTimeInMilliSec,orderHash);
             }
                  
@@ -393,6 +399,13 @@ contract pool3
                 pd1.setCurrOrderHash(curr,orderHash);  
                 pd1.updateLiquidityOrderStatus(curr,_type,1);
                 pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,curr,takerAmt*10**18,_type,expirationTimeInMilliSec);
+                if(cancel==1)
+                {
+                    uint index=pd1.getCurrAllOrderHashLength(curr)-1;
+                    // saving last orderHash
+                    pd1.setOrderCancelHashValue(orderHash,pd1.getCurrOrderHash(curr,index))
+                }
+                //event
                 ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,makerAmt,takerAmt*10**18,expirationTimeInMilliSec,orderHash);
             }  
     }

@@ -488,17 +488,6 @@ contract claims{
         uint sumAssured=q1.getSumAssured(coverid);
         pd1 = poolData1(poolDataAddress);
         pd1.changeCurrencyAssetVarMin(curr,pd1.getCurrencyAssetVarMin(curr)+uint64(sumAssured));
-        // p3=pool3(pool3Address);
-        // uint check;uint CABalance;
-        // (check,CABalance)= p3.checkLiquidity(curr);     
-        // if(check==1)
-        // {
-        //     p3.ExcessLiquidityTrading(curr,CABalance);
-        // }   
-        // else if(check==2)
-        // {
-        //     p3.InsufficientLiquidityTrading(curr,CABalance);
-        // }
         checkLiquidity(curr);
     }
     // 12/1/2017
@@ -513,7 +502,7 @@ contract claims{
         }   
         else if(check==2)
         {
-            p3.InsufficientLiquidityTrading(curr,CABalance);
+            p3.InsufficientLiquidityTrading(curr,CABalance,0);
         }
     }
     

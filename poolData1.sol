@@ -135,11 +135,11 @@ contract poolData1
     }
     function pushOrderDetails(bytes32 orderHash,bytes4 makerCurr,uint makerAmt,bytes4 takerCurr,uint takerAmt,bytes16 orderHashType,uint orderExpireTime) onlyInternal
     {
-        allOrders[orderHash]=Order(makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,orderExpireTime);
+        allOrders[orderHash]=Order(makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,orderExpireTime,"");
     }     
     function getOrderDetailsByHash(bytes32 orderHash) constant returns(bytes4 makerCurr,uint makerAmt,bytes4 takerCurr,uint takerAmt,bytes16 orderHashType,uint orderExpireTime,bytes32 cancelOrderHash)
     {
-        return (allOrders[orderHash].makerCurr,allOrders[orderHash].makerAmt,allOrders[orderHash].takerCurr,allOrders[orderHash].takerAmt,allOrders[orderHash].orderHashType,allOrders[orderHash].orderExpireTime.allOrders[orderHash].cancelOrderHash);
+        return (allOrders[orderHash].makerCurr,allOrders[orderHash].makerAmt,allOrders[orderHash].takerCurr,allOrders[orderHash].takerAmt,allOrders[orderHash].orderHashType,allOrders[orderHash].orderExpireTime,allOrders[orderHash].cancelOrderHash);
     }
     function setOrderCancelHashValue(bytes32 orderHash,bytes32 cancelOrderHash) onlyInternal
     {

@@ -199,7 +199,7 @@ contract pool3
          uint makerAmt;uint takerAmt;
          bytes4 makerToken;bytes4 takerToken;
          uint validTime;
-         (makerToken,makerAmt,takerToken,takerAmt,orderType,validTime)=pd1.getOrderDetailsByHash(orderHash);
+         (makerToken,makerAmt,takerToken,takerAmt,orderType,validTime,)=pd1.getOrderDetailsByHash(orderHash);
         
          address _0xMakerAddress=pd1.get0xMakerAddress();
          uint expireTime=validTime-now;
@@ -333,7 +333,7 @@ contract pool3
         bytes32 lastCurrHash=pd1.getCurrOrderHash(curr,index);
         //get last 0xOrderhash taker amount (currency asset amount)
         uint lastTakerAmt;
-        (,,,lastTakerAmt,,)=pd1.getOrderDetailsByHash(lastCurrHash);
+        (,,,lastTakerAmt,,,)=pd1.getOrderDetailsByHash(lastCurrHash);
         lastTakerAmt=lastTakerAmt/(10**18);
         if(lastTakerAmt<newTakerAmt)
         {
@@ -401,13 +401,20 @@ contract pool3
                 pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,curr,takerAmt*10**18,_type,expirationTimeInMilliSec);
                 if(cancel==1)
                 {
-                    uint index=pd1.getCurrAllOrderHashLength(curr)-1;
+               
                     // saving last orderHash
-                    pd1.setOrderCancelHashValue(orderHash,pd1.getCurrOrderHash(curr,index))
+                  setOrderCancelHashValue(curr,orderHash);
                 }
                 //event
                 ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,makerAmt,takerAmt*10**18,expirationTimeInMilliSec,orderHash);
             }  
+    }
+    function setOrderCancelHashValue(bytes4 curr,bytes32 orderHash)
+    {
+         pd1 = poolData1(poolDataAddress);
+         uint lastIndex=pd1.getCurrAllOrderHashLength(curr)-1;
+         bytes32 lastCurrHash=pd1.getCurrOrderHash(curr,lastIndex);
+         pd1.setOrderCancelHashValue(orderHash,lastCurrHash);
     }
     function getInvestmentAssetBalAndStatus(bytes16 curr_name)constant returns(bytes16 curr,uint balance,uint8 status,uint64 _minHoldingPercX100,uint64 _maxHoldingPercX100,uint64 decimals)
     {

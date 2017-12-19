@@ -26,6 +26,7 @@ import "./pool2.sol";
 import "./USD.sol";
 import "./MCR.sol";
 import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
+import "github.com/0xProject/contracts/contracts/tokens/EtherToken.sol";
 contract pool is usingOraclize{
   //  using SafeMaths for uint;
     master ms1;
@@ -48,16 +49,19 @@ contract pool is usingOraclize{
     governance g1;
     poolData1 pd1;
     pool2 p2;
+    EtherToken ether1;
     address owner;
     MCR m1;
     SupplyToken tok;
-    Exchange exchange1; //0x
-    address exchangeContractAddress; //0x
+    address etherTokenAddress;
     event apiresult(address indexed sender,string msg,bytes32 myid);
-   // event Payout(address indexed to, bytes16 eventName , uint coverId ,uint tokens );
-     function changeExchangeContractAddress(address _add) onlyInternal
+    function changeEtherTokenAddress(address _add) onlyOwner
     {
-        exchangeContractAddress=_add; //0x
+        etherTokenAddress=_add; //0x
+    }
+    function getEtherTokenAddress() constant returns(address etherTokenAddr)
+    {
+        return etherTokenAddress;
     }
     function changeMasterAddress(address _add)
     {
@@ -398,9 +402,18 @@ contract pool is usingOraclize{
     {
         tok=SupplyToken(currAddr);
         success=tok.transferFrom(pd1.get0xMakerAddress(),poolAddress,amount);
+        pd1 = poolData1(poolDataAddress);
+        if(currAddr==pd1.getWETHAddress())
+        {
+            withdrawEtherFromWETH(amount);
+        }
     }
-
-  
+    //Sells tokens in exchange for Ether, exchanging them 1:1.
+  function withdrawEtherFromWETH(uint amount)
+  {
+    ether1=EtherToken(etherTokenAddress);
+    ether1.withdraw(amount);
+  }
 
 
 }

@@ -404,7 +404,15 @@ contract pool is usingOraclize{
         tok=SupplyToken(pd1.getWETHAddress());
         return tok.balanceOf(poolAddress);
     }
-
+    function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date) payable
+    {
+        pd1 = poolData1(poolDataAddress);
+        p2=pool2(pool2Address);
+        tok=SupplyToken(pd1.getWETHAddress());
+        bool success= tok.transfer(msg.sender,msg.value);
+        p2.saveIADetails(curr,rate,date);
+    
+    }
     
 
 }

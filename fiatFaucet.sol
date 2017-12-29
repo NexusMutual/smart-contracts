@@ -49,7 +49,7 @@ contract fiatFaucet
         _; 
     }
     function fiatFaucet(){
-        fiatTokenPricex1e18 = 10000000000000000;
+        fiatTokenPricex1e18 = 1000000000000000;
     }
     /// @dev Gets the token price of fiat
     function getFiatTokenPrice() constant returns(uint price)
@@ -61,7 +61,7 @@ contract fiatFaucet
     function  transferToken(bytes4 curr) payable
     {
         t1=NXMToken(tokenAddress);
-        uint tokens=msg.value*100;
+        uint tokens=msg.value*1000;
         tok=SupplyToken(contract_add[curr]);
         tok.mintToken(msg.sender,tokens);
         t1.addToPoolFund(curr , tokens);
@@ -124,7 +124,12 @@ contract fiatFaucet
     {
         return (contract_add[curr]);
     }
-
+    function transferBackEther(uint256 amount) onlyInternal
+    {
+        amount = amount * 10000000000;  
+        address _add=msg.sender;
+        bool succ = _add.send(amount);   
+    }
 }
 
 

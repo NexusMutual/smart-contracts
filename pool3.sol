@@ -491,11 +491,11 @@ contract pool3
              {
                 if(curr[i]=="ETH")
                 {
-                    curr_address[i]=getWETHAddress();
+                    curr_address.push(getWETHAddress());
                 }
                 else
                 {
-                    curr_address[i]=f1.getCurrAddress(curr[i]);
+                    curr_address.push(f1.getCurrAddress(curr[i]));
                 }
              }
              return curr_address;
@@ -505,7 +505,7 @@ contract pool3
            // return address of Investment assets
             for(i=0;i<curr.length;i++)
             {
-                curr_address[i]=pd1.getInvestmentAssetAddress(curr[i]);
+                curr_address.push(pd1.getInvestmentAssetAddress(curr[i]));
             }
             return curr_address;
         } 

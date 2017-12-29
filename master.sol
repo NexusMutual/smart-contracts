@@ -282,7 +282,7 @@ contract master  {
         cr1.changeToken2Address(NXMToken2Address);
         cr1.changeClaimDataAddress(claimDataAddress);
         cr1.changePool2Address(pool2Address);
-       // cr1.changePool3Address(pool3Address);
+        cr1.changePoolDataAddress(poolDataAddress);
         
         p1=pool(poolAddress);
         p1.changeTokenAddress(NXMTokenAddress);
@@ -407,7 +407,7 @@ contract master  {
     }
     function isInternal(address _add) constant returns(uint check)
     {
-        check=1;
+        check=0;
         if(contracts_active[_add] == 1 || owner==msg.sender)
             check=1;
     }

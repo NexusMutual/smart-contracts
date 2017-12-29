@@ -189,13 +189,13 @@ contract pool is usingOraclize{
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function MCROraclise(uint64 time) onlyInternal
     {
-        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io",300000);
+        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io");
         saveApiDetails(myid4,"MCR",0);
     }
 
     function MCROracliseFail(uint id,uint64 time) onlyInternal
     {
-        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io",600000);
+        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io",1000000);
         saveApiDetails(myid4,"MCRF",id);
     }
     
@@ -211,13 +211,13 @@ contract pool is usingOraclize{
 
     function subtractQuotationOracalise(uint id) onlyInternal
     {
-        bytes32 myid6 = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/claims/subtractQuoteSA_hash/",uint2str(id)),1500000);
+        bytes32 myid6 = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/claims/subtractQuoteSA_hash/",uint2str(id)),50000);
         saveApiDetails(myid6,"SUB",id);     
     }
 
     function saveIADetailsOracalise(uint64 time) onlyInternal
     {
-         bytes32 myid6 = oraclize_query(time, "URL","http://a3.nexusmutual.io",300000);
+         bytes32 myid6 = oraclize_query(time, "URL","http://a3.nexusmutual.io");
          saveApiDetails(myid6,"0X",0);     
     }
     //change1

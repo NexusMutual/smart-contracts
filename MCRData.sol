@@ -43,7 +43,6 @@ contract MCRData
     mapping(bytes4=>uint32) public allCurr3DaysAvg;
     mapping(uint64 => uint) public dateWiseMCR;
     mapping(uint=>uint64) public indexWiseDate; 
-   // mapping(uint64=>monthlyAvg) graphData;
     address notariseMCR;
 
     function MCRData()

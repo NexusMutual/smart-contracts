@@ -46,6 +46,12 @@ contract quotation2 {
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0);
+        _;
+    }
     function changeToken2Address(address _add) onlyInternal
     {
         token2Address = _add;
@@ -201,7 +207,7 @@ contract quotation2 {
     }
    
      /// @dev Updates the pending quotation start variable, which is the lowest quotation id with "NEW" or "partiallyFunded" status.
-    function changePendingQuoteStart()
+    function changePendingQuoteStart()checkPause
     {
          qd1 = quotationData(quotationDataAddress);
         uint currPendingQStart = qd1.pendingQuoteStart();
@@ -319,7 +325,7 @@ contract quotation2 {
     /// @dev Updates the Sum Assured Amount of all the Areas in which a quotation lies.
     /// @param id Quotation id
     /// @param amount that will get subtracted from all the Areas' Current Sum Assured Amount that comes under a quotation.
-    function removeSAFromAreaCSA(uint id , uint amount)
+    function removeSAFromAreaCSA(uint id , uint amount)checkPause
     {
         ms1=master(masterAddress);
         if(!(ms1.isOwner(msg.sender)==1 || ms1.isInternal(msg.sender) ==1)) throw;
@@ -327,7 +333,7 @@ contract quotation2 {
         bytes4 quoteCurr =  qd1.getQuotationCurrency(id);
         qd1.subFromTotalSumAssured(quoteCurr,amount);
     }  
-    function addQuote(uint8 prodId,uint16 sumAssured,uint32 CP,bytes4 curr,bytes16 lat, bytes16 lng)
+    function addQuote(uint8 prodId,uint16 sumAssured,uint32 CP,bytes4 curr,bytes16 lat, bytes16 lng)checkPause
     {   
         qd1 = quotationData(quotationDataAddress);
         m1=MCR(mcrAddress);
@@ -346,7 +352,7 @@ contract quotation2 {
     /// @dev Creates a new Quotation
     /// @param arr1 arr1=[productId(Insurance product),sumAssured,coverPeriod(in days)]
     /// @param arr2 arr2=[currencyCode,Latitude,Longitude]
-    function addBulkQuote(uint[] arr1 ,bytes16[] arr2)
+    function addBulkQuote(uint[] arr1 ,bytes16[] arr2)checkPause
     {
         uint areaIndex=0;
         for(uint i=0;i<arr1.length;i+=3)
@@ -378,7 +384,7 @@ contract quotation2 {
     // Removes the Sum Assured of the quotation from the Area Cover Sum Assured.
     //Creates the cover of the quotation if amount has been funded to it.
     /// @param id Quotation Id
-     function expireQuotation(uint id) 
+     function expireQuotation(uint id) checkPause
     {
          qd1 = quotationData(quotationDataAddress);
           p1=pool(poolAddress);
@@ -491,7 +497,7 @@ contract quotation2 {
     /// @param tokens Token Amount.
     /// @param fundAmt fund amounts for each selected quotation.
     /// @param quoteId multiple quotations ID that will get funded.
-    function fundQuoteUsingNXMTokens(uint tokens , uint[] fundAmt , uint[] quoteId)
+    function fundQuoteUsingNXMTokens(uint tokens , uint[] fundAmt , uint[] quoteId)checkPause
     {
         t1=NXMToken(tokenAddress);
         t1.burnTokenForFunding(tokens,msg.sender);
@@ -502,7 +508,7 @@ contract quotation2 {
     /// @param fundAmt fund amounts for each selected quotation.
     /// @param quoteId multiple quotations ID that will get funded.
     /// @param from address of funder.
-    function fundQuote(uint[] fundAmt , uint[] quoteId ,address from) {
+    function fundQuote(uint[] fundAmt , uint[] quoteId ,address from)checkPause {
         
         qd1 = quotationData(quotationDataAddress);
         if(qd1.getQuoteMemberAddress(quoteId[0]) != from ) throw;

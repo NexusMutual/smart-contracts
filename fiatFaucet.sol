@@ -48,6 +48,12 @@ contract fiatFaucet
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+         ms1=master(masterAddress);
+         require(ms1.isPause()==0);
+         _;
+    }
     function fiatFaucet(){
         fiatTokenPricex1e18 = 1000000000000000;
     }
@@ -58,7 +64,7 @@ contract fiatFaucet
     }
     /// @dev Transfers the Equivalent ERC20Tokens for a given amount of a given currency.
     /// @param curr Currency's Name.
-    function  transferToken(bytes4 curr) payable
+    function  transferToken(bytes4 curr) checkPause payable 
     {
         t1=NXMToken(tokenAddress);
         uint tokens=msg.value*1000;
@@ -113,7 +119,7 @@ contract fiatFaucet
     /// @param curr Currency's Name.
     /// @param fundArr fund amounts for each selected quotation.
     /// @param fundIndexArr multiple quotations ID that will get funded.
-    function funding(uint amount , bytes16 curr, uint[] fundArr , uint[] fundIndexArr)
+    function funding(uint amount , bytes16 curr, uint[] fundArr , uint[] fundIndexArr) checkPause
     {
         tok=SupplyToken(contract_add[curr]);
         tok.debitTokensForFunding(amount , msg.sender);

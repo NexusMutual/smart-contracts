@@ -69,6 +69,12 @@ contract MCR
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0);
+        _;
+    }
     function changeToken2Address(address _add) onlyInternal
     {
         token2Address =_add;
@@ -117,7 +123,7 @@ contract MCR
     }
       /// @dev Stores name of currencies accepted by the system.
       /// @param curr Currency Name.
-    function addCurrency(bytes4 curr) 
+    function addCurrency(bytes4 curr) checkPause
     {
         ms1=master(masterAddress);
        if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
@@ -179,7 +185,7 @@ contract MCR
     /// @param curr array of Currency's name.
     /// @param rates array of Currency's rate * 100.
     /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
-    function addMCRData(uint32 mcrP , uint mcrE , uint64 vF ,bytes4[] curr ,uint32[] rates , uint64 onlyDate)
+    function addMCRData(uint32 mcrP , uint mcrE , uint64 vF ,bytes4[] curr ,uint32[] rates , uint64 onlyDate) checkPause
     {
 
         md1 = MCRData(MCRDataAddress);
@@ -245,7 +251,7 @@ contract MCR
         
     }
    
-    function addLastMCRData(uint Date)
+    function addLastMCRData(uint Date) checkPause
     {
         md1 = MCRData(MCRDataAddress);
         uint lastLen=md1.getMCRDataLength();
@@ -307,7 +313,7 @@ contract MCR
     }
 
     
-    function callOracliseForMCRFail(uint64 failedDate)
+    function callOracliseForMCRFail(uint64 failedDate) internal
     {
         md1 = MCRData(MCRDataAddress);
         p1=pool(poolAddress);
@@ -359,7 +365,7 @@ contract MCR
         vf = md1.getLastVfull();
     }
     /// @dev Updates the  3 day average exchange rate against each currency.                               
-    function changeAvgRateOfCurr() internal
+    function changeAvgRateOfCurr() internal 
     {
         md1 = MCRData(MCRDataAddress);
         p1=pool(poolAddress);

@@ -67,7 +67,12 @@ contract claims_Reward
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
-    
+     modifier checkPause
+    {
+         ms1=master(masterAddress);
+         require(ms1.isPause()==0);
+         _;
+    }
     function changeToken2Address(address _add) onlyInternal
     {
         token2Address = _add;
@@ -218,7 +223,7 @@ contract claims_Reward
     }
 
 /// @dev Depending upon the current status of the claim, corresponding functions are called and next status of the claim is decided accordingly.
-    function changeClaimStatus(uint claimid)
+    function changeClaimStatus(uint claimid) checkPause
     {
         ms1=master(masterAddress);
         p2=pool2(pool2Address);

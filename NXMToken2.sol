@@ -57,6 +57,12 @@ contract NXMToken2{
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0);
+        _;
+    }
     function changeTokenAddress(address _add) onlyInternal
     {
 
@@ -319,7 +325,7 @@ contract NXMToken2{
     }
     /// @dev Performs surplus distribution
     /// @dev Calculates the weight of distribution for every members (have tokens locked for SD) and sends them the amount as per their weight value.
-    function distributeSurplusDistrubution() 
+    function distributeSurplusDistrubution() checkPause
     {
         td1=NXMTokenData(tokenDataAddress);
         //t1=NXMToken(tokenAddress);
@@ -367,7 +373,7 @@ contract NXMToken2{
          }
     }
 
-    function claimSDPayout(address _add)
+    function claimSDPayout(address _add) checkPause
     {
         td1=NXMTokenData(tokenDataAddress);
         p1=pool(poolAddress);
@@ -422,7 +428,7 @@ contract NXMToken2{
     /// @param index  index of exisiting bond.
     /// @param _days number of days for which tokens will be extended.
     /// @param noOfTokens Number of tokens that will get extended. Should be less than or equal to the no.of tokens of selected bond.
-    function extendCA(uint index , uint _days ,uint noOfTokens)
+    function extendCA(uint index , uint _days ,uint noOfTokens) checkPause
     {
         td1=NXMTokenData(tokenDataAddress);
         uint vUpto;
@@ -505,7 +511,7 @@ contract NXMToken2{
     /// @dev Locks a given number of tokens for Claim Assessment.
     /// @param _value number of tokens lock.
     /// @param _days Validity(in days) of tokens.
-    function lockCA(uint _value,uint _days)
+    function lockCA(uint _value,uint _days) checkPause
     {
         td1 = NXMTokenData(tokenDataAddress);
         if (td1.getBalanceOf(msg.sender)-td1.getBalanceCAWithAddress(msg.sender)-td1.getBalanceSD(msg.sender)-td1.getBalanceCN(msg.sender) < _value) throw;// Check if the sender has enough
@@ -515,7 +521,7 @@ contract NXMToken2{
     /// @dev Locks a given number of tokens for Surplus Distribution.
     /// @param _value number of tokens lock.
     /// @param _days Validity(in days) of tokens.
-    function lockSD(uint _value,uint _days)
+    function lockSD(uint _value,uint _days) checkPause
     {
         td1 = NXMTokenData(tokenDataAddress);
         if (td1.getBalanceOf(msg.sender)-td1.getBalanceCAWithAddress(msg.sender)-td1.getBalanceSD(msg.sender)-td1.getBalanceCN(msg.sender) < _value) throw;  // Check if the sender has enough

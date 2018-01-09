@@ -109,6 +109,12 @@ contract pool3
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0);
+        _;
+    }
     function activeInvestmentAsset(bytes16 curr)  onlyOwner
     {
         pd1=poolData1(poolDataAddress);
@@ -187,7 +193,7 @@ contract pool3
         }
     } 
    
-    function sign0xOrder(uint orderId,bytes32 orderHash)
+    function sign0xOrder(uint orderId,bytes32 orderHash)checkPause
     { 
          pd1 = poolData1(poolDataAddress);
          p1=pool(poolAddress);
@@ -326,7 +332,7 @@ contract pool3
            cancelLastInsufficientTradingOrder(curr,takerAmt);
         }
    }
-   function cancelLastInsufficientTradingOrder(bytes4 curr,uint newTakerAmt)
+   function cancelLastInsufficientTradingOrder(bytes4 curr,uint newTakerAmt)checkPause
    {
         pd1 = poolData1(poolDataAddress);
         uint index=pd1.getCurrAllOrderHashLength(curr)-1;
@@ -409,7 +415,7 @@ contract pool3
                 ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,makerAmt,takerAmt*10**18,expirationTimeInMilliSec,orderHash);
             }  
     }
-    function setOrderCancelHashValue(bytes4 curr,bytes32 orderHash)
+    function setOrderCancelHashValue(bytes4 curr,bytes32 orderHash) internal
     {
          pd1 = poolData1(poolDataAddress);
          uint lastIndex=pd1.getCurrAllOrderHashLength(curr)-1;
@@ -478,7 +484,7 @@ contract pool3
         } 
        
     }
-    function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[])
+    function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[] currAddress)
     {
         f1=fiatFaucet(fiatFaucetAddress);
         pd1=poolData1(poolDataAddress);
@@ -498,7 +504,6 @@ contract pool3
                     curr_address.push(f1.getCurrAddress(curr[i]));
                 }
              }
-             return curr_address;
         }
         else if(_type==1)
         {
@@ -507,8 +512,8 @@ contract pool3
             {
                 curr_address.push(pd1.getInvestmentAssetAddress(curr[i]));
             }
-            return curr_address;
         } 
+        return curr_address;    
     }
     function getCurrencyAssetDetails(bytes4 curr) constant returns(uint CABalance,uint CARateX100,uint baseMin,uint varMin)
     {
@@ -518,6 +523,11 @@ contract pool3
         (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
         uint lastIndex=md1.getMCRDataLength()-1;
         CARateX100=md1.getCurrencyRateByIndex(lastIndex,curr);
+    }
+    function updateInvestmentAssetHoldingPerc(bytes16 _curr,uint64 _minPercX100,uint64 _maxPercX100) onlyOwner
+    {
+         pd1=poolData1(poolDataAddress);
+         pd1.changeInvestmentAssetHoldingPerc(_curr,_minPercX100,_maxPercX100);
     }
 
 }

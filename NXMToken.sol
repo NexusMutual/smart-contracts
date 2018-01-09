@@ -62,6 +62,12 @@ contract NXMToken {
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0);
+        _;
+    }
     function NXMToken() 
     {
         owner = msg.sender;
@@ -241,7 +247,7 @@ contract NXMToken {
     /// @dev Transfer Tokens from the sender to the given Receiver's account.
     /// @param _to Receiver's Address.
     /// @param _value Transfer tokens.
-    function transfer(address _to, uint256 _value)  {
+    function transfer(address _to, uint256 _value) checkPause  {
         td1 = NXMTokenData(tokenDataAddress);
         if(_value <= 0) throw;
         //available transfer balance=Total Token balance - Locked tokens
@@ -264,7 +270,7 @@ contract NXMToken {
     /// @dev Allows a given address (Spender) to spend a given amount of the money on behalf of the other user.
     /// @param _spender Spender's address.
     /// @param _value Amount upto which Spender is allowed to transfer.
-    function approve(address _spender, uint256 _value) 
+    function approve(address _spender, uint256 _value) checkPause
     returns (bool success) {
         td1 = NXMTokenData(tokenDataAddress);
         td1.setAllowance(msg.sender,_spender, _value);
@@ -276,7 +282,7 @@ contract NXMToken {
     /// @param _spender Spender's address.
     /// @param _value amount upto which Spender is allowed to transfer.
     /// @param _extraData Extra Data.
-    function approveAndCall(address _spender, uint256 _value, bytes _extraData) 
+    function approveAndCall(address _spender, uint256 _value, bytes _extraData)  checkPause
     returns (bool success) {
         td1 = NXMTokenData(tokenDataAddress);
         td1.setAllowance(msg.sender,_spender, _value);
@@ -294,7 +300,7 @@ contract NXMToken {
     /// @param _to Receiver's address.
     /// @param _value Transfer tokens.
      /// @return success true if transfer is a success, false if transfer is a failure.
-    function transferFrom(address _from, address _to, uint256 _value)  
+    function transferFrom(address _from, address _to, uint256 _value)  checkPause
     returns (bool success) {
         td1 = NXMTokenData(tokenDataAddress);
         if (td1.getBalanceOf(_from)-td1.getBalanceCAWithAddress(_from)-td1.getBalanceSD(_from)-td1.getBalanceCN(_from)< _value) throw;                 // Check if the sender has enough

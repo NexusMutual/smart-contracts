@@ -112,6 +112,12 @@ contract pool2
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0);
+        _;
+    }
     function changeClaimRewardAddress(address _to) onlyInternal
     {
         claimRewardAddress=_to;
@@ -150,7 +156,7 @@ contract pool2
     /// @dev Handles the Callback of the Oraclize Query. Callback could be of type "quote", "quotation", "cover", "claim" etc.
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     /// @param res Result fetched by the external oracle.
-     function delegateCallBack(bytes32 myid, string res)
+     function delegateCallBack(bytes32 myid, string res)checkPause
     {
          pd1 = poolData1(poolDataAddress);
        
@@ -332,7 +338,7 @@ contract pool2
         
     }
         //Triggerred on daily basis
-     function rebalancingTrading0xOrders(bytes16[] IACurr,uint64[] IARate,uint64 date) returns(uint16 result)
+     function rebalancingTrading0xOrders(bytes16[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
     {  
         pd1 = poolData1(poolDataAddress);
         p1=pool(poolAddress);
@@ -395,7 +401,7 @@ contract pool2
          Rebalancing("OrderGen",3);
          return 4; // when V=0 or no IA is present      
     }
-     function checkTradeConditions(bytes16 curr,uint64 IARate) internal constant returns(int check)
+     function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
     {
         pd1 = poolData1(poolDataAddress);
         //p2=pool2(pool2Address);
@@ -421,15 +427,16 @@ contract pool2
         return 0; // balance of IA is 0
     }
     // 28/11/2017
-      function getBalanceofInvestmentAsset(bytes16 _curr) onlyInternal constant returns(uint balance)
+      function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
     {
          pd1 = poolData1(poolDataAddress);
          address currAddress=pd1.getInvestmentAssetAddress(_curr);
          tok=SupplyToken(currAddress);
          return tok.balanceOf(poolAddress);
     }
+  
     // called by the API
-    function saveIADetails(bytes16[] curr,uint64[] rate,uint64 date) 
+    function saveIADetails(bytes16[] curr,uint64[] rate,uint64 date) checkPause
     {
         pd1 = poolData1(poolDataAddress);
         p1=pool(poolAddress);
@@ -466,7 +473,6 @@ contract pool2
         }
         
     }
-   
    function calculateIARank(bytes16[] curr,uint64[] rate)  constant returns(bytes16 MAXCurr,uint64 MAXRate,bytes16 MINCurr,uint64 MINRate)
     {
         pd1 = poolData1(poolDataAddress);

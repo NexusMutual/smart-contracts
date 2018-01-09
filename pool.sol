@@ -80,6 +80,12 @@ contract pool is usingOraclize{
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+    modifier checkPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0);
+        _;
+    }
     function changeClaimRewardAddress(address _to) onlyInternal
     {
         claimRewardAddress=_to;
@@ -238,7 +244,7 @@ contract pool is usingOraclize{
     /// @dev Begins the funding of the Quotations.
     /// @param fundAmt fund amounts for each selected quotation.
     /// @param quoteId multiple quotations ID that will get funded.
-    function fundQuoteBegin(uint[] fundAmt , uint[] quoteId ) payable 
+    function fundQuoteBegin(uint[] fundAmt , uint[] quoteId )checkPause payable 
     {
         q2=quotation2(quotation2Address);
         uint sum=0;
@@ -258,7 +264,7 @@ contract pool is usingOraclize{
 
 
     /// @dev User can buy the NXMToken equivalent to the amount paid by the user.
-    function buyTokenBegin() payable {
+    function buyTokenBegin()checkPause payable {
 
         t1=NXMToken(tokenAddress);
         uint amount= msg.value;
@@ -404,7 +410,7 @@ contract pool is usingOraclize{
         tok=SupplyToken(pd1.getWETHAddress());
         return tok.balanceOf(poolAddress);
     }
-    function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date) payable
+    function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
     {
         pd1 = poolData1(poolDataAddress);
         p2=pool2(pool2Address);

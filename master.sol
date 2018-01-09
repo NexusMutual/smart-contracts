@@ -15,17 +15,13 @@
 
 
 pragma solidity 0.4.11;
-//import "./quotation.sol";
 import "./quotation2.sol";
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
-//import "./NXMToken3.sol";
 import "./claims.sol";
-//import "./claims2.sol";
 import "./claims_Reward.sol";
 import "./pool.sol";
 import "./governance.sol";
-//import "./governance2.sol";
 import "./fiatFaucet.sol";
 import "./MCR.sol";
 import "./USD.sol";
@@ -38,10 +34,10 @@ import "./MCRData.sol";
 import "./governanceData.sol";
 import "./pool2.sol";
 import "./SafeMaths.sol";
-//import "./master3.sol";
 import "./pool3.sol";
 
-contract master  {
+contract master
+{
 
     struct contractDetails{
         bytes16 name;
@@ -55,25 +51,20 @@ contract master  {
     mapping(uint=>contractDetails[]) public allContractVersions;
     changeVersion[]  contractChangeDate;
     mapping(address=>uint) contracts_active;
-
-    
+        
     address  quoteDataAddress;
     address  tokenDataAddress;
     address  claimDataAddress;
     address  poolDataAddress;
     address  governanceDataAddress;
     address  mcrDataAddress;
-    //address  quotationAddress;
     address  NXMTokenAddress;
     address  claimsAddress;
     address  quotation2Address;
     address  NXMToken2Address;
-    //address  NXMToken3Address;
-    //address  claims2Address;
     address  claims_RewardAddress;
     address  poolAddress;
     address  governanceAddress;
-    //address  governance2Address;
     address  fiatFaucetAddress;
     address  MCRAddress;
     address  faucetUSDAddress;                             
@@ -81,7 +72,6 @@ contract master  {
     address  faucetGBPAddress;
     address  masters2Address;
     address  masterAddress;
-    //address master3Address;
     address pool2Address;
     claimsData cd1;
     //date 21/11/2017
@@ -112,26 +102,30 @@ contract master  {
     pool3 p3;
     
     address public owner;
-
-     modifier onlyOwner{
-        
+    uint8 public emergencyPaused;
+    modifier onlyOwner
+    {  
         require(isOwner(msg.sender) == 1);
         _; 
     }
     /// @dev Constructor
-    function masterCon(){
+    function masterCon()
+    {
         owner=msg.sender;
         contracts_active[masterAddress]=0;
         contracts_active[address(this)]=1;
         masterAddress=address(this);
         versionLength =0;
+        emergencyPaused=0; // initially set false
     }
 
-   
+   function updateEmergencyPause(uint8 _pause) onlyOwner
+   {
+     emergencyPaused=_pause;
+   }
    /// @dev Changes all reference contract addresses in master
     function changeAddressinMaster(uint version) onlyInternal
     {
-        //ms3=master3(allContractVersions[version][25].contractAddress);
         changeAllAddress1(version);
         changeAllAddress2(version);
         quoteDataAddress = allContractVersions[version][1].contractAddress;
@@ -140,24 +134,19 @@ contract master  {
         poolDataAddress = allContractVersions[version][4].contractAddress;
         governanceDataAddress = allContractVersions[version][5].contractAddress;
         mcrDataAddress = allContractVersions[version][6].contractAddress;        
-       // quotationAddress=allContractVersions[version][7].contractAddress;
         quotation2Address = allContractVersions[version][8].contractAddress;
         NXMTokenAddress=allContractVersions[version][9].contractAddress;
         NXMToken2Address=allContractVersions[version][10].contractAddress;
         claimsAddress=allContractVersions[version][11].contractAddress;
-        //claims2Address=allContractVersions[version][12].contractAddress;        
         claims_RewardAddress=allContractVersions[version][13].contractAddress;
         poolAddress = allContractVersions[version][14].contractAddress;
         governanceAddress = allContractVersions[version][15].contractAddress;
-        //governance2Address=allContractVersions[version][16].contractAddress;
         fiatFaucetAddress = allContractVersions[version][17].contractAddress;        
         faucetUSDAddress = allContractVersions[version][19].contractAddress;                             
         faucetEURAddress =allContractVersions[version][20].contractAddress;
         faucetGBPAddress = allContractVersions[version][21].contractAddress;
         masters2Address=allContractVersions[version][22].contractAddress;
-       // NXMToken3Address=allContractVersions[version][23].contractAddress;
         MCRAddress =allContractVersions[version][24].contractAddress;
-       // master3Address= allContractVersions[version][25].contractAddress;
         pool2Address=allContractVersions[version][18].contractAddress;
         pool3Address=allContractVersions[version][25].contractAddress;
     }
@@ -167,9 +156,6 @@ contract master  {
         
         qd1=quotationData(quoteDataAddress);
         qd1.changeMasterAddress(_add);
-
-        // q1=quotation(quotationAddress);
-        // q1.changeMasterAddress(_add);
 
         q2=quotation2(quotation2Address);
         q2.changeMasterAddress(_add);
@@ -183,17 +169,11 @@ contract master  {
         t2=NXMToken2(NXMToken2Address);
         t2.changeMasterAddress(_add);
 
-        // t3=NXMToken3(NXMToken3Address);
-        // t3.changeMasterAddress(_add);
-
         cd1=claimsData(claimDataAddress);
         cd1.changeMasterAddress(_add);
 
         c1=claims(claimsAddress);
         c1.changeMasterAddress(_add);
-
-        // c2=claims2(claims2Address);
-        // c2.changeMasterAddress(_add);
 
         cr1=claims_Reward(claims_RewardAddress);
         cr1.changeMasterAddress(_add);          
@@ -210,9 +190,6 @@ contract master  {
         g1=governance(governanceAddress);
         g1.changeMasterAddress(_add);
 
-        // g2=governance2(governance2Address);
-        // g2.changeMasterAddress(_add);
-
         md1=MCRData(mcrDataAddress);
         md1.changeMasterAddress(_add);
 
@@ -225,8 +202,6 @@ contract master  {
         m2=masters2(masters2Address);
         m2.changeMasterAddress(_add); 
 
-        // ms3=master3(master3Address);
-        // ms3.changeMasterAddress(_add);
         p2=pool2(pool2Address);
         p2.changeMasterAddress(_add);  
 
@@ -238,7 +213,6 @@ contract master  {
    function changeOtherAddress(uint version) onlyInternal
    {   
         
-
         q2=quotation2(quotation2Address);
         q2.changeTokenAddress(NXMTokenAddress);
         q2.changePoolAddress(poolAddress);
@@ -295,7 +269,6 @@ contract master  {
         p1.changeQuotation2Address(quotation2Address);
         p1.changeMCRAddress(MCRAddress);
         p1.changePool2Address(pool2Address);
-       // p1.changeExchangeContractAddress(zeroExExchangeAddress); //0x
 
         g1=governance(governanceAddress);
         g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress);
@@ -350,9 +323,7 @@ contract master  {
         p2.changeClaimAddress(claimsAddress);
         p2.changeFiatFaucetAddress(fiatFaucetAddress);
         p2.changeMCRAddress(MCRAddress); 
-        p2.changeMCRDataAddress(mcrDataAddress);
-      //  p2.changeExchangeContractAddress(zeroExExchangeAddress); //0x
-        
+        p2.changeMCRDataAddress(mcrDataAddress);        
 
          p3=pool3(pool3Address);
          p3.changePoolDataAddress(poolDataAddress);
@@ -408,7 +379,7 @@ contract master  {
     function isInternal(address _add) constant returns(uint check)
     {
         check=0;
-        if(contracts_active[_add] == 1 || owner==msg.sender)
+        if((contracts_active[_add] == 1 || owner==_add ) && emergencyPaused==0)
             check=1;
     }
     function isOwner(address _add) constant returns(uint check)
@@ -418,11 +389,16 @@ contract master  {
             check=1;
     }
     modifier onlyInternal {
-        require(contracts_active[msg.sender] == 1 || owner==msg.sender);
+        require( (contracts_active[msg.sender] == 1 || owner==msg.sender) && emergencyPaused==0);
         _; 
     }
-    
-    
+    /// @dev emergency pause function. if check=0 function will execute otherwise not.
+    function isPause()constant returns(uint8 check)
+    {
+        check=0; // not in emergency pause state
+        if(emergencyPaused==1)
+            check=1; //in emergency pause state
+    }
     function changeOwner(address to) onlyOwner
     {
         if(owner == msg.sender)

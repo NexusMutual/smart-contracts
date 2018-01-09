@@ -63,6 +63,12 @@ contract governance {
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+      modifier checkPause
+    {
+         ms1=master(masterAddress);
+         require(ms1.isPause()==0);
+         _;
+    }
     struct category{
         string name;
         uint64 memberVoteReq;

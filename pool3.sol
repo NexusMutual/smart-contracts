@@ -206,9 +206,10 @@ contract pool3
          bytes4 makerToken;bytes4 takerToken;
          uint validTime;
          (makerToken,makerAmt,takerToken,takerAmt,orderType,validTime,)=pd1.getOrderDetailsByHash(orderHash);
-        
          address _0xMakerAddress=pd1.get0xMakerAddress();
-         uint expireTime=validTime-now;
+         uint expireTime; 
+         if(validTime>now) 
+            expireTime=validTime-now; 
          if(orderType=="ELT")
          {
            makerTokenAddr=f1.getCurrAddress(makerToken);
@@ -230,7 +231,7 @@ contract pool3
 
             // transfer selling amount to the makerAddress from pool contract
             p1.transferFromPool(_0xMakerAddress,makerTokenAddr,makerAmt);
-            p1.close0xOrders(takerToken,orderId,expireTime);  // orderId is the index of allRebalancingOrderHash.
+            p1.close0xOrders(makerToken,orderId,expireTime);  // orderId is the index of allRebalancingOrderHash.
          }
          pd1.updateZeroExOrderStatus(orderHash,1);
     }

@@ -156,73 +156,79 @@ contract pool2
     /// @dev Handles the Callback of the Oraclize Query. Callback could be of type "quote", "quotation", "cover", "claim" etc.
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     /// @param res Result fetched by the external oracle.
-     function delegateCallBack(bytes32 myid, string res)checkPause
+     function delegateCallBack(bytes32 myid, string res)
     {
          pd1 = poolData1(poolDataAddress);
-       
-       // If callback is of type "quote", then result contains the risk factor based on which premimum of quotation is calculated.
-         if(pd1.getApiIdTypeOf(myid) =="PRE")
+        ms1=master(masterAddress);
+        if (ms1.isPause()==0) // system is not in emergency pause
         {
-            pd1.updateDateUpdOfAPI(myid);
-            q2=quotation2(quotation2Address);
-            uint id = pd1.getIdOfApiId(myid);  // Quotation id.
-            q2.changePremium(id , res);  
-            
-        }  
-        // If callback is of type "quotation", then Quotation id associated with the myid is checked for expiry.
-        else if(pd1.getApiIdTypeOf(myid) =="QUO")
-        {
-            pd1.updateDateUpdOfAPI(myid);
-            q2=quotation2(quotation2Address);
-            q2.expireQuotation(pd1.getIdOfApiId(myid)); 
+             // If callback is of type "quote", then result contains the risk factor based on which premimum of quotation is calculated.
+             if(pd1.getApiIdTypeOf(myid) =="PRE")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+                q2=quotation2(quotation2Address);
+                uint id = pd1.getIdOfApiId(myid);  // Quotation id.
+                q2.changePremium(id , res);  
+                
+            }  
+            // If callback is of type "quotation", then Quotation id associated with the myid is checked for expiry.
+            else if(pd1.getApiIdTypeOf(myid) =="QUO")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+                q2=quotation2(quotation2Address);
+                q2.expireQuotation(pd1.getIdOfApiId(myid)); 
 
-        }
-        // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
-        else if(pd1.getApiIdTypeOf(myid) =="COV")
-        {
-            pd1.updateDateUpdOfAPI(myid);
-            q2=quotation2(quotation2Address);
-            q2.expireCover(pd1.getIdOfApiId(myid));
-        }
-         // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
-        else if(pd1.getApiIdTypeOf(myid) =="CLA")
-        {
-            pd1.updateDateUpdOfAPI(myid);
-            cr1=claims_Reward(claimRewardAddress);
-            cr1.changeClaimStatus(pd1.getIdOfApiId(myid));
+            }
+            // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
+            else if(pd1.getApiIdTypeOf(myid) =="COV")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+                q2=quotation2(quotation2Address);
+                q2.expireCover(pd1.getIdOfApiId(myid));
+            }
+             // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
+            else if(pd1.getApiIdTypeOf(myid) =="CLA")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+                cr1=claims_Reward(claimRewardAddress);
+                cr1.changeClaimStatus(pd1.getIdOfApiId(myid));
 
+            }
+              else if(pd1.getApiIdTypeOf(myid) =="MCR")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+            }
+            else if(pd1.getApiIdTypeOf(myid) =="MCRF")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+                m1=MCR(MCRAddress);
+                m1.addLastMCRData(pd1.getIdOfApiId(myid));
+            }
+            else if(pd1.getApiIdTypeOf(myid)=="SUB")
+            {
+                 pd1.updateDateUpdOfAPI(myid);
+            }
+            else if(pd1.getApiIdTypeOf(myid)=="0X")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+            }
+            else if(pd1.getApiIdTypeOf(myid)=="Close0x")
+            {
+                pd1.updateDateUpdOfAPI(myid);
+                p3=pool3(pool3Address);
+                p3.check0xOrderStatus(pd1.getCurrOfApiId(myid),pd1.getIdOfApiId(myid));
+            }
         }
+      
+        // even when system is in emergency pause.
         // If callback is of type "proposal", then proposal id associated with the myid is checked for vote closure.
-        else if(pd1.getApiIdTypeOf(myid) =="PRO")
+        if(pd1.getApiIdTypeOf(myid) =="PRO")
         {
             pd1.updateDateUpdOfAPI(myid);
             g1=governance(governanceAddress);
             g1.closeProposalVote(pd1.getIdOfApiId(myid));
         }
-        else if(pd1.getApiIdTypeOf(myid) =="MCR")
-        {
-            pd1.updateDateUpdOfAPI(myid);
-        }
-        else if(pd1.getApiIdTypeOf(myid) =="MCRF")
-        {
-            pd1.updateDateUpdOfAPI(myid);
-            m1=MCR(MCRAddress);
-            m1.addLastMCRData(pd1.getIdOfApiId(myid));
-        }
-        else if(pd1.getApiIdTypeOf(myid)=="SUB")
-        {
-             pd1.updateDateUpdOfAPI(myid);
-        }
-        else if(pd1.getApiIdTypeOf(myid)=="0X")
-        {
-            pd1.updateDateUpdOfAPI(myid);
-        }
-        else if(pd1.getApiIdTypeOf(myid)=="Close0x")
-        {
-            pd1.updateDateUpdOfAPI(myid);
-            p3=pool3(pool3Address);
-            p3.check0xOrderStatus(pd1.getCurrOfApiId(myid),pd1.getIdOfApiId(myid));
-        }
+      
     }
     
     function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa)

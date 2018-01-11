@@ -35,7 +35,8 @@ contract NXMToken {
     address owner;
     NXMToken2 t2;
    // NXMToken3 t3;
-
+    // bytes8 public symbol;
+    // uint8 public decimals;
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _of,bytes16 eventName , uint coverId ,uint tokens);
@@ -72,7 +73,7 @@ contract NXMToken {
     {
         owner = msg.sender;
     }
-    
+
     function changeMCRAddress(address _to) onlyInternal
     {
         mcrAddress = _to;
@@ -85,7 +86,7 @@ contract NXMToken {
     {
         nxmtoken2Address = _to;
     }
-
+    
     function changeTokenDataAddress(address _add) onlyInternal
     {
         tokenDataAddress = _add;
@@ -117,7 +118,16 @@ contract NXMToken {
         td1 = NXMTokenData(tokenDataAddress);
         ts = td1.getTotalSupply();
     }
-
+    function symbol() constant returns(bytes8 _symbol)
+    {
+        td1 = NXMTokenData(tokenDataAddress);
+        _symbol=td1.symbol();
+    }
+    function decimals() constant returns(uint8 _decimals)
+    {
+        td1 = NXMTokenData(tokenDataAddress);
+        _decimals=td1.decimals();
+    }
    /// @dev Gets the address of a member using index.
     function allMembers(uint i)constant returns(address _add)
     {
@@ -376,3 +386,4 @@ contract NXMToken {
 
 }
 
+                                                                                                                                                                     

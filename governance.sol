@@ -22,7 +22,7 @@ import "./governanceData.sol";
 import "./NXMToken2.sol";
 import "./master.sol";
 import "./NXMTokenData.sol";
-
+import "./poolData1.sol";
 contract governance {
     master ms1;
     address masterAddress;
@@ -37,7 +37,9 @@ contract governance {
     address governanceDataAddress;
     NXMTokenData td1;
     address tokenDataAddress;
+    address poolDataAddress;
     governanceData gd1;
+    poolData1 pd1;
     category[] public allCategory;
     string[] public status;
     function changeMasterAddress(address _add)
@@ -84,6 +86,11 @@ contract governance {
         governanceDataAddress = _add;
         gd1=governanceData(governanceDataAddress);
     }
+    function changePoolDataAddress(address _add) onlyInternal
+    {
+        poolDataAddress=_add;
+        pd1=poolData1(poolDataAddress);
+    }
     /// @dev Adds a status name
     function addStatus(string stat) onlyInternal
     {
@@ -101,6 +108,12 @@ contract governance {
     function addCategory(string cat,uint64 mvr,uint16 maj) onlyInternal
     {
         allCategory.push(category(cat,mvr,maj));
+    }
+    function updateCategory(uint id,string name,uint64 mvr,uint16 maj) onlyOwner
+    {
+        allCategory[id].name=name;
+        allCategory[id].memberVoteReq=mvr;
+        allCategory[id].majority=maj;
     }
     /// @dev Checks if the Tokens of a given User for given Claim Id has been burnt or not.
     /// @return check 1 if the tokens are burnt,0 otherwise. 
@@ -294,7 +307,7 @@ contract governance {
                     gd1.changeProposalFinalVerdict(id,1);
                     gd1.pushInProposalStatus(id,7);
                     gd1.updateProposalDateUpd(id);
-                    if(category==2 || category==6 || category==7 || category==10)
+                    if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
                     {
                         actionAfterProposalPass(id , category);
                     }
@@ -306,7 +319,7 @@ contract governance {
                     gd1.changeProposalFinalVerdict(id,1);
                     gd1.pushInProposalStatus(id,5);
                     gd1.updateProposalDateUpd(id);
-                    if(category==2 || category==6 || category==7 || category==10)
+                    if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
                     {
                         actionAfterProposalPass(id , category);
                     }
@@ -345,6 +358,7 @@ contract governance {
         c1=claims(claimAd);
         p1=pool(poolAd);
         t1=NXMToken(nxad);
+
         address _add;
         uint value;
         // when category is "Burn fraudulent claim assessor tokens"
@@ -368,6 +382,23 @@ contract governance {
         {
             ms1=master(masterAddress);
             ms1.switchToRecentVersion();
+        }
+        else if(cat==12)
+        {
+            ms1=master(masterAddress);
+            ms1.updateEmergencyPause(1); // start emergencyPause
+            p1.closeEmergencyPause(ms1.getPauseTime()); //oraclize callback of 4 weeks
+        }
+        else if(cat==13)
+        {
+
+        }
+        //change relayer address
+        else if(cat==14)
+        {
+              pd1=poolData1(poolDataAddress);
+              gd1=governanceData(governanceDataAddress);
+              pd1.change0xFeeRecipient(gd1.getProposalAddress_Effect(propid));
         }
     }
     /// @dev Changes the status of a given proposal when Proposal has insufficient funds.

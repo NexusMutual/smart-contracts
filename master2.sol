@@ -154,18 +154,37 @@ contract masters2 {
     {
         g1=governance(governanceAddress);
 
+            //0
             g1.addCategory("Uncategorised",0,0);
+            //1
             g1.addCategory("Implement run-off and close new business",1,80);
+            //2
             g1.addCategory("Burn fraudulent claim assessor tokens",0,80);
+            //3
             g1.addCategory("Pause Claim Assessors ability to assess claims for 3 days.Can only be done once a month",0,60);
+            //4
             g1.addCategory("Changes to Capital Model",1,60);
+            //5
             g1.addCategory("Changes to Pricing",1,60);
+            //6
             g1.addCategory("Engage in external services up to the greater of $50,000USD or 2% of MCR",0,80);
+            //7
             g1.addCategory("Engage in external services over the greater of $50,000USD or 2% of MCR",1,60);
+            //8
             g1.addCategory("Changes to remuneration and/or membership of Advisory Board",1,60);
+            //9
             g1.addCategory("Filter member proposals as necessary(which are put to a member vote)",0,60);
+            //10
             g1.addCategory("Release new smart contract code as necessary to fix bugs/weaknesses or deliver enhancements/new products",1,60);
+            //11
             g1.addCategory("Any change to authorities",1,80);
+            //12
+            g1.addCategory("Implement Emergency Pause",0,80);
+            //13
+            g1.addCategory("Changes to Investment Model",1,60);
+            //14
+            g1.addCategory("Change 0x Relayer Address",1,60);
+            //15
             g1.addCategory("Any other item specifically described",1,80);
 
             g1.addStatus("Draft for discussion, multiple versions.");

@@ -37,7 +37,7 @@ contract NXMToken2{
     address tokenDataAddress;
     address poolAddress;
     address mcrAddress;
-    event Transfer(address indexed from, address indexed to, uint256 value);
+    //event Transfer(address indexed from, address indexed to, uint256 value);
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -204,8 +204,9 @@ contract NXMToken2{
         {
             td1.addInAllMemberArray(_to);
         }
-        Transfer(0,_to, amount); // notify of the event
-       
+       // Transfer(0,_to, amount); // notify of the event
+        t1=NXMToken(tokenAddress);
+        t1.callTransferEvent(0,_to,amount); 
     }
        
     /// @dev Extends validity period of a given number of tokens, locked for Claim Assessment

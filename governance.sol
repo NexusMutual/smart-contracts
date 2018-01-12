@@ -23,6 +23,7 @@ import "./NXMToken2.sol";
 import "./master.sol";
 import "./NXMTokenData.sol";
 import "./poolData1.sol";
+import "./pool3.sol";
 contract governance {
     master ms1;
     address masterAddress;
@@ -40,6 +41,8 @@ contract governance {
     address poolDataAddress;
     governanceData gd1;
     poolData1 pd1;
+    pool3 p3;
+    address pool3Address;
     category[] public allCategory;
     string[] public status;
     function changeMasterAddress(address _add)
@@ -81,16 +84,26 @@ contract governance {
         token2Address = _add;
         t2 = NXMToken2(token2Address);
     }
-    function changeGovernanceDataAddress(address _add) onlyInternal
+    function changeGovernanceDataAddress(address[] _add) onlyInternal
     {
-        governanceDataAddress = _add;
+        governanceDataAddress = _add[0];
         gd1=governanceData(governanceDataAddress);
-    }
-    function changePoolDataAddress(address _add) onlyInternal
-    {
-        poolDataAddress=_add;
+        poolDataAddress=_add[1];
         pd1=poolData1(poolDataAddress);
+        pool3Address=_add[2];
+        p3=pool3(pool3Address);
     }
+    // function changePoolDataAddress(address _add) onlyInternal
+    // {
+    //     poolDataAddress=_add;
+    //     pd1=poolData1(poolDataAddress);
+    // }
+    // function changePool3Address(address _add) onlyInternal 
+    // {
+    //     pool3Address=_add;
+    //     p3=pool3(pool3Address);
+    // }
+    
     /// @dev Adds a status name
     function addStatus(string stat) onlyInternal
     {
@@ -351,7 +364,7 @@ contract governance {
     }
 
     /// @dev When proposal gets accepted,different functions are performed on the basis of Proposal's category number. 
-    function actionAfterProposalPass(uint propid , uint16 cat) internal
+    function actionAfterProposalPass(uint propid, uint16 cat) internal
     {
         gd1=governanceData(governanceDataAddress);
         t2 = NXMToken2(token2Address);
@@ -364,18 +377,18 @@ contract governance {
         // when category is "Burn fraudulent claim assessor tokens"
         if(cat == 2)
         {
-            uint claimid=gd1.getProposalValue(propid);
-            _add = gd1.getProposalAddress_Effect(propid);
-            value = c1.getCATokensLockedAgainstClaim(_add , claimid);
+            uint claimid=gd1.getProposalValue(propid,0);
+            _add = gd1.getProposalAddress_Effect(propid,0);
+            value = c1.getCATokensLockedAgainstClaim(_add, claimid);
             t2.burnCAToken(claimid,value,_add);
         }
         // when category is "Engage in external services up to the greater of $50,000USD " .
         else if(cat == 6 || cat==7)
         {
-            _add = gd1.getProposalAddress_Effect(propid);
-            value = gd1.getProposalValue(propid);
+            _add = gd1.getProposalAddress_Effect(propid,0);
+            value = gd1.getProposalValue(propid,0);
             if(gd1.isAB(_add)==1)
-                p1.proposalExtServicesPayout( _add ,  value , propid);
+                p1.proposalExtServicesPayout( _add, value, propid);
         }
         // when category is to create new version of contracts
         else if(cat == 10)
@@ -389,16 +402,35 @@ contract governance {
             ms1.updateEmergencyPause(1); // start emergencyPause
             p1.closeEmergencyPause(ms1.getPauseTime()); //oraclize callback of 4 weeks
         }
+        // changes in investment model
         else if(cat==13)
         {
-
+            p3=pool3(pool3Address);
+            bytes16 type0= gd1.getProposalOptions(propid,0);
+            bytes16 type1=gd1.getProposalOptions(propid,1);
+            uint value1;
+                            value = gd1.getProposalValue(propid,0);
+            if (type0=="addIA")
+            {
+                _add = gd1.getProposalAddress_Effect(propid,0);
+                value1 = gd1.getProposalValue(propid,1);
+                p3.addInvestmentAssetsDetails(type1,_add,uint64(value),uint64(value1));
+            }
+            else if(type0=="updIA")
+            {
+                value1 = gd1.getProposalValue(propid,1);
+                p3.updateInvestmentAssetHoldingPerc(type1,uint64(value),uint64(value1));
+            }
+            else if(type0=="updCA")
+            {
+                p3.updateCurrencyAssetDetails(bytes4(type1),uint64(value));
+            }
         }
         //change relayer address
         else if(cat==14)
         {
               pd1=poolData1(poolDataAddress);
-              gd1=governanceData(governanceDataAddress);
-              pd1.change0xFeeRecipient(gd1.getProposalAddress_Effect(propid));
+              pd1.change0xFeeRecipient(gd1.getProposalAddress_Effect(propid,0));
         }
     }
     /// @dev Changes the status of a given proposal when Proposal has insufficient funds.
@@ -428,7 +460,6 @@ contract governance {
         gd1.addMemberStatusUpdate(memAdd,1,now);
 
     }
-
     /// @dev Removes the given address from the Advisory Board Members.
     function removeAB(address memRem)
     {
@@ -464,22 +495,35 @@ contract governance {
     /// @param _effect Address of user that will be effected with proposal's decision.
     /// @param value Amount, i.e. number of tokens to be burned or amount to be transferred in case of external services 
     /// @param cat Category Number of Proposal.
-    function addProposal(string shortDesc , string longDesc , address _effect , uint value , uint16 cat)
+    function addProposal(string shortDesc , string longDesc , address[] _effect , uint[] value , uint16 cat,bytes16[] options)
     {
         gd1 = governanceData(governanceDataAddress);
-        if(cat==2 && gd1.checkBurnVoterTokenAgaintClaim(value,_effect)==1)
-            throw;
+        for(uint i=0; i<_effect.length;i++)
+        {
+            if(cat==2 && gd1.checkBurnVoterTokenAgaintClaim(value[i],_effect[i])==1)
+                throw;
+        }
         uint len = gd1.getAllProLength();
         //uint64 time = uint64(now);
         gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
-        if(gd1.isAB(msg.sender)==1 && cat==2)
+        if(gd1.isAB(msg.sender)==1 && (cat==2 || cat==12))
         {
-            gd1.updateCategorizeDetails(len,_effect,value,cat,msg.sender);
+            gd1.updateCategorizeDetails2(len,cat,msg.sender);
+            for(uint j=0; j<_effect.length;i++)
+            {
+                gd1.updateCategorizeDetails(len,_effect[j],value[j],options[j]);
+                
+                gd1.changeBurnVoterTokenAgaintClaim(value[j],_effect[j],1);
+            }
             gd1.updateCategorisedProposal(len,1);
-            gd1.changeBurnVoterTokenAgaintClaim(value,_effect,1);
         }
         gd1.addInUserProposals(len,msg.sender);
-        gd1.pushInProposalStatus(len,0);
+        if(cat==12)
+        {
+            changeProposalStatus(len); //submit the proposal as well
+        }
+        else
+            gd1.pushInProposalStatus(len,0);    
     }
     /// @dev Registers an Advisroy Board Member's vote
     /// @param id Proposal id.
@@ -499,7 +543,6 @@ contract governance {
             gd1.incPVCABAccept(id);
         else if(verdict==-1)
             gd1.incPVCABDeny(id);
-
     }
     /// @dev Members can give the votes(either in favor or in against) to a Proposal.
     /// @param id Proposal id.
@@ -525,14 +568,20 @@ contract governance {
     /// @param cat Category of proposal.
     /// @param _effect address of user which will get effected by proposal's decision.
     /// @param val depend upon the category of proposal. (Example: 1. if category is claim, then val will be Claim Id.2.For burning of tokens, val will be number of tokens that will be burned)
-    function categorizeProposal(uint id , uint16 cat , address _effect , uint val)
+    function categorizeProposal(uint id , uint16 cat , address[] _effect , uint[] val, bytes16[] options)
     {
         gd1 = governanceData(governanceDataAddress);
         if(gd1.isAB(msg.sender)==0) throw;
         if(gd1.isProposalCategorised(id)==1) throw;
-        gd1.updateCategorizeDetails(id,_effect,val,cat,msg.sender);
+            gd1.updateCategorizeDetails2(id,cat,msg.sender);
+        for(uint i=0;i<_effect.length;i++)
+        {
+            gd1.updateCategorizeDetails(id,_effect[i],val[i],options[i]);    
+        }
         gd1.updateCategorisedProposal(id,1);
     }
+
+    
 }
 
 

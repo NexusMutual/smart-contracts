@@ -32,9 +32,10 @@ contract governanceData
         string shortDesc;
         string longDesc;
         address categorizedBy;
-        address address_effect;
-        uint value;
+        address[] address_effect;
+        uint[] value;
         uint64 version;
+        bytes16[] options;
     }
     struct versionData
     {
@@ -134,6 +135,7 @@ contract governanceData
     {
         catno = allPro[id].category;
     }
+
     /// @dev Changes the total number of members.
     function changeTotalMember(uint num) onlyInternal
     {
@@ -179,21 +181,25 @@ contract governanceData
     {
         len = allPro.length;    
     }
+  
     /// @dev Gets the timestamp of a given proposal at which Proposal's details has been last updated/changed.
     function getProposalDateUpd(uint id) constant returns(uint dateupd)
     {
         dateupd = allPro[id].date_upd;
     }
-     /// @dev Sets the timestamp of a given proposal at which Proposal's details has been updated/changed.
+
+    /// @dev Sets the timestamp of a given proposal at which Proposal's details has been updated/changed.
     function updateProposalDateUpd(uint id) onlyInternal
     {
-        allPro[id].date_upd =now;
+        allPro[id].date_upd=now;
     }
+
     /// @dev Sets the verdict of a given Proposal Id. 1 if the given proposal has been accepted ,-1 if declined. 
     function changeProposalFinalVerdict(uint id ,int8 verdict) onlyInternal
     {
         allPro[id].finalVerdict = verdict;
     }
+    
     /// @dev Verifies whether a given address is a Advisory Board(AB) Member or not.
     /// @param add User address.
     /// @return _AB 1 if the address is an AB member,0 otherwise.
@@ -229,16 +235,19 @@ contract governanceData
     {
         vers = allPro[id].version;
     }
+
     /// @dev Gets the date of creation  of a given proposal.
     function getProposalDateAdd(uint id) constant returns(uint _dateadd)
     {
         _dateadd = allPro[id].date_add;
     }
+
     /// @dev Stores the information of a given version number of a given proposal.Maintains the record of all the versions of a proposal.
     function addProposalVersion(uint id,uint64 vno ,uint _date) onlyInternal
     {
         proposalIdVersions[id].push(versionData(vno ,allPro[id].shortDesc,allPro[id].longDesc,_date));            
     }
+   
     /// @dev Edits the details of an existing proposal.
     /// @param id Exisiting Proposal Id 
     /// @param sd New Short Description.
@@ -254,6 +263,7 @@ contract governanceData
         allPro[id].date_add = now;
         allPro[id].version = vno;
     }
+    
     /// @dev Gets the Number of proposals which are pending.
     function getAllProLengthFromNewStart() constant returns(uint len)
     {
@@ -273,23 +283,30 @@ contract governanceData
     {
         burnVoterTokenAgaintClaim[claimid][_add] = change;
     }
+
     /// @dev Creates a new proposal 
     /// @param id Proposal id.
     /// @param _add address of Owner of proposal.
     /// @param sd Short Description of proposal.
     /// @param ld Long Description of proposal.
-   
     function addNewProposal(uint id,address _add,string sd,string ld) onlyInternal
     {
-        allPro.push(proposal(id,_add,0,now,now,0,0,sd,ld,0,0,0,0));
+        address[] address1;
+        uint[] value1;
+        bytes16[] option1;
+        allPro.push(proposal(id,_add,0,now,now,0,0,sd,ld,0,address1,value1,0,option1));
     }
-    function updateCategorizeDetails(uint id,address _effect,uint value,uint16 cat,address sender) onlyInternal
+    function updateCategorizeDetails2(uint id,uint16 cat,address sender)onlyInternal
     {
-        allPro[id].address_effect = _effect;
-        allPro[id].value = value;
         allPro[id].category = cat;
         allPro[id].categorizedBy =sender;
         allPro[id].date_upd = now;
+    }
+    function updateCategorizeDetails(uint id,address _effect,uint value,bytes16 option) onlyInternal
+    {
+        allPro[id].address_effect.push(_effect);
+        allPro[id].value.push(value);
+        allPro[id].options.push(option);
     }
     /// @dev Updates the Category Number of a given proposal.
     function updateCategorisedProposal(uint id , uint8 categorised) onlyInternal
@@ -354,7 +371,6 @@ contract governanceData
     /// @param _add Voter's address.
     /// @param id Proposal's Id.
     /// @param verdict 1 if vote is in the favour,-1 if vote is against the proposal.
-
     function addVote(address _add,uint id,int8 verdict) onlyInternal
     {
         allVotes.push(vote(_add,id,verdict,now));
@@ -440,7 +456,7 @@ contract governanceData
     /// @dev Updates  status of an existing proposal.
     /// @param id Exisiting Proposal Id.
     /// @param stat New Proposal's status.
-    function updateProposalStatus(uint id ,uint16 stat) onlyInternal
+    function updateProposalStatus(uint id,uint16 stat) onlyInternal
     {
         allPro[id].status = stat;
     }
@@ -455,14 +471,18 @@ contract governanceData
         return(allVotes[voteid].voter,allVotes[voteid].proposalId,allVotes[voteid].verdict,allVotes[voteid].date_submit);
     }
     /// @dev Gets value of a given proposal.
-    function getProposalValue(uint id)constant returns(uint val)
+    function getProposalValue(uint id,uint indx)constant returns(uint val)
     {
-        val = allPro[id].value;
+        val = allPro[id].value[indx];
     }
     /// @dev Gets Effective address of a given proposal. 
-    function getProposalAddress_Effect(uint id)constant returns(address _add)
+    function getProposalAddress_Effect(uint id,uint indx)constant returns(address _add)
     {
-        _add = allPro[id].address_effect;
+        _add = allPro[id].address_effect[indx];
+    }
+    /// Test-ARJUNSB
+    function getProposalOptions (uint id,uint indx) constant returns(bytes16 opt) {
+        opt=allPro[id].options[indx];
     }
     /// @dev Adds a given address as an advisory board member.
     function joinAB(address memAdd) onlyInternal
@@ -484,10 +504,10 @@ contract governanceData
     /// @return categorizedBy address of the Advisory Board member who has done categorization of proposal.
     /// @return address_effect Address of user that will be effected with proposal's decision.
     /// @return value Amount, i.e. number of tokens to be burned or amount to be transferred in case of external services 
-    function getProposalById3(uint id) constant returns(address categorizedBy,address address_effect,uint value)
+    function getProposalById3(uint id,uint indx) constant returns(address categorizedBy,address address_effect,uint value,bytes16 options)
     {
-        return(allPro[id].categorizedBy,allPro[id].address_effect,allPro[id].value);
-    }    
+        return(allPro[id].categorizedBy,allPro[id].address_effect[indx],allPro[id].value[indx],allPro[id].options[indx]);
+    } 
 }
 
 

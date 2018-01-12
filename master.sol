@@ -103,6 +103,7 @@ contract master
     
     address public owner;
     uint8 public emergencyPaused;
+    uint pauseTime;
     modifier onlyOwner
     {  
         require(isOwner(msg.sender) == 1);
@@ -117,11 +118,22 @@ contract master
         masterAddress=address(this);
         versionLength =0;
         emergencyPaused=0; // initially set false
+        pauseTime=28*1 days; //4 weeks
     }
 
-   function updateEmergencyPause(uint8 _pause) onlyOwner
+   function updateEmergencyPause(uint8 _pause)
    {
-     emergencyPaused=_pause;
+        g1=governance(governanceAddress);
+        require(contracts_active[msg.sender] == 1 || owner==msg.sender || g1.isAB(msg.sender)==1); 
+        emergencyPaused=_pause;
+   }
+   function updatePauseTime(uint _days)onlyOwner
+   {
+        pauseTime=_days*1 days;
+   }
+   function getPauseTime() constant returns(uint _time)
+   {
+        return pauseTime;
    }
    /// @dev Changes all reference contract addresses in master
     function changeAddressinMaster(uint version) onlyInternal
@@ -272,10 +284,16 @@ contract master
 
         g1=governance(governanceAddress);
         g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress);
-        g1.changeGovernanceDataAddress(governanceDataAddress);
+        address[] govAdd;
+        govAdd.push(governanceDataAddress);
+        govAdd.push(poolDataAddress);
+        govAdd.push(pool3Address);
+        g1.changeGovernanceDataAddress(govAdd);
         g1.changeToken2Address(NXMToken2Address);
         g1.changeTokenDataAddress(tokenDataAddress);
-
+        // g1.changePoolDataAddress(poolDataAddress);
+        // g1.changePool3Address(pool3Address);
+        
         m1=MCR(MCRAddress);
         m1.changeTokenAddress(NXMTokenAddress);
         m1.changePoolAddress(poolAddress);
@@ -331,6 +349,7 @@ contract master
          p3.changePoolAddress(poolAddress);
          p3.changeMCRDataAddress(mcrDataAddress);
          p3.changePool2Address(pool2Address);
+
    }
     /// @dev Updates the version of contracts and calls the oraclize query to update UI.
     function switchToRecentVersion() onlyInternal
@@ -378,7 +397,7 @@ contract master
     }
     function isInternal(address _add) constant returns(uint check)
     {
-        check=0;
+        check=0; // should be 0
         if((contracts_active[_add] == 1 || owner==_add ) && emergencyPaused==0)
             check=1;
     }

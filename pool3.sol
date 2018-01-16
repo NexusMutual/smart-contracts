@@ -115,12 +115,12 @@ contract pool3
         require(ms1.isPause()==0);
         _;
     }
-    function activeInvestmentAsset(bytes16 curr)  onlyOwner
+    function activeInvestmentAsset(bytes16 curr)  onlyInternal
     {
         pd1=poolData1(poolDataAddress);
         pd1.changeInvestmentAssetStatus(curr,1);
     }   
-    function inactiveInvestmentAsset(bytes16 curr) onlyOwner
+    function inactiveInvestmentAsset(bytes16 curr) onlyInternal
     {
         pd1=poolData1(poolDataAddress);
         pd1.changeInvestmentAssetStatus(curr,0);
@@ -431,16 +431,7 @@ contract pool3
         balance=p2.getBalanceofInvestmentAsset(curr_name);
         (curr,,status,_minHoldingPercX100,_maxHoldingPercX100,decimals)=pd1.getInvestmentAssetDetails(curr_name);
     }
-    // add new investment asset currency.
-     function addInvestmentAssetsDetails(bytes16 curr_name,address curr,uint64 _minHoldingPercX100,uint64 _maxHoldingPercX100) onlyOwner
-     {
-        pd1 = poolData1(poolDataAddress);
-         uint8 decimals;
-        tok=SupplyToken(curr);
-        decimals=tok.decimals();
-        pd1.addInvestmentCurrency(curr_name);
-        pd1.pushInvestmentAssetsDetails(curr_name,curr,1,_minHoldingPercX100,_maxHoldingPercX100,decimals);
-     }
+   
      function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
      {
          pd1=poolData1(poolDataAddress);
@@ -486,6 +477,37 @@ contract pool3
         } 
        
     }
+    // function getAssetsAddresses(bytes16[] curr,uint _type) constant returns(address[] currAddress)
+    // {
+    //     f1=fiatFaucet(fiatFaucetAddress);
+    //     pd1=poolData1(poolDataAddress);
+    //     uint i;
+    //     address[] curr_address;
+    //      if(_type==0) 
+    //      {
+    //         // return address of Currency assets
+    //          for(i=0;i<curr.length;i++)
+    //          {
+    //             if(curr[i]=="ETH")
+    //             {
+    //                 curr_address.push(getWETHAddress());
+    //             }
+    //             else
+    //             {
+    //                 curr_address.push(f1.getCurrAddress(curr[i]));
+    //             }
+    //          }
+    //     }
+    //     else if(_type==1)
+    //     {
+    //        // return address of Investment assets
+    //         for(i=0;i<curr.length;i++)
+    //         {
+    //             curr_address.push(pd1.getInvestmentAssetAddress(curr[i]));
+    //         }
+    //     } 
+    //     return curr_address;    
+    // }
     function getCurrencyAssetDetails(bytes4 curr) constant returns(uint CABalance,uint CARateX100,uint baseMin,uint varMin)
     {
         md1=MCRData(MCRDataAddress);
@@ -496,16 +518,25 @@ contract pool3
         CARateX100=md1.getCurrencyRateByIndex(lastIndex,curr);
     }
     // update investment asset percentage
-    function updateInvestmentAssetHoldingPerc(bytes16 _curr,uint64 _minPercX100,uint64 _maxPercX100) onlyOwner
+    function updateInvestmentAssetHoldingPerc(bytes16 _curr,uint64 _minPercX100,uint64 _maxPercX100) onlyInternal
     {
          pd1=poolData1(poolDataAddress);
          pd1.changeInvestmentAssetHoldingPerc(_curr,_minPercX100,_maxPercX100);
     }
     // update currency asset base min and var min
-    function updateCurrencyAssetDetails(bytes4 _curr,uint64 _baseMin,uint64 _varMin)onlyOwner
-    {
+    function updateCurrencyAssetDetails(bytes4 _curr,uint64 _baseMin)onlyInternal
+        {
         pd1=poolData1(poolDataAddress);
         pd1.changeCurrencyAssetBaseMin(_curr,_baseMin);
-        pd1.changeCurrencyAssetVarMin(_curr,_varMin);
     }
+     // add new investment asset currency.
+     function addInvestmentAssetsDetails(bytes16 curr_name,address curr,uint64 _minHoldingPercX100,uint64 _maxHoldingPercX100) onlyInternal
+     {
+        pd1 = poolData1(poolDataAddress);
+         uint8 decimals;
+        tok=SupplyToken(curr);
+        decimals=tok.decimals();
+        pd1.addInvestmentCurrency(curr_name);
+        pd1.pushInvestmentAssetsDetails(curr_name,curr,1,_minHoldingPercX100,_maxHoldingPercX100,decimals);
+     }
 }

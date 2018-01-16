@@ -43,7 +43,6 @@ contract claimsData
     claim[]  allClaims;
     vote[]  allvotes;
     uint public vote_length;
-    //uint public claim_length;
     mapping(uint=>uint[])  cover_claim;
     mapping(uint=>claimStatus[]) public claim_status;   
     mapping(uint=>uint[])  claim_vote_ca;

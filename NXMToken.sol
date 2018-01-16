@@ -19,7 +19,6 @@ import "./MCR.sol";
 import "./NXMTokenData.sol";
 import "./NXMToken2.sol";
 import "./master.sol";
-//import "./NXMToken3.sol";
 contract NXMToken {
 
     master ms1;
@@ -27,16 +26,12 @@ contract NXMToken {
     address quotationContact;
     address mcrAddress;
     address nxmtoken2Address;
-    //address nxmtoken3Address;
     address tokenDataAddress;   
     quotation2 q1;    
     MCR m1;
     NXMTokenData td1;
     address owner;
     NXMToken2 t2;
-   // NXMToken3 t3;
-    // bytes8 public symbol;
-    // uint8 public decimals;
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _of,bytes16 eventName , uint coverId ,uint tokens);

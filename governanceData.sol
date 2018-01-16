@@ -291,23 +291,26 @@ contract governanceData
     /// @param ld Long Description of proposal.
     function addNewProposal(uint id,address _add,string sd,string ld) onlyInternal
     {
-        address[] address1;
-        uint[] value1;
-        bytes16[] option1;
-        allPro.push(proposal(id,_add,0,now,now,0,0,sd,ld,0,address1,value1,0,option1));
+        // address[] address1=new address[](0);
+        // uint[] value1=new uint[](0);
+        // bytes16[] option1=new bytes16[](0);
+        allPro.push(proposal(id,_add,0,now,now,0,0,sd,ld,0,new address[](0),new uint[](0),0,new bytes16[](0)));
     }
-    function updateCategorizeDetails2(uint id,uint16 cat,address sender)onlyInternal
+    function updateCategorizeDetails(uint id,uint16 cat,address sender,address[] _effect,uint[] value,bytes16[] option)onlyInternal
     {
         allPro[id].category = cat;
         allPro[id].categorizedBy =sender;
         allPro[id].date_upd = now;
+        allPro[id].address_effect=_effect;
+        allPro[id].value=value;
+        allPro[id].options=option;
     }
-    function updateCategorizeDetails(uint id,address _effect,uint value,bytes16 option) onlyInternal
-    {
-        allPro[id].address_effect.push(_effect);
-        allPro[id].value.push(value);
-        allPro[id].options.push(option);
-    }
+    // function updateCategorizeDetails(uint id,address[] _effect,uint[] value,bytes16[] option) onlyInternal
+    // {
+    //     allPro[id].address_effect=_effect;
+    //     allPro[id].value=value;
+    //     allPro[id].options=option;
+    // }
     /// @dev Updates the Category Number of a given proposal.
     function updateCategorisedProposal(uint id , uint8 categorised) onlyInternal
     {

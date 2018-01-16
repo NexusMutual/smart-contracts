@@ -153,7 +153,7 @@ contract poolData1
     {
         return IARatesTime;
     }
-    function change0xMakerAddress(address _maker) onlyOwner //later onlyInternal
+    function change0xMakerAddress(address _maker) onlyInternal
     {
         maker=_maker;
     }
@@ -161,7 +161,7 @@ contract poolData1
     {
         return maker;
     }
-      function change0xTakerAddress(address _taker) onlyOwner //later onlyInternal
+      function change0xTakerAddress(address _taker) onlyInternal
     {
         taker=_taker;
     }
@@ -169,7 +169,7 @@ contract poolData1
     {
         return taker;
     }
-    function change0xFeeRecipient(address _feeRecipient) onlyOwner //later onlyInternal
+    function change0xFeeRecipient(address _feeRecipient) onlyInternal
     {
         feeRecipient=_feeRecipient;
     }

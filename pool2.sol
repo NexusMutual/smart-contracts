@@ -228,6 +228,11 @@ contract pool2
             g1=governance(governanceAddress);
             g1.closeProposalVote(pd1.getIdOfApiId(myid));
         }
+        if(pd1.getApiIdTypeOf(myid) =="Pause")
+        {
+            pd1.updateDateUpdOfAPI(myid);
+            ms1.updateEmergencyPause(0); //set pause to false
+        }
       
     }
     

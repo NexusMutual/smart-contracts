@@ -232,6 +232,11 @@ contract pool is usingOraclize{
         bytes32 myid= oraclize_query(time,"URL","http://a3.nexusmutual.io",300000);
         saveApiDetailsCurr(myid,"Close0x",curr,id);
     }
+    function closeEmergencyPause(uint time) onlyInternal
+    {
+         bytes32 myid= oraclize_query(time,"URL","",300000);
+         saveApiDetails(myid,"Pause",0);
+    }
     /// @dev Handles callback of external oracle query. 
     function __callback(bytes32 myid, string res)
     {

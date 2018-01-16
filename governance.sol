@@ -84,14 +84,11 @@ contract governance {
         token2Address = _add;
         t2 = NXMToken2(token2Address);
     }
-    function changeGovernanceDataAddress(address[] _add) onlyInternal
+    function changeGovernanceDataAddress(address _add) onlyInternal
     {
-        governanceDataAddress = _add[0];
+        governanceDataAddress = _add;
         gd1=governanceData(governanceDataAddress);
-        poolDataAddress=_add[1];
-        pd1=poolData1(poolDataAddress);
-        pool3Address=_add[2];
-        p3=pool3(pool3Address);
+
     }
     // function changePoolDataAddress(address _add) onlyInternal
     // {
@@ -139,11 +136,13 @@ contract governance {
     function getCategoriesLength() constant returns (uint len){
         len = allCategory.length;
     }
-    function changeAllAddress(address NXadd,address claimAdd,address pooladd) onlyInternal
+    function changeAllAddress(address NXadd,address claimAdd,address pooladd,address poolDataAddr,address pool3Addr) onlyInternal
     {
         nxad = NXadd;
         claimAd=claimAdd;
         poolAd=pooladd;
+        poolDataAddress=poolDataAddr;
+        pool3Address=pool3Addr;
     }
     /// @dev Gets Category details of a given index.
     /// @return id Index value.
@@ -158,17 +157,17 @@ contract governance {
         id=index;
     } 
     /// @dev Changes the number of total member.
-    function changeTotalMember(uint num) onlyInternal
-    {
-        gd1=governanceData(governanceDataAddress);
-        gd1.changeTotalMember(num);
-    }
+    // function changeTotalMember(uint num) onlyInternal
+    // {
+    //     gd1=governanceData(governanceDataAddress);
+    //     gd1.changeTotalMember(num);
+    // }
     /// @dev Changes the Quorum Percentage number.
-    function changeQuorumperc(uint32 perc) onlyOwner
-    {
-        gd1=governanceData(governanceDataAddress);
-        gd1.changeQuorumperc(perc);
-    }
+    // function changeQuorumperc(uint32 perc) onlyOwner
+    // {
+    //     gd1=governanceData(governanceDataAddress);
+    //     gd1.changeQuorumperc(perc);
+    // }
     /// @dev Changes the closing time of the vote.
     function changeClosingTime(uint _time) onlyOwner
     {
@@ -191,11 +190,11 @@ contract governance {
     }
 
     /// @dev Gets the total number of Proposals created till date.
-    function getAllProLength() constant returns(uint len)
-    {
-        gd1=governanceData(governanceDataAddress);
-        len = gd1.getAllProLength();
-    }
+    // function getAllProLength() constant returns(uint len)
+    // {
+    //     gd1=governanceData(governanceDataAddress);
+    //     len = gd1.getAllProLength();
+    // }
 
     /// @dev Verifies whether a given address is a Advisory Board(AB) Member or not.
     /// @param add User address.
@@ -208,11 +207,11 @@ contract governance {
 
      /// @dev Gets the Number of proposals which are pending.
      /// @return len Number of pending proposals.
-    function getAllProLengthFromNewStart() constant returns(uint len)
-    {
-        gd1=governanceData(governanceDataAddress);
-        len = gd1.getAllProLengthFromNewStart();
-    }
+    // function getAllProLengthFromNewStart() constant returns(uint len)
+    // {
+    //     gd1=governanceData(governanceDataAddress);
+    //     len = gd1.getAllProLengthFromNewStart();
+    // }
 
     /// @dev Provides the information of a Proposal when given the id.
     /// @param id Proposal id.
@@ -232,18 +231,18 @@ contract governance {
     }    
     /// @dev Changes the status of a given proposal.
     /// @param id Proposal Id.
-    function changeProposalStatus(uint id)
-    {
-        gd1=governanceData(governanceDataAddress);
-        if(gd1.getProposalOwner(id) != msg.sender || gd1.getProposalStatus(id)!=0) throw;
-        //uint time= now;
-        gd1.pushInProposalStatus(id,1);
-        gd1.updateProposalStatus(id,1);
-        gd1.updateProposalDateUpd(id);
-        p1=pool(poolAd);
-        p1.closeProposalOraclise(id,gd1.getClosingTime());
+    // function changeProposalStatus(uint id)
+    // {
+    //     gd1=governanceData(governanceDataAddress);
+    //     if(gd1.getProposalOwner(id) != msg.sender || gd1.getProposalStatus(id)!=0) throw;
+    //     //uint time= now;
+    //     gd1.pushInProposalStatus(id,1);
+    //     gd1.updateProposalStatus(id,1);
+    //     gd1.updateProposalDateUpd(id);
+    //     p1=pool(poolAd);
+    //     p1.closeProposalOraclise(id,gd1.getClosingTime());
 
-    }
+    // }
 
     /// @dev Checks if voting time of a given proposal should be closed or not.
     /// @param id Proposal Id.
@@ -295,7 +294,7 @@ contract governance {
                         gd1.pushInProposalStatus(id,4);
                         gd1.changeProposalFinalVerdict(id,1);
                         gd1.updateProposalDateUpd(id);
-                        if(category==2 || category==6 ||category==7)
+                        if(category==2 || category==6 ||category==12)
                         {
                             actionAfterProposalPass(id , category);
                         }
@@ -409,7 +408,7 @@ contract governance {
             bytes16 type0= gd1.getProposalOptions(propid,0);
             bytes16 type1=gd1.getProposalOptions(propid,1);
             uint value1;
-                            value = gd1.getProposalValue(propid,0);
+            value = gd1.getProposalValue(propid,0);
             if (type0=="addIA")
             {
                 _add = gd1.getProposalAddress_Effect(propid,0);
@@ -461,70 +460,70 @@ contract governance {
 
     }
     /// @dev Removes the given address from the Advisory Board Members.
-    function removeAB(address memRem)
-    {
-       ms1=master(masterAddress);
-       if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
-        gd1=governanceData(governanceDataAddress);
-        if(gd1.isAB(memRem) == 0) throw;
-        gd1.removeAB(memRem);
-        gd1.addMemberStatusUpdate(memRem,0,now);
-    }
+    // function removeAB(address memRem)
+    // {
+    //    ms1=master(masterAddress);
+    //    if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
+    //     gd1=governanceData(governanceDataAddress);
+    //     if(gd1.isAB(memRem) == 0) throw;
+    //     gd1.removeAB(memRem);
+    //     gd1.addMemberStatusUpdate(memRem,0,now);
+    // }
 
     //Governance 2
     /// @dev Edits a proposal and uncategorizes it. Only owner of a proposal can edit it.
     /// @param id Proposal Id.
     /// @param sd New Short Description of the proposal.
     /// @param ld New Long Description of the proposal.
-    function editProposal(uint id , string sd, string ld) 
-    {
-        gd1 = governanceData(governanceDataAddress);
-        if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
-        {
-            gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
-            gd1.updateProposal(id,sd,0,ld,gd1.getProposalVersion(id)+1);
-            //gd1.unCategoriseProposal(id);
-        }
-        else
-            throw;
+    // function editProposal(uint id , string sd, string ld) 
+    // {
+    //     gd1 = governanceData(governanceDataAddress);
+    //     if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
+    //     {
+    //         gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
+    //         gd1.updateProposal(id,sd,0,ld,gd1.getProposalVersion(id)+1);
+    //         //gd1.unCategoriseProposal(id);
+    //     }
+    //     else
+    //         throw;
 
-    }
+    // }
     /// @dev Creates a New Proposal 
     /// @param shortDesc Short Description of Proposal.
     /// @param longDesc Long Description of Proposal.
     /// @param _effect Address of user that will be effected with proposal's decision.
     /// @param value Amount, i.e. number of tokens to be burned or amount to be transferred in case of external services 
     /// @param cat Category Number of Proposal.
-    function addProposal(string shortDesc , string longDesc , address[] _effect , uint[] value , uint16 cat,bytes16[] options)
-    {
-        gd1 = governanceData(governanceDataAddress);
-        for(uint i=0; i<_effect.length;i++)
-        {
-            if(cat==2 && gd1.checkBurnVoterTokenAgaintClaim(value[i],_effect[i])==1)
-                throw;
-        }
-        uint len = gd1.getAllProLength();
-        //uint64 time = uint64(now);
-        gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
-        if(gd1.isAB(msg.sender)==1 && (cat==2 || cat==12))
-        {
-            gd1.updateCategorizeDetails2(len,cat,msg.sender);
-            for(uint j=0; j<_effect.length;i++)
-            {
-                gd1.updateCategorizeDetails(len,_effect[j],value[j],options[j]);
+    // function addProposal(string shortDesc , string longDesc , address[] _effect , uint[] value , uint16 cat,bytes16[] options)
+    // {
+    //     gd1 = governanceData(governanceDataAddress);
+    //     for(uint i=0; i<_effect.length;i++)
+    //     {
+    //         if(cat==2 && gd1.checkBurnVoterTokenAgaintClaim(value[i],_effect[i])==1)
+    //             throw;
+    //     }
+    //     uint len = gd1.getAllProLength();
+    //     //uint64 time = uint64(now);
+    //     gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
+    //     if(gd1.isAB(msg.sender)==1 && (cat==2 || cat==12))
+    //     {
+    //         gd1.updateCategorizeDetails2(len,cat,msg.sender);
+    //         for(uint j=0; j<_effect.length;i++)
+    //         {
+    //             gd1.updateCategorizeDetails(len,_effect[j],value[j],options[j]);
                 
-                gd1.changeBurnVoterTokenAgaintClaim(value[j],_effect[j],1);
-            }
-            gd1.updateCategorisedProposal(len,1);
-        }
-        gd1.addInUserProposals(len,msg.sender);
-        if(cat==12)
-        {
-            changeProposalStatus(len); //submit the proposal as well
-        }
-        else
-            gd1.pushInProposalStatus(len,0);    
-    }
+    //             gd1.changeBurnVoterTokenAgaintClaim(value[j],_effect[j],1);
+    //         }
+    //         gd1.updateCategorisedProposal(len,1);
+    //     }
+    //     gd1.addInUserProposals(len,msg.sender);
+    //     if(cat==12)
+    //     {
+    //         changeProposalStatus(len); //submit the proposal as well
+    //     }
+    //     else
+    //         gd1.pushInProposalStatus(len,0);    
+    // }
     /// @dev Registers an Advisroy Board Member's vote
     /// @param id Proposal id.
     /// @param verdict 1 if vote is in favour,-1 if vote is in against.
@@ -568,18 +567,18 @@ contract governance {
     /// @param cat Category of proposal.
     /// @param _effect address of user which will get effected by proposal's decision.
     /// @param val depend upon the category of proposal. (Example: 1. if category is claim, then val will be Claim Id.2.For burning of tokens, val will be number of tokens that will be burned)
-    function categorizeProposal(uint id , uint16 cat , address[] _effect , uint[] val, bytes16[] options)
-    {
-        gd1 = governanceData(governanceDataAddress);
-        if(gd1.isAB(msg.sender)==0) throw;
-        if(gd1.isProposalCategorised(id)==1) throw;
-            gd1.updateCategorizeDetails2(id,cat,msg.sender);
-        for(uint i=0;i<_effect.length;i++)
-        {
-            gd1.updateCategorizeDetails(id,_effect[i],val[i],options[i]);    
-        }
-        gd1.updateCategorisedProposal(id,1);
-    }
+    // function categorizeProposal(uint id , uint16 cat , address[] _effect , uint[] val, bytes16[] options)
+    // {
+    //     gd1 = governanceData(governanceDataAddress);
+    //     if(gd1.isAB(msg.sender)==0) throw;
+    //     if(gd1.isProposalCategorised(id)==1) throw;
+    //         gd1.updateCategorizeDetails2(id,cat,msg.sender);
+    //     for(uint i=0;i<_effect.length;i++)
+    //     {
+    //         gd1.updateCategorizeDetails(id,_effect[i],val[i],options[i]);    
+    //     }
+    //     gd1.updateCategorisedProposal(id,1);
+    // }
 
     
 }

@@ -21,7 +21,6 @@ import "./pool.sol";
 import "./MCR.sol";
 import "./NXMToken.sol";
 import "./master.sol";
-//import "./NXMToken3.sol";
 
 contract NXMToken2{
     master ms1;

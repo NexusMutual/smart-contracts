@@ -35,7 +35,7 @@ import "./governanceData.sol";
 import "./pool2.sol";
 import "./SafeMaths.sol";
 import "./pool3.sol";
-
+import "./governance2.sol";
 contract master
 {
 
@@ -73,6 +73,7 @@ contract master
     address  masters2Address;
     address  masterAddress;
     address pool2Address;
+    address governance2Address;
     claimsData cd1;
     //date 21/11/2017
     address zeroExExchangeAddress;
@@ -87,7 +88,7 @@ contract master
     claims_Reward cr1;
     pool p1;
     governance g1;
-    //governance2 g2;
+    governance2 g2;
     fiatFaucet f1;
     MCR m1;
     SupplyToken s1;
@@ -123,8 +124,8 @@ contract master
 
    function updateEmergencyPause(uint8 _pause)
    {
-        g1=governance(governanceAddress);
-        require(contracts_active[msg.sender] == 1 || owner==msg.sender || g1.isAB(msg.sender)==1); 
+        gd1=governanceData(governanceDataAddress);
+        require(contracts_active[msg.sender] == 1 || owner==msg.sender || gd1.isAB(msg.sender)==1); 
         emergencyPaused=_pause;
    }
    function updatePauseTime(uint _days)onlyOwner
@@ -153,6 +154,9 @@ contract master
         claims_RewardAddress=allContractVersions[version][13].contractAddress;
         poolAddress = allContractVersions[version][14].contractAddress;
         governanceAddress = allContractVersions[version][15].contractAddress;
+        //13/1/2018
+        governance2Address=allContractVersions[version][16].contractAddress;
+
         fiatFaucetAddress = allContractVersions[version][17].contractAddress;        
         faucetUSDAddress = allContractVersions[version][19].contractAddress;                             
         faucetEURAddress =allContractVersions[version][20].contractAddress;
@@ -220,6 +224,9 @@ contract master
         p3=pool3(pool3Address);
         p3.changeMasterAddress(_add);
 
+        g2=governance2(governance2Address);
+        g2.changeMasterAddress(_add);
+
     }
     /// @dev Link contracts to one another.
    function changeOtherAddress(uint version) onlyInternal
@@ -283,16 +290,10 @@ contract master
         p1.changePool2Address(pool2Address);
 
         g1=governance(governanceAddress);
-        g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress);
-        address[] govAdd;
-        govAdd.push(governanceDataAddress);
-        govAdd.push(poolDataAddress);
-        govAdd.push(pool3Address);
-        g1.changeGovernanceDataAddress(govAdd);
+        g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress,poolDataAddress,pool3Address);
+        g1.changeGovernanceDataAddress(governanceDataAddress);
         g1.changeToken2Address(NXMToken2Address);
         g1.changeTokenDataAddress(tokenDataAddress);
-        // g1.changePoolDataAddress(poolDataAddress);
-        // g1.changePool3Address(pool3Address);
         
         m1=MCR(MCRAddress);
         m1.changeTokenAddress(NXMTokenAddress);
@@ -350,6 +351,10 @@ contract master
          p3.changeMCRDataAddress(mcrDataAddress);
          p3.changePool2Address(pool2Address);
 
+        g2=governance2(governance2Address);
+        g2.changeGovernanceDataAddress(governanceDataAddress);
+        g2.changePoolAddress(poolAddress);
+        //g2.changeGovernanceAddress(governanceAddress);
    }
     /// @dev Updates the version of contracts and calls the oraclize query to update UI.
     function switchToRecentVersion() onlyInternal

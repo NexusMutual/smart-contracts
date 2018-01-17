@@ -276,31 +276,42 @@ contract governance {
             if(gd1.getProposalStatus(id)==1)
             {
                 (accept,deny,,) = gd1.getProposalAllVotesCount(id);
-                // if proposal accepted% >=majority % (by Advisory board)
-                if(accept*100/(accept+deny)>=maj)
-                {   // Member vote required 
-                    if(mvr==1)
-                    {
-                        gd1.updateProposalStatus(id,2);
-                        gd1.pushInProposalStatus(id,2);
-                        gd1.updateProposalDateUpd(id);
-                        p1=pool(poolAd);
-                        p1.closeProposalOraclise(id,gd1.getClosingTime());
-                    }
-                    // Member vote not required
-                    else
-                    {
-                        gd1.updateProposalStatus(id,4);
-                        gd1.pushInProposalStatus(id,4);
-                        gd1.changeProposalFinalVerdict(id,1);
-                        gd1.updateProposalDateUpd(id);
-                        if(category==2 || category==6 ||category==12)
+
+                if(accept+deny>0){
+                    // if proposal accepted% >=majority % (by Advisory board)
+                    if(accept*100/(accept+deny)>=maj)
+                    {   // Member vote required 
+                        if(mvr==1)
                         {
-                            actionAfterProposalPass(id , category);
+                            gd1.updateProposalStatus(id,2);
+                            gd1.pushInProposalStatus(id,2);
+                            gd1.updateProposalDateUpd(id);
+                            p1=pool(poolAd);
+                            p1.closeProposalOraclise(id,gd1.getClosingTime());
+                        }
+                        // Member vote not required
+                        else
+                        {
+                            gd1.updateProposalStatus(id,4);
+                            gd1.pushInProposalStatus(id,4);
+                            gd1.changeProposalFinalVerdict(id,1);
+                            gd1.updateProposalDateUpd(id);
+                            if(category==2 || category==6 ||category==12)
+                            {
+                                actionAfterProposalPass(id , category);
+                            }
                         }
                     }
+                    // if proposal is denied
+                    else
+                    {
+                        gd1.updateProposalStatus(id,3);
+                        gd1.pushInProposalStatus(id,3);
+                        gd1.changeProposalFinalVerdict(id,-1);
+                        gd1.updateProposalDateUpd(id);
+                    }
                 }
-                // if proposal is denied
+                // if accept+deny=0
                 else
                 {
                     gd1.updateProposalStatus(id,3);
@@ -324,19 +335,29 @@ contract governance {
                         actionAfterProposalPass(id , category);
                     }
                 }
-                // if proposal accepted% >=majority % (by Members)
-                else if(accept*100/(accept+deny)>=maj)
-                {
-                    gd1.updateProposalStatus(id,5);
-                    gd1.changeProposalFinalVerdict(id,1);
-                    gd1.pushInProposalStatus(id,5);
-                    gd1.updateProposalDateUpd(id);
-                    if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
+                else if(accept+deny>0){
+                    // if proposal accepted% >=majority % (by Members)
+                    if(accept*100/(accept+deny)>=maj)
                     {
-                        actionAfterProposalPass(id , category);
+                        gd1.updateProposalStatus(id,5);
+                        gd1.changeProposalFinalVerdict(id,1);
+                        gd1.pushInProposalStatus(id,5);
+                        gd1.updateProposalDateUpd(id);
+                        if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
+                        {
+                            actionAfterProposalPass(id , category);
+                        }
+                    }
+                    // if proposal is denied
+                    else
+                    {
+                        gd1.updateProposalStatus(id,6);
+                        gd1.changeProposalFinalVerdict(id,-1);
+                        gd1.pushInProposalStatus(id,6);
+                        gd1.updateProposalDateUpd(id);
                     }
                 }
-                // if proposal is denied
+                // if no one vote
                 else
                 {
                     gd1.updateProposalStatus(id,6);

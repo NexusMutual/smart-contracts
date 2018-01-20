@@ -231,9 +231,11 @@ contract pool2
         if(pd1.getApiIdTypeOf(myid) =="Pause")
         {
             pd1.updateDateUpdOfAPI(myid);
-            ms1.updateEmergencyPause(0); //set pause to false
+            bytes4 by;
+            (,,by) = ms1.getLastEmergencyPause();
+            if(by=="AB")
+                ms1.addEmergencyPause(false,"AUT"); //set pause to false
         }
-      
     }
     
     function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa)

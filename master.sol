@@ -47,6 +47,13 @@ contract master
         uint date_implement;
         uint versionNo;
     }
+    struct emergencyPause {
+        bool pause;
+        uint time;
+        bytes4 by;
+    }
+    emergencyPause[] emergency_Paused;
+
     uint  public versionLength;
     mapping(uint=>contractDetails[]) public allContractVersions;
     changeVersion[]  contractChangeDate;
@@ -103,13 +110,22 @@ contract master
     pool3 p3;
     
     address public owner;
-    uint8 public emergencyPaused;
+    // uint8 public emergencyPaused;
     uint pauseTime;
     modifier onlyOwner
     {  
         require(isOwner(msg.sender) == 1);
         _; 
     }
+    modifier onlyInternal {
+        require( (contracts_active[msg.sender] == 1 || owner==msg.sender)); //&& emergencyPaused==0
+        _; 
+    }
+    modifier checkPause { 
+        require(isPause()==0);
+        _; 
+    }
+    
     /// @dev Constructor
     function masterCon()
     {
@@ -118,19 +134,22 @@ contract master
         contracts_active[address(this)]=1;
         masterAddress=address(this);
         versionLength =0;
-        emergencyPaused=0; // initially set false
+        // emergencyPaused=0; // initially set false
         pauseTime=28*1 days; //4 weeks
     }
 
-   function updateEmergencyPause(uint8 _pause)
+   function addEmergencyPause(bool _pause,bytes4 _by) onlyInternal
    {
-        gd1=governanceData(governanceDataAddress);
-        require(contracts_active[msg.sender] == 1 || owner==msg.sender || gd1.isAB(msg.sender)==1); 
-        emergencyPaused=_pause;
-   }
-   function updatePauseTime(uint _days)onlyOwner
+        emergency_Paused.push(emergencyPause(_pause,now,_by));
+        if(_pause==false)
+        {
+            c1=claims(claimsAddress);
+            c1.submitClaimAfterEPOff();
+        }
+    }
+   function updatePauseTime(uint _time) onlyInternal
    {
-        pauseTime=_days*1 days;
+        pauseTime=_time;
    }
    function getPauseTime() constant returns(uint _time)
    {
@@ -403,7 +422,7 @@ contract master
     function isInternal(address _add) constant returns(uint check)
     {
         check=0; // should be 0
-        if((contracts_active[_add] == 1 || owner==_add ) && emergencyPaused==0)
+        if((contracts_active[_add] == 1 || owner==_add )) //&& emergency_Paused[emergency_Paused.length-1]==0
             check=1;
     }
     function isOwner(address _add) constant returns(uint check)
@@ -412,23 +431,48 @@ contract master
         if(owner == _add)
             check=1;
     }
-    modifier onlyInternal {
-        require( (contracts_active[msg.sender] == 1 || owner==msg.sender) && emergencyPaused==0);
-        _; 
-    }
+    
     /// @dev emergency pause function. if check=0 function will execute otherwise not.
-    function isPause()constant returns(uint8 check)
+    function isPause()constant returns(uint check)
     {
-        check=0; // not in emergency pause state
-        if(emergencyPaused==1)
-            check=1; //in emergency pause state
+       
+        if(emergency_Paused.length>0)
+        {
+            if(emergency_Paused[emergency_Paused.length-1].pause==true)
+                return 1;
+            else
+                return 0;
+        }
+         else
+            return 0; //in emergency pause state
     }
     function changeOwner(address to) onlyOwner
     {
         if(owner == msg.sender)
             owner = to;
     }
+    function getEmergencyPauseByIndex (uint indx) constant returns(uint _indx,bool _pause,uint _time, bytes4 _by) {
+        _pause  =emergency_Paused[indx].pause;
+        _time   =emergency_Paused[indx].time;
+        _by     =emergency_Paused[indx].by;
+        _indx   =indx;
+    }
     
+    function getEmergencyPausedLength () constant returns(uint len) {
+        len = emergency_Paused.length;
+    }
+    function getLastEmergencyPause () constant returns(bool _pause,uint _time, bytes4 _by) {
+        _pause=false;
+        _time=0;
+        _by="";
+        uint len = getEmergencyPausedLength();
+        if(len>0){
+        _pause  =emergency_Paused[len-1].pause;
+        _time    =emergency_Paused[len-1].time;
+        _by     =emergency_Paused[len-1].by;
+        }
+        
+    }
     //master3
      /// @dev Sets the older version contract address as inactive and the latest one as active.
    /// @param version Latest version number.
@@ -492,9 +536,6 @@ contract master
         addContractDetails(versionNo,"Claims",arr[10]);
         addContractDetails(versionNo,"Claims2",arr[11]);
         addContractDetails(versionNo,"ClaimsReward",arr[12]);
-        
-       
-        
     }
     /// @dev Creates a new version of contract addresses.
     /// @param versionNo Latest version number to which addresses need to be added
@@ -517,6 +558,4 @@ contract master
        // addContractDetails(versionNo,"Master3",arr[11]);
         addContractDetails(versionNo,"Pool3",arr[11]);
     }
-    
-    
 }

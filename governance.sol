@@ -296,10 +296,10 @@ contract governance {
                             gd1.pushInProposalStatus(id,4);
                             gd1.changeProposalFinalVerdict(id,1);
                             gd1.updateProposalDateUpd(id);
-                            if(category==2 || category==6 ||category==12)
-                            {
+                            // if(category==2 || category==6 ||category==12)
+                            // {
                                 actionAfterProposalPass(id , category);
-                            }
+                            // }
                         }
                     }
                     // if proposal is denied
@@ -330,10 +330,10 @@ contract governance {
                     gd1.changeProposalFinalVerdict(id,1);
                     gd1.pushInProposalStatus(id,7);
                     gd1.updateProposalDateUpd(id);
-                    if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
-                    {
+                    // if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
+                    // {
                         actionAfterProposalPass(id , category);
-                    }
+                    // }
                 }
                 else if(accept+deny>0){
                     // if proposal accepted% >=majority % (by Members)
@@ -343,10 +343,10 @@ contract governance {
                         gd1.changeProposalFinalVerdict(id,1);
                         gd1.pushInProposalStatus(id,5);
                         gd1.updateProposalDateUpd(id);
-                        if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
-                        {
+                        // if(category==2 || category==6 || category==7 || category==10 || category==12 || category==13 || category==14)
+                        // {
                             actionAfterProposalPass(id , category);
-                        }
+                        // }
                     }
                     // if proposal is denied
                     else
@@ -394,6 +394,8 @@ contract governance {
 
         address _add;
         uint value;
+        uint value1;
+        bytes16 type0;
         // when category is "Burn fraudulent claim assessor tokens"
         if(cat == 2)
         {
@@ -416,19 +418,23 @@ contract governance {
             ms1=master(masterAddress);
             ms1.switchToRecentVersion();
         }
-        else if(cat==12)
+        else if(cat==11 || cat==12)
         {
             ms1=master(masterAddress);
-            ms1.updateEmergencyPause(1); // start emergencyPause
-            p1.closeEmergencyPause(ms1.getPauseTime()); //oraclize callback of 4 weeks
+            value = gd1.getProposalValue(propid,0);
+            // start/stop emergencyPause
+            if(value==0)
+            ms1.addEmergencyPause(false,"GOV"); 
+            else if(value==1)
+            ms1.addEmergencyPause(true,"GOV");
+            
         }
         // changes in investment model
         else if(cat==13)
         {
             p3=pool3(pool3Address);
-            bytes16 type0= gd1.getProposalOptions(propid,0);
+            type0= gd1.getProposalOptions(propid,0);
             bytes16 type1=gd1.getProposalOptions(propid,1);
-            uint value1;
             value = gd1.getProposalValue(propid,0);
             if (type0=="addIA")
             {
@@ -601,15 +607,13 @@ contract governance {
     //     gd1.updateCategorisedProposal(id,1);
     // }
 
-    
+    /// @dev Allow AB Members to Start Emergency Pause
+    function startEmergencyPause () checkPause {
+        if(isAB(msg.sender)==1){
+            ms1=master(masterAddress);
+            ms1.addEmergencyPause(true,"AB"); //Start Emergency Pause
+            p1=pool(poolAd);
+            p1.closeEmergencyPause(ms1.getPauseTime()); //oraclize callback of 4 weeks
+        }
+    }   
 }
-
-
-
-        
-
-
-
-        
-
-    

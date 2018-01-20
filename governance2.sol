@@ -109,19 +109,15 @@ contract governance2
         uint len = gd1.getAllProLength();
         //uint64 time = uint64(now);
         gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
-        if((gd1.isAB(msg.sender)==1 && (cat==2 || cat==12)) || cat==13)
+        if((gd1.isAB(msg.sender)==1 && (cat==2 || cat==11)) || cat==13 || cat==12)
         {
-            // gd1.updateCategorizeDetails2(len,cat,msg.sender);
-            // for(uint j=0; j<_effect.length;i++)
-            // {
-                gd1.updateCategorizeDetails(len,cat,msg.sender,_effect,value,options);
-                if(cat==2)
-                gd1.changeBurnVoterTokenAgaintClaim(value[0],_effect[0],1);
-            // }
+            gd1.updateCategorizeDetails(len,cat,msg.sender,_effect,value,options);
+            if(cat==2)
+            gd1.changeBurnVoterTokenAgaintClaim(value[0],_effect[0],1);
             gd1.updateCategorisedProposal(len,1);
         }
         gd1.addInUserProposals(len,msg.sender);
-        if(cat==12 || cat==13)
+        if(cat==12 || cat==13 || cat==11)
         {
             changeProposalStatus(len); //submit the proposal as well
         }
@@ -134,10 +130,7 @@ contract governance2
         if(gd1.isAB(msg.sender)==0) throw;
         if(gd1.isProposalCategorised(id)==1) throw;
             gd1.updateCategorizeDetails(id,cat,msg.sender,_effect,val,options);
-        // for(uint i=0;i<_effect.length;i++)
-        // {
-        //     gd1.updateCategorizeDetails(id,_effect[i],val[i],options[i]);    
-        // }
+        
         gd1.updateCategorisedProposal(id,1);
     }
 }

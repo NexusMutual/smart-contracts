@@ -42,6 +42,13 @@ contract claimsData
     }
     claim[]  allClaims;
     vote[]  allvotes;
+    struct claim_pause {
+        uint coverid;
+        uint date_upd;
+        bool submit;
+    }
+    claim_pause[] claimPause;
+    uint claim_pause_lastsubmit;
     uint public vote_length;
     mapping(uint=>uint[])  cover_claim;
     mapping(uint=>claimStatus[]) public claim_status;   
@@ -432,9 +439,8 @@ contract claimsData
         verdict = allClaims[claimId].vote;
     }
 
-    function addClaim(uint claimId,uint coverId,address _from) onlyInternal
+    function addClaim(uint claimId,uint coverId,address _from,uint time) onlyInternal
     {
-        uint time=now;
         allClaims.push(claim(coverId,time,0,0,time,0));
         allClaimsByAddress[_from].push(claimId);
         claim_status[claimId].push(claimStatus(0,time));
@@ -554,5 +560,30 @@ contract claimsData
     function setClaimdate_upd(uint claimid,uint _date_upd) onlyInternal
     {
          allClaims[claimid].date_upd = _date_upd;
+    }
+
+    function setClaimAtEmergencyPause (uint coverId,uint date_upd, bool submit) onlyInternal {
+        claimPause.push(claim_pause(coverId,date_upd,submit));
+    }
+
+    function getClaimOfEmergencyPauseByIndex (uint indx) constant returns(uint coverId, uint date_upd, bool submit) {
+        coverId = claimPause[indx].coverid;
+        date_upd= claimPause[indx].date_upd;
+        submit  = claimPause[indx].submit;
+    }
+
+    function setClaimSubmittedAtEPTrue (uint indx,bool submit) onlyInternal {
+        claimPause[indx].submit=submit;
+    }
+
+    function getLengthOfClaimSubmittedAtEP () returns(uint len) {
+        len=claimPause.length;
+    }
+    
+    function setFirstClaimIndexToSubmitAfterEP (uint FirstClaimIndexToSubmit) onlyInternal {
+        claim_pause_lastsubmit=FirstClaimIndexToSubmit;
+    }
+    function getFirstClaimIndexToSubmitAfterEP () constant returns(uint FirstClaimIndexToSubmit) {
+        FirstClaimIndexToSubmit = claim_pause_lastsubmit;
     }
 }

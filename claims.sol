@@ -475,18 +475,28 @@ contract claims{
     /// @param coverid Cover Id.
     function submitClaim(uint coverid) checkPause
     {
-        
         q1=quotation2(quotation2Address);
+        
         address qadd=q1.getMemberAddress(coverid);
         if(qadd != msg.sender) throw;
+        ms1=master(masterAddress);
+        if(ms1.isPause()==0)
+            addClaim(coverid,now);
+        else{
+            c1=claimsData(claimsDataAddress);
+            c1.setClaimAtEmergencyPause(coverid,now,false);
+        }
+    }
+    function addClaim (uint coverid, uint time) onlyInternal {
+        q1=quotation2(quotation2Address);
         tc2=NXMToken2(token2Address);
         c1=claimsData(claimsDataAddress);
         uint tokens = q1.getLockedTokens(coverid);
         tokens = tokens*20/100;
-        uint timeStamp = now + 1*7 days;
+        uint timeStamp = time + 1*7 days;
         tc2.depositCN(coverid,tokens,timeStamp,msg.sender);
         uint len = c1.actualClaimLength(); 
-        c1.addClaim(len,coverid,msg.sender);
+        c1.addClaim(len,coverid,msg.sender,time);
         q1.updateCoverStatusAndCount(coverid,4);
         p1=pool(poolAddress);
         p1.closeClaimsOraclise(len,c1.maxtime());
@@ -507,6 +517,23 @@ contract claims{
         // }
         checkLiquidity(curr);
     }
+    function submitClaimAfterEPOff () onlyInternal {
+        c1=claimsData(claimsDataAddress);
+        uint lengthOfClaimSubmittedAtEP = c1.getLengthOfClaimSubmittedAtEP();
+        uint FirstClaimIndexToSubmitAfterEP= c1.getFirstClaimIndexToSubmitAfterEP();
+        uint coverid;
+        uint date_upd;
+        bool submit;
+        for(uint i=FirstClaimIndexToSubmitAfterEP; i<lengthOfClaimSubmittedAtEP;i++){
+            (coverid,date_upd,submit) = c1.getClaimOfEmergencyPauseByIndex(i);
+            if(submit==false){
+                addClaim(coverid,date_upd);
+                c1.setClaimSubmittedAtEPTrue(i,true);
+            }
+        }
+        c1.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
+    }
+
     // 12/1/2017
      function checkLiquidity(bytes4 curr) onlyInternal
     {

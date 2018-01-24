@@ -132,7 +132,7 @@ contract pool3
         f1=fiatFaucet(fiatFaucetAddress);
         md1=MCRData(MCRDataAddress);
         bytes32 orderHash=pd1.getCurrOrderHash(curr,orderid);
-        require(pd1.getZeroExOrderStatus(orderHash)==1);
+        // require(pd1.getZeroExOrderStatus(orderHash)==1);
         exchange1=Exchange(exchangeContractAddress);
         uint filledAmt=exchange1.getUnavailableTakerTokenAmount(orderHash); //amount that is filled till now.(TakerToken)
         bytes4 makerCurr;bytes4 takerCurr;uint makerAmt;uint takerAmt;bytes16 orderHashType;
@@ -333,7 +333,7 @@ contract pool3
            cancelLastInsufficientTradingOrder(curr,takerAmt);
         }
    }
-   function cancelLastInsufficientTradingOrder(bytes4 curr,uint newTakerAmt)checkPause
+   function cancelLastInsufficientTradingOrder(bytes4 curr,uint newTakerAmt) onlyInternal
    {
         pd1 = poolData1(poolDataAddress);
         uint index=pd1.getCurrAllOrderHashLength(curr)-1;

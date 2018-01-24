@@ -281,6 +281,7 @@ contract masters2 {
         qd1.pushCoverStatus("Claim Denied");
         qd1.pushCoverStatus("Cover Expired");
         qd1.pushCoverStatus("Claim Submitted");
+        qd1.pushCoverStatus("Request Submitted");
     }
    
     function addCurrencyAssetsDetails() internal
@@ -336,8 +337,5 @@ contract masters2 {
         addCurrencyAssetsDetails();
         addInvestmentAssetsDetails();
         addInvestmentCurrencies();
-    }
-
-
-    
+    }   
 }

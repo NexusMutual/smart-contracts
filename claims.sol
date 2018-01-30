@@ -473,30 +473,30 @@ contract claims{
 
     /// @dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
     /// @param coverid Cover Id.
-    function submitClaim(uint coverid) checkPause
+    function submitClaim(uint coverid)
     {
         q1=quotation2(quotation2Address);
-        
         address qadd=q1.getMemberAddress(coverid);
         if(qadd != msg.sender) throw;
         ms1=master(masterAddress);
         if(ms1.isPause()==0)
-            addClaim(coverid,now);
+            addClaim(coverid,now,qadd);
         else{
             c1=claimsData(claimsDataAddress);
             c1.setClaimAtEmergencyPause(coverid,now,false);
+            q1.updateCoverStatus(coverid,5);
         }
     }
-    function addClaim (uint coverid, uint time) onlyInternal {
+    function addClaim (uint coverid, uint time,address add) onlyInternal {
         q1=quotation2(quotation2Address);
         tc2=NXMToken2(token2Address);
         c1=claimsData(claimsDataAddress);
         uint tokens = q1.getLockedTokens(coverid);
         tokens = tokens*20/100;
         uint timeStamp = time + 1*7 days;
-        tc2.depositCN(coverid,tokens,timeStamp,msg.sender);
+        tc2.depositCN(coverid,tokens,timeStamp,add);
         uint len = c1.actualClaimLength(); 
-        c1.addClaim(len,coverid,msg.sender,time);
+        c1.addClaim(len,coverid,add,time);
         q1.updateCoverStatusAndCount(coverid,4);
         p1=pool(poolAddress);
         p1.closeClaimsOraclise(len,c1.maxtime());
@@ -519,6 +519,7 @@ contract claims{
     }
     function submitClaimAfterEPOff () onlyInternal {
         c1=claimsData(claimsDataAddress);
+        q1=quotation2(quotation2Address);
         uint lengthOfClaimSubmittedAtEP = c1.getLengthOfClaimSubmittedAtEP();
         uint FirstClaimIndexToSubmitAfterEP= c1.getFirstClaimIndexToSubmitAfterEP();
         uint coverid;
@@ -527,7 +528,8 @@ contract claims{
         for(uint i=FirstClaimIndexToSubmitAfterEP; i<lengthOfClaimSubmittedAtEP;i++){
             (coverid,date_upd,submit) = c1.getClaimOfEmergencyPauseByIndex(i);
             if(submit==false){
-                addClaim(coverid,date_upd);
+                address qadd=q1.getMemberAddress(coverid);
+                addClaim(coverid,date_upd,qadd);
                 c1.setClaimSubmittedAtEPTrue(i,true);
             }
         }

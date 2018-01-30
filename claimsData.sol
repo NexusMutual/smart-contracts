@@ -564,6 +564,7 @@ contract claimsData
 
     function setClaimAtEmergencyPause (uint coverId,uint date_upd, bool submit) onlyInternal {
         claimPause.push(claim_pause(coverId,date_upd,submit));
+        
     }
 
     function getClaimOfEmergencyPauseByIndex (uint indx) constant returns(uint coverId, uint date_upd, bool submit) {
@@ -576,7 +577,7 @@ contract claimsData
         claimPause[indx].submit=submit;
     }
 
-    function getLengthOfClaimSubmittedAtEP () returns(uint len) {
+    function getLengthOfClaimSubmittedAtEP () constant returns(uint len) {
         len=claimPause.length;
     }
     

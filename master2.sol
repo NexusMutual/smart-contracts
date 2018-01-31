@@ -177,7 +177,7 @@ contract masters2 {
             //10
             g1.addCategory("Release new smart contract code as necessary to fix bugs/weaknesses or deliver enhancements/new products",1,60);
             //11
-            g1.addCategory("Pre-Closure of Emergency Pause",0,80);
+            g1.addCategory("Any change to authorities",1,80);
             //12
             g1.addCategory("Start/Stop Emergency Pause",1,80);
             //13
@@ -185,8 +185,6 @@ contract masters2 {
             //14
             g1.addCategory("Change 0x Relayer Address",1,60);
             //15
-            g1.addCategory("Any change to authorities",1,80);
-            //16
             g1.addCategory("Any other item specifically described",1,80);
 
             g1.addStatus("Draft for discussion, multiple versions.");

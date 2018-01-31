@@ -109,7 +109,7 @@ contract governance2
         uint len = gd1.getAllProLength();
         //uint64 time = uint64(now);
         gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
-        if((gd1.isAB(msg.sender)==1 && (cat==2 || cat==11)) || cat==13 || cat==12)
+        if((gd1.isAB(msg.sender)==1 && cat==2) || cat==13 || cat==12)
         {
             gd1.updateCategorizeDetails(len,cat,msg.sender,_effect,value,options);
             if(cat==2)
@@ -117,7 +117,7 @@ contract governance2
             gd1.updateCategorisedProposal(len,1);
         }
         gd1.addInUserProposals(len,msg.sender);
-        if(cat==12 || cat==13 || cat==11)
+        if(cat==12 || cat==13)
         {
             changeProposalStatus(len); //submit the proposal as well
         }

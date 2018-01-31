@@ -418,7 +418,7 @@ contract governance {
             ms1=master(masterAddress);
             ms1.switchToRecentVersion();
         }
-        else if(cat==11 || cat==12)
+        else if(cat==12)
         {
             ms1=master(masterAddress);
             value = gd1.getProposalValue(propid,0);

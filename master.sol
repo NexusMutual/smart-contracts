@@ -138,13 +138,18 @@ contract master
         pauseTime=28*1 days; //4 weeks
     }
 
+    /// @dev Add Emergency pause
+    /// @param _pause to set Emergency Pause ON/OFF
+    /// @param _by to set who Start/Stop EP
    function addEmergencyPause(bool _pause,bytes4 _by) onlyInternal
    {
         emergency_Paused.push(emergencyPause(_pause,now,_by));
         if(_pause==false)
         {
             c1=claims(claimsAddress);
-            c1.submitClaimAfterEPOff();
+            c1.submitClaimAfterEPOff();     //Submitting Requested Claims.
+            cr1=claims_Reward(claims_RewardAddress)
+            cr1.StartAllPendingClaimsVoting();   //Start Voting of pending Claims again.
         }
     }
    function updatePauseTime(uint _time) onlyInternal
@@ -295,6 +300,7 @@ contract master
         cr1.changeClaimDataAddress(claimDataAddress);
         cr1.changePool2Address(pool2Address);
         cr1.changePoolDataAddress(poolDataAddress);
+        cr1.changeTokenDataAddress(tokenDataAddress);
         
         p1=pool(poolAddress);
         p1.changeTokenAddress(NXMTokenAddress);

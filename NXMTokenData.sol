@@ -77,7 +77,8 @@ contract NXMTokenData {
     mapping(uint=>mapping(address=>incentive)) SDMemberPayHistory;    
     uint64 lastSDDate;
     uint64 sdDistTime;
-    
+    uint public LockTokenTimeAfterCoverExp;
+
     function NXMTokenDataCon(
     uint256 initialSupply,
     bytes8 tokenName,
@@ -93,7 +94,8 @@ contract NXMTokenData {
         decimals = decimalUnits;
         bookTime = 12*60*60;
         minVoteLockPeriod = 7 * 1 days;     
-        sdDistTime = 7 * 1 days;                
+        sdDistTime = 7 * 1 days; 
+        LockTokenTimeAfterCoverExp=35*1 days;               
     }
     function changeMasterAddress(address _add)
     {
@@ -635,6 +637,30 @@ contract NXMTokenData {
         depositCN_Cover[_of][coverid].push(lockToken(timestamp , amount1));
     }
 
+    /// @dev Updates Validity of tokens that are locked against a given cover by user.
+    /// @param _of User's address.
+    /// @param _coverid Cover Id.
+    /// @param _timestamp is Validity of Tokens.
+    function updateCNvalidUpto(address _of , uint _coverid,uint _timestamp) {
 
+        uint CNvalidUpto;
+        
+        CNvalidUpto=depositCN_Cover[_of][_coverid][depositCN_Cover[_of][_coverid].length-1].validUpto;
+        if(_timestamp>CNvalidUpto)
+            depositCN_Cover[_of][_coverid][depositCN_Cover[_of][_coverid].length-1].validUpto = _timestamp;
+
+        CNvalidUpto=lockedCN[_of][lockedCN[_of].length-1].validUpto;
+        if(_timestamp>CNvalidUpto)
+            lockedCN[_of][lockedCN[_of].length-1].validUpto = _timestamp;
+
+        CNvalidUpto=lockedCN_Cover[_of][_coverid].validUpto;
+        if(_timestamp>CNvalidUpto)
+            lockedCN_Cover[_of][_coverid].validUpto = _timestamp;
+    }
+
+    /// @dev Locked Token after Cover Expired for given time.
+    function setLockTokenTimeAfterCoverExp(uint time) onlyInternal{
+        LockTokenTimeAfterCoverExp=time;
+    }
 }
 

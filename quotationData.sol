@@ -576,6 +576,5 @@ contract quotationData{
     function getCoverByIndex(uint index) constant returns(uint quoteId,uint validUntil,uint8 claimCount,uint lockedTokens,uint16 status)
     {
         return (allCovers[index].quoteId,allCovers[index].validUntil,allCovers[index].claimCount,allCovers[index].lockedTokens,allCovers[index].status);
-    }
-    
+    }    
 }

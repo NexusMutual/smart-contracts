@@ -493,7 +493,7 @@ contract claims{
         c1=claimsData(claimsDataAddress);
         uint tokens = q1.getLockedTokens(coverid);
         tokens = tokens*20/100;
-        uint timeStamp = time + 1*7 days;
+        uint timeStamp = time + c1.claimDepositTime();
         tc2.depositCN(coverid,tokens,timeStamp,add);
         uint len = c1.actualClaimLength(); 
         c1.addClaim(len,coverid,add,time);
@@ -625,5 +625,19 @@ contract claims{
             cr1=claims_Reward(claims_rewardAddress);
             cr1.changeClaimStatus(claimid);
         }   
-    }   
+    }
+
+    /// @dev Pause Voting of All Pending Claims when Emergency Pause Start.
+    function PauseAllPendingClaimsVoting() onlyInternal
+    {
+        c1=claimsData(claimsDataAddress);
+        uint FirstIndex=c1.pendingClaim_start();
+        for(uint i=FirstIndex; i<c1.getClaimLength(); i++)
+        {
+            if(checkVoteClosing(i)==0){
+                uint date_upd = c1.getClaimDateUpd(i);
+                c1.setPendingClaimDetails(i,(date_upd+c1.maxtime())-now,false);
+            }
+        }
+    }
 }

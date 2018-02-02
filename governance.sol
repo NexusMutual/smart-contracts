@@ -614,6 +614,8 @@ contract governance {
             ms1.addEmergencyPause(true,"AB"); //Start Emergency Pause
             p1=pool(poolAd);
             p1.closeEmergencyPause(ms1.getPauseTime()); //oraclize callback of 4 weeks
+            c1=claims(claimAd);
+            c1.PauseAllPendingClaimsVoting();   //Pause Voting of all pending Claims
         }
     }   
 }

@@ -79,6 +79,7 @@ contract NXMToken2{
         quotation2Address = _add;
         q1=quotation2(quotation2Address);
     }
+    
     function changeTokenDataAddress(address _add) onlyInternal
     {
         tokenDataAddress = _add;
@@ -131,7 +132,7 @@ contract NXMToken2{
         // Updates the number of Supply Tokens and Pool fund value of a currency.
         td1.changeTotalSupply(td1.getTotalSupply() + amount); 
         //uint ldays=quoteCoverPeriod;
-        uint ld=now+ uint(quoteCoverPeriod)*1 days;
+        uint ld=now+td1.LockTokenTimeAfterCoverExp()+ uint(quoteCoverPeriod)*1 days;
         //td1.pushInLockedCN(senderAddress,ld,amount);
         td1.pushInLockedCN_Cover(senderAddress,quoteCoverId,ld,amount);
         td1.changePoolFundValue(quoteCurr , td1.getPoolFundValue(quoteCurr) + premiumCalculated );
@@ -562,6 +563,4 @@ contract NXMToken2{
             }
         }
     }
-   
-    
 }

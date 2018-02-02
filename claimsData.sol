@@ -49,6 +49,15 @@ contract claimsData
     }
     claim_pause[] claimPause;
     uint claim_pause_lastsubmit;
+    
+    struct claimPauseVoting {
+        uint claimid;
+        uint pendingTime;
+        bool voting;
+    }
+    claimPauseVoting[] claimPauseVotingEP;
+    uint claimStartVoting_firstIndex;
+    
     uint public vote_length;
     mapping(uint=>uint[])  cover_claim;
     mapping(uint=>claimStatus[]) public claim_status;   
@@ -67,6 +76,7 @@ contract claimsData
     uint public pendingClaim_start;
     uint32 public payoutRetryTime;
     uint32 public escalationTime;
+    uint public claimDepositTime;
     struct vote
     {
         address voter;
@@ -87,6 +97,7 @@ contract claimsData
         payoutRetryTime=24*60*60;
         allvotes.push(vote(0,0,0,0,now,0));
         vote_length = 1;
+        claimDepositTime=1*7 days;
     }
     function changeMasterAddress(address _add)
     {
@@ -562,9 +573,9 @@ contract claimsData
          allClaims[claimid].date_upd = _date_upd;
     }
 
+    
     function setClaimAtEmergencyPause (uint coverId,uint date_upd, bool submit) onlyInternal {
         claimPause.push(claim_pause(coverId,date_upd,submit));
-        
     }
 
     function getClaimOfEmergencyPauseByIndex (uint indx) constant returns(uint coverId, uint date_upd, bool submit) {
@@ -586,5 +597,39 @@ contract claimsData
     }
     function getFirstClaimIndexToSubmitAfterEP () constant returns(uint FirstClaimIndexToSubmit) {
         FirstClaimIndexToSubmit = claim_pause_lastsubmit;
+    }
+
+    function setPendingClaimDetails(uint claimId,uint pendingTime, bool voting) onlyInternal {
+        claimPauseVotingEP.push(claimPauseVoting(claimId,pendingTime,voting));
+    }
+
+    function setPendingClaimVoteStatus(uint claimId,bool vote) onlyInternal {
+        claimPauseVotingEP[claimId].voting=vote;
+    }
+
+    function getLengthOfClaimVotingPause() constant returns(uint len) {
+        len=claimPauseVotingEP.length;
+    }
+
+    function setClaimVotingStatus(uint indx,bool voting) onlyInternal {
+        claimPauseVotingEP[indx].voting=voting;
+    }
+
+    function getPendingClaimDetailsByIndex(uint indx) constant returns(uint claimId,uint pendingTime, bool voting) {
+        claimId     =claimPauseVotingEP[indx].claimid;
+        pendingTime =claimPauseVotingEP[indx].pendingTime;
+        voting      =claimPauseVotingEP[indx].voting;
+    }
+
+    function setFirstClaimIndexToStartVotingAfterEP(uint claimStartVotingFirstIndex) onlyInternal {
+        claimStartVoting_firstIndex=claimStartVotingFirstIndex;
+    }
+
+    function getFirstClaimIndexToStartVotingAfterEP() constant returns(uint firstindex) {
+        firstindex=claimStartVoting_firstIndex;
+    }
+
+    function setClaimDepositTime(uint time) onlyInternal {
+        claimDepositTime=time;
     }
 }

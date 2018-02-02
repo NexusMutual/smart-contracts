@@ -21,6 +21,7 @@ import "./NXMToken.sol";
 import "./claims.sol";
 import "./pool.sol";
 import "./NXMToken2.sol";
+import "./NXMTokenData.sol";
 import "./master.sol";
 import "./claimsData.sol";
 import "./pool2.sol";
@@ -30,6 +31,7 @@ contract claims_Reward
 { 
     NXMToken tc1;
     NXMToken2 tc2;
+    NXMTokenData td1;
     quotation2 q1;
     master ms1;
     address public masterAddress;
@@ -38,6 +40,7 @@ contract claims_Reward
     pool2 p2;
     pool3 p3;
     address public token2Address;
+    address public tokenDataAddress;
     address public token3Address;
     address public poolAddress;
     address public tokenAddress;
@@ -78,8 +81,14 @@ contract claims_Reward
         token2Address = _add;
         tc2 = NXMToken2(token2Address);
     }
+
+    function changeTokenDataAddress(address _add) onlyInternal
+    {
+        tokenDataAddress = _add;
+        td1=NXMTokenData(tokenDataAddress);
+    }
    
-      function changeClaimDataAddress(address _add) onlyInternal
+    function changeClaimDataAddress(address _add) onlyInternal
     {
         claimsDataAddress = _add;
     }
@@ -508,7 +517,28 @@ contract claims_Reward
                 }     
     }
 
-    
-  
-  
+    /// @dev Start Voting of All Pending Claims when Emergency Pause OFF.
+    function StartAllPendingClaimsVoting() onlyInternal
+    {
+        cd1=claimsData(claimsDataAddress);
+        p1=pool(poolAddress);
+        td1=NXMTokenData(tokenDataAddress);
+        uint firstIndx = cd1.getFirstClaimIndexToStartVotingAfterEP();
+        uint i;
+        for (i=firstIndx; i<cd1.getLengthOfClaimVotingPause();i++)
+        {            
+            uint pendingTime; 
+            (,pendingTime,)=cd1.getPendingClaimDetailsByIndex(i);
+            uint pTime=now-cd1.maxtime()+pendingTime;
+            cd1.setClaimdate_upd(i,pTime);
+            cd1.setPendingClaimVoteStatus(i,true);
+            p1.closeClaimsOraclise(i,uint64(pTime));
+
+            uint coverid=cd1.getClaimCoverId(i);
+            q1=quotation2(quotation2Address);
+            address qadd=q1.getMemberAddress(coverid);
+            td1.updateCNvalidUpto(qadd,coverid,pendingTime+cd1.claimDepositTime());
+        }
+        cd1.setFirstClaimIndexToStartVotingAfterEP(i);
+    }
 }

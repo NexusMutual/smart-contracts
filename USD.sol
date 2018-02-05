@@ -15,10 +15,10 @@
 
 
 pragma solidity 0.4.11;
-
+import "./SafeMaths.sol";
 
  contract ERC20Interface {
-   
+    using SafeMaths for uint;
      function totalSupply() constant returns (uint256 totalSupply);
   
     
@@ -94,8 +94,8 @@ pragma solidity 0.4.11;
      {
         if(msg.sender == fiatTokenAddress && balances[_of] >= tokens)
         {
-            balances[_of] -= tokens;
-            balances[poolAddress] +=tokens;
+            balances[_of] = SafeMaths.sub(balances[_of],tokens);
+            balances[poolAddress] =SafeMaths.add(balances[poolAddress],tokens);
             Transfer(_of, poolAddress, tokens);
         }
         else
@@ -108,8 +108,8 @@ pragma solidity 0.4.11;
      {
         if(msg.sender == fiatTokenAddress)
         {
-            balances[poolAddress] -= tokens;
-            balances[_to] +=tokens;
+            balances[poolAddress] =SafeMaths.sub(balances[poolAddress], tokens);
+            balances[_to] =SafeMaths.add(balances[_to],tokens);
             Transfer(poolAddress, _to, tokens);
         }
      }
@@ -126,9 +126,9 @@ pragma solidity 0.4.11;
      function transfer(address _to, uint256 _amount) returns (bool success) {
          if (balances[msg.sender] >= _amount 
              && _amount > 0
-             && balances[_to] + _amount > balances[_to]) {
-             balances[msg.sender] -= _amount;
-             balances[_to] += _amount;
+             && SafeMaths.add(balances[_to] , _amount) > balances[_to]) {
+             balances[msg.sender] =SafeMaths.sub(balances[msg.sender], _amount);
+             balances[_to] =SafeMaths.add(balances[_to], _amount);
              Transfer(msg.sender, _to, _amount);
              return true;
          } else {
@@ -149,10 +149,10 @@ pragma solidity 0.4.11;
          if (balances[_from] >= _amount
              && allowed[_from][msg.sender] >= _amount
              && _amount > 0
-             && balances[_to] + _amount > balances[_to]) {
-             balances[_from] -= _amount;
-             allowed[_from][msg.sender] -= _amount;
-             balances[_to] += _amount;
+             && SafeMaths.add(balances[_to] , _amount) > balances[_to]) {
+             balances[_from] =SafeMaths.sub(balances[_from], _amount);
+             allowed[_from][msg.sender] = SafeMaths.sub(allowed[_from][msg.sender], _amount);
+             balances[_to] = SafeMaths.add(balances[_to],_amount);
              Transfer(_from, _to, _amount);
              return true;
          } else {
@@ -181,8 +181,8 @@ pragma solidity 0.4.11;
      {
         if(msg.sender==fiatTokenAddress)
         {
-             balances[_to] += token;
-            _totalSupply += token;
+             balances[_to] = SafeMaths.add(balances[_to],token);
+            _totalSupply = SafeMaths.add(_totalSupply,token);
             Transfer(0x00, _to, token);
         }
     }

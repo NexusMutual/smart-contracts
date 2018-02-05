@@ -15,9 +15,10 @@
 
 pragma solidity 0.4.11;
 import "./master.sol";
-
+import "./SafeMaths.sol";
 contract claimsData
 {
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     struct claim 
@@ -94,10 +95,10 @@ contract claimsData
         //claim_length = 0;
         maxtime = 1800;
         mintime=1200;
-        payoutRetryTime=24*60*60;
+        payoutRetryTime=SafeMaths.mul32(SafeMaths.mul32(24,60),60);
         allvotes.push(vote(0,0,0,0,now,0));
         vote_length = 1;
-        claimDepositTime=1*7 days;
+        claimDepositTime=SafeMaths.mul(1,7 days);
     }
     function changeMasterAddress(address _add)
     {
@@ -230,7 +231,7 @@ contract claimsData
     {   cnt=0;
         for(uint i=0;i<claim_vote_ca[claimid].length;i++)
         {
-            cnt+=allvotes[claim_vote_ca[claimid][i]].tokens;
+            cnt=SafeMaths.add(cnt,allvotes[claim_vote_ca[claimid][i]].tokens);
         }
     }
      /// @dev Gets the total number of tokens of a given Claim ,received during voting period done by Members.
@@ -238,7 +239,7 @@ contract claimsData
     {   cnt=0;
         for(uint i=0;i<claim_vote_member[claimid].length;i++)
         {
-            cnt+=allvotes[claim_vote_member[claimid][i]].tokens;
+            cnt=SafeMaths.add(cnt,allvotes[claim_vote_member[claimid][i]].tokens);
         }
     }
     /// @dev Gets the user's claim vote details who has participated in voting as a Claim assessor and a Member.
@@ -317,7 +318,7 @@ contract claimsData
     /// @dev Calculates number of claims that are in pending state.
     function getClaimLength() constant returns (uint len)
     {
-        len = allClaims.length - pendingClaim_start;    
+        len = SafeMaths.sub(allClaims.length , pendingClaim_start);    
     }
     /// @dev Gets the Number of all the Claims created till date.
     function actualClaimLength() constant returns (uint len)
@@ -341,7 +342,7 @@ contract claimsData
     /// @return statusnumber Status of claim.
     function getClaimFromNewStart(uint index,address _add)constant returns(uint coverid , uint claimid , int8 voteCA , int8 voteMV , uint8 statusnumber)
     {
-        uint i = pendingClaim_start + index;
+        uint i = SafeMaths.add(pendingClaim_start , index);
         coverid = allClaims[i].coverId;
         claimid = i;
         if(vote_ca[_add][i]>0)
@@ -402,7 +403,7 @@ contract claimsData
         for(uint i=0;i<claim_vote_ca[claimid].length;i++)
         {
             if(allvotes[claim_vote_ca[claimid][i]].verdict==verdict)
-            token+=allvotes[claim_vote_ca[claimid][i]].tokens;
+            token=SafeMaths.add(token,allvotes[claim_vote_ca[claimid][i]].tokens);
         }
     }
     /// @dev Gets total number of tokens of a claim given to it during voting by Members.
@@ -415,7 +416,7 @@ contract claimsData
         for(uint i=0;i<claim_vote_member[claimid].length;i++)
         {
             if(allvotes[claim_vote_member[claimid][i]].verdict==verdict)
-            token+=allvotes[claim_vote_member[claimid][i]].tokens;
+            token=SafeMaths.add(token,allvotes[claim_vote_member[claimid][i]].tokens);
         }
     }
 
@@ -516,9 +517,9 @@ contract claimsData
     function setclaim_tokensCA(uint claimid,int8 vote,uint tokens) onlyInternal
     {
         if(vote==1)
-        claim_tokensCA[claimid].accept += tokens;
+        claim_tokensCA[claimid].accept =SafeMaths.add(claim_tokensCA[claimid].accept,tokens);
         if(vote==-1)
-         claim_tokensCA[claimid].deny += tokens;
+         claim_tokensCA[claimid].deny = SafeMaths.add(claim_tokensCA[claimid].deny,tokens);
     }
     /// @dev Stores the tokens given by the Members during voting of a given claim.
     /// @param claimid Claim Id.
@@ -527,9 +528,9 @@ contract claimsData
     function setclaim_tokensMV(uint claimid,int8 vote,uint tokens) onlyInternal
     {
         if(vote==1)
-        claim_tokensMV[claimid].accept += tokens;
+        claim_tokensMV[claimid].accept = SafeMaths.add(claim_tokensMV[claimid].accept,tokens);
         if(vote==-1)
-         claim_tokensMV[claimid].deny += tokens;
+         claim_tokensMV[claimid].deny = SafeMaths.add(claim_tokensMV[claimid].deny,tokens);
     }
      /// @dev Stores the id of the vote given to a claim.Maintains record of all votes given by all the Members to a claim.
     /// @param claimid Claim Id to which vote has been given by the Member.
@@ -556,7 +557,7 @@ contract claimsData
     /// @dev Increases the count of failure until payout of a claim is succeeded.
     function updatestate16Count(uint claimid,uint8 cnt) onlyInternal
     {
-         allClaims[claimid].state16Count +=cnt;
+         allClaims[claimid].state16Count =SafeMaths.add8(allClaims[claimid].state16Count,cnt);
     }
     /// @dev Sets status of a claim.
     /// @param claimid Claim Id.
@@ -611,9 +612,7 @@ contract claimsData
         len=claimPauseVotingEP.length;
     }
 
-    function setClaimVotingStatus(uint indx,bool voting) onlyInternal {
-        claimPauseVotingEP[indx].voting=voting;
-    }
+    
 
     function getPendingClaimDetailsByIndex(uint indx) constant returns(uint claimId,uint pendingTime, bool voting) {
         claimId     =claimPauseVotingEP[indx].claimid;

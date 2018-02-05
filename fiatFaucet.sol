@@ -18,9 +18,10 @@ import "./USD.sol";
 import "./quotation2.sol";
 import "./NXMToken.sol";
 import "./master.sol";
-
+import "./SafeMaths.sol";
 contract fiatFaucet
 {
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     quotation2 q1;
@@ -67,7 +68,7 @@ contract fiatFaucet
     function  transferToken(bytes4 curr) checkPause payable 
     {
         t1=NXMToken(tokenAddress);
-        uint tokens=msg.value*1000;
+        uint tokens=SafeMaths.mul(msg.value,1000);
         tok=SupplyToken(contract_add[curr]);
         tok.mintToken(msg.sender,tokens);
         t1.addToPoolFund(curr , tokens);
@@ -132,7 +133,7 @@ contract fiatFaucet
     }
     function transferBackEther(uint256 amount) onlyInternal
     {
-        amount = amount * 10000000000;  
+        amount = SafeMaths.mul(amount , 10000000000);  
         address _add=msg.sender;
         bool succ = _add.send(amount);   
     }

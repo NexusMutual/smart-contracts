@@ -26,7 +26,9 @@ import "./MCR.sol";
 import "./quotationData.sol";
 import "./poolData1.sol";
 import "./USD.sol";
+import "./SafeMaths.sol";
 contract masters2 {
+    using SafeMaths for uint;
     
      struct insurance{
 
@@ -65,7 +67,7 @@ contract masters2 {
     function addProduct(string _name , uint _id) onlyOwner
     {
         productType.push(insurance(_name,_id));
-        product_length++;
+        product_length=SafeMaths.add(product_length,1);
     }
     function changeMasterAddress(address _add)
     {
@@ -215,43 +217,43 @@ contract masters2 {
         {
             uint stat=cd1.getClaimStatus(i);
             uint date_upd=cd1.getClaimUpdate(i);
-            if(stat==1 && (date_upd + escaltime <= uint64(now)))
+            if(stat==1 && (SafeMaths.add(date_upd , escaltime) <= uint64(now)))
             {
                 cr1.changeClaimStatus(i);
             }
-            else if(stat==1 && (date_upd + escaltime >uint64(now)))
+            else if(stat==1 && (SafeMaths.add(date_upd , escaltime) >uint64(now)))
             {
-                timeLeft = uint64(date_upd + escaltime - now);
+                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(date_upd , escaltime) , now));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if((stat==0 || (stat>=2 && stat<=6)) && (date_upd + _mintime <=uint64( now)) )
+            if((stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _mintime) <=uint64( now)) )
             {
                 cr1.changeClaimStatus(i);
             }
-            else if( (stat==0 || (stat>=2 && stat<=6)) && (date_upd + _mintime > now))
+            else if( (stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _mintime) > now))
             {
-                timeLeft =uint64( date_upd + _mintime - now);
+                timeLeft =uint64( SafeMaths.sub(SafeMaths.add(date_upd , _mintime) , now));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if((stat==0 || (stat>=2 && stat<=6)) && (date_upd + _maxtime <=uint64( now)) )
+            if((stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _maxtime) <=uint64( now)) )
             {
                 cr1.changeClaimStatus(i);
             }
-            else if( (stat==0 || (stat>=2 && stat<=6)) && (date_upd + _maxtime >uint64( now)))
+            else if( (stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _maxtime) >uint64( now)))
             {
-                timeLeft =uint64( date_upd + _maxtime - now);
+                timeLeft =uint64( SafeMaths.sub(SafeMaths.add(date_upd , _maxtime) , now));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if(stat==16 &&  (date_upd + payouttime <=uint64( now)))
+            if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) <=uint64( now)))
             {
                     cr1.changeClaimStatus(i);
             }
-            else if(stat==16 &&  (date_upd + payouttime >uint64( now)))
+            else if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) >uint64( now)))
             {
-                timeLeft = uint64(date_upd + payouttime -now);
+                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(date_upd , payouttime) ,now));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
         }       

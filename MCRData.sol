@@ -17,9 +17,10 @@
 
 pragma solidity 0.4.11;
 import "./master.sol";
-
+import "./SafeMaths.sol";
 contract MCRData
 {
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     uint32 public minMCRReq;
@@ -49,8 +50,8 @@ contract MCRData
     {
         growthStep = 1500000;
         SFx100000 = 140;
-        MCRTime = 24*60*60;
-        MCRFailTime=5*60;
+        MCRTime =  SafeMaths.mul64(SafeMaths.mul64(24,60),60);
+        MCRFailTime=SafeMaths.mul64(5,60);
         minMCRReq = 0;
         allMCRData.push(mcrData(0,0,0,0,0));
         minCap=1;
@@ -247,7 +248,7 @@ contract MCRData
     function getLastMCR() constant returns( uint32 mcrPercx100,uint mcrEtherx100,uint64 vFull,uint date_add,uint blockNumber)
     {
        
-        return (allMCRData[allMCRData.length-1].mcrPercx100,allMCRData[allMCRData.length-1].mcrEtherx100,allMCRData[allMCRData.length-1].vFull,allMCRData[allMCRData.length-1].date_add,allMCRData[allMCRData.length-1].blockNumber);
+        return (allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrPercx100,allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrEtherx100,allMCRData[SafeMaths.sub(allMCRData.length,1)].vFull,allMCRData[SafeMaths.sub(allMCRData.length,1)].date_add,allMCRData[SafeMaths.sub(allMCRData.length,1)].blockNumber);
     }
     /// @dev Gets the details of MCR of a given date.
     /// @param date Date in yyyymmdd format
@@ -269,18 +270,18 @@ contract MCRData
     /// @return val MCR% value,multiplied by 100.
     function getlastMCRPerc() constant returns(uint32 val)
     {
-        val = allMCRData[allMCRData.length-1].mcrPercx100;
+        val = allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrPercx100;
     }
     /// @dev Gets Pool fund value in Ether used in the last full daily calculation from the Capital model.
     function getLastVfull()constant returns(uint64 vf)
     {
-        vf = allMCRData[allMCRData.length-1].vFull;
+        vf = allMCRData[SafeMaths.sub(allMCRData.length,1)].vFull;
     }
     /// @dev Gets last Minimum Capital Requirement in Ether.
     /// @return val MCR in ETH,multiplied by 100.
     function getLastMCREtherFull()constant returns(uint val)
     {
-        val = allMCRData[allMCRData.length-1].mcrEtherx100;
+        val = allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrEtherx100;
     }
     
     function getTokenPriceDetails(bytes4 curr) constant returns(uint32 SF,uint32 gs,uint32 rate)

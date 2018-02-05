@@ -24,7 +24,9 @@ import "./master.sol";
 import "./NXMTokenData.sol";
 import "./poolData1.sol";
 import "./pool3.sol";
+import "./SafeMaths.sol";
 contract governance {
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     NXMToken t1;
@@ -176,13 +178,13 @@ contract governance {
         uint len = gd1.getAllProLength();
         for(uint i=pendingProposalStart;i<len;i++)
         {
-            if(gd1.getProposalDateUpd(i) + _time <= now)
+            if(SafeMaths.add(gd1.getProposalDateUpd(i) , _time) <= now)
             {
                 closeProposalVote(i);
             }
             else
             {
-                uint64 timeleft = uint64(gd1.getProposalDateUpd(i)+_time -now);
+                uint64 timeleft = uint64(SafeMaths.sub(SafeMaths.add(gd1.getProposalDateUpd(i),_time) ,now));
                 p1=pool(poolAd);
                 p1.closeProposalOraclise(i,timeleft);
             }
@@ -250,7 +252,7 @@ contract governance {
     function checkProposalVoteClosing(uint id) constant returns(uint8 close)
     {
         gd1=governanceData(governanceDataAddress);
-        if( gd1.getProposalDateUpd(id) + gd1.getClosingTime() <= now && ((gd1.getProposalStatus(id) == 1)|| (gd1.getProposalStatus(id) == 2)))
+        if( SafeMaths.add(gd1.getProposalDateUpd(id) , gd1.getClosingTime()) <= now && ((gd1.getProposalStatus(id) == 1)|| (gd1.getProposalStatus(id) == 2)))
             close=1;
         else
             close=0;
@@ -277,9 +279,9 @@ contract governance {
             {
                 (accept,deny,,) = gd1.getProposalAllVotesCount(id);
 
-                if(accept+deny>0){
+                if(SafeMaths.add(accept,deny)>0){
                     // if proposal accepted% >=majority % (by Advisory board)
-                    if(accept*100/(accept+deny)>=maj)
+                    if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny)))>=maj)
                     {   // Member vote required 
                         if(mvr==1)
                         {
@@ -324,7 +326,8 @@ contract governance {
             {
                 (,,accept,deny) = gd1.getProposalAllVotesCount(id);
                 // when Member Vote Quorum not Achieved
-                if((accept+deny)*100/totalMember < gd1.getQuorumPerc())
+                if(totalMember>0){
+                if(SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept,deny)),100),totalMember) < gd1.getQuorumPerc())
                 {
                     gd1.updateProposalStatus(id,7);
                     gd1.changeProposalFinalVerdict(id,1);
@@ -335,9 +338,9 @@ contract governance {
                         actionAfterProposalPass(id , category);
                     // }
                 }
-                else if(accept+deny>0){
+                else if(SafeMaths.add(accept,deny)>0){
                     // if proposal accepted% >=majority % (by Members)
-                    if(accept*100/(accept+deny)>=maj)
+                    if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny)))>=maj)
                     {
                         gd1.updateProposalStatus(id,5);
                         gd1.changeProposalFinalVerdict(id,1);
@@ -365,6 +368,7 @@ contract governance {
                     gd1.pushInProposalStatus(id,6);
                     gd1.updateProposalDateUpd(id);
                 }
+                }
             }
         }
         uint pendingProposalStart = gd1.getPendingProposalStart();
@@ -372,7 +376,7 @@ contract governance {
         for(uint j=pendingProposalStart;j<len;j++)
         {
             if(gd1.getProposalStatus(j) > 2)
-                pendingProposalStart += 1;
+                pendingProposalStart = SafeMaths.add(pendingProposalStart,1);
             else
                 break;
         }
@@ -481,7 +485,7 @@ contract governance {
         t1=NXMToken(nxad);
         uint tokensHeld = t1.balanceOf(memAdd);
         uint totalTokens = t1.totalSupply();
-        if(gd1.isAB(memAdd) == 1 || ((tokensHeld*100)/totalTokens) < 10) throw;
+        if(gd1.isAB(memAdd) == 1 || ((SafeMaths.mul(tokensHeld,100))/totalTokens) < 10) throw;
         gd1.joinAB(memAdd);
         gd1.addMemberStatusUpdate(memAdd,1,now);
 

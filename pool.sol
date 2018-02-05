@@ -26,9 +26,9 @@ import "./pool2.sol";
 import "./USD.sol";
 import "./MCR.sol";
 import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
-
+import "./SafeMaths.sol";
 contract pool is usingOraclize{
-  //  using SafeMaths for uint;
+   using SafeMaths for uint;
     master ms1;
     address masterAddress;
     address tokenAddress;
@@ -255,7 +255,7 @@ contract pool is usingOraclize{
         uint sum=0;
         for(uint i=0;i<fundAmt.length;i++)
         {
-            sum+=fundAmt[i];
+            sum=SafeMaths.add(sum,fundAmt[i]);
         }
         if(msg.value==sum)
         {
@@ -291,7 +291,7 @@ contract pool is usingOraclize{
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
-            byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));
+            byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));//Check for overflow and underflow conditions using SafeMaths
             if (char != 0) {
                 bytesString[charCount] = char;
                 charCount++;
@@ -304,7 +304,7 @@ contract pool is usingOraclize{
         return string(bytesStringTrimmed);
     }
     /// @dev Payable method for allocating some amount to the Pool. 
-    function takeEthersOnly() payable
+    function takeEthersOnly() payable onlyOwner
     {
         t1=NXMToken(tokenAddress);
         uint amount = msg.value;
@@ -365,20 +365,22 @@ contract pool is usingOraclize{
     /// @dev Transfers back the given amount to the owner.
     function transferBackEther(uint256 amount) onlyOwner  
     {
-        amount = amount * 10000000000;  
+        amount = SafeMaths.mul(amount , 10000000000);  
         //address own=msg.sender;
         bool succ = transferEther(amount , msg.sender);   
-        t1=NXMToken(tokenAddress);
+        if(succ==true)
+        {t1=NXMToken(tokenAddress);
         // Subtracts the transferred amount from the Pool Fund.
-        t1.removeFromPoolFund("ETH",amount);   
+        t1.removeFromPoolFund("ETH",amount);  
+        }
     }
     /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
     /// @param valueETH  Tokens Purchasing Amount in ETH. 
     /// @param curr Currency Name.
-    function getCurrTokensFromFaucet(uint valueETH , bytes4 curr) 
+    function getCurrTokensFromFaucet(uint valueETH , bytes4 curr) onlyOwner
     {
         g1 = governance(governanceAddress);
-        uint valueWEI = valueETH*1000000000000000000;
+        uint valueWEI =SafeMaths.mul (valueETH,1000000000000000000);
         if(g1.isAB(msg.sender) != 1 || (valueWEI > this.balance)) throw;
         t1.removeFromPoolFund("ETH",valueWEI);
         getCurrencyTokensFromFaucet(valueWEI,curr);
@@ -393,7 +395,24 @@ contract pool is usingOraclize{
                 tok.transfer(_newPoolAddr,tok.balanceOf(this));
             }           
     }
-    
+       function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
+    {
+         pd1 = poolData1(poolDataAddress);
+         address currAddress=pd1.getInvestmentAssetAddress(_curr);
+         tok=SupplyToken(currAddress);
+         return tok.balanceOf(poolAddress);
+    }
+      function transferIAFromPool(address _newPoolAddr) onlyOwner
+    {
+        pd1 = poolData1(poolDataAddress);
+       
+        for(uint64 i=0;i<pd1.getInvestmentCurrencyLen();i++)
+        {
+            bytes16 curr_name=pd1.getInvestmentCurrencyByIndex(i);
+            address curr_addr=pd1.getInvestmentAssetAddress(curr_name);
+            transferIAFromPool(_newPoolAddr,curr_addr);
+         }   
+   }
     function transferFromPool(address to,address curr_addr,uint amount) onlyInternal
     {
         tok=SupplyToken(curr_addr);
@@ -415,15 +434,38 @@ contract pool is usingOraclize{
         tok=SupplyToken(pd1.getWETHAddress());
         return tok.balanceOf(poolAddress);
     }
-    function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
-    {
-        pd1 = poolData1(poolDataAddress);
-        p2=pool2(pool2Address);
-        tok=SupplyToken(pd1.getWETHAddress());
-        bool success= tok.transfer(msg.sender,msg.value);
-        p2.saveIADetails(curr,rate,date);
-    
-    }
+   
+   function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
+     {
+         pd1=poolData1(poolDataAddress);
+         f1=fiatFaucet(fiatFaucetAddress);
+         if(orderType=="ELT")
+         {
+              if(makerCurr=="ETH")
+                 makerCurrAddr=pd1.getWETHAddress();
+              else
+                makerCurrAddr=f1.getCurrAddress(makerCurr);
+              takerCurrAddr=pd1.getInvestmentAssetAddress(takerCurr);
+         }
+         else if(orderType=="ILT")
+         {
+             makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
+             if(takerCurr=="ETH")
+                 takerCurrAddr=pd1.getWETHAddress();
+              else
+                takerCurrAddr=f1.getCurrAddress(takerCurr);
+         }
+         else if(orderType=="RBT")
+         {
+             makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
+             takerCurrAddr=pd1.getWETHAddress();
+         }
+         salt=pd1.getOrderSalt();
+         feeRecipient=pd1.get0xFeeRecipient();
+         takerAddress=pd1.get0xTakerAddress();
+         makerFee=pd1.get0xMakerFee();
+         takerFee=pd1.get0xTakerFee();
+     }
     
 
 }

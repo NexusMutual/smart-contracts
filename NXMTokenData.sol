@@ -16,8 +16,9 @@
 
 pragma solidity 0.4.11;
 import "./master.sol";
+import "./SafeMaths.sol";
 contract NXMTokenData {
-
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     string public version = 'NXM 0.1';
@@ -79,7 +80,7 @@ contract NXMTokenData {
     uint64 sdDistTime;
     uint public LockTokenTimeAfterCoverExp;
 
-    function NXMTokenDataCon(
+    function NXMTokenData(
     uint256 initialSupply,
     bytes8 tokenName,
     uint8 decimalUnits,
@@ -92,10 +93,10 @@ contract NXMTokenData {
         name = tokenName;                                   // Set the name for display purposes
         symbol = tokenSymbol;                               // Set the symbol for display purposes
         decimals = decimalUnits;
-        bookTime = 12*60*60;
-        minVoteLockPeriod = 7 * 1 days;     
-        sdDistTime = 7 * 1 days; 
-        LockTokenTimeAfterCoverExp=35*1 days;               
+        bookTime = SafeMaths.mul64(SafeMaths.mul64(12,60),60);
+        minVoteLockPeriod = SafeMaths.mul64(7 , 1 days);     
+        sdDistTime = SafeMaths.mul64(7 , 1 days); 
+        LockTokenTimeAfterCoverExp=SafeMaths.mul(35,1 days);               
     }
     function changeMasterAddress(address _add)
     {
@@ -188,7 +189,7 @@ contract NXMTokenData {
     /// @dev Gets total amount that has been distributed in all the Surplus Distribution till date.
     function getTotalSDTillNow()constant returns(uint tot)
     {
-        tot = SDHistory[SDHistory.length -1].totalDistTillNow;
+        tot = SDHistory[SafeMaths.sub(SDHistory.length ,1)].totalDistTillNow;
     }
     function getTotalWeightAndAmountById(uint id) constant returns(uint amount,uint weight)
     {
@@ -205,16 +206,17 @@ contract NXMTokenData {
             if(getSDDistributionIndSuccess(i,member)==0)
             {
                 (totalSDAmount,totalSDWeight)=getTotalWeightAndAmountById(i);
-                 sum+= (getSDDistributionIndWeight(i,member) * totalSDAmount)/totalSDWeight;
+                if(totalSDWeight>0)
+                 sum= SafeMaths.add(sum,SafeMaths.div((SafeMaths.mul(getSDDistributionIndWeight(i,member) , totalSDAmount)),totalSDWeight));
             }
         }
     }
     /// @dev Calculates the timestamp Surplus distribution.
     function getLastDistributionTime() constant returns(uint datedone)
     {
-        datedone = SDHistory[SDHistory.length -1].time_done;
+        datedone = SDHistory[SafeMaths.sub(SDHistory.length ,1)].time_done;
     }
-    function addMemberClaimSDId(address member,uint id)
+    function addMemberClaimSDId(address member,uint id) onlyInternal
     {
         memberSDClaimId[member]=id;
     }
@@ -378,7 +380,7 @@ contract NXMTokenData {
     function pushBookedCA(address _of ,uint value) onlyInternal
     {
         //bookedCA[_of].push(lockToken(timestamp + forTime , value));
-        bookedCA[_of].push(lockToken(now + bookTime , value));
+        bookedCA[_of].push(lockToken(SafeMaths.add(now , bookTime) , value));
     }
     /// @dev Gets number of times a user has locked tokens for claim assessment.
     /// @param _of User's address.
@@ -524,7 +526,7 @@ contract NXMTokenData {
         for(uint i=0 ; i < lockedCA[_to].length ;i++ )
         {
             if(now<lockedCA[_to][i].validUpto)
-                sum+=lockedCA[_to][i].amount;
+                sum=SafeMaths.add(sum,lockedCA[_to][i].amount);
         }
     } 
     /// @dev Calculates the Sum of tokens locked for Cover Note of a user.(available + unavailable)
@@ -534,7 +536,7 @@ contract NXMTokenData {
         for(uint i=0 ; i < lockedCN[_to].length ;i++ )
         {
             if(now<lockedCN[_to][i].validUpto)
-                sum+=lockedCN[_to][i].amount;
+                sum=SafeMaths.add(sum,lockedCN[_to][i].amount);
         } 
        
     } 
@@ -545,7 +547,7 @@ contract NXMTokenData {
         for(uint i=0 ; i < lockedSD[_to].length ;i++ )
         {
             if(now<lockedSD[_to][i].validUpto)
-                sum+=lockedSD[_to][i].amount;
+                sum=SafeMaths.add(sum,lockedSD[_to][i].amount);
         }
     }   
     /// @dev Calculates the sum of tokens booked by a user for Claim Assessment.
@@ -555,7 +557,7 @@ contract NXMTokenData {
         for(uint i=0 ; i < bookedCA[_to].length ;i++ )
         {
             if(now<bookedCA[_to][i].validUpto)
-                sum+=bookedCA[_to][i].amount;
+                sum=SafeMaths.add(sum,bookedCA[_to][i].amount);
         }
     }  
     
@@ -569,7 +571,7 @@ contract NXMTokenData {
         for(uint i=0 ; i < depositCN_Cover[_of][coverId].length ;i++ )
         {
             if(now<depositCN_Cover[_of][coverId][i].validUpto)
-                sum+=depositCN_Cover[_of][coverId][i].amount;
+                sum=SafeMaths.add(sum,depositCN_Cover[_of][coverId][i].amount);
         }
     } 
     /// @dev Calculates the remaining number of locked tokens that are not deposit for claim submission (can be used in deposit) by a user of a cover. 
@@ -578,7 +580,7 @@ contract NXMTokenData {
         uint lockedTokens=0;
         if(lockedCN_Cover[_of][coverId].validUpto > uint64(now))
             lockedTokens = lockedCN_Cover[_of][coverId].amount;
-        amt = lockedTokens - getDepositCN(coverId , _of);
+        amt = SafeMaths.sub(lockedTokens , getDepositCN(coverId , _of));
     }
 
     
@@ -637,26 +639,7 @@ contract NXMTokenData {
         depositCN_Cover[_of][coverid].push(lockToken(timestamp , amount1));
     }
 
-    /// @dev Updates Validity of tokens that are locked against a given cover by user.
-    /// @param _of User's address.
-    /// @param _coverid Cover Id.
-    /// @param _timestamp is Validity of Tokens.
-    function updateCNvalidUpto(address _of , uint _coverid,uint _timestamp) {
-
-        uint CNvalidUpto;
-        
-        CNvalidUpto=depositCN_Cover[_of][_coverid][depositCN_Cover[_of][_coverid].length-1].validUpto;
-        if(_timestamp>CNvalidUpto)
-            depositCN_Cover[_of][_coverid][depositCN_Cover[_of][_coverid].length-1].validUpto = _timestamp;
-
-        CNvalidUpto=lockedCN[_of][lockedCN[_of].length-1].validUpto;
-        if(_timestamp>CNvalidUpto)
-            lockedCN[_of][lockedCN[_of].length-1].validUpto = _timestamp;
-
-        CNvalidUpto=lockedCN_Cover[_of][_coverid].validUpto;
-        if(_timestamp>CNvalidUpto)
-            lockedCN_Cover[_of][_coverid].validUpto = _timestamp;
-    }
+  
 
     /// @dev Locked Token after Cover Expired for given time.
     function setLockTokenTimeAfterCoverExp(uint time) onlyInternal{

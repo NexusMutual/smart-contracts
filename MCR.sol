@@ -23,9 +23,10 @@ import "./MCRData.sol";
 import "./master.sol";
 import "./NXMToken2.sol";
 import "./NXMTokenData.sol";
-
+import "./SafeMaths.sol";
 contract MCR
 {
+    using SafeMaths for uint;
     pool p1;
     NXMToken t1;
     fiatFaucet f1;
@@ -192,7 +193,7 @@ contract MCR
         if(md1.isnotarise(msg.sender)==0) throw;
         t1=NXMToken(tokenAddress);
         t2=NXMToken2(token2Address);
-        vF = vF * 1000000000000000000;
+        vF = SafeMaths.mul64(vF , 1000000000000000000);
         uint VTP=0;
         uint upperThreshold=0;
         uint lowerThreshold=0;
@@ -204,28 +205,28 @@ contract MCR
              
             if(VTP>=uint(vF))
             {
-                upperThreshold=VTP/(md1.getMinCap()*1000000000000000000);
-                upperThreshold=upperThreshold*100;
+                upperThreshold=SafeMaths.div(VTP,(SafeMaths.mul(md1.getMinCap(),1000000000000000000)));
+                upperThreshold=SafeMaths.mul(upperThreshold,100);
                 
             }
             else
             {
-                upperThreshold=vF/(md1.getMinCap()*1000000000000000000);
-                upperThreshold=upperThreshold*100;
+                upperThreshold=SafeMaths.div(vF,(SafeMaths.mul(md1.getMinCap(),1000000000000000000)));
+                upperThreshold=SafeMaths.mul(upperThreshold,100);
                 
                 
             }
             if(VTP>0)
             {
-                lower=(getAllSumAssurance()*100)/md1.getShockParameter();
-                lower=lower*1000000000000000000;
+                lower=SafeMaths.div((SafeMaths.mul(getAllSumAssurance(),100)),md1.getShockParameter());
+                lower=SafeMaths.mul(lower,1000000000000000000);
             }
             if(lower>0)
             {
-                lowerThreshold=VTP/lower;
+                lowerThreshold=SafeMaths.div(VTP,lower);
             }
         }    
-         if(len==1 || ((mcrP/100)>=lowerThreshold && (mcrP/100)<=upperThreshold))
+         if(len==1 || ((SafeMaths.div(mcrP,100))>=lowerThreshold && (SafeMaths.div(mcrP,100))<=upperThreshold))
         {            
             md1.pushMCRData(mcrP,mcrE,vF,now,block.number);
             for(uint i=0;i<curr.length;i++)
@@ -255,7 +256,7 @@ contract MCR
     {
         md1 = MCRData(MCRDataAddress);
         uint lastLen=md1.getMCRDataLength();
-        uint64 lastdate=md1.getIndexWiseDate(lastLen-1);
+        uint64 lastdate=md1.getIndexWiseDate(SafeMaths.sub(lastLen,1));
         uint64 failedDate=uint64(Date);
         if(failedDate>=lastdate)
         {
@@ -269,7 +270,7 @@ contract MCR
             for(uint16 j=0;j<len;j++)
             {
                 bytes4 curr_name=md1.getCurrency_Index(j);
-                uint32 r=md1.getCurrencyRateByIndex(lastLen-1,curr_name);
+                uint32 r=md1.getCurrencyRateByIndex(SafeMaths.sub(lastLen,1),curr_name);
                 md1.updateCurrRates(len1,curr_name,r);
               
             }
@@ -294,11 +295,11 @@ contract MCR
             bytes4 curr_name=md1.getCurrency_Index(i);
             if(curr_name=="ETH")
             {
-                amount+=qd1.getTotalSumAssured(curr_name);
+                amount=SafeMaths.add(amount,qd1.getTotalSumAssured(curr_name));
             }
             else
-            {
-                amount+=(qd1.getTotalSumAssured(curr_name)*100)/md1.getCurr3DaysAvg(curr_name);
+            {   if(md1.getCurr3DaysAvg(curr_name)>0)
+                amount=SafeMaths.add(amount,SafeMaths.div((SafeMaths.mul(qd1.getTotalSumAssured(curr_name),100)),md1.getCurr3DaysAvg(curr_name)));
             }
         }
         amount1=amount;
@@ -391,9 +392,9 @@ contract MCR
                 rate=0;
                 for(j=1;j<=2;j++)
                 {
-                    rate += md1.getCurrencyRateByIndex(j,currency);
+                    rate = SafeMaths.add32(rate,md1.getCurrencyRateByIndex(j,currency));
                 }
-                rate = rate/2;
+                rate = SafeMaths.div32(rate,2);
                 md1.updateCurr3DaysAvg( currency,rate);
             }
         }
@@ -404,14 +405,14 @@ contract MCR
                 currency = md1.getCurrency_Index(i);
                 rate=0;
                 uint k=0;
-                for(j=md1.getMCRDataLength()-1;j>=0;j--)
+                for(j=SafeMaths.sub(md1.getMCRDataLength(),1);j>=0;j--)
                 {
-                    rate += md1.getCurrencyRateByIndex(j,currency);
+                    rate = SafeMaths.add32(rate,md1.getCurrencyRateByIndex(j,currency));
                     k++;
                     if(k==3)
                         break;
                 }
-                rate = rate/3;
+                rate = SafeMaths.div32(rate,3);
                 md1.updateCurr3DaysAvg( currency,rate);
             }
         }
@@ -434,17 +435,18 @@ contract MCR
             {
 
                 uint currTokens=f1.getBalance(poolAddress,currency); 
-                Vtp += (currTokens * 100/ md1.getCurr3DaysAvg(currency));
+                if(md1.getCurr3DaysAvg(currency)>0)
+                Vtp = SafeMaths.add(Vtp,SafeMaths.div(SafeMaths.mul(currTokens , 100), md1.getCurr3DaysAvg(currency)));
             }
             else
-                Vtp += p1.getEtherPoolBalance();
+                Vtp = SafeMaths.add(Vtp,p1.getEtherPoolBalance());
         }
         uint MCRfullperc;
         uint Vfull;
         (MCRfullperc, ,Vfull, , )=getLastMCR();
         if(Vfull>0)
         {
-            MCRtp = (MCRfullperc * Vtp)/(Vfull);
+            MCRtp =SafeMaths.div((SafeMaths.mul(MCRfullperc , Vtp)),(Vfull));
         }
     }
     /// @dev Calculates the Token Price of a currency.
@@ -455,21 +457,21 @@ contract MCR
         md1 = MCRData(MCRDataAddress);
         uint MCRtp;
         (,MCRtp) = calVtpAndMCRtp();                       
-        uint TO = t1.totalSupply()/1000000000000000000; 
+        uint TO = SafeMaths.div(t1.totalSupply(),1000000000000000000); 
         uint getSFx100000;
         uint getGrowthStep;
         uint getCurr3DaysAvg;
         (getSFx100000,getGrowthStep,getCurr3DaysAvg)=md1.getTokenPriceDetails(curr);
-        if((MCRtp * MCRtp)/100000000 >=1)
+        if(SafeMaths.div((SafeMaths.mul(MCRtp , MCRtp)),100000000) >=1)
         {
-            tokenPrice = (getSFx100000 *(getGrowthStep+TO) * MCRtp * MCRtp * 100000)/getGrowthStep;  
+            tokenPrice = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(getSFx100000 ,(SafeMaths.add(getGrowthStep,TO))) , MCRtp) , MCRtp) , 100000)),getGrowthStep);  
         }
         else
         {
-            tokenPrice = ( getSFx100000* (getGrowthStep+TO) * 10000 * 10000 * 100000)/getGrowthStep;
+            tokenPrice = SafeMaths.div(( SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep,TO))) , 10000) , 10000) , 100000)),getGrowthStep);
         }
 
-        tokenPrice = ((tokenPrice)*getCurr3DaysAvg/100);                         
+        tokenPrice = ( SafeMaths.div(SafeMaths.mul((tokenPrice),getCurr3DaysAvg),100));                         
     }
 
     

@@ -16,8 +16,10 @@
 
 pragma solidity 0.4.11;
 import "./master.sol";
+import "./SafeMaths.sol";
 contract poolData1
 {
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     uint32 faucetCurrMultiplier;
@@ -61,14 +63,14 @@ contract poolData1
         variationPercX100=100; //1%
         orderSalt=99033804502856343259430181946001007533635816863503102978577997033734866165564;
         NULL_ADDRESS= 0x0000000000000000000000000000000000000000;  
-        ordersExpirationTime["ELT"]=3600*12; // Excess liquidity trade order time 12 hours
-        ordersExpirationTime["ILT"]=3600*6; // Insufficient liquidity trade order time 6 hours
-        ordersExpirationTime["RBT"]=3600*20; // Rebalancing trade order time 20 hours
+        ordersExpirationTime["ELT"]=SafeMaths.mul64(3600,12); // Excess liquidity trade order time 12 hours
+        ordersExpirationTime["ILT"]=SafeMaths.mul64(3600,6); // Insufficient liquidity trade order time 6 hours
+        ordersExpirationTime["RBT"]=SafeMaths.mul64(3600,20); // Rebalancing trade order time 20 hours
         makerFee=0;
         takerFee=0;
         feeRecipient=0x0000000000000000000000000000000000000000;
         taker=0x0000000000000000000000000000000000000000;
-        IARatesTime=24*60*60; //24 hours in seconds
+        IARatesTime=SafeMaths.mul64(SafeMaths.mul64(24,60),60); //24 hours in seconds
     }
     IARankDetails[] allIARankDetails;
     mapping(uint64=>uint) datewiseId;
@@ -219,7 +221,7 @@ contract poolData1
     function saveIARankDetails(bytes16 MAXIACurr,uint64 MAXRate,bytes16 MINIACurr,uint64 MINRate,uint64 date) onlyInternal
     {
         allIARankDetails.push(IARankDetails(MAXIACurr,MAXRate,MINIACurr,MINRate));
-        datewiseId[date]=allIARankDetails.length-1;
+        datewiseId[date]=SafeMaths.sub(allIARankDetails.length,1);
     }
     function getIARankDetailsByIndex(uint index) constant returns(bytes16 MAXIACurr,uint64 MAXRate,bytes16 MINIACurr,uint64 MINRate)
     {
@@ -474,7 +476,7 @@ contract poolData1
     {
         curr=allAPIid[myid].currency;
     }
-    function updateDateUpdOfAPI(bytes32 myid)
+    function updateDateUpdOfAPI(bytes32 myid) onlyInternal
     {
         allAPIid[myid].dateUpd=uint64(now);
     }

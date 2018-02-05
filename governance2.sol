@@ -19,8 +19,10 @@ import "./pool.sol";
 import "./governanceData.sol";
 //import "./governance.sol";
 import "./master.sol";
+import "./SafeMaths.sol";
 contract governance2 
 {
+  using SafeMaths for uint;
   master ms1;
   pool p1;
   governanceData gd1;
@@ -92,7 +94,7 @@ contract governance2
       if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
       {
         gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
-        gd1.updateProposal(id,sd,0,ld,gd1.getProposalVersion(id)+1);
+        gd1.updateProposal(id,sd,0,ld,SafeMaths.add64(gd1.getProposalVersion(id),1));
             //gd1.unCategoriseProposal(id);
       }
       else

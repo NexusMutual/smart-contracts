@@ -16,8 +16,10 @@
 
 pragma solidity 0.4.11;
 import "./master.sol";
+import "./SafeMaths.sol";
 contract governanceData
 {
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     struct proposal
@@ -267,7 +269,7 @@ contract governanceData
     /// @dev Gets the Number of proposals which are pending.
     function getAllProLengthFromNewStart() constant returns(uint len)
     {
-        len = allPro.length - pendingProposalStart;
+        len = SafeMaths.sub(allPro.length , pendingProposalStart);
     }
     /// @dev Checks if the tokens of a given address have been burnt or not against a given claim id.
     /// @return check 1 if the tokens have been burnt,0 otherwise.
@@ -368,7 +370,7 @@ contract governanceData
     /// @dev Increases the number of votes by 1.
     function incVoteLength() onlyInternal
     {
-        vote_length++;
+        vote_length=SafeMaths.add(vote_length,1);
     }
     /// @dev Adds the vote details.
     /// @param _add Voter's address.
@@ -426,25 +428,25 @@ contract governanceData
     /// @param id Proposal id.
     function incPVCABAccept(uint id) onlyInternal
     {
-        proposalVoteCount[id].acceptAB +=1;
+        proposalVoteCount[id].acceptAB=SafeMaths.add32(proposalVoteCount[id].acceptAB,1);
     }
     /// @dev Increases the proposal's deny vote count, called when proposal is denied by an Advisory board member.
     /// @param id Proposal id.  
     function incPVCABDeny(uint id) onlyInternal
     {
-        proposalVoteCount[id].denyAB +=1;
+        proposalVoteCount[id].denyAB =SafeMaths.add32(proposalVoteCount[id].denyAB,1);
     }
     /// @dev Increases the proposal's accept vote count, called when proposal is accepted by a member.
     /// @param id Proposal id.
     function incPVCMemberAccept(uint id) onlyInternal
     {
-        proposalVoteCount[id].acceptMember +=1;
+        proposalVoteCount[id].acceptMember =SafeMaths.add32(proposalVoteCount[id].acceptMember,1);
     }
     /// @dev Increases the proposal's deny vote count, called when proposal is denied by a member.
     /// @param id Proposal id.    
     function incPVCMemberDeny(uint id) onlyInternal
     {
-        proposalVoteCount[id].denyMember +=1;
+        proposalVoteCount[id].denyMember =SafeMaths.add32(proposalVoteCount[id].denyMember,1);
     }
     /// @dev Gets the number of votes received against a given proposal.
     /// @param id Proposal id.

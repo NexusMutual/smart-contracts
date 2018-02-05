@@ -17,20 +17,25 @@
 pragma solidity 0.4.11;
 import "./NXMTokenData.sol";
 import "./quotation2.sol";
+import "./quotationData.sol";
 import "./pool.sol";
 import "./MCR.sol";
 import "./NXMToken.sol";
 import "./master.sol";
-
+import "./SafeMaths.sol";
 contract NXMToken2{
+        using SafeMaths for uint;
+
     master ms1;
     address masterAddress;
     quotation2 q1;
+    quotationData qd1;
     NXMTokenData td1;
     pool p1;
     MCR m1;
     NXMToken t1;
     address tokenAddress;
+    address quotationDataAddress;
     //address NXMToken3Address;
     address quotation2Address;
     address tokenDataAddress;
@@ -67,6 +72,12 @@ contract NXMToken2{
 
         tokenAddress = _add;
         t1=NXMToken(tokenAddress);
+    } 
+    function changeQuotationDataAddress(address _add) onlyInternal
+    {
+
+        quotationDataAddress = _add;
+        qd1=quotationData(quotationDataAddress);
     } 
     //   function changeToken3Address(address _add) onlyInternal
     // {
@@ -113,32 +124,34 @@ contract NXMToken2{
             throw;
      
         m1=MCR(mcrAddress);
-        premiumCalculated = premiumCalculated*10000000000;
+        premiumCalculated = SafeMaths.mul(premiumCalculated,10000000000);
         // Number of tokens to be locked=Tokens worth 5% premium
-        amount = (premiumCalculated*50000000000000000)/uint(m1.calculateTokenPrice(quoteCurr)); 
+        if(m1.calculateTokenPrice(quoteCurr)>0)
+        {
+        amount = SafeMaths.div((SafeMaths.mul(premiumCalculated,50000000000000000)),uint(m1.calculateTokenPrice(quoteCurr))); 
        
         //bytes16 curr = quoteCurr;
-        td1.changeCurrencyTokens(quoteCurr , td1.getCurrencyTokens(quoteCurr) + amount);
+        td1.changeCurrencyTokens(quoteCurr , SafeMaths.add(td1.getCurrencyTokens(quoteCurr) , amount));
         
         if(td1.getBalanceOf(senderAddress) == 0)
             td1.incMemberCounter();
 
-        td1.changeBalanceOf(senderAddress,td1.getBalanceOf(senderAddress)+amount);  
+        td1.changeBalanceOf(senderAddress,SafeMaths.add(td1.getBalanceOf(senderAddress),amount));  
         // Adds the owner of cover as a member if not added already.
         if(td1.checkInallMemberArray(senderAddress)==0)
         {
             td1.addInAllMemberArray(senderAddress);
         }
         // Updates the number of Supply Tokens and Pool fund value of a currency.
-        td1.changeTotalSupply(td1.getTotalSupply() + amount); 
+        td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply() , amount)); 
         //uint ldays=quoteCoverPeriod;
-        uint ld=now+td1.LockTokenTimeAfterCoverExp()+ uint(quoteCoverPeriod)*1 days;
+        uint ld=SafeMaths.add(SafeMaths.add(now,td1.LockTokenTimeAfterCoverExp()), uint(quoteCoverPeriod)*1 days);
         //td1.pushInLockedCN(senderAddress,ld,amount);
         td1.pushInLockedCN_Cover(senderAddress,quoteCoverId,ld,amount);
-        td1.changePoolFundValue(quoteCurr , td1.getPoolFundValue(quoteCurr) + premiumCalculated );
+        td1.changePoolFundValue(quoteCurr , SafeMaths.add(td1.getPoolFundValue(quoteCurr) , premiumCalculated ));
         t1=NXMToken(tokenAddress);
         t1.callTransferEvent(0,senderAddress,amount); 
-        
+        }
     }
 
    /// @dev Burns tokens used for fraudulent voting against a claim
@@ -152,7 +165,7 @@ contract NXMToken2{
         if( td1.getBalanceCAWithAddress(_to) < _value)throw;
         td1.pushInBurnCAToken(_to,claimid,now,_value);
         //Change overall member token balance
-        td1.changeBalanceOf(_to,td1.getBalanceOf(_to) - _value); 
+        td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , _value)); 
 
         if(td1.getBalanceOf(_to)==0)
             td1.decMemberCounter();
@@ -169,12 +182,12 @@ contract NXMToken2{
             {
                 if(rem > amount)
                 {
-                    rem -= amount;
+                    rem = SafeMaths.sub(rem,amount);
                     td1.changeLockedCA_Index(_to,i,0);
                 }
                 else
                 {
-                    td1.changeLockedCA_Index(_to,i,amount-rem);
+                    td1.changeLockedCA_Index(_to,i,SafeMaths.sub(amount,rem));
                     rem=0;
                     break;
                 }
@@ -182,8 +195,8 @@ contract NXMToken2{
         }
         // Change total supply of NXM Tokens
         t1.callBurnEvent(_to,"BurnCA",claimid,_value);
-        td1.changeCurrencyTokens("ETH",td1.getCurrencyTokens("ETH")-_value);
-        td1.changeTotalSupply(td1.getTotalSupply() - _value);
+        td1.changeCurrencyTokens("ETH",SafeMaths.sub(td1.getCurrencyTokens("ETH"),_value));
+        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , _value));
         
         t1.callTransferEvent(_to, 0, _value); // notify of the event
        
@@ -197,9 +210,9 @@ contract NXMToken2{
         if(td1.getBalanceOf(_to) == 0)
             td1.incMemberCounter();
         // Change total supply and individual balance of user
-        td1.changeBalanceOf(_to, td1.getBalanceOf(_to) + amount);// mint new tokens
-        td1.changeTotalSupply(td1.getTotalSupply()+amount); // track the supply
-        td1.changeCurrencyTokens("ETH" , td1.getCurrencyTokens("ETH") + amount);
+        td1.changeBalanceOf(_to, SafeMaths.add(td1.getBalanceOf(_to) , amount));// mint new tokens
+        td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply(),amount)); // track the supply
+        td1.changeCurrencyTokens("ETH" , SafeMaths.add(td1.getCurrencyTokens("ETH") , amount));
         if(td1.checkInallMemberArray(_to)==0)
         {
             td1.addInAllMemberArray(_to);
@@ -217,7 +230,7 @@ contract NXMToken2{
     {
         td1=NXMTokenData(tokenDataAddress);
         t1=NXMToken(tokenAddress);
-        noOfTokens = noOfTokens * 10000000000;
+        noOfTokens = SafeMaths.mul(noOfTokens , 10000000000);
         if(td1.getBalanceCAWithAddress(_to) < noOfTokens)throw;
         
         uint rem = noOfTokens;
@@ -231,15 +244,15 @@ contract NXMToken2{
             {
                 if(rem > amount)
                 {
-                    rem -= amount;
-                    td1.lockCA(_to,vUpto + _timestamp,amount);
+                    rem = SafeMaths.sub(rem,amount);
+                    td1.lockCA(_to,SafeMaths.add(vUpto , _timestamp),amount);
                     td1.changeLockedCA_Index(_to,i,0);
                 
                 }
                 else
                 {
-                    td1.lockCA(_to,vUpto + _timestamp,rem);
-                    td1.changeLockedCA_Index(_to,i,amount-rem);
+                    td1.lockCA(_to,SafeMaths.add(vUpto , _timestamp),rem);
+                    td1.changeLockedCA_Index(_to,i,SafeMaths.sub(amount,rem));
                     rem=0;
                 
                     break;
@@ -255,8 +268,9 @@ contract NXMToken2{
         
         td1=NXMTokenData(tokenDataAddress);
         q1=quotation2(quotation2Address); 
+        qd1=quotationData(quotationDataAddress);
         uint quoteId = q1.getQuoteId(coverid);
-        bytes4 curr= q1.getCurrencyOfQuote(quoteId);
+        bytes4 curr= qd1.getQuotationCurrency(quoteId);
         address _to = q1.getMemberAddress(coverid);
         uint depositedTokens = td1.getDepositCN(coverid,_to);
         if(depositedTokens <= 0)throw;
@@ -274,19 +288,19 @@ contract NXMToken2{
             (vUpto,amount) = td1.getLockedCN_index(_to,i);
             if(vUpto == validity && amount == amount1 )
             {
-                td1.updateLockedCN(_to,i,vUpto,amount-depositedTokens);
+                td1.updateLockedCN(_to,i,vUpto,SafeMaths.sub(amount,depositedTokens));
                 break;
             }
         }
         t1=NXMToken(tokenAddress);
-        td1.updateLockedCN_Cover(_to,coverid,validity,amount1-depositedTokens);
+        td1.updateLockedCN_Cover(_to,coverid,validity,SafeMaths.sub(amount1,depositedTokens));
         t1.callBurnEvent(_to,"Burn", coverid,depositedTokens);
-        td1.changeCurrencyTokens(curr,td1.getCurrencyTokens(curr) - depositedTokens);
+        td1.changeCurrencyTokens(curr,SafeMaths.sub(td1.getCurrencyTokens(curr) , depositedTokens));
         // Update NXM token balance against member address and remove member in case overall balance=0
-        td1.changeBalanceOf(_to,td1.getBalanceOf(_to) - depositedTokens);
+        td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , depositedTokens));
         if(td1.getBalanceOf(_to)==0)
             td1.decMemberCounter();
-        td1.changeTotalSupply(td1.getTotalSupply() - depositedTokens);
+        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , depositedTokens));
         
         t1.callTransferEvent(_to, 0, depositedTokens); // notify of the event
       
@@ -301,7 +315,7 @@ contract NXMToken2{
         td1=NXMTokenData(tokenDataAddress);
         uint amount;
         (,amount) = td1.getLockedCN_Cover(_to,coverid);
-        if (amount - td1.getDepositCN(coverid,msg.sender) < _value) throw;           // Check if the sender has enough tokens to deposit
+        if (SafeMaths.sub(amount , td1.getDepositCN(coverid,msg.sender)) < _value) throw;           // Check if the sender has enough tokens to deposit
         if (_value<=0) throw;
         //_value = _value * 10000000000;
         td1.pushInDepositCN_Cover(_to,coverid,_days,_value);
@@ -320,7 +334,7 @@ contract NXMToken2{
             if(m1.getlastMCRPerc() >= 18000)
                 check=1;
         }
-        else if((td1.getLastDistributionTime() + td1.getsdDistributionTime() < now)&&( m1.getlastMCRPerc() >= 18000))
+        else if((SafeMaths.add(td1.getLastDistributionTime() , td1.getsdDistributionTime()) < now)&&( m1.getlastMCRPerc() >= 18000))
             check=1;
         
     }
@@ -362,14 +376,14 @@ contract NXMToken2{
                     td1.addInSDMemberPayHistory(index,_add,0,1);
                 }
                     
-                totalWeight += indWeight;
+                totalWeight = SafeMaths.add(totalWeight,indWeight);
 
             }
 
             if(td1.getSDLength()==0)
                 td1.pushInSDHistory(distValue,block.number,distValue,totalWeight);
             else
-                td1.pushInSDHistory(distValue,block.number,distValue + td1.getTotalSDTillNow(),totalWeight);
+                td1.pushInSDHistory(distValue,block.number,SafeMaths.add(distValue , td1.getTotalSDTillNow()),totalWeight);
                 
          }
     }
@@ -419,7 +433,7 @@ contract NXMToken2{
                 if(vUpto > now)
                 {
                     //Calculate weight based on number of tokens locked under SD and the time period for which they are valid
-                    weight =weight + ((vUpto - now)*amount)/1 days;
+                    weight =SafeMaths.add(weight , SafeMaths.div((SafeMaths.mul((SafeMaths.sub(vUpto , now)),amount)),1 days));
                 }
             }
         }
@@ -436,8 +450,8 @@ contract NXMToken2{
         uint amount;
         (vUpto,amount) = td1.getLockedCA_index(msg.sender,index);
         if(vUpto <now || amount < noOfTokens )throw;
-        td1.changeLockedCA_Index(msg.sender,index,amount-noOfTokens);
-        td1.lockCA(msg.sender,(vUpto + _days* 1 days ),noOfTokens);
+        td1.changeLockedCA_Index(msg.sender,index,SafeMaths.sub(amount,noOfTokens));
+        td1.lockCA(msg.sender,(SafeMaths.add(vUpto ,SafeMaths.mul( _days, 1 days ))),noOfTokens);
                
     }
     /// @dev Unlocks tokens deposited against a cover.Changes the validity timestamp of deposit tokens.
@@ -489,16 +503,16 @@ contract NXMToken2{
                 {
                     (vUpto,amount) = td1.getLockedSD_index(_add,j);
                     if(vUpto > now)
-                        totalTokens +=amount;
+                        totalTokens =SafeMaths.add(totalTokens,amount);
                 }
             }
         }
         //val1 = 0.1 ETH per locked Token
-        val1 = totalTokens/10;
+        val1 = SafeMaths.div(totalTokens,10);
         //val2=5% of last MCR Eth
-        val2 = ((5*m1.getLastMCREtherFull())/100)*10000000000000000;
+        val2 = SafeMaths.mul((SafeMaths.div((SafeMaths.mul(5,m1.getLastMCREtherFull())),100)),10000000000000000);
         //val3=50% of Total ETH in pool
-        val3=(50*p1.getEtherPoolBalance())/100;
+        val3=SafeMaths.div((SafeMaths.mul(50,p1.getEtherPoolBalance())),100);
 
         if(val1 <= val2 && val1 <= val3)
             toDistributeValue = val1;
@@ -515,9 +529,9 @@ contract NXMToken2{
     function lockCA(uint _value,uint _days) checkPause
     {
         td1 = NXMTokenData(tokenDataAddress);
-        if (td1.getBalanceOf(msg.sender)-td1.getBalanceCAWithAddress(msg.sender)-td1.getBalanceSD(msg.sender)-td1.getBalanceCN(msg.sender) < _value) throw;// Check if the sender has enough
+        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceSD(msg.sender)),td1.getBalanceCN(msg.sender)) < _value) throw;// Check if the sender has enough
         if (_value<=0) throw;
-        td1.lockCA(msg.sender,now+_days*1 days,_value);        
+        td1.lockCA(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
     }
     /// @dev Locks a given number of tokens for Surplus Distribution.
     /// @param _value number of tokens lock.
@@ -525,9 +539,9 @@ contract NXMToken2{
     function lockSD(uint _value,uint _days) checkPause
     {
         td1 = NXMTokenData(tokenDataAddress);
-        if (td1.getBalanceOf(msg.sender)-td1.getBalanceCAWithAddress(msg.sender)-td1.getBalanceSD(msg.sender)-td1.getBalanceCN(msg.sender) < _value) throw;  // Check if the sender has enough
+        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceSD(msg.sender)),td1.getBalanceCN(msg.sender)) < _value) throw;  // Check if the sender has enough
         if (_value<=0) throw;
-        td1.lockSD(msg.sender,now+_days*1 days,_value);        
+        td1.lockSD(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
         
     }
     
@@ -539,27 +553,27 @@ contract NXMToken2{
     {
         td1 = NXMTokenData(tokenDataAddress);
         uint sum=0;
-        tokens = tokens * 10000000000;
+        tokens = SafeMaths.mul(tokens , 10000000000);
         uint len = td1.getLockedSDLength(_to);
         uint vUpto;
         uint amount;
         for(uint i=0 ; i < len ;i++ )
         {
             (vUpto,amount) = td1.getLockedSD_index(_to,i);
-            if( (now + 3*1 days )< vUpto )
-                sum+=amount;
+            if( (SafeMaths.add(now ,SafeMaths.mul(3,1 days )))< vUpto )
+                sum=SafeMaths.add(sum,amount);
         }
         if(sum<tokens)
         {
-            uint tokensToLock = tokens-sum;
-            uint availableTokens = td1.getBalanceOf(_to)-td1.getBalanceCAWithAddress(_to)-td1.getBalanceSD(_to)-td1.getBalanceCN(_to) ;
+            uint tokensToLock = SafeMaths.sub(tokens,sum);
+            uint availableTokens = SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(_to),td1.getBalanceCAWithAddress(_to)),td1.getBalanceSD(_to)),td1.getBalanceCN(_to)) ;
             if(availableTokens >= tokensToLock)
             {
-                td1.lockSD(_to,(now+_days*1 days),tokensToLock);
+                td1.lockSD(_to,(SafeMaths.add(now,SafeMaths.mul(_days,1 days))),tokensToLock);
             }
             else if(availableTokens > 0)
             {
-                td1.lockSD(_to,now+_days*1 days,availableTokens);
+                td1.lockSD(_to,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),availableTokens);
             }
         }
     }

@@ -156,7 +156,7 @@ contract pool2
     /// @dev Handles the Callback of the Oraclize Query. Callback could be of type "quote", "quotation", "cover", "claim" etc.
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     /// @param res Result fetched by the external oracle.
-     function delegateCallBack(bytes32 myid, string res)
+     function delegateCallBack(bytes32 myid, string res) onlyInternal
     {
          pd1 = poolData1(poolDataAddress);
         ms1=master(masterAddress);
@@ -238,7 +238,7 @@ contract pool2
         }
     }
     
-    function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa)
+    function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa) onlyInternal
     {
         Payout(_add,type1,id,sa);
     }
@@ -272,7 +272,7 @@ contract pool2
                 {
                     t1.removeFromPoolFund(curr,sumAssured);
                     quoteid = q2.getQuoteId(coverid);
-                    q2.removeSAFromAreaCSA(quoteid,sumAssured);
+                    q2.removeSAFromAreaCSA(quoteid,sumAssured1);
                     p1.subtractQuotationOracalise(quoteid);
                     // date:10/11/2017/
                     pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
@@ -328,10 +328,11 @@ contract pool2
         uint currentIAmaxHolding;
         uint currentIAminHolding;
 
-        uint IABalance=getBalanceofInvestmentAsset(curr)/(10**18);
+        uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**18));
         (currentIAminHolding,currentIAmaxHolding)=pd1.getInvestmentAssetHoldingPerc(curr);
-        uint holdingPercDiff=(currentIAmaxHolding/100 - currentIAminHolding/100);
-        RHS=int(IABalance*100/(holdingPercDiff*rateX100));
+        uint holdingPercDiff=(SafeMaths.sub(SafeMaths.div(currentIAmaxHolding,100) , SafeMaths.div(currentIAminHolding,100)));
+       if(holdingPercDiff>0 && rateX100>0)
+        RHS=int(SafeMaths.div(SafeMaths.mul(IABalance,100),(SafeMaths.mul(holdingPercDiff,rateX100))));
         
     }
     function totalRiskPoolBalance(bytes16[] IACurr,uint64[] IARate)  constant returns (uint balance,uint IABalance)
@@ -344,10 +345,10 @@ contract pool2
         for(uint i=0;i<IACurr.length;i++)
         {
             if(IARate[i]>0)
-                IABalance+=(getBalanceofInvestmentAsset(IACurr[i])*100)/IARate[i];
+                IABalance=SafeMaths.add(IABalance,SafeMaths.div(SafeMaths.mul(p1.getBalanceofInvestmentAsset(IACurr[i]),100),IARate[i]));
         }
 
-        balance=currBalance+IABalance;
+        balance=SafeMaths.add(currBalance,IABalance);
         
     }
         //Triggerred on daily basis
@@ -361,7 +362,7 @@ contract pool2
         ( MAXIACurr,MAXRate,,)= pd1.getIARankDetailsByDate(date);
         require(pd1.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
         uint len=IARate.length;
-        uint totalRiskBal=( pd1.getTotalRiskPoolBalance()*100000 )/(10**18);
+        uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd1.getTotalRiskPoolBalance(),100000 )),(10**18));
         if(totalRiskBal>0 && len>0)  //if v=0 OR there is no IA, don't trade
         {
             for(uint i=0;i<len;i++)
@@ -375,13 +376,13 @@ contract pool2
                         // ORDER 1 (max RHS IA to ETH)
                    
                         // amount of asset to sell
-                        uint makerAmt=((2*pd1.getVariationPercX100()*totalRiskBal*MAXRate)/(100*100 *100000) ); //*100);// ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
+                        uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd1.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)) )); //*100);// ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
                         // amount of ETH to buy
-                        uint takerAmt=((m1.getCurrency3DaysAvg("ETH")*makerAmt)/MAXRate); //*10**18);    //  ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); 
-                        uint expirationTimeInMilliSec=now+pd1.getOrderExpirationTime("RBT");
-                        makerAmt=(makerAmt*10**pd1.getInvestmentAssetDecimals(MAXIACurr) )/100;
-                        takerAmt=takerAmt*10**18/(100);
-                        if(makerAmt<=getBalanceofInvestmentAsset(MAXIACurr))
+                        uint takerAmt=((SafeMaths.mul(m1.getCurrency3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); 
+                        uint expirationTimeInMilliSec=SafeMaths.add(now,pd1.getOrderExpirationTime("RBT"));
+                        makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd1.getInvestmentAssetDecimals(MAXIACurr) )),100);
+                        takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,10**18),(100));
+                        if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
                         {
                            
                             exchange1=Exchange(exchangeContractAddress);
@@ -416,19 +417,21 @@ contract pool2
     }
      function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
     {
+        if(IARate>0){
         pd1 = poolData1(poolDataAddress);
+         p1=pool(poolAddress);
         //p2=pool2(pool2Address);
 
-        uint IABalance=getBalanceofInvestmentAsset(curr)/(10**pd1.getInvestmentAssetDecimals(curr));
+        uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**pd1.getInvestmentAssetDecimals(curr)));
      
-        uint totalRiskBal=pd1.getTotalRiskPoolBalance()*100000/(10**18);
+        uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd1.getTotalRiskPoolBalance(),100000),(10**18));
         if(IABalance>0 && totalRiskBal>0)
         {
             uint IAMax;uint IAMin;uint checkNumber;uint z;
             (IAMin,IAMax)=pd1.getInvestmentAssetHoldingPerc(curr);
             z=pd1.getVariationPercX100();
-            checkNumber=(IABalance*100 *100000)/(IARate*totalRiskBal);
-            if( (checkNumber> ((IAMax+z)*totalRiskBal)/100*100000 )|| (checkNumber < ( (IAMin-z)*totalRiskBal)/100*100000 ) )     //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
+            checkNumber=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(IABalance,100),100000)),(SafeMaths.mul(IARate,totalRiskBal)));
+            if( (checkNumber> SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.add(IAMax,z),totalRiskBal),100 ),100000))|| (checkNumber < SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(IAMin,z),totalRiskBal),100),100000)) )    //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
             {
                 return 1;    //eligibleIA
             }
@@ -439,53 +442,14 @@ contract pool2
         }
         return 0; // balance of IA is 0
     }
-    // 28/11/2017
-      function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
-    {
-         pd1 = poolData1(poolDataAddress);
-         address currAddress=pd1.getInvestmentAssetAddress(_curr);
-         tok=SupplyToken(currAddress);
-         return tok.balanceOf(poolAddress);
+    else
+        return -2;
     }
+    // 28/11/2017
+   
   
     // called by the API
-    function saveIADetails(bytes16[] curr,uint64[] rate,uint64 date) checkPause
-    {
-        pd1 = poolData1(poolDataAddress);
-        p1=pool(poolAddress);
-        md1=MCRData(MCRDataAddress);
-        p3=pool3(pool3Address);
-        bytes16 MAXCurr;
-        bytes16 MINCurr;
-        uint64 MAXRate;
-        uint64 MINRate;
-        uint totalRiskPoolBal;uint IABalance;
-        //ONLY NOTARZIE ADDRESS CAN POST
-        if(md1.isnotarise(msg.sender)==0) throw;
-
-        (totalRiskPoolBal,IABalance)=totalRiskPoolBalance(curr,rate);
-        pd1.setTotalBalance(totalRiskPoolBal,IABalance);
-        (MAXCurr,MAXRate,MINCurr,MINRate)=calculateIARank(curr,rate);
-        pd1.saveIARankDetails(MAXCurr,MAXRate,MINCurr,MINRate,date);
-        pd1.updatelastDate(date);
-        // Rebalancing Trade : only once per day
-        rebalancingTrading0xOrders(curr,rate,date);
-        p1.saveIADetailsOracalise(pd1.getIARatesTime());
-        uint8 check;
-        uint CABalance;
-
-        //Excess Liquidity Trade : atleast once per day
-        for(uint16 i=0;i<md1.getCurrLength();i++)
-        {
-            (check,CABalance)=p3.checkLiquidity(md1.getCurrency_Index(i));
-            if(check==1)
-            {
-               if(CABalance>0)
-                 p3.ExcessLiquidityTrading(md1.getCurrency_Index(i),CABalance);
-            }
-        }
-        
-    }
+  
    function calculateIARank(bytes16[] curr,uint64[] rate)  constant returns(bytes16 MAXCurr,uint64 MAXRate,bytes16 MINCurr,uint64 MINRate)
     {
         pd1 = poolData1(poolDataAddress);
@@ -604,7 +568,8 @@ contract pool2
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
-            byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));
+            byte char =byte(bytes16(SafeMaths.mul(uint(x) , 2 ** (SafeMaths.mul(8 , j)))));
+           
             if (char != 0) {
                 bytesString[charCount] = char;
                 charCount++;
@@ -615,6 +580,17 @@ contract pool2
             bytesStringTrimmed[j] = bytesString[j];
         }
         return string(bytesStringTrimmed);
+    }
+    
+     function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
+    {
+        pd1 = poolData1(poolDataAddress);
+        p3=pool3(pool3Address);
+        tok=SupplyToken(pd1.getWETHAddress());
+        bool success= tok.transfer(msg.sender,msg.value);
+        if(success==true)
+        p3.saveIADetails(curr,rate,date);
+    
     }
      
 

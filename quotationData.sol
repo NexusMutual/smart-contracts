@@ -17,6 +17,7 @@
 pragma solidity 0.4.11;
 import "./master.sol";
 import "./SafeMaths.sol";
+
 contract quotationData{
     master ms1;
     address masterAddress;
@@ -65,7 +66,7 @@ contract quotationData{
     uint public pendingCoverStart;
     uint64 public quoteExpireTime;
     address owner;
-    function quotationDataCon(){
+    function quotationData(){
         pendingQuoteStart=0;
         pendingCoverStart = 0;
         owner = msg.sender;
@@ -75,7 +76,7 @@ contract quotationData{
         STL=500;
         PM=12;
         minDays=42;
-        quoteExpireTime=7*1 days;
+        quoteExpireTime=SafeMaths.mul64(7,1 days);
         CSAHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
         quoteAreaHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
         // quoteStatus.push("NEW");
@@ -116,11 +117,11 @@ contract quotationData{
     {
         ipfsHashAddress=_add;
     }
-    function pushQuoteStatus(bytes16 status)
+    function pushQuoteStatus(bytes16 status) onlyInternal
     {
         quoteStatus.push(status);
     }
-    function pushCoverStatus(bytes16 status)
+    function pushCoverStatus(bytes16 status) onlyInternal
     {
         coverStatus.push(status);
     }
@@ -441,7 +442,7 @@ contract quotationData{
         quotations[id].memberAddress = userAddress;
         quotations[id].currencyCode = currencyCode;
         quotations[id].dateAdd = now;
-        quotations[id].validUntil = now+quoteExpireTime;
+        quotations[id].validUntil = SafeMaths.add(now,quoteExpireTime);
         quotations[id].status = 0;
         quotations[id].latstring = lat;
         quotations[id].longstring = long;
@@ -577,4 +578,27 @@ contract quotationData{
     {
         return (allCovers[index].quoteId,allCovers[index].validUntil,allCovers[index].claimCount,allCovers[index].lockedTokens,allCovers[index].status);
     }    
+    /// @dev Provides the information of the quote id, mapped against the user  calling the function, at the given index
+    /// @param ind User's Quotation Index.
+    /// @return coverPeriod Cover Period of quotation in days.
+    /// @return premiumCalculated Premium of quotation.
+    /// @return dateAdd timestamp at which quotation is created.
+    /// @return status current status of Quotation.
+    /// @return amountFunded number of tokens funded to the quotation.
+    /// @return coverId cover of a quoation
+    function getQuoteByAddressAndIndex2(uint ind) constant returns(uint coverPeriod,uint premiumCalculated,uint dateAdd,uint validUntil,bytes16 status,uint amountFunded,uint coverId,uint index)
+    {
+        
+        uint16 statusNo;
+         index=getQuoteByAddressAndIndex(ind , msg.sender);
+        (coverPeriod,premiumCalculated,dateAdd,validUntil,statusNo,amountFunded,coverId) = getQuoteByIndex2(index);
+        status=getQuotationStatus(statusNo);
+    }
+
+    function getQuoteByAddressAndIndex1(uint ind) constant returns(uint8 productId,bytes16 lat , bytes16 long ,bytes4 currencyCode,uint sumAssured,uint index)
+    {
+       
+        index=getQuoteByAddressAndIndex(ind , msg.sender);
+       (productId,lat,long,currencyCode,sumAssured) = getQuoteByIndex1(index);
+    }
 }

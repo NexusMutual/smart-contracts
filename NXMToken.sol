@@ -19,7 +19,9 @@ import "./MCR.sol";
 import "./NXMTokenData.sol";
 import "./NXMToken2.sol";
 import "./master.sol";
+import "./SafeMaths.sol";
 contract NXMToken {
+    using SafeMaths for uint;
 
     master ms1;
     address masterAddress;
@@ -98,12 +100,12 @@ contract NXMToken {
     function allocateFounderTokens(address _to , uint tokens) onlyOwner
     {
         td1 = NXMTokenData(tokenDataAddress);
-        if(td1.getCurrentFounderTokens() + tokens <= td1.getInitialFounderTokens())
+        if(SafeMaths.add(td1.getCurrentFounderTokens() , tokens) <= td1.getInitialFounderTokens())
         {
-            td1.changeCurrentFounderTokens(td1.currentFounderTokens()+tokens);
+            td1.changeCurrentFounderTokens(SafeMaths.add(td1.currentFounderTokens(),tokens));
             td1.addInAllocatedFounderTokens(_to , tokens);
             t2=NXMToken2(nxmtoken2Address);
-            t2.rewardToken(_to,tokens*1000000000000000000);
+            t2.rewardToken(_to,SafeMaths.mul(tokens,1000000000000000000));
         }
     }
    
@@ -134,7 +136,7 @@ contract NXMToken {
     function addToPoolFund(bytes4 curr , uint amount) onlyInternal
     {
         td1 = NXMTokenData(tokenDataAddress);
-        td1.changePoolFundValue(curr,td1.getPoolFundValue(curr) + amount);
+        td1.changePoolFundValue(curr,SafeMaths.add(td1.getPoolFundValue(curr) , amount));
     }
 
     /// @dev Subtracts a given amount from the pool fund.
@@ -145,7 +147,7 @@ contract NXMToken {
         if(value<amount)
             td1.changePoolFundValue(curr,0);
         else
-            td1.changePoolFundValue(curr,td1.getPoolFundValue(curr) - amount);
+            td1.changePoolFundValue(curr,SafeMaths.sub(td1.getPoolFundValue(curr) , amount));
     }
 
     /// @dev Gets Pool's Fund amount of a given currency.
@@ -219,13 +221,13 @@ contract NXMToken {
         for(uint i=0 ; i < td1.getLockCALength(_of) ;i++ )
         { 
             (validUpto,amount)= td1.getLockCAWithIndex(_of,i);
-            if(now + td1.getMinVoteLockPeriod() < validUpto)
-                sum+=amount;
+            if(SafeMaths.add(now , td1.getMinVoteLockPeriod()) < validUpto)
+                sum=SafeMaths.add(sum,amount);
         }
         // Booked tokens cannot be used for claims assessment
         uint bookedamt=td1.getBookedCA(_of);
         if(sum>bookedamt)
-            sum=sum-bookedamt;
+            sum=SafeMaths.sub(sum,bookedamt);
         else
              sum=0;
     }  
@@ -256,14 +258,14 @@ contract NXMToken {
         td1 = NXMTokenData(tokenDataAddress);
         if(_value <= 0) throw;
         //available transfer balance=Total Token balance - Locked tokens
-        if (td1.getBalanceOf(msg.sender)-td1.getBalanceCAWithAddress(msg.sender)-td1.getBalanceSD(msg.sender)-td1.getBalanceCN(msg.sender) < _value) throw;           // Check if the sender has enough
-        if (td1.getBalanceOf(_to) + _value < td1.getBalanceOf(_to)) throw; // Check for overflows
-        td1.changeBalanceOf(msg.sender,td1.getBalanceOf(msg.sender) - _value);                      // Subtract from the sender
+        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceSD(msg.sender)),td1.getBalanceCN(msg.sender)) < _value) throw;           // Check if the sender has enough
+        if (SafeMaths.add(td1.getBalanceOf(_to) , _value) < td1.getBalanceOf(_to)) throw; // Check for overflows
+        td1.changeBalanceOf(msg.sender,SafeMaths.sub(td1.getBalanceOf(msg.sender) , _value));                      // Subtract from the sender
         if(td1.getBalanceOf(msg.sender)==0)
             td1.decMemberCounter();
         if(td1.getBalanceOf(_to) == 0)
             td1.incMemberCounter();
-        td1.changeBalanceOf(_to,td1.getBalanceOf(_to) + _value);                           // Add the same to the recipient
+        td1.changeBalanceOf(_to,SafeMaths.add(td1.getBalanceOf(_to) , _value));                           // Add the same to the recipient
         // Add a new member whenever applicable
         if(td1.checkInallMemberArray(_to)==0)
         {
@@ -308,20 +310,20 @@ contract NXMToken {
     function transferFrom(address _from, address _to, uint256 _value)  checkPause
     returns (bool success) {
         td1 = NXMTokenData(tokenDataAddress);
-        if (td1.getBalanceOf(_from)-td1.getBalanceCAWithAddress(_from)-td1.getBalanceSD(_from)-td1.getBalanceCN(_from)< _value) throw;                 // Check if the sender has enough
-        if (td1.getBalanceOf(_to) + _value < td1.getBalanceOf(_to)) throw;  // Check for overflows
+        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(_from),td1.getBalanceCAWithAddress(_from)),td1.getBalanceSD(_from)),td1.getBalanceCN(_from))< _value) throw;                 // Check if the sender has enough
+        if (SafeMaths.add(td1.getBalanceOf(_to) , _value) < td1.getBalanceOf(_to)) throw;  // Check for overflows
         if (_value > td1.getAllowance(_from,msg.sender)) throw;     // Check allowance
-        td1.changeBalanceOf(_from,td1.getBalanceOf(_from) - _value);                    // Subtract from the sender
+        td1.changeBalanceOf(_from,SafeMaths.sub(td1.getBalanceOf(_from) , _value));                    // Subtract from the sender
         if(td1.getBalanceOf(_from)==0)
             td1.decMemberCounter();
         if(td1.getBalanceOf(_to) == 0)
             td1.incMemberCounter();
-        td1.changeBalanceOf(_to,td1.getBalanceOf(_to) + _value);                           // Add the same to the recipient
+        td1.changeBalanceOf(_to,SafeMaths.add(td1.getBalanceOf(_to) , _value));                           // Add the same to the recipient
         if(td1.checkInallMemberArray(_to)==0)
         {
             td1.addInAllMemberArray(_to);
         }
-        td1.setAllowance(_from,msg.sender,td1.getAllowance(_from,msg.sender) - _value);
+        td1.setAllowance(_from,msg.sender,SafeMaths.sub(td1.getAllowance(_from,msg.sender) , _value));
         
         Transfer(_from, _to, _value);
         return true;
@@ -331,12 +333,15 @@ contract NXMToken {
     function buyToken(uint value , address _to) onlyInternal {
         td1 = NXMTokenData(tokenDataAddress);
         m1=MCR(mcrAddress);
-        uint256 amount = (value*1000000000000000000)/m1.calculateTokenPrice("ETH");
+        if(m1.calculateTokenPrice("ETH")>0)
+        {
+            uint256 amount = SafeMaths.div((SafeMaths.mul(value,1000000000000000000)),m1.calculateTokenPrice("ETH"));
         //uint256 amount=value/m1.calculateTokenPrice("ETH");  // number of tokens to be allocated
-        td1.changePoolFundValue("ETH",td1.getPoolFundValue("ETH")+value);
-        t2=NXMToken2(nxmtoken2Address);  
+            td1.changePoolFundValue("ETH",SafeMaths.add(td1.getPoolFundValue("ETH"),value));
+            t2=NXMToken2(nxmtoken2Address);  
         // Allocate tokens         
-        t2.rewardToken(_to,amount);
+            t2.rewardToken(_to,amount);
+        }
     }
    
    /// @dev Gets the Token price in a given currency
@@ -356,9 +361,9 @@ contract NXMToken {
     {
         td1 = NXMTokenData(tokenDataAddress);
         if(td1.getBalanceOf(_of) < tokens) throw;
-        td1.changeBalanceOf(_of,td1.getBalanceOf(_of) - tokens);
-        td1.changeCurrencyTokens("ETH",td1.getCurrencyTokens("ETH")-tokens);
-        td1.changeTotalSupply(td1.getTotalSupply() - tokens);
+        td1.changeBalanceOf(_of,SafeMaths.sub(td1.getBalanceOf(_of) , tokens));
+        td1.changeCurrencyTokens("ETH",SafeMaths.sub(td1.getCurrencyTokens("ETH"),tokens));
+        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , tokens));
         Burn(_of,"BurnForFunding",0,tokens);
     }
    
@@ -376,6 +381,59 @@ contract NXMToken {
     {
         td1 = NXMTokenData(tokenDataAddress);
         tokens = td1.getCurrencyTokens(curr);
+    }
+    /// @dev Undeposit, Deposit, Unlock and Push In Locked CN
+    /// @param _of address of Member
+    /// @param _coverid Cover Id
+    /// @param _Locktime Pending Time + Cover Period 7*1 days
+    function DepositLockCN_EPOff(address _of, uint _coverid,uint _Locktime) onlyInternal
+    {
+        q1 = quotation2(quotationContact);
+        td1 = NXMTokenData(tokenDataAddress);
+        t2=NXMToken2(nxmtoken2Address);
+
+        uint timestamp=now+_Locktime;
+
+        uint dCN_ValidUpto;
+        uint dCN_LastAmount;
+        (dCN_ValidUpto,dCN_LastAmount)=td1.getDepositCN_Cover_Index(_of,_coverid,SafeMaths.sub(td1.getDepositCN_CoverLength(_of,_coverid),1));
+        uint dCN_Amount = td1.getDepositCN(_coverid,_of);
+
+        uint coverValidUntil;
+        (,coverValidUntil,,,)=q1.getCoverByIndex(_coverid);
+        if(coverValidUntil>timestamp){
+            if(dCN_ValidUpto<timestamp)
+            {
+                if(dCN_Amount>0)
+                   {t2.undepositCN(_coverid,1);
+                    t2.depositCN(_coverid,dCN_Amount,timestamp,_of); }
+                else
+                    t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
+            }
+        }
+        else if(coverValidUntil>now){
+            unlockCN(_coverid);
+            if(dCN_Amount>0){
+                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_Amount);
+                t2.depositCN(_coverid,dCN_Amount,timestamp,_of);
+            }
+            else{
+                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_LastAmount);
+                t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
+            }
+            
+        }
+        else if(coverValidUntil<now){
+            if(dCN_Amount>0){
+                t2.undepositCN(_coverid,1);
+                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_Amount);
+                t2.depositCN(_coverid,dCN_Amount,timestamp,_of);
+            }
+            else{
+                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_LastAmount);
+                t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
+            }
+        }
     }
     
 

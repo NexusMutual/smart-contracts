@@ -38,6 +38,7 @@ import "./pool3.sol";
 import "./governance2.sol";
 contract master
 {
+    using SafeMaths for uint;
 
     struct contractDetails{
         bytes16 name;
@@ -127,7 +128,7 @@ contract master
     }
     
     /// @dev Constructor
-    function masterCon()
+    function master()
     {
         owner=msg.sender;
         contracts_active[masterAddress]=0;
@@ -135,7 +136,7 @@ contract master
         masterAddress=address(this);
         versionLength =0;
         // emergencyPaused=0; // initially set false
-        pauseTime=28*1 days; //4 weeks
+        pauseTime=SafeMaths.mul(28,1 days); //4 weeks
     }
 
     /// @dev Add Emergency pause
@@ -148,7 +149,7 @@ contract master
         {
             c1=claims(claimsAddress);
             c1.submitClaimAfterEPOff();     //Submitting Requested Claims.
-            cr1=claims_Reward(claims_RewardAddress)
+            cr1=claims_Reward(claims_RewardAddress);
             cr1.StartAllPendingClaimsVoting();   //Start Voting of pending Claims again.
         }
     }
@@ -275,6 +276,7 @@ contract master
         t2=NXMToken2(NXMToken2Address);        
         t2.changeTokenAddress(NXMTokenAddress);
         t2.changePoolAddress(poolAddress);
+        t2.changeQuotationDataAddress(quoteDataAddress);
 
         c1=claims(claimsAddress);
         c1.changeTokenAddress(NXMTokenAddress);
@@ -384,7 +386,7 @@ contract master
     /// @dev Updates the version of contracts and calls the oraclize query to update UI.
     function switchToRecentVersion() onlyInternal
     {
-        uint version = versionLength-1;
+        uint version = SafeMaths.sub(versionLength,1);
         p1=pool(poolAddress);
         p1.versionOraclise(version);
         addInContractChangeDate(now,version);
@@ -402,7 +404,7 @@ contract master
     /// @param vno Version Number.
     /// @param name Contract's Name.
     /// @param _add Contract's address.
-    function addContractDetails(uint vno,bytes16 name,address _add) 
+    function addContractDetails(uint vno,bytes16 name,address _add) internal
     {
         allContractVersions[vno].push(contractDetails(name,_add));        
     }
@@ -411,17 +413,17 @@ contract master
     // Sets value 1 signifying that contract of recent version is active.
     /// @param version Recent version number.
     /// @param index Index Number of contract whose address will be removed.
-    function addRemoveAddress(uint version,uint index) 
+    function addRemoveAddress(uint version,uint index) internal
     {
         uint version_old=0;
         if(version>0)
-            version_old=version-1;
+            version_old=SafeMaths.sub(version,1);
         contracts_active[allContractVersions[version_old][index].contractAddress]=0;
         contracts_active[allContractVersions[version][index].contractAddress]=1;
     }
   
    /// @dev Sets the length of version.
-    function setVersionLength(uint len) 
+    function setVersionLength(uint len) internal
     {
         versionLength = len;
     }
@@ -444,7 +446,7 @@ contract master
        
         if(emergency_Paused.length>0)
         {
-            if(emergency_Paused[emergency_Paused.length-1].pause==true)
+            if(emergency_Paused[SafeMaths.sub(emergency_Paused.length,1)].pause==true)
                 return 1;
             else
                 return 0;
@@ -473,9 +475,9 @@ contract master
         _by="";
         uint len = getEmergencyPausedLength();
         if(len>0){
-        _pause  =emergency_Paused[len-1].pause;
-        _time    =emergency_Paused[len-1].time;
-        _by     =emergency_Paused[len-1].by;
+        _pause  =emergency_Paused[SafeMaths.sub(len,1)].pause;
+        _time    =emergency_Paused[SafeMaths.sub(len,1)].time;
+        _by     =emergency_Paused[SafeMaths.sub(len,1)].by;
         }
         
     }
@@ -526,7 +528,7 @@ contract master
     {
        //ms1=master(masterAddress);
         uint versionNo = versionLength;
-        setVersionLength(versionNo+1);
+        setVersionLength(SafeMaths.add(versionNo,1));
          
         addContractDetails(versionNo,"Masters",masterAddress);
         addContractDetails(versionNo,"QuotationData",arr[0]);

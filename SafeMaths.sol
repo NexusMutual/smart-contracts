@@ -28,7 +28,7 @@ library SafeMaths {
     assert(c >= a);
     return c;
   }
-function mul64(uint64 a, uint64 b) internal constant returns (uint64) {
+  function mul64(uint64 a, uint64 b) internal constant returns (uint64) {
     uint64 c = a * b;
     assert(a == 0 || c / a == b);
     return c;
@@ -57,12 +57,12 @@ function mul64(uint64 a, uint64 b) internal constant returns (uint64) {
     // assert(a == b * c + a % b); // There is no case in which this doesn't hold
     return c;
   }
-   function add32(uint32 a, uint32 b) internal constant returns (uint32) {
+  function add32(uint32 a, uint32 b) internal constant returns (uint32) {
     uint32 c = a + b;
     assert(c >= a);
     return c;
   }
-   function mul16(uint16 a, uint16 b) internal constant returns (uint16) {
+  function mul16(uint16 a, uint16 b) internal constant returns (uint16) {
     uint16 c = a * b;
     assert(a == 0 || c / a == b);
     return c;
@@ -77,7 +77,7 @@ function mul64(uint64 a, uint64 b) internal constant returns (uint64) {
     // assert(a == b * c + a % b); // There is no case in which this doesn't hold
     return c;
   }
-   function add8(uint8 a, uint8 b) internal constant returns (uint8) {
+  function add8(uint8 a, uint8 b) internal constant returns (uint8) {
     uint8 c = a + b;
     assert(c >= a);
     return c;

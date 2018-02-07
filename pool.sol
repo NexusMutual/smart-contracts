@@ -28,7 +28,7 @@ import "./MCR.sol";
 import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 import "./SafeMaths.sol";
 contract pool is usingOraclize{
-   using SafeMaths for uint;
+    using SafeMaths for uint;
     master ms1;
     address masterAddress;
     address tokenAddress;
@@ -75,7 +75,7 @@ contract pool is usingOraclize{
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
-     modifier onlyOwner{
+    modifier onlyOwner{
         ms1=master(masterAddress);
         require(ms1.isOwner(msg.sender) == 1);
         _; 
@@ -113,7 +113,7 @@ contract pool is usingOraclize{
     {
         tokenAddress = _to;
     }
-     function changeMCRAddress(address _add) onlyInternal
+    function changeMCRAddress(address _add) onlyInternal
     {
         MCRAddress = _add;   
     }
@@ -140,6 +140,11 @@ contract pool is usingOraclize{
         pd1.addInAllApiCall(myid);
 
     }
+    /// @dev Save the details of the Oraclize API.
+    /// @param myid Id return by the oraclize query.
+    /// @param _typeof type of the query for which oraclize call is made.
+    /// @param curr currencyfor which api call has been made.
+    /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetailsCurr(bytes32 myid,bytes8 _typeof,bytes4 curr,uint id) internal
     {
         pd1=poolData1(poolDataAddress);
@@ -198,7 +203,8 @@ contract pool is usingOraclize{
         bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io");
         saveApiDetails(myid4,"MCR",0);
     }
-
+    /// @dev Calls the Oraclize Query incase MCR calculation fails.
+    /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function MCROracliseFail(uint id,uint64 time) onlyInternal
     {
         bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io",1000000);
@@ -214,24 +220,25 @@ contract pool is usingOraclize{
         bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getEarthquakeRisk_hash/",strConcat(bytes16ToString(lat),"/","","",""),bytes16ToString(long),"/",uint2str(quoteid)),300000); 
         saveApiDetails(apiid,"PRE",quoteid);
     }
-
+    /// @dev Oraclize call to Subtract CSA for a given quote id.
     function subtractQuotationOracalise(uint id) onlyInternal
     {
         bytes32 myid6 = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/claims/subtractQuoteSA_hash/",uint2str(id)),50000);
         saveApiDetails(myid6,"SUB",id);     
     }
-
+    /// @dev Oraclize call to update investment asset rates.
     function saveIADetailsOracalise(uint64 time) onlyInternal
     {
          bytes32 myid6 = oraclize_query(time, "URL","http://a3.nexusmutual.io");
          saveApiDetails(myid6,"0X",0);     
     }
-    //change1
+    ///@dev Oraclize call to close 0x order for a given currency.
     function close0xOrders(bytes4 curr,uint id,uint time) onlyInternal
     {
         bytes32 myid= oraclize_query(time,"URL","http://a3.nexusmutual.io",300000);
         saveApiDetailsCurr(myid,"Close0x",curr,id);
     }
+    ///@dev Oraclize call to close emergency pause.
     function closeEmergencyPause(uint time) onlyInternal
     {
          bytes32 myid= oraclize_query(time,"URL","",300000);
@@ -366,7 +373,6 @@ contract pool is usingOraclize{
     function transferBackEther(uint256 amount) onlyOwner  
     {
         amount = SafeMaths.mul(amount , 10000000000);  
-        //address own=msg.sender;
         bool succ = transferEther(amount , msg.sender);   
         if(succ==true)
         {t1=NXMToken(tokenAddress);
@@ -386,7 +392,7 @@ contract pool is usingOraclize{
         getCurrencyTokensFromFaucet(valueWEI,curr);
     }
 
-     // Date:10/11/2017 
+    ///@dev Transfers investment asset from current pool address to the new pool address.
     function transferIAFromPool(address _newPoolAddr,address curr_addr) onlyInternal
     {
             tok=SupplyToken(curr_addr);
@@ -395,14 +401,15 @@ contract pool is usingOraclize{
                 tok.transfer(_newPoolAddr,tok.balanceOf(this));
             }           
     }
-       function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
+    ///@dev Gets pool balance of a given investmentasset.
+    function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
     {
          pd1 = poolData1(poolDataAddress);
          address currAddress=pd1.getInvestmentAssetAddress(_curr);
          tok=SupplyToken(currAddress);
          return tok.balanceOf(poolAddress);
     }
-      function transferIAFromPool(address _newPoolAddr) onlyOwner
+    function transferIAFromPool(address _newPoolAddr) onlyOwner
     {
         pd1 = poolData1(poolDataAddress);
        
@@ -412,7 +419,8 @@ contract pool is usingOraclize{
             address curr_addr=pd1.getInvestmentAssetAddress(curr_name);
             transferIAFromPool(_newPoolAddr,curr_addr);
          }   
-   }
+    }
+    ///@dev Transfers currency asset from current pool address to the new pool address.
     function transferFromPool(address to,address curr_addr,uint amount) onlyInternal
     {
         tok=SupplyToken(curr_addr);
@@ -421,22 +429,23 @@ contract pool is usingOraclize{
             tok.transfer(to,amount);
         }
     }
+
     function transferToPool(address currAddr,uint amount) onlyInternal returns (bool success)
     {
         tok=SupplyToken(currAddr);
         pd1 = poolData1(poolDataAddress);
         success=tok.transferFrom(pd1.get0xMakerAddress(),poolAddress,amount);
     }
-   // 20/12/2017
+    ///@dev Get 0x wrapped ether pool balance.
     function getWETHPoolBalance() constant returns(uint WETH)
     {
         pd1 = poolData1(poolDataAddress);
         tok=SupplyToken(pd1.getWETHAddress());
         return tok.balanceOf(poolAddress);
     }
-   
-   function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
-     {
+    ///@dev Get 0x order details by hash.
+    function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
+    {
          pd1=poolData1(poolDataAddress);
          f1=fiatFaucet(fiatFaucetAddress);
          if(orderType=="ELT")
@@ -465,7 +474,7 @@ contract pool is usingOraclize{
          takerAddress=pd1.get0xTakerAddress();
          makerFee=pd1.get0xMakerFee();
          takerFee=pd1.get0xTakerFee();
-     }
+    }
     
 
 }

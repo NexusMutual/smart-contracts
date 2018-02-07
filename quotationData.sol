@@ -79,15 +79,6 @@ contract quotationData{
         quoteExpireTime=SafeMaths.mul64(7,1 days);
         CSAHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
         quoteAreaHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
-        // quoteStatus.push("NEW");
-        // quoteStatus.push("partiallyFunded");
-        // quoteStatus.push("coverGenerated");
-        // quoteStatus.push("Expired");
-        // coverStatus.push("active");
-        // coverStatus.push("Claim Accepted");
-        // coverStatus.push("Claim Denied");
-        // coverStatus.push("Cover Expired");
-        // coverStatus.push("Claim Submitted");
     }
     function changeMasterAddress(address _add) 
     {
@@ -113,38 +104,47 @@ contract quotationData{
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
-     function changeIPFSHashAddress(address _add) onlyOwner
+    /// @dev Changes authorised address for posting IPFS hash.
+    function changeIPFSHashAddress(address _add) onlyOwner
     {
         ipfsHashAddress=_add;
     }
+    /// @dev Pushes status of quote.
     function pushQuoteStatus(bytes16 status) onlyInternal
     {
         quoteStatus.push(status);
     }
+    /// @dev Pushes status of cover.
     function pushCoverStatus(bytes16 status) onlyInternal
     {
         coverStatus.push(status);
     }
+    /// @dev Gets status of a given quotation id.
     function getQuotationStatus(uint16 index) constant returns(bytes16 status)
     {
         return quoteStatus[index];
     }
+    /// @dev Gets status of a given cover id.
     function getCoverStatus(uint16 index)constant returns(bytes16 status)
     {
         return coverStatus[index];
     }
+    /// @dev Gets all possible status for quotations.
     function getAllQuotationStatus() constant returns(bytes16[] status)
     {
         return quoteStatus;
     }
+    /// @dev Gets all possible status for covers.
     function getAllCoverStatus() constant returns(bytes16[] status)
     {
         return coverStatus;
     }
+    /// @dev Gets length of quote status master.
     function getQuoteStatusLen() constant returns(uint len)
     {
         return quoteStatus.length;
     }
+    /// @dev Gets length of cover status master. 
     function getCoverStatusLen() constant returns(uint len)
     {
         return coverStatus.length;
@@ -156,10 +156,7 @@ contract quotationData{
     }
 
    
-    // function getPM() constant returns(uint16 pm)
-    // {
-    //     pm = PM;
-    // }
+    
 
     /// @dev Changes the existing Short Term Load Period (STLP) value.
     function changeSTLP(uint16 stlp) onlyOwner
@@ -167,23 +164,12 @@ contract quotationData{
         STLP = stlp;
     }
 
-    
-    // function getSTLP() constant returns(uint16 stlp)
-    // {
-    //     stlp = STLP;
-    // }
-    
     /// @dev Changes the existing Short Term Load (STL) value.
     function changeSTL(uint16 stl) onlyOwner
     {
         STL = stl;
     }
 
-   
-    // function getSTL() constant returns(uint16 stl)
-    // {
-    //     stl = STL;
-    // }
 
     /// @dev Changes the existing Minimum cover period (in days)
     function changeMinDays(uint64 _days) onlyOwner
@@ -192,10 +178,6 @@ contract quotationData{
     }
 
    
-    // function getMinDays()constant returns(uint64 _days)
-    // {
-    //     _days = minDays;
-    // }
 
     /// @dev Updates the pending quotation start variable, which is the lowest quotation id with "NEW" or "partiallyFunded" status.
     /// @param val new start position
@@ -236,7 +218,7 @@ contract quotationData{
     /// @param amount Amount to be added.
     function addInTotalSumAssured(bytes4 curr , uint amount) onlyInternal
     {
-        //totalSumAssured[curr] +=amount;
+
         totalSumAssured[curr] =SafeMaths.add(totalSumAssured[curr],amount);
     }
 
@@ -245,7 +227,7 @@ contract quotationData{
     /// @param amount Amount to be subtracted.
     function subFromTotalSumAssured(bytes4 curr , uint amount) onlyInternal
     {
-        //totalSumAssured[curr] -=amount;
+
         totalSumAssured[curr] =SafeMaths.sub(totalSumAssured[curr],amount);
     }
 
@@ -449,16 +431,19 @@ contract quotationData{
         quote_user[userAddress].push(id);
         
     }
+    /// @dev Updates quote area hash.
     function updateHash(string CSAhash,string Areahash) 
     {
         if(ipfsHashAddress!=msg.sender) throw;
         CSAHash=CSAhash;
         quoteAreaHash=Areahash;
     }
+    /// @dev Gets current sum assured hash.
     function getCSAHash() constant returns(string hash)
     {
         return CSAHash;
     }
+     /// @dev Gets quote area hash.
     function getQuoteAreaHash() constant returns(string hash)
     {
         return quoteAreaHash;
@@ -482,13 +467,13 @@ contract quotationData{
         qid = allCovers[cid].quoteId;
     }
 
-    /// @dev Gets the Latitude and Longitude of a given quotation.
+    /// @dev Gets the Latitude of a given quotation.
     function getLatitude(uint id) constant returns(bytes16 lat)
     {
         lat = quotations[id].latstring;
     }
 
-   
+    /// @dev Gets the Longitude of a given quotation.
     function getLongitude(uint id) constant returns(bytes16 long)
     {
         long = quotations[id].longstring;
@@ -524,6 +509,11 @@ contract quotationData{
     {
         qid = quote_user[_of][ind];
     }
+    /// @dev Gets Premium details.
+    ///@return  _minDays minimum cover period.
+    ///@return  _PM Profit margin.
+    ///@return  _STL short term Load.
+    ///@return  _STLP short term load period.
     function getPremiumDetails() constant returns(uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
     {
         _minDays=minDays;
@@ -594,7 +584,7 @@ contract quotationData{
         (coverPeriod,premiumCalculated,dateAdd,validUntil,statusNo,amountFunded,coverId) = getQuoteByIndex2(index);
         status=getQuotationStatus(statusNo);
     }
-
+    /// @dev Gets Quote details using current address and index.
     function getQuoteByAddressAndIndex1(uint ind) constant returns(uint8 productId,bytes16 lat , bytes16 long ,bytes4 currencyCode,uint sumAssured,uint index)
     {
        

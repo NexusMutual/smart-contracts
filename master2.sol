@@ -64,6 +64,7 @@ contract masters2 {
         
         product_length=1;
     }
+    ///@dev Add insurance product.
     function addProduct(string _name , uint _id) onlyOwner
     {
         productType.push(insurance(_name,_id));
@@ -268,6 +269,7 @@ contract masters2 {
         m1.addCurrency("EUR");
         m1.addCurrency("GBP");        
     }
+    ///@dev Add quotation and cover status.
     function addQuoteAndCoverStatus() onlyOwner
     {
         qd1=quotationData(quotationDataAddress);
@@ -283,7 +285,7 @@ contract masters2 {
         qd1.pushCoverStatus("Claim Submitted");
         qd1.pushCoverStatus("Requested");
     }
-   
+    ///@dev Add currency asset data to pool. 
     function addCurrencyAssetsDetails() internal
     {
         pd1 = poolData1(poolDataAddress);
@@ -292,6 +294,7 @@ contract masters2 {
         pd1.pushCurrencyAssetsDetails("EUR",16272);
         pd1.pushCurrencyAssetsDetails("GBP",19231);
     }
+    ///@dev Add investment asset details to pool.
     function addInvestmentAssetsDetails() internal
     {
         pd1 = poolData1(poolDataAddress);
@@ -321,7 +324,7 @@ contract masters2 {
          decimals=tok.decimals();
         pd1.pushInvestmentAssetsDetails("MLN",0x323b5d4c32345ced77393b3530b1eed0f346429d,1,500,2000,decimals); 
     }
-
+    ///@dev Add investment assets names to pool.
     function addInvestmentCurrencies() internal
     {
         pd1 = poolData1(poolDataAddress);
@@ -332,6 +335,7 @@ contract masters2 {
         pd1.addInvestmentCurrency("GNT");
         pd1.addInvestmentCurrency("MLN");
     }
+    ///@dev Initialize asset data required by pool.
     function callPoolDataMethods() onlyOwner
     {
         addCurrencyAssetsDetails();

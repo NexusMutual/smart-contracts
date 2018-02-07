@@ -63,6 +63,8 @@ contract claims{
     MCRData md1;
     pool2 p2;
     pool3 p3;
+
+
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -92,7 +94,7 @@ contract claims{
         tokenDataAddress = _add;
         td1 = NXMTokenData(tokenDataAddress);
     }
-     function changeToken2Address(address _add) onlyInternal
+    function changeToken2Address(address _add) onlyInternal
     {
         token2Address = _add;
         tc2 = NXMToken2(token2Address);
@@ -163,36 +165,7 @@ contract claims{
     {
         claims_rewardAddress = _add;
     }
-    /// @dev Gets the total number of claims assessor tokens used to vote for a given ClaimId
-    // function getCaClaimVotes_token(uint claimid) constant returns(uint cnt)
-    // {
-    //    c1=claimsData(claimsDataAddress);
-    //    return(c1.getCaClaimVotes_token(claimid));
-    // }
-    /// @dev Gets the total number of member tokens used to vote for a given ClaimId
-    // function getMemberClaimVotes_token(uint claimid) constant returns(uint cnt)
-    // {
-    //       c1=claimsData(claimsDataAddress);
-    //    return(c1.getMemberClaimVotes_token(claimid));
-    // }
-    /// @dev Rewards tokens to a Claim Assessor for a vote cast against a given claimid
-    /// @param claimid Claim Id.
-    /// @param index index of vote against claimid.
-    /// @param tokens Number of tokens to be  rewarded.
-    // function updateRewardCA(uint claimid ,uint index, uint tokens) onlyInternal
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     c1.updateRewardCA(claimid,index,tokens);
-    // }
-     /// @dev Rewards tokens to a member for a vote cast against a given claimid
-    /// @param claimid Claim Id.
-    /// @param index index of vote against claimid.
-    /// @param tokens Number of tokens to be rewarded.
-    // function updateRewardMV(uint claimid ,uint index, uint tokens) onlyInternal
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     c1.updateRewardMV(claimid,index,tokens);
-    // }
+    
     /// @dev Gets the Number of tokens used in a specific vote, using claim id and index.
     /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
     /// @return tok Number of tokens.
@@ -212,24 +185,12 @@ contract claims{
     /// @dev Gets claim details of claim id=pending claim start + given index
     function getClaimFromNewStart(uint index)constant returns(string status , uint coverid , uint claimid , int8 voteCA , int8 voteMV , uint8 statusnumber)
     {
-         c1=claimsData(claimsDataAddress);
+       c1=claimsData(claimsDataAddress);
        (coverid,claimid,voteCA,voteMV,statusnumber)=c1.getClaimFromNewStart(index,msg.sender);
        status = claimStatus_desc[statusnumber];
 
     }
-     /// @dev Gets the voter's address of a given vote id.
-    // function getvoter_vote(uint voteid) constant returns(address voter)
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     return (c1.getvoter_vote(voteid));
-    // }
-    /// @dev Gets claim details of a given claim id
-    /// @param claimid Claim Id.
-    // function getClaim(uint claimid) constant returns(uint coverId,uint date_submit,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     return(c1.getClaim(claimid));
-    // }
+     
     /// @dev Gets details of a claim submitted by the calling user, at a given index
     function getUserClaimByIndex(uint index)constant returns(string status , uint coverid , uint claimid)
     {
@@ -238,12 +199,6 @@ contract claims{
         (statusno,coverid,claimid) = c1.getUserClaimByIndex(index,msg.sender);
         status = claimStatus_desc[statusno];
     }
-    /// @dev Gets last updated timestamp of a claim.
-    // function getClaimUpdate(uint claimid) constant returns(uint upd)
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     upd=c1.getClaimUpdate(claimid);
-    // }
    
     /// @dev Gets the total number of votes cast against given claim id.
     /// @param claimid Claim Id.
@@ -263,26 +218,7 @@ contract claims{
         c1.changeFinalVerdict(claimid,verdict);
     }
      
-     /// @dev Gets total number of claims submitted by a user till date.
-    // function getUserClaimCount() constant returns(uint len)
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     len = c1.getUserClaimCount(msg.sender);
-    // }
-
-    /// @dev Gets total number of claims pending for decision.
-    // function getClaimLength() constant returns (uint len)
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     len = c1.getClaimLength(); 
-    // }
-     /// @dev Gets total number of claims submitted till date.
-    // function actualClaimLength() constant returns (uint len)
-    // {
-    //     c1=claimsData(claimsDataAddress);
-    //     len = c1.actualClaimLength();
-    // }
-  
+   
     /// @dev Gets details of a given claim id.
     /// @param ind Claim Id.
     /// @return quoteid QuoteId linked to the claim id
@@ -294,7 +230,7 @@ contract claims{
      function getClaimbyIndex(uint ind) constant returns( uint claimId,uint quoteid,string status,uint dateAdd ,int8 finalVerdict , address claimOwner ,uint coverid) 
     {
         q1=quotation2(quotation2Address);
-         c1=claimsData(claimsDataAddress);
+        c1=claimsData(claimsDataAddress);
        
         uint stat;
         claimId=ind;
@@ -390,9 +326,9 @@ contract claims{
     function checkVoteClosing(uint claimid)constant returns(int8 close)
     {   
         close=0;
-         c1=claimsData(claimsDataAddress);
-         uint8 status=c1.getClaimStatusNumber(claimid); 
-         uint date_upd = c1.getClaimDateUpd(claimid);
+        c1=claimsData(claimsDataAddress);
+        uint8 status=c1.getClaimStatusNumber(claimid); 
+        uint date_upd = c1.getClaimDateUpd(claimid);
         if(status==16 && SafeMaths.add(date_upd,c1.payoutRetryTime()) < now )
             if( c1.getClaimState16Count(claimid) < 60)
                 close=1;
@@ -420,9 +356,9 @@ contract claims{
     {
         cr1=claims_Reward(claims_rewardAddress);
         c1=claimsData(claimsDataAddress);
-         uint origstat;
-         uint state16Count;
-         uint date_upd;
+        uint origstat;
+        uint state16Count;
+        uint date_upd;
         (,,,origstat,date_upd,state16Count)=c1.getClaim(claimid);
         origstat=c1.getClaimStatus(claimid);
         if(stat==16 && origstat==16)
@@ -454,9 +390,9 @@ contract claims{
     /// @dev Updates the pending claim start variable, which is the lowest claim id with a pending decision/payout.
     function changePendingClaimStart() onlyInternal
     {
-         c1=claimsData(claimsDataAddress);
-         uint8 origstat;
-         uint8 state16Count;
+        c1=claimsData(claimsDataAddress);
+        uint8 origstat;
+        uint8 state16Count;
        
         for(uint i=c1.pendingClaim_start();i<c1.actualClaimLength();i++)
         {
@@ -470,9 +406,9 @@ contract claims{
         }
     }
 
-   //Claims 2
+  
 
-    /// @dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
+    /// @dev Submits a claim for a given cover note. Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverid Cover Id.
     function submitClaim(uint coverid)
     {
@@ -488,36 +424,28 @@ contract claims{
             q1.updateCoverStatus(coverid,5);
         }
     }
+    ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
     function addClaim (uint coverid, uint time,address add) internal {
         q1=quotation2(quotation2Address);
         tc2=NXMToken2(token2Address);
         c1=claimsData(claimsDataAddress);
+        uint nowtime=now;
         uint tokens = q1.getLockedTokens(coverid);
         tokens =SafeMaths.div(SafeMaths.mul(tokens,20),100);
-        uint timeStamp = SafeMaths.add(time , c1.claimDepositTime());
+        uint timeStamp = SafeMaths.add(nowtime , c1.claimDepositTime());
         tc2.depositCN(coverid,tokens,timeStamp,add);
         uint len = c1.actualClaimLength(); 
-        c1.addClaim(len,coverid,add,time);
+        c1.addClaim(len,coverid,add,time,nowtime);
         q1.updateCoverStatusAndCount(coverid,4);
-        p1=pool(poolAddress);
-        p1.closeClaimsOraclise(len,c1.maxtime());
         bytes4 curr=q1.getCurrencyOfCover(coverid);
         uint sumAssured=q1.getSumAssured(coverid);
         pd1 = poolData1(poolDataAddress);
         pd1.changeCurrencyAssetVarMin(curr,SafeMaths.add64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
-        // p3=pool3(pool3Address);
-        // uint check;uint CABalance;
-        // (check,CABalance)= p3.checkLiquidity(curr);     
-        // if(check==1)
-        // {
-        //     p3.ExcessLiquidityTrading(curr,CABalance);
-        // }   
-        // else if(check==2)
-        // {
-        //     p3.InsufficientLiquidityTrading(curr,CABalance);
-        // }
         checkLiquidity(curr);
+        p1=pool(poolAddress);
+        p1.closeClaimsOraclise(len,c1.maxtime());
     }
+    ///@dev Submits the claims queued once the emergency pause is switched off.
     function submitClaimAfterEPOff () onlyInternal {
         c1=claimsData(claimsDataAddress);
         q1=quotation2(quotation2Address);
@@ -538,7 +466,7 @@ contract claims{
     }
 
     // 12/1/2017
-     function checkLiquidity(bytes4 curr) onlyInternal
+    function checkLiquidity(bytes4 curr)
     {
         p3=pool3(pool3Address);
         uint8 check;uint CABalance;
@@ -633,7 +561,7 @@ contract claims{
     {
         c1=claimsData(claimsDataAddress);
         uint FirstIndex=c1.pendingClaim_start();
-        for(uint i=FirstIndex; i<c1.getClaimLength(); i++)
+        for(uint i=FirstIndex; i<c1.actualClaimLength(); i++)
         {
             if(checkVoteClosing(i)==0){
                 uint date_upd = c1.getClaimDateUpd(i);

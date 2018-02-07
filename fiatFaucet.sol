@@ -127,10 +127,12 @@ contract fiatFaucet
         q1=quotation2(quotation2Address);
         q1.fundQuote(fundArr , fundIndexArr , msg.sender);
     }
-      function getCurrAddress(bytes16 curr) constant returns(address currAddress)
+    /// @dev Get token address by currency name.
+    function getCurrAddress(bytes16 curr) constant returns(address currAddress)
     {
         return (contract_add[curr]);
     }
+   
     function transferBackEther(uint256 amount) onlyInternal
     {
         amount = SafeMaths.mul(amount , 10000000000);  

@@ -293,11 +293,10 @@ contract governanceData
     /// @param ld Long Description of proposal.
     function addNewProposal(uint id,address _add,string sd,string ld) onlyInternal
     {
-        // address[] address1=new address[](0);
-        // uint[] value1=new uint[](0);
-        // bytes16[] option1=new bytes16[](0);
+     
         allPro.push(proposal(id,_add,0,now,now,0,0,sd,ld,0,new address[](0),new uint[](0),0,new bytes16[](0)));
     }
+    ///@dev Update proposal details when advisory board catogorizes it.
     function updateCategorizeDetails(uint id,uint16 cat,address sender,address[] _effect,uint[] value,bytes16[] option)onlyInternal
     {
         allPro[id].category = cat;
@@ -307,12 +306,7 @@ contract governanceData
         allPro[id].value=value;
         allPro[id].options=option;
     }
-    // function updateCategorizeDetails(uint id,address[] _effect,uint[] value,bytes16[] option) onlyInternal
-    // {
-    //     allPro[id].address_effect=_effect;
-    //     allPro[id].value=value;
-    //     allPro[id].options=option;
-    // }
+   
     /// @dev Updates the Category Number of a given proposal.
     function updateCategorisedProposal(uint id , uint8 categorised) onlyInternal
     {
@@ -395,6 +389,7 @@ contract governanceData
     {
         proposalABVotes[pid].push(vid);
     }
+    ///@dev Get votes cast by advisory board member.
     function getProposalABVotes(uint pid)constant returns(uint[] vid)
     {
         return proposalABVotes[pid];
@@ -404,6 +399,7 @@ contract governanceData
     {
         proposalMemberVotes[pid].push(vid);
     }
+    ///@dev Get votes cast by member.
     function getProposalMemberVotes(uint pid) constant returns(uint[] vid)
     {
         return proposalMemberVotes[pid];

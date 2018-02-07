@@ -107,7 +107,7 @@ contract pool2
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
-     modifier onlyOwner{
+    modifier onlyOwner{
         ms1=master(masterAddress);
         require(ms1.isOwner(msg.sender) == 1);
         _; 
@@ -139,7 +139,7 @@ contract pool2
     {
         quotation2Address = _add;
     }
-     function changeExchangeContractAddress(address _add) onlyOwner
+    function changeExchangeContractAddress(address _add) onlyOwner
     {
         exchangeContractAddress=_add; //0x
         p3=pool3(pool3Address);
@@ -156,9 +156,9 @@ contract pool2
     /// @dev Handles the Callback of the Oraclize Query. Callback could be of type "quote", "quotation", "cover", "claim" etc.
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     /// @param res Result fetched by the external oracle.
-     function delegateCallBack(bytes32 myid, string res) onlyInternal
+    function delegateCallBack(bytes32 myid, string res) onlyInternal
     {
-         pd1 = poolData1(poolDataAddress);
+        pd1 = poolData1(poolDataAddress);
         ms1=master(masterAddress);
         if (ms1.isPause()==0) // system is not in emergency pause
         {
@@ -237,7 +237,7 @@ contract pool2
                 ms1.addEmergencyPause(false,"AUT"); //set pause to false
         }
     }
-    
+    /// @dev Calls the payout event incase of claims payout.
     function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa) onlyInternal
     {
         Payout(_add,type1,id,sa);
@@ -261,7 +261,6 @@ contract pool2
         //Payout in Ethers in case currency of quotation is ETH
         if(curr=="ETH")
         {
-            //sumAssured = sumAssured*1000000000000000000; 
            uint sumAssured=SafeMaths.mul(sumAssured1,1000000000000000000);
             balance = p1.getEtherPoolBalance();
             //Check if pool has enough ETH balance
@@ -282,7 +281,7 @@ contract pool2
                 else
                 {
                     c1.setClaimStatus(claimid , 16);
-                    //succ=false;
+                    
                 }
             }
             else
@@ -295,7 +294,6 @@ contract pool2
         else
         {
             f1=fiatFaucet(fiatFaucetAddress);
-            //sumAssured = sumAssured * 1000000000000000000;
             sumAssured=SafeMaths.mul(sumAssured1,1000000000000000000);
             balance = f1.getBalance(poolAddress , curr);
             //Check if pool has enough fiat crypto balance
@@ -320,7 +318,7 @@ contract pool2
 
         }
     }
-    
+    /// @dev Gets the investment asset rank.
    function getIARank(bytes16 curr,uint64 rateX100)  constant returns(int RHS) //internal function
     {
         pd1 = poolData1(poolDataAddress);
@@ -335,6 +333,9 @@ contract pool2
         RHS=int(SafeMaths.div(SafeMaths.mul(IABalance,100),(SafeMaths.mul(holdingPercDiff,rateX100))));
         
     }
+    /// @dev Gets the equivalent investment asset pool  balance in ether. 
+    /// @param IACurr array of Investment asset name.
+    /// @param IARate array of investment asset exchange rate.
     function totalRiskPoolBalance(bytes16[] IACurr,uint64[] IARate)  constant returns (uint balance,uint IABalance)
     {
         m1=MCR(MCRAddress);
@@ -351,8 +352,8 @@ contract pool2
         balance=SafeMaths.add(currBalance,IABalance);
         
     }
-        //Triggerred on daily basis
-     function rebalancingTrading0xOrders(bytes16[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
+    /// @dev Triggers pool rebalancing trading orders.
+    function rebalancingTrading0xOrders(bytes16[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
     {  
         pd1 = poolData1(poolDataAddress);
         p1=pool(poolAddress);
@@ -415,12 +416,13 @@ contract pool2
          Rebalancing("OrderGen",3);
          return 4; // when V=0 or no IA is present      
     }
-     function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
+    /// @dev Checks whether trading is require for a given investment asset at a given exchange rate.
+    function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
     {
         if(IARate>0){
         pd1 = poolData1(poolDataAddress);
          p1=pool(poolAddress);
-        //p2=pool2(pool2Address);
+        
 
         uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**pd1.getInvestmentAssetDecimals(curr)));
      
@@ -445,15 +447,12 @@ contract pool2
     else
         return -2;
     }
-    // 28/11/2017
-   
-  
-    // called by the API
-  
-   function calculateIARank(bytes16[] curr,uint64[] rate)  constant returns(bytes16 MAXCurr,uint64 MAXRate,bytes16 MINCurr,uint64 MINRate)
+    
+    /// @dev Calculates the investment asset rank.
+    function calculateIARank(bytes16[] curr,uint64[] rate)  constant returns(bytes16 MAXCurr,uint64 MAXRate,bytes16 MINCurr,uint64 MINRate)
     {
         pd1 = poolData1(poolDataAddress);
-        //p2=pool2(pool2Address);
+        
         uint currentIAmaxHolding;
         uint currentIAminHolding;
         int MAX=0;int MIN=-1;
@@ -568,8 +567,7 @@ contract pool2
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
-            byte char =byte(bytes16(SafeMaths.mul(uint(x) , 2 ** (SafeMaths.mul(8 , j)))));
-           
+             byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));           
             if (char != 0) {
                 bytesString[charCount] = char;
                 charCount++;
@@ -581,8 +579,8 @@ contract pool2
         }
         return string(bytesStringTrimmed);
     }
-    
-     function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
+      /// @dev Unwraps ether.
+    function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
     {
         pd1 = poolData1(poolDataAddress);
         p3=pool3(pool3Address);

@@ -58,7 +58,7 @@ contract quotation2 {
         token2Address = _add;
         t2 = NXMToken2(token2Address);
     }
-     function changeMCRAddress(address _add) onlyInternal
+    function changeMCRAddress(address _add) onlyInternal
     {
         mcrAddress = _add;
         m1=MCR(mcrAddress);
@@ -111,7 +111,7 @@ contract quotation2 {
     /// @dev Gets the number of the Covers created by the address calling the function
     /// @return Number of the covers created by the user till date
     function getUserCoverLength()constant returns (uint length){
-         qd1 = quotationData(quotationDataAddress);
+        qd1 = quotationData(quotationDataAddress);
         return (qd1.getUserCoverLength(msg.sender));
     }
     
@@ -125,15 +125,15 @@ contract quotation2 {
     /// @return coverId cover id associated with the quoation.
     function getQuoteByIndex2(uint index) constant returns(uint32 coverPeriod,uint premiumCalculated,uint dateAdd,uint validUntil,bytes16 status,uint amountFunded,uint coverId)
     {
-         qd1 = quotationData(quotationDataAddress);
-         uint16 statusNo;
+        qd1 = quotationData(quotationDataAddress);
+        uint16 statusNo;
         (coverPeriod,premiumCalculated,dateAdd,validUntil,statusNo,amountFunded,coverId) = qd1.getQuoteByIndex2(index);
         status=qd1.getQuotationStatus(statusNo);
     }
 
 
     
-     /// @dev Provides the information of a Cover when given the cover id.
+    /// @dev Provides the information of a Cover when given the cover id.
     /// @param index Cover Id
     /// @return quoteId Quotation id against which the cover was generated.
     /// @return validUntil validity timestamp of cover.
@@ -142,8 +142,8 @@ contract quotation2 {
     /// @return status Current status of cover. 
     function getCoverByIndex(uint index) constant returns(uint quoteId,uint validUntil,uint claimCount,uint lockedTokens,bytes16 status)
     {
-         qd1 = quotationData(quotationDataAddress);
-         uint16 statusNo;
+        qd1 = quotationData(quotationDataAddress);
+        uint16 statusNo;
        (quoteId,validUntil,claimCount,lockedTokens,statusNo) = qd1.getCoverByIndex(index);
         status=qd1.getCoverStatus(statusNo);
     }
@@ -157,9 +157,9 @@ contract quotation2 {
     /// @return status Current status of cover. 
     function getCoverByAddressAndIndex(uint ind) constant returns(uint coverId,uint quoteId,uint validUntil,uint8 claimCount,uint lockedTokens,bytes16 status)
     {
-         qd1 = quotationData(quotationDataAddress);
+        qd1 = quotationData(quotationDataAddress);
         coverId=qd1.getCoverIdByAddressAndIndex(ind , msg.sender);
-          uint16 statusNo;
+         uint16 statusNo;
         (quoteId,validUntil,claimCount,lockedTokens,statusNo) = qd1.getCoverByIndex(coverId);
         status=qd1.getCoverStatus(statusNo);
     }
@@ -168,7 +168,7 @@ contract quotation2 {
     /// @return coverId cover id.
     function getCoverIdByAddressAndIndex(uint ind) constant returns(uint coverId)
     {
-         qd1 = quotationData(quotationDataAddress);
+        qd1 = quotationData(quotationDataAddress);
         coverId = qd1.getCoverIdByAddressAndIndex(ind , msg.sender);
     }
 
@@ -185,7 +185,6 @@ contract quotation2 {
             //Expire a quote, in case quote creation date+new expiry time<current timestamp
             if(SafeMaths.add(qd1.getQuotationDateAdd(i) ,time) <uint64(now))
             {
-                 //q1=quotation(quotationAddress);
                     expireQuotation(i);
             }
             //Creates an oraclize call to expire the quote as per the new expiry time
@@ -200,7 +199,7 @@ contract quotation2 {
      /// @dev Updates the pending quotation start variable, which is the lowest quotation id with "NEW" or "partiallyFunded" status.
     function changePendingQuoteStart() internal
     {
-         qd1 = quotationData(quotationDataAddress);
+        qd1 = quotationData(quotationDataAddress);
         uint currPendingQStart = qd1.pendingQuoteStart();
         uint quotelen = qd1.getQuoteLength();
         for(uint i=currPendingQStart ; i < quotelen ; i++)
@@ -219,7 +218,7 @@ contract quotation2 {
     /// @return expire 1 if the Quotation's should be expired, 0 otherwise.
     function checkQuoteExpired(uint id) constant returns (uint8 expire)
     {
-         qd1 = quotationData(quotationDataAddress);
+        qd1 = quotationData(quotationDataAddress);
         
         if(SafeMaths.add(qd1.getQuotationDateAdd(id),qd1.getQuoteExpireTime()) < uint64(now))
             expire=1;
@@ -246,7 +245,6 @@ contract quotation2 {
             bytes4 quoteCurr =  qd1.getQuotationCurrency(qid);
             qd1.subFromTotalSumAssured(quoteCurr,qd1.getQuotationSumAssured(qid));
             p1.subtractQuotationOracalise(qid);
-            //changeCSAAfterPayoutOrExpire(qid);
         }
         
     }
@@ -265,10 +263,7 @@ contract quotation2 {
         if(STLP<a)
             a=STLP;
         a=SafeMaths.mul32(a,a);
-        
-        //uint d=(CP-minDays)*1000;
         uint32 d=SafeMaths.mul32(a,1000);
-        //uint i1=sumAssured;
         uint32 k=36525;
         uint32 res=(SafeMaths.add32(SafeMaths.div32(SafeMaths.mul32(a,STL),STLP),d));
         uint32 result=uint32(SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(res,risk),PM),sumAssured)/k);
@@ -324,6 +319,14 @@ contract quotation2 {
         bytes4 quoteCurr =  qd1.getQuotationCurrency(id);
         qd1.subFromTotalSumAssured(quoteCurr,amount);
     }  
+    ///@dev Adds user quote 
+    /// @param prodId inssurance product  Id.
+    /// @return sumAssured Sum Assured of quotation.
+    /// @return CP cover period of quotation.
+    /// @return curr Currency in which quotation is assured.
+    /// @return lat Latitude of quotation
+    /// @return lng Longitude of quotation.
+
     function addQuote(uint8 prodId,uint16 sumAssured,uint32 CP,bytes4 curr,bytes16 lat, bytes16 lng)checkPause
     {   
         qd1 = quotationData(quotationDataAddress);
@@ -345,7 +348,7 @@ contract quotation2 {
     /// @param arr2 arr2=[currencyCode,Latitude,Longitude]
     function addBulkQuote(uint[] arr1 ,bytes16[] arr2)checkPause
     {
-        uint areaIndex=0;
+       
         for(uint i=0;i<arr1.length;i+=3)
         {
             addQuote(uint8(arr1[i+0]),uint16(arr1[i+1]),uint32(arr1[i+2]),bytes4(arr2[i]),arr2[i+1],arr2[i+2]);
@@ -353,19 +356,14 @@ contract quotation2 {
     }
 
 
-    //quotation
-    
-
-
     /// @dev Expires a quotation after a set period of time. Changes the status of the Quotation.
     // Removes the Sum Assured of the quotation from the Area Cover Sum Assured.
     //Creates the cover of the quotation if amount has been funded to it.
     /// @param id Quotation Id
-     function expireQuotation(uint id) checkPause
+    function expireQuotation(uint id) checkPause
     {
-         qd1 = quotationData(quotationDataAddress);
-          p1=pool(poolAddress);
-        // q2=quotation2(quotation2Address);
+        qd1 = quotationData(quotationDataAddress);
+        p1=pool(poolAddress);
         if(qd1.getQuotationStatusNo(id) != 2)
         {   
             if(checkQuoteExpired(id)==1 && qd1.getQuotationStatusNo(id) != 3)
@@ -418,7 +416,6 @@ contract quotation2 {
             uint prem;
             (curr,SA,CP,prem)=qd1.getQuoteByIndex3(quoteId);
             uint premium=SafeMaths.div(prem,10000000000);
-            //qd1.addInTotalSumAssured(curr,SA);
             uint64 timeinseconds=uint64(SafeMaths.mul(CP , 1 days));
             uint validUntill = SafeMaths.add(now, timeinseconds);
             uint lockedToken=0;
@@ -439,14 +436,14 @@ contract quotation2 {
     /// @dev Calculates and Changes the premium of a given quotation
     /// @param id Quotation Id
     /// @param riskstr Risk cost fetched from the external oracle
-      function changePremium(uint id , string riskstr) onlyInternal
+    function changePremium(uint id , string riskstr) onlyInternal
     {
         qd1 = quotationData(quotationDataAddress);
         uint num=0;
         bytes memory ab = bytes(riskstr);
         for(uint i=0;i<ab.length;i++)
         {
-             if(ab[i]=="0")
+            if(ab[i]=="0")
                 num=SafeMaths.add(SafeMaths.mul(num,10) , 0);
             else if(ab[i]=="1")
                 num=SafeMaths.add(SafeMaths.mul(num,10), 1);
@@ -470,7 +467,6 @@ contract quotation2 {
                 break;
             
         }
-        //q2=quotation2(quotation2Address);
         uint result = calPremium(qd1.getQuotationSumAssured(id) , qd1.getCoverPeriod(id) , num);
         qd1.changePremiumCalculated(id,result);
         qd1.addInTotalSumAssured(qd1.getQuotationCurrency(id),qd1.getQuotationSumAssured(id));
@@ -491,10 +487,12 @@ contract quotation2 {
     /// @param fundAmt fund amounts for each selected quotation.
     /// @param quoteId multiple quotations ID that will get funded.
     /// @param from address of funder.
-    function fundQuote(uint[] fundAmt , uint[] quoteId ,address from) onlyInternal {
+    function fundQuote(uint[] fundAmt , uint[] quoteId ,address from)  {
         
         qd1 = quotationData(quotationDataAddress);
         if(qd1.getQuoteMemberAddress(quoteId[0]) != from ) throw;
+        ms1=master(masterAddress);
+        require(ms1.isInternal(msg.sender) == 1 || msg.sender==from);
         for(uint i=0;i<fundAmt.length;i++)
         {
             //uint256 amount=fundAmt[i];

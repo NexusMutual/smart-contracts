@@ -145,6 +145,7 @@ contract NXMTokenData {
     {
         weigh =SDMemberPayHistory[index][_add].amount;
     }
+    /// @dev Gets surplus distribution pay out status for a given address.
     function getSDDistributionIndSuccess(uint index,address _add) constant returns(uint8 done)
     {
         done=SDMemberPayHistory[index][_add].success;
@@ -191,11 +192,13 @@ contract NXMTokenData {
     {
         tot = SDHistory[SafeMaths.sub(SDHistory.length ,1)].totalDistTillNow;
     }
+    /// @dev Get surplus distribution weight and amount by SD payout index.
     function getTotalWeightAndAmountById(uint id) constant returns(uint amount,uint weight)
     {
         amount = SDHistory[id].totalAmount;
         weight=SDHistory[id].totalWeight;
     }
+    /// @dev Gets total surplus distribution amount received by a given address.
     function getTotalSDAmountByAddress(address member) constant returns(uint sum)
     {
         uint totalSDAmount;uint totalSDWeight;
@@ -540,7 +543,7 @@ contract NXMTokenData {
         } 
        
     } 
-     /// @dev Calculates the Sum of tokens locked of a user for Surplus Distribution.
+    /// @dev Calculates the Sum of tokens locked of a user for Surplus Distribution.
     function getBalanceSD(address _to) constant returns (uint sum)
     {
         sum=0;

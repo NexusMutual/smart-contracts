@@ -36,12 +36,10 @@ contract NXMToken2{
     NXMToken t1;
     address tokenAddress;
     address quotationDataAddress;
-    //address NXMToken3Address;
     address quotation2Address;
     address tokenDataAddress;
     address poolAddress;
     address mcrAddress;
-    //event Transfer(address indexed from, address indexed to, uint256 value);
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -79,12 +77,6 @@ contract NXMToken2{
         quotationDataAddress = _add;
         qd1=quotationData(quotationDataAddress);
     } 
-    //   function changeToken3Address(address _add) onlyInternal
-    // {
-
-    //     NXMToken3Address = _add;
-       
-    // } 
     function changeQuotationAddress(address _add) onlyInternal
     {
         quotation2Address = _add;
@@ -129,8 +121,7 @@ contract NXMToken2{
         if(m1.calculateTokenPrice(quoteCurr)>0)
         {
         amount = SafeMaths.div((SafeMaths.mul(premiumCalculated,50000000000000000)),uint(m1.calculateTokenPrice(quoteCurr))); 
-       
-        //bytes16 curr = quoteCurr;
+    
         td1.changeCurrencyTokens(quoteCurr , SafeMaths.add(td1.getCurrencyTokens(quoteCurr) , amount));
         
         if(td1.getBalanceOf(senderAddress) == 0)
@@ -154,10 +145,10 @@ contract NXMToken2{
         }
     }
 
-   /// @dev Burns tokens used for fraudulent voting against a claim
-   /// @param claimid Claim Id.
-   /// @param _value number of tokens to be burned
-   /// @param _to User's address.
+    /// @dev Burns tokens used for fraudulent voting against a claim
+    /// @param claimid Claim Id.
+    /// @param _value number of tokens to be burned
+    /// @param _to User's address.
     function burnCAToken(uint claimid , uint _value , address _to) onlyInternal {
          
         td1=NXMTokenData(tokenDataAddress);
@@ -204,9 +195,9 @@ contract NXMToken2{
     /// @dev Allocates tokens against a given address
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
-     function rewardToken(address _to,uint amount)  onlyInternal  {
-      td1 = NXMTokenData(tokenDataAddress);
-      //Add new member where applicable
+    function rewardToken(address _to,uint amount)  onlyInternal  {
+        td1 = NXMTokenData(tokenDataAddress);
+        //Add new member where applicable
         if(td1.getBalanceOf(_to) == 0)
             td1.incMemberCounter();
         // Change total supply and individual balance of user
@@ -217,7 +208,7 @@ contract NXMToken2{
         {
             td1.addInAllMemberArray(_to);
         }
-       // Transfer(0,_to, amount); // notify of the event
+      
         t1=NXMToken(tokenAddress);
         t1.callTransferEvent(0,_to,amount); 
     }
@@ -317,7 +308,6 @@ contract NXMToken2{
         (,amount) = td1.getLockedCN_Cover(_to,coverid);
         if (SafeMaths.sub(amount , td1.getDepositCN(coverid,msg.sender)) < _value) throw;           // Check if the sender has enough tokens to deposit
         if (_value<=0) throw;
-        //_value = _value * 10000000000;
         td1.pushInDepositCN_Cover(_to,coverid,_days,_value);
     }
    
@@ -343,7 +333,7 @@ contract NXMToken2{
     function distributeSurplusDistrubution() checkPause
     {
         td1=NXMTokenData(tokenDataAddress);
-        //t1=NXMToken(tokenAddress);
+     
         p1=pool(poolAddress);
 
          // Recheck whether a surplus distribution should be made or not
@@ -387,7 +377,7 @@ contract NXMToken2{
                 
          }
     }
-
+    /// @dev Pays out surplus distribution calculated for a given address.
     function claimSDPayout(address _add) checkPause
     {
         td1=NXMTokenData(tokenDataAddress);
@@ -411,10 +401,7 @@ contract NXMToken2{
     }
 
 
- //NXMToken3
-
- 
-  /// @dev Calculates the surplus distribution weight of an NXM member. 
+    /// @dev Calculates the surplus distribution weight of an NXM member. 
     /// @param _add User's address.
     /// @return weight Weight represents the proportion of surplus distribution a member should receive
     function calIndWeightForSD(address _add)  constant returns(uint weight)  
@@ -467,9 +454,9 @@ contract NXMToken2{
         uint len = td1.getDepositCN_CoverLength(_to,coverid);
         uint vUpto;
         uint amount;
-       for(uint i=0;i<len;i++)
-       {
-           (vUpto,amount) = td1.getDepositCN_Cover_Index(_to,coverid,i);
+        for(uint i=0;i<len;i++)
+        {
+            (vUpto,amount) = td1.getDepositCN_Cover_Index(_to,coverid,i);
             if(vUpto>=now)
             {
                 td1.updateDepositCN_Cover_Index(_to,coverid,i,now,amount);
@@ -477,10 +464,10 @@ contract NXMToken2{
                     break;
             }
 
-       }
+        }
     }
-  /// @dev Calculates the number of tokens to be distributed in a Surplus Distribution  
-  function calSurplusDistributionValue() constant returns(uint finalValue)
+    /// @dev Calculates the number of tokens to be distributed in a Surplus Distribution  
+    function calSurplusDistributionValue() constant returns(uint finalValue)
     {
         p1=pool(poolAddress);
         td1=NXMTokenData(tokenDataAddress);

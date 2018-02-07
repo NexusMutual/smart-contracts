@@ -17,7 +17,6 @@
 pragma solidity 0.4.11;
 import "./pool.sol";
 import "./governanceData.sol";
-//import "./governance.sol";
 import "./master.sol";
 import "./SafeMaths.sol";
 contract governance2 
@@ -26,11 +25,9 @@ contract governance2
   master ms1;
   pool p1;
   governanceData gd1;
-  //governance g1;
   address masterAddress;
   address poolAddress;
   address governanceDataAddress;
- // address governanceAddress;
   function changeMasterAddress(address _add)
   {
     if(masterAddress == 0x000)
@@ -47,7 +44,7 @@ contract governance2
   modifier onlyInternal {
     ms1=master(masterAddress);
     require(ms1.isInternal(msg.sender) == 1);
-     _; 
+    _; 
   }
   modifier onlyOwner{
     ms1=master(masterAddress);
@@ -63,76 +60,83 @@ contract governance2
   {
     poolAddress = _add;
   }
-  // function changeGovernanceAddress(address _to) onlyInternal
-  // {
-  //   governanceAddress = _to;
-  // }
-    function changeProposalStatus(uint id)
-    {
-        gd1=governanceData(governanceDataAddress);
-        if(gd1.getProposalOwner(id) != msg.sender || gd1.getProposalStatus(id)!=0) throw;
-        //uint time= now;
+  
+  function changeProposalStatus(uint id)
+  {
+      gd1=governanceData(governanceDataAddress);
+      if(gd1.getProposalOwner(id) != msg.sender || gd1.getProposalStatus(id)!=0) throw;
+  
         gd1.pushInProposalStatus(id,1);
         gd1.updateProposalStatus(id,1);
         gd1.updateProposalDateUpd(id);
         p1=pool(poolAddress);
         p1.closeProposalOraclise(id,gd1.getClosingTime());
 
-    }
-    function removeAB(address memRem)
+  }
+    /// @dev Remove a specified address from the advisory board.
+  function removeAB(address memRem)
+  {
+    ms1=master(masterAddress);
+    if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
+    gd1=governanceData(governanceDataAddress);
+    if(gd1.isAB(memRem) == 0) throw;
+    gd1.removeAB(memRem);
+    gd1.addMemberStatusUpdate(memRem,0,now);
+  }
+  /// @dev Edit the short and long description of given proposal id.
+  function editProposal(uint id , string sd, string ld) 
+  {
+    gd1 = governanceData(governanceDataAddress);
+    if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
     {
-       ms1=master(masterAddress);
-       if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
-        gd1=governanceData(governanceDataAddress);
-        if(gd1.isAB(memRem) == 0) throw;
-        gd1.removeAB(memRem);
-        gd1.addMemberStatusUpdate(memRem,0,now);
+      gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
+      gd1.updateProposal(id,sd,0,ld,SafeMaths.add64(gd1.getProposalVersion(id),1));
+  
     }
-    function editProposal(uint id , string sd, string ld) 
-    {
-      gd1 = governanceData(governanceDataAddress);
-      if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
-      {
-        gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
-        gd1.updateProposal(id,sd,0,ld,SafeMaths.add64(gd1.getProposalVersion(id),1));
-            //gd1.unCategoriseProposal(id);
-      }
-      else
-        throw;
+    else
+      throw;
 
-    }
-    function addProposal(string shortDesc , string longDesc , address[] _effect , uint[] value , uint16 cat,bytes16[] options)
+  }
+  /// @dev Adds proposal details.
+  /// @param shortDesc ShortDescription about proposal.
+  /// @param longDesc LongDescription about proposal.
+  /// @param _effect address parameters used for action.
+  /// @param value address parameters used for action.
+  /// @param cat address parameters used for action.
+  /// @param options bytes parameters used for action.
+  function addProposal(string shortDesc , string longDesc , address[] _effect , uint[] value , uint16 cat,bytes16[] options)
+  {
+    gd1 = governanceData(governanceDataAddress);
+        
+    if(cat==2  &&  gd1.checkBurnVoterTokenAgaintClaim(value[0],_effect[0])==1 )
+      throw;
+        
+    uint len = gd1.getAllProLength();
+        
+    gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
+    if((gd1.isAB(msg.sender)==1 && cat==2) || cat==13 || cat==12)
     {
-        gd1 = governanceData(governanceDataAddress);
-        
-       if(cat==2  && gd1.checkBurnVoterTokenAgaintClaim(value[0],_effect[0])==1 )
-          throw;
-        
-        uint len = gd1.getAllProLength();
-        //uint64 time = uint64(now);
-        gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
-        if((gd1.isAB(msg.sender)==1 && cat==2) || cat==13 || cat==12)
-        {
-            gd1.updateCategorizeDetails(len,cat,msg.sender,_effect,value,options);
-            if(cat==2)
-            gd1.changeBurnVoterTokenAgaintClaim(value[0],_effect[0],1);
-            gd1.updateCategorisedProposal(len,1);
-        }
-        gd1.addInUserProposals(len,msg.sender);
-        if(cat==12 || cat==13)
-        {
-            changeProposalStatus(len); //submit the proposal as well
-        }
-        else
-            gd1.pushInProposalStatus(len,0);    
+      gd1.updateCategorizeDetails(len,cat,msg.sender,_effect,value,options);
+      if(cat==2)
+        gd1.changeBurnVoterTokenAgaintClaim(value[0],_effect[0],1);
+          gd1.updateCategorisedProposal(len,1);
     }
-    function categorizeProposal(uint id , uint16 cat , address[] _effect , uint[] val, bytes16[] options)
+    gd1.addInUserProposals(len,msg.sender);
+    if(cat==12 || cat==13)
     {
-        gd1 = governanceData(governanceDataAddress);
-        if(gd1.isAB(msg.sender)==0) throw;
-        if(gd1.isProposalCategorised(id)==1) throw;
-            gd1.updateCategorizeDetails(id,cat,msg.sender,_effect,val,options);
-        
-        gd1.updateCategorisedProposal(id,1);
+      changeProposalStatus(len); //submit the proposal as well
     }
+    else
+      gd1.pushInProposalStatus(len,0);    
+  }
+  ///@dev Sets category for a proposal.
+  function categorizeProposal(uint id , uint16 cat , address[] _effect , uint[] val, bytes16[] options)
+  {
+    gd1 = governanceData(governanceDataAddress);
+    if(gd1.isAB(msg.sender)==0) throw;
+    if(gd1.isProposalCategorised(id)==1) throw;
+    gd1.updateCategorizeDetails(id,cat,msg.sender,_effect,val,options);
+        
+    gd1.updateCategorisedProposal(id,1);
+  }
 }

@@ -76,10 +76,9 @@ contract NXMToken {
         mcrAddress = _to;
         t2=NXMToken2(nxmtoken2Address);
         t2.changeMCRAddress(_to);
-        // t3=NXMToken3(nxmtoken3Address);
-        //t3.changeMCRAddress(_to);
+        
     }
-     function changeToken2Address(address _to) onlyInternal
+    function changeToken2Address(address _to) onlyInternal
     {
         nxmtoken2Address = _to;
     }
@@ -90,7 +89,6 @@ contract NXMToken {
         td1 = NXMTokenData(tokenDataAddress);
         t2=NXMToken2(nxmtoken2Address);
         t2.changeTokenDataAddress(_add);
-        //t3=NXMToken3(nxmtoken3Address);
       
     }
 
@@ -125,7 +123,7 @@ contract NXMToken {
         td1 = NXMTokenData(tokenDataAddress);
         _decimals=td1.decimals();
     }
-   /// @dev Gets the address of a member using index.
+    /// @dev Gets the address of a member using index.
     function allMembers(uint i)constant returns(address _add)
     {
         td1 = NXMTokenData(tokenDataAddress);
@@ -214,7 +212,6 @@ contract NXMToken {
     function getAvailableCAToken() constant returns (uint sum)
     {
         td1 = NXMTokenData(tokenDataAddress);
-        // sum=td1.getAvailableCAToken(msg.sender);
         sum=0;uint validUpto;uint amount;
         address _of=msg.sender;
         //Tokens locked for at least a specified minimum lock period can be used for voting
@@ -336,7 +333,7 @@ contract NXMToken {
         if(m1.calculateTokenPrice("ETH")>0)
         {
             uint256 amount = SafeMaths.div((SafeMaths.mul(value,1000000000000000000)),m1.calculateTokenPrice("ETH"));
-        //uint256 amount=value/m1.calculateTokenPrice("ETH");  // number of tokens to be allocated
+      
             td1.changePoolFundValue("ETH",SafeMaths.add(td1.getPoolFundValue("ETH"),value));
             t2=NXMToken2(nxmtoken2Address);  
         // Allocate tokens         
@@ -344,9 +341,9 @@ contract NXMToken {
         }
     }
    
-   /// @dev Gets the Token price in a given currency
-   /// @param curr Currency name.
-   /// @return price Token Price.
+    /// @dev Gets the Token price in a given currency
+    /// @param curr Currency name.
+    /// @return price Token Price.
     function getTokenPrice(bytes4 curr) constant returns(uint price)
     {
         m1=MCR(mcrAddress);
@@ -438,5 +435,3 @@ contract NXMToken {
     
 
 }
-
-                                                                                                                                                                     

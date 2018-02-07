@@ -349,10 +349,16 @@ contract claims{
         
                 
     }
+
+    function setClaimStatus(uint claimid,uint8 stat) onlyInternal 
+    {
+        setClaimStatusInternal(claimid,stat);
+    }
+    
     /// @dev Changes the status of an existing claim id, based on current status and current conditions of the system
     /// @param claimid Claim Id.
     /// @param stat status number.
-    function setClaimStatus(uint claimid,uint8 stat) onlyInternal
+    function setClaimStatusInternal(uint claimid,uint8 stat) internal
     {
         cr1=claims_Reward(claims_rewardAddress);
         c1=claimsData(claimsDataAddress);

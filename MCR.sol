@@ -127,7 +127,7 @@ contract MCR
     function addCurrency(bytes4 curr) checkPause
     {
         ms1=master(masterAddress);
-       if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
+        if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
         md1 = MCRData(MCRDataAddress);
         md1.addCurrency(curr);
         
@@ -226,7 +226,7 @@ contract MCR
                 lowerThreshold=SafeMaths.div(VTP,lower);
             }
         }    
-         if(len==1 || ((SafeMaths.div(mcrP,100))>=lowerThreshold && (SafeMaths.div(mcrP,100))<=upperThreshold))
+        if(len==1 || ((SafeMaths.div(mcrP,100))>=lowerThreshold && (SafeMaths.div(mcrP,100))<=upperThreshold))
         {            
             md1.pushMCRData(mcrP,mcrE,vF,now,block.number);
             for(uint i=0;i<curr.length;i++)
@@ -251,7 +251,7 @@ contract MCR
         t2.distributeSurplusDistrubution();
         
     }
-   
+    
     function addLastMCRData(uint Date) checkPause
     {
         md1 = MCRData(MCRDataAddress);
@@ -284,7 +284,7 @@ contract MCR
         }
     }
 
-     function getAllSumAssurance() constant returns(uint amount1)
+    function getAllSumAssurance() constant returns(uint amount1)
     {
         md1 = MCRData(MCRDataAddress);
         qd1=quotationData(quotationDataAddress);

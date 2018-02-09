@@ -13,7 +13,8 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-    
+// This contract is now deprecated, merged with quotation2
+// due to increase in gas limits
 
 pragma solidity ^0.4.8;
 

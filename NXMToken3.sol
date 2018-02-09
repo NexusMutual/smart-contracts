@@ -15,6 +15,8 @@
 
 
 
+// This contract is now deprecated, merged with NXMToken and NXMToken1
+// due to increase in gas limits
 
 pragma solidity ^0.4.8;
 import "./quotation.sol";

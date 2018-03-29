@@ -248,7 +248,7 @@ contract MCR
             callOracliseForMCRFail(onlyDate);
         }
         // Initiate Surplus Distribution
-        t2.distributeSurplusDistrubution();
+        // t2.distributeSurplusDistrubution();
         
     }
     
@@ -278,9 +278,7 @@ contract MCR
             changeAvgRateOfCurr();
             // Oraclize call for next MCR calculation
             callOracliseForMCR();
-            t2.distributeSurplusDistrubution();
-            
-            
+            // t2.distributeSurplusDistrubution();
         }
     }
 

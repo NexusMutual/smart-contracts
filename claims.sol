@@ -83,11 +83,11 @@ contract claims{
         require(ms1.isInternal(msg.sender) == 1);
         _; 
     }
-    modifier checkPause
+    modifier isMemberAndcheckPause
     {
-         ms1=master(masterAddress);
-         require(ms1.isPause()==0);
-         _;
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
+        _;
     }
     function changeTokenDataAddress(address _add) onlyInternal
     {
@@ -491,7 +491,7 @@ contract claims{
     /// @param claimid  claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
     /// @param tokens number of CAtokens a voter wants to use for the claim assessment.These tokens are booked for a specified period for time and hence cannot be used to cst another vote for the specified period
-    function submitCAVote(uint claimid,int8 verdict,uint tokens) checkPause
+    function submitCAVote(uint claimid,int8 verdict,uint tokens) isMemberAndcheckPause
     {  
         c1=claimsData(claimsDataAddress);
         if(checkVoteClosing(claimid) == 1) throw;
@@ -517,7 +517,7 @@ contract claims{
     /// @dev Escalates a specified claim id. If a claim is denied by the Claim Assessors, the owner of that claim can Escalate the Claim to a member vote.
     /// @param coverId Cover Id associated with claim to be escalated.
     /// @param claimId Claim Id.
-    function escalateClaim(uint coverId , uint claimId) checkPause
+    function escalateClaim(uint coverId , uint claimId) isMemberAndcheckPause
     {  
         tc2 = NXMToken2(token2Address);
         q1=quotation2(quotation2Address);
@@ -540,7 +540,7 @@ contract claims{
     /// @param claimid Selected claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
     /// @param tokens Number of tokens used to case a vote
-    function submitMemberVote(uint claimid,int8 verdict,uint tokens) checkPause
+    function submitMemberVote(uint claimid,int8 verdict,uint tokens) isMemberAndcheckPause
     {
         c1=claimsData(claimsDataAddress);
         if(checkVoteClosing(claimid) == 1) throw;

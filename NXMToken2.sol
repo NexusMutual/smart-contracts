@@ -23,6 +23,7 @@ import "./MCR.sol";
 import "./NXMToken.sol";
 import "./master.sol";
 import "./SafeMaths.sol";
+import "./MemberRoles.sol";
 contract NXMToken2{
         using SafeMaths for uint;
 
@@ -34,12 +35,14 @@ contract NXMToken2{
     pool p1;
     MCR m1;
     NXMToken t1;
+    MemberRoles mr1;
     address tokenAddress;
     address quotationDataAddress;
     address quotation2Address;
     address tokenDataAddress;
     address poolAddress;
     address mcrAddress;
+    address memberAddress;
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -65,6 +68,12 @@ contract NXMToken2{
         require(ms1.isPause()==0);
         _;
     }
+    modifier isMemberAndcheckPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
+        _;
+    }
     function changeTokenAddress(address _add) onlyInternal
     {
 
@@ -73,7 +82,6 @@ contract NXMToken2{
     } 
     function changeQuotationDataAddress(address _add) onlyInternal
     {
-
         quotationDataAddress = _add;
         qd1=quotationData(quotationDataAddress);
     } 
@@ -97,6 +105,11 @@ contract NXMToken2{
     {
         mcrAddress = _add;
         m1=MCR(mcrAddress);
+    }
+    function changeMemberRolesAddress(address _add) onlyInternal
+    {
+       memberAddress = _add;
+       mr1=MemberRoles(memberAddress);
     }
     /// @dev Locks tokens against a cover.     
     /// @param premiumCalculated Premium of quotation.
@@ -196,6 +209,8 @@ contract NXMToken2{
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
     function rewardToken(address _to,uint amount)  onlyInternal  {
+        ms1=master(masterAddress);
+        require(ms1.isMember(_to)==true);
         td1 = NXMTokenData(tokenDataAddress);
         //Add new member where applicable
         if(td1.getBalanceOf(_to) == 0)
@@ -258,14 +273,12 @@ contract NXMToken2{
     function burnCNToken(uint coverid) onlyInternal {
         
         td1=NXMTokenData(tokenDataAddress);
-        q1=quotation2(quotation2Address); 
         qd1=quotationData(quotationDataAddress);
-        uint quoteId = q1.getQuoteId(coverid);
+        uint quoteId = qd1.getCoverQuoteid(coverid);
         bytes4 curr= qd1.getQuotationCurrency(quoteId);
-        address _to = q1.getMemberAddress(coverid);
+        address _to = qd1.getQuoteMemberAddress(quoteId);
         uint depositedTokens = td1.getDepositCN(coverid,_to);
         if(depositedTokens <= 0)throw;
-        t1=NXMToken(tokenAddress);
         //Undeposit all tokens locked against the cover
         undepositCN(coverid,1);
         uint validity;
@@ -310,127 +323,11 @@ contract NXMToken2{
         if (_value<=0) throw;
         td1.pushInDepositCN_Cover(_to,coverid,_days,_value);
     }
-   
-    /// @dev Checks whether a Surplus distribution should be initiated or not.
-    /// @return check 1 if Surplus Distribution can be started, 0 otherwise. 
-    function checkForSurplusDistrubution() constant returns(uint8 check)
-    {
-        td1=NXMTokenData(tokenDataAddress);
-        m1=MCR(mcrAddress);
-        check=0;
-        //LAst MCR%>180% and time since last Surplus Distribution>SD Distribution Time
-        if(td1.getSDLength()==0)
-        {   
-            if(m1.getlastMCRPerc() >= 18000)
-                check=1;
-        }
-        else if((SafeMaths.add(td1.getLastDistributionTime() , td1.getsdDistributionTime()) < now)&&( m1.getlastMCRPerc() >= 18000))
-            check=1;
-        
-    }
-    /// @dev Performs surplus distribution
-    /// @dev Calculates the weight of distribution for every members (have tokens locked for SD) and sends them the amount as per their weight value.
-    function distributeSurplusDistrubution() checkPause
-    {
-        td1=NXMTokenData(tokenDataAddress);
-     
-        p1=pool(poolAddress);
-
-         // Recheck whether a surplus distribution should be made or not
-         if(checkForSurplusDistrubution()==1)
-         {
-            uint index = td1.getSDLength();
-            // Calculate amount to be distributed
-            uint distValue = calSurplusDistributionValue();
-            uint totalWeight =0;
-            address _add;
-            uint len = td1.getAllMembersLength();
-            uint i;
-           
-            for(i=0;i<len;i++)
-            {
-                 _add = td1.getMember_index(i);
-                 // Calculate SD weight for each member
-                uint indWeight=calIndWeightForSD(_add);
-                
-                if(indWeight > 0)
-                {
-                    td1.addInSDMemberPayHistory(index,_add,indWeight,0);
-                    if(td1.getMemberClaimSDId(_add)==0)
-                    {
-                        td1.addMemberClaimSDId(_add,0);
-                    }
-                }
-                else
-                {
-                    td1.addInSDMemberPayHistory(index,_add,0,1);
-                }
-                    
-                totalWeight = SafeMaths.add(totalWeight,indWeight);
-
-            }
-
-            if(td1.getSDLength()==0)
-                td1.pushInSDHistory(distValue,block.number,distValue,totalWeight);
-            else
-                td1.pushInSDHistory(distValue,block.number,SafeMaths.add(distValue , td1.getTotalSDTillNow()),totalWeight);
-                
-         }
-    }
-    /// @dev Pays out surplus distribution calculated for a given address.
-    function claimSDPayout(address _add) checkPause
-    {
-        td1=NXMTokenData(tokenDataAddress);
-        p1=pool(poolAddress);
-        uint amount=td1.getTotalSDAmountByAddress(_add);
-        uint start=td1.getMemberClaimSDId(_add);
-        uint end=td1.getSDLength();
-        if(amount > 0)
-        { 
-            // Initiate SD payout
-            bool succ = p1.SDPayout(amount,_add);
-            if(succ == true)
-            {
-                for(uint i=start;i<end;i++)
-                {
-                    td1.confirmSDDistribution(i,_add);
-                }   
-                td1.addMemberClaimSDId(_add,end);
-            }
-        }
-    }
-
-
-    /// @dev Calculates the surplus distribution weight of an NXM member. 
-    /// @param _add User's address.
-    /// @return weight Weight represents the proportion of surplus distribution a member should receive
-    function calIndWeightForSD(address _add)  constant returns(uint weight)  
-    {
-        td1=NXMTokenData(tokenDataAddress);
-        weight =0;
-        if(td1.checkInallMemberArray(_add)==1)
-        {
-            //Get number of tokens locked for SD
-            uint len1 = td1.getLockedSDLength(_add);
-            uint vUpto;
-            uint amount;
-            for(uint j=0;j<len1;j++)
-            {
-                (vUpto,amount) = td1.getLockedSD_index(_add,j);
-                if(vUpto > now)
-                {
-                    //Calculate weight based on number of tokens locked under SD and the time period for which they are valid
-                    weight =SafeMaths.add(weight , SafeMaths.div((SafeMaths.mul((SafeMaths.sub(vUpto , now)),amount)),1 days));
-                }
-            }
-        }
-    }
-   
     /// @dev Extends validity period of a given number of tokens locked for claims assessment.
     /// @param index  index of exisiting bond.
     /// @param _days number of days for which tokens will be extended.
     /// @param noOfTokens Number of tokens that will get extended. Should be less than or equal to the no.of tokens of selected bond.
-    function extendCA(uint index , uint _days ,uint noOfTokens) checkPause
+    function extendCA(uint index , uint _days ,uint noOfTokens) isMemberAndcheckPause
     {
         td1=NXMTokenData(tokenDataAddress);
         uint vUpto;
@@ -463,105 +360,92 @@ contract NXMToken2{
                 if(all==0)
                     break;
             }
-
         }
     }
-    /// @dev Calculates the number of tokens to be distributed in a Surplus Distribution  
-    function calSurplusDistributionValue() constant returns(uint finalValue)
-    {
-        p1=pool(poolAddress);
-        td1=NXMTokenData(tokenDataAddress);
-        m1=MCR(mcrAddress);
-        uint val1;
-        uint val2;
-        uint val3;
-        uint totalTokens = 0;
-        uint toDistributeValue;
-        uint len = td1.getAllMembersLength();
-        for(uint i=0;i<len;i++)
-        {
-            address _add = td1.getMember_index(i);
-            if(td1.checkInallMemberArray(_add)==1)
-            {
-                uint len1 = td1.getLockedSDLength(_add);
-                uint vUpto;
-                uint amount;
-                for(uint j=0;j<len1;j++)
-                {
-                    (vUpto,amount) = td1.getLockedSD_index(_add,j);
-                    if(vUpto > now)
-                        totalTokens =SafeMaths.add(totalTokens,amount);
-                }
-            }
-        }
-        //val1 = 0.1 ETH per locked Token
-        val1 = SafeMaths.div(totalTokens,10);
-        //val2=5% of last MCR Eth
-        val2 = SafeMaths.mul((SafeMaths.div((SafeMaths.mul(5,m1.getLastMCREtherFull())),100)),10000000000000000);
-        //val3=50% of Total ETH in pool
-        val3=SafeMaths.div((SafeMaths.mul(50,p1.getEtherPoolBalance())),100);
-
-        if(val1 <= val2 && val1 <= val3)
-            toDistributeValue = val1;
-        else if(val2 <= val1 && val2 <= val3)
-            toDistributeValue = val2;
-        else if(val3 <= val1 && val3 <= val2)
-            toDistributeValue = val3;
-
-        finalValue = toDistributeValue;
-    }
+    
     /// @dev Locks a given number of tokens for Claim Assessment.
     /// @param _value number of tokens lock.
     /// @param _days Validity(in days) of tokens.
-    function lockCA(uint _value,uint _days) checkPause
+    function lockCA(uint _value,uint _days) isMemberAndcheckPause
     {
         td1 = NXMTokenData(tokenDataAddress);
-        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceSD(msg.sender)),td1.getBalanceCN(msg.sender)) < _value) throw;// Check if the sender has enough
+        if (SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceCN(msg.sender)) < _value) throw;// Check if the sender has enough
         if (_value<=0) throw;
         td1.lockCA(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
     }
-    /// @dev Locks a given number of tokens for Surplus Distribution.
-    /// @param _value number of tokens lock.
-    /// @param _days Validity(in days) of tokens.
-    function lockSD(uint _value,uint _days) checkPause
+
+    // Arjun - Data Begin
+    /// @dev Burns tokens locked against a Smart Contract Cover, called when a claim submitted against this cover is accepted.
+    /// @param coverid Cover Id.
+    function burnStakerLockedToken(uint quoteId,uint coverid,bytes4 curr,uint SA) onlyInternal 
     {
-        td1 = NXMTokenData(tokenDataAddress);
-        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceSD(msg.sender)),td1.getBalanceCN(msg.sender)) < _value) throw;  // Check if the sender has enough
-        if (_value<=0) throw;
-        td1.lockSD(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
+        td1=NXMTokenData(tokenDataAddress);
+        qd1=quotationData(quotationDataAddress);
+        t1=NXMToken(tokenAddress);
+        address _scAddress = qd1.getAddressParamsByQuoteIdAndIndex(quoteId,0);
+        m1=MCR(mcrAddress);
+        uint tokenPrice=m1.calculateTokenPrice(curr);
+        SA=SafeMaths.mul(SA,10**18);
+        uint burnNXMAmount=SafeMaths.mul(SafeMaths.div(SA,tokenPrice),10**18);
+        for(uint i=0; i<td1.getTotalStakerAgainstScAddress(_scAddress);i++)
+        {
+            if(burnNXMAmount>0){
+                uint scAddressIndex;
+                (,scAddressIndex) = td1.getScAddressIndexByScAddressAndIndex(_scAddress,i);
+                address _of;uint dateAdd;
+                (,_of,,,,dateAdd)=td1.getStakeDetails(scAddressIndex);
+                uint stakerLockedNXM = t1.getLockedNXMTokenOfStaker(_scAddress,scAddressIndex);
+                if(stakerLockedNXM > 0){
+                    if(stakerLockedNXM>=burnNXMAmount){
+                        burnStakerLockedToken1(_of,coverid,burnNXMAmount,scAddressIndex);
+                        break;
+                    }
+                    else{
+                        burnStakerLockedToken1(_of,coverid,stakerLockedNXM,scAddressIndex);
+                        burnNXMAmount=SafeMaths.sub(burnNXMAmount,stakerLockedNXM);
+                    }
+                }
+            }
+            else
+                break;
+        }
+    }
+
+    function burnStakerLockedToken1(address _of,uint _coverid,uint _burnNXMAmount, uint _stakerIndex) internal{
+        td1=NXMTokenData(tokenDataAddress);
+        t1=NXMToken(tokenAddress);
+        t1.callBurnEvent(_of,"Burn", _coverid,_burnNXMAmount);
+        td1.updateBurnedAmount(_stakerIndex,_burnNXMAmount);
+        // Update NXM token balance against member address and remove member in case overall balance=0
+        td1.changeBalanceOf(_of,SafeMaths.sub(td1.getBalanceOf(_of) , _burnNXMAmount));
+        if(td1.getBalanceOf(_of)==0)
+            td1.decMemberCounter();
+        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , _burnNXMAmount));
         
+        t1.callTransferEvent(_of, 0, _burnNXMAmount); // notify of the event
     }
-    
-    /// @dev Extends the lock period of member tokens, as a punishment, if a user's decision is against of final decision of claim.
-    /// @dev _to User's address
-    /// @dev _days Extended no. of days.
-    /// @dev token Number of tokens that will get extended.
-    function lockSDWithAddress(address _to , uint _days , uint tokens) onlyInternal
+
+    function addStake(address _scAddress, uint _amount) isMemberAndcheckPause 
     {
-        td1 = NXMTokenData(tokenDataAddress);
-        uint sum=0;
-        tokens = SafeMaths.mul(tokens , 10000000000);
-        uint len = td1.getLockedSDLength(_to);
-        uint vUpto;
-        uint amount;
-        for(uint i=0 ; i < len ;i++ )
-        {
-            (vUpto,amount) = td1.getLockedSD_index(_to,i);
-            if( (SafeMaths.add(now ,SafeMaths.mul(3,1 days )))< vUpto )
-                sum=SafeMaths.add(sum,amount);
-        }
-        if(sum<tokens)
-        {
-            uint tokensToLock = SafeMaths.sub(tokens,sum);
-            uint availableTokens = SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(_to),td1.getBalanceCAWithAddress(_to)),td1.getBalanceSD(_to)),td1.getBalanceCN(_to)) ;
-            if(availableTokens >= tokensToLock)
-            {
-                td1.lockSD(_to,(SafeMaths.add(now,SafeMaths.mul(_days,1 days))),tokensToLock);
-            }
-            else if(availableTokens > 0)
-            {
-                td1.lockSD(_to,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),availableTokens);
-            }
-        }
+        td1=NXMTokenData(tokenDataAddress);
+        t1=NXMToken(tokenAddress);
+        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceCN(msg.sender)),t1.getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _amount) throw;           // Check if the sender has enough
+        td1.addStake(msg.sender,_scAddress, _amount);
     }
+
+    function payJoiningFee() payable{
+        td1=NXMTokenData(tokenDataAddress);
+        mr1=MemberRoles(memberAddress);
+        require(msg.value==td1.joiningFee());
+        address _add = td1.joiningFeeAddress();
+        require(_add!=0x0000);
+        bool succ = _add.send(msg.value);                
+        if(succ == true)
+        mr1.updateMemberRole(msg.sender,0,1);
+    }
+    function setJoiningFeeAddress(address _add) isMemberAndcheckPause {
+        td1=NXMTokenData(tokenDataAddress);
+        td1.setJoiningFeeAddress(_add);
+    }
+    // Arjun - Data End
 }

@@ -36,6 +36,7 @@ import "./pool2.sol";
 import "./SafeMaths.sol";
 import "./pool3.sol";
 import "./governance2.sol";
+import "./MemberRoles.sol";
 contract master
 {
     using SafeMaths for uint;
@@ -80,8 +81,9 @@ contract master
     address  faucetGBPAddress;
     address  masters2Address;
     address  masterAddress;
-    address pool2Address;
-    address governance2Address;
+    address  pool2Address;
+    address  governance2Address;
+    address  memberAddress;
     claimsData cd1;
     //date 21/11/2017
     address zeroExExchangeAddress;
@@ -105,7 +107,8 @@ contract master
     MCRData md1;
     pool2 p2;
     pool3 p3;
-    
+    MemberRoles mr1;
+
     address public owner;
     uint pauseTime;
     modifier onlyOwner
@@ -186,6 +189,7 @@ contract master
        MCRAddress =allContractVersions[version][24].contractAddress;
        pool2Address=allContractVersions[version][18].contractAddress;
        pool3Address=allContractVersions[version][25].contractAddress;
+       memberAddress=allContractVersions[version][26].contractAddress;
    }
     /// @dev Links all contracts to master.sol by passing address of Master contract to the functions of other contracts.
    function changeMasterAddress(address _add) onlyOwner
@@ -242,135 +246,146 @@ contract master
        g2=governance2(governance2Address);
        g2.changeMasterAddress(_add);
 
+       mr1=MemberRoles(memberAddress);
+       mr1.changeMasterAddress(_add);
+
     }
     /// @dev Link contracts to one another.
    function changeOtherAddress() onlyInternal
    {   
         
-        q2=quotation2(quotation2Address);
-        q2.changeTokenAddress(NXMTokenAddress);
-        q2.changePoolAddress(poolAddress);
-        q2.changeQuotationDataAddress(quoteDataAddress);
-        q2.changeMCRAddress(MCRAddress);
-        q2.changeToken2Address(NXMToken2Address);
-        
-        
+      q2=quotation2(quotation2Address);
+      q2.changeTokenAddress(NXMTokenAddress);
+      q2.changePoolAddress(poolAddress);
+      q2.changeQuotationDataAddress(quoteDataAddress);
+      q2.changeMCRAddress(MCRAddress);
+      // q2.changeToken2Address(NXMToken2Address);
+      // Arjun - Data Begin
+      q2.changeTokenDataAddress(tokenDataAddress);
+      // Arjun - Data End
 
-        t1=NXMToken(NXMTokenAddress);
-        t1.changeToken2Address(NXMToken2Address);
-        t1.changeQuoteAddress(quotation2Address);
-        t1.changeMCRAddress(MCRAddress);
-        t1.changeTokenDataAddress(tokenDataAddress);
-        
 
-        t2=NXMToken2(NXMToken2Address);        
-        t2.changeTokenAddress(NXMTokenAddress);
-        t2.changePoolAddress(poolAddress);
-        t2.changeQuotationDataAddress(quoteDataAddress);
+      t1=NXMToken(NXMTokenAddress);
+      t1.changeToken2Address(NXMToken2Address);
+      t1.changeQuoteAddress(quotation2Address);
+      t1.changeMCRAddress(MCRAddress);
+      t1.changeTokenDataAddress(tokenDataAddress);
 
-        c1=claims(claimsAddress);
-        c1.changeTokenAddress(NXMTokenAddress);
-        c1.changeQuotationAddress(quotation2Address);
-        c1.changeClaimRewardAddress(claims_RewardAddress);
-        c1.changePoolAddress(poolAddress);
-        c1.changeGovernanceAddress(governanceAddress);
-        c1.changeClaimDataAddress(claimDataAddress);
-        c1.changeToken2Address(NXMToken2Address);
-        c1.changeTokenDataAddress(tokenDataAddress);
-        c1.changeFiatFaucetAddress(fiatFaucetAddress);
-        c1.changeMCRDataAddress(mcrDataAddress);
-        c1.changePoolDataAddress(poolDataAddress);
-        c1.changePool2Address(pool2Address);
-        c1.changePool3Address(pool3Address);
 
-        cr1=claims_Reward(claims_RewardAddress);
-        cr1.changeTokenAddress(NXMTokenAddress);
-        cr1.changeQuotationAddress(quotation2Address);
-        cr1.changeClaimsAddress(claimsAddress);
-        cr1.changePoolAddress(poolAddress);
-        cr1.changeToken2Address(NXMToken2Address);
-        cr1.changeClaimDataAddress(claimDataAddress);
-        cr1.changePool2Address(pool2Address);
-        cr1.changePoolDataAddress(poolDataAddress);
-        cr1.changeTokenDataAddress(tokenDataAddress);
-        
-        p1=pool(poolAddress);
-        p1.changeTokenAddress(NXMTokenAddress);
-        p1.changeClaimAddress(claimsAddress);
-        p1.changeFiatFaucetAddress(fiatFaucetAddress);
-        p1.changeGovernanceAddress(governanceAddress);
-        p1.changePoolAddress(poolAddress);
-        p1.changeClaimRewardAddress(claims_RewardAddress);
-        p1.changePoolDataAddress(poolDataAddress);
-        p1.changeQuotation2Address(quotation2Address);
-        p1.changeMCRAddress(MCRAddress);
-        p1.changePool2Address(pool2Address);
+      t2=NXMToken2(NXMToken2Address);        
+      t2.changeTokenAddress(NXMTokenAddress);
+      t2.changePoolAddress(poolAddress);
+      t2.changeQuotationDataAddress(quoteDataAddress);
+      t2.changeMemberRolesAddress(memberAddress);
 
-        g1=governance(governanceAddress);
-        g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress,poolDataAddress,pool3Address);
-        g1.changeGovernanceDataAddress(governanceDataAddress);
-        g1.changeToken2Address(NXMToken2Address);
-        g1.changeTokenDataAddress(tokenDataAddress);
-        
-        m1=MCR(MCRAddress);
-        m1.changeTokenAddress(NXMTokenAddress);
-        m1.changePoolAddress(poolAddress);
-        m1.changeFiatFaucetAddress(fiatFaucetAddress);
-        m1.changeMCRDataAddress(mcrDataAddress);
-        m1.changeToken2Address(NXMToken2Address);
-        m1.changeTokenDataAddress(tokenDataAddress);
-        m1.changeQuotationDataAddress(quoteDataAddress);
+      c1=claims(claimsAddress);
+      c1.changeTokenAddress(NXMTokenAddress);
+      c1.changeQuotationAddress(quotation2Address);
+      c1.changeClaimRewardAddress(claims_RewardAddress);
+      c1.changePoolAddress(poolAddress);
+      c1.changeGovernanceAddress(governanceAddress);
+      c1.changeClaimDataAddress(claimDataAddress);
+      c1.changeToken2Address(NXMToken2Address);
+      c1.changeTokenDataAddress(tokenDataAddress);
+      c1.changeFiatFaucetAddress(fiatFaucetAddress);
+      c1.changeMCRDataAddress(mcrDataAddress);
+      c1.changePoolDataAddress(poolDataAddress);
+      c1.changePool2Address(pool2Address);
+      c1.changePool3Address(pool3Address);
 
-        s1=SupplyToken(faucetUSDAddress);
-        s1.changePoolAddress(poolAddress);
-        s1.changeFiatTokenAddress(fiatFaucetAddress);
+      cr1=claims_Reward(claims_RewardAddress);
+      cr1.changeTokenAddress(NXMTokenAddress);
+      // cr1.changeQuotationAddress(quotation2Address);
+      cr1.changeQuotationDataAddress(quoteDataAddress);
+      cr1.changeClaimsAddress(claimsAddress);
+      cr1.changePoolAddress(poolAddress);
+      cr1.changeToken2Address(NXMToken2Address);
+      cr1.changeClaimDataAddress(claimDataAddress);
+      cr1.changePool2Address(pool2Address);
+      cr1.changePoolDataAddress(poolDataAddress);
+      cr1.changeTokenDataAddress(tokenDataAddress);
 
-        s1=SupplyToken(faucetEURAddress);
-        s1.changePoolAddress(poolAddress);
-        s1.changeFiatTokenAddress(fiatFaucetAddress);
+      p1=pool(poolAddress);
+      p1.changeTokenAddress(NXMTokenAddress);
+      p1.changeClaimAddress(claimsAddress);
+      p1.changeFiatFaucetAddress(fiatFaucetAddress);
+      p1.changeGovernanceAddress(governanceAddress);
+      p1.changePoolAddress(poolAddress);
+      p1.changeClaimRewardAddress(claims_RewardAddress);
+      p1.changePoolDataAddress(poolDataAddress);
+      p1.changeQuotation2Address(quotation2Address);
+      p1.changeMCRAddress(MCRAddress);
+      p1.changePool2Address(pool2Address);
 
-        s1=SupplyToken(faucetGBPAddress);
-        s1.changePoolAddress(poolAddress);
-        s1.changeFiatTokenAddress(fiatFaucetAddress);
+      g1=governance(governanceAddress);
+      g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress,poolDataAddress,pool3Address);
+      g1.changeGovernanceDataAddress(governanceDataAddress);
+      g1.changeToken2Address(NXMToken2Address);
+      g1.changeTokenDataAddress(tokenDataAddress);
 
-        f1=fiatFaucet(fiatFaucetAddress);
-        f1.changeQuotationAddress(quotation2Address);
-        f1.changeTokenAddress(NXMTokenAddress);
-        f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
-        
-        m2=masters2(masters2Address);
-        m2.changePoolAddress(poolAddress);
-        m2.changeClaimsAddress(claimsAddress);
-        m2.changeClaimRewardAddress(claims_RewardAddress);
-        m2.changeGovernanceAddress(governanceAddress);
-        m2.changeClaimDataAddress(claimDataAddress);
-        m2.changeMCRAddress(MCRAddress); 
-        m2.changeQuotationDataAddress(quoteDataAddress); 
-        m2.changePoolDataAddress(poolDataAddress); //add in new version
+      m1=MCR(MCRAddress);
+      m1.changeTokenAddress(NXMTokenAddress);
+      m1.changePoolAddress(poolAddress);
+      m1.changeFiatFaucetAddress(fiatFaucetAddress);
+      m1.changeMCRDataAddress(mcrDataAddress);
+      m1.changeToken2Address(NXMToken2Address);
+      m1.changeTokenDataAddress(tokenDataAddress);
+      m1.changeQuotationDataAddress(quoteDataAddress);
 
-        p2=pool2(pool2Address);   
-        p2.changePool3Address(pool3Address);
-        p2.changeGovernanceAddress(governanceAddress);
-        p2.changeClaimRewardAddress(claims_RewardAddress);
-        p2.changePoolDataAddress(poolDataAddress);
-        p2.changeQuotation2Address(quotation2Address);
-        p2.changePoolAddress(poolAddress);
-        p2.changeTokenAddress(NXMTokenAddress);
-        p2.changeClaimAddress(claimsAddress);
-        p2.changeFiatFaucetAddress(fiatFaucetAddress);
-        p2.changeMCRAddress(MCRAddress); 
-        p2.changeMCRDataAddress(mcrDataAddress);        
+      s1=SupplyToken(faucetUSDAddress);
+      s1.changePoolAddress(poolAddress);
+      s1.changeFiatTokenAddress(fiatFaucetAddress);
 
-        p3=pool3(pool3Address);
-        p3.changePoolDataAddress(poolDataAddress);
-        p3.changeFiatFaucetAddress(fiatFaucetAddress);
-        p3.changePoolAddress(poolAddress);
-        p3.changeMCRDataAddress(mcrDataAddress);
-        p3.changePool2Address(pool2Address);
+      s1=SupplyToken(faucetEURAddress);
+      s1.changePoolAddress(poolAddress);
+      s1.changeFiatTokenAddress(fiatFaucetAddress);
 
-       g2=governance2(governance2Address);
-       g2.changeGovernanceDataAddress(governanceDataAddress);
-       g2.changePoolAddress(poolAddress);
+      s1=SupplyToken(faucetGBPAddress);
+      s1.changePoolAddress(poolAddress);
+      s1.changeFiatTokenAddress(fiatFaucetAddress);
+
+      f1=fiatFaucet(fiatFaucetAddress);
+      f1.changeQuotationAddress(quotation2Address);
+      f1.changeTokenAddress(NXMTokenAddress);
+      f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
+
+      m2=masters2(masters2Address);
+      m2.changePoolAddress(poolAddress);
+      m2.changeClaimsAddress(claimsAddress);
+      m2.changeClaimRewardAddress(claims_RewardAddress);
+      m2.changeGovernanceAddress(governanceAddress);
+      m2.changeClaimDataAddress(claimDataAddress);
+      m2.changeMCRAddress(MCRAddress); 
+      m2.changeQuotationDataAddress(quoteDataAddress); 
+      m2.changePoolDataAddress(poolDataAddress); //add in new version
+
+      p2=pool2(pool2Address);   
+      p2.changePool3Address(pool3Address);
+      p2.changeGovernanceAddress(governanceAddress);
+      p2.changeClaimRewardAddress(claims_RewardAddress);
+      p2.changePoolDataAddress(poolDataAddress);
+      p2.changeQuotation2Address(quotation2Address);
+      p2.changePoolAddress(poolAddress);
+      p2.changeTokenAddress(NXMTokenAddress);
+      p2.changeClaimAddress(claimsAddress);
+      p2.changeFiatFaucetAddress(fiatFaucetAddress);
+      p2.changeMCRAddress(MCRAddress); 
+      p2.changeMCRDataAddress(mcrDataAddress);
+      p2.changeToken2Address(NXMToken2Address);
+
+      p3=pool3(pool3Address);
+      p3.changePoolDataAddress(poolDataAddress);
+      p3.changeFiatFaucetAddress(fiatFaucetAddress);
+      p3.changePoolAddress(poolAddress);
+      p3.changeMCRDataAddress(mcrDataAddress);
+      p3.changePool2Address(pool2Address);
+
+      g2=governance2(governance2Address);
+      g2.changeGovernanceDataAddress(governanceDataAddress);
+      g2.changePoolAddress(poolAddress);
+
+      mr1=MemberRoles(memberAddress);
+      mr1.changeToken2Address(NXMToken2Address);
    }
    /// @dev Updates the version of contracts and calls the oraclize query to update UI.
    function switchToRecentVersion() onlyInternal
@@ -445,6 +460,10 @@ contract master
         else
            return 0; //in emergency pause state
    }
+   function isMember(address _add) constant returns (bool)
+   {
+    return mr1.isMember(_add);
+   }
    ///@dev Change owner of the contract.
    function changeOwner(address to) onlyOwner
    {
@@ -513,6 +532,7 @@ contract master
         addRemoveAddress(version,23);
         addRemoveAddress(version,24);
         addRemoveAddress(version,25);
+        addRemoveAddress(version,26);
 
     }
     /// @dev Creates a new version of contract addresses
@@ -555,5 +575,6 @@ contract master
         addContractDetails(versionNo,"NXMToken3",arr[9]);
         addContractDetails(versionNo,"MCR",arr[10]);
         addContractDetails(versionNo,"Pool3",arr[11]);
+        addContractDetails(versionNo,"MemberRoles",arr[12]);
     }
 }

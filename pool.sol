@@ -80,10 +80,10 @@ contract pool is usingOraclize{
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
-    modifier checkPause
+    modifier isMemberAndcheckPause
     {
         ms1=master(masterAddress);
-        require(ms1.isPause()==0);
+        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
         _;
     }
     function changeClaimRewardAddress(address _to) onlyInternal
@@ -212,12 +212,13 @@ contract pool is usingOraclize{
     }
     
     /// @dev Oraclize call to an external oracle for fetching the risk cost for a given latitude and longitude
-    /// @param  lat Latitude of quotation
-    /// @param  long Longitude of quotation
     /// @param  quoteid Quotation Id for which risk cost needs to be fetched
-    function callQuotationOracalise(bytes16 lat , bytes16 long , uint quoteid) onlyInternal
+    // Arjun - Data Begin
+    function callQuotationOracalise(uint quoteid) onlyInternal // bytes16 lat , bytes16 long ,
     {
-        bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getEarthquakeRisk_hash/",strConcat(bytes16ToString(lat),"/","","",""),bytes16ToString(long),"/",uint2str(quoteid)),300000); 
+        // bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getRiskData/",uint2str(quoteid)),300000);  // strConcat(bytes16ToString(lat),"/","","",""),bytes16ToString(long),
+        bytes32 apiid = oraclize_query("URL",strConcat("https://a2.nexusmutual.io/nxmmcr.js/getRiskData/",uint2str(quoteid)),300000);
+        // Arjun - Data End
         saveApiDetails(apiid,"PRE",quoteid);
     }
     /// @dev Oraclize call to Subtract CSA for a given quote id.
@@ -256,7 +257,7 @@ contract pool is usingOraclize{
     /// @dev Begins the funding of the Quotations.
     /// @param fundAmt fund amounts for each selected quotation.
     /// @param quoteId multiple quotations ID that will get funded.
-    function fundQuoteBegin(uint[] fundAmt , uint[] quoteId )checkPause payable 
+    function fundQuoteBegin(uint[] fundAmt , uint[] quoteId )isMemberAndcheckPause payable 
     {
         q2=quotation2(quotation2Address);
         uint sum=0;
@@ -276,7 +277,7 @@ contract pool is usingOraclize{
 
 
     /// @dev User can buy the NXMToken equivalent to the amount paid by the user.
-    function buyTokenBegin()checkPause payable {
+    function buyTokenBegin()isMemberAndcheckPause payable {
 
         t1=NXMToken(tokenAddress);
         uint amount= msg.value;
@@ -358,16 +359,7 @@ contract pool is usingOraclize{
            }
         }
     }
-    /// @dev Sends a surplus distribution amount to an address.
-    /// @param amount Amount to be sent.
-    /// @param _add receiver's address.
-    /// @return success true if payout is successful, false otherwise.
-    function SDPayout(uint amount , address _add) onlyInternal  returns(bool success)
-    {
-        p2=pool2(pool2Address);
-        success = _add.send(amount);
-        p2.callPayoutEvent(_add,"PayoutSD",0,amount);
-    }
+    
 
     /// @dev Transfers back the given amount to the owner.
     function transferBackEther(uint256 amount) onlyOwner  
@@ -450,18 +442,18 @@ contract pool is usingOraclize{
          f1=fiatFaucet(fiatFaucetAddress);
          if(orderType=="ELT")
          {
-              if(makerCurr=="ETH")
-                 makerCurrAddr=pd1.getWETHAddress();
-              else
+            if(makerCurr=="ETH")
+                makerCurrAddr=pd1.getWETHAddress();
+            else
                 makerCurrAddr=f1.getCurrAddress(makerCurr);
-              takerCurrAddr=pd1.getInvestmentAssetAddress(takerCurr);
+            takerCurrAddr=pd1.getInvestmentAssetAddress(takerCurr);
          }
          else if(orderType=="ILT")
          {
-             makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
-             if(takerCurr=="ETH")
-                 takerCurrAddr=pd1.getWETHAddress();
-              else
+            makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
+            if(takerCurr=="ETH")
+                takerCurrAddr=pd1.getWETHAddress();
+            else
                 takerCurrAddr=f1.getCurrAddress(takerCurr);
          }
          else if(orderType=="RBT")
@@ -475,6 +467,4 @@ contract pool is usingOraclize{
          makerFee=pd1.get0xMakerFee();
          takerFee=pd1.get0xTakerFee();
     }
-    
-
 }

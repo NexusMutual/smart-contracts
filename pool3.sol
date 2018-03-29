@@ -286,55 +286,63 @@ contract pool3
     /// @dev Checks Excess or insufficient liquidity trade conditions for a given currency.
     function checkLiquidity(bytes4 curr) onlyInternal returns(uint8 check,uint CABalance)
     {
-        pd1 = poolData1(poolDataAddress);
-        
-        uint64 baseMin;
-        uint64 varMin;
-        (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
-        CABalance=SafeMaths.div(getCurrencyAssetsBalance(curr),(10**18));
-        //Excess liquidity trade
-        if(CABalance>SafeMaths.mul(2,(SafeMaths.add(baseMin,varMin))))
-        {   
-            CheckLiquidity("ELT",CABalance);
-            return (1,CABalance);
-        }   
-        //Insufficient Liquidity trade
-        else if(CABalance<(SafeMaths.add(baseMin,varMin)))
-        {  
-            CheckLiquidity("ILT",CABalance);
-            return (2,CABalance);
-        }    
+        ms1=master(masterAddress);
+        md1=MCRData(MCRDataAddress);
+        if(ms1.isInternal(msg.sender)==1 || md1.isnotarise(msg.sender)==1){
+            pd1 = poolData1(poolDataAddress);
+            
+            uint64 baseMin;
+            uint64 varMin;
+            (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
+            CABalance=SafeMaths.div(getCurrencyAssetsBalance(curr),(10**18));
+            //Excess liquidity trade
+            if(CABalance>SafeMaths.mul(2,(SafeMaths.add(baseMin,varMin))))
+            {   
+                CheckLiquidity("ELT",CABalance);
+                return (1,CABalance);
+            }   
+            //Insufficient Liquidity trade
+            else if(CABalance<(SafeMaths.add(baseMin,varMin)))
+            {  
+                CheckLiquidity("ILT",CABalance);
+                return (2,CABalance);
+            }
+        }
    }
    /// @dev Creates Excess liquidity trading order for a given currency and a given balance.
     function ExcessLiquidityTrading(bytes4 curr,uint CABalance) onlyInternal
     { 
-        pd1 = poolData1(poolDataAddress);
-        
-       if(pd1.getLiquidityOrderStatus(curr,"ELT")==0)
-       {
-            uint64 baseMin;
-            uint64 varMin; 
-            bytes16 MINIACurr;
-            uint64 minIARate;
-            uint makerAmt;uint takerAmt;
-            (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
-             (,,MINIACurr,minIARate)=pd1.getIARankDetailsByDate(pd1.getLastDate());
-             //amount of assest to sell currency asset
-             if(CABalance>=SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2)))
-             {
-                md1=MCRData(MCRDataAddress);
-                makerAmt=(SafeMaths.sub(CABalance, SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2))));//*10**18;
-                //amount of asset to buy investment asset
-                if(md1.getCurr3DaysAvg(curr)>0){
-                takerAmt=SafeMaths.div(( SafeMaths.mul(SafeMaths.mul(minIARate,makerAmt), 10**pd1.getInvestmentAssetDecimals(MINIACurr) )),(md1.getCurr3DaysAvg(curr))) ;      
-                zeroExOrders(curr,makerAmt,takerAmt,"ELT",0); 
-                Liquidity("ELT","0x");
-               }
-             }
-             else
-             {
-                 Liquidity("ELT","Insufficient");
-             }      
+        ms1=master(masterAddress);
+        md1=MCRData(MCRDataAddress);
+        if(ms1.isInternal(msg.sender)==1 || md1.isnotarise(msg.sender)==1){
+            pd1 = poolData1(poolDataAddress);
+            
+            if(pd1.getLiquidityOrderStatus(curr,"ELT")==0)
+            {
+                uint64 baseMin;
+                uint64 varMin; 
+                bytes16 MINIACurr;
+                uint64 minIARate;
+                uint makerAmt;uint takerAmt;
+                (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
+                (,,MINIACurr,minIARate)=pd1.getIARankDetailsByDate(pd1.getLastDate());
+                //amount of assest to sell currency asset
+                if(CABalance>=SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2)))
+                {
+                    md1=MCRData(MCRDataAddress);
+                    makerAmt=(SafeMaths.sub(CABalance, SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2))));//*10**18;
+                    //amount of asset to buy investment asset
+                    if(md1.getCurr3DaysAvg(curr)>0){
+                        takerAmt=SafeMaths.div(( SafeMaths.mul(SafeMaths.mul(minIARate,makerAmt), 10**pd1.getInvestmentAssetDecimals(MINIACurr) )),(md1.getCurr3DaysAvg(curr))) ;      
+                        zeroExOrders(curr,makerAmt,takerAmt,"ELT",0); 
+                        Liquidity("ELT","0x");
+                    }
+                }
+                else
+                {
+                    Liquidity("ELT","Insufficient");
+                }      
+           }
        }
     }
     /// @dev Creates/cancels insufficient liquidity trading order for a given currency and a given balance.

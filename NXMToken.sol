@@ -66,6 +66,12 @@ contract NXMToken {
         require(ms1.isPause()==0);
         _;
     }
+    modifier isMemberAndcheckPause
+    {
+        ms1=master(masterAddress);
+        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
+        _;
+    }
     function NXMToken() 
     {
         owner = msg.sender;
@@ -251,11 +257,13 @@ contract NXMToken {
     /// @dev Transfer Tokens from the sender to the given Receiver's account.
     /// @param _to Receiver's Address.
     /// @param _value Transfer tokens.
-    function transfer(address _to, uint256 _value) checkPause  {
+    function transfer(address _to, uint256 _value) isMemberAndcheckPause  {
+        ms1=master(masterAddress);
+        require(ms1.isMember(_to)==true);
         td1 = NXMTokenData(tokenDataAddress);
         if(_value <= 0) throw;
         //available transfer balance=Total Token balance - Locked tokens
-        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceSD(msg.sender)),td1.getBalanceCN(msg.sender)) < _value) throw;           // Check if the sender has enough
+        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(msg.sender),td1.getBalanceCAWithAddress(msg.sender)),td1.getBalanceCN(msg.sender)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;           // Check if the sender has enough
         if (SafeMaths.add(td1.getBalanceOf(_to) , _value) < td1.getBalanceOf(_to)) throw; // Check for overflows
         td1.changeBalanceOf(msg.sender,SafeMaths.sub(td1.getBalanceOf(msg.sender) , _value));                      // Subtract from the sender
         if(td1.getBalanceOf(msg.sender)==0)
@@ -304,10 +312,12 @@ contract NXMToken {
     /// @param _to Receiver's address.
     /// @param _value Transfer tokens.
      /// @return success true if transfer is a success, false if transfer is a failure.
-    function transferFrom(address _from, address _to, uint256 _value)  checkPause
+    function transferFrom(address _from, address _to, uint256 _value)  isMemberAndcheckPause
     returns (bool success) {
+        ms1=master(masterAddress);
+        require(ms1.isMember(_to)==true);
         td1 = NXMTokenData(tokenDataAddress);
-        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(_from),td1.getBalanceCAWithAddress(_from)),td1.getBalanceSD(_from)),td1.getBalanceCN(_from))< _value) throw;                 // Check if the sender has enough
+        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(_from),td1.getBalanceCAWithAddress(_from)),td1.getBalanceCN(_from)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;                 // Check if the sender has enough
         if (SafeMaths.add(td1.getBalanceOf(_to) , _value) < td1.getBalanceOf(_to)) throw;  // Check for overflows
         if (_value > td1.getAllowance(_from,msg.sender)) throw;     // Check allowance
         td1.changeBalanceOf(_from,SafeMaths.sub(td1.getBalanceOf(_from) , _value));                    // Subtract from the sender
@@ -432,6 +442,104 @@ contract NXMToken {
             }
         }
     }
-    
-
+    // Arjun - Data Begin
+    function getTotalLockedNXMToken(address _scAddress) constant returns (uint _totalLockedNXM)
+    {
+        _totalLockedNXM=0;
+        td1=NXMTokenData(tokenDataAddress);
+        uint stakeAmt; uint dateAdd; uint burnedAmt;
+        uint nowTime=now;
+        for(uint i=0; i<td1.getTotalStakerAgainstScAddress(_scAddress);i++){
+            uint scAddressIndx;
+            (,scAddressIndx) = td1.getScAddressIndexByScAddressAndIndex(_scAddress,i);
+            (,,,stakeAmt,burnedAmt,dateAdd)=td1.getStakeDetails(scAddressIndx);
+            uint16 day1=uint16(SafeMaths.div(SafeMaths.sub(nowTime,dateAdd),1 days));
+            if(stakeAmt>0 && td1.scValidDays()>day1){
+                uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(td1.scValidDays(),day1),100000),td1.scValidDays()),stakeAmt),100000);
+                if(lockedNXM>burnedAmt)
+                _totalLockedNXM = SafeMaths.add(_totalLockedNXM,SafeMaths.sub(lockedNXM,burnedAmt));
+            }
+        } 
+    }
+    function getLockedNXMTokenOfStaker(address _scAddress, uint _scAddressIndex) constant returns (uint _stakerLockedNXM)
+    {
+        _stakerLockedNXM=0;
+        td1=NXMTokenData(tokenDataAddress);
+        address scAddress; uint stakeAmt; uint dateAdd; uint burnedAmt;
+        uint nowTime=now;
+        (,,scAddress,stakeAmt,burnedAmt,dateAdd)=td1.getStakeDetails(_scAddressIndex);
+        uint16 day1=uint16(SafeMaths.div(SafeMaths.sub(nowTime,dateAdd),1 days));
+        if(_scAddress==scAddress && stakeAmt>0 && td1.scValidDays()>day1){
+            uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(td1.scValidDays(),day1),100000),td1.scValidDays()),stakeAmt),100000);
+            if(lockedNXM>burnedAmt)
+                _stakerLockedNXM = SafeMaths.sub(lockedNXM,burnedAmt);
+        }
+    }
+    function getLockedNXMTokenOfStakerByStakerAddress(address _of) constant returns (uint _stakerLockedNXM)
+    {
+        _stakerLockedNXM=0;
+        td1=NXMTokenData(tokenDataAddress);
+        uint stakeAmt; uint dateAdd; uint burnedAmt; 
+        uint nowTime=now;
+        for(uint i=0; i<td1.getTotalScAddressesAgainstStaker(_of);i++){
+            uint stakerIndx;
+            (,stakerIndx) = td1.getStakerIndexByStakerAddAndIndex(_of,i);
+            (,,,stakeAmt,burnedAmt,dateAdd)=td1.getStakeDetails(stakerIndx);
+            uint16 day1=uint16(SafeMaths.div(SafeMaths.sub(nowTime,dateAdd),1 days));
+            if(stakeAmt>0 && td1.scValidDays()>day1){
+               uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(td1.scValidDays(),day1),100000),td1.scValidDays()),stakeAmt),100000);
+               if(lockedNXM>burnedAmt)
+                    _stakerLockedNXM = SafeMaths.add(_stakerLockedNXM,SafeMaths.sub(lockedNXM,burnedAmt));
+            }
+        } 
+    }
+    /// @dev Locks tokens against a cover.     
+    /// @param premiumCalculated Premium of quotation.
+    /// @param quoteCurr Currency type of quotation.
+    /// @param quoteCoverPeriod  Cover Period of quotation.
+    /// @param quoteCoverId Cover id of a quotation.
+    /// @param senderAddress Quotation owner's Ethereum address.
+    /// @return amount Number of tokens that are locked
+    function lockCN ( uint256 premiumCalculated , bytes4 quoteCurr ,uint32 quoteCoverPeriod ,uint quoteCoverId , address senderAddress) onlyInternal returns (uint amount)
+    {
+        t2=NXMToken2(nxmtoken2Address);
+        amount = t2.lockCN(premiumCalculated,quoteCurr,quoteCoverPeriod,quoteCoverId,senderAddress);
+    }
+    function updateStakerCommissions(uint _quoteDateAdd,address _scAddress,uint _premium,bytes4 _curr) onlyInternal
+    {
+        td1=NXMTokenData(tokenDataAddress);
+        t2=NXMToken2(nxmtoken2Address);
+        m1=MCR(mcrAddress);
+        uint tokenPrice=m1.calculateTokenPrice(_curr);
+        _premium=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(_premium,100000),tokenPrice),10**13);
+        uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premium,20),100);
+        for(uint i=0;i<td1.getTotalStakerAgainstScAddress(_scAddress);i++){
+            if(commissionToBePaid>0){
+                uint scAddressIndx;
+                (,scAddressIndx) = td1.getScAddressIndexByScAddressAndIndex(_scAddress,i);
+                uint stakeAmt; address stakerAdd; uint dateAdd;
+                (,stakerAdd,,stakeAmt,,dateAdd)=td1.getStakeDetails(scAddressIndx);
+                if(_quoteDateAdd>dateAdd){
+                    uint totalCommission = SafeMaths.div(SafeMaths.mul(stakeAmt,50),100);
+                    uint commissionPaid;
+                    (,commissionPaid)= td1.getTotalStakeCommission(stakerAdd,_scAddress,scAddressIndx);
+                    if(totalCommission>commissionPaid){
+                        if(totalCommission>=SafeMaths.add(commissionPaid,commissionToBePaid)){
+                            td1.pushStakeCommissions(stakerAdd,_scAddress,scAddressIndx,commissionToBePaid,now);
+                            t2.rewardToken(stakerAdd,commissionToBePaid);
+                            break;
+                        }
+                        else{
+                            td1.pushStakeCommissions(stakerAdd,_scAddress,scAddressIndx,SafeMaths.sub(totalCommission,commissionPaid),now);
+                            t2.rewardToken(stakerAdd,SafeMaths.sub(totalCommission,commissionPaid));
+                            commissionToBePaid=SafeMaths.sub(commissionToBePaid,SafeMaths.sub(totalCommission,commissionPaid));
+                        }
+                    }
+                }
+            }
+            else
+             break;
+        }
+    }
+    // Arjun - Data End
 }

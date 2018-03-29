@@ -32,22 +32,31 @@ contract NXMTokenData {
     uint public memberCounter;
     uint64  bookTime;
     uint64  minVoteLockPeriod;
+    uint16 public scValidDays;
+    uint public joiningFee;
+    address public joiningFeeAddress;
+
+    // Arjun - Data Begin
+    struct stakeCommission
+    {
+        uint commissionAmt;
+        uint commissionDate;
+    }
+    struct stake{
+        address stakerAdd;
+        address scAddress;
+        uint amount;
+        uint burnedAmount;
+        uint dateAdd;
+    }
+    // Arjun - Data End
     struct lockToken
     {
         uint validUpto;
         uint amount;
     }
-    struct SDidAndTime{
-        uint totalAmount;
-        uint time_done;
-        uint blockNumber;
-        uint totalDistTillNow;
-        uint totalWeight;
-    }
-    struct incentive{
-        uint amount;
-        uint8 success;
-    }
+    
+    
     struct allocatedTokens{
         address memberAdd;
         uint tokens;
@@ -55,13 +64,17 @@ contract NXMTokenData {
         uint blockNumber;
     }
 
+    // Arjun - Data Begin
+    // smartContractAddress[] smartContractAddresses;
+    mapping (address => uint[]) scAddress_Stake;
+    stake[] stakeDetails;
+    mapping (address => uint[]) staker_Index;
+    mapping (address => mapping(address => mapping(uint => stakeCommission[]))) staker_SC_Commission;
+    // Arjun - Data End
     allocatedTokens[] allocatedFounderTokens;
-  
-    mapping (address => uint) memberSDClaimId;
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping(uint=>lockToken[])) public depositCN_Cover;
     mapping (address => lockToken[])   lockedCA;
-    mapping (address => lockToken[])  lockedSD;
     mapping (address => lockToken[])  lockedCN;
     mapping (address => lockToken[])  bookedCA;
     mapping (address => mapping(uint => lockToken)) public lockedCN_Cover;
@@ -73,11 +86,7 @@ contract NXMTokenData {
     mapping (address => mapping (uint => lockToken[])) public burnCAToken; 
     mapping (bytes4 => uint) public poolFundValue;
     address[] public allMembers;
-    mapping (address => uint) isInallMembers; 
-    SDidAndTime[] SDHistory;
-    mapping(uint=>mapping(address=>incentive)) SDMemberPayHistory;    
-    uint64 lastSDDate;
-    uint64 sdDistTime;
+    mapping (address => uint) isInallMembers;    
     uint public LockTokenTimeAfterCoverExp;
 
     function NXMTokenData(
@@ -95,8 +104,11 @@ contract NXMTokenData {
         decimals = decimalUnits;
         bookTime = SafeMaths.mul64(SafeMaths.mul64(12,60),60);
         minVoteLockPeriod = SafeMaths.mul64(7 , 1 days);     
-        sdDistTime = SafeMaths.mul64(7 , 1 days); 
-        LockTokenTimeAfterCoverExp=SafeMaths.mul(35,1 days);               
+        LockTokenTimeAfterCoverExp=SafeMaths.mul(35,1 days);  
+        // Arjun - Data Begin 
+        scValidDays=200;
+        joiningFee=2000000000000000; //gwei - 0.002*(10**18)
+        // Arjun - Data End             
     }
     function changeMasterAddress(address _add)
     {
@@ -120,112 +132,6 @@ contract NXMTokenData {
         ms1=master(masterAddress);
         require(ms1.isOwner(msg.sender) == 1);
         _; 
-    }
-    /// @dev Stores details of Surplus Distribution.
-    /// @param index Surplus Distribution id.
-    /// @param _add Member address receiving surplus distribution.
-    /// @param weight proportional share of surplus distribution of a member.
-    /// @param done represents if surplus distribution amount has been transferred to the given member or not. 0 if not,1 if payout is done.
-    function addInSDMemberPayHistory(uint index ,address _add,uint weight ,uint8 done) onlyInternal
-    {
-        SDMemberPayHistory[index][_add] = incentive(weight,done);
-    }
-    /// @dev Sets the payout success of surplus distribution to a member, 1 when surplus distribution amount has been transferred successfully to the given member.
-    /// @param index Surplus Distribution id.
-    /// @param _add Member address.
-    function confirmSDDistribution(uint index,address _add) onlyInternal
-    {
-        SDMemberPayHistory[index][_add].success = 1;
-    }
-    /// @dev Gets the proportional share of a member who has participiated in a given surplus distribution.
-    /// @param index Surplus Distribution id.
-    /// @param _add Member Address.
-    /// @return weigh share proportion.
-    function getSDDistributionIndWeight(uint index, address _add) constant returns(uint weigh)
-    {
-        weigh =SDMemberPayHistory[index][_add].amount;
-    }
-    /// @dev Gets surplus distribution pay out status for a given address.
-    function getSDDistributionIndSuccess(uint index,address _add) constant returns(uint8 done)
-    {
-        done=SDMemberPayHistory[index][_add].success;
-    }
-    /// @dev Gets the minimum time (in milliseconds), after which a surplus distribution is made.
-    function getsdDistributionTime() constant returns(uint64 _time)
-    {
-        _time = sdDistTime;
-    }
-    /// @dev Adds Details of a Surplus Distribution.
-    /// @param value Amount distributed.
-    /// @param blockno Block Number.
-    /// @param total total amount that has been distributed in all the Surplus Distributions till date.
-    function pushInSDHistory(uint value,uint blockno ,uint total,uint totalWeight) onlyInternal
-    {
-        SDHistory.push(SDidAndTime(value,now,blockno,total,totalWeight));
-    }
-    /// @dev Sets the minimum time (in milliseconds), after which a Surplus Distribution is made.
-    function setSDDistributionTime(uint64 _time) onlyOwner
-    {
-        sdDistTime = _time;
-    }
-    /// @dev Gets the number of times Surplus Distribution has occured.
-    function getSDLength() constant returns(uint len)
-    {
-        len = SDHistory.length;
-    }
-    /// @dev Gets Details of a Surplus distribution.
-    /// @param id Surplus Distribution's Id.
-    /// @return index Surplus Distribution's Id.
-    /// @return amount Amount distributed in this Distribution.
-    /// @return date Date on which Surplus Distribution occurred.
-    /// @return totalAmount total amount that was  distributed till the specified surplus distribution id.
-    function getSDDistDetailById(uint id) constant returns(uint index , uint amount, uint date , uint totalAmount,uint totalWeight)
-    {
-        index = id;
-        amount = SDHistory[id].totalAmount;
-        date = SDHistory[id].time_done;
-        totalAmount = SDHistory[id].totalDistTillNow;
-        totalWeight=SDHistory[id].totalWeight;
-    }
-    /// @dev Gets total amount that has been distributed in all the Surplus Distribution till date.
-    function getTotalSDTillNow()constant returns(uint tot)
-    {
-        tot = SDHistory[SafeMaths.sub(SDHistory.length ,1)].totalDistTillNow;
-    }
-    /// @dev Get surplus distribution weight and amount by SD payout index.
-    function getTotalWeightAndAmountById(uint id) constant returns(uint amount,uint weight)
-    {
-        amount = SDHistory[id].totalAmount;
-        weight=SDHistory[id].totalWeight;
-    }
-    /// @dev Gets total surplus distribution amount received by a given address.
-    function getTotalSDAmountByAddress(address member) constant returns(uint sum)
-    {
-        uint totalSDAmount;uint totalSDWeight;
-        uint start=memberSDClaimId[member];
-        sum=0;
-        for(uint i=start;i<SDHistory.length;i++)
-        {
-            if(getSDDistributionIndSuccess(i,member)==0)
-            {
-                (totalSDAmount,totalSDWeight)=getTotalWeightAndAmountById(i);
-                if(totalSDWeight>0)
-                 sum= SafeMaths.add(sum,SafeMaths.div((SafeMaths.mul(getSDDistributionIndWeight(i,member) , totalSDAmount)),totalSDWeight));
-            }
-        }
-    }
-    /// @dev Calculates the timestamp Surplus distribution.
-    function getLastDistributionTime() constant returns(uint datedone)
-    {
-        datedone = SDHistory[SafeMaths.sub(SDHistory.length ,1)].time_done;
-    }
-    function addMemberClaimSDId(address member,uint id) onlyInternal
-    {
-        memberSDClaimId[member]=id;
-    }
-    function getMemberClaimSDId(address member) constant returns(uint SDId)
-    {
-        return  memberSDClaimId[member];
     }
     /// @dev Gets the number of NXM Tokens that are alloted by the creator to the founders.
     function getCurrentFounderTokens() constant returns(uint tokens) 
@@ -450,19 +356,7 @@ contract NXMTokenData {
         lockedCN[_of][index].validUpto = timestamp;
         lockedCN[_of][index].amount = amount1;
     }
-    /// @dev Gets number of times a user has locked tokens for Surplus Distribution.
-    /// @param _of User's address.
-    /// @return len number to times
-    function getLockedSDLength(address _of) constant returns(uint len)
-    {
-        len = lockedSD[_of].length;
-    }
-    /// @dev Gets the validity date and number of tokens locked for Surplus Distribution by a user at a given mapping index.
-    function getLockedSD_index(address _of , uint index) constant returns(uint valid ,uint val)
-    {
-        valid = lockedSD[_of][index].validUpto;
-        val = lockedSD[_of][index].amount;
-    }
+
     /// @dev Gets number of times a user's tokens have been booked for participation in claims assessment.
     /// @param _of User's address.
     /// @return len number to times
@@ -543,16 +437,7 @@ contract NXMTokenData {
         } 
        
     } 
-    /// @dev Calculates the Sum of tokens locked of a user for Surplus Distribution.
-    function getBalanceSD(address _to) constant returns (uint sum)
-    {
-        sum=0;
-        for(uint i=0 ; i < lockedSD[_to].length ;i++ )
-        {
-            if(now<lockedSD[_to][i].validUpto)
-                sum=SafeMaths.add(sum,lockedSD[_to][i].amount);
-        }
-    }   
+   
     /// @dev Calculates the sum of tokens booked by a user for Claim Assessment.
     function getBookedCA(address _to) constant returns (uint sum)
     {
@@ -596,15 +481,6 @@ contract NXMTokenData {
         lockedCA[_of].push(lockToken(_timestamp,_value));
     }
     
-    /// @dev Adds details of tokens that are locked for Surplus Distribution by a user.
-    /// @param _of User's address.
-    /// @param _timestamp Validity of tokens.
-    /// @param _value number of tokens lock.
-    function lockSD(address _of , uint _timestamp ,uint _value) onlyInternal
-    {
-        lockedSD[_of].push(lockToken(_timestamp,_value));        
-    }
-   
     /// @dev Adds details of tokens that are locked against a given cover by a user.
     /// @param _of User's address.
     /// @param coverid Cover Id.
@@ -641,12 +517,95 @@ contract NXMTokenData {
     {
         depositCN_Cover[_of][coverid].push(lockToken(timestamp , amount1));
     }
-
-  
-
     /// @dev Locked Token after Cover Expired for given time.
     function setLockTokenTimeAfterCoverExp(uint time) onlyInternal{
         LockTokenTimeAfterCoverExp=time;
     }
-}
 
+    // Arjun - Data Begin
+    function addStake(address _of,address _scAddress, uint _amount) onlyInternal
+    {
+        stakeDetails.push(stake(_of,_scAddress,_amount,0,now));
+        scAddress_Stake[_scAddress].push(stakeDetails.length-1);
+        staker_Index[_of].push(stakeDetails.length-1);
+    }
+    function getStakeDetails(uint _index) constant returns(uint _indx,address _stakerAdd, address _scAddress,uint _amount,uint _burnedAmount, uint _dateAdd)
+    {
+        _indx=_index;
+        _stakerAdd=stakeDetails[_index].stakerAdd;
+        _scAddress=stakeDetails[_index].scAddress;
+        _amount=stakeDetails[_index].amount;
+        _burnedAmount=stakeDetails[_index].burnedAmount;
+        _dateAdd=stakeDetails[_index].dateAdd;
+    }
+    function updateBurnedAmount(uint _index,uint _burnedAmount) onlyInternal
+    {
+        stakeDetails[_index].burnedAmount=SafeMaths.add(stakeDetails[_index].burnedAmount,_burnedAmount);
+    }
+    function pushStakeCommissions(address _of, address _scAddress, uint _stakerIndx, uint _commissionAmt,uint _commissionDate) onlyInternal
+    {
+        staker_SC_Commission[_of][_scAddress][_stakerIndx].push(stakeCommission(_commissionAmt,_commissionDate));
+    }
+    
+    function getStakeCommission(address _of, address _scAddress, uint _stakerIndx,uint _index) constant returns(uint indx, uint stakerIndex,uint commissionAmt,uint commissionDate)
+    {
+        indx=_index;
+        stakerIndex=_stakerIndx;
+        commissionAmt = staker_SC_Commission[_of][_scAddress][_stakerIndx][_index].commissionAmt;
+        commissionDate = staker_SC_Commission[_of][_scAddress][_stakerIndx][_index].commissionDate;
+    }
+    function getStakeCommissionLength(address _of, address _scAddress, uint _stakerIndx) constant returns(uint _length)
+    {
+         _length=staker_SC_Commission[_of][_scAddress][_stakerIndx].length;
+    }
+    
+    function getTotalStakeCommission(address _of, address _scAddress, uint _stakerIndx) constant returns(uint stakerIndex,uint commissionAmt)
+    {
+        commissionAmt=0;
+        stakerIndex=_stakerIndx;
+        for(uint i=0; i<staker_SC_Commission[_of][_scAddress][_stakerIndx].length;i++){
+            commissionAmt=SafeMaths.add(commissionAmt,staker_SC_Commission[_of][_scAddress][_stakerIndx][i].commissionAmt);
+        }
+    }
+    function getTotalStakedAmtAgaintScAddress(address _scAddress) constant returns(uint _totalStakeAmt)
+    {
+        _totalStakeAmt=0;
+        for(uint i=0; i<scAddress_Stake[_scAddress].length;i++){
+            _totalStakeAmt=SafeMaths.add(_totalStakeAmt,stakeDetails[scAddress_Stake[_scAddress][i]].amount);
+        }
+    }
+    function getTotalStakerAgainstScAddress(address _scAddress) constant returns(uint){
+        return scAddress_Stake[_scAddress].length;
+    }
+    function getScAddressIndexByScAddressAndIndex(address _scAddress,uint _index) constant returns(uint _indx, uint _scAddressIndx){
+        _indx=_index;
+        _scAddressIndx= scAddress_Stake[_scAddress][_index];
+    }
+    function getTotalScAddressesAgainstStaker(address _of) constant returns(uint){
+        return staker_Index[_of].length;
+    }
+    function getStakerIndexByStakerAddAndIndex(address _of,uint _index) constant returns(uint _indx, uint _stakerIndx){
+        _indx=_index;
+        _stakerIndx= staker_Index[_of][_index];
+    }
+    function getTotalStakedAmtByStakerAgainstScAddress(address _of,address _scAddress) constant returns(uint _totalStakedAmt)
+    {
+        _totalStakedAmt=0;
+        for(uint i=0; i<staker_Index[_of].length;i++){
+            if(stakeDetails[staker_Index[_of][i]].scAddress==_scAddress)
+            _totalStakedAmt=SafeMaths.add(_totalStakedAmt,stakeDetails[staker_Index[_of][i]].amount);
+        }
+    }
+    function changeSCValidDays(uint16 _days) onlyInternal
+    {
+        scValidDays=_days;
+    }
+    function setJoiningfee(uint val)onlyInternal
+    {
+       joiningFee=val;
+    }
+    function setJoiningFeeAddress(address _add) onlyInternal{
+        joiningFeeAddress=_add;
+    }
+    // Arjun - Data End
+}

@@ -31,7 +31,6 @@ contract masters2 {
     using SafeMaths for uint;
     
      struct insurance{
-
         string name;
         uint id;
     }
@@ -61,8 +60,9 @@ contract masters2 {
     function masters2()
     {
         productType.push(insurance("Earthquake Cover",0));
+        productType.push(insurance("Smart Contract Cover",1));
         
-        product_length=1;
+        product_length=2;
     }
     ///@dev Add insurance product.
     function addProduct(string _name , uint _id) onlyOwner

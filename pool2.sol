@@ -17,6 +17,7 @@
 pragma solidity 0.4.11;
 
 import "./NXMToken.sol";
+import "./NXMToken2.sol";
 import "./governance.sol";
 import "./claims_Reward.sol";
 import "./poolData1.sol";
@@ -37,7 +38,9 @@ contract pool2
     master ms1;
     address masterAddress;
     NXMToken t1;
+    NXMToken2 tc2;
     address tokenAddress;
+    address token2Address;
     pool p1;
     claims c1;
     fiatFaucet f1;
@@ -84,6 +87,10 @@ contract pool2
     function changeTokenAddress(address _add) onlyInternal
     {
         tokenAddress  = _add;
+    }
+    function changeToken2Address(address _add) onlyInternal
+    {
+        token2Address  = _add;
     }
     function changeMCRAddress(address _add) onlyInternal
     {
@@ -250,6 +257,7 @@ contract pool2
     {
         q2=quotation2(quotation2Address);
         t1=NXMToken(tokenAddress);
+        tc2=NXMToken2(token2Address);
         c1=claims(claimAddress);
         p1=pool(poolAddress);
         pd1=poolData1(poolDataAddress);
@@ -257,7 +265,7 @@ contract pool2
         uint sumAssured1 = q2.getSumAssured(coverid);
         bytes4 curr = q2.getCurrencyOfCover(coverid);
         uint balance;
-        uint quoteid;
+        uint quoteid=q2.getQuoteId(coverid);
         //Payout in Ethers in case currency of quotation is ETH
         if(curr=="ETH")
         {
@@ -270,18 +278,16 @@ contract pool2
                 if(succ==true)
                 {
                     t1.removeFromPoolFund(curr,sumAssured);
-                    quoteid = q2.getQuoteId(coverid);
-                    q2.removeSAFromAreaCSA(quoteid,sumAssured1);
+                    q2.removeSAFromCSA(quoteid,sumAssured1);
                     p1.subtractQuotationOracalise(quoteid);
                     // date:10/11/2017/
                     pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
-                     c1.checkLiquidity(curr);
+                    c1.checkLiquidity(curr);
                     callPayoutEvent(_to,"Payout",coverid,sumAssured);
                 }
                 else
                 {
                     c1.setClaimStatus(claimid , 16);
-                    
                 }
             }
             else
@@ -301,12 +307,11 @@ contract pool2
             {
                 f1.payoutTransferFromPool(_to , curr , sumAssured);
                 t1.removeFromPoolFund(curr,sumAssured);
-                quoteid = q2.getQuoteId(coverid);
                 p1.subtractQuotationOracalise(quoteid);
-                q2.removeSAFromAreaCSA(quoteid,sumAssured);
+                q2.removeSAFromCSA(quoteid,sumAssured);
                 // date:10/11/2017/
                 pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
-                 c1.checkLiquidity(curr);
+                c1.checkLiquidity(curr);
                 callPayoutEvent(_to,"Payout",coverid,sumAssured);
                 succ=true;
             }
@@ -315,8 +320,10 @@ contract pool2
                 c1.setClaimStatus(claimid , 16);
                 succ=false;
             }
-
         }
+        if(q2.getQuoteProdId(quoteid)==1)
+            tc2.burnStakerLockedToken(quoteid,coverid,curr,sumAssured1);
+
     }
     /// @dev Gets the investment asset rank.
    function getIARank(bytes16 curr,uint64 rateX100)  constant returns(int RHS) //internal function
@@ -360,61 +367,58 @@ contract pool2
         m1=MCR(MCRAddress);
         p3=pool3(pool3Address);
         bytes16 MAXIACurr;uint64 MAXRate;
-        ( MAXIACurr,MAXRate,,)= pd1.getIARankDetailsByDate(date);
-        require(pd1.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
-        uint len=IARate.length;
-        uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd1.getTotalRiskPoolBalance(),100000 )),(10**18));
-        if(totalRiskBal>0 && len>0)  //if v=0 OR there is no IA, don't trade
-        {
-            for(uint i=0;i<len;i++)
+        (MAXIACurr,MAXRate,,)= pd1.getIARankDetailsByDate(date);
+        // require(pd1.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
+        if(pd1.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0){
+
+            uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd1.getTotalRiskPoolBalance(),100000 )),(10**18));
+            if(totalRiskBal>0 && IARate.length>0)  //if v=0 OR there is no IA, don't trade
             {
-                 
-                 if(pd1.getInvestmentAssetStatus(IACurr[i])==1) // if IA is active 
-                 {
-                    int check=checkTradeConditions(IACurr[i],IARate[i]);
-                    if(check==1)
-                    {
-                        // ORDER 1 (max RHS IA to ETH)
-                   
-                        // amount of asset to sell
-                        uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd1.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)) )); //*100);// ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
-                        // amount of ETH to buy
-                        uint takerAmt=((SafeMaths.mul(m1.getCurrency3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); 
-                        uint expirationTimeInMilliSec=SafeMaths.add(now,pd1.getOrderExpirationTime("RBT"));
-                        makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd1.getInvestmentAssetDecimals(MAXIACurr) )),100);
-                        takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,10**18),(100));
-                        if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
+                for(uint i=0;i<IARate.length;i++)
+                {
+                     if(pd1.getInvestmentAssetStatus(IACurr[i])==1) // if IA is active 
+                     {
+                        if(checkTradeConditions(IACurr[i],IARate[i])==1)
                         {
-                           
-                            exchange1=Exchange(exchangeContractAddress);
-                            bytes32 orderHash=exchange1.getOrderHash([pd1.get0xMakerAddress(),pd1.get0xTakerAddress(),pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),pd1.get0xFeeRecipient()],[makerAmt,takerAmt,pd1.get0xMakerFee(),pd1.get0xTakerFee(),expirationTimeInMilliSec,pd1.getOrderSalt()]);
-                            pd1.saveRebalancingOrderHash(orderHash);
-                            pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,"ETH",takerAmt,"RBT",expirationTimeInMilliSec);
-                            
-                            pd1.updateLiquidityOrderStatus(bytes4(MAXIACurr),"RBT",1);
-                           
-                            pd1.setCurrOrderHash(bytes4(MAXIACurr),orderHash);  
-                            //events
-                            ZeroExOrders("RBT",pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,orderHash);
-                            Rebalancing("OrderGen",1);
-                            return 1; // rebalancing order generated
-                        }      
-                        else
-                        {   //events
-                            ZeroExOrders("RBT",pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,"insufficient");
-                            Rebalancing("OrderGen",2);
-                            return 2; // not enough makerAmt;
-                            
-                        }                      
-                    }
-                 }
+                            // ORDER 1 (max RHS IA to ETH)
+                            // amount of asset to sell
+                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd1.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)) )); //*100);// ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
+                            // amount of ETH to buy
+                            uint takerAmt=((SafeMaths.mul(m1.getCurrency3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); 
+                            uint expirationTimeInMilliSec=SafeMaths.add(now,pd1.getOrderExpirationTime("RBT"));
+                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd1.getInvestmentAssetDecimals(MAXIACurr) )),100);
+                            takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,10**18),(100));
+                            if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
+                            {
+                                exchange1=Exchange(exchangeContractAddress);
+                                bytes32 orderHash=exchange1.getOrderHash([pd1.get0xMakerAddress(),pd1.get0xTakerAddress(),pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),pd1.get0xFeeRecipient()],[makerAmt,takerAmt,pd1.get0xMakerFee(),pd1.get0xTakerFee(),expirationTimeInMilliSec,pd1.getOrderSalt()]);
+                                pd1.saveRebalancingOrderHash(orderHash);
+                                pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,"ETH",takerAmt,"RBT",expirationTimeInMilliSec);
+                                
+                                pd1.updateLiquidityOrderStatus(bytes4(MAXIACurr),"RBT",1);
+                               
+                                pd1.setCurrOrderHash(bytes4(MAXIACurr),orderHash);  
+                                //events
+                                ZeroExOrders("RBT",pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,orderHash);
+                                Rebalancing("OrderGen",1);
+                                return 1; // rebalancing order generated
+                            }      
+                            else
+                            {   //events
+                                ZeroExOrders("RBT",pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,"insufficient");
+                                Rebalancing("OrderGen",2);
+                                return 2; // not enough makerAmt;
+                                
+                            }                      
+                        }
+                     }
+                }
+                 Rebalancing("OrderGen",0);
+                 return 0; // when V!=0 but rebalancing is not required
             }
-            
-             Rebalancing("OrderGen",0);
-             return 0; // when V!=0 but rebalancing is not required
-        }  
+        }
          Rebalancing("OrderGen",3);
-         return 4; // when V=0 or no IA is present      
+         return 4; // when V=0 or no IA is present       
     }
     /// @dev Checks whether trading is require for a given investment asset at a given exchange rate.
     function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
@@ -590,6 +594,4 @@ contract pool2
         p3.saveIADetails(curr,rate,date);
     
     }
-     
-
 }

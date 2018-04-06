@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./USD.sol";
 import "./quotation2.sol";
 import "./NXMToken.sol";
@@ -71,7 +71,7 @@ contract fiatFaucet
         uint tokens=SafeMaths.mul(msg.value,1000);
         tok=SupplyToken(contract_add[curr]);
         tok.mintToken(msg.sender,tokens);
-        t1.addToPoolFund(curr , tokens);
+        // t1.addToPoolFund(curr , tokens);
         
     }
     function changeTokenAddress(address _add) onlyInternal
@@ -115,17 +115,16 @@ contract fiatFaucet
         tok.payoutTransfer(_to,tokens);
     }
 
-    /// @dev Funding of Quotations using ERC20 tokens.
-    /// @param amount Token Amount.
-    /// @param curr Currency's Name.
-    /// @param fundArr fund amounts for each selected quotation.
-    /// @param fundIndexArr multiple quotations ID that will get funded.
-    function funding(uint amount , bytes16 curr, uint[] fundArr , uint[] fundIndexArr) isMemberAndcheckPause
+    /// @dev Making Cover(s) using ERC20 tokens.
+    /// @param PriceNxm Token Amount.
+    /// @param coverCurr Currency's Name.
+    /// @param cid Cover ID that will get funded.
+    function funding(uint8 prodId, uint cid, address from, address smaratCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
     {
-        tok=SupplyToken(contract_add[curr]);
-        tok.debitTokensForFunding(amount , msg.sender);
+        tok=SupplyToken(contract_add[coverCurr]);
+        tok.debitTokensForFunding(PriceNxm , msg.sender);
         q1=quotation2(quotation2Address);
-        q1.fundQuote(fundArr , fundIndexArr , msg.sender);
+        q1.makeCover(prodId,msg.sender,smaratCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
     }
     /// @dev Get token address by currency name.
     function getCurrAddress(bytes16 curr) constant returns(address currAddress)

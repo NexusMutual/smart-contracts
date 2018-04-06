@@ -1,4 +1,4 @@
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 
 
 
@@ -77,9 +77,14 @@ library SafeMaths {
     // assert(a == b * c + a % b); // There is no case in which this doesn't hold
     return c;
   }
+  function sub8(uint8 a, uint8 b) internal constant returns (uint8) {
+    assert(b <= a);
+    return a - b;
+  }
   function add8(uint8 a, uint8 b) internal constant returns (uint8) {
     uint8 c = a + b;
     assert(c >= a);
     return c;
   }
+  
 }

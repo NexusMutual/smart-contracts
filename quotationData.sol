@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./master.sol";
 import "./SafeMaths.sol";
 
@@ -22,75 +22,64 @@ contract quotationData{
     master ms1;
     address masterAddress;
     using SafeMaths for uint;
-    struct quote
+    struct cover
     {
-        uint8 productId;
+        bytes8 productName;
         address memberAddress;
         bytes4 currencyCode;
         uint16 sumAssured;
-        uint32 coverPeriod;
-        uint premiumCalculated;
-        uint dateAdd;
+        uint16 coverPeriod;
         uint validUntil;
         uint16 status;
-        uint amountFunded;
-        uint coverId;
-        // Arjun - Data Begin
-        int[] intParams;
-        bytes32[] bytesParams;
-        address[] addParams;
-        // Arjun - Data End
-    }
-    struct cover
-    {
-        uint quoteId;
-        uint validUntil;
-        uint8 claimCount;
+        address addParams;
         uint lockedTokens;
-        uint16 status;
     }
-    // Arjun - Data Begin
+
     struct Product_Details{
-       uint16 STLP;
-       uint16 STL;
-       uint16 PM;
-       uint64 minDays;
+        bytes8 productName;
+        string productHash;
+        uint16 STLP;
+        uint16 STL;
+        uint16 PM;
+        uint64 minDays;
     }
     
     // Arjun - Data End
-    address public ipfsHashAddress;
-    string CSAHash;
-    string quoteAreaHash;
-    bytes16[] quoteStatus;
+    address public authQuoteEngine;
+    address AuthAddress;     //authorised address for signing the cover details   
+    // string CSAHash;
+    // string quoteAreaHash;
+    // bytes16[] quoteStatus;
     bytes16[] coverStatus;
-    mapping(bytes4=>uint) totalSumAssured;
-    mapping ( address=>uint[] ) quote_user;
+    mapping(bytes4=>uint) currentSumAssured;
+    // mapping ( address=>uint[] ) quote_user;
     mapping ( address=>uint[] ) cover_user;
     // Arjun - Data Begin
     mapping(uint=>Product_Details) ProductDetails;
-    mapping(address=>mapping(bytes4=>uint)) totalSumAssured_SC;
+    mapping(address=>mapping(bytes4=>uint)) currentSumAssured_SC;
     // Arjun - Data End
-    quote[] quotations;
+    // quote[] quotations;
     cover[] allCovers;
-    uint quote_length;
-    uint cover_length;
-    uint public pendingQuoteStart;
+    // uint quote_length;
+    // uint cover_length;
+    // uint public pendingQuoteStart;
     uint public pendingCoverStart;
-    uint64 public quoteExpireTime;
-    address owner;
+    // uint64 public quoteExpireTime;
+    // address owner;
+    event Cover(address indexed from, address indexed smartcontract, uint256 premiumCalculated,uint256 dateAdd,string coverHash);
     function quotationData(){
-        pendingQuoteStart=0;
+        // pendingQuoteStart=0;
         pendingCoverStart = 0;
-        owner = msg.sender;
-        quote_length=0;
-        cover_length=0;
+        // owner = msg.sender;
+        // quote_length=0;
+        // cover_length=0;
         // STLP=90;
         // STL=500;
         // PM=12;
         // minDays=42;
-        quoteExpireTime=SafeMaths.mul64(7,1 days);
-        CSAHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
-        quoteAreaHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
+        // quoteExpireTime=SafeMaths.mul64(7,1 days);
+        // CSAHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
+        // quoteAreaHash="QmVkvoPGi9jvvuxsHDVJDgzPEzagBaWSZRYoRDzU244HjZ";
     }
     function changeMasterAddress(address _add) 
     {
@@ -116,46 +105,59 @@ contract quotationData{
         require(ms1.isOwner(msg.sender) == 1);
         _; 
     }
+    // Prem data start
     /// @dev Changes authorised address for posting IPFS hash.
-    function changeIPFSHashAddress(address _add) onlyOwner
+    function changeAuthQuoteEngine(address _add) onlyOwner
     {
-        ipfsHashAddress=_add;
+        authQuoteEngine=_add;
+    }
+    function getAuthQuoteEngine()constant returns(address _add) 
+    {
+        _add=authQuoteEngine;
     }
     /// @dev Pushes status of quote.
-    function pushQuoteStatus(bytes16 status) onlyInternal
-    {
-        quoteStatus.push(status);
-    }
+    // function pushQuoteStatus(bytes16 status) onlyInternal
+    // {
+    //     quoteStatus.push(status);
+    // }
     /// @dev Pushes status of cover.
+    // Prem data end
     function pushCoverStatus(bytes16 status) onlyInternal
     {
         coverStatus.push(status);
     }
+    // Prem data start
     /// @dev Gets status of a given quotation id.
-    function getQuotationStatus(uint16 index) constant returns(bytes16 status)
-    {
-        return quoteStatus[index];
-    }
+    // function getQuotationStatus(uint16 index) constant returns(bytes16 status)
+    // {
+    //     return quoteStatus[index];
+    // }
+    // Prem data end
     /// @dev Gets status of a given cover id.
     function getCoverStatus(uint16 index)constant returns(bytes16 status)
     {
         return coverStatus[index];
     }
+    
+    // Prem data start
     /// @dev Gets all possible status for quotations.
-    function getAllQuotationStatus() constant returns(bytes16[] status)
-    {
-        return quoteStatus;
-    }
+    // function getAllQuotationStatus() constant returns(bytes16[] status)
+    // {
+    //     return quoteStatus;
+    // }
+    // Prem data end
     /// @dev Gets all possible status for covers.
     function getAllCoverStatus() constant returns(bytes16[] status)
     {
         return coverStatus;
     }
+    // Prem data start
     /// @dev Gets length of quote status master.
-    function getQuoteStatusLen() constant returns(uint len)
-    {
-        return quoteStatus.length;
-    }
+    // function getQuoteStatusLen() constant returns(uint len)
+    // {
+    //     return quoteStatus.length;
+    // }
+    // Prem data end
     /// @dev Gets length of cover status master. 
     function getCoverStatusLen() constant returns(uint len)
     {
@@ -181,46 +183,53 @@ contract quotationData{
     {
         ProductDetails[prodId].minDays = _days;
     }
+    // Prem data start
     /// @dev Updates the pending quotation start variable, which is the lowest quotation id with "NEW" or "partiallyFunded" status.
     /// @param val new start position
-    function updatePendingQuoteStart(uint val) onlyInternal
-    {
-        pendingQuoteStart = val;
-    }
-
+    // function updatePendingQuoteStart(uint val) onlyInternal
+    // {
+    //     pendingQuoteStart = val;
+    // }
+    // Prem data end
     /// @dev Updates the pending cover start variable, which is the lowest cover id with "active" status.
     /// @param val new start position
     function updatePendingCoverStart(uint val) onlyInternal
     {
         pendingCoverStart = val;
     }
-
-    /// @dev Gets total number of Quotations created till date.
-    function getQuoteLength() constant returns(uint len)
+    
+    function getPendingCoverStart()constant returns(uint val)
     {
-        return (quotations.length);
+       val  = pendingCoverStart;
     }
-
+    
+    // Prem data start
+    /// @dev Gets total number of Quotations created till date.
+    // function getQuoteLength() constant returns(uint len)
+    // {
+    //     return (quotations.length);
+    // }
+    // Prem data end
     /// @dev Gets total number Covers created till date.
     function getCoverLength() constant returns(uint len)
     {
         return (allCovers.length);
     }
-
+    // Prem data start
     /// @dev Gets the date of creation of a given quote id.
     /// @param qid Quotation Id.
     /// @return date_add date of creation (timestamp).
-    function getQuotationDateAdd(uint qid) constant returns (uint date_add)
-    {
-        date_add = quotations[qid].dateAdd;
-    }
-
+    // function getQuotationDateAdd(uint qid) constant returns (uint date_add)
+    // {
+    //     date_add = quotations[qid].dateAdd;
+    // }
+    // prem data end
     /// @dev Adds the amount in Total Sum Assured of a given currency.
     /// @param curr Currency Name.
     /// @param amount Amount to be added.
     function addInTotalSumAssured(bytes4 curr , uint amount) onlyInternal
     {
-        totalSumAssured[curr] =SafeMaths.add(totalSumAssured[curr],amount);
+        currentSumAssured[curr] =SafeMaths.add(currentSumAssured[curr],amount);
     }
 
     /// @dev Subtracts the amount from Total Sum Assured of a given currency.
@@ -228,142 +237,144 @@ contract quotationData{
     /// @param amount Amount to be subtracted.
     function subFromTotalSumAssured(bytes4 curr , uint amount) onlyInternal
     {
-        totalSumAssured[curr] =SafeMaths.sub(totalSumAssured[curr],amount);
+        currentSumAssured[curr] =SafeMaths.sub(currentSumAssured[curr],amount);
     }
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
     function getTotalSumAssured(bytes4 curr) constant returns(uint amount)
     {
-        amount = totalSumAssured[curr];
+        amount = currentSumAssured[curr];
     }
-
+    // Prem data start
     /// @dev Changes the time (in seconds) after which a quote expires
-    function changeQuoteExpireTime(uint64 time) onlyInternal
-    {
-        quoteExpireTime=time;
-    }
-
+    // function changeQuoteExpireTime(uint64 time) onlyInternal
+    // {
+    //     quoteExpireTime=time;
+    // }
+    
     /// @dev Gets time (in seconds) after which a quote expires.
-    function getQuoteExpireTime() constant returns(uint64 _time)
-    {
-        _time = quoteExpireTime;
-    }
-
+    // function getQuoteExpireTime() constant returns(uint64 _time)
+    // {
+    //     _time = quoteExpireTime;
+    // }
+    // Prem data end
     /// @dev Gets the status of a given quotation.
-    function getQuotationStatusNo(uint qid) constant returns(uint16 stat)
+    function getCoversStatusNo(uint cid) constant returns(uint16 stat)
     {
-        stat = quotations[qid].status;
+        stat = allCovers[cid].status;
     }
 
     /// @dev Changes the status of a given quotation.
-    /// @param qid Quotation Id.
+    /// @param cid Quotation Id.
     /// @param stat New status.
-    function changeQuotationStatus(uint qid , uint16 stat) onlyInternal
+    function changeCoversStatus(uint cid , uint16 stat) onlyInternal
     {
-        quotations[qid].status = stat;
+        allCovers[cid].status = stat;
     }
-
+    // Prem data start
     /// @dev Gets the Funded Amount of a given quotation.
-    function getQuotationAmountFunded(uint qid) constant returns(uint amount)
-    {
-        amount = quotations[qid].amountFunded;
-    }
-
+    // function getQuotationAmountFunded(uint qid) constant returns(uint amount)
+    // {
+    //     amount = quotations[qid].amountFunded;
+    // }
+   
     /// @dev Changes the Funded Amount of a given quotation.
     /// @param qid Quotation Id.
     /// @param amount New Funded Amount.
-    function changeAmountFunded(uint qid , uint amount) onlyInternal
-    {
-        quotations[qid].amountFunded = amount;
-    }
-
+    // function changeAmountFunded(uint qid , uint amount) onlyInternal
+    // {
+    //     quotations[qid].amountFunded = amount;
+    // }
+    
     /// @dev Gets the Premium of a given quotation.
-    function getPremiumCalculated(uint qid) constant returns(uint prem) 
-    {
-        prem = quotations[qid].premiumCalculated;
-    }
-
+    // function getPremiumCalculated(uint qid) constant returns(uint prem) 
+    // {
+    //     prem = quotations[qid].premiumCalculated;
+    // }
+   
     /// @dev Changes the Premium of a given quotation.
     /// @param qid Quotation Id.
     /// @param prem New Premium. 
-    function changePremiumCalculated(uint qid , uint prem) onlyInternal
-    {
-        quotations[qid].premiumCalculated = prem;
-    }
-
+    // function changePremiumCalculated(uint qid , uint prem) onlyInternal
+    // {
+    //     quotations[qid].premiumCalculated = prem;
+    // }
+    // Prem data end   
     /// @dev Gets the Cover Period (in days) of a given quotation.
-    function getCoverPeriod(uint qid)constant returns(uint32 _days)
+    function getCoverPeriod(uint cid)constant returns(uint32 _days)
     {
-        _days = quotations[qid].coverPeriod;
+        _days = allCovers[cid].coverPeriod;
     }
 
     /// @dev Gets the Sum Assured Amount of a given quotation.
-    function getQuotationSumAssured(uint qid)constant returns(uint16 sa)
+    function getCoverSumAssured(uint cid)constant returns(uint16 sa)
     {
-        sa = quotations[qid].sumAssured;
+        sa = allCovers[cid].sumAssured;
     }
       
     /// @dev Changes the Sum Assured Amount of a given quotation.
-    /// @param qid Quotation Id.
+    /// @param cid Quotation Id.
     /// @param sa New Sum Assured Amount. 
-    function changeSumAssured(uint qid , uint16 sa) onlyInternal
+    function changeSumAssured(uint cid , uint16 sa) onlyInternal
     {
-        quotations[qid].sumAssured = sa;
+        allCovers[cid].sumAssured = sa;
     }
 
     /// @dev Gets the Currency Name in which a given quotation is assured.
-    function getQuotationCurrency(uint qid)constant returns(bytes4 curr)
+    function getCoverCurrency(uint cid)constant returns(bytes4 curr)
     {
-        curr = quotations[qid].currencyCode;
+        curr = allCovers[cid].currencyCode;
     }
-    
+    // Prem data start
     /// @dev Creates a New Cover.
     /// @param qid Quotation id against which cover will be created.
     /// @param cid Cover Id.
     /// @param validuntill Timestamp till which cover is valid.
     /// @param user User's address.
-    function addCover(uint qid,uint cid,uint validuntill,address user) onlyInternal
-    {
-        allCovers.push(cover(qid,validuntill,0,0,0));
-        quotations[qid].coverId = cid;
-        cover_user[user].push(cid);
-    }
-
+    // function addCover(uint validuntill,address user) onlyInternal
+    // {
+    //     allCovers.push(cover(validuntill,0,0,0));
+    //     // quotations[qid].coverId = cid;
+    //     cover_user[user].push(cid);
+    // }
+    // Prem data end
     /// @dev Maps the Cover Id to its owner's address.
     function addUserCover(uint cid , address _add) onlyInternal
     {
          cover_user[_add].push(cid);
     }
-
+    // Prem data start
     /// @dev Maps the Quotation Id to its owner's address.
-    function addUserQuote(uint qid , address _add) onlyInternal
-    {
-        quote_user[_add].push(qid);
-    }
-
+    // function addUserQuote(uint qid , address _add) onlyInternal
+    // {
+    //     quote_user[_add].push(qid);
+    // }
+    // Prem data end
     /// @dev Gets total number of covers generated by a given address
     function getUserCoverLength(address _add)constant returns(uint len)
     {
         len=cover_user[_add].length;
     }
+     // Prem data start
     /// @dev Gets total number of quotations generated by a given address
-    function getUserQuoteLength(address _add)constant returns(uint len)
-    {
-        len=quote_user[_add].length;
-    }
+    // function getUserQuoteLength(address _add)constant returns(uint len)
+    // {
+    //     len=quote_user[_add].length;
+    // }
+   
     /// @dev Updates the cover id generated against a given quote id.
     /// @param qid Quotation Id.
     /// @param cid Cover Id.
-    function addCoveridInQuote(uint qid , uint cid) onlyInternal
-    {
-        quotations[qid].coverId = cid;
-    }
-
+    // function addCoveridInQuote(uint qid , uint cid) onlyInternal
+    // {
+    //     allCovers[qid].coverId = cid;
+    // }
+    // Prem data end
     /// @dev Updates the number of tokens locked against a given cover id.
-    function changeLockedTokens(uint cid , uint tokens) onlyInternal
-    {
-        allCovers[cid].lockedTokens = tokens;
-    }
+    // function changeLockedTokens(uint cid , uint tokens) onlyInternal
+    // {
+    //     allCovers[cid].lockedTokens = tokens;
+    // }
      /// @dev Gets the validity date (timestamp) of a given cover.
     function getCoverValidity(uint cid) constant returns(uint date)
     {
@@ -371,17 +382,17 @@ contract quotationData{
     }
 
     /// @dev Gets the number of tokens locked against a given quotation.
-    function getCoverLockedTokens(uint cid) constant returns(uint tokens)
-    {
-        tokens = allCovers[cid].lockedTokens;
-    }
-
+    // function getCoverLockedTokens(uint cid) constant returns(uint tokens)
+    // {
+    //     tokens = allCovers[cid].lockedTokens;
+    // }
+    // Prem data start 
      /// @dev Gets all the quotation ids created by a given address.
-    function getUserAllQuotes(address _add) constant returns(uint[] allQuotes)
-    {
-        return(quote_user[_add]);
-    }
-
+    // function getUserAllQuotes(address _add) constant returns(uint[] allQuotes)
+    // {
+    //     return(quote_user[_add]);
+    // }
+    // Prem data end
     /// @dev Gets all the Cover ids generated by a given address.
     /// @param _add User's address.
     /// @return allCover array of covers. 
@@ -389,7 +400,7 @@ contract quotationData{
     {
         return(cover_user[_add]);
     }
-
+    // Prem data start
     /// @dev Gets the current status of a given cover id.
     function getCoverStatusNo(uint cid) constant returns(uint16 stat)
     {
@@ -401,210 +412,230 @@ contract quotationData{
     {
         allCovers[cid].status = stat;
     }  
-
+    // Prem data end
     /// @dev Creates a blank new Quotation.
     // Arjun - Data Begin
-    function addQuote(uint32 coverPeriod,uint16 SA) onlyInternal
+    function addCover(uint16 coverPeriod,uint16 SA,bytes8 productName,uint cid,address userAddress,bytes4 currencyCode, address addParams) onlyInternal
     { 
-        quotations.push(quote(0,0,"",SA,coverPeriod,0,0,0,0,0,0,new int[](0),new bytes32[](0),new address[](0)));
+        // allCovers.push(cover(0,0,"",SA,coverPeriod,0,0,0x000,0));
+        allCovers[cid].sumAssured=SA;
+        allCovers[cid].coverPeriod=coverPeriod;
+        allCovers[cid].productName = productName;
+        allCovers[cid].memberAddress = userAddress;
+        allCovers[cid].currencyCode = currencyCode;
+        allCovers[cid].validUntil = SafeMaths.add(now,SafeMaths.mul(coverPeriod,1 days));
+        allCovers[cid].status = 2;
+        allCovers[cid].addParams=addParams;
+        
+        
     }
     // Arjun - Data End
     /// @dev Updates the Product id, quote id, owner address and currency of a given quotation
     /// @param productId Insurance product id.
-    /// @param qid Quotation Id.
+    /// @param cid Quotation Id.
     /// @param userAddress Quotation's owner/creator address.
     /// @param currencyCode Currency's Name.
-    /// @param intParams Integer Parameters.
-    /// @param bytesParams Bytes Parameters.
+
     /// @param addParams Address Parameters.
-    function updateQuote1(uint8 productId,uint qid,address userAddress,bytes4 currencyCode,int[] intParams, bytes32[] bytesParams, address[] addParams) onlyInternal
-    {
-        quotations[qid].productId = productId;
-        quotations[qid].memberAddress = userAddress;
-        quotations[qid].currencyCode = currencyCode;
-        quotations[qid].dateAdd = now;
-        quotations[qid].validUntil = SafeMaths.add(now,quoteExpireTime);
-        quotations[qid].status = 0;
-        uint i=0;
-        for(i=0;i<intParams.length;i++)
-           quotations[qid].intParams.push(intParams[i]);
-        for(i=0;i<bytesParams.length;i++)
-           quotations[qid].bytesParams.push(bytesParams[i]);
-        for(i=0;i<addParams.length;i++)
-           quotations[qid].addParams.push(addParams[i]);
-        quote_user[userAddress].push(qid);
+    // function updateCover1(uint8 productId,uint cid,address userAddress,bytes4 currencyCode, address addParams) onlyInternal
+    // {
+    //     allCovers[cid].productId = productId;
+    //     allCovers[cid].memberAddress = userAddress;
+    //     allCovers[cid].currencyCode = currencyCode;
+    //     // allCovers[qid].dateAdd = now; 
+    //     allCovers[cid].validUntil = SafeMaths.add(now,SafeMaths.mul(allCovers[cid].coverPeriod,1 days));
+    //     allCovers[cid].status = 0;
+    //     uint i=0;
+    //     // for(i=0;i<intParams.length;i++)
+    //     //   quotations[qid].intParams.push(intParams[i]);
+    //     // for(i=0;i<bytesParams.length;i++)
+    //     //   quotations[qid].bytesParams.push(bytesParams[i]);
+    //     // for(i=0;i<addParams.length;i++)
+    //       allCovers[cid].addParams=addParams;
+    //     // quote_user[userAddress].push(cid);
         
-    }
+    // }
+    // Prem data start
     /// @dev Updates quote area hash.
-    function updateHash(string CSAhash,string Areahash) 
-    {
-        if(ipfsHashAddress!=msg.sender) throw;
-        CSAHash=CSAhash;
-        quoteAreaHash=Areahash;
-    }
-    /// @dev Gets current sum assured hash.
-    function getCSAHash() constant returns(string hash)
-    {
-        return CSAHash;
-    }
-     /// @dev Gets quote area hash.
-    function getQuoteAreaHash() constant returns(string hash)
-    {
-        return quoteAreaHash;
-    }
-
+    // function updateHash(string CSAhash,string Areahash) 
+    // {
+    //     if(ipfsHashAddress!=msg.sender) throw;
+    //     CSAHash=CSAhash;
+    //     quoteAreaHash=Areahash;
+    // }
+    // /// @dev Gets current sum assured hash.
+    // function getCSAHash() constant returns(string hash)
+    // {
+    //     return CSAHash;
+    // }
+    //  /// @dev Gets quote area hash.
+    // function getQuoteAreaHash() constant returns(string hash)
+    // {
+    //     return quoteAreaHash;
+    // }
+    // Prem data end
     /// @dev Updates the Sum Assured of a given quotation.    
-    function changeTotalSumAssured(uint quoteId , uint16 SA) onlyInternal
+    function changeTotalSumAssured(uint coverId , uint16 SA) onlyInternal
     {
-        quotations[quoteId].sumAssured = SA;
+        allCovers[coverId].sumAssured = SA;
     }
-
+    // Prem data start 
     /// @dev Gets the Cover Id of a given quotation.
-    function getQuoteCoverid(uint qid)constant returns(uint cid)
-    {
-        cid = quotations[qid].coverId;
-    }
+    // function getQuoteCoverid(uint qid)constant returns(uint cid)
+    // {
+    //     cid = allCovers[qid].coverId;
+    // }
 
     /// @dev Gets the Quotation Id of a given Cover.
-    function getCoverQuoteid(uint cid)constant returns(uint qid)
-    {
-        qid = allCovers[cid].quoteId;
-    }
-    
+    // function getCoverQuoteid(uint cid)constant returns(uint qid)
+    // {
+    //     qid = allCovers[cid].quoteId;
+    // }
+   
     // Arjun - Data Begin
     /// @dev Gets the Product Id of a given Cover.
-    function getCoverProdId(uint cid)constant returns(uint16 pid)
-    {
-        pid = quotations[allCovers[cid].quoteId].productId;
-    }
+    // function getCoverProdId(uint cid)constant returns(uint16 pid)
+    // {
+    //     pid = allCovers[cid].productId;
+    // }
+     // Prem data end
     /// @dev Gets the Product Id of a given Quote.
-    function getQuoteProdId(uint qid)constant returns(uint16 pid)
+    function getCoverProductName(uint cid)constant returns(bytes8 prodName)
     {
-        pid = quotations[qid].productId;
+        prodName = allCovers[cid].productName;
     }
-    function getIntParams(uint quoteId) constant returns(uint ,int[])
+    // Prem data start
+    // function getIntParams(uint quoteId) constant returns(uint ,int[])
+    // {
+    //   return (quoteId,quotations[quoteId].intParams);
+    // }
+    // function getIntParamsLength(uint quoteId) constant returns(uint,uint)
+    // {
+    //   return (quoteId,quotations[quoteId].intParams.length);
+    // }
+    // function getIntParamsByQuoteIdAndIndex(uint quoteId,uint index) constant returns(uint,uint,int)
+    // {
+    //   return (quoteId,index,quotations[quoteId].intParams[index]);
+    // }
+    // function getBytesParams(uint quoteId) constant returns(uint,bytes32[])
+    // {
+    //   return (quoteId,quotations[quoteId].bytesParams);
+    // }
+    // function getBytesParamsLength(uint quoteId) constant returns(uint,uint)
+    // {
+    //   return (quoteId,quotations[quoteId].bytesParams.length);
+    // }
+    // function getBytesParamsByQuoteIdAndIndex(uint quoteId,uint index) constant returns(uint,uint,bytes32)
+    // {
+    //   return (quoteId,index,quotations[quoteId].bytesParams[index]);
+    // }
+    // Prem data end
+    function getAddressParams(uint coverId) constant returns(uint,address)
     {
-       return (quoteId,quotations[quoteId].intParams);
+       return (coverId,allCovers[coverId].addParams);
     }
-    function getIntParamsLength(uint quoteId) constant returns(uint,uint)
-    {
-       return (quoteId,quotations[quoteId].intParams.length);
-    }
-    function getIntParamsByQuoteIdAndIndex(uint quoteId,uint index) constant returns(uint,uint,int)
-    {
-       return (quoteId,index,quotations[quoteId].intParams[index]);
-    }
-    function getBytesParams(uint quoteId) constant returns(uint,bytes32[])
-    {
-       return (quoteId,quotations[quoteId].bytesParams);
-    }
-    function getBytesParamsLength(uint quoteId) constant returns(uint,uint)
-    {
-       return (quoteId,quotations[quoteId].bytesParams.length);
-    }
-    function getBytesParamsByQuoteIdAndIndex(uint quoteId,uint index) constant returns(uint,uint,bytes32)
-    {
-       return (quoteId,index,quotations[quoteId].bytesParams[index]);
-    }
-    function getAddressParams(uint quoteId) constant returns(uint,address[])
-    {
-       return (quoteId,quotations[quoteId].addParams);
-    }
-    function getAddressParamsLength(uint quoteId) constant returns(uint,uint)
-    {
-       return (quoteId,quotations[quoteId].addParams.length);
-    }
-    function getAddressParamsByQuoteIdAndIndex(uint quoteId,uint index) constant returns(address)
-    {
-       return (quotations[quoteId].addParams[index]);
-    }
+    // Prem data start 
+    // function getAddressParamsLength(uint quoteId) constant returns(uint,uint)
+    // {
+    //   return (quoteId,quotations[quoteId].addParams.length);
+    // }
 
-    function getQuoteParams(uint quoteId) constant returns(uint,uint,int[],bytes32[],address[])
-    {
-       return(quoteId,quotations[quoteId].productId,quotations[quoteId].intParams,quotations[quoteId].bytesParams,quotations[quoteId].addParams);
-    }
+    // function getAddressParamsByQuoteIdAndIndex(uint quoteId,uint index) constant returns(address)
+    // {
+    //   return (quotations[quoteId].addParams);
+    // }
+
+    // function getQuoteParams(uint quoteId) constant returns(uint,uint,int[],bytes32[],address[])
+    // {
+    //   return(quoteId,quotations[quoteId].productId,quotations[quoteId].intParams,quotations[quoteId].bytesParams,quotations[quoteId].addParams);
+    // }
    // Arjun - Data End
-
+    
     /// @dev Gets the owner address of a given quotation.
-    function getQuoteMemberAddress(uint qid) constant returns(address _add)
+    function getCoverMemberAddress(uint cid) constant returns(address _add)
     {
-        _add = quotations[qid].memberAddress;
+        _add = allCovers[cid].memberAddress;
     }
 
     /// @dev Gets number of claims submitted against a given cover.
-    function getCoverClaimCount(uint cid) constant returns(uint8 count)
-    {
-        count = allCovers[cid].claimCount;
-    }
-
+    // function getCoverClaimCount(uint cid) constant returns(uint8 count)
+    // {
+    //     count = allCovers[cid].claimCount;
+    // }
+    
     /// @dev Updates the claim count of a given cover.
-    function changeClaimCount(uint coverid , uint8 val) onlyInternal
-    {
-        allCovers[coverid].claimCount = val;
-    }
-
+    // function changeClaimCount(uint coverid , uint8 val) onlyInternal
+    // {
+    //     allCovers[coverid].claimCount = val;
+    // }
+    
     /// @dev Gets the cover id of a given user at a given index.
-    function getCoverIdByAddressAndIndex(uint ind , address _of) constant returns(uint coverId)
-    {
-        uint index=cover_user[_of][ind];
-        return (index);
-    }
+    // function getCoverIdByAddressAndIndex(uint ind , address _of) constant returns(uint coverId)
+    // {
+    //     uint index=cover_user[_of][ind];
+    //     return (index);
+    // }
 
     /// @dev Gets the quote id of a given user at a given index.
-    function getQuoteByAddressAndIndex(uint ind,address _of) constant returns(uint qid)
-    {
-        qid = quote_user[_of][ind];
-    }
+    // function getQuoteByAddressAndIndex(uint ind,address _of) constant returns(uint qid)
+    // {
+    //     qid = quote_user[_of][ind];
+    // }
+    // Prem data end
     /// @dev Gets Premium details.
     ///@return  _minDays minimum cover period.
     ///@return  _PM Profit margin.
     ///@return  _STL short term Load.
     ///@return  _STLP short term load period.
-    function getPremiumDetails(uint prodId) constant returns(uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
+    function getPremiumDetails(uint prodId) constant returns(bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
     {
+        _productName =ProductDetails[prodId].productName;
+        _productHash=ProductDetails[prodId].productHash;
         _minDays=ProductDetails[prodId].minDays;
         _PM=ProductDetails[prodId].PM;
         _STL=ProductDetails[prodId].STL;
         _STLP=ProductDetails[prodId].STLP;
     }
+    
+    function getProductName(uint8 prodId) constant returns(bytes8 _productName){
+        return ProductDetails[prodId].productName;
+    }
 
     /// @dev Provides the details of a Quotation Id
-    /// @param quoteid Quotation Id
+    /// @param cid Quotation Id
     /// @return productId Insurance Product id.
-    /// @return quoteId Quotation Id.
-    /// @return intParams Integer Array
-    /// @return bytesParams Bytes Array
+    /// @return cid Quotation Id.
     /// @return addParams Address Array
     /// @return currencyCode Currency in which quotation is assured
     /// @return sumAssured Sum assurance of quotation.
     // Arjun - Data Begin
-    function getQuoteByIndex1(uint quoteid) constant returns(uint8 productId,uint quoteId,int[] intParams, bytes32[] bytesParams,address[] addParams,bytes4 currencyCode,uint16 sumAssured)
+    function getCoverByIndex1(uint _cid) constant returns(bytes8 productName, uint cid,address addParams,bytes4 currencyCode,uint16 sumAssured, uint16 statusNo) 
     {
-        return (quotations[quoteid].productId,quoteid,quotations[quoteid].intParams,quotations[quoteid].bytesParams,quotations[quoteid].addParams,quotations[quoteid].currencyCode,quotations[quoteid].sumAssured);
+        return (allCovers[_cid].productName,cid,allCovers[_cid].addParams,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].status);
     }
+    
     // Arjun - Data End
-
     /// @dev Provides details of a Quotation Id
-    /// @param quoteid Quotation Id
+    /// @param coverid Quotation Id
     /// @return coverPeriod Cover Period of quotation (in days).
     /// @return premiumCalculated Premium of quotation.
     /// @return dateAdd timestamp at which quotation is created.
     /// @return status current status of Quotation.
     /// @return amountFunded Amount funded to the quotation.
     /// @return coverId cover of a quoation.
-    function getQuoteByIndex2(uint quoteid) constant returns(uint32 coverPeriod,uint premiumCalculated,uint dateAdd,uint validUntil,uint16 status,uint amountFunded,uint coverId)
+    function getCoverByIndex2(uint coverid) constant returns(address memberAddress,uint16 coverPeriod,uint validUntil,uint16 status,uint lockedTokens)
     {
-        return (quotations[quoteid].coverPeriod,quotations[quoteid].premiumCalculated,quotations[quoteid].dateAdd,quotations[quoteid].validUntil,quotations[quoteid].status,quotations[quoteid].amountFunded,quotations[quoteid].coverId);
+        return ( allCovers[coverid].memberAddress,allCovers[coverid].coverPeriod,allCovers[coverid].validUntil,allCovers[coverid].status,allCovers[coverid].lockedTokens);
     }
     /// @dev Provides details of a Quotation Id
-    /// @param quoteid Quotation Id
-    /// @return currencyCode Currency in which quotation is assured
-    /// @return sumAssured Sum assurance of quotation.
-    /// @return coverPeriod Cover Period of quotation (in days).
-    /// @return premiumCalculated Premium of quotation.
-    function getQuoteByIndex3(uint quoteid) constant returns(bytes4 currencyCode, uint16 sumAssured,uint32 coverPeriod,uint premiumCalculated)
+    /// @param _cid Cover Id
+    /// @return currencyCode Currency in which Cover is assured
+    /// @return sumAssured Sum assurance of Cover.
+   
+    /// @return premiumCalculated Premium of Cover.
+    function getCoverByIndex3(uint _cid) constant returns(bytes8 productName, uint cid,address addParams,bytes4 currencyCode,uint16 sumAssured, uint16 statusNo) 
     {
-        return (quotations[quoteid].currencyCode,quotations[quoteid].sumAssured,quotations[quoteid].coverPeriod,quotations[quoteid].premiumCalculated);
+        return (allCovers[_cid].productName,cid,allCovers[_cid].addParams,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].status);
     }
     /// @dev Provides the information of a given Cover Id.
     /// @param coverid Cover Id.
@@ -613,10 +644,10 @@ contract quotationData{
     /// @return claimCount Number of claims submitted against a cover.
     /// @return lockedTokens Number of tokens locked against a cover.
     /// @return status Current status of cover. 
-    function getCoverByIndex(uint coverid) constant returns(uint quoteId,uint validUntil,uint8 claimCount,uint lockedTokens,uint16 status)
-    {
-        return (allCovers[coverid].quoteId,allCovers[coverid].validUntil,allCovers[coverid].claimCount,allCovers[coverid].lockedTokens,allCovers[coverid].status);
-    }    
+    // function getCoverByIndex(uint coverid) constant returns(uint validUntil,uint lockedTokens,uint16 status)
+    // {
+    //     return (allCovers[coverid].validUntil,allCovers[coverid].lockedTokens,allCovers[coverid].status);
+    // }    
     /// @dev Provides the information of the quote id, mapped against the user  calling the function, at the given index
     /// @param ind User's Quotation Index.
     /// @return coverPeriod Cover Period of quotation in days.
@@ -624,23 +655,23 @@ contract quotationData{
     /// @return dateAdd timestamp at which quotation is created.
     /// @return status current status of Quotation.
     /// @return amountFunded number of tokens funded to the quotation.
-    /// @return coverId cover of a quoation
-    function getQuoteByAddressAndIndex2(uint ind) constant returns(uint coverPeriod,uint premiumCalculated,uint dateAdd,uint validUntil,bytes16 status,uint amountFunded,uint coverId,uint quoteid)
+   
+    function getCoverByAddressAndIndex2(uint ind) constant returns(address memAddress,uint16 coverPeriod,uint validUntil,bytes16 status)
     {
         uint16 statusNo;
-        quoteid=getQuoteByAddressAndIndex(ind , msg.sender);
-        (coverPeriod,premiumCalculated,dateAdd,validUntil,statusNo,amountFunded,coverId) = getQuoteByIndex2(quoteid);
-        status=getQuotationStatus(statusNo);
+        // quoteid=getQuoteByAddressAndIndex(ind , msg.sender);
+        (memAddress,coverPeriod,validUntil,statusNo,) = getCoverByIndex2(ind);
+        status=getCoverStatus(statusNo);
     }
     /// @dev Gets Quote details using current address and quoteid.
-    function getQuoteByAddressAndIndex1(uint ind) constant returns(uint8 productId,int[] intParams, bytes32[] bytesParams,address[] addParams,bytes4 currencyCode,uint sumAssured,uint quoteid)
+    function getCoverByAddressAndIndex1(uint ind) constant returns(bytes8 productName,address addParams,bytes4 currencyCode,uint sumAssured)
     {
-        quoteid=getQuoteByAddressAndIndex(ind , msg.sender);
-       (productId,,intParams,bytesParams,addParams,currencyCode,sumAssured) = getQuoteByIndex1(quoteid);
+        // quoteid=getQuoteByAddressAndIndex(ind , msg.sender);
+       (productName,,addParams,currencyCode,sumAssured,) = getCoverByIndex1(ind);
     }
-    function setProductDetails(uint prodId,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
+    function setProductDetails(uint prodId,bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
     {
-       ProductDetails[prodId]=(Product_Details(_STLP,_STL,_PM,_minDays));
+       ProductDetails[prodId]=(Product_Details(_productName,_productHash,_STLP,_STL,_PM,_minDays));
     }
 
     /// @dev Adds the amount in Total Sum Assured of a given currency.
@@ -648,7 +679,7 @@ contract quotationData{
     /// @param _amount Amount to be added.
     function addInTotalSumAssuredSC(address _add , bytes4 _curr, uint _amount) onlyInternal
     {
-        totalSumAssured_SC[_add][_curr] =SafeMaths.add(totalSumAssured_SC[_add][_curr],_amount);
+        currentSumAssured_SC[_add][_curr] =SafeMaths.add(currentSumAssured_SC[_add][_curr],_amount);
     }
 
     /// @dev Subtracts the amount from Total Sum Assured of a given currency.
@@ -656,12 +687,19 @@ contract quotationData{
     /// @param _amount Amount to be subtracted.
     function subFromTotalSumAssuredSC(address _add , bytes4 _curr, uint _amount) onlyInternal
     {
-        totalSumAssured_SC[_add][_curr] =SafeMaths.sub(totalSumAssured_SC[_add][_curr],_amount);
+        currentSumAssured_SC[_add][_curr] =SafeMaths.sub(currentSumAssured_SC[_add][_curr],_amount);
     }
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
     function getTotalSumAssuredSC(address _add, bytes4 _curr) constant returns(uint amount)
     {
-        amount = totalSumAssured_SC[_add][_curr];
+        amount = currentSumAssured_SC[_add][_curr];
+    }
+     function getAuthAddress()constant returns(address add){
+        return AuthAddress;
+    }
+    
+    function changeAuthAddress(address add) onlyOwner {
+        AuthAddress = add;
     }
 }

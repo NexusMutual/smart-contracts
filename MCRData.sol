@@ -15,7 +15,7 @@
 
 
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./master.sol";
 import "./SafeMaths.sol";
 contract MCRData
@@ -31,19 +31,15 @@ contract MCRData
     uint16 public shockParameter;
     uint64 MCRTime;
     bytes4[] allCurrencies;
+    
     struct mcrData
     { 
         uint32 mcrPercx100;
-        uint mcrEtherx100;
         uint64 vFull;    //pool funds
-        uint date_add;
-        uint blockNumber;
-        mapping(bytes4=>uint32) allCurrRates;
+        uint64 date;
     }
     mcrData[] public allMCRData;
     mapping(bytes4=>uint32) public allCurr3DaysAvg;
-    mapping(uint64 => uint) public dateWiseMCR;
-    mapping(uint=>uint64) public indexWiseDate; 
     address notariseMCR;
 
     function MCRData()
@@ -51,9 +47,9 @@ contract MCRData
         growthStep = 1500000;
         SFx100000 = 140;
         MCRTime =  SafeMaths.mul64(SafeMaths.mul64(24,60),60);
-        MCRFailTime=SafeMaths.mul64(5,60);
+        MCRFailTime=SafeMaths.mul64(6,3600);
         minMCRReq = 0;
-        allMCRData.push(mcrData(0,0,0,0,0));
+        allMCRData.push(mcrData(0,0,0));
         minCap=1;
         shockParameter=50;
     }
@@ -178,22 +174,12 @@ contract MCRData
    
     /// @dev Adds details of (Minimum Capital Requirement)MCR.
     /// @param mcrp Minimum Capital Requirement percentage (MCR% * 100 ,Ex:for 54.56% ,given 5456)
-    /// @param mcre Minimum Capital Requirement in Ether (*100)
     /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
-    /// @param time Current timestamp at which MCR details are getting added.
-    /// @param block Block Number on which calculations have been made.
-    function pushMCRData(uint32 mcrp,uint mcre,uint64 vf,uint time,uint block) onlyInternal
+    function pushMCRData(uint32 mcrp,uint64 vf,uint time) onlyInternal
     {
-        allMCRData.push(mcrData(mcrp,mcre,vf,time,block));
+        allMCRData.push(mcrData(mcrp,vf,time));
     }
-    /// @dev Updates the currency exchange rate of a given currency.
-    /// @param id index value
-    /// @param curr Currency Name
-    /// @param rate rate of currency X 100.
-    function updateCurrRates(uint id,bytes4 curr,uint32 rate) onlyInternal
-    {
-        allMCRData[id].allCurrRates[curr] = rate;
-    }
+
     /// @dev Gets number of currencies that the system accepts.
     function getCurrLength()constant returns(uint16 len)
     {
@@ -204,14 +190,7 @@ contract MCRData
     {
         curr = allCurrencies[index];
     }
-    /// @dev Gets exchange rate of a currency w.r.t ETH.
-    /// @param index index value
-    /// @param curr Currency Name
-    /// @return rate rate of currency X 100.
-    function getCurrencyRateByIndex(uint index,bytes4 curr) constant returns(uint32 rate)
-    {
-        rate = allMCRData[index].allCurrRates[curr];
-    }
+    
     /// @dev Updates the 3 day average rate of a currency.
     /// @param curr Currency Name.
     /// @param rate Average exchange rate X 100 (of last 3 days).
@@ -219,6 +198,7 @@ contract MCRData
     {
         allCurr3DaysAvg[curr] = rate;
     }
+    
     /// @dev Gets the average rate of a currency.
     /// @param curr Currency Name.
     /// @return rate Average rate X 100(of last 3 days).
@@ -226,44 +206,14 @@ contract MCRData
     {
         rate = allCurr3DaysAvg[curr];
     }
-    /// @dev Stores the MCR to the date on which it is calculated. 
-    /// @param _date date at which new MCR details are added (yyyyMMdd).
-    /// @param id MCR id.
-    function updateDateWiseMCR(uint64 _date , uint id) onlyInternal
-    {
-        dateWiseMCR[_date] = id;
-        indexWiseDate[id]=_date;
-    }
-    function getIndexWiseDate(uint id) constant returns(uint64 date)
-    {
-        date= indexWiseDate[id];
-    }
-    
-     /// @dev Gets the details of last added MCR.
+
+    /// @dev Gets the details of last added MCR.
     /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
-    /// @return mcrEtherx100 Total Minimum Capital Requirement in ether.(multiplied by 100)
     /// @return vFull Total Pool fund value in Ether used in the last full daily calculation.
-    /// @return date_add Timestamp at which data was notarized.
-    /// @return blockNumber Block Number at which data was notarized.
-    function getLastMCR() constant returns( uint32 mcrPercx100,uint mcrEtherx100,uint64 vFull,uint date_add,uint blockNumber)
+    function getLastMCR() constant returns( uint32 mcrPercx100,uint64 vFull,uint64 date)
     {
        
-        return (allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrPercx100,allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrEtherx100,allMCRData[SafeMaths.sub(allMCRData.length,1)].vFull,allMCRData[SafeMaths.sub(allMCRData.length,1)].date_add,allMCRData[SafeMaths.sub(allMCRData.length,1)].blockNumber);
-    }
-    /// @dev Gets the details of MCR of a given date.
-    /// @param date Date in yyyymmdd format
-    /// @return mcrPercx100 Total Minimum Capital Requirement percentage * 100.
-    /// @return mcrEtherx100 Total Minimum Capital Requirement in ether * 100.
-    /// @return vFull Pool Fund value in Ether used in calculation for the given date.
-    /// @return date_add Timestamp at which data was notarized.
-    function getMCRbyDate(uint64 date) constant returns( uint32 mcrPercx100,uint mcrEtherx100,uint64 vFull,uint date_add,uint blockNumber)
-    {
-        uint index = dateWiseMCR[date];
-        return (allMCRData[index].mcrPercx100,allMCRData[index].mcrEtherx100,allMCRData[index].vFull,allMCRData[index].date_add,allMCRData[index].blockNumber);
-    }
-    function getMCRIndexByDate(uint64 date)constant returns(uint index)
-    {
-        index = dateWiseMCR[date];
+        return (allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrPercx100,allMCRData[SafeMaths.sub(allMCRData.length,1)].vFull,allMCRData[SafeMaths.sub(allMCRData.length,1)].date);
     }
 
     /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
@@ -278,10 +228,10 @@ contract MCRData
         vf = allMCRData[SafeMaths.sub(allMCRData.length,1)].vFull;
     }
     /// @dev Gets last Minimum Capital Requirement in Ether.
-    /// @return val MCR in ETH,multiplied by 100.
-    function getLastMCREtherFull()constant returns(uint val)
+    /// @return date of MCR.
+    function getLastMCRDate()constant returns(uint64 date)
     {
-        val = allMCRData[SafeMaths.sub(allMCRData.length,1)].mcrEtherx100;
+        date = allMCRData[SafeMaths.sub(allMCRData.length,1)].date;
     }
     
     function getTokenPriceDetails(bytes4 curr) constant returns(uint32 SF,uint32 gs,uint32 rate)

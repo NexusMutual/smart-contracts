@@ -15,7 +15,7 @@
 
 //Claims Reward Contract contains the functions for calculating number of tokens  that will get rewarded, unlocked or burned depending upon the status of claim.   
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 // import "./quotation2.sol";
 import "./quotationData.sol";
 import "./NXMToken.sol";
@@ -129,7 +129,7 @@ contract claims_Reward
     }
    
     /// @dev Computes the result of Claim Assessors Voting for a given claim id.
-    function changeClaimStatusCA(uint claimid, uint coverid, uint quoteId) internal
+    function changeClaimStatusCA(uint claimid, uint16 coverid,uint8 status) internal
     {
         c1=claims(claimsAddress);
         cd1=claimsData(claimsDataAddress);
@@ -138,7 +138,7 @@ contract claims_Reward
         //Check if voting should be closed or not
         if(c1.checkVoteClosing(claimid)==1)
         { 
-            uint8 status=cd1.getClaimStatus(claimid);
+            // uint8 status=cd1.getClaimStatus(claimid);
             uint CATokens=c1.getCATokens(claimid,0);
             uint reward_claim=0;            
             if(CATokens==0)
@@ -149,7 +149,7 @@ contract claims_Reward
             else
             { 
                 // uint coverid=cd1.getClaimCoverId(claimid);
-                uint sumassured=qd1.getQuotationSumAssured(quoteId);
+                uint sumassured=qd1.getCoverSumAssured(coverid);
                 uint threshold_unreached=0;
                 //Minimum threshold for CA voting is reached only when value of tokens used for voting > 5* sum assured of claim id
                 if(CATokens<SafeMaths.mul(SafeMaths.mul(5,sumassured),1000000000000000000))
@@ -181,13 +181,13 @@ contract claims_Reward
             }
             c1.setClaimStatus(claimid,status);
             if(reward_claim==1)
-                rewardAgainstClaim(claimid,coverid,quoteId);
+                rewardAgainstClaim(claimid,coverid,status);
 
         }
     }
 
     /// @dev Computes the result of Member Voting for a given claim id.
-    function changeClaimStatusMV(uint claimid,uint coverid, uint quoteId) internal
+    function changeClaimStatusMV(uint claimid,uint16 coverid,uint8 status) internal
     {
         c1=claims(claimsAddress); 
         cd1=claimsData(claimsDataAddress);
@@ -196,8 +196,8 @@ contract claims_Reward
         if(c1.checkVoteClosing(claimid)==1)
         { 
             uint16 coverStatus;
-            uint8 status_orig=cd1.getClaimStatus(claimid);
-            uint8 status=status_orig;
+            uint8 status_orig=status; // cd1.getClaimStatus(claimid);
+            // uint8 status=status_orig;
             uint MVTokens=c1.getCATokens(claimid,1);
             // uint coverid=cd1.getClaimCoverId(claimid);
             // In case noone votes, claim is denied
@@ -209,7 +209,7 @@ contract claims_Reward
             else
             {   // If tokens used for acceptance >50%, claim is accepted
 
-                uint sumassured=qd1.getQuotationSumAssured(quoteId);
+                uint sumassured=qd1.getCoverSumAssured(coverid);
                 uint threshold_unreached=0;
              //Minimum threshold for member voting is reached only when value of tokens used for voting > 5* sum assured of claim id
                 if(MVTokens<SafeMaths.mul(SafeMaths.mul(5,sumassured),1000000000000000000))
@@ -235,7 +235,7 @@ contract claims_Reward
             c1.setClaimStatus(claimid,status);
             qd1.changeCoverStatus(coverid,coverStatus);
             //Reward/Punish Claim Assessors and Members who participated in claims assessment
-            rewardAgainstClaim(claimid,coverid,quoteId);
+            rewardAgainstClaim(claimid,coverid,status);
         }
     }
 
@@ -248,14 +248,14 @@ contract claims_Reward
         c1=claims(claimsAddress);
         cd1=claimsData(claimsDataAddress);
         qd1=quotationData(quotationDataAddress);
-        uint coverid=cd1.getClaimCoverId(claimid);
-        uint quoteId = qd1.getCoverQuoteid(coverid);
+        uint16 coverid=cd1.getClaimCoverId(claimid);
+        // uint quoteId = qd1.getCoverQuoteid(coverid);
         uint8 status=cd1.getClaimStatus(claimid);
         
         // when current status is "Pending-Claim Assessor Vote"
         if(status==0)
         {
-            changeClaimStatusCA(claimid,coverid,quoteId);
+            changeClaimStatusCA(claimid,coverid,status);
            
         }
         // when current status is Pending-Claim Assessor Vote Denied, pending RM Escalation
@@ -263,12 +263,12 @@ contract claims_Reward
         {
             c1.setClaimStatus(claimid,7);
             qd1.changeCoverStatus(coverid,2);
-            rewardAgainstClaim(claimid,coverid,quoteId);
+            rewardAgainstClaim(claimid,coverid,status);
         }
         // when current status is between 2 and 6, i.e. "Pending Member Vote"
         else if(status>=2 && status<=6)
         {
-            changeClaimStatusMV(claimid,coverid,quoteId);
+            changeClaimStatusMV(claimid,coverid,status);
         }
         // when current status is "Claim Accepted Payout Pending"
         else if(status == 16)
@@ -285,7 +285,7 @@ contract claims_Reward
     }
     /// @dev Rewards/Punishes users who  participated in claims assessment. Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
-    function rewardAgainstClaim(uint claimid,uint coverid, uint quoteId) internal
+    function rewardAgainstClaim(uint claimid,uint16 coverid, uint8 status) internal
     {
         tc1=NXMToken(tokenAddress);
         tc2=NXMToken2(token2Address);
@@ -296,9 +296,9 @@ contract claims_Reward
         cd1=claimsData(claimsDataAddress);
         pd1 = poolData1(poolDataAddress);
         // uint coverid=cd1.getClaimCoverId(claimid);
-        uint8 status=cd1.getClaimStatus(claimid);
-        bytes4 curr=qd1.getQuotationCurrency(quoteId);
-        uint sumAssured=qd1.getQuotationSumAssured(quoteId);
+        // uint8 status=cd1.getClaimStatus(claimid);
+        bytes4 curr=qd1.getCoverCurrency(coverid);
+        uint sumAssured=qd1.getCoverSumAssured(coverid);
         p1=pool(poolAddress);
 
             if(status==7) //Final-Claim Assessor Vote Denied
@@ -346,8 +346,8 @@ contract claims_Reward
             if(status==11)
             {
                 c1.changeFinalVerdict(claimid,-1);
-                uint8 cc = qd1.getCoverClaimCount(coverid);
-                qd1.changeClaimCount(coverid,cc+1);
+                // uint8 cc = cd1.getCoverClaimCount(coverid);
+                cd1.addCover_Claim(coverid,cd1.getCoverClaimCount(coverid)); //cc+1
                 rewardCAVoters(claimid,100,curr,sumAssured);
                 tc2.undepositCN(coverid,0);
                 tc2.burnCNToken(coverid);
@@ -534,8 +534,8 @@ contract claims_Reward
             
             uint coverid=cd1.getClaimCoverId(ClaimID);
             // q1=quotation2(quotation2Address);
-            uint quoteId = qd1.getCoverQuoteid(coverid);
-            address qadd=qd1.getQuoteMemberAddress(quoteId);
+            // uint quoteId = qd1.getCoverQuoteid(coverid);
+            address qadd=qd1.getCoverMemberAddress(coverid);
             // address qadd=q1.getMemberAddress(coverid);
             tc1.DepositLockCN_EPOff(qadd,coverid,SafeMaths.add(pendingTime,cd1.claimDepositTime()));
 

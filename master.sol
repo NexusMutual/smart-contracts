@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./quotation2.sol";
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
@@ -37,6 +37,7 @@ import "./SafeMaths.sol";
 import "./pool3.sol";
 import "./governance2.sol";
 import "./MemberRoles.sol";
+
 contract master
 {
     using SafeMaths for uint;
@@ -248,7 +249,6 @@ contract master
 
        mr1=MemberRoles(memberAddress);
        mr1.changeMasterAddress(_add);
-
     }
     /// @dev Link contracts to one another.
    function changeOtherAddress() onlyInternal
@@ -259,7 +259,7 @@ contract master
       q2.changePoolAddress(poolAddress);
       q2.changeQuotationDataAddress(quoteDataAddress);
       q2.changeMCRAddress(MCRAddress);
-      // q2.changeToken2Address(NXMToken2Address);
+       q2.changeToken2Address(NXMToken2Address);
       // Arjun - Data Begin
       q2.changeTokenDataAddress(tokenDataAddress);
       // Arjun - Data End
@@ -386,6 +386,7 @@ contract master
 
       mr1=MemberRoles(memberAddress);
       mr1.changeToken2Address(NXMToken2Address);
+      
    }
    /// @dev Updates the version of contracts and calls the oraclize query to update UI.
    function switchToRecentVersion() onlyInternal

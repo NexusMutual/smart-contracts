@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./NXMToken.sol";
 import "./claims.sol";
 import "./fiatFaucet.sol";
@@ -174,13 +174,13 @@ contract pool is usingOraclize{
     /// @dev Calls Oraclize Query to expire a given Quotation after a given period of time.
     /// @param id Quote Id to be expired
     /// @param time Time (in milliseconds) after which the quote should be expired
-    function closeQuotationOraclise(uint id , uint64 time) onlyInternal
-    {
+    // function closeQuotationOraclise(uint id , uint64 time) onlyInternal
+    // {
       
-        bytes32 myid3 = oraclize_query(time, "URL",strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/",uint2str(id)),500000);
-        saveApiDetails(myid3,"QUO",id);
+    //     bytes32 myid3 = oraclize_query(time, "URL",strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/",uint2str(id)),500000);
+    //     saveApiDetails(myid3,"QUO",id);
         
-    }
+    // }
     /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
     /// @param id Quote Id to be expired
     /// @param time Time (in milliseconds) after which the cover should be expired
@@ -207,20 +207,20 @@ contract pool is usingOraclize{
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function MCROracliseFail(uint id,uint64 time) onlyInternal
     {
-        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io",1000000);
+        bytes32 myid4 = oraclize_query(time, "URL","",1000000);
         saveApiDetails(myid4,"MCRF",id);
     }
     
     /// @dev Oraclize call to an external oracle for fetching the risk cost for a given latitude and longitude
     /// @param  quoteid Quotation Id for which risk cost needs to be fetched
     // Arjun - Data Begin
-    function callQuotationOracalise(uint quoteid) onlyInternal // bytes16 lat , bytes16 long ,
-    {
-        // bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getRiskData/",uint2str(quoteid)),300000);  // strConcat(bytes16ToString(lat),"/","","",""),bytes16ToString(long),
-        bytes32 apiid = oraclize_query("URL",strConcat("https://a2.nexusmutual.io/nxmmcr.js/getRiskData/",uint2str(quoteid)),300000);
-        // Arjun - Data End
-        saveApiDetails(apiid,"PRE",quoteid);
-    }
+    // function callQuotationOracalise(uint quoteid) onlyInternal // bytes16 lat , bytes16 long ,
+    // {
+    //     // bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getRiskData/",uint2str(quoteid)),300000);  // strConcat(bytes16ToString(lat),"/","","",""),bytes16ToString(long),
+    //     bytes32 apiid = oraclize_query("URL",strConcat("https://a2.nexusmutual.io/nxmmcr.js/getRiskData/",uint2str(quoteid)),300000);
+    //     // Arjun - Data End
+    //     saveApiDetails(apiid,"PRE",quoteid);
+    // }
     /// @dev Oraclize call to Subtract CSA for a given quote id.
     function subtractQuotationOracalise(uint id) onlyInternal
     {
@@ -254,20 +254,22 @@ contract pool is usingOraclize{
         p2.delegateCallBack(myid,res);     
     }
 
-    /// @dev Begins the funding of the Quotations.
-    /// @param fundAmt fund amounts for each selected quotation.
-    /// @param quoteId multiple quotations ID that will get funded.
-    function fundQuoteBegin(uint[] fundAmt , uint[] quoteId )isMemberAndcheckPause payable 
+    /// @dev Begins making cover.
+    /// @param coverCurrPrice fund amounts for each selected quotation.
+    
+    /// @param smartCAdd Smart Contract Address
+    function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable 
     {
         q2=quotation2(quotation2Address);
-        uint sum=0;
-        for(uint i=0;i<fundAmt.length;i++)
+        // uint sum=0;
+        // for(uint i=0;i<fundAmt.length;i++)
+        // {
+            // sum=SafeMaths.add(sum,fundAmt[i]);
+        // }
+        if(msg.value==coverCurrPrice)
         {
-            sum=SafeMaths.add(sum,fundAmt[i]);
-        }
-        if(msg.value==sum)
-        {
-            q2.fundQuote(fundAmt ,quoteId , msg.sender);
+            // q2.makeCover(coverId , msg.sender,scAddress); //fundAmt ,
+            q2.makeCover(prodId,msg.sender,smartCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
         }
         else
         {
@@ -314,9 +316,9 @@ contract pool is usingOraclize{
     /// @dev Payable method for allocating some amount to the Pool. 
     function takeEthersOnly() payable onlyOwner
     {
-        t1=NXMToken(tokenAddress);
-        uint amount = msg.value;
-        t1.addToPoolFund("ETH",amount);
+        // t1=NXMToken(tokenAddress);
+        // uint amount = msg.value;
+        // t1.addToPoolFund("ETH",amount);
     }
 
     
@@ -354,7 +356,7 @@ contract pool is usingOraclize{
                 if(succ == true)
                 {   
                     p2.callPayoutEvent(_to,"PayoutAB",id,amount);
-                    t1.removeFromPoolFund("ETH",amount);
+                    // t1.removeFromPoolFund("ETH",amount);
                 }
            }
         }
@@ -369,7 +371,7 @@ contract pool is usingOraclize{
         if(succ==true)
         {t1=NXMToken(tokenAddress);
         // Subtracts the transferred amount from the Pool Fund.
-        t1.removeFromPoolFund("ETH",amount);  
+        // t1.removeFromPoolFund("ETH",amount);  
         }
     }
     /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
@@ -380,7 +382,7 @@ contract pool is usingOraclize{
         g1 = governance(governanceAddress);
         uint valueWEI =SafeMaths.mul (valueETH,1000000000000000000);
         if(g1.isAB(msg.sender) != 1 || (valueWEI > this.balance)) throw;
-        t1.removeFromPoolFund("ETH",valueWEI);
+        // t1.removeFromPoolFund("ETH",valueWEI);
         getCurrencyTokensFromFaucet(valueWEI,curr);
     }
 

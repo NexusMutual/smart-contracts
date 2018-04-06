@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./pool.sol";
 import "./governanceData.sol";
 import "./master.sol";

@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
     
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 
 import "./poolData1.sol";
 import "./master.sol";
@@ -290,7 +290,6 @@ contract pool3
         md1=MCRData(MCRDataAddress);
         if(ms1.isInternal(msg.sender)==1 || md1.isnotarise(msg.sender)==1){
             pd1 = poolData1(poolDataAddress);
-            
             uint64 baseMin;
             uint64 varMin;
             (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
@@ -316,7 +315,6 @@ contract pool3
         md1=MCRData(MCRDataAddress);
         if(ms1.isInternal(msg.sender)==1 || md1.isnotarise(msg.sender)==1){
             pd1 = poolData1(poolDataAddress);
-            
             if(pd1.getLiquidityOrderStatus(curr,"ELT")==0)
             {
                 uint64 baseMin;
@@ -326,12 +324,12 @@ contract pool3
                 uint makerAmt;uint takerAmt;
                 (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
                 (,,MINIACurr,minIARate)=pd1.getIARankDetailsByDate(pd1.getLastDate());
-                //amount of assest to sell currency asset
+                //  amount of assest to sell currency asset
                 if(CABalance>=SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2)))
                 {
                     md1=MCRData(MCRDataAddress);
                     makerAmt=(SafeMaths.sub(CABalance, SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2))));//*10**18;
-                    //amount of asset to buy investment asset
+                    // amount of asset to buy investment asset
                     if(md1.getCurr3DaysAvg(curr)>0){
                         takerAmt=SafeMaths.div(( SafeMaths.mul(SafeMaths.mul(minIARate,makerAmt), 10**pd1.getInvestmentAssetDecimals(MINIACurr) )),(md1.getCurr3DaysAvg(curr))) ;      
                         zeroExOrders(curr,makerAmt,takerAmt,"ELT",0); 
@@ -342,8 +340,8 @@ contract pool3
                 {
                     Liquidity("ELT","Insufficient");
                 }      
-           }
-       }
+            }
+        }
     }
     /// @dev Creates/cancels insufficient liquidity trading order for a given currency and a given balance.
     function InsufficientLiquidityTrading(bytes4 curr,uint CABalance,uint8 cancel) onlyInternal
@@ -509,7 +507,7 @@ contract pool3
         CABalance=getCurrencyAssetsBalance(curr);
         (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
         uint lastIndex=SafeMaths.sub(md1.getMCRDataLength(),1);
-        CARateX100=md1.getCurrencyRateByIndex(lastIndex,curr);
+        CARateX100=md1.allCurr3DaysAvg(curr);
     }
     // update investment asset  min and max holding percentages.
     function updateInvestmentAssetHoldingPerc(bytes16 _curr,uint64 _minPercX100,uint64 _maxPercX100) onlyInternal

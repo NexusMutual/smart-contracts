@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
     
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./quotation2.sol";
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
@@ -218,16 +218,14 @@ contract claims{
         c1.changeFinalVerdict(claimid,verdict);
     }
      
-   
     /// @dev Gets details of a given claim id.
     /// @param ind Claim Id.
-    /// @return quoteid QuoteId linked to the claim id
     /// @return status Current status of claim id
     /// @return dateAdd Claim Submission date
     /// @return finalVerdict Decision made on the claim, 1 in case of acceptance, -1 in case of denial
     /// @return claimOwner Address through which claim is submitted
     /// @return coverid Coverid associated with the claim id
-     function getClaimbyIndex(uint ind) constant returns( uint claimId,uint quoteid,string status,uint dateAdd ,int8 finalVerdict , address claimOwner ,uint coverid) 
+     function getClaimbyIndex(uint ind) constant returns( uint claimId,string status,uint dateAdd ,int8 finalVerdict , address claimOwner ,uint coverid) 
     {
         q1=quotation2(quotation2Address);
         c1=claimsData(claimsDataAddress);
@@ -236,7 +234,7 @@ contract claims{
         claimId=ind;
         (coverid,dateAdd,finalVerdict,stat,,)=c1.getClaim(ind);
         claimOwner = q1.getMemberAddress(coverid);
-        quoteid=q1.getQuoteId(coverid);
+        // quoteid=q1.getQuoteId(coverid);
         status = claimStatus_desc[stat];          
     }
     /// @dev Gets details of a given vote id
@@ -416,7 +414,7 @@ contract claims{
 
     /// @dev Submits a claim for a given cover note. Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverid Cover Id.
-    function submitClaim(uint coverid)
+    function submitClaim(uint16 coverid)
     {
         q1=quotation2(quotation2Address);
         address qadd=q1.getMemberAddress(coverid);
@@ -431,12 +429,14 @@ contract claims{
         }
     }
     ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
-    function addClaim (uint coverid, uint time,address add) internal {
+    function addClaim (uint16 coverid, uint time,address add) internal {
         q1=quotation2(quotation2Address);
         tc2=NXMToken2(token2Address);
         c1=claimsData(claimsDataAddress);
+        td1 = NXMTokenData(tokenDataAddress);
         uint nowtime=now;
-        uint tokens = q1.getLockedTokens(coverid);
+        uint tokens;
+        (,tokens)=td1.getLockedCN_Cover(add,coverid);
         tokens =SafeMaths.div(SafeMaths.mul(tokens,20),100);
         uint timeStamp = SafeMaths.add(nowtime , c1.claimDepositTime());
         tc2.depositCN(coverid,tokens,timeStamp,add);
@@ -457,7 +457,7 @@ contract claims{
         q1=quotation2(quotation2Address);
         uint lengthOfClaimSubmittedAtEP = c1.getLengthOfClaimSubmittedAtEP();
         uint FirstClaimIndexToSubmitAfterEP= c1.getFirstClaimIndexToSubmitAfterEP();
-        uint coverid;
+        uint16 coverid;
         uint date_upd;
         bool submit;
         for(uint i=FirstClaimIndexToSubmitAfterEP; i<lengthOfClaimSubmittedAtEP;i++){
@@ -500,11 +500,11 @@ contract claims{
         tc1=NXMToken(tokenAddress);
         tc1.bookCATokens(msg.sender , tokens);
         c1.addVote(msg.sender,tokens,claimid,verdict,now,0);
-        uint vote_length=c1.vote_length();
+        uint vote_length=c1.getAllVoteLength();
         c1.addclaim_vote_ca(claimid,vote_length);
         c1.setvote_ca(msg.sender,claimid,vote_length);
-        c1.addvote_address_ca(msg.sender,vote_length);
-        c1.setvote_length(SafeMaths.add(vote_length,1));
+        // c1.addvote_address_ca(msg.sender,vote_length);
+        // c1.setvote_length(SafeMaths.add(vote_length,1));
         c1.setclaim_tokensCA(claimid,verdict,tokens);
         int close = checkVoteClosing(claimid);
         if(close==1)
@@ -522,9 +522,11 @@ contract claims{
         tc2 = NXMToken2(token2Address);
         q1=quotation2(quotation2Address);
         tc1=NXMToken(tokenAddress);
-        address qadd=q1.getMemberAddress(coverId);
-        if(qadd != msg.sender) throw;
-        uint tokens = q1.getLockedTokens(coverId);
+        address cadd=q1.getMemberAddress(coverId);
+        if(cadd != msg.sender) throw;
+        td1 = NXMTokenData(tokenDataAddress);
+        uint tokens;
+        (,tokens)= td1.getLockedCN_Cover(cadd,coverId);
         tokens = SafeMaths.div(SafeMaths.mul(tokens,20),100);
         c1=claimsData(claimsDataAddress);
         uint d=SafeMaths.mul(864000 , c1.escalationTime()) ;
@@ -547,12 +549,12 @@ contract claims{
         uint stat=c1.getClaimStatus(claimid);
         if(stat <2 || stat >6) throw;
         if(c1.getvote_member(claimid,msg.sender) != 0) throw;
-        uint vote_length=c1.vote_length();
+        uint vote_length=c1.getAllVoteLength();
         c1.addVote(msg.sender,tokens,claimid,verdict,now,0);
         c1.addclaim_vote_member(claimid,vote_length);
         c1.setvote_member(msg.sender,claimid,vote_length);
-        c1.addvote_address_member(msg.sender,vote_length);
-        c1.setvote_length(SafeMaths.add(vote_length,1));
+        // c1.addvote_address_member(msg.sender,vote_length);
+        // c1.setvote_length(SafeMaths.add(vote_length,1));
         c1.setclaim_tokensMV(claimid,verdict,tokens);
         int close = checkVoteClosing(claimid);
         if(close==1)

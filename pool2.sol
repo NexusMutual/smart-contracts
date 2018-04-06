@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
     
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
@@ -29,6 +29,7 @@ import "./fiatFaucet.sol";
 import "./SafeMaths.sol";
 import "./USD.sol";
 import "./MCRData.sol";
+import "./MCR.sol";
 import "./pool3.sol";
 import "github.com/0xProject/contracts/contracts/Exchange.sol";
 
@@ -169,25 +170,26 @@ contract pool2
         ms1=master(masterAddress);
         if (ms1.isPause()==0) // system is not in emergency pause
         {
-             // If callback is of type "quote", then result contains the risk factor based on which premimum of quotation is calculated.
-             if(pd1.getApiIdTypeOf(myid) =="PRE")
-            {
-                pd1.updateDateUpdOfAPI(myid);
-                q2=quotation2(quotation2Address);
-                uint id = pd1.getIdOfApiId(myid);  // Quotation id.
-                q2.changePremium(id , res);  
+            // If callback is of type "quote", then result contains the risk factor based on which premimum of quotation is calculated.
+            // if(pd1.getApiIdTypeOf(myid) =="PRE")
+            // {
+            //     pd1.updateDateUpdOfAPI(myid);
+            //     q2=quotation2(quotation2Address);
+            //     uint id = pd1.getIdOfApiId(myid);  // Quotation id.
+            //     q2.changePremium(id , res);  
                 
-            }  
+            // }  
             // If callback is of type "quotation", then Quotation id associated with the myid is checked for expiry.
-            else if(pd1.getApiIdTypeOf(myid) =="QUO")
-            {
-                pd1.updateDateUpdOfAPI(myid);
-                q2=quotation2(quotation2Address);
-                q2.expireQuotation(pd1.getIdOfApiId(myid)); 
+            // else if(pd1.getApiIdTypeOf(myid) =="QUO")
+            // {
+            //     pd1.updateDateUpdOfAPI(myid);
+            //     q2=quotation2(quotation2Address);
+            //     q2.expireQuotation(pd1.getIdOfApiId(myid)); 
 
-            }
+            // }
             // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
-            else if(pd1.getApiIdTypeOf(myid) =="COV")
+            // else 
+            if(pd1.getApiIdTypeOf(myid) =="COV")
             {
                 pd1.updateDateUpdOfAPI(myid);
                 q2=quotation2(quotation2Address);
@@ -265,7 +267,7 @@ contract pool2
         uint sumAssured1 = q2.getSumAssured(coverid);
         bytes4 curr = q2.getCurrencyOfCover(coverid);
         uint balance;
-        uint quoteid=q2.getQuoteId(coverid);
+        // uint quoteid=q2.getQuoteId(coverid);
         //Payout in Ethers in case currency of quotation is ETH
         if(curr=="ETH")
         {
@@ -277,9 +279,9 @@ contract pool2
                 succ = p1.transferEther(sumAssured ,_to);   
                 if(succ==true)
                 {
-                    t1.removeFromPoolFund(curr,sumAssured);
-                    q2.removeSAFromCSA(quoteid,sumAssured1);
-                    p1.subtractQuotationOracalise(quoteid);
+                    // t1.removeFromPoolFund(curr,sumAssured);
+                    q2.removeSAFromCSA(coverid,sumAssured1);
+                    p1.subtractQuotationOracalise(coverid);
                     // date:10/11/2017/
                     pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
                     c1.checkLiquidity(curr);
@@ -306,9 +308,9 @@ contract pool2
             if(balance >= sumAssured)
             {
                 f1.payoutTransferFromPool(_to , curr , sumAssured);
-                t1.removeFromPoolFund(curr,sumAssured);
-                p1.subtractQuotationOracalise(quoteid);
-                q2.removeSAFromCSA(quoteid,sumAssured);
+                // t1.removeFromPoolFund(curr,sumAssured);
+                p1.subtractQuotationOracalise(coverid);
+                q2.removeSAFromCSA(coverid,sumAssured);
                 // date:10/11/2017/
                 pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
                 c1.checkLiquidity(curr);
@@ -321,8 +323,8 @@ contract pool2
                 succ=false;
             }
         }
-        if(q2.getQuoteProdId(quoteid)==1)
-            tc2.burnStakerLockedToken(quoteid,coverid,curr,sumAssured1);
+        if(q2.getCoverProductName(coverid)=="SCC")
+            tc2.burnStakerLockedToken(coverid,curr,sumAssured1);
 
     }
     /// @dev Gets the investment asset rank.

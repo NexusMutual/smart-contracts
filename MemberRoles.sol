@@ -9,11 +9,11 @@
     GNU General Public License for more details.
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
+
 import "./master.sol";
 import "./NXMToken2.sol";
-// import "./Ownable.sol";
-// import "./zeppelin-solidity/contracts/ownership/Ownable.sol";
+
 contract  MemberRoles
 {
   master M1;
@@ -39,8 +39,10 @@ contract  MemberRoles
   {
     require(constructorCheck == 0);
     
-        memberRole.push("Member");
+        memberRole.push("");
         memberRole.push("Advisory Board");
+        memberRole.push("Token Holder");
+        memberRole.push("Member");
         categorizeAuthRoleid=1;
         constructorCheck =1;
   }
@@ -132,14 +134,14 @@ contract  MemberRoles
         memberAddressToMemberRole[_memberAddress] = _memberRoleId;
         memberRoleData[_memberRoleId].memberAddress.push(_memberAddress);
       }
-      // else
-      // {
-      //   require(memberRoleData[_memberRoleId].memberActive[_memberAddress] == 0);
-      //   memberRoleData[_memberRoleId].memberCounter = memberRoleData[_memberRoleId].memberCounter+1;
-      //   memberRoleData[_memberRoleId].memberActive[_memberAddress] = 1;
-      //   memberAddressToMemberRole[_memberAddress] = _memberRoleId;
-      //   memberRoleData[_memberRoleId].memberAddress.push(_memberAddress);
-      // }
+       else
+       {
+         require(memberRoleData[_memberRoleId].memberActive[_memberAddress] == 0);
+         memberRoleData[_memberRoleId].memberCounter = memberRoleData[_memberRoleId].memberCounter+1;
+         memberRoleData[_memberRoleId].memberActive[_memberAddress] = 1;
+         memberAddressToMemberRole[_memberAddress] = _memberRoleId;
+         memberRoleData[_memberRoleId].memberAddress.push(_memberAddress);
+       }
   }
   // /// @dev Assign role to a member when giving member address and role id
   // function assignMemberRole(address _memberAddress,uint _memberRoleId) onlyOwner

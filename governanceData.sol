@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 import "./master.sol";
 import "./SafeMaths.sol";
 contract governanceData
@@ -510,12 +510,3 @@ contract governanceData
         return(allPro[id].categorizedBy,allPro[id].address_effect[indx],allPro[id].value[indx],allPro[id].options[indx]);
     } 
 }
-
-
-
-        
-
-
-
-        
-

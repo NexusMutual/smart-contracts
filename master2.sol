@@ -14,7 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
     
 
-pragma solidity 0.4.11;
+pragma solidity ^0.4.11;
 
 import "./claims.sol";
 import "./governance.sol";
@@ -30,15 +30,16 @@ import "./SafeMaths.sol";
 contract masters2 {
     using SafeMaths for uint;
     
-     struct insurance{
-        string name;
-        uint id;
-    }
+    //  struct insurance{
+
+    //     string name;
+    //     uint id;
+    // }
 
     address  claimsAddress;
     address  governanceAddress;
     address claims_RewardAddress;
-    uint public product_length;
+    // uint public product_length;
     address poolAddress;
     address quotationDataAddress;
     address poolDataAddress;
@@ -55,21 +56,21 @@ contract masters2 {
     address MCRAddress;
     MCR m1;
     SupplyToken tok;
-    insurance[]  public productType;
+    // insurance[]  public productType;
 
-    function masters2()
-    {
-        productType.push(insurance("Earthquake Cover",0));
-        productType.push(insurance("Smart Contract Cover",1));
+    // function masters2()
+    // {
+    //     productType.push(insurance("Earthquake Cover",0));
+    //     productType.push(insurance("Smart Contract Cover",1));
         
-        product_length=2;
-    }
+    //     product_length=2;
+    // }
     ///@dev Add insurance product.
-    function addProduct(string _name , uint _id) onlyOwner
-    {
-        productType.push(insurance(_name,_id));
-        product_length=SafeMaths.add(product_length,1);
-    }
+    // function addProduct(string _name , uint _id) onlyOwner
+    // {
+    //     productType.push(insurance(_name,_id));
+    //     product_length=SafeMaths.add(product_length,1);
+    // }
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -270,13 +271,13 @@ contract masters2 {
         m1.addCurrency("GBP");        
     }
     ///@dev Add quotation and cover status.
-    function addQuoteAndCoverStatus() onlyOwner
+    function addCoverStatus() onlyOwner
     {
-        qd1=quotationData(quotationDataAddress);
-        qd1.pushQuoteStatus("NEW");
-        qd1.pushQuoteStatus("partiallyFunded");
-        qd1.pushQuoteStatus("coverGenerated");
-        qd1.pushQuoteStatus("Expired");
+        // qd1=quotationData(quotationDataAddress);
+        // qd1.pushQuoteStatus("NEW");
+        // qd1.pushQuoteStatus("partiallyFunded");
+        // qd1.pushQuoteStatus("coverGenerated");
+        // qd1.pushQuoteStatus("Expired");
         
         qd1.pushCoverStatus("active");
         qd1.pushCoverStatus("Claim Accepted");

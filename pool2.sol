@@ -170,25 +170,7 @@ contract pool2
         ms1=master(masterAddress);
         if (ms1.isPause()==0) // system is not in emergency pause
         {
-            // If callback is of type "quote", then result contains the risk factor based on which premimum of quotation is calculated.
-            // if(pd1.getApiIdTypeOf(myid) =="PRE")
-            // {
-            //     pd1.updateDateUpdOfAPI(myid);
-            //     q2=quotation2(quotation2Address);
-            //     uint id = pd1.getIdOfApiId(myid);  // Quotation id.
-            //     q2.changePremium(id , res);  
-                
-            // }  
-            // If callback is of type "quotation", then Quotation id associated with the myid is checked for expiry.
-            // else if(pd1.getApiIdTypeOf(myid) =="QUO")
-            // {
-            //     pd1.updateDateUpdOfAPI(myid);
-            //     q2=quotation2(quotation2Address);
-            //     q2.expireQuotation(pd1.getIdOfApiId(myid)); 
-
-            // }
             // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
-            // else 
             if(pd1.getApiIdTypeOf(myid) =="COV")
             {
                 pd1.updateDateUpdOfAPI(myid);
@@ -211,7 +193,7 @@ contract pool2
             {
                 pd1.updateDateUpdOfAPI(myid);
                 m1=MCR(MCRAddress);
-                m1.addLastMCRData(pd1.getIdOfApiId(myid));
+                m1.addLastMCRData(uint64(pd1.getIdOfApiId(myid)));
             }
             else if(pd1.getApiIdTypeOf(myid)=="SUB")
             {

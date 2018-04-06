@@ -211,16 +211,7 @@ contract pool is usingOraclize{
         saveApiDetails(myid4,"MCRF",id);
     }
     
-    /// @dev Oraclize call to an external oracle for fetching the risk cost for a given latitude and longitude
-    /// @param  quoteid Quotation Id for which risk cost needs to be fetched
-    // Arjun - Data Begin
-    // function callQuotationOracalise(uint quoteid) onlyInternal // bytes16 lat , bytes16 long ,
-    // {
-    //     // bytes32 apiid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/pricing/getRiskData/",uint2str(quoteid)),300000);  // strConcat(bytes16ToString(lat),"/","","",""),bytes16ToString(long),
-    //     bytes32 apiid = oraclize_query("URL",strConcat("https://a2.nexusmutual.io/nxmmcr.js/getRiskData/",uint2str(quoteid)),300000);
-    //     // Arjun - Data End
-    //     saveApiDetails(apiid,"PRE",quoteid);
-    // }
+    
     /// @dev Oraclize call to Subtract CSA for a given quote id.
     function subtractQuotationOracalise(uint id) onlyInternal
     {

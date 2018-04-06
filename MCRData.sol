@@ -175,7 +175,7 @@ contract MCRData
     /// @dev Adds details of (Minimum Capital Requirement)MCR.
     /// @param mcrp Minimum Capital Requirement percentage (MCR% * 100 ,Ex:for 54.56% ,given 5456)
     /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
-    function pushMCRData(uint32 mcrp,uint64 vf,uint time) onlyInternal
+    function pushMCRData(uint32 mcrp,uint64 vf,uint64 time) onlyInternal
     {
         allMCRData.push(mcrData(mcrp,vf,time));
     }

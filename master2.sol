@@ -30,16 +30,9 @@ import "./SafeMaths.sol";
 contract masters2 {
     using SafeMaths for uint;
     
-    //  struct insurance{
-
-    //     string name;
-    //     uint id;
-    // }
-
     address  claimsAddress;
     address  governanceAddress;
     address claims_RewardAddress;
-    // uint public product_length;
     address poolAddress;
     address quotationDataAddress;
     address poolDataAddress;
@@ -56,21 +49,7 @@ contract masters2 {
     address MCRAddress;
     MCR m1;
     SupplyToken tok;
-    // insurance[]  public productType;
 
-    // function masters2()
-    // {
-    //     productType.push(insurance("Earthquake Cover",0));
-    //     productType.push(insurance("Smart Contract Cover",1));
-        
-    //     product_length=2;
-    // }
-    ///@dev Add insurance product.
-    // function addProduct(string _name , uint _id) onlyOwner
-    // {
-    //     productType.push(insurance(_name,_id));
-    //     product_length=SafeMaths.add(product_length,1);
-    // }
     function changeMasterAddress(address _add)
     {
         if(masterAddress == 0x000)
@@ -133,73 +112,73 @@ contract masters2 {
     {
         c1=claims(claimsAddress);
         
-            c1.pushStatus("Pending-Claim Assessor Vote");
-            c1.pushStatus("Pending-Claim Assessor Vote Denied, pending RM Escalation");
-            c1.pushStatus("Pending-Claim Assessor Vote Denied, Pending Member Vote");
-            c1.pushStatus("Pending-CA Vote Threshold not Reached Accept, Pending Member Vote");
-            c1.pushStatus("Pending-CA Vote Threshold not Reached Deny, Pending Member Vote");
-            c1.pushStatus("Pending-CA Consensus not reached Accept, Pending Member Vote");
-            c1.pushStatus("Pending-CA Consensus not reached Deny, Pending Member Vote");
-            c1.pushStatus("Final-Claim Assessor Vote Denied");
-            c1.pushStatus("Final-Claim Assessor Vote Accepted");
-            c1.pushStatus("Final-Member Vote Accepted");
-            c1.pushStatus("Final-Member Vote Denied");
-            c1.pushStatus("Final-Claim Assessor Vote Denied, MV Threshold not reached");
-            c1.pushStatus("Final-Claim Assessor Vote Denied, MV Accepted");
-            c1.pushStatus("Final-Claim Assessor Vote Denied, MV Denied");
-            c1.pushStatus("Final-Claim Assessor Vote Accept, MV Nodecision");
-            c1.pushStatus("Final-Claim Assessor Vote Denied, MV Nodecision");
-            c1.pushStatus("Claim Accepted Payout Pending");
-            c1.pushStatus("Claim Accepted No Payout ");
-            c1.pushStatus("Claim Accepted Payout Done");
+        c1.pushStatus("Pending-Claim Assessor Vote");
+        c1.pushStatus("Pending-Claim Assessor Vote Denied, pending RM Escalation");
+        c1.pushStatus("Pending-Claim Assessor Vote Denied, Pending Member Vote");
+        c1.pushStatus("Pending-CA Vote Threshold not Reached Accept, Pending Member Vote");
+        c1.pushStatus("Pending-CA Vote Threshold not Reached Deny, Pending Member Vote");
+        c1.pushStatus("Pending-CA Consensus not reached Accept, Pending Member Vote");
+        c1.pushStatus("Pending-CA Consensus not reached Deny, Pending Member Vote");
+        c1.pushStatus("Final-Claim Assessor Vote Denied");
+        c1.pushStatus("Final-Claim Assessor Vote Accepted");
+        c1.pushStatus("Final-Member Vote Accepted");
+        c1.pushStatus("Final-Member Vote Denied");
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Threshold not reached");
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Accepted");
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Denied");
+        c1.pushStatus("Final-Claim Assessor Vote Accept, MV Nodecision");
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Nodecision");
+        c1.pushStatus("Claim Accepted Payout Pending");
+        c1.pushStatus("Claim Accepted No Payout ");
+        c1.pushStatus("Claim Accepted Payout Done");
     }
     /// @dev Adds  statuses and categories master for a proposal.
     function changeStatusAndCAtegory() onlyOwner
     {
         g1=governance(governanceAddress);
 
-            //0
-            g1.addCategory("Uncategorised",0,0);
-            //1
-            g1.addCategory("Implement run-off and close new business",1,80);
-            //2
-            g1.addCategory("Burn fraudulent claim assessor tokens",0,80);
-            //3
-            g1.addCategory("Pause Claim Assessors ability to assess claims for 3 days.Can only be done once a month",0,60);
-            //4
-            g1.addCategory("Changes to Capital Model",1,60);
-            //5
-            g1.addCategory("Changes to Pricing",1,60);
-            //6
-            g1.addCategory("Engage in external services up to the greater of $50,000USD or 2% of MCR",0,80);
-            //7
-            g1.addCategory("Engage in external services over the greater of $50,000USD or 2% of MCR",1,60);
-            //8
-            g1.addCategory("Changes to remuneration and/or membership of Advisory Board",1,60);
-            //9
-            g1.addCategory("Filter member proposals as necessary(which are put to a member vote)",0,60);
-            //10
-            g1.addCategory("Release new smart contract code as necessary to fix bugs/weaknesses or deliver enhancements/new products",1,60);
-            //11
-            g1.addCategory("Any change to authorities",1,80);
-            //12
-            g1.addCategory("Start/Stop Emergency Pause",1,80);
-            //13
-            g1.addCategory("Changes to Investment Model",1,60);
-            //14
-            g1.addCategory("Change 0x Relayer Address",1,60);
-            //15
-            g1.addCategory("Any other item specifically described",1,80);
+        //0
+        g1.addCategory("Uncategorised",0,0);
+        //1
+        g1.addCategory("Implement run-off and close new business",1,80);
+        //2
+        g1.addCategory("Burn fraudulent claim assessor tokens",0,80);
+        //3
+        g1.addCategory("Pause Claim Assessors ability to assess claims for 3 days.Can only be done once a month",0,60);
+        //4
+        g1.addCategory("Changes to Capital Model",1,60);
+        //5
+        g1.addCategory("Changes to Pricing",1,60);
+        //6
+        g1.addCategory("Engage in external services up to the greater of $50,000USD or 2% of MCR",0,80);
+        //7
+        g1.addCategory("Engage in external services over the greater of $50,000USD or 2% of MCR",1,60);
+        //8
+        g1.addCategory("Changes to remuneration and/or membership of Advisory Board",1,60);
+        //9
+        g1.addCategory("Filter member proposals as necessary(which are put to a member vote)",0,60);
+        //10
+        g1.addCategory("Release new smart contract code as necessary to fix bugs/weaknesses or deliver enhancements/new products",1,60);
+        //11
+        g1.addCategory("Any change to authorities",1,80);
+        //12
+        g1.addCategory("Start/Stop Emergency Pause",1,80);
+        //13
+        g1.addCategory("Changes to Investment Model",1,60);
+        //14
+        g1.addCategory("Change 0x Relayer Address",1,60);
+        //15
+        g1.addCategory("Any other item specifically described",1,80);
 
-            g1.addStatus("Draft for discussion, multiple versions.");
-            g1.addStatus("Pending-Advisory Board Vote");
-            g1.addStatus("Pending-Advisory Board Vote Accepted, pending Member Vote");
-            g1.addStatus("Final-Advisory Board Vote Declined");
-            g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote not required");
-            g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Accepted");
-            g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Declined");
-            g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Quorum not Achieved");
-            g1.addStatus("Proposal Accepted, Insufficient Funds");
+        g1.addStatus("Draft for discussion, multiple versions.");
+        g1.addStatus("Pending-Advisory Board Vote");
+        g1.addStatus("Pending-Advisory Board Vote Accepted, pending Member Vote");
+        g1.addStatus("Final-Advisory Board Vote Declined");
+        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote not required");
+        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Accepted");
+        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Declined");
+        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Quorum not Achieved");
+        g1.addStatus("Proposal Accepted, Insufficient Funds");
     }
      
     /// @dev Changes the  minimum,maximum claims assessment voting,escalation,payout retry times 

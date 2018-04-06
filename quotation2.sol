@@ -133,8 +133,9 @@ contract quotation2 {
     {
         qd1 = quotationData(quotationDataAddress);
         uint16 statusNo;
-       (productName,cid,,curr,,statusNo) = qd1.getCoverByIndex3(_cid);
-       (,,validUntil,,lockedTokens)=qd1.getCoverByIndex2(_cid);
+       (productName,cid,,curr,,statusNo) = qd1.getCoverByIndex1(_cid);
+       (,,validUntil,)=qd1.getCoverByIndex2(_cid);
+       (,lockedTokens) = td1.getLockedCN_Cover(qd1.getCoverMemberAddress(_cid),_cid);
         status=qd1.getCoverStatus(statusNo);
     }
     
@@ -151,17 +152,15 @@ contract quotation2 {
             qd1.changeCoverStatus(cid , 3);
             t1=NXMToken(tokenAddress);
             t1.unlockCN(cid);
-            // uint qid = qd1.getCoverQuoteid(coverid);
-            bytes4 quoteCurr =  qd1.getCoverCurrency(cid);
-            qd1.subFromTotalSumAssured(quoteCurr,qd1.getCoverSumAssured(cid));
+            bytes4 curr =  qd1.getCoverCurrency(cid);
+            qd1.subFromTotalSumAssured(curr,qd1.getCoverSumAssured(cid));
             if(qd1.getCoverProductName(cid)=="SCC"){
                 address addparam;
                 (,addparam)=qd1.getAddressParams(cid);
-                qd1.subFromTotalSumAssuredSC(addparam,quoteCurr,qd1.getCoverSumAssured(cid));
+                qd1.subFromTotalSumAssuredSC(addparam,curr,qd1.getCoverSumAssured(cid));
             }
             //p1.subtractQuotationOracalise(cid);
         }
-        
     }
 
     /// @dev Provides the information of Quotation and Cover for a  given Cover Id.
@@ -169,8 +168,6 @@ contract quotation2 {
     /// @return claimCount number of claims submitted against a given cover.
     /// @return lockedTokens number of tokens locked against a cover.
     /// @return validity timestamp till which cover is valid.
-    /// @return lat Latitude of quotation
-    /// @return long Longitude of quotation
     /// @return curr Currency in which quotation is assured.
     /// @return sum Sum Assured of quotation.
     function getCoverAndQuoteDetails(uint coverId) constant returns(uint8 claimCount , uint lockedTokens, uint validity , bytes4 curr , uint sum)
@@ -180,7 +177,7 @@ contract quotation2 {
         cd1=claimsData(claimDataAddress);
         claimCount = SafeMaths.sub8(cd1.getCoverClaimCount(coverId),1);
         address userAdd=qd1.getCoverMemberAddress(coverId);
-       (, lockedTokens) = td1.getLockedCN_Cover(userAdd,coverId);
+        (,lockedTokens) = td1.getLockedCN_Cover(userAdd,coverId);
         validity = qd1.getCoverValidity(coverId);
         sum = qd1.getCoverSumAssured(coverId);
         curr = qd1.getCoverCurrency(coverId);
@@ -274,8 +271,7 @@ contract quotation2 {
             }
             
             t2=NXMToken2(token2Address);
-            uint lockedToken = t2.lockCN(PriceNxm,coverPeriod,cid,from);
-            // qd1.changeLockedTokens(cid,lockedToken);
+            t2.lockCN(PriceNxm,coverPeriod,cid,from);
             qd1.addInTotalSumAssured(coverCurr,coverAmount);
             if(qd1.getProductName(prodId)=="SCC" && scAddress != 0x000){ 
                 qd1.addInTotalSumAssuredSC(scAddress,coverCurr,coverAmount);
@@ -283,12 +279,9 @@ contract quotation2 {
                 if(t1.getTotalLockedNXMToken(scAddress)>0)
                     t1.updateStakerCommissions(scAddress,PriceNxm,coverCurr);
             }
-            
-
     }
 
     /// @dev Make Cover using NXM tokens.
-    
     /// @param smartCAdd Smart Contract Address
     function makeCoverUsingNXMTokens(uint8 prodId,bytes4 coverCurr, uint16 coverPeriod,address smartCAdd,uint coverCurrPrice,uint PriceNxm,uint16 coverAmount,uint expireTime,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
     {
@@ -300,14 +293,12 @@ contract quotation2 {
     }
 
     /// @dev Make Cover(s).
-                           
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
     function makeCover(uint8 prodId, address from, address scAddress,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
         require(expireTime > now);
         require(verifySign(coverAmount,coverCurr,coverPeriod,scAddress,coverCurrPrice,PriceNxm,expireTime, _v, _r, _s));
         makeCover1( prodId,  from,  scAddress,  coverCurr,  coverPeriod,  coverCurrPrice,  PriceNxm, coverAmount);
-        // }
     }
 
     /// @dev Gets the Sum Assured amount of quotation when given the cover id.
@@ -328,15 +319,6 @@ contract quotation2 {
         add=qd1.getCoverMemberAddress(coverid);
     }
 
-    /// @dev Gets the number of tokens locked against a given quotation
-    /// @param coverId Quotation Id.
-    /// @return lockedTokens number of Locked tokens.
-    // function getLockedTokens(uint coverId) onlyInternal constant returns (uint lockedTokens)
-    // {
-    //     qd1 = quotationData(quotationDataAddress);
-    //     lockedTokens = qd1.getCoverLockedTokens(coverId);
-    // }
-    
     /// @dev Gets the Name of Quotation's Currency in which a given quotation is assured when given the cover id.
     /// @param coverid Cover Id.
     /// @return curr Name of the Currency of Quotation.
@@ -382,26 +364,22 @@ contract quotation2 {
     
     function verifySign(uint amt,bytes4 curr,uint16 CP,address smaratCA,uint Price,uint price_nxm,uint expire,uint8 _v,bytes32 _r,bytes32 _s)  returns(bool)
     {
-    //   qd1 = quotationData(quotationDataAddress);
-     bytes32  hash=getOrderHash(amt,curr,CP,smaratCA,Price,price_nxm,expire);
-     return  isValidSignature(hash,_v,_r,_s);
+        bytes32 hash = getOrderHash(amt,curr,CP,smaratCA,Price,price_nxm,expire);
+        return  isValidSignature(hash,_v,_r,_s);
     }
    
-   function getOrderHash(uint amt,bytes4 curr,uint CP,address smaratCA,uint Price,uint price_nxm,uint expire)
-  
-    returns (bytes32)
+    function getOrderHash(uint amt,bytes4 curr,uint CP,address smaratCA,uint Price,uint price_nxm,uint expire) constant returns (bytes32)
     {
-         return keccak256(
-           amt,curr,CP,smaratCA,Price,price_nxm,expire
-         );
+        return keccak256(amt,curr,CP,smaratCA,Price,price_nxm,expire);
     }
-    function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s)  returns (bool)
+    
+    function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant  returns (bool)
     {
         qd1 = quotationData(quotationDataAddress);
-      bytes memory prefix1 = "\x19Ethereum Signed Message:\n32";
-      bytes32 prefixedHash1 = keccak256(prefix1, hash);
-      address a= ecrecover(prefixedHash1, v, r, s);      
-      return (a==qd1.getAuthAddress());
-   }
+        bytes memory prefix1 = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHash1 = keccak256(prefix1, hash);
+        address a= ecrecover(prefixedHash1, v, r, s);      
+        return (a==qd1.getAuthAddress());
+    }
     
 }

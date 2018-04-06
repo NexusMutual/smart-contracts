@@ -26,7 +26,6 @@ contract NXMTokenData {
     bytes8 public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
-    // address owner;
     uint  initialTokens;
     uint public currentFounderTokens;
     uint public memberCounter;
@@ -36,7 +35,6 @@ contract NXMTokenData {
     uint public joiningFee;
     address public walletAddress;
 
-    // Arjun - Data Begin
     struct stakeCommission
     {
         uint commissionAmt;
@@ -49,7 +47,7 @@ contract NXMTokenData {
         uint burnedAmount;
         uint dateAdd;
     }
-    // Arjun - Data End
+
     struct lockToken
     {
         uint validUpto;

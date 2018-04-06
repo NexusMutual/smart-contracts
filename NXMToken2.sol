@@ -111,15 +111,14 @@ contract NXMToken2{
        memberAddress = _add;
        mr1=MemberRoles(memberAddress);
     }
+    
     /// @dev Locks tokens against a cover.     
-    
     /// @param premiumNxm Premium in NXM of cover.
-    
     /// @param CoverPeriod Cover Period of cover.
     /// @param CoverId Cover id of a cover.
     /// @param senderAddress Quotation owner's Ethereum address.
     /// @return amount Number of tokens that are locked
-    function lockCN ( uint premiumNxm,  uint16 CoverPeriod, uint CoverId, address senderAddress) onlyInternal returns (uint amount)
+    function lockCN ( uint premiumNxm,  uint16 CoverPeriod, uint CoverId, address senderAddress) onlyInternal
     {
         td1=NXMTokenData(tokenDataAddress);
 
@@ -130,31 +129,16 @@ contract NXMToken2{
             throw;
      
         m1=MCR(mcrAddress);
-        // premium = SafeMaths.mul(premium,10000000000);
-        // Number of tokens to be locked=Tokens worth 5% premium
-        // if(m1.calculateTokenPrice(Curr)>0)
-        // {
-            amount = SafeMaths.div(SafeMaths.mul(premiumNxm,5),100);
-        
-            // td1.changeCurrencyTokens(Curr, SafeMaths.add(td1.getCurrencyTokens(Curr), amount));
-            
-            // if(td1.getBalanceOf(senderAddress) == 0)
-                // td1.incMemberCounter();
-    
-            td1.changeBalanceOf(senderAddress,SafeMaths.add(td1.getBalanceOf(senderAddress),amount));  
-            // Adds the owner of cover as a member if not added already.
-            // if(td1.checkInallMemberArray(senderAddress)==0)
-            // {
-            //     td1.addInAllMemberArray(senderAddress);
-            // }
-            // Updates the number of Supply Tokens and Pool fund value of a currency.
-            td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply() , amount)); 
-            uint ld=SafeMaths.add(SafeMaths.add(now,td1.LockTokenTimeAfterCoverExp()), uint(CoverPeriod)*1 days);
-            td1.pushInLockedCN_Cover(senderAddress,CoverId,ld,amount);
-            // td1.changePoolFundValue(Curr , SafeMaths.add(td1.getPoolFundValue(Curr) , premium));
-            t1=NXMToken(tokenAddress);
-            t1.callTransferEvent(0,senderAddress,amount); 
-        // }
+
+        uint amount = SafeMaths.div(SafeMaths.mul(premiumNxm,5),100);
+        td1.changeBalanceOf(senderAddress,SafeMaths.add(td1.getBalanceOf(senderAddress),amount));  
+
+        // Updates the number of Supply Tokens and Pool fund value of a currency.
+        td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply() , amount)); 
+        uint ld=SafeMaths.add(SafeMaths.add(now,td1.LockTokenTimeAfterCoverExp()), uint(CoverPeriod)*1 days);
+        td1.pushInLockedCN_Cover(senderAddress,CoverId,ld,amount);
+        t1=NXMToken(tokenAddress);
+        t1.callTransferEvent(0,senderAddress,amount); 
     }
 
     /// @dev Burns tokens used for fraudulent voting against a claim

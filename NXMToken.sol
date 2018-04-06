@@ -505,6 +505,7 @@ contract NXMToken {
         t2=NXMToken2(nxmtoken2Address);
         amount = t2.lockCN(premiumCalculated,quoteCurr,quoteCoverPeriod,quoteCoverId,senderAddress);
     }
+    /// @dev Distibutes commission to underwriters after cover generation.
     function updateStakerCommissions(uint _quoteDateAdd,address _scAddress,uint _premium,bytes4 _curr) onlyInternal
     {
         td1=NXMTokenData(tokenDataAddress);

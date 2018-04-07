@@ -281,7 +281,6 @@ contract master
       c1=claims(claimsAddress);
       c1.changeTokenAddress(NXMTokenAddress);
       c1.changeQuotationAddress(quotation2Address);
-      c1.changeQuotationDataAddress(quoteDataAddress);
       c1.changeClaimRewardAddress(claims_RewardAddress);
       c1.changePoolAddress(poolAddress);
       c1.changeGovernanceAddress(governanceAddress);
@@ -366,7 +365,6 @@ contract master
       p2.changeClaimRewardAddress(claims_RewardAddress);
       p2.changePoolDataAddress(poolDataAddress);
       p2.changeQuotation2Address(quotation2Address);
-      p2.changeQuotationDataAddress(quoteDataAddress);
       p2.changePoolAddress(poolAddress);
       p2.changeTokenAddress(NXMTokenAddress);
       p2.changeClaimAddress(claimsAddress);
@@ -565,7 +563,6 @@ contract master
     /// @param arr Array of addresses of compiled contracts.
     function addNewVersion2(uint versionNo,address[] arr) onlyOwner
     {
-      
        
         addContractDetails(versionNo,"Pool",arr[0]);
         addContractDetails(versionNo,"Governance",arr[1]);

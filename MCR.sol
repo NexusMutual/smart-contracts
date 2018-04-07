@@ -26,7 +26,6 @@ import "./NXMTokenData.sol";
 import "./SafeMaths.sol";
 contract MCR
 {
-    
     using SafeMaths for uint;
     pool p1;
     NXMToken t1;
@@ -140,10 +139,10 @@ contract MCR
         len = md1.getCurrLength();
     }
     /// @dev Gets name of currency at a given index.
-    function getCurrency_Index(uint16 index) constant returns(uint16 id ,bytes4 curr)
+    function getCurrencyByIndex(uint16 index) constant returns(uint16 id ,bytes4 curr)
     {
         md1 = MCRData(MCRDataAddress);
-        curr = md1.getCurrency_Index(index);
+        curr = md1.getCurrencyByIndex(index);
         id = index;
     }
     /// @dev Gets the 3 day average exchange rate of a currency.
@@ -174,10 +173,10 @@ contract MCR
         fiatFaucetAddress = _add;
     }
      /// @dev Changes address which can notise MCR
-     function changenotariseAddress(address nadd) onlyOwner
+     function changenotariseAddress(address add) onlyOwner
     {
         md1 = MCRData(MCRDataAddress);
-        md1.changenotarise(nadd);
+        md1.changeNotariseAdd(add);
     }
 
     /// @dev Adds new MCR data and calls for Surplus distribution.
@@ -194,10 +193,10 @@ contract MCR
         vF = SafeMaths.mul64(vF , 1000000000000000000);
         uint len = md1.getMCRDataLength();
         
-       addMCRData1(len,onlyDate,curr,mcrE,mcrP,vF,_3dayAvg);
+       addMCRData_Extended(len,onlyDate,curr,mcrE,mcrP,vF,_3dayAvg);
     }
     
-    function addMCRData1(uint len,uint64 onlyDate,bytes4[] curr,uint mcrE,uint32 mcrP,uint64 vF,uint32[] _3dayAvg) internal
+    function addMCRData_Extended(uint len,uint64 newMCRDate,bytes4[] curr,uint mcrE,uint32 mcrP,uint64 vF,uint32[] _3dayAvg) internal
     {
         uint VTP=0;
         uint lower=0;
@@ -229,22 +228,24 @@ contract MCR
         }    
         if(len==1 || ((SafeMaths.div(mcrP,100))>=lowerThreshold && (SafeMaths.div(mcrP,100))<=upperThreshold))
         {            
-            md1.pushMCRData(mcrP,vF,onlyDate);
+            md1.pushMCRData(mcrP,vF,newMCRDate);
             for(uint i=0;i<curr.length;i++)
             {
                 md1.updateCurr3DaysAvg(curr[i],_3dayAvg[i]);
             }
           
-            MCR(onlyDate,block.number,curr,_3dayAvg,mcrE,mcrP,vF);
+            MCR(newMCRDate,block.number,curr,_3dayAvg,mcrE,mcrP,vF);
             // Oraclize call for next MCR calculation
-            if(md1.getLastMCRDate()<onlyDate)
+            if(md1.getLastMCRDate()<newMCRDate)
             {
                 callOracliseForMCR();
             }
         }
         else
         {
-            callOracliseForMCRFail(onlyDate);
+            // callOracliseForMCRFail(newMCRDate);
+            p1=pool(poolAddress);
+            p1.MCROracliseFail(newMCRDate,md1.getMCRFailTime());
         }   
     }
     
@@ -261,7 +262,7 @@ contract MCR
             md1.pushMCRData(mcrP,vF,Date);
             for(uint16 j=0;j<len;j++)
             {
-                bytes4 curr_name=md1.getCurrency_Index(j);
+                bytes4 curr_name=md1.getCurrencyByIndex(j);
                 md1.updateCurr3DaysAvg(curr_name,md1.getCurr3DaysAvg(curr_name));
             }
             
@@ -271,15 +272,15 @@ contract MCR
         }
     }
 
-    function getAllSumAssurance() constant returns(uint amount1)
+    function getAllSumAssurance() constant returns(uint amount)
     {
         md1 = MCRData(MCRDataAddress);
         qd1=quotationData(quotationDataAddress);
         uint len=md1.getCurrLength();
-        uint amount;
+        
         for(uint16 i=0;i<len;i++)
         {
-            bytes4 curr_name=md1.getCurrency_Index(i);
+            bytes4 curr_name=md1.getCurrencyByIndex(i);
             if(curr_name=="ETH")
             {
                 amount=SafeMaths.add(amount,qd1.getTotalSumAssured(curr_name));
@@ -289,7 +290,7 @@ contract MCR
                 amount=SafeMaths.add(amount,SafeMaths.div((SafeMaths.mul(qd1.getTotalSumAssured(curr_name),100)),md1.getCurr3DaysAvg(curr_name)));
             }
         }
-        amount1=amount;
+        
     }
 
     /// @dev Calls oraclize query to calculate MCR details after 24 hours.
@@ -300,12 +301,12 @@ contract MCR
         p1.MCROraclise(md1.getMCRTime());
     }
 
-    function callOracliseForMCRFail(uint64 failedDate) internal
-    {
-        md1 = MCRData(MCRDataAddress);
-        p1=pool(poolAddress);
-        p1.MCROracliseFail(failedDate,md1.getMCRFailTime());
-    }
+    // function callOracliseForMCRFail(uint64 failedDate) internal
+    // {
+    //     md1 = MCRData(MCRDataAddress);
+    //     p1=pool(poolAddress);
+    //     p1.MCROracliseFail(failedDate,md1.getMCRFailTime());
+    // }
      
     /// @dev Gets the details of last added MCR.
     /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
@@ -347,7 +348,7 @@ contract MCR
         uint len = md1.getCurrLength();
         for(uint16 i=0;i<len;i++)
         {   
-            bytes4 currency = md1.getCurrency_Index(i);
+            bytes4 currency = md1.getCurrencyByIndex(i);
             if(currency!="ETH")
             {
 

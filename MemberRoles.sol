@@ -165,7 +165,6 @@ contract  MemberRoles
   {
        roleId = categorizeAuthRoleid;
   }
-  
   /// @dev Change the role id that is authorized to categorize the proposal. (Only owner can do that)
   function changeAuthorizedMemberId(uint _roleId) onlyOwner public
   {

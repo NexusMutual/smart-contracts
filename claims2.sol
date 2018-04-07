@@ -18,6 +18,7 @@
 
 pragma solidity ^0.4.8;
 
+
 import "./quotation.sol";
 import "./NXMToken.sol";
 import "./NXMToken2.sol";

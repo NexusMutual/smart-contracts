@@ -84,6 +84,7 @@ contract fiatFaucet
         contract_add["USD"] = usd;
         contract_add["EUR"] = eur;
         contract_add["GBP"] = gbp;
+     
     }
   
     function changeQuotationAddress(address _to) onlyInternal
@@ -93,13 +94,13 @@ contract fiatFaucet
     /// @dev Adds a new currency's address.
     /// @param _add Currency's address.
     /// @param currName Currency's name.
-    function addCurrency(address _add, bytes16 currName) onlyInternal
+    function addCurrency(address _add , bytes16 currName) onlyInternal
     {
         contract_add[currName] = _add;
     }
   
     /// @dev Gets the token's balance of a given currency of a given address.
-    function getBalance(address _of, bytes16 curr) constant returns(uint bal)
+    function getBalance(address _of,bytes16 curr) constant returns(uint bal)
     {
          tok=SupplyToken(contract_add[curr]);
         return tok.balanceOf(_of);
@@ -113,17 +114,17 @@ contract fiatFaucet
         tok=SupplyToken(contract_add[curr]);
         tok.payoutTransfer(_to,tokens);
     }
-    
 
     /// @dev Making Cover(s) using ERC20 tokens.
     /// @param PriceNxm Token Amount.
     /// @param coverCurr Currency's Name.
-    function funding(uint8 prodId, address smaratCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
+    /// @param cid Cover ID that will get funded.
+    function funding(uint8 prodId, uint cid, address from, address smaratCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
     {
         tok=SupplyToken(contract_add[coverCurr]);
         tok.debitTokensForFunding(PriceNxm , msg.sender);
         q1=quotation2(quotation2Address);
-        q1.verifyCoverDetails(prodId,msg.sender,smaratCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
+         q1.verifyCoverDetails(prodId,msg.sender,smaratCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
     }
     /// @dev Get token address by currency name.
     function getCurrAddress(bytes16 curr) constant returns(address currAddress)

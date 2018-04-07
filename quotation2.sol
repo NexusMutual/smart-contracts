@@ -126,7 +126,7 @@ contract quotation2 {
         uint16 statusNo;
         (productName,cid,,curr,,statusNo) = qd1.getCoverByIndex1(_cid);
         (,,validUntil,,)=qd1.getCoverByIndex2(_cid);
-        (,lockedTokens) = td1.getLockedCN_Cover(qd1.getCoverMemberAddress(_cid),_cid);
+        (,lockedTokens) = td1.getUser_cover_lockedCN(qd1.getCoverMemberAddress(_cid),_cid);
         status=qd1.getCoverStatus(statusNo);
     }
     
@@ -166,7 +166,7 @@ contract quotation2 {
         td1 = NXMTokenData(tokenDataAddress);
         cd1 = claimsData(claimDataAddress);
         claimCount = SafeMaths.sub8(cd1.getCoverClaimCount(_cid),1);
-        (,lockedTokens) = td1.getLockedCN_Cover(qd1.getCoverMemberAddress(_cid),_cid);
+        (,lockedTokens) = td1.getUser_cover_lockedCN(qd1.getCoverMemberAddress(_cid),_cid);
         validity = qd1.getCoverValidity(_cid);
         sum = qd1.getCoverSumAssured(_cid);
         curr = qd1.getCurrencyOfCover(_cid);

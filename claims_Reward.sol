@@ -476,7 +476,6 @@ contract claims_Reward
             }        
         }     
     }
-    
 
     /// @dev Start Voting of All Pending Claims when Emergency Pause OFF.
     function StartAllPendingClaimsVoting() onlyInternal

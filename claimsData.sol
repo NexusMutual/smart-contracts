@@ -585,7 +585,6 @@ contract claimsData
         len=claimPauseVotingEP.length;
     }
 
-
     /// @dev Get claim details to be reopened for voting after emergency pause.
     function getPendingClaimDetailsByIndex(uint indx) constant returns(uint claimId,uint pendingTime, bool voting) {
         claimId     =claimPauseVotingEP[indx].claimid;

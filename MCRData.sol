@@ -77,17 +77,17 @@ contract MCRData
         _; 
     }
     /// @dev Changes address of Notary.
-    function changenotarise(address nadd) onlyInternal
+    function changeNotariseAdd(address _add) onlyInternal
     {
-        notariseMCR=nadd;
+        notariseMCR=_add;
     }
     /// @dev Checks whether a given address can notaise MCR data or not.
-    /// @param nadd Address.
+    /// @param _add Address.
     /// @return res Returns 0 if address is not authorized, else 1.
-    function isnotarise(address nadd) constant returns(uint res)
+    function isnotarise(address _add) constant returns(uint res)
     {
         res=0;
-        if(nadd==notariseMCR)
+        if(_add==notariseMCR)
         res=1;
     }
     function changeMinCap(uint16 newCap) onlyOwner
@@ -186,7 +186,7 @@ contract MCRData
         len = uint16(allCurrencies.length);
     }
     /// @dev Gets name of currency at a given index.
-    function getCurrency_Index(uint16 index)constant returns(bytes4 curr)
+    function getCurrencyByIndex(uint16 index)constant returns(bytes4 curr)
     {
         curr = allCurrencies[index];
     }
@@ -227,7 +227,6 @@ contract MCRData
     {
         vf = allMCRData[SafeMaths.sub(allMCRData.length,1)].vFull;
     }
-    
     /// @dev Gets last Minimum Capital Requirement in Ether.
     /// @return date of MCR.
     function getLastMCRDate()constant returns(uint64 date)

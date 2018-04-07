@@ -195,52 +195,52 @@ contract NXMToken {
         //Undeposits all tokens associated with the coverid
         t2.undepositCN(coverid,1);
         uint validity; 
-        uint amount1;
-        (validity,amount1) = td1.getLockedCN_Cover(_to,coverid);
+        uint lockedCN;
+        (validity,lockedCN) = td1.getUser_cover_lockedCN(_to,coverid);
         uint len = td1.getLockedCNLength(_to);
         uint vUpto;
-        uint amount;
+        uint lockedCN_i;
         for(uint i=0;i<len ;i++)
         {
-            (vUpto,amount) = td1.getLockedCN_index(_to,i);
-            if( vUpto == validity && amount == amount1)
+            (vUpto,lockedCN_i) = td1.getUser_cover_lockedCN(_to,i);
+            if( vUpto == validity && lockedCN_i == lockedCN)
             {
                 // Updates the validity of lock to now, thereby ending the lock on tokens
-                td1.updateLockedCN(_to,i,now,amount);
+                td1.updateLockedCN(_to,i,now,lockedCN_i);
                 break;
             }
         }
        
-        td1.updateLockedCN_Cover(_to,coverid,now,amount1);  
+        td1.updateUser_cover_lockedCN(_to,coverid,now,lockedCN);  
     }
 
     /// @dev Gets the total number of tokens available for the Claim Assessment.    
-    function getAvailableCAToken() constant returns (uint sum)
+    function getAvailableCAToken() constant returns (uint tokenAvailableCA)
     {
         td1 = NXMTokenData(tokenDataAddress);
-        sum=0;uint validUpto;uint amount;
+        tokenAvailableCA=0;uint validUpto;uint lockCAamount;
         address _of=msg.sender;
         //Tokens locked for at least a specified minimum lock period can be used for voting
         for(uint i=0 ; i < td1.getLockCALength(_of) ;i++ )
         { 
-            (validUpto,amount)= td1.getLockCAWithIndex(_of,i);
+            (validUpto,lockCAamount)= td1.getLockCAWithIndex(_of,i);
             if(SafeMaths.add(now , td1.getMinVoteLockPeriod()) < validUpto)
-                sum=SafeMaths.add(sum,amount);
+                tokenAvailableCA=SafeMaths.add(tokenAvailableCA,lockCAamount);
         }
         // Booked tokens cannot be used for claims assessment
         uint bookedamt=td1.getBookedCA(_of);
-        if(sum>bookedamt)
-            sum=SafeMaths.sub(sum,bookedamt);
+        if(tokenAvailableCA>bookedamt)
+            tokenAvailableCA=SafeMaths.sub(tokenAvailableCA,bookedamt);
         else
-             sum=0;
+             tokenAvailableCA=0;
     }  
 
     
     /// @dev Gets the Token balance (lock + available) of a given address.
-    function balanceOf(address _add) constant returns(uint bal) 
+    function balanceOf(address _add) constant returns(uint balance) 
     {
         td1 = NXMTokenData(tokenDataAddress);
-        bal = td1.getBalanceOf(_add);
+        balance = td1.getBalanceOf(_add);
     }
     
     /// @dev Triggers an event when Tokens are burnt.
@@ -285,7 +285,7 @@ contract NXMToken {
     function approve(address _spender, uint256 _value) checkPause
     returns (bool success) {
         td1 = NXMTokenData(tokenDataAddress);
-        td1.setAllowance(msg.sender,_spender, _value);
+        td1.setAllower_spender_allowance(msg.sender,_spender, _value);
         return true;
     }
 
@@ -297,7 +297,7 @@ contract NXMToken {
     function approveAndCall(address _spender, uint256 _value, bytes _extraData)  checkPause
     returns (bool success) {
         td1 = NXMTokenData(tokenDataAddress);
-        td1.setAllowance(msg.sender,_spender, _value);
+        td1.setAllower_spender_allowance(msg.sender,_spender, _value);
         Approval(msg.sender, _spender, _value);
 
     //call the receiveApproval function on the contract you want to be notified. This crafts the function signature manually so one doesn't have to include a contract in here just for this.
@@ -319,7 +319,7 @@ contract NXMToken {
         td1 = NXMTokenData(tokenDataAddress);
         if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td1.getBalanceOf(_from),td1.getBalanceCAWithAddress(_from)),td1.getBalanceCN(_from)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;                 // Check if the sender has enough
         if (SafeMaths.add(td1.getBalanceOf(_to) , _value) < td1.getBalanceOf(_to)) throw;  // Check for overflows
-        if (_value > td1.getAllowance(_from,msg.sender)) throw;     // Check allowance
+        if (_value > td1.getAllower_spender_allowance(_from,msg.sender)) throw;     // Check allowance
         td1.changeBalanceOf(_from,SafeMaths.sub(td1.getBalanceOf(_from) , _value));                    // Subtract from the sender
         // if(td1.getBalanceOf(_from)==0)
         //     td1.decMemberCounter();
@@ -330,7 +330,7 @@ contract NXMToken {
         // {
         //     td1.addInAllMemberArray(_to);
         // }
-        td1.setAllowance(_from,msg.sender,SafeMaths.sub(td1.getAllowance(_from,msg.sender) , _value));
+        td1.setAllower_spender_allowance(_from,msg.sender,SafeMaths.sub(td1.getAllower_spender_allowance(_from,msg.sender) , _value));
         
         Transfer(_from, _to, _value);
         return true;
@@ -403,7 +403,7 @@ contract NXMToken {
 
         uint dCN_ValidUpto;
         uint dCN_LastAmount;
-        (dCN_ValidUpto,dCN_LastAmount)=td1.getDepositCN_Cover_Index(_of,_coverid,SafeMaths.sub(td1.getDepositCN_CoverLength(_of,_coverid),1));
+        (dCN_ValidUpto,dCN_LastAmount)=td1.getUser_cover_depositCNByIndex(_of,_coverid,SafeMaths.sub(td1.getUser_cover_depositCNLength(_of,_coverid),1));
         uint dCN_Amount = td1.getDepositCN(_coverid,_of);
 
         uint coverValidUntil;
@@ -421,11 +421,11 @@ contract NXMToken {
         else if(coverValidUntil>now){
             unlockCN(_coverid);
             if(dCN_Amount>0){
-                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_Amount);
+                td1.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_Amount);
                 t2.depositCN(_coverid,dCN_Amount,timestamp,_of);
             }
             else{
-                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_LastAmount);
+                td1.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_LastAmount);
                 t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
             }
             
@@ -433,11 +433,11 @@ contract NXMToken {
         else if(coverValidUntil<now){
             if(dCN_Amount>0){
                 t2.undepositCN(_coverid,1);
-                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_Amount);
+                td1.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_Amount);
                 t2.depositCN(_coverid,dCN_Amount,timestamp,_of);
             }
             else{
-                td1.pushInLockedCN_Cover(_of,_coverid,timestamp,dCN_LastAmount);
+                td1.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_LastAmount);
                 t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
             }
         }
@@ -494,18 +494,19 @@ contract NXMToken {
         } 
     }
     
-    
     function updateStakerCommissions(address _scAddress,uint _premiumNXM) onlyInternal
     {
         td1=NXMTokenData(tokenDataAddress);
         t2=NXMToken2(nxmtoken2Address);
         m1=MCR(mcrAddress);
+        // uint tokenPrice=m1.calculateTokenPrice(_curr);
+        // _premium=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(_premium,100000),tokenPrice),10**13);
         uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premiumNXM,20),100);
         for(uint i=0;i<td1.getTotalStakerAgainstScAddress(_scAddress);i++){
             if(commissionToBePaid>0){
                 uint scAddressIndx;
                 (,scAddressIndx) = td1.getScAddressIndexByScAddressAndIndex(_scAddress,i);
-                uint stakeAmt; address stakerAdd;
+                uint stakeAmt; address stakerAdd; 
                 (,stakerAdd,,stakeAmt,,)=td1.getStakeDetails(scAddressIndx);
                 uint totalCommission = SafeMaths.div(SafeMaths.mul(stakeAmt,50),100);
                 uint commissionPaid;
@@ -527,4 +528,5 @@ contract NXMToken {
              break;
         }
     }
+    // Arjun - Data End
 }

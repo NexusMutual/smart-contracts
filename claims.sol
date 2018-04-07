@@ -302,7 +302,6 @@ contract claims{
     /// @return close 1 if voting should be closed,0 in case voting should not be closed,-1 if voting has already been closed.
     function checkVoteClosingFinal(uint claimid,uint8 status) internal constant returns(int8 close)
     {
-        
         close=0;
         tc1=NXMToken(tokenAddress);
         q1=quotation2(quotation2Address);
@@ -439,7 +438,7 @@ contract claims{
         td1 = NXMTokenData(tokenDataAddress);
         uint nowtime=now;
         uint tokens;
-        (,tokens)=td1.getLockedCN_Cover(add,coverid);
+        (,tokens)=td1.getUser_cover_lockedCN(add,coverid);
         tokens =SafeMaths.div(SafeMaths.mul(tokens,20),100);
         uint timeStamp = SafeMaths.add(nowtime , c1.claimDepositTime());
         tc2.depositCN(coverid,tokens,timeStamp,add);
@@ -527,7 +526,7 @@ contract claims{
         if(cadd != msg.sender) throw;
         td1 = NXMTokenData(tokenDataAddress);
         uint tokens;
-        (,tokens)= td1.getLockedCN_Cover(cadd,coverId);
+        (,tokens)= td1.getUser_cover_lockedCN(cadd,coverId);
         tokens = SafeMaths.div(SafeMaths.mul(tokens,20),100);
         c1=claimsData(claimsDataAddress);
         uint d=SafeMaths.mul(864000 , c1.escalationTime()) ;
@@ -538,7 +537,6 @@ contract claims{
         p1=pool(poolAddress);
         p1.closeClaimsOraclise(claimId,c1.maxtime());
     } 
-
 
     /// @dev Submits a member vote for assessing a claim. Tokens other than those locked under Claims Assessment can be used to cast a vote for a given claim id.
     /// @param claimid Selected claim id. 

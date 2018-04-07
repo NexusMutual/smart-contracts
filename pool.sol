@@ -442,4 +442,3 @@ contract pool is usingOraclize{
         takerFee=pd1.get0xTakerFee();
     }
 }
-

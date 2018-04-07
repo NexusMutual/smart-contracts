@@ -570,4 +570,3 @@ contract pool2
         p3.saveIADetails(curr,rate,date);
     }
 }
-

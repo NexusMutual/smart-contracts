@@ -160,11 +160,11 @@ contract pool3
         //Excess Liquidity Trade : atleast once per day
         for(uint16 i=0;i<md1.getCurrLength();i++)
         {
-            (check,CABalance)=checkLiquidity(md1.getCurrency_Index(i));
+            (check,CABalance)=checkLiquidity(md1.getCurrencyByIndex(i));
             if(check==1)
             {
                if(CABalance>0)
-                 ExcessLiquidityTrading(md1.getCurrency_Index(i),CABalance);
+                 ExcessLiquidityTrading(md1.getCurrencyByIndex(i),CABalance);
             }
         }
         
@@ -240,42 +240,46 @@ contract pool3
     /// @dev Signs a 0x order hash.
     function sign0xOrder(uint orderId,bytes32 orderHash)checkPause
     { 
-        pd1 = poolData1(poolDataAddress);
-        p1=pool(poolAddress);
-        require(msg.sender==pd1.get0xMakerAddress() && pd1.getZeroExOrderStatus(orderHash)==0); // not signed already
-        bytes16 orderType;       
-        address makerTokenAddr;
-        uint makerAmt;uint takerAmt;
-        bytes4 makerToken;bytes4 takerToken;
-        uint validTime;
-        (makerToken,makerAmt,takerToken,takerAmt,orderType,validTime,)=pd1.getOrderDetailsByHash(orderHash);
-        address _0xMakerAddress=pd1.get0xMakerAddress();
-        uint expireTime; 
-        if(validTime>now) 
+         pd1 = poolData1(poolDataAddress);
+         p1=pool(poolAddress);
+         
+         require(msg.sender==pd1.get0xMakerAddress() && pd1.getZeroExOrderStatus(orderHash)==0); // not signed already         
+         
+         bytes16 orderType;       
+         address makerTokenAddr;
+         uint makerAmt;uint takerAmt;
+         bytes4 makerToken;bytes4 takerToken;
+         uint validTime;
+         (makerToken,makerAmt,takerToken,takerAmt,orderType,validTime,)=pd1.getOrderDetailsByHash(orderHash);
+         address _0xMakerAddress=pd1.get0xMakerAddress();
+         uint expireTime; 
+         if(validTime>now) 
             expireTime=SafeMaths.sub(validTime,now); 
-        if(orderType=="ELT")
-        {
+         if(orderType=="ELT")
+         {
            f1=fiatFaucet(fiatFaucetAddress);
            makerTokenAddr=f1.getCurrAddress(makerToken);
            // transfer selling amount to the makerAddress
            f1.payoutTransferFromPool(_0xMakerAddress,makerToken,makerAmt);    
            p1.close0xOrders(makerToken,orderId,expireTime);  
-        }
-        else if(orderType=="ILT")
-        {
+         }
+         else if(orderType=="ILT")
+         {
             makerTokenAddr=pd1.getInvestmentAssetAddress(makerToken);
             // transfer selling amount to the makerAddress from pool contract
             p1.transferFromPool(_0xMakerAddress,makerTokenAddr,makerAmt);
             p1.close0xOrders(takerToken,orderId,expireTime);  //orderId is the index of Currency Asset at which hash is saved.
-        }
-        else if(orderType=="RBT")
-        {
+
+         }
+         else if(orderType=="RBT")
+         {
             makerTokenAddr=pd1.getInvestmentAssetAddress(makerToken);
+
             // transfer selling amount to the makerAddress from pool contract
             p1.transferFromPool(_0xMakerAddress,makerTokenAddr,makerAmt);
             p1.close0xOrders(makerToken,orderId,expireTime);  // orderId is the index of allRebalancingOrderHash.
-        }
-        pd1.updateZeroExOrderStatus(orderHash,1);
+         }
+         pd1.updateZeroExOrderStatus(orderHash,1);
     }
 
    
@@ -303,8 +307,8 @@ contract pool3
                 return (2,CABalance);
             }
         }
-    }
-    /// @dev Creates Excess liquidity trading order for a given currency and a given balance.
+   }
+   /// @dev Creates Excess liquidity trading order for a given currency and a given balance.
     function ExcessLiquidityTrading(bytes4 curr,uint CABalance) onlyInternal
     { 
         ms1=master(masterAddress);
@@ -343,6 +347,8 @@ contract pool3
     function InsufficientLiquidityTrading(bytes4 curr,uint CABalance,uint8 cancel) onlyInternal
     {
         pd1 = poolData1(poolDataAddress);
+        
+     
         uint64 baseMin;
         uint64 varMin; 
         bytes16 MAXIACurr;
@@ -354,8 +360,8 @@ contract pool3
         takerAmt=SafeMaths.sub(SafeMaths.mul(3,SafeMaths.div(SafeMaths.add(baseMin,varMin),2)),CABalance);//*10**18; // multiply with decimals
         // amount of assest to sell investment assest
       
-        if(pd1.getLiquidityOrderStatus(curr,"ILT")==0)
-        {   
+       if(pd1.getLiquidityOrderStatus(curr,"ILT")==0)
+       {   
             p1=pool(poolAddress);
             md1=MCRData(MCRDataAddress);
             makerAmt=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(maxIARate,takerAmt), 10**pd1.getInvestmentAssetDecimals(MAXIACurr))),( md1.getCurr3DaysAvg(curr)));  //  divide by decimals of makerToken;      
@@ -393,39 +399,41 @@ contract pool3
             if(check==1)
             {
                 InsufficientLiquidityTrading(curr,CABalance,1);
+
             }
             // cancel old order(off chain while signing the new order)
+            
         }
     }
     /// @dev Initiates all 0x trading orders.
     function zeroExOrders(bytes4 curr,uint makerAmt,uint takerAmt,bytes16 _type,uint8 cancel) internal
     {
-        bytes16 MINIACurr;
-        uint expirationTimeInMilliSec;
-        bytes16 MAXIACurr;
-        address takerTokenAddr;
-        pd1 = poolData1(poolDataAddress);
-        exchange1=Exchange(exchangeContractAddress);
-        f1=fiatFaucet(fiatFaucetAddress);
-        bytes32 orderHash;
-        (MAXIACurr,,MINIACurr,)=pd1.getIARankDetailsByDate(pd1.getLastDate());
-        address makerTokenAddr;
-        if(curr=="ETH")
-        {
+       bytes16 MINIACurr;
+       uint expirationTimeInMilliSec;
+       bytes16 MAXIACurr;
+       address takerTokenAddr;
+       pd1 = poolData1(poolDataAddress);
+       exchange1=Exchange(exchangeContractAddress);
+       f1=fiatFaucet(fiatFaucetAddress);
+       bytes32 orderHash;
+       (MAXIACurr,,MINIACurr,)=pd1.getIARankDetailsByDate(pd1.getLastDate());
+       address makerTokenAddr;
+       if(curr=="ETH")
+       {
             if(_type=="ELT")
                 makerTokenAddr=pd1.getWETHAddress();
             else if(_type=="ILT")
                 takerTokenAddr=pd1.getWETHAddress(); 
-        }
-        else
-        {
+       }
+       else
+       {
             if(_type=="ELT")
                 makerTokenAddr=f1.getCurrAddress(bytes16(curr));
             else if(_type=="ILT")
                 takerTokenAddr=f1.getCurrAddress(bytes16(curr)); 
-        }
-        if(_type=="ELT")
-        {
+       }
+       if(_type=="ELT")
+       {
             takerTokenAddr=pd1.getInvestmentAssetAddress(MINIACurr);
             expirationTimeInMilliSec=SafeMaths.add(now,pd1.getOrderExpirationTime(_type));   //12 hours in milliseconds
             orderHash=exchange1.getOrderHash([pd1.get0xMakerAddress(),pd1.get0xTakerAddress(),makerTokenAddr,takerTokenAddr,pd1.get0xFeeRecipient()],[SafeMaths.mul(makerAmt,10**18),takerAmt,pd1.get0xMakerFee(),pd1.get0xTakerFee(),expirationTimeInMilliSec,pd1.getOrderSalt()]);
@@ -435,6 +443,7 @@ contract pool3
             //event
             ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,SafeMaths.mul(makerAmt,10**18),takerAmt,expirationTimeInMilliSec,orderHash);
         }
+                 
         else if(_type=="ILT")
         {
             makerTokenAddr=pd1.getInvestmentAssetAddress(MAXIACurr); 
@@ -445,12 +454,13 @@ contract pool3
             pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,curr,SafeMaths.mul(takerAmt,10**18),_type,expirationTimeInMilliSec);
             if(cancel==1)
             {
+           
                 // saving last orderHash
                 setOrderCancelHashValue(curr,orderHash);
             }
-            //event
-            ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,makerAmt,SafeMaths.mul(takerAmt,10**18),expirationTimeInMilliSec,orderHash);
-        }  
+                //event
+                ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,makerAmt,SafeMaths.mul(takerAmt,10**18),expirationTimeInMilliSec,orderHash);
+            }  
     }
 
     function setOrderCancelHashValue(bytes4 curr,bytes32 orderHash) internal
@@ -470,7 +480,7 @@ contract pool3
         (curr,,status,_minHoldingPercX100,_maxHoldingPercX100,decimals)=pd1.getInvestmentAssetDetails(curr_name);
     }
    
-    /// @dev Get currency asset balance for a given currency name.
+     /// @dev Get currency asset balance for a given currency name.
     function getCurrencyAssetsBalance(bytes4 curr) constant returns(uint CABalance)
     {
         f1=fiatFaucet(fiatFaucetAddress);   
@@ -482,7 +492,8 @@ contract pool3
         else
         {          
             CABalance=f1.getBalance(poolAddress,bytes16(curr)); 
-        }
+        } 
+       
     }
     /// @dev Get currency asset details for a given currency name.
     /// @return CABalance currency asset balance
@@ -510,7 +521,7 @@ contract pool3
         pd1=poolData1(poolDataAddress);
         pd1.changeCurrencyAssetBaseMin(_curr,_baseMin);
     }
-    // add new investment asset currency.
+     // add new investment asset currency.
     function addInvestmentAssetsDetails(bytes16 curr_name,address curr,uint64 _minHoldingPercX100,uint64 _maxHoldingPercX100) onlyInternal
     {
         pd1 = poolData1(poolDataAddress);
@@ -519,6 +530,5 @@ contract pool3
         decimals=tok.decimals();
         pd1.addInvestmentCurrency(curr_name);
         pd1.pushInvestmentAssetsDetails(curr_name,curr,1,_minHoldingPercX100,_maxHoldingPercX100,decimals);
-    }
+     }
 }
-

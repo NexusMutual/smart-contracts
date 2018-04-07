@@ -538,6 +538,7 @@ contract claims{
         p1.closeClaimsOraclise(claimId,c1.maxtime());
     } 
 
+
     /// @dev Submits a member vote for assessing a claim. Tokens other than those locked under Claims Assessment can be used to cast a vote for a given claim id.
     /// @param claimid Selected claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.

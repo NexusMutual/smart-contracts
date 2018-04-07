@@ -144,7 +144,6 @@ contract claimsData
         payoutRetryTime=_time;
     }
 
-
     /// @dev Gets the Claim's details of given index. 
     function getAllClaimsByIndex(uint index) constant returns(uint coverId,uint date_submit,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
     {
@@ -155,9 +154,9 @@ contract claimsData
     {
         return(claim_status[claimid][index].status,claim_status[claimid][index].date_upd);
     }
-   /// @dev Gets the list of all the claims a given cover has.
-   /// @param index Claim id.
-   /// @return claims All the claims of a cover.
+    /// @dev Gets the list of all the claims a given cover has.
+    /// @param index Claim id.
+    /// @return claims All the claims of a cover.
     function getCover_claim(uint index) constant returns(uint[] claims)
     {
         return cover_claim[index];
@@ -176,20 +175,7 @@ contract claimsData
     {
         return allvotes.length;
     } 
-    /// @dev Gets all the vote indexes of a given Claim Assessor's Address.
-    /// @param _ca Claim Assessor's Address.
-    /// @return votearr list of all the vote id given by the Claim Assessor.
-    // function getvote_address_ca(address _ca) constant returns(uint[] votearr)
-    // {
-    //     return vote_address_ca[_ca];
-    // }
-    /// @dev Gets all the vote indexes of a given Member's Address.
-    /// @param _member Member's Address.
-    /// @return votearr list of all the vote id given by Member.
-    // function getvote_address_member(address _member) constant returns(uint[] votearr)
-    // {
-    //     return vote_address_member[_member];
-    // }
+
     /// @dev Gets the status number of a given claim.
     /// @param id Claim id.
     /// @return statno Status Number.
@@ -238,7 +224,7 @@ contract claimsData
             cnt=SafeMaths.add(cnt,allvotes[claim_vote_ca[claimid][i]].tokens);
         }
     }
-     /// @dev Gets the total number of tokens of a given Claim ,received during voting period done by Members.
+    /// @dev Gets the total number of tokens of a given Claim ,received during voting period done by Members.
     function getMemberClaimVotes_token(uint claimid) constant returns(uint cnt)
     { 
       cnt=0;
@@ -247,15 +233,7 @@ contract claimsData
            cnt=SafeMaths.add(cnt,allvotes[claim_vote_member[claimid][i]].tokens);
        }
     }
-    /// @dev Gets the user's claim vote details who has participated in voting as a Claim assessor and a Member.
-    /// @return cavote list of all the vote id given by the user as a Claim Assessor.
-    /// @return mvote list of all the vote id given by the user as a Member.
-    // function getUserVotes() constant returns(uint[] cavote,uint []mvote)
-    // {
-    //     return(vote_address_ca[msg.sender],vote_address_member[msg.sender]);
-        
-        
-    // }
+
     /// @dev Provides information of a vote when given its vote id.
     /// @param voteid Vote Id.
     function getVoteDetails(uint voteid) constant returns(uint tokens,uint claimId,int8 verdict, uint date_submit,uint tokenRec,int8 claimVerdict,uint8 status)
@@ -401,6 +379,7 @@ contract claimsData
     {
         coverid=allClaims[claimid].coverId;
     }
+    
     /// @dev Gets total number of tokens of a claim given to it during voting by Claim Assessors.
     /// @param claimid Claim Id.
     /// @param verdict 1 to get total number of accept tokens, -1 to get total number of deny tokens.
@@ -414,6 +393,7 @@ contract claimsData
             token=SafeMaths.add(token,allvotes[claim_vote_ca[claimid][i]].tokens);
         }
     }
+    
     /// @dev Gets total number of tokens of a claim given to it during voting by Members.
     /// @param claimid Claim Id.
     /// @param verdict 1 to get total number of accept tokens, -1 to get total number of deny tokens.
@@ -428,9 +408,9 @@ contract claimsData
         }
     }
 
-   /// @dev Sets the final vote's result(either accepted or declined)of a claim.
-   /// @param claimId Claim Id.
-   /// @param verdict 1 if claim is accepted,-1 if declined.
+    /// @dev Sets the final vote's result(either accepted or declined)of a claim.
+    /// @param claimId Claim Id.
+    /// @param verdict 1 if claim is accepted,-1 if declined.
     function changeFinalVerdict(uint claimId , int8 verdict) onlyInternal
     {
         allClaims[claimId].vote = verdict;
@@ -507,19 +487,7 @@ contract claimsData
     {
         vote_ca[_from][claimid]=voteid;
     }
-    /// @dev Stores the id of the vote given by a Claim Assessor.Maintains record of all the votes given by a user as a Claim assessor.
-    /// @param _from Claim Assessor Address.
-    /// @param voteid Vote Id. 
-    // function addvote_address_ca(address _from,uint voteid) onlyInternal
-    // {
-    //     vote_address_ca[_from].push(voteid);
-    // }
-    /// @dev Sets a new length.
-    // function setvote_length(uint len) onlyInternal
-    // {
-    //     if (len<vote_length) throw;
-    //     vote_length=len;
-    // }
+
     /// @dev Stores the tokens given by the Claim Assessors during voting of a given claim.
     /// @param claimid Claim Id.
     /// @param vote 1 for accept and increases the tokens of claim as accept, -1 for deny and increases the tokens of claim as deny.
@@ -549,7 +517,7 @@ contract claimsData
     {
         claim_vote_member[claimid].push(voteid);
     }
-     /// @dev Sets the id of the vote.
+    /// @dev Sets the id of the vote.
     /// @param _from Member's address who has given the vote.
     /// @param claimid Claim Id for which vote has been given by the Member.
     /// @param voteid Vote Id which will be stored against the given _from and claimid.
@@ -557,13 +525,7 @@ contract claimsData
     {
         vote_member[_from][claimid]=voteid;
     }
-    /// @dev Stores the id of the vote given by a Member.Maintains record of all the votes given by a user as a Member.
-    /// @param _from Member's Address.
-    /// @param voteid Vote Id. 
-    // function addvote_address_member(address _from,uint voteid) onlyInternal
-    // {
-    //     vote_address_member[_from].push(voteid);
-    // }
+
     /// @dev Increases the count of failure until payout of a claim is succeeded.
     function updatestate16Count(uint claimid,uint8 cnt) onlyInternal
     {
@@ -623,7 +585,6 @@ contract claimsData
         len=claimPauseVotingEP.length;
     }
 
-    
     /// @dev Get claim details to be reopened for voting after emergency pause.
     function getPendingClaimDetailsByIndex(uint indx) constant returns(uint claimId,uint pendingTime, bool voting) {
         claimId     =claimPauseVotingEP[indx].claimid;

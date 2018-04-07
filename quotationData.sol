@@ -31,7 +31,8 @@ contract quotationData{
         uint16 coverPeriod;
         uint validUntil;
         uint16 status;
-        address addParams;
+        address scAddress;
+        uint lockedTokens;
     }
 
     struct Product_Details{
@@ -44,20 +45,20 @@ contract quotationData{
     }
     
     address public authQuoteEngine;
-    address AuthAddress;     //authorised address for signing the cover details   
+    //address AuthAddress;     //authorised address for signing the cover details   
     bytes16[] coverStatus;
-    mapping(bytes4=>uint) currentSumAssured;
-    mapping ( address=>uint[] ) cover_user;
-    mapping(uint=>Product_Details) ProductDetails;
-    mapping(address=>mapping(bytes4=>uint)) currentSumAssured_SC;
-
+    mapping(bytes4=>uint) currency_CSA;
+    mapping (address=>uint[]) user_Cover;
+    mapping(uint32=>Product_Details) ProductDetails;
+    mapping(address=>mapping(bytes4=>uint)) currency_CSA_ofSCAdd;
     cover[] allCovers;
-
     uint public pendingCoverStart;
-
     event Cover(address indexed from, address indexed smartcontract, uint256 premiumCalculated,uint256 dateAdd,string coverHash);
+
     function quotationData(){
         pendingCoverStart = 0;
+        //Add smartcontractcover 
+        ProductDetails[0]=(Product_Details("SCC","xsdf",90,1000,12,0));
     }
     function changeMasterAddress(address _add) 
     {
@@ -118,24 +119,24 @@ contract quotationData{
         return coverStatus.length;
     }
     /// @dev Changes the existing Profit Margin value
-    function changePM(uint prodId,uint16 pm) onlyOwner
+    function changePM(uint32 _prodId,uint16 _pm) onlyOwner
     {
-        ProductDetails[prodId].PM = pm;
+        ProductDetails[_prodId].PM = _pm;
     }
     /// @dev Changes the existing Short Term Load Period (STLP) value.
-    function changeSTLP(uint prodId,uint16 stlp) onlyOwner
+    function changeSTLP(uint32 _prodId,uint16 _stlp) onlyOwner
     {
-        ProductDetails[prodId].STLP = stlp;
+        ProductDetails[_prodId].STLP = _stlp;
     }
     /// @dev Changes the existing Short Term Load (STL) value.
-    function changeSTL(uint prodId,uint16 stl) onlyOwner
+    function changeSTL(uint32 _prodId,uint16 _stl) onlyOwner
     {
-        ProductDetails[prodId].STL = stl;
+        ProductDetails[_prodId].STL = _stl;
     }
     /// @dev Changes the existing Minimum cover period (in days)
-    function changeMinDays(uint prodId,uint64 _days) onlyOwner
+    function changeMinDays(uint32 _prodId,uint64 _days) onlyOwner
     {
-        ProductDetails[prodId].minDays = _days;
+        ProductDetails[_prodId].minDays = _days;
     }
 
     /// @dev Updates the pending cover start variable, which is the lowest cover id with "active" status.
@@ -157,139 +158,152 @@ contract quotationData{
     }
 
     /// @dev Adds the amount in Total Sum Assured of a given currency.
-    /// @param curr Currency Name.
-    /// @param amount Amount to be added.
-    function addInTotalSumAssured(bytes4 curr , uint amount) onlyInternal
+    /// @param _curr Currency Name.
+    /// @param _amount Amount to be added.
+    function addInTotalSumAssured(bytes4 _curr , uint _amount) onlyInternal
     {
-        currentSumAssured[curr] =SafeMaths.add(currentSumAssured[curr],amount);
+        currency_CSA[_curr] =SafeMaths.add(currency_CSA[_curr],_amount);
     }
 
     /// @dev Subtracts the amount from Total Sum Assured of a given currency.
-    /// @param curr Currency Name.
-    /// @param amount Amount to be subtracted.
-    function subFromTotalSumAssured(bytes4 curr , uint amount) onlyInternal
+    /// @param _curr Currency Name.
+    /// @param _amount Amount to be subtracted.
+    function subFromTotalSumAssured(bytes4 _curr , uint _amount) onlyInternal
     {
-        currentSumAssured[curr] =SafeMaths.sub(currentSumAssured[curr],amount);
+        currency_CSA[_curr] =SafeMaths.sub(currency_CSA[_curr],_amount);
     }
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
-    function getTotalSumAssured(bytes4 curr) constant returns(uint amount)
+    function getTotalSumAssured(bytes4 _curr) constant returns(uint amount)
     {
-        amount = currentSumAssured[curr];
+        amount = currency_CSA[_curr];
     }
 
-    /// @dev Gets the status of a given quotation.
-    function getCoversStatusNo(uint cid) constant returns(uint16 stat)
+    /// @dev Gets the status of a given cover.
+    function getCoversStatusNo(uint _cid) constant returns(uint16 stat)
     {
-        stat = allCovers[cid].status;
+        stat = allCovers[_cid].status;
     }
 
-    /// @dev Changes the status of a given quotation.
-    /// @param cid Quotation Id.
-    /// @param stat New status.
-    function changeCoversStatus(uint cid , uint16 stat) onlyInternal
+    /// @dev Changes the status of a given cover.
+    /// @param _cid cover Id.
+    /// @param _stat New status.
+    function changeCoversStatus(uint _cid , uint16 _stat) onlyInternal
     {
-        allCovers[cid].status = stat;
+        allCovers[_cid].status = _stat;
     }
  
-    /// @dev Gets the Cover Period (in days) of a given quotation.
-    function getCoverPeriod(uint cid)constant returns(uint32 _days)
+    /// @dev Gets the Cover Period (in days) of a given cover.
+    function getCoverPeriod(uint _cid)constant returns(uint32 cp)
     {
-        _days = allCovers[cid].coverPeriod;
+        cp = allCovers[_cid].coverPeriod;
     }
-
-    /// @dev Gets the Sum Assured Amount of a given quotation.
-    function getCoverSumAssured(uint cid)constant returns(uint16 sa)
+    
+    /// @dev Change the Cover Period (in days) of a given cover.
+    function changeCoverPeriod(uint _cid, uint16 _days) onlyInternal
     {
-        sa = allCovers[cid].sumAssured;
+        allCovers[_cid].coverPeriod = _days;
+    }
+    
+    /// @dev Gets the Sum Assured Amount of a given cover.
+    function getCoverSumAssured(uint _cid)constant returns(uint16 sa)
+    {
+        sa = allCovers[_cid].sumAssured;
     }
       
-    /// @dev Changes the Sum Assured Amount of a given quotation.
-    /// @param cid Quotation Id.
-    /// @param sa New Sum Assured Amount. 
-    function changeSumAssured(uint cid , uint16 sa) onlyInternal
+    /// @dev Changes the Sum Assured Amount of a given cover.
+    /// @param _cid cover Id.
+    /// @param _sa New Sum Assured Amount. 
+    function changeSumAssured(uint _cid , uint16 _sa) onlyInternal
     {
-        allCovers[cid].sumAssured = sa;
+        allCovers[_cid].sumAssured = _sa;
     }
 
-    /// @dev Gets the Currency Name in which a given quotation is assured.
-    function getCoverCurrency(uint cid)constant returns(bytes4 curr)
+    /// @dev Gets the Currency Name in which a given cover is assured.
+    function getCurrencyOfCover(uint _cid)constant returns(bytes4 curr)
     {
-        curr = allCovers[cid].currencyCode;
+        curr = allCovers[_cid].currencyCode;
     }
 
     /// @dev Maps the Cover Id to its owner's address.
-    function addUserCover(uint cid , address _add) onlyInternal
+    function addUserCover(uint _cid , address _add) onlyInternal
     {
-         cover_user[_add].push(cid);
+         user_Cover[_add].push(_cid);
     }
 
     /// @dev Gets total number of covers generated by a given address
     function getUserCoverLength(address _add)constant returns(uint len)
     {
-        len=cover_user[_add].length;
+        len=user_Cover[_add].length;
     }
 
-     /// @dev Gets the validity date (timestamp) of a given cover.
-    function getCoverValidity(uint cid) constant returns(uint date)
+    /// @dev Gets the validity date (timestamp) of a given cover.
+    function getCoverValidity(uint _cid) constant returns(uint date)
     {
-        date = allCovers[cid].validUntil;
+        date = allCovers[_cid].validUntil;
+    }
+    
+    /// @dev Change the validity date (timestamp) of a given cover.
+    function getChangeValidityOfCover(uint _cid, uint _date) onlyInternal
+    {
+        allCovers[_cid].validUntil = _date;
     }
 
     /// @dev Gets all the Cover ids generated by a given address.
     /// @param _add User's address.
     /// @return allCover array of covers. 
-    function getUserAllCover(address _add) constant returns(uint[] allCover)
+    function getAllCoversOfUser(address _add) constant returns(uint[] allCover)
     {
-        return(cover_user[_add]);
+        return(user_Cover[_add]);
     }
 
     /// @dev Gets the current status of a given cover id.
-    function getCoverStatusNo(uint cid) constant returns(uint16 stat)
+    function getCoverStatusNo(uint _cid) constant returns(uint16 stat)
     {
-        stat = allCovers[cid].status;
+        stat = allCovers[_cid].status;
     }
     
     /// @dev Changes the status of a given cover.
-    function changeCoverStatus(uint cid , uint16 stat) onlyInternal
+    function changeCoverStatus(uint _cid , uint16 _stat) onlyInternal
     {
-        allCovers[cid].status = stat;
+        allCovers[_cid].status = _stat;
     }  
 
-     /// @dev Creates a blank new Quotation.
-    function addCover(uint16 coverPeriod,uint16 SA,bytes8 productName,uint cid,address userAddress,bytes4 currencyCode, address addParams) onlyInternal
+    /// @dev Creates a blank new cover.
+    function addCover(uint16 _coverPeriod,uint16 _SA,bytes8 _productName,uint _cid,address _userAddress,bytes4 _currencyCode, address _scAddress) onlyInternal
     { 
-        allCovers[cid].sumAssured=SA;
-        allCovers[cid].coverPeriod=coverPeriod;
-        allCovers[cid].productName = productName;
-        allCovers[cid].memberAddress = userAddress;
-        allCovers[cid].currencyCode = currencyCode;
-        allCovers[cid].validUntil = SafeMaths.add(now,SafeMaths.mul(coverPeriod,1 days));
-        allCovers[cid].status = 2;
-        allCovers[cid].addParams=addParams;
+        allCovers[_cid].sumAssured= _SA;
+        allCovers[_cid].coverPeriod= _coverPeriod;
+        allCovers[_cid].productName = _productName;
+        allCovers[_cid].memberAddress = _userAddress;
+        allCovers[_cid].currencyCode = _currencyCode;
+        allCovers[_cid].validUntil = SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days));
+        allCovers[_cid].status = 2;
+        allCovers[_cid].scAddress=_scAddress;
+        user_Cover[_userAddress].push(_cid);
     }
 
-    /// @dev Updates the Sum Assured of a given quotation.    
-    function changeTotalSumAssured(uint coverId , uint16 SA) onlyInternal
+    /// @dev Updates the Sum Assured of a given cover.    
+    function changeTotalSumAssured(uint _cid , uint16 _SA) onlyInternal
     {
-        allCovers[coverId].sumAssured = SA;
+        allCovers[_cid].sumAssured = _SA;
     }
 
     /// @dev Gets the Product Id of a given Quote.
-    function getCoverProductName(uint cid)constant returns(bytes8 prodName)
+    function getProductNameOfCover(uint _cid)constant returns(bytes8 prodName)
     {
-        prodName = allCovers[cid].productName;
+        prodName = allCovers[_cid].productName;
     }
 
-    function getAddressParams(uint coverId) constant returns(uint,address)
+    function getscAddressOfCover(uint _cid) constant returns(uint,address)
     {
-       return (coverId,allCovers[coverId].addParams);
+       return (_cid,allCovers[_cid].scAddress);
     }
 
-    /// @dev Gets the owner address of a given quotation.
-    function getCoverMemberAddress(uint cid) constant returns(address _add)
+    /// @dev Gets the owner address of a given cover.
+    function getCoverMemberAddress(uint _cid) constant returns(address _add)
     {
-        _add = allCovers[cid].memberAddress;
+        _add = allCovers[_cid].memberAddress;
     }
 
     /// @dev Gets Premium details.
@@ -297,78 +311,68 @@ contract quotationData{
     /// @return  _PM Profit margin.
     /// @return  _STL short term Load.
     /// @return  _STLP short term load period.
-    function getPremiumDetails(uint prodId) constant returns(bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
+    function getPremiumDetails(uint32 _prodId) constant returns(bytes8 _productName, string _productHash, uint64 _minDays, uint16 _PM, uint16 _STL, uint16 _STLP)
     {
-        _productName =ProductDetails[prodId].productName;
-        _productHash=ProductDetails[prodId].productHash;
-        _minDays=ProductDetails[prodId].minDays;
-        _PM=ProductDetails[prodId].PM;
-        _STL=ProductDetails[prodId].STL;
-        _STLP=ProductDetails[prodId].STLP;
+        _productName=ProductDetails[_prodId].productName;
+        _productHash=ProductDetails[_prodId].productHash;
+        _minDays=ProductDetails[_prodId].minDays;
+        _PM=ProductDetails[_prodId].PM;
+        _STL=ProductDetails[_prodId].STL;
+        _STLP=ProductDetails[_prodId].STLP;
     }
     
-    function getProductName(uint8 prodId) constant returns(bytes8 _productName){
-        return ProductDetails[prodId].productName;
+    function getProductName(uint32 _prodId) constant returns(bytes8 _productName){
+        return ProductDetails[_prodId].productName;
     }
 
-    /// @dev Provides the details of a Quotation Id
-    /// @param cid Quotation Id
-    /// @return productId Insurance Product id.
-    /// @return cid Quotation Id.
-    /// @return addParams Address Array
-    /// @return currencyCode Currency in which quotation is assured
-    /// @return sumAssured Sum assurance of quotation.
-    function getCoverByIndex1(uint _cid) constant returns(bytes8 productName, uint cid,address addParams,bytes4 currencyCode,uint16 sumAssured, uint16 statusNo) 
+    /// @dev Provides the details of a cover Id
+    /// @param _cid cover Id
+    /// @return productName Insurance Product Name.
+    /// @return cid cover Id.
+    /// @return scAddress Address Array
+    /// @return currencyCode Currency in which cover is assured
+    /// @return sumAssured Sum assurance of cover.
+    function getCoverByIndex1(uint _cid) constant returns(bytes8 productName, uint cid,address scAddress,bytes4 currencyCode,uint16 sumAssured, uint16 statusNo) 
     {
-        return (allCovers[_cid].productName,cid,allCovers[_cid].addParams,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].status);
+        return (allCovers[_cid].productName,cid,allCovers[_cid].scAddress,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].status);
     }
 
-    /// @dev Provides details of a Quotation Id
-    /// @param coverid Quotation Id
-    /// @return coverPeriod Cover Period of quotation (in days).
-    /// @return premiumCalculated Premium of quotation.
-    /// @return dateAdd timestamp at which quotation is created.
-    /// @return status current status of Quotation.
-    /// @return amountFunded Amount funded to the quotation.
+    /// @dev Provides details of a cover Id
+    /// @param _cid cover Id
+    /// @return coverPeriod Cover Period of cover (in days).
+    /// @return premiumCalculated Premium of cover.
+    /// @return dateAdd timestamp at which cover is created.
+    /// @return status current status of cover.
+    /// @return amountFunded Amount funded to the cover.
     /// @return coverId cover of a quoation.
-    function getCoverByIndex2(uint coverid) constant returns(address memberAddress,uint16 coverPeriod,uint validUntil,uint16 status)
+    function getCoverByIndex2(uint _cid) constant returns(address memberAddress,uint16 coverPeriod,uint validUntil,uint16 status, uint lockedTokens)
     {
-        return ( allCovers[coverid].memberAddress,allCovers[coverid].coverPeriod,allCovers[coverid].validUntil,allCovers[coverid].status);
+        return (allCovers[_cid].memberAddress,allCovers[_cid].coverPeriod,allCovers[_cid].validUntil,allCovers[_cid].status,allCovers[_cid].lockedTokens);
     }
-    
-    // /// @dev Provides details of a Quotation Id
-    // /// @param _cid Cover Id
-    // /// @return currencyCode Currency in which Cover is assured
-    // /// @return sumAssured Sum assurance of Cover.
-    // /// @return premiumCalculated Premium of Cover.
-    // function getCoverByIndex3(uint _cid) constant returns(bytes8 productName, uint cid,address addParams,bytes4 currencyCode,uint16 sumAssured, uint16 statusNo) 
-    // {
-    //     return (allCovers[_cid].productName,cid,allCovers[_cid].addParams,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].status);
-    // }
     
     /// @dev Provides the information of the quote id, mapped against the user  calling the function, at the given index
-    /// @param ind User's Quotation Index.
-    /// @return coverPeriod Cover Period of quotation in days.
-    /// @return premiumCalculated Premium of quotation.
-    /// @return dateAdd timestamp at which quotation is created.
-    /// @return status current status of Quotation.
-    /// @return amountFunded number of tokens funded to the quotation.
-    function getCoverByAddressAndIndex2(uint ind) constant returns(address memAddress,uint16 coverPeriod,uint validUntil,bytes16 status)
+    /// @param _cid User's cover Index.
+    /// @return coverPeriod Cover Period of cover in days.
+    /// @return premiumCalculated Premium of cover.
+    /// @return dateAdd timestamp at which cover is created.
+    /// @return status current status of cover.
+    /// @return amountFunded number of tokens funded to the cover.
+    function getCoverByAddressAndIndex2(uint _cid) constant returns(address memAddress,uint16 coverPeriod,uint validUntil,bytes16 status)
     {
         uint16 statusNo;
-        (memAddress,coverPeriod,validUntil,statusNo) = getCoverByIndex2(ind);
+        (memAddress,coverPeriod,validUntil,statusNo,) = getCoverByIndex2(_cid);
         status=getCoverStatus(statusNo);
     }
     
     /// @dev Gets Quote details using current address and quoteid.
-    function getCoverByAddressAndIndex1(uint ind) constant returns(bytes8 productName,address addParams,bytes4 currencyCode,uint sumAssured)
+    function getCoverByAddressAndIndex1(uint _cid) constant returns(bytes8 productName,address scAddress,bytes4 currencyCode,uint sumAssured)
     {
-        (productName,,addParams,currencyCode,sumAssured,) = getCoverByIndex1(ind);
+        (productName,,scAddress,currencyCode,sumAssured,) = getCoverByIndex1(_cid);
     }
     
-    function setProductDetails(uint prodId,bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
+    function setProductDetails(uint32 _prodId,bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
     {
-        ProductDetails[prodId]=(Product_Details(_productName,_productHash,_STLP,_STL,_PM,_minDays));
+        ProductDetails[_prodId]=(Product_Details(_productName,_productHash,_STLP,_STL,_PM,_minDays));
     }
 
     /// @dev Adds the amount in Total Sum Assured of a given currency.
@@ -376,7 +380,7 @@ contract quotationData{
     /// @param _amount Amount to be added.
     function addInTotalSumAssuredSC(address _add , bytes4 _curr, uint _amount) onlyInternal
     {
-        currentSumAssured_SC[_add][_curr] =SafeMaths.add(currentSumAssured_SC[_add][_curr],_amount);
+        currency_CSA_ofSCAdd[_add][_curr] =SafeMaths.add(currency_CSA_ofSCAdd[_add][_curr],_amount);
     }
 
     /// @dev Subtracts the amount from Total Sum Assured of a given currency.
@@ -384,19 +388,23 @@ contract quotationData{
     /// @param _amount Amount to be subtracted.
     function subFromTotalSumAssuredSC(address _add , bytes4 _curr, uint _amount) onlyInternal
     {
-        currentSumAssured_SC[_add][_curr] =SafeMaths.sub(currentSumAssured_SC[_add][_curr],_amount);
+        currency_CSA_ofSCAdd[_add][_curr] =SafeMaths.sub(currency_CSA_ofSCAdd[_add][_curr],_amount);
     }
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
     function getTotalSumAssuredSC(address _add, bytes4 _curr) constant returns(uint amount)
     {
-        amount = currentSumAssured_SC[_add][_curr];
+        amount = currency_CSA_ofSCAdd[_add][_curr];
     }
-     function getAuthAddress()constant returns(address add){
-        return AuthAddress;
+    /// @dev Updates the number of tokens locked against a given cover id.
+    function changeLockedTokens(uint _cid , uint _tokens) onlyInternal
+    {
+        allCovers[_cid].lockedTokens = _tokens;
     }
     
-    function changeAuthAddress(address add) onlyOwner {
-        AuthAddress = add;
+    /// @dev Gets the number of tokens locked against a given cover.
+    function getCoverLockedTokens(uint _cid) constant returns(uint tokens)
+    {
+        tokens = allCovers[_cid].lockedTokens;
     }
 }

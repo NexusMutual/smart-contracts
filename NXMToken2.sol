@@ -118,7 +118,7 @@ contract NXMToken2{
     /// @param CoverId Cover id of a cover.
     /// @param senderAddress Quotation owner's Ethereum address.
     /// @return amount Number of tokens that are locked
-    function lockCN ( uint premiumNxm,  uint16 CoverPeriod, uint CoverId, address senderAddress) onlyInternal
+    function lockCN ( uint premiumNxm,  uint16 CoverPeriod, uint CoverId, address senderAddress) onlyInternal returns(uint amount)
     {
         td1=NXMTokenData(tokenDataAddress);
 
@@ -130,7 +130,7 @@ contract NXMToken2{
      
         m1=MCR(mcrAddress);
 
-        uint amount = SafeMaths.div(SafeMaths.mul(premiumNxm,5),100);
+        amount = SafeMaths.div(SafeMaths.mul(premiumNxm,5),100);
         td1.changeBalanceOf(senderAddress,SafeMaths.add(td1.getBalanceOf(senderAddress),amount));  
 
         // Updates the number of Supply Tokens and Pool fund value of a currency.
@@ -146,7 +146,6 @@ contract NXMToken2{
     /// @param _value number of tokens to be burned
     /// @param _to User's address.
     function burnCAToken(uint claimid , uint _value , address _to) onlyInternal {
-         
         td1=NXMTokenData(tokenDataAddress);
         t1=NXMToken(tokenAddress);
         if( td1.getBalanceCAWithAddress(_to) < _value)throw;
@@ -154,9 +153,6 @@ contract NXMToken2{
         //Change overall member token balance
         td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , _value)); 
 
-        // if(td1.getBalanceOf(_to)==0)
-        //     td1.decMemberCounter();
-        
         uint rem = _value;
         uint len=td1.getLockedCALength(_to);
         uint vUpto;
@@ -184,10 +180,9 @@ contract NXMToken2{
         t1.callBurnEvent(_to,"BurnCA",claimid,_value);
         // td1.changeCurrencyTokens("ETH",SafeMaths.sub(td1.getCurrencyTokens("ETH"),_value));
         td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , _value));
-        
         t1.callTransferEvent(_to, 0, _value); // notify of the event
-       
     }
+    
     /// @dev Allocates tokens against a given address
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
@@ -195,18 +190,9 @@ contract NXMToken2{
         ms1=master(masterAddress);
         require(ms1.isMember(_to)==true);
         td1 = NXMTokenData(tokenDataAddress);
-        //Add new member where applicable
-        // if(td1.getBalanceOf(_to) == 0)
-        //     td1.incMemberCounter();
         // Change total supply and individual balance of user
         td1.changeBalanceOf(_to, SafeMaths.add(td1.getBalanceOf(_to) , amount));// mint new tokens
         td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply(),amount)); // track the supply
-        // td1.changeCurrencyTokens("ETH" , SafeMaths.add(td1.getCurrencyTokens("ETH") , amount));
-        // if(td1.checkInallMemberArray(_to)==0)
-        // {
-        //     td1.addInAllMemberArray(_to);
-        // }
-      
         t1=NXMToken(tokenAddress);
         t1.callTransferEvent(0,_to,amount); 
     }
@@ -250,15 +236,11 @@ contract NXMToken2{
         }
     }
     
-    
     /// @dev Burns tokens deposited against a cover, called when a claim submitted against this cover is denied.
     /// @param coverid Cover Id.
     function burnCNToken(uint coverid) onlyInternal {
-        
         td1=NXMTokenData(tokenDataAddress);
         qd1=quotationData(quotationDataAddress);
-        // uint quoteId = qd1.getCoverQuoteid(coverid);
-        bytes4 curr= qd1.getCoverCurrency(coverid);
         address _to = qd1.getCoverMemberAddress(coverid);
         uint depositedTokens = td1.getDepositCN(coverid,_to);
         if(depositedTokens <= 0)throw;
@@ -282,16 +264,11 @@ contract NXMToken2{
         t1=NXMToken(tokenAddress);
         td1.updateLockedCN_Cover(_to,coverid,validity,SafeMaths.sub(amount1,depositedTokens));
         t1.callBurnEvent(_to,"Burn", coverid,depositedTokens);
-        // td1.changeCurrencyTokens(curr,SafeMaths.sub(td1.getCurrencyTokens(curr) , depositedTokens));
-        // Update NXM token balance against member address and remove member in case overall balance=0
         td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , depositedTokens));
-        // if(td1.getBalanceOf(_to)==0)
-        //     td1.decMemberCounter();
         td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , depositedTokens));
-        
         t1.callTransferEvent(_to, 0, depositedTokens); // notify of the event
-      
     }
+    
     /// @dev Deposits locked tokens against a given cover id, called whenever a claim is submitted against a coverid
     /// @param coverid Cover Id.
     /// @param _value number of tokens to deposit.
@@ -306,6 +283,7 @@ contract NXMToken2{
         if (_value<=0) throw;
         td1.pushInDepositCN_Cover(_to,coverid,_days,_value);
     }
+
     /// @dev Extends validity period of a given number of tokens locked for claims assessment.
     /// @param index  index of exisiting bond.
     /// @param _days number of days for which tokens will be extended.
@@ -321,6 +299,7 @@ contract NXMToken2{
         td1.lockCA(msg.sender,(SafeMaths.add(vUpto ,SafeMaths.mul( _days, 1 days ))),noOfTokens);
                
     }
+
     /// @dev Unlocks tokens deposited against a cover.Changes the validity timestamp of deposit tokens.
     /// @dev In order to submit a claim,20% tokens are deposited by the owner. In case a claim is escalated, another 20% tokens are deposited.
     /// @param coverid Cover Id.
@@ -357,7 +336,6 @@ contract NXMToken2{
         td1.lockCA(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
     }
 
-    // Arjun - Data Begin
     /// @dev Burns tokens locked against a Smart Contract Cover, called when a claim submitted against this cover is accepted.
     /// @param coverid Cover Id.
     function burnStakerLockedToken(uint coverid,bytes4 curr,uint SA) onlyInternal 
@@ -366,7 +344,7 @@ contract NXMToken2{
         qd1=quotationData(quotationDataAddress);
         t1=NXMToken(tokenAddress);
         address _scAddress;
-        (,_scAddress) = qd1.getAddressParams(coverid);
+        (,_scAddress) = qd1.getscAddressOfCover(coverid);
         m1=MCR(mcrAddress);
         uint tokenPrice=m1.calculateTokenPrice(curr);
         SA=SafeMaths.mul(SA,10**18);
@@ -395,17 +373,15 @@ contract NXMToken2{
         }
     }
 
-    function burnStakerLockedToken1(address _of,uint _coverid,uint _burnNXMAmount, uint _stakerIndex) internal{
+    function burnStakerLockedToken1(address _of,uint _coverid,uint _burnNXMAmount, uint _stakerIndex) internal
+    {
         td1=NXMTokenData(tokenDataAddress);
         t1=NXMToken(tokenAddress);
         t1.callBurnEvent(_of,"Burn", _coverid,_burnNXMAmount);
         td1.updateBurnedAmount(_stakerIndex,_burnNXMAmount);
         // Update NXM token balance against member address and remove member in case overall balance=0
         td1.changeBalanceOf(_of,SafeMaths.sub(td1.getBalanceOf(_of) , _burnNXMAmount));
-        // if(td1.getBalanceOf(_of)==0)
-        //     td1.decMemberCounter();
         td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , _burnNXMAmount));
-        
         t1.callTransferEvent(_of, 0, _burnNXMAmount); // notify of the event
     }
 
@@ -427,9 +403,9 @@ contract NXMToken2{
         if(succ == true)
             mr1.updateMemberRole(msg.sender,3,1);
     }
+
     function setWalletAddress(address _add) isMemberAndcheckPause {
         td1=NXMTokenData(tokenDataAddress);
         td1.setWalletAddress(_add);
     }
-    // Arjun - Data End
 }

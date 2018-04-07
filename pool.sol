@@ -171,16 +171,7 @@ contract pool is usingOraclize{
         saveApiDetails(myid2,"PRO",id);
        
     }
-    /// @dev Calls Oraclize Query to expire a given Quotation after a given period of time.
-    /// @param id Quote Id to be expired
-    /// @param time Time (in milliseconds) after which the quote should be expired
-    // function closeQuotationOraclise(uint id , uint64 time) onlyInternal
-    // {
-      
-    //     bytes32 myid3 = oraclize_query(time, "URL",strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/",uint2str(id)),500000);
-    //     saveApiDetails(myid3,"QUO",id);
-        
-    // }
+
     /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
     /// @param id Quote Id to be expired
     /// @param time Time (in milliseconds) after which the cover should be expired
@@ -210,7 +201,6 @@ contract pool is usingOraclize{
         bytes32 myid4 = oraclize_query(time, "URL","",1000000);
         saveApiDetails(myid4,"MCRF",id);
     }
-    
     
     /// @dev Oraclize call to Subtract CSA for a given quote id.
     function subtractQuotationOracalise(uint id) onlyInternal
@@ -247,20 +237,13 @@ contract pool is usingOraclize{
 
     /// @dev Begins making cover.
     /// @param coverCurrPrice fund amounts for each selected quotation.
-    
     /// @param smartCAdd Smart Contract Address
     function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable 
     {
         q2=quotation2(quotation2Address);
-        // uint sum=0;
-        // for(uint i=0;i<fundAmt.length;i++)
-        // {
-            // sum=SafeMaths.add(sum,fundAmt[i]);
-        // }
         if(msg.value==coverCurrPrice)
         {
-            // q2.makeCover(coverId , msg.sender,scAddress); //fundAmt ,
-            q2.makeCover(prodId,msg.sender,smartCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
+            q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
         }
         else
         {
@@ -268,15 +251,13 @@ contract pool is usingOraclize{
         }
     }
 
-
     /// @dev User can buy the NXMToken equivalent to the amount paid by the user.
-    function buyTokenBegin()isMemberAndcheckPause payable {
-
+    function buyTokenBegin()isMemberAndcheckPause payable 
+    {
         t1=NXMToken(tokenAddress);
         uint amount= msg.value;
         t1.buyToken(amount,msg.sender);
     }
-
 
     /// @dev Sends a given Ether amount to a given address.
     /// @param amount amount (in wei) to send.
@@ -288,7 +269,8 @@ contract pool is usingOraclize{
     }
 
     /// @dev Converts byte16 data type into string type. 
-    function bytes16ToString(bytes16 x) internal constant returns (string) {
+    function bytes16ToString(bytes16 x) internal constant returns (string) 
+    {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
@@ -312,7 +294,6 @@ contract pool is usingOraclize{
         // t1.addToPoolFund("ETH",amount);
     }
 
-    
     /// @dev Allocates currency tokens to the pool fund.
     /// @param valueWEI  Purchasing Amount(in wei). 
     /// @param curr Currency's Name.
@@ -353,16 +334,16 @@ contract pool is usingOraclize{
         }
     }
     
-
     /// @dev Transfers back the given amount to the owner.
     function transferBackEther(uint256 amount) onlyOwner  
     {
         amount = SafeMaths.mul(amount , 10000000000);  
         bool succ = transferEther(amount , msg.sender);   
         if(succ==true)
-        {t1=NXMToken(tokenAddress);
-        // Subtracts the transferred amount from the Pool Fund.
-        // t1.removeFromPoolFund("ETH",amount);  
+        {
+            t1=NXMToken(tokenAddress);
+            // Subtracts the transferred amount from the Pool Fund.
+            // t1.removeFromPoolFund("ETH",amount);  
         }
     }
     /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
@@ -380,19 +361,19 @@ contract pool is usingOraclize{
     ///@dev Transfers investment asset from current pool address to the new pool address.
     function transferIAFromPool(address _newPoolAddr,address curr_addr) onlyInternal
     {
-            tok=SupplyToken(curr_addr);
-            if(tok.balanceOf(this)>0)
-            {
-                tok.transfer(_newPoolAddr,tok.balanceOf(this));
-            }           
+        tok=SupplyToken(curr_addr);
+        if(tok.balanceOf(this)>0)
+        {
+            tok.transfer(_newPoolAddr,tok.balanceOf(this));
+        }           
     }
     ///@dev Gets pool balance of a given investmentasset.
     function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
     {
-         pd1 = poolData1(poolDataAddress);
-         address currAddress=pd1.getInvestmentAssetAddress(_curr);
-         tok=SupplyToken(currAddress);
-         return tok.balanceOf(poolAddress);
+        pd1 = poolData1(poolDataAddress);
+        address currAddress=pd1.getInvestmentAssetAddress(_curr);
+        tok=SupplyToken(currAddress);
+        return tok.balanceOf(poolAddress);
     }
     function transferIAFromPool(address _newPoolAddr) onlyOwner
     {
@@ -403,7 +384,7 @@ contract pool is usingOraclize{
             bytes16 curr_name=pd1.getInvestmentCurrencyByIndex(i);
             address curr_addr=pd1.getInvestmentAssetAddress(curr_name);
             transferIAFromPool(_newPoolAddr,curr_addr);
-         }   
+        }   
     }
     ///@dev Transfers currency asset from current pool address to the new pool address.
     function transferFromPool(address to,address curr_addr,uint amount) onlyInternal
@@ -431,33 +412,33 @@ contract pool is usingOraclize{
     ///@dev Get 0x order details by hash.
     function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
     {
-         pd1=poolData1(poolDataAddress);
-         f1=fiatFaucet(fiatFaucetAddress);
-         if(orderType=="ELT")
-         {
+        pd1=poolData1(poolDataAddress);
+        f1=fiatFaucet(fiatFaucetAddress);
+        if(orderType=="ELT")
+        {
             if(makerCurr=="ETH")
                 makerCurrAddr=pd1.getWETHAddress();
             else
                 makerCurrAddr=f1.getCurrAddress(makerCurr);
             takerCurrAddr=pd1.getInvestmentAssetAddress(takerCurr);
-         }
-         else if(orderType=="ILT")
-         {
+        }
+        else if(orderType=="ILT")
+        {
             makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
             if(takerCurr=="ETH")
                 takerCurrAddr=pd1.getWETHAddress();
             else
                 takerCurrAddr=f1.getCurrAddress(takerCurr);
-         }
-         else if(orderType=="RBT")
-         {
-             makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
-             takerCurrAddr=pd1.getWETHAddress();
-         }
-         salt=pd1.getOrderSalt();
-         feeRecipient=pd1.get0xFeeRecipient();
-         takerAddress=pd1.get0xTakerAddress();
-         makerFee=pd1.get0xMakerFee();
-         takerFee=pd1.get0xTakerFee();
+        }
+        else if(orderType=="RBT")
+        {
+            makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
+            takerCurrAddr=pd1.getWETHAddress();
+        }
+        salt=pd1.getOrderSalt();
+        feeRecipient=pd1.get0xFeeRecipient();
+        takerAddress=pd1.get0xTakerAddress();
+        makerFee=pd1.get0xMakerFee();
+        takerFee=pd1.get0xTakerFee();
     }
 }

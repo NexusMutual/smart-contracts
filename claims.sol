@@ -16,6 +16,7 @@
     
 pragma solidity ^0.4.11;
 import "./quotation2.sol";
+import "./quotationData.sol";
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
 import "./pool.sol";
@@ -47,7 +48,7 @@ contract claims{
     address MCRDataAddress;
     address pool2Address;
     address pool3Address;
-   
+    address quotationDataAddress;
     
     NXMToken tc1;
     quotation2 q1;
@@ -63,7 +64,7 @@ contract claims{
     MCRData md1;
     pool2 p2;
     pool3 p3;
-
+    quotationData qd1;
 
     function changeMasterAddress(address _add)
     {
@@ -112,13 +113,17 @@ contract claims{
     {
         poolAddress = poolAdd;
     }
-    function changeTokenAddress(address newAddress) onlyInternal
+    function changeTokenAddress(address _add) onlyInternal
     {
-        tokenAddress = newAddress;
+        tokenAddress = _add;
     }
-    function changeQuotationAddress(address newAddress) onlyInternal
+    function changeQuotationAddress(address _add) onlyInternal
     {
-        quotation2Address = newAddress;
+        quotation2Address = _add;
+    }
+    function changeQuotationDataAddress(address _add) onlyInternal
+    {
+        quotationDataAddress = _add;
     }
     function changePoolDataAddress(address _add) onlyInternal
     {
@@ -152,7 +157,6 @@ contract claims{
         c1.setPayoutRetryTime(payouttime);
         c1.setMaxTime(_maxtime);
         c1.setMinTime(_mintime);
-       
     }  
    
     /// @dev Adds status names for Claims.
@@ -234,7 +238,6 @@ contract claims{
         claimId=ind;
         (coverid,dateAdd,finalVerdict,stat,,)=c1.getClaim(ind);
         claimOwner = q1.getMemberAddress(coverid);
-        // quoteid=q1.getQuoteId(coverid);
         status = claimStatus_desc[stat];          
     }
     /// @dev Gets details of a given vote id
@@ -277,11 +280,12 @@ contract claims{
     /// @return Tokens Total Amount used in claims assessment.
      function getCATokens(uint claimid,uint member) constant returns(uint Tokens)
     {
-        tc1=NXMToken(tokenAddress);
-        q1=quotation2(quotation2Address);
-        c1=claimsData(claimsDataAddress);
+        tc1 = NXMToken(tokenAddress);
+        q1  = quotation2(quotation2Address);
+        c1  = claimsData(claimsDataAddress);
+        qd1 = quotationData(quotationDataAddress);
         uint coverid = c1.getClaimCoverId(claimid);
-        bytes4 curr = q1.getCurrencyOfCover(coverid);
+        bytes4 curr = qd1.getCurrencyOfCover(coverid);
         uint tokenx1e18=tc1.getTokenPrice(curr);
         uint acceptCA;uint acceptMV;
         uint denyCA;uint denyMV;
@@ -291,7 +295,6 @@ contract claims{
             Tokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA,denyCA)),tokenx1e18),1000000000000000000); // amount (not in tokens)
         else
             Tokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV,denyMV)),tokenx1e18),1000000000000000000);
-        
     }
     /// @dev Checks if voting of a claim should be closed or not.Internally called by checkVoteClosing method for claims whose status number is 0 or status number lie between 2 and 6.
     /// @param claimid Claim Id.
@@ -304,7 +307,7 @@ contract claims{
         q1=quotation2(quotation2Address);
         c1=claimsData(claimsDataAddress);
         uint coverid = c1.getClaimCoverId(claimid);
-        bytes4 curr = q1.getCurrencyOfCover(coverid);
+        bytes4 curr = qd1.getCurrencyOfCover(coverid);
         uint tokenx1e18=tc1.getTokenPrice(curr);
         uint acceptCA;uint acceptMV;
         uint denyCA;uint denyMV;
@@ -344,8 +347,6 @@ contract claims{
         { 
             close = checkVoteClosingFinal(claimid,status);
         }
-        
-                
     }
 
     function setClaimStatus(uint claimid,uint8 stat) onlyInternal 
@@ -400,7 +401,6 @@ contract claims{
        
         for(uint i=c1.pendingClaim_start();i<c1.actualClaimLength();i++)
         {
-         
             (,,,origstat,,state16Count)=c1.getClaim(i);
          
             if(origstat>6 && ((origstat!=16) || (origstat==16 && state16Count >= 60)))
@@ -417,6 +417,7 @@ contract claims{
     function submitClaim(uint16 coverid)
     {
         q1=quotation2(quotation2Address);
+        qd1=quotationData(quotationDataAddress);
         address qadd=q1.getMemberAddress(coverid);
         if(qadd != msg.sender) throw;
         ms1=master(masterAddress);
@@ -425,12 +426,13 @@ contract claims{
         else{
             c1=claimsData(claimsDataAddress);
             c1.setClaimAtEmergencyPause(coverid,now,false);
-            q1.updateCoverStatus(coverid,5);
+            qd1.changeCoverStatus(coverid,5);
         }
     }
     ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
     function addClaim (uint16 coverid, uint time,address add) internal {
         q1=quotation2(quotation2Address);
+        qd1=quotationData(quotationDataAddress);
         tc2=NXMToken2(token2Address);
         c1=claimsData(claimsDataAddress);
         td1 = NXMTokenData(tokenDataAddress);
@@ -443,7 +445,7 @@ contract claims{
         uint len = c1.actualClaimLength(); 
         c1.addClaim(len,coverid,add,time,nowtime);
         q1.updateCoverStatusAndCount(coverid,4);
-        bytes4 curr=q1.getCurrencyOfCover(coverid);
+        bytes4 curr=qd1.getCurrencyOfCover(coverid);
         uint sumAssured=q1.getSumAssured(coverid);
         pd1 = poolData1(poolDataAddress);
         pd1.changeCurrencyAssetVarMin(curr,SafeMaths.add64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
@@ -503,8 +505,6 @@ contract claims{
         uint vote_length=c1.getAllVoteLength();
         c1.addclaim_vote_ca(claimid,vote_length);
         c1.setvote_ca(msg.sender,claimid,vote_length);
-        // c1.addvote_address_ca(msg.sender,vote_length);
-        // c1.setvote_length(SafeMaths.add(vote_length,1));
         c1.setclaim_tokensCA(claimid,verdict,tokens);
         int close = checkVoteClosing(claimid);
         if(close==1)
@@ -553,8 +553,6 @@ contract claims{
         c1.addVote(msg.sender,tokens,claimid,verdict,now,0);
         c1.addclaim_vote_member(claimid,vote_length);
         c1.setvote_member(msg.sender,claimid,vote_length);
-        // c1.addvote_address_member(msg.sender,vote_length);
-        // c1.setvote_length(SafeMaths.add(vote_length,1));
         c1.setclaim_tokensMV(claimid,verdict,tokens);
         int close = checkVoteClosing(claimid);
         if(close==1)

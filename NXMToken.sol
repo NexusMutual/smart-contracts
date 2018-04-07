@@ -494,19 +494,17 @@ contract NXMToken {
         } 
     }
     
-    function updateStakerCommissions(address _scAddress,uint _premiumNXM,bytes4 _curr) onlyInternal
+    function updateStakerCommissions(address _scAddress,uint _premiumNXM) onlyInternal
     {
         td1=NXMTokenData(tokenDataAddress);
         t2=NXMToken2(nxmtoken2Address);
         m1=MCR(mcrAddress);
-        // uint tokenPrice=m1.calculateTokenPrice(_curr);
-        // _premium=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(_premium,100000),tokenPrice),10**13);
         uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premiumNXM,20),100);
         for(uint i=0;i<td1.getTotalStakerAgainstScAddress(_scAddress);i++){
             if(commissionToBePaid>0){
                 uint scAddressIndx;
                 (,scAddressIndx) = td1.getScAddressIndexByScAddressAndIndex(_scAddress,i);
-                uint stakeAmt; address stakerAdd; uint dateAdd;
+                uint stakeAmt; address stakerAdd;
                 (,stakerAdd,,stakeAmt,,)=td1.getStakeDetails(scAddressIndx);
                 uint totalCommission = SafeMaths.div(SafeMaths.mul(stakeAmt,50),100);
                 uint commissionPaid;
@@ -528,5 +526,4 @@ contract NXMToken {
              break;
         }
     }
-    // Arjun - Data End
 }

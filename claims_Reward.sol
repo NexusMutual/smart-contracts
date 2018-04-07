@@ -16,7 +16,6 @@
 //Claims Reward Contract contains the functions for calculating number of tokens  that will get rewarded, unlocked or burned depending upon the status of claim.   
 
 pragma solidity ^0.4.11;
-// import "./quotation2.sol";
 import "./quotationData.sol";
 import "./NXMToken.sol";
 import "./claims.sol";
@@ -48,7 +47,6 @@ contract claims_Reward
     address public token3Address;
     address public poolAddress;
     address public tokenAddress;
-    // address public quotation2Address;
     address public quotationDataAddress;
     address public claimsAddress;
     address public pool2Address;
@@ -106,10 +104,6 @@ contract claims_Reward
     {
         tokenAddress = newAddress;
     }
-    //   function changeQuotationAddress(address newAddress) onlyInternal
-    // {
-    //     quotation2Address = newAddress;
-    // }
     function changeQuotationDataAddress(address _add) onlyInternal
     {
         quotationDataAddress = _add;
@@ -133,22 +127,18 @@ contract claims_Reward
     {
         c1=claims(claimsAddress);
         cd1=claimsData(claimsDataAddress);
-        // q1=quotation2(quotation2Address);
         qd1=quotationData(quotationDataAddress);
         //Check if voting should be closed or not
         if(c1.checkVoteClosing(claimid)==1)
         { 
-            // uint8 status=cd1.getClaimStatus(claimid);
             uint CATokens=c1.getCATokens(claimid,0);
             uint reward_claim=0;            
             if(CATokens==0)
             {
                 status=4;
-                
             }
             else
             { 
-                // uint coverid=cd1.getClaimCoverId(claimid);
                 uint sumassured=qd1.getCoverSumAssured(coverid);
                 uint threshold_unreached=0;
                 //Minimum threshold for CA voting is reached only when value of tokens used for voting > 5* sum assured of claim id
@@ -172,11 +162,11 @@ contract claims_Reward
                 }
                 else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==0)
                     status=6;
-               else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==0)
+                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==0)
                     status=5;
                 else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==1)
                     status=4;
-               else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==1)
+                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==1)
                     status=3;
             }
             c1.setClaimStatus(claimid,status);
@@ -192,14 +182,12 @@ contract claims_Reward
         c1=claims(claimsAddress); 
         cd1=claimsData(claimsDataAddress);
         qd1=quotationData(quotationDataAddress);   
-         //Check if voting should be closed or not 
+        //Check if voting should be closed or not 
         if(c1.checkVoteClosing(claimid)==1)
         { 
             uint16 coverStatus;
-            uint8 status_orig=status; // cd1.getClaimStatus(claimid);
-            // uint8 status=status_orig;
+            uint8 status_orig=status;
             uint MVTokens=c1.getCATokens(claimid,1);
-            // uint coverid=cd1.getClaimCoverId(claimid);
             // In case noone votes, claim is denied
             if(MVTokens==0 )
             {
@@ -207,30 +195,30 @@ contract claims_Reward
                 coverStatus=2;                
             }
             else
-            {   // If tokens used for acceptance >50%, claim is accepted
-
+            {   
+                // If tokens used for acceptance >50%, claim is accepted
                 uint sumassured=qd1.getCoverSumAssured(coverid);
                 uint threshold_unreached=0;
-             //Minimum threshold for member voting is reached only when value of tokens used for voting > 5* sum assured of claim id
+                // Minimum threshold for member voting is reached only when value of tokens used for voting > 5* sum assured of claim id
                 if(MVTokens<SafeMaths.mul(SafeMaths.mul(5,sumassured),1000000000000000000))
                     threshold_unreached=1;
                 uint accept=cd1.getClaimMVote(claimid,1);
                 uint deny=cd1.getClaimMVote(claimid,-1);  
 
                 if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  threshold_unreached==0 && status_orig==2)
-                 { status=9;coverStatus=1;}
+                { status=9;coverStatus=1;}
                 else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  threshold_unreached==0 && status_orig==2)
-                  {  status=10;coverStatus=2;}
+                { status=10;coverStatus=2;}
                 else if(  threshold_unreached==1 && status_orig==2)
-                   { status=11; coverStatus=2;}
-               else if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
-                   { status=12; coverStatus=1;}
+                { status=11; coverStatus=2;}
+                else if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
+                { status=12; coverStatus=1;}
                 else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
-                   { status=13;coverStatus=2;}
-               else if(threshold_unreached==1 &&  (status_orig==3 || status_orig==5))
-                   { status=14; coverStatus=1;}
-               else if(threshold_unreached==1 &&  (status_orig==6 || status_orig==4))
-                    { status=15; coverStatus=2;}
+                { status=13;coverStatus=2;}
+                else if(threshold_unreached==1 &&  (status_orig==3 || status_orig==5))
+                { status=14; coverStatus=1;}
+                else if(threshold_unreached==1 &&  (status_orig==6 || status_orig==4))
+                { status=15; coverStatus=2;}
             }
             c1.setClaimStatus(claimid,status);
             qd1.changeCoverStatus(coverid,coverStatus);
@@ -278,9 +266,7 @@ contract claims_Reward
             {
                 c1.setClaimStatus(claimid,18);
             }
-                
         }
-
         c1.changePendingClaimStart();
     }
     /// @dev Rewards/Punishes users who  participated in claims assessment. Unlocking and burning of the tokens will also depend upon the status of claim.
@@ -295,112 +281,102 @@ contract claims_Reward
         c1=claims(claimsAddress);
         cd1=claimsData(claimsDataAddress);
         pd1 = poolData1(poolDataAddress);
-        // uint coverid=cd1.getClaimCoverId(claimid);
-        // uint8 status=cd1.getClaimStatus(claimid);
-        bytes4 curr=qd1.getCoverCurrency(coverid);
+        bytes4 curr=qd1.getCurrencyOfCover(coverid);
         uint sumAssured=qd1.getCoverSumAssured(coverid);
         p1=pool(poolAddress);
 
-            if(status==7) //Final-Claim Assessor Vote Denied
+        if(status==7) //Final-Claim Assessor Vote Denied
+        {
+            c1.changeFinalVerdict(claimid,-1);
+            rewardCAVoters(claimid,100,curr,sumAssured);  // Rewards Claims Assessor only
+            tc2.burnCNToken(coverid); //Burns tokens deposited at the time of claim submission
+            if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                c1.changeFinalVerdict(claimid,-1);
-                rewardCAVoters(claimid,100,curr,sumAssured);  // Rewards Claims Assessor only
-                tc2.burnCNToken(coverid); //Burns tokens deposited at the time of claim submission
-                if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
-                {
-                    
+                
+            pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+            c1.checkLiquidity(curr);
+            }
+        }
+        if(status==8)
+        {
+            c1.changeFinalVerdict(claimid,1);
+            rewardCAVoters(claimid,100,curr,sumAssured); // Rewards Claims Assessor only
+            tc1.unlockCN(coverid); //Unlocks token locked against cover note
+            succ = p2.sendClaimPayout(coverid,claimid); //Initiates payout
+        }
+        if(status==9)
+        {
+            c1.changeFinalVerdict(claimid,1);
+            rewardCAVoters(claimid,50,curr,sumAssured);  // Distributes rewards between claims assessor and members who voted
+            rewardMVoters(claimid,50,curr,sumAssured);
+            tc1.unlockCN(coverid);
+            succ = p2.sendClaimPayout(coverid,claimid);
+            // if(!succ)
+            //     throw;
+        }
+        if(status==10)
+        {
+            c1.changeFinalVerdict(claimid,-1);
+            rewardCAVoters(claimid,50,curr,sumAssured);
+            rewardMVoters(claimid,50,curr,sumAssured);
+            tc2.burnCNToken(coverid);
+           
+            if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
+            {
                 pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
                 c1.checkLiquidity(curr);
-                }
             }
-            if(status==8)
+        }
+        if(status==11)
+        {
+            c1.changeFinalVerdict(claimid,-1);
+            // uint8 cc = cd1.getCoverClaimCount(coverid);
+            cd1.addCover_Claim(coverid,cd1.getCoverClaimCount(coverid)); //cc+1
+            rewardCAVoters(claimid,100,curr,sumAssured);
+            tc2.undepositCN(coverid,0);
+            tc2.burnCNToken(coverid);
+            
+            if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                c1.changeFinalVerdict(claimid,1);
-                rewardCAVoters(claimid,100,curr,sumAssured); // Rewards Claims Assessor only
-                tc1.unlockCN(coverid); //Unlocks token locked against cover note
-                succ = p2.sendClaimPayout(coverid,claimid); //Initiates payout
+                 pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+                c1.checkLiquidity(curr);
             }
-            if(status==9)
+        }
+        if(status==12)
+        {
+            c1.changeFinalVerdict(claimid,1);
+            rewardMVoters(claimid,100,curr,sumAssured);
+            tc1.unlockCN(coverid);
+            succ = p2.sendClaimPayout(coverid,claimid);
+           
+        }
+        if(status==13)
+        {
+            c1.changeFinalVerdict(claimid,-1);
+            rewardMVoters(claimid,100,curr,sumAssured);
+            tc2.burnCNToken(coverid);
+            if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                c1.changeFinalVerdict(claimid,1);
-                rewardCAVoters(claimid,50,curr,sumAssured);  // Distributes rewards between claims assessor and members who voted
-                rewardMVoters(claimid,50,curr,sumAssured);
-                tc1.unlockCN(coverid);
-                succ = p2.sendClaimPayout(coverid,claimid);
-                // if(!succ)
-                //     throw;
+                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+                c1.checkLiquidity(curr);
             }
-            if(status==10)
+         }
+        if(status==14)
+        {
+            c1.changeFinalVerdict(claimid,1);
+            tc1.unlockCN(coverid);
+            succ = p2.sendClaimPayout(coverid,claimid);
+        }
+        if(status==15)
+        {
+            c1.changeFinalVerdict(claimid,-1);
+            tc2.burnCNToken(coverid);
+            if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                c1.changeFinalVerdict(claimid,-1);
-                rewardCAVoters(claimid,50,curr,sumAssured);
-                rewardMVoters(claimid,50,curr,sumAssured);
-                tc2.burnCNToken(coverid);
-               
-                if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
-                {
-                    pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
-                    c1.checkLiquidity(curr);
-                }
+                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+                c1.checkLiquidity(curr);
             }
-            if(status==11)
-            {
-                c1.changeFinalVerdict(claimid,-1);
-                // uint8 cc = cd1.getCoverClaimCount(coverid);
-                cd1.addCover_Claim(coverid,cd1.getCoverClaimCount(coverid)); //cc+1
-                rewardCAVoters(claimid,100,curr,sumAssured);
-                tc2.undepositCN(coverid,0);
-                tc2.burnCNToken(coverid);
-                
-                if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
-                {
-                     pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
-                    c1.checkLiquidity(curr);
-                }
-            }
-            if(status==12)
-            {
-                c1.changeFinalVerdict(claimid,1);
-                rewardMVoters(claimid,100,curr,sumAssured);
-                tc1.unlockCN(coverid);
-                succ = p2.sendClaimPayout(coverid,claimid);
-               
-            }
-            if(status==13)
-            {
-                c1.changeFinalVerdict(claimid,-1);
-                rewardMVoters(claimid,100,curr,sumAssured);
-                tc2.burnCNToken(coverid);
-                 
-                if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
-                {
-                    pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
-                    c1.checkLiquidity(curr);
-                }
-             }
-            if(status==14)
-            {
-                 
-                c1.changeFinalVerdict(claimid,1);
-                tc1.unlockCN(coverid);
-                succ = p2.sendClaimPayout(coverid,claimid);
-                
-            }
-            if(status==15)
-            {
-                 
-                c1.changeFinalVerdict(claimid,-1);
-                tc2.burnCNToken(coverid);
-                
-                if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
-                {
-                    pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
-                    c1.checkLiquidity(curr);
-                }
-            }
-             
-              
-             
+        }
     }
   
     /// @dev Reward the tokens to all the Claim Assessors who have participated in voting of given claim.
@@ -408,65 +384,57 @@ contract claims_Reward
     /// @param perc Reward Percentage.
     function rewardCAVoters(uint claimid,uint perc,bytes4 curr_name,uint sumAssured) internal
     {
-            tc1=NXMToken(tokenAddress);
-            tc2=NXMToken2(token2Address);
-            cd1=claimsData(claimsDataAddress);
-            c1=claims(claimsAddress); 
-            //uint coverid= cd1.getClaimCoverId(claimid);
-            // bytes4 curr_name=q1.getCurrencyOfCover(cd1.getClaimCoverId(claimid));
-            // // uint tokenx1e18=tc1.getTokenPrice(curr_name);
-            // uint sumassured=SafeMaths.mul(q1.getSumAssured(cd1.getClaimCoverId(claimid)),1000000000000000000);
-            uint sumassured=SafeMaths.mul(sumAssured,1000000000000000000);
-            uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumassured,perc),1000000000000000000),(SafeMaths.mul(SafeMaths.mul(100,100),tc1.getTokenPrice(curr_name)))); //  1% of sum assured
-            uint  token;
-            uint  consesnsus_perc;
-            uint  accept=cd1.getClaimVote(claimid,1);
-            uint  deny=cd1.getClaimVote(claimid,-1);
-                for(uint i=0;i<c1.getClaimVoteLength(claimid,1);i++)
-                { 
-                    
-                      if(cd1.getvoteVerdict(claimid,i,1)==1 )
-                      { 
-                        if(cd1.getFinalVerdict(claimid)==1)
-                        {
-                            token=SafeMaths.div(SafeMaths.mul(distributableTokens,c1.getvoteToken(claimid,i,1)),(accept));
-                            
-                            tc2.rewardToken(c1.getvoteVoter(claimid,i,1),token);
-                            cd1.updateRewardCA(claimid,i,token);
-                        }
-                        else
-                        {
-                            consesnsus_perc=SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny)));
-                            if(consesnsus_perc>70)
-                                consesnsus_perc=SafeMaths.sub(consesnsus_perc,70);
+        tc1=NXMToken(tokenAddress);
+        tc2=NXMToken2(token2Address);
+        cd1=claimsData(claimsDataAddress);
+        c1=claims(claimsAddress); 
+        uint sumassured=SafeMaths.mul(sumAssured,1000000000000000000);
+        uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumassured,perc),1000000000000000000),(SafeMaths.mul(SafeMaths.mul(100,100),tc1.getTokenPrice(curr_name)))); //  1% of sum assured
+        uint  token;
+        uint  consesnsus_perc;
+        uint  accept=cd1.getClaimVote(claimid,1);
+        uint  deny=cd1.getClaimVote(claimid,-1);
+        for(uint i=0;i<c1.getClaimVoteLength(claimid,1);i++)
+        { 
+            if(cd1.getvoteVerdict(claimid,i,1)==1 )
+            { 
+                if(cd1.getFinalVerdict(claimid)==1)
+                {
+                    token=SafeMaths.div(SafeMaths.mul(distributableTokens,c1.getvoteToken(claimid,i,1)),(accept));
+                    tc2.rewardToken(c1.getvoteVoter(claimid,i,1),token);
+                    cd1.updateRewardCA(claimid,i,token);
+                }
+                else
+                {
+                    consesnsus_perc=SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny)));
+                    if(consesnsus_perc>70)
+                        consesnsus_perc=SafeMaths.sub(consesnsus_perc,70);
 
-                            token = SafeMaths.div(c1.getvoteToken(claimid,i,1),10000000000);
-                            tc2.extendCAWithAddress(c1.getvoteVoter(claimid,i,1),SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),60),60),token);
-                        }
-                      }
-                      else if(cd1.getvoteVerdict(claimid,i,1)==-1)
-                      {
-                        if(cd1.getFinalVerdict(claimid)==-1)
-                        {
-                            token=SafeMaths.mul(distributableTokens,SafeMaths.div(c1.getvoteToken(claimid,i,1),(deny)));
-                    
-                            tc2.rewardToken(c1.getvoteVoter(claimid,i,1),token);
-                            cd1.updateRewardCA(claimid,i,token);
-                        }
-                        else
-                        {
-                          consesnsus_perc=SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny)));
-                          if(consesnsus_perc>70)
-                            consesnsus_perc=SafeMaths.mul(SafeMaths.mul((SafeMaths.sub(consesnsus_perc,70)),12),3600);
-                          else
-                            consesnsus_perc=SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),3600);
-                        
-                         token = SafeMaths.div(c1.getvoteToken(claimid,i,1),10000000000);
-                        
-                         tc2.extendCAWithAddress(c1.getvoteVoter(claimid,i,1),consesnsus_perc,token);
-                        }
-                      }                 
-                }             
+                    token = SafeMaths.div(c1.getvoteToken(claimid,i,1),10000000000);
+                    tc2.extendCAWithAddress(c1.getvoteVoter(claimid,i,1),SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),60),60),token);
+                }
+            }
+            else if(cd1.getvoteVerdict(claimid,i,1)==-1)
+            {
+                if(cd1.getFinalVerdict(claimid)==-1)
+                {
+                    token=SafeMaths.mul(distributableTokens,SafeMaths.div(c1.getvoteToken(claimid,i,1),(deny)));
+                    tc2.rewardToken(c1.getvoteVoter(claimid,i,1),token);
+                    cd1.updateRewardCA(claimid,i,token);
+                }
+                else
+                {
+                    consesnsus_perc=SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny)));
+                    if(consesnsus_perc>70)
+                        consesnsus_perc=SafeMaths.mul(SafeMaths.mul((SafeMaths.sub(consesnsus_perc,70)),12),3600);
+                    else
+                        consesnsus_perc=SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),3600);
+
+                    token = SafeMaths.div(c1.getvoteToken(claimid,i,1),10000000000);
+                    tc2.extendCAWithAddress(c1.getvoteVoter(claimid,i,1),consesnsus_perc,token);
+                }
+            }                 
+        }            
     }
     /// @dev Reward the tokens to all the Members who have participated in voting of given claim.
     /// @param claimid Claim Id.
@@ -477,8 +445,6 @@ contract claims_Reward
         tc2=NXMToken2(token2Address); 
         c1=claims(claimsAddress);
         cd1=claimsData(claimsDataAddress);
-        // uint coverid=cd1.getClaimCoverId(claimid);
-        // bytes4 curr_name=q1.getCurrencyOfCover(coverid);
         uint tokenx1e18=tc1.getTokenPrice(curr_name);
         uint sumassured=SafeMaths.mul(sumAssured,1000000000000000000);
         uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumassured,perc),1000000000000000000),(SafeMaths.mul(SafeMaths.mul(100,100),tokenx1e18)));
@@ -488,32 +454,29 @@ contract claims_Reward
         
         for(uint i=0;i<c1.getClaimVoteLength(claimid,0);i++)
         {
-              address voter=c1.getvoteVoter(claimid,i,0);
-              uint token=c1.getvoteToken(claimid,i,0);
-
-              if(cd1.getvoteVerdict(claimid,i,0)==1 )
-              { 
-                  if(cd1.getFinalVerdict(claimid)==1)
-                  {
-                      token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(accept));
-                    
-                      tc2.rewardToken(voter,token_re);
-                      cd1.updateRewardMV(claimid,i,token_re);
-                  }
-              }
-              else if(cd1.getvoteVerdict(claimid,i,0)==-1)
-              {
-                  if(cd1.getFinalVerdict(claimid)==-1)
-                  {
-                      token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(deny));
-                      tc2.rewardToken(voter,token_re);
-                      cd1.updateRewardMV(claimid,i,token_re);
-                  }
-              }        
+            address voter=c1.getvoteVoter(claimid,i,0);
+            uint token=c1.getvoteToken(claimid,i,0);
+            if(cd1.getvoteVerdict(claimid,i,0)==1 )
+            { 
+                if(cd1.getFinalVerdict(claimid)==1)
+                {
+                    token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(accept));
+                    tc2.rewardToken(voter,token_re);
+                    cd1.updateRewardMV(claimid,i,token_re);
+                }
+            }
+            else if(cd1.getvoteVerdict(claimid,i,0)==-1)
+            {
+                if(cd1.getFinalVerdict(claimid)==-1)
+                {
+                    token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(deny));
+                    tc2.rewardToken(voter,token_re);
+                    cd1.updateRewardMV(claimid,i,token_re);
+                }
+            }        
         }     
     }
 
-  
     /// @dev Start Voting of All Pending Claims when Emergency Pause OFF.
     function StartAllPendingClaimsVoting() onlyInternal
     {
@@ -533,12 +496,8 @@ contract claims_Reward
             cd1.setPendingClaimVoteStatus(i,true);
             
             uint coverid=cd1.getClaimCoverId(ClaimID);
-            // q1=quotation2(quotation2Address);
-            // uint quoteId = qd1.getCoverQuoteid(coverid);
             address qadd=qd1.getCoverMemberAddress(coverid);
-            // address qadd=q1.getMemberAddress(coverid);
             tc1.DepositLockCN_EPOff(qadd,coverid,SafeMaths.add(pendingTime,cd1.claimDepositTime()));
-
             p1.closeClaimsOraclise(ClaimID,uint64(pTime));
         }
         cd1.setFirstClaimIndexToStartVotingAfterEP(i);

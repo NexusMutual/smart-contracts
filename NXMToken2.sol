@@ -373,6 +373,7 @@ contract NXMToken2{
         }
     }
 
+
     function burnStakerLockedToken1(address _of,uint _coverid,uint _burnNXMAmount, uint _stakerIndex) internal
     {
         td1=NXMTokenData(tokenDataAddress);

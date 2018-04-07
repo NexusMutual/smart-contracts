@@ -521,3 +521,4 @@ contract pool3
         pd1.pushInvestmentAssetsDetails(curr_name,curr,1,_minHoldingPercX100,_maxHoldingPercX100,decimals);
     }
 }
+

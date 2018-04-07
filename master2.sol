@@ -30,6 +30,7 @@ import "./SafeMaths.sol";
 contract masters2 {
     using SafeMaths for uint;
     
+    
     address  claimsAddress;
     address  governanceAddress;
     address claims_RewardAddress;

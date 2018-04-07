@@ -26,6 +26,7 @@ import "./NXMTokenData.sol";
 import "./SafeMaths.sol";
 contract MCR
 {
+    
     using SafeMaths for uint;
     pool p1;
     NXMToken t1;

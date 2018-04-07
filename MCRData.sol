@@ -227,6 +227,7 @@ contract MCRData
     {
         vf = allMCRData[SafeMaths.sub(allMCRData.length,1)].vFull;
     }
+    
     /// @dev Gets last Minimum Capital Requirement in Ether.
     /// @return date of MCR.
     function getLastMCRDate()constant returns(uint64 date)

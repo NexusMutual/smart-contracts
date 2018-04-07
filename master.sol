@@ -565,6 +565,7 @@ contract master
     /// @param arr Array of addresses of compiled contracts.
     function addNewVersion2(uint versionNo,address[] arr) onlyOwner
     {
+      
        
         addContractDetails(versionNo,"Pool",arr[0]);
         addContractDetails(versionNo,"Governance",arr[1]);

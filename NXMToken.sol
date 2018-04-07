@@ -494,6 +494,7 @@ contract NXMToken {
         } 
     }
     
+    
     function updateStakerCommissions(address _scAddress,uint _premiumNXM) onlyInternal
     {
         td1=NXMTokenData(tokenDataAddress);

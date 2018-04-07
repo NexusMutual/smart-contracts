@@ -524,6 +524,7 @@ contract NXMTokenData {
             _totalStakedAmt=SafeMaths.add(_totalStakedAmt,stakeDetails[staker_Index[_of][i]].amount);
         }
     }
+    
     function changeSCValidDays(uint16 _days) onlyInternal
     {
         scValidDays=_days;

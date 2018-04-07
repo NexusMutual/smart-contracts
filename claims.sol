@@ -302,6 +302,7 @@ contract claims{
     /// @return close 1 if voting should be closed,0 in case voting should not be closed,-1 if voting has already been closed.
     function checkVoteClosingFinal(uint claimid,uint8 status) internal constant returns(int8 close)
     {
+        
         close=0;
         tc1=NXMToken(tokenAddress);
         q1=quotation2(quotation2Address);

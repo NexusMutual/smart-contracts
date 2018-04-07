@@ -29,6 +29,7 @@ contract master3 {
             masterAddress = _add;
         else
         {
+            
             ms1=master(masterAddress);
             if(ms1.isInternal(msg.sender) == 1)
                 masterAddress = _add;

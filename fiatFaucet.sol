@@ -113,6 +113,7 @@ contract fiatFaucet
         tok=SupplyToken(contract_add[curr]);
         tok.payoutTransfer(_to,tokens);
     }
+    
 
     /// @dev Making Cover(s) using ERC20 tokens.
     /// @param PriceNxm Token Amount.

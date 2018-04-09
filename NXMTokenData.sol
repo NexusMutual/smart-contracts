@@ -358,9 +358,9 @@ contract NXMTokenData {
     /// @dev Gets number of times a user's tokens have been booked for participation in claims assessment.
     /// @param _of User's address.
     /// @return len number to times
-    function getBookedCALength(address _of) constant returns(uint len)
+    function getBookedCALength(address _of) constant returns(uint times_booked)
     {
-        len = bookedCA[_of].length;
+        times_booked = bookedCA[_of].length;
     }
     /// @dev Gets the validity date and number of tokens booked for participation in claims assessment, at a given mapping index.
     function getBookedCAByindex(address _of , uint index) constant returns(uint valid ,uint val)
@@ -372,9 +372,9 @@ contract NXMTokenData {
     /// @param _of User's address.
     /// @param coverid Cover Id against which tokens are deposit.
     /// @return len Number of times.
-    function getUser_cover_depositCNLength(address _of , uint coverid) constant returns(uint len)
+    function getUser_cover_depositCNLength(address _of , uint coverid) constant returns(uint times_deposit)
     {
-        len = user_cover_depositCN[_of][coverid].length;
+        times_deposit = user_cover_depositCN[_of][coverid].length;
     }
     /// @dev Gets the validity and number of tokens deposited by the owner of a cover for Claim Submission.
     /// @param _of user's address.
@@ -415,49 +415,49 @@ contract NXMTokenData {
         user_cover_lockedCN[_of][coverid].amount = amount1;
     }
     /// @dev Calculates the Sum of tokens locked for Claim Assessments of a user.
-    function getBalanceCAWithAddress(address _to) constant returns (uint sum)
+    function getBalanceCAWithAddress(address _to) constant returns (uint tokens_lockedCA)
     {
-        sum=0;
+        tokens_lockedCA=0;
         for(uint i=0 ; i < lockedCA[_to].length ;i++ )
         {
             if(now<lockedCA[_to][i].validUpto)
-                sum=SafeMaths.add(sum,lockedCA[_to][i].amount);
+                tokens_lockedCA=SafeMaths.add(tokens_lockedCA,lockedCA[_to][i].amount);
         }
     } 
     /// @dev Calculates the Sum of tokens locked for Cover Note of a user.(available + unavailable)
-    function getBalanceCN(address _to) constant returns (uint sum)
+    function getBalanceCN(address _to) constant returns (uint tokens_lockedCN)
     {
-        sum=0;
+        tokens_lockedCN=0;
         for(uint i=0 ; i < lockedCN[_to].length ;i++ )
         {
             if(now<lockedCN[_to][i].validUpto)
-                sum=SafeMaths.add(sum,lockedCN[_to][i].amount);
+                tokens_lockedCN=SafeMaths.add(tokens_lockedCN,lockedCN[_to][i].amount);
         } 
        
     } 
    
     /// @dev Calculates the sum of tokens booked by a user for Claim Assessment.
-    function getBookedCA(address _to) constant returns (uint sum)
+    function getBookedCA(address _to) constant returns (uint tokens_bookedCA)
     {
-        sum=0;
+        tokens_bookedCA=0;
         for(uint i=0 ; i < bookedCA[_to].length ;i++ )
         {
             if(now<bookedCA[_to][i].validUpto)
-                sum=SafeMaths.add(sum,bookedCA[_to][i].amount);
+                tokens_bookedCA=SafeMaths.add(tokens_bookedCA,bookedCA[_to][i].amount);
         }
     }  
     
     /// @dev Calculates the total number of tokens deposited in a cover by a user.
     /// @param coverId cover id.
     /// @param _of user's address.
-    /// @return sum total number of tokens deposited in a cover by a user.
-    function getDepositCN(uint coverId , address _of) constant returns (uint sum)
+    /// @return tokens_deposited total number of tokens deposited in a cover by a user.
+    function getDepositCN(uint coverId , address _of) constant returns (uint tokens_deposited)
     {
-        sum=0;
+        tokens_deposited=0;
         for(uint i=0 ; i < user_cover_depositCN[_of][coverId].length ;i++ )
         {
             if(now<user_cover_depositCN[_of][coverId][i].validUpto)
-                sum=SafeMaths.add(sum,user_cover_depositCN[_of][coverId][i].amount);
+                tokens_deposited=SafeMaths.add(tokens_deposited,user_cover_depositCN[_of][coverId][i].amount);
         }
     } 
     /// @dev Calculates the remaining number of locked tokens that are not deposit for claim submission (can be used in deposit) by a user of a cover. 

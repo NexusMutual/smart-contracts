@@ -174,14 +174,14 @@ contract NXMToken {
     }
 
     /// @dev Gets the validity date and number of tokens locked under CA at a given index of mapping
-    /// @return index1 Id of mapping.
+    /// @return index Id of mapping.
     /// @return valid Lock validity (in timestamp)
-    /// @return amt Number of tokens locked.
-    function getLockCAWithIndex(uint index) constant returns(uint index1 , uint valid , uint amt)
+    /// @return tokensLocked Number of tokens locked.
+    function getLockCAWithIndex(uint mappedIndex) constant returns(uint index , uint valid , uint tokensLocked)
     {
         td1 = NXMTokenData(tokenDataAddress);
-        index1=index;
-        (valid,amt) = td1.getLockCAWithIndex(msg.sender , index);
+        index=mappedIndex;
+        (valid,tokensLocked) = td1.getLockCAWithIndex(msg.sender , index);
     }
 
 
@@ -485,9 +485,9 @@ contract NXMToken {
             uint stakerIndx;
             (,stakerIndx) = td1.getStakerIndexByStakerAddAndIndex(_of,i);
             (,,,stakeAmt,burnedAmt,dateAdd)=td1.getStakeDetails(stakerIndx);
-            uint16 day1=uint16(SafeMaths.div(SafeMaths.sub(nowTime,dateAdd),1 days));
-            if(stakeAmt>0 && td1.scValidDays()>day1){
-               uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(td1.scValidDays(),day1),100000),td1.scValidDays()),stakeAmt),100000);
+            uint16 dayStaked=uint16(SafeMaths.div(SafeMaths.sub(nowTime,dateAdd),1 days));
+            if(stakeAmt>0 && td1.scValidDays()>dayStaked){
+               uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(td1.scValidDays(),dayStaked),100000),td1.scValidDays()),stakeAmt),100000);
                if(lockedNXM>burnedAmt)
                     _stakerLockedNXM = SafeMaths.add(_stakerLockedNXM,SafeMaths.sub(lockedNXM,burnedAmt));
             }

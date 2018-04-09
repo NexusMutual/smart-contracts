@@ -135,8 +135,8 @@ contract NXMToken2{
 
         // Updates the number of Supply Tokens and Pool fund value of a currency.
         td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply() , amount)); 
-        uint ld=SafeMaths.add(SafeMaths.add(now,td1.LockTokenTimeAfterCoverExp()), uint(CoverPeriod)*1 days);
-        td1.pushInUser_cover_lockedCN(senderAddress,CoverId,ld,amount);
+        uint locked_tokens_days=SafeMaths.add(SafeMaths.add(now,td1.LockTokenTimeAfterCoverExp()), uint(CoverPeriod)*1 days);
+        td1.pushInUser_cover_lockedCN(senderAddress,CoverId,locked_tokens_days,amount);
         t1=NXMToken(tokenAddress);
         t1.callTransferEvent(0,senderAddress,amount); 
     }
@@ -157,25 +157,25 @@ contract NXMToken2{
         // if(td1.getBalanceOf(_to)==0)
         //     td1.decMemberCounter();
         
-        uint rem = _value;
-        uint len=td1.getLockedCALength(_to);
+        uint yetToBurned = _value;
+        uint times_locked_token=td1.getLockedCALength(_to);
         uint vUpto;
         uint amount;
         // Unlock tokens before burning
-        for(uint i=0 ; i < len ;i++ )
+        for(uint i=0 ; i < times_locked_token ;i++ )
         {
             (vUpto,amount) = td1.getLockedCAByindex(_to , i);
             if(now<vUpto)
             {
-                if(rem > amount)
+                if(yetToBurned > amount)
                 {
-                    rem = SafeMaths.sub(rem,amount);
+                    yetToBurned = SafeMaths.sub(yetToBurned,amount);
                     td1.changeLockedCAByIndex(_to,i,0);
                 }
                 else
                 {
-                    td1.changeLockedCAByIndex(_to,i,SafeMaths.sub(amount,rem));
-                    rem=0;
+                    td1.changeLockedCAByIndex(_to,i,SafeMaths.sub(amount,yetToBurned));
+                    yetToBurned=0;
                     break;
                 }
             }
@@ -222,7 +222,7 @@ contract NXMToken2{
         noOfTokens = SafeMaths.mul(noOfTokens , 10000000000);
         if(td1.getBalanceCAWithAddress(_to) < noOfTokens)throw;
         
-        uint rem = noOfTokens;
+        uint yet_to_extend = noOfTokens;
         uint len = td1.getLockedCALength(_to);
         uint vUpto;
         uint amount;
@@ -231,18 +231,18 @@ contract NXMToken2{
             (vUpto , amount) = td1.getLockedCAByindex(_to , i);
             if(amount>0 && vUpto > now)
             {
-                if(rem > amount)
+                if(yet_to_extend > amount)
                 {
-                    rem = SafeMaths.sub(rem,amount);
+                    yet_to_extend = SafeMaths.sub(yet_to_extend,amount);
                     td1.lockCA(_to,SafeMaths.add(vUpto , _timestamp),amount);
                     td1.changeLockedCAByIndex(_to,i,0);
                 
                 }
                 else
                 {
-                    td1.lockCA(_to,SafeMaths.add(vUpto , _timestamp),rem);
-                    td1.changeLockedCAByIndex(_to,i,SafeMaths.sub(amount,rem));
-                    rem=0;
+                    td1.lockCA(_to,SafeMaths.add(vUpto , _timestamp),yet_to_extend);
+                    td1.changeLockedCAByIndex(_to,i,SafeMaths.sub(amount,yet_to_extend));
+                    yet_to_extend=0;
                 
                     break;
                 }
@@ -265,22 +265,22 @@ contract NXMToken2{
         //Undeposit all tokens locked against the cover
         undepositCN(coverid,1);
         uint validity;
-        uint amount1;
-        (validity,amount1) = td1.getUser_cover_lockedCN(_to,coverid);
+        uint locked_tokens;
+        (validity,locked_tokens) = td1.getUser_cover_lockedCN(_to,coverid);
         uint len = td1.getLockedCNLength(_to);
         uint vUpto;
         uint amount;
         for(uint i=0;i<len ;i++)
         {
             (vUpto,amount) = td1.getLockedCNByindex(_to,i);
-            if(vUpto == validity && amount == amount1 )
+            if(vUpto == validity && amount == locked_tokens )
             {
                 td1.updateLockedCN(_to,i,vUpto,SafeMaths.sub(amount,depositedTokens));
                 break;
             }
         }
         t1=NXMToken(tokenAddress);
-        td1.updateUser_cover_lockedCN(_to,coverid,validity,SafeMaths.sub(amount1,depositedTokens));
+        td1.updateUser_cover_lockedCN(_to,coverid,validity,SafeMaths.sub(locked_tokens,depositedTokens));
         t1.callBurnEvent(_to,"Burn", coverid,depositedTokens);
         // td1.changeCurrencyTokens(curr,SafeMaths.sub(td1.getCurrencyTokens(curr) , depositedTokens));
         // Update NXM token balance against member address and remove member in case overall balance=0
@@ -324,8 +324,8 @@ contract NXMToken2{
     /// @dev Unlocks tokens deposited against a cover.Changes the validity timestamp of deposit tokens.
     /// @dev In order to submit a claim,20% tokens are deposited by the owner. In case a claim is escalated, another 20% tokens are deposited.
     /// @param coverid Cover Id.
-    /// @param all 0 in case we want only 1 undeposit against a cover,1 in order to undeposit all deposits against a cover
-    function undepositCN(uint coverid, uint8 all) onlyInternal
+    /// @param allDeposit 0 in case we want only 1 undeposit against a cover,1 in order to undeposit all deposits against a cover
+    function undepositCN(uint coverid, uint8 allDeposit) onlyInternal
     {   
         td1=NXMTokenData(tokenDataAddress);
         q1=quotation2(quotation2Address);
@@ -340,7 +340,7 @@ contract NXMToken2{
             if(vUpto>=now)
             {
                 td1.updateUser_cover_depositCNByIndex(_to,coverid,i,now,amount);
-                if(all==0)
+                if(allDeposit==0)
                     break;
             }
         }

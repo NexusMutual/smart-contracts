@@ -157,8 +157,8 @@ contract pool is usingOraclize{
     function closeClaimsOraclise(uint id , uint64 time) onlyInternal
     {
         
-        bytes32 myid1 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",3000000);
-         saveApiDetails(myid1,"CLA",id);
+        bytes32 myid = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",3000000);
+         saveApiDetails(myid,"CLA",id);
             
     }
     /// @dev Calls Oraclize Query to close a given Proposal after a given period of time.
@@ -167,8 +167,8 @@ contract pool is usingOraclize{
     function closeProposalOraclise(uint id , uint64 time) onlyInternal
     {
        
-        bytes32 myid2 = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",4000000);
-        saveApiDetails(myid2,"PRO",id);
+        bytes32 myid = oraclize_query(time, "URL","http://a1.nexusmutual.io/api/claims/closeClaim",4000000);
+        saveApiDetails(myid,"PRO",id);
        
     }
 
@@ -177,42 +177,42 @@ contract pool is usingOraclize{
     /// @param time Time (in milliseconds) after which the cover should be expired
     function closeCoverOraclise(uint id , uint64 time) onlyInternal
     {
-        bytes32 myid4 = oraclize_query(time, "URL",strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/",uint2str(id)),1000000);
-        saveApiDetails(myid4,"COV",id);
+        bytes32 myid = oraclize_query(time, "URL",strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/",uint2str(id)),1000000);
+        saveApiDetails(myid,"COV",id);
       
     }
     /// @dev Calls the Oraclize Query to update the version of the contracts.    
     function versionOraclise(uint version) onlyInternal
     {
-        bytes32 myid5 = oraclize_query("URL","http://a1.nexusmutual.io/api/mcr/setlatest/T");
-        saveApiDetails(myid5,"VER",version);
+        bytes32 myid = oraclize_query("URL","http://a1.nexusmutual.io/api/mcr/setlatest/T");
+        saveApiDetails(myid,"VER",version);
     }
     /// @dev Calls the Oraclize Query to initiate MCR calculation.
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function MCROraclise(uint64 time) onlyInternal
     {
-        bytes32 myid4 = oraclize_query(time, "URL","http://a3.nexusmutual.io");
-        saveApiDetails(myid4,"MCR",0);
+        bytes32 myid = oraclize_query(time, "URL","http://a3.nexusmutual.io");
+        saveApiDetails(myid,"MCR",0);
     }
     /// @dev Calls the Oraclize Query incase MCR calculation fails.
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function MCROracliseFail(uint id,uint64 time) onlyInternal
     {
-        bytes32 myid4 = oraclize_query(time, "URL","",1000000);
-        saveApiDetails(myid4,"MCRF",id);
+        bytes32 myid = oraclize_query(time, "URL","",1000000);
+        saveApiDetails(myid,"MCRF",id);
     }
     
     /// @dev Oraclize call to Subtract CSA for a given quote id.
     function subtractQuotationOracalise(uint id) onlyInternal
     {
-        bytes32 myid6 = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/claims/subtractQuoteSA_hash/",uint2str(id)),50000);
-        saveApiDetails(myid6,"SUB",id);     
+        bytes32 myid = oraclize_query("URL",strConcat("http://a1.nexusmutual.io/api/claims/subtractQuoteSA_hash/",uint2str(id)),50000);
+        saveApiDetails(myid,"SUB",id);     
     }
     /// @dev Oraclize call to update investment asset rates.
     function saveIADetailsOracalise(uint64 time) onlyInternal
     {
-         bytes32 myid6 = oraclize_query(time, "URL","http://a3.nexusmutual.io");
-         saveApiDetails(myid6,"0X",0);     
+         bytes32 myid = oraclize_query(time, "URL","http://a3.nexusmutual.io");
+         saveApiDetails(myid,"0X",0);     
     }
     ///@dev Oraclize call to close 0x order for a given currency.
     function close0xOrders(bytes4 curr,uint id,uint time) onlyInternal

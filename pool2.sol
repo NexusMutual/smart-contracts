@@ -254,28 +254,28 @@ contract pool2
         p1=pool(poolAddress);
         pd1=poolData1(poolDataAddress);
         address _to=q2.getMemberAddress(coverid);
-        uint sumAssured1 = q2.getSumAssured(coverid);
+        uint sumAssured = q2.getSumAssured(coverid);
         bytes4 curr = qd1.getCurrencyOfCover(coverid);
         uint balance;
         // uint quoteid=q2.getQuoteId(coverid);
         //Payout in Ethers in case currency of quotation is ETH
         if(curr=="ETH")
         {
-           uint sumAssured=SafeMaths.mul(sumAssured1,1000000000000000000);
+           uint sumAssuredX1e18=SafeMaths.mul(sumAssured,1000000000000000000);
             balance = p1.getEtherPoolBalance();
             //Check if pool has enough ETH balance
-            if(balance >= sumAssured)
+            if(balance >= sumAssuredX1e18)
             {
-                succ = p1.transferEther(sumAssured ,_to);   
+                succ = p1.transferEther(sumAssuredX1e18 ,_to);   
                 if(succ==true)
                 {
                     // t1.removeFromPoolFund(curr,sumAssured);
-                    q2.removeSAFromCSA(coverid,sumAssured1);
+                    q2.removeSAFromCSA(coverid,sumAssured);
                     p1.subtractQuotationOracalise(coverid);
                     // date:10/11/2017/
-                    pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
+                    pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured)));
                     c1.checkLiquidity(curr);
-                    callPayoutEvent(_to,"Payout",coverid,sumAssured);
+                    callPayoutEvent(_to,"Payout",coverid,sumAssuredX1e18);
                 }
                 else
                 {
@@ -292,19 +292,19 @@ contract pool2
         else
         {
             f1=fiatFaucet(fiatFaucetAddress);
-            sumAssured=SafeMaths.mul(sumAssured1,1000000000000000000);
+            sumAssuredX1e18=SafeMaths.mul(sumAssured,1000000000000000000);
             balance = f1.getBalance(poolAddress , curr);
             //Check if pool has enough fiat crypto balance
-            if(balance >= sumAssured)
+            if(balance >= sumAssuredX1e18)
             {
-                f1.payoutTransferFromPool(_to , curr , sumAssured);
+                f1.payoutTransferFromPool(_to , curr , sumAssuredX1e18);
                 // t1.removeFromPoolFund(curr,sumAssured);
                 p1.subtractQuotationOracalise(coverid);
-                q2.removeSAFromCSA(coverid,sumAssured);
+                q2.removeSAFromCSA(coverid,sumAssuredX1e18);
                 // date:10/11/2017/
-                pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
+                pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured)));
                 c1.checkLiquidity(curr);
-                callPayoutEvent(_to,"Payout",coverid,sumAssured);
+                callPayoutEvent(_to,"Payout",coverid,sumAssuredX1e18);
                 succ=true;
             }
             else
@@ -314,7 +314,7 @@ contract pool2
             }
         }
         if(qd1.getProductNameOfCover(coverid)=="SCC")
-            tc2.burnStakerLockedToken(coverid,curr,sumAssured1);
+            tc2.burnStakerLockedToken(coverid,curr,sumAssured);
     }
     /// @dev Gets the investment asset rank.
    function getIARank(bytes16 curr,uint64 rateX100)  constant returns(int RHS) //internal function

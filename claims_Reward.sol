@@ -396,7 +396,7 @@ contract claims_Reward
         uint  deny=cd1.getClaimVote(claimid,-1);
         for(uint i=0;i<c1.getClaimVoteLength(claimid,1);i++)
         { 
-            if(cd1.getvoteVerdict(claimid,i,1)==1 )
+            if(cd1.getVoteVerdict(claimid,i,1)==1 )
             { 
                 if(cd1.getFinalVerdict(claimid)==1)
                 {
@@ -414,7 +414,7 @@ contract claims_Reward
                     tc2.extendCAWithAddress(c1.getvoteVoter(claimid,i,1),SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),60),60),token);
                 }
             }
-            else if(cd1.getvoteVerdict(claimid,i,1)==-1)
+            else if(cd1.getVoteVerdict(claimid,i,1)==-1)
             {
                 if(cd1.getFinalVerdict(claimid)==-1)
                 {
@@ -456,7 +456,7 @@ contract claims_Reward
         {
             address voter=c1.getvoteVoter(claimid,i,0);
             uint token=c1.getvoteToken(claimid,i,0);
-            if(cd1.getvoteVerdict(claimid,i,0)==1 )
+            if(cd1.getVoteVerdict(claimid,i,0)==1 )
             { 
                 if(cd1.getFinalVerdict(claimid)==1)
                 {
@@ -465,7 +465,7 @@ contract claims_Reward
                     cd1.updateRewardMV(claimid,i,token_re);
                 }
             }
-            else if(cd1.getvoteVerdict(claimid,i,0)==-1)
+            else if(cd1.getVoteVerdict(claimid,i,0)==-1)
             {
                 if(cd1.getFinalVerdict(claimid)==-1)
                 {
@@ -491,7 +491,7 @@ contract claims_Reward
             uint pendingTime;
             uint ClaimID; 
             (ClaimID,pendingTime,)=cd1.getPendingClaimDetailsByIndex(i);
-            uint pTime=SafeMaths.add(SafeMaths.sub(now,cd1.maxtime()),pendingTime);
+            uint pTime=SafeMaths.add(SafeMaths.sub(now,cd1.max_voting_time()),pendingTime);
             cd1.setClaimdate_upd(ClaimID,pTime);
             cd1.setPendingClaimVoteStatus(i,true);
             

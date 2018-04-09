@@ -155,8 +155,8 @@ contract claims{
         c1=claimsData(claimsDataAddress);
         c1.setEscalationTime(escaltime);
         c1.setPayoutRetryTime(payouttime);
-        c1.setMaxTime(_maxtime);
-        c1.setMinTime(_mintime);
+        c1.setMax_voting_time(_maxtime);
+        c1.setMin_voting_time(_mintime);
     }  
    
     /// @dev Adds status names for Claims.
@@ -176,7 +176,7 @@ contract claims{
     function getvoteToken(uint claimid,uint index,uint8 ca) constant returns (uint tok)
     {
         c1=claimsData(claimsDataAddress);
-        tok = c1.getvoteToken(claimid,index,ca);
+        tok = c1.getVoteToken(claimid,index,ca);
     }
     /// @dev Gets the Voter's address of a vote using claim id and index.
     /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
@@ -184,7 +184,7 @@ contract claims{
     function getvoteVoter(uint claimid,uint index,uint8 ca) constant returns (address voter)
     {
         c1=claimsData(claimsDataAddress);
-        voter = c1.getvoteVoter(claimid,index,ca);
+        voter = c1.getVoteVoter(claimid,index,ca);
     }
     /// @dev Gets claim details of claim id=pending claim start + given index
     function getClaimFromNewStart(uint index)constant returns(string status , uint coverid , uint claimid , int8 voteCA , int8 voteMV , uint8 statusnumber)
@@ -253,7 +253,7 @@ contract claims{
     {
         g1=governance(governanceAddress);
         c1=claimsData(claimsDataAddress);
-        voter = c1.getvoter_vote(voteid);
+        voter = c1.getVoter_Vote(voteid);
         int claimVerdict;
         (tokens,claimId,verdict,date_submit,tokenRec,claimVerdict,) = c1.getVoteDetails(voteid);
         burned = g1.checkIfTokensAlreadyBurned(claimId,voter);
@@ -339,9 +339,9 @@ contract claims{
             close=-1;
         else if(status==1 && SafeMaths.add(date_upd , c1.escalationTime()) <= now)
             close=1;
-        else if(SafeMaths.add(date_upd,c1.maxtime())<=now) 
+        else if(SafeMaths.add(date_upd,c1.max_voting_time())<=now) 
             close=1;
-        else if(SafeMaths.add(date_upd, c1.mintime())>=now) 
+        else if(SafeMaths.add(date_upd, c1.min_voting_time())>=now) 
             close=0;
         else if(status==0 || ( status >= 2 && status <= 6 ) )
         { 
@@ -368,7 +368,7 @@ contract claims{
         origstat=c1.getClaimStatus(claimid);
         if(stat==16 && origstat==16)
         {
-            c1.updatestate16Count(claimid,1);
+            c1.updateState16Count(claimid,1);
         }
         c1.setClaimStatus(claimid,stat);
         if(state16Count >= 60 && stat==16)
@@ -379,7 +379,7 @@ contract claims{
         p1=pool(poolAddress);
         if(stat >=3 && stat<=6)
         {
-            p1.closeClaimsOraclise(claimid,c1.maxtime());
+            p1.closeClaimsOraclise(claimid,c1.max_voting_time());
         }
         if(stat==16 &&  (SafeMaths.add(date_upd , c1.payoutRetryTime()) <= now) && (state16Count < 60))
         {
@@ -451,7 +451,7 @@ contract claims{
         pd1.changeCurrencyAssetVarMin(curr,SafeMaths.add64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
         checkLiquidity(curr);
         p1=pool(poolAddress);
-        p1.closeClaimsOraclise(len,c1.maxtime());
+        p1.closeClaimsOraclise(len,c1.max_voting_time());
     }
     ///@dev Submits the claims queued once the emergency pause is switched off.
     function submitClaimAfterEPOff () onlyInternal {
@@ -498,14 +498,14 @@ contract claims{
         c1=claimsData(claimsDataAddress);
         if(checkVoteClosing(claimid) == 1) throw;
         if(c1.getClaimStatus(claimid) != 0) throw;
-        if(c1.getvote_ca(claimid,msg.sender) != 0) throw;
+        if(c1.getUser_Claim_VoteCA(msg.sender,claimid) != 0) throw;
         tc1=NXMToken(tokenAddress);
         tc1.bookCATokens(msg.sender , tokens);
         c1.addVote(msg.sender,tokens,claimid,verdict,now,0);
         uint vote_length=c1.getAllVoteLength();
-        c1.addclaim_vote_ca(claimid,vote_length);
-        c1.setvote_ca(msg.sender,claimid,vote_length);
-        c1.setclaim_tokensCA(claimid,verdict,tokens);
+        c1.addClaim_Vote_ca(claimid,vote_length);
+        c1.setUser_Claim_VoteCA(msg.sender,claimid,vote_length);
+        c1.setClaim_tokensCA(claimid,verdict,tokens);
         int close = checkVoteClosing(claimid);
         if(close==1)
         {
@@ -535,7 +535,7 @@ contract claims{
         setClaimStatus(claimId,2);
         q1.updateCoverStatusAndCount(coverId,4);
         p1=pool(poolAddress);
-        p1.closeClaimsOraclise(claimId,c1.maxtime());
+        p1.closeClaimsOraclise(claimId,c1.max_voting_time());
     } 
 
     /// @dev Submits a member vote for assessing a claim. Tokens other than those locked under Claims Assessment can be used to cast a vote for a given claim id.
@@ -548,12 +548,12 @@ contract claims{
         if(checkVoteClosing(claimid) == 1) throw;
         uint stat=c1.getClaimStatus(claimid);
         if(stat <2 || stat >6) throw;
-        if(c1.getvote_member(claimid,msg.sender) != 0) throw;
+        if(c1.getUser_Claim_VoteMember(msg.sender,claimid) != 0) throw;
         uint vote_length=c1.getAllVoteLength();
         c1.addVote(msg.sender,tokens,claimid,verdict,now,0);
-        c1.addclaim_vote_member(claimid,vote_length);
-        c1.setvote_member(msg.sender,claimid,vote_length);
-        c1.setclaim_tokensMV(claimid,verdict,tokens);
+        c1.addClaim_vote_member(claimid,vote_length);
+        c1.setUser_Claim_VoteMember(msg.sender,claimid,vote_length);
+        c1.setClaim_tokensMV(claimid,verdict,tokens);
         int close = checkVoteClosing(claimid);
         if(close==1)
         {
@@ -571,7 +571,7 @@ contract claims{
         {
             if(checkVoteClosing(i)==0){
                 uint date_upd = c1.getClaimDateUpd(i);
-                c1.setPendingClaimDetails(i,SafeMaths.sub((SafeMaths.add(date_upd,c1.maxtime())),now),false);
+                c1.setPendingClaimDetails(i,SafeMaths.sub((SafeMaths.add(date_upd,c1.max_voting_time())),now),false);
             }
         }
     }

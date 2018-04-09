@@ -198,7 +198,7 @@ contract masters2 {
         for(uint i=cd1.pendingClaim_start();i<cd1.actualClaimLength();i++)
         {
             uint stat=cd1.getClaimStatus(i);
-            uint date_upd=cd1.getClaimUpdate(i);
+            uint date_upd=cd1.getClaimDateUpd(i);
             if(stat==1 && (SafeMaths.add(date_upd , escaltime) <= uint64(now)))
             {
                 cr1.changeClaimStatus(i);

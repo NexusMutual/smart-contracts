@@ -231,13 +231,13 @@ contract claims{
     /// @return coverid Coverid associated with the claim id
      function getClaimbyIndex(uint ind) constant returns( uint claimId,string status,uint dateAdd ,int8 finalVerdict , address claimOwner ,uint coverid) 
     {
-        q1=quotation2(quotation2Address);
+        qd1=quotationData(quotationDataAddress);
         c1=claimsData(claimsDataAddress);
        
         uint stat;
         claimId=ind;
         (coverid,dateAdd,finalVerdict,stat,,)=c1.getClaim(ind);
-        claimOwner = q1.getMemberAddress(coverid);
+        claimOwner = qd1.getCoverMemberAddress(coverid);
         status = claimStatus_desc[stat];          
     }
     /// @dev Gets details of a given vote id
@@ -304,7 +304,7 @@ contract claims{
     {
         close=0;
         tc1=NXMToken(tokenAddress);
-        q1=quotation2(quotation2Address);
+        qd1=quotationData(quotationDataAddress);
         c1=claimsData(claimsDataAddress);
         uint coverid = c1.getClaimCoverId(claimid);
         bytes4 curr = qd1.getCurrencyOfCover(coverid);
@@ -315,7 +315,7 @@ contract claims{
         (acceptMV,denyMV)=c1.getClaims_tokenMV(claimid);
         uint CATokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA,denyCA)),tokenx1e18),1000000000000000000);
         uint MVTokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV,denyMV)),tokenx1e18),1000000000000000000);
-        uint sumassured=SafeMaths.mul(q1.getSumAssured(coverid),1000000000000000000);
+        uint sumassured=SafeMaths.mul(qd1.getCoverSumAssured(coverid),1000000000000000000);
         if(status==0 && CATokens>=SafeMaths.mul(10,sumassured))
             close=1;
         if(status>=2 && status<=6 && MVTokens>=SafeMaths.mul(10,sumassured))
@@ -418,7 +418,7 @@ contract claims{
     {
         q1=quotation2(quotation2Address);
         qd1=quotationData(quotationDataAddress);
-        address qadd=q1.getMemberAddress(coverid);
+        address qadd=qd1.getCoverMemberAddress(coverid);
         if(qadd != msg.sender) throw;
         ms1=master(masterAddress);
         if(ms1.isPause()==0)
@@ -431,7 +431,7 @@ contract claims{
     }
     ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
     function addClaim (uint16 coverid, uint time,address add) internal {
-        q1=quotation2(quotation2Address);
+        // q1=quotation2(quotation2Address);
         qd1=quotationData(quotationDataAddress);
         tc2=NXMToken2(token2Address);
         c1=claimsData(claimsDataAddress);
@@ -440,13 +440,15 @@ contract claims{
         uint tokens;
         (,tokens)=td1.getUser_cover_lockedCN(add,coverid);
         tokens =SafeMaths.div(SafeMaths.mul(tokens,20),100);
-        uint timeStamp = SafeMaths.add(nowtime , c1.claimDepositTime());
+        uint timeStamp = SafeMaths.add(nowtime, c1.claimDepositTime());
         tc2.depositCN(coverid,tokens,timeStamp,add);
         uint len = c1.actualClaimLength(); 
         c1.addClaim(len,coverid,add,time,nowtime);
-        q1.updateCoverStatusAndCount(coverid,4);
+        qd1.changeCoverStatus(coverid,4);
+        c1.addCover_Claim(coverid,c1.getCoverClaimCount(coverid));
+        // q1.updateCoverStatusAndCount(coverid,4);
         bytes4 curr=qd1.getCurrencyOfCover(coverid);
-        uint sumAssured=q1.getSumAssured(coverid);
+        uint sumAssured=qd1.getCoverSumAssured(coverid);
         pd1 = poolData1(poolDataAddress);
         pd1.changeCurrencyAssetVarMin(curr,SafeMaths.add64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
         checkLiquidity(curr);
@@ -456,7 +458,7 @@ contract claims{
     ///@dev Submits the claims queued once the emergency pause is switched off.
     function submitClaimAfterEPOff () onlyInternal {
         c1=claimsData(claimsDataAddress);
-        q1=quotation2(quotation2Address);
+        qd1=quotationData(quotationDataAddress);
         uint lengthOfClaimSubmittedAtEP = c1.getLengthOfClaimSubmittedAtEP();
         uint FirstClaimIndexToSubmitAfterEP= c1.getFirstClaimIndexToSubmitAfterEP();
         uint16 coverid;
@@ -465,7 +467,7 @@ contract claims{
         for(uint i=FirstClaimIndexToSubmitAfterEP; i<lengthOfClaimSubmittedAtEP;i++){
             (coverid,date_upd,submit) = c1.getClaimOfEmergencyPauseByIndex(i);
             if(submit==false){
-                address qadd=q1.getMemberAddress(coverid);
+                address qadd=qd1.getCoverMemberAddress(coverid);
                 addClaim(coverid,date_upd,qadd);
                 c1.setClaimSubmittedAtEPTrue(i,true);
             }
@@ -520,9 +522,10 @@ contract claims{
     function escalateClaim(uint coverId , uint claimId) isMemberAndcheckPause
     {  
         tc2 = NXMToken2(token2Address);
-        q1=quotation2(quotation2Address);
+        qd1=quotationData(quotationDataAddress);
+        c1=claimsData(claimsDataAddress);
         tc1=NXMToken(tokenAddress);
-        address cadd=q1.getMemberAddress(coverId);
+        address cadd=qd1.getCoverMemberAddress(coverId);
         if(cadd != msg.sender) throw;
         td1 = NXMTokenData(tokenDataAddress);
         uint tokens;
@@ -533,7 +536,9 @@ contract claims{
         uint timeStamp = SafeMaths.add(now , d);
         tc2.depositCN(coverId,tokens,timeStamp,msg.sender);
         setClaimStatus(claimId,2);
-        q1.updateCoverStatusAndCount(coverId,4);
+        qd1.changeCoverStatus(coverId,4);
+        c1.addCover_Claim(coverId,c1.getCoverClaimCount(coverId));
+        // q1.updateCoverStatusAndCount(coverId,4);
         p1=pool(poolAddress);
         p1.closeClaimsOraclise(claimId,c1.max_voting_time());
     } 

@@ -67,6 +67,7 @@ contract NXMTokenData {
     mapping (address => uint[]) scAddress_Stake;
     stake[] stakeDetails;
     mapping (address => uint[]) staker_Index;
+    mapping(address => uint) public scaddress_lastCommIndex;
     mapping (address => mapping(address => mapping(uint => stakeCommission[]))) staker_SC_index_Commission;
     // Arjun - Data End
     allocatedTokens[] allocatedFounderTokens;
@@ -604,6 +605,10 @@ contract NXMTokenData {
     }
     function setWalletAddress(address _add) onlyInternal{
         walletAddress=_add;
+    }
+    function setSCAddress_lastCommIndex(address _scAddress, uint _index) onlyInternal
+    {
+        scaddress_lastCommIndex[_scAddress]=_index;
     }
     // Arjun - Data End
 }

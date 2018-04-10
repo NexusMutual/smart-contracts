@@ -131,14 +131,15 @@ contract NXMToken2{
         m1=MCR(mcrAddress);
 
         amount = SafeMaths.div(SafeMaths.mul(premiumNxm,5),100);
-        td1.changeBalanceOf(senderAddress,SafeMaths.add(td1.getBalanceOf(senderAddress),amount));  
+        rewardToken(senderAddress,amount);
+        //td1.changeBalanceOf(senderAddress,SafeMaths.add(td1.getBalanceOf(senderAddress),amount));  
 
         // Updates the number of Supply Tokens and Pool fund value of a currency.
-        td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply() , amount)); 
-        uint locked_tokens_days=SafeMaths.add(SafeMaths.add(now,td1.LockTokenTimeAfterCoverExp()), uint(CoverPeriod)*1 days);
-        td1.pushInUser_cover_lockedCN(senderAddress,CoverId,locked_tokens_days,amount);
-        t1=NXMToken(tokenAddress);
-        t1.callTransferEvent(0,senderAddress,amount); 
+        //td1.changeTotalSupply(SafeMaths.add(td1.getTotalSupply() , amount)); 
+        uint ld=SafeMaths.add(SafeMaths.add(now,td1.LockTokenTimeAfterCoverExp()), uint(CoverPeriod)*1 days);
+        td1.pushInUser_cover_lockedCN(senderAddress,CoverId,ld,amount);
+        //t1=NXMToken(tokenAddress);
+        //t1.callTransferEvent(0,senderAddress,amount); 
     }
 
     /// @dev Burns tokens used for fraudulent voting against a claim
@@ -329,7 +330,8 @@ contract NXMToken2{
     {   
         td1=NXMTokenData(tokenDataAddress);
         q1=quotation2(quotation2Address);
-        address _to=q1.getMemberAddress(coverid);
+        qd1=quotationData(quotationDataAddress);
+        address _to=qd1.getCoverMemberAddress(coverid);
         if (td1.getDepositCN(coverid , _to) < 0) throw;           // Check if the cover has tokens
         uint len = td1.getUser_cover_depositCNLength(_to,coverid);
         uint vUpto;

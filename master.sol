@@ -270,6 +270,7 @@ contract master
       t1.changeQuoteAddress(quotation2Address);
       t1.changeMCRAddress(MCRAddress);
       t1.changeTokenDataAddress(tokenDataAddress);
+      t1.changeQuotationDataAddress(quoteDataAddress);
 
 
       t2=NXMToken2(NXMToken2Address);        

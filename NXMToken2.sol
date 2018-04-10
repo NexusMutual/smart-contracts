@@ -76,7 +76,6 @@ contract NXMToken2{
     }
     function changeTokenAddress(address _add) onlyInternal
     {
-
         tokenAddress = _add;
         t1=NXMToken(tokenAddress);
     } 
@@ -152,8 +151,6 @@ contract NXMToken2{
         t1=NXMToken(tokenAddress);
         if( td1.getBalanceCAWithAddress(_to) < _value)throw;
         td1.pushInBurnCAToken(_to,claimid,now,_value);
-        //Change overall member token balance
-        td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , _value)); 
 
         // if(td1.getBalanceOf(_to)==0)
         //     td1.decMemberCounter();
@@ -181,13 +178,14 @@ contract NXMToken2{
                 }
             }
         }
-        // Change total supply of NXM Tokens
-        t1.callBurnEvent(_to,"BurnCA",claimid,_value);
-        // td1.changeCurrencyTokens("ETH",SafeMaths.sub(td1.getCurrencyTokens("ETH"),_value));
-        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , _value));
-        
-        t1.callTransferEvent(_to, 0, _value); // notify of the event
-       
+        //Change overall member token balance
+        // td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , _value)); 
+        // // Change total supply of NXM Tokens
+        // t1.callBurnEvent(_to,"BurnCA",claimid,_value);
+        // // td1.changeCurrencyTokens("ETH",SafeMaths.sub(td1.getCurrencyTokens("ETH"),_value));
+        // td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , _value));
+        // t1.callTransferEvent(_to, 0, _value); // notify of the event
+        burnLockedToken_extended(_to, claimid,_value,"BurnCA");
     }
     /// @dev Allocates tokens against a given address
     /// @param _to User's address.
@@ -220,7 +218,7 @@ contract NXMToken2{
     {
         td1=NXMTokenData(tokenDataAddress);
         t1=NXMToken(tokenAddress);
-        noOfTokens = SafeMaths.mul(noOfTokens , 10000000000);
+        noOfTokens = SafeMaths.mul(noOfTokens, 10000000000);
         if(td1.getBalanceCAWithAddress(_to) < noOfTokens)throw;
         
         uint yet_to_extend = noOfTokens;
@@ -237,14 +235,12 @@ contract NXMToken2{
                     yet_to_extend = SafeMaths.sub(yet_to_extend,amount);
                     td1.lockCA(_to,SafeMaths.add(vUpto , _timestamp),amount);
                     td1.changeLockedCAByIndex(_to,i,0);
-                
                 }
                 else
                 {
                     td1.lockCA(_to,SafeMaths.add(vUpto , _timestamp),yet_to_extend);
                     td1.changeLockedCAByIndex(_to,i,SafeMaths.sub(amount,yet_to_extend));
                     yet_to_extend=0;
-                
                     break;
                 }
             }
@@ -282,16 +278,16 @@ contract NXMToken2{
         }
         t1=NXMToken(tokenAddress);
         td1.updateUser_cover_lockedCN(_to,coverid,validity,SafeMaths.sub(locked_tokens,depositedTokens));
-        t1.callBurnEvent(_to,"Burn", coverid,depositedTokens);
-        // td1.changeCurrencyTokens(curr,SafeMaths.sub(td1.getCurrencyTokens(curr) , depositedTokens));
-        // Update NXM token balance against member address and remove member in case overall balance=0
-        td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , depositedTokens));
-        // if(td1.getBalanceOf(_to)==0)
-        //     td1.decMemberCounter();
-        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , depositedTokens));
+        // t1.callBurnEvent(_to,"Burn", coverid,depositedTokens);
+        // // td1.changeCurrencyTokens(curr,SafeMaths.sub(td1.getCurrencyTokens(curr) , depositedTokens));
+        // // Update NXM token balance against member address and remove member in case overall balance=0
+        // td1.changeBalanceOf(_to,SafeMaths.sub(td1.getBalanceOf(_to) , depositedTokens));
+        // // if(td1.getBalanceOf(_to)==0)
+        // //     td1.decMemberCounter();
+        // td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , depositedTokens));
         
-        t1.callTransferEvent(_to, 0, depositedTokens); // notify of the event
-      
+        // t1.callTransferEvent(_to, 0, depositedTokens); // notify of the event
+        burnLockedToken_extended(_to, coverid,depositedTokens,"Burn");
     }
     /// @dev Deposits locked tokens against a given cover id, called whenever a claim is submitted against a coverid
     /// @param coverid Cover Id.
@@ -383,11 +379,13 @@ contract NXMToken2{
                 uint stakerLockedNXM = t1.getLockedNXMTokenOfStaker(_scAddress,scAddressIndex);
                 if(stakerLockedNXM > 0){
                     if(stakerLockedNXM>=burnNXMAmount){
-                        burnStakerLockedToken_extended(_of,coverid,burnNXMAmount,scAddressIndex);
+                        td1.updateBurnedAmount(scAddressIndex,burnNXMAmount);
+                        burnLockedToken_extended(_of,coverid,burnNXMAmount,"Burn");
                         break;
                     }
                     else{
-                        burnStakerLockedToken_extended(_of,coverid,stakerLockedNXM,scAddressIndex);
+                        td1.updateBurnedAmount(scAddressIndex,stakerLockedNXM);
+                        burnLockedToken_extended(_of,coverid,stakerLockedNXM,"Burn");
                         burnNXMAmount=SafeMaths.sub(burnNXMAmount,stakerLockedNXM);
                     }
                 }
@@ -397,17 +395,13 @@ contract NXMToken2{
         }
     }
 
-    function burnStakerLockedToken_extended(address _of,uint _coverid,uint _burnNXMAmount, uint _stakerIndex) internal{
+    function burnLockedToken_extended(address _of,uint _coverid,uint _burnNXMAmount,bytes16 str) internal{
         td1=NXMTokenData(tokenDataAddress);
         t1=NXMToken(tokenAddress);
-        t1.callBurnEvent(_of,"Burn", _coverid,_burnNXMAmount);
-        td1.updateBurnedAmount(_stakerIndex,_burnNXMAmount);
+        t1.callBurnEvent(_of,str, _coverid,_burnNXMAmount);
         // Update NXM token balance against member address and remove member in case overall balance=0
-        td1.changeBalanceOf(_of,SafeMaths.sub(td1.getBalanceOf(_of) , _burnNXMAmount));
-        // if(td1.getBalanceOf(_of)==0)
-        //     td1.decMemberCounter();
-        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply() , _burnNXMAmount));
-        
+        td1.changeBalanceOf(_of,SafeMaths.sub(td1.getBalanceOf(_of), _burnNXMAmount));
+        td1.changeTotalSupply(SafeMaths.sub(td1.getTotalSupply(), _burnNXMAmount));
         t1.callTransferEvent(_of, 0, _burnNXMAmount); // notify of the event
     }
 

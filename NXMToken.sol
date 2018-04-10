@@ -35,7 +35,7 @@ contract NXMToken {
     quotationData qd;
     MCR m1;
     NXMTokenData td;
-    address owner;
+    // address owner;
     NXMToken2 t2;
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
@@ -77,7 +77,7 @@ contract NXMToken {
     }
     function NXMToken() 
     {
-        owner = msg.sender;
+        // owner = msg.sender;
     }
 
     function changeMCRAddress(address _to) onlyInternal

@@ -566,13 +566,13 @@ contract NXMTokenData {
             commissionAmt=SafeMaths.add(commissionAmt,staker_SC_index_Commission[_of][_scAddress][_stakerIndx][i].commissionAmt);
         }
     }
-    function getTotalStakedAmtAgaintScAddress(address _scAddress) constant returns(uint _totalStakeAmt)
-    {
-        _totalStakeAmt=0;
-        for(uint i=0; i<scAddress_Stake[_scAddress].length;i++){
-            _totalStakeAmt=SafeMaths.add(_totalStakeAmt,stakeDetails[scAddress_Stake[_scAddress][i]].amount);
-        }
-    }
+    // function getTotalStakedAmtAgaintScAddress(address _scAddress) constant returns(uint _totalStakeAmt)
+    // {
+    //     _totalStakeAmt=0;
+    //     for(uint i=0; i<scAddress_Stake[_scAddress].length;i++){
+    //         _totalStakeAmt=SafeMaths.add(_totalStakeAmt,stakeDetails[scAddress_Stake[_scAddress][i]].amount);
+    //     }
+    // }
     function getTotalStakerAgainstScAddress(address _scAddress) constant returns(uint){
         return scAddress_Stake[_scAddress].length;
     }

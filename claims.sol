@@ -173,19 +173,19 @@ contract claims{
     /// @dev Gets the Number of tokens used in a specific vote, using claim id and index.
     /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
     /// @return tok Number of tokens.
-    function getvoteToken(uint claimid,uint index,uint8 ca) constant returns (uint tok)
-    {
-        c1=claimsData(claimsDataAddress);
-        tok = c1.getVoteToken(claimid,index,ca);
-    }
-    /// @dev Gets the Voter's address of a vote using claim id and index.
-    /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
-    /// @return voter Voter's address.
-    function getvoteVoter(uint claimid,uint index,uint8 ca) constant returns (address voter)
-    {
-        c1=claimsData(claimsDataAddress);
-        voter = c1.getVoteVoter(claimid,index,ca);
-    }
+    // function getvoteToken(uint claimid,uint index,uint8 ca) constant returns (uint tok)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     tok = c1.getVoteToken(claimid,index,ca);
+    // }
+    // /// @dev Gets the Voter's address of a vote using claim id and index.
+    // /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
+    // /// @return voter Voter's address.
+    // function getvoteVoter(uint claimid,uint index,uint8 ca) constant returns (address voter)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     voter = c1.getVoteVoter(claimid,index,ca);
+    // }
     /// @dev Gets claim details of claim id=pending claim start + given index
     function getClaimFromNewStart(uint index)constant returns(string status , uint coverid , uint claimid , int8 voteCA , int8 voteMV , uint8 statusnumber)
     {
@@ -204,15 +204,15 @@ contract claims{
         status = claimStatus_desc[statusno];
     }
    
-    /// @dev Gets the total number of votes cast against given claim id.
-    /// @param claimid Claim Id.
-    /// @param ca if 1 : returns the number of votes cast as Claim Assessors , else returns the number of votes cast as a member
-    /// @return len total number of votes cast against given claimid.
-    function getClaimVoteLength(uint claimid,uint8 ca) constant returns(uint len)
-    {
-        c1=claimsData(claimsDataAddress);
-        len = c1.getClaimVoteLength(claimid,ca);
-    }
+    // /// @dev Gets the total number of votes cast against given claim id.
+    // /// @param claimid Claim Id.
+    // /// @param ca if 1 : returns the number of votes cast as Claim Assessors , else returns the number of votes cast as a member
+    // /// @return len total number of votes cast against given claimid.
+    // function getClaimVoteLength(uint claimid,uint8 ca) constant returns(uint len)
+    // {
+    //     c1=claimsData(claimsDataAddress);
+    //     len = c1.getClaimVoteLength(claimid,ca);
+    // }
     /// @dev Sets the final vote result(either accept or decline)of a given claimid.
     /// @param claimid Claim Id.
     /// @param verdict 1 if claim is accepted,-1 if declined.
@@ -409,8 +409,6 @@ contract claims{
                 break;
         }
     }
-
-  
 
     /// @dev Submits a claim for a given cover note. Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverid Cover Id.

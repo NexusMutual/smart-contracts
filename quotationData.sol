@@ -49,7 +49,7 @@ contract quotationData{
     bytes16[] coverStatus;
     mapping(bytes4=>uint) currency_CSA;
     mapping (address=>uint[]) user_Cover;
-    mapping(uint=>Product_Details) ProductDetails;
+    mapping(uint32=>Product_Details) ProductDetails;
     mapping(address=>mapping(bytes4=>uint)) currency_CSA_ofSCAdd;
     cover[] allCovers;
     uint public pendingCoverStart;
@@ -119,22 +119,22 @@ contract quotationData{
         return coverStatus.length;
     }
     /// @dev Changes the existing Profit Margin value
-    function changePM(uint _prodId,uint16 _pm) onlyOwner
+    function changePM(uint32 _prodId,uint16 _pm) onlyOwner
     {
         ProductDetails[_prodId].PM = _pm;
     }
     /// @dev Changes the existing Short Term Load Period (STLP) value.
-    function changeSTLP(uint _prodId,uint16 _stlp) onlyOwner
+    function changeSTLP(uint32 _prodId,uint16 _stlp) onlyOwner
     {
         ProductDetails[_prodId].STLP = _stlp;
     }
     /// @dev Changes the existing Short Term Load (STL) value.
-    function changeSTL(uint _prodId,uint16 _stl) onlyOwner
+    function changeSTL(uint32 _prodId,uint16 _stl) onlyOwner
     {
         ProductDetails[_prodId].STL = _stl;
     }
     /// @dev Changes the existing Minimum cover period (in days)
-    function changeMinDays(uint _prodId,uint64 _days) onlyOwner
+    function changeMinDays(uint32 _prodId,uint64 _days) onlyOwner
     {
         ProductDetails[_prodId].minDays = _days;
     }
@@ -311,7 +311,7 @@ contract quotationData{
     /// @return  _PM Profit margin.
     /// @return  _STL short term Load.
     /// @return  _STLP short term load period.
-    function getPremiumDetails(uint _prodId) constant returns(bytes8 _productName, string _productHash, uint64 _minDays, uint16 _PM, uint16 _STL, uint16 _STLP)
+    function getPremiumDetails(uint32 _prodId) constant returns(bytes8 _productName, string _productHash, uint64 _minDays, uint16 _PM, uint16 _STL, uint16 _STLP)
     {
         _productName=ProductDetails[_prodId].productName;
         _productHash=ProductDetails[_prodId].productHash;
@@ -321,7 +321,7 @@ contract quotationData{
         _STLP=ProductDetails[_prodId].STLP;
     }
     
-    function getProductName(uint _prodId) constant returns(bytes8 _productName){
+    function getProductName(uint32 _prodId) constant returns(bytes8 _productName){
         return ProductDetails[_prodId].productName;
     }
 
@@ -370,7 +370,7 @@ contract quotationData{
         (productName,,scAddress,currencyCode,sumAssured,) = getCoverByIndex1(_cid);
     }
     
-    function setProductDetails(uint _prodId,bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
+    function setProductDetails(uint32 _prodId,bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
     {
         ProductDetails[_prodId]=(Product_Details(_productName,_productHash,_STLP,_STL,_PM,_minDays));
     }

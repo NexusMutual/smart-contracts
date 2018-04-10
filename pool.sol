@@ -235,15 +235,14 @@ contract pool is usingOraclize{
         p2.delegateCallBack(myid,res);     
     }
 
-    /// @dev Begins making cover.
-    /// @param coverCurrPrice fund amounts for each selected quotation.
+    /// @dev Begins making cover..
     /// @param smartCAdd Smart Contract Address
-    function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable 
+    function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable 
     {
         q2=quotation2(quotation2Address);
-        if(msg.value==coverCurrPrice)
+        if(msg.value==coverDetails[2])
         {
-            q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
+            q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
         }
         else
         {

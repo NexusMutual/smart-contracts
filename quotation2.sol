@@ -241,81 +241,87 @@ contract quotation2 {
     
     /// @dev Create cover of the quotation, change the status of the quotation ,update the total sum assured and lock the tokens of the cover of a quote.
     /// @param from Quote member Ethereum address
-    function make_Cover(uint8 prodId, address from, address scAddress, bytes4 coverCurr, uint16 coverPeriod, uint PriceNxm, uint16 coverAmount) internal 
+    function make_Cover(uint prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails) internal 
     {
-        ms1=master(masterAddress);
-        // require(ms1.isInternal(msg.sender) == 1 || msg.sender==from);
-        // for(uint i=0;i<coverId.length;i++)
-        // {
         qd1 = quotationData(quotationDataAddress);
         p1=pool(poolAddress);
         uint cid=qd1.getCoverLength();
-        qd1.addCover(coverPeriod,coverAmount,qd1.getProductName(prodId),cid,from,coverCurr,scAddress);
+        qd1.addCover(uint16(coverDetails[0]),uint16(coverDetails[1]),qd1.getProductName(prodId),cid,from,coverCurr,scAddress);
+        uint coverLength_new=qd1.getCoverLength();
+        if(SafeMaths.sub(coverLength_new,cid)>1){
+            for(uint i=cid; i<coverLength_new; i++){
+                if(qd1.getCoverMemberAddress(i)==from){ 
+                    cid=i;
+                    break;
+                }
+            }
+        }
         // if cover period of quote is less than 60 days.
-        if(coverPeriod<=60)
+        if(coverDetails[0]<=60)
         {
-            p1.closeCoverOraclise(cid,uint64(SafeMaths.mul(coverPeriod , 1 days)));
+            p1.closeCoverOraclise(cid,uint64(SafeMaths.mul(coverDetails[0] , 1 days)));
         }
         
         t2=NXMToken2(token2Address);
-        qd1.changeLockedTokens(cid,t2.lockCN(PriceNxm,coverPeriod,cid,from));
-        qd1.addInTotalSumAssured(coverCurr,coverAmount);
+        qd1.changeLockedTokens(cid,t2.lockCN(coverDetails[3],uint16(coverDetails[0]),cid,from));
+        qd1.addInTotalSumAssured(coverCurr,coverDetails[1]);
         if(qd1.getProductNameOfCover(prodId)=="SCC" && scAddress != 0x000){ 
-            qd1.addInTotalSumAssuredSC(scAddress,coverCurr,coverAmount);
+            qd1.addInTotalSumAssuredSC(scAddress,coverCurr,coverDetails[1]);
             t1=NXMToken(tokenAddress);
             if(t1.getTotalLockedNXMToken(scAddress)>0)
-                t1.updateStakerCommissions(scAddress,PriceNxm);
+                t1.updateStakerCommissions(scAddress,coverDetails[3]);
         }
+        qd1.callCoverEvent(from, scAddress, coverDetails[2], "xyz");
     }
 
     /// @dev Make Cover using NXM tokens.
     /// @param smartCAdd Smart Contract Address
-    function makeCoverUsingNXMTokens(uint8 prodId,bytes4 coverCurr, uint16 coverPeriod,address smartCAdd,uint coverCurrPrice,uint PriceNxm,uint16 coverAmount,uint expireTime,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
+    function makeCoverUsingNXMTokens(uint prodId, uint[] coverDetails, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
     {
         m1=MCR(mcrAddress);
         if(m1.checkForMinMCR() == 1) throw;
         t1=NXMToken(tokenAddress);
-        t1.burnTokenForFunding(PriceNxm,msg.sender);
-        verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
+        t1.burnTokenForFunding(coverDetails[3],msg.sender);
+        verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
     }
 
     /// @dev Make Cover(s).
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
-    function verifyCoverDetails(uint8 prodId, address from, address scAddress,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
-        require(expireTime > now);
-        require(verifySign(coverAmount,coverCurr,coverPeriod,scAddress,coverCurrPrice,PriceNxm,expireTime, _v, _r, _s));
-        make_Cover(prodId, from, scAddress, coverCurr, coverPeriod, PriceNxm, coverAmount);
+    function verifyCoverDetails(uint prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
+        require(coverDetails[4] > now);
+        require(verifySign(coverDetails, coverCurr, scAddress, _v, _r, _s));
+        make_Cover(prodId, from, scAddress, coverCurr, coverDetails);
     }
 
-    /// @dev Gets the Sum Assured amount of quotation when given the cover id.
-    /// @param _cid Cover Id.
-    /// @return result Sum Assured amount.
-    function getSumAssured(uint _cid) constant returns (uint result)
-    {
-        qd1 = quotationData(quotationDataAddress);
-        result=qd1.getCoverSumAssured(_cid);
-    }
+    // /// @dev Gets the Sum Assured amount of quotation when given the cover id.
+    // /// @param _cid Cover Id.
+    // /// @return result Sum Assured amount.
+    // function getSumAssured(uint _cid) constant returns (uint result)
+    // {
+    //     qd1 = quotationData(quotationDataAddress);
+    //     result=qd1.getCoverSumAssured(_cid);
+    // }
 
     /// @dev Gets the Address of Owner of a given Cover.
     /// @param _cid Cover Id.
     /// @return add Owner's address.
-    function getMemberAddress(uint _cid) onlyInternal constant returns (address add) 
-    {
-        qd1 = quotationData(quotationDataAddress);
-        add=qd1.getCoverMemberAddress(_cid);
-    }
+    // function getMemberAddress(uint _cid) onlyInternal constant returns (address add) 
+    // {
+    //     qd1 = quotationData(quotationDataAddress);
+    //     add=qd1.getCoverMemberAddress(_cid);
+    // }
 
-    /// @dev Updates the status and claim's count by 1 of an existing cover.
-    /// @param _cid Cover Id.
-    /// @param newstatus New status name.
-    function updateCoverStatusAndCount(uint _cid,uint16 newstatus) onlyInternal
-    {
-        qd1 = quotationData(quotationDataAddress);
-        qd1.changeCoverStatus(_cid,newstatus);
-        cd1=claimsData(claimDataAddress);
-        cd1.addCover_Claim(_cid,cd1.getCoverClaimCount(_cid)); //cc+1
-    }
+    // /// @dev Updates the status and claim's count by 1 of an existing cover.
+    // /// @param _cid Cover Id.
+    // /// @param newstatus New status name.
+    // function updateCoverStatusAndCount(uint _cid,uint16 newstatus) onlyInternal
+    // {
+    //     qd1 = quotationData(quotationDataAddress);
+    //     qd1.changeCoverStatus(_cid,newstatus);
+    //     cd1=claimsData(claimDataAddress);
+    //     cd1.addCover_Claim(_cid,cd1.getCoverClaimCount(_cid)); //cc+1
+    // }
 
     /// @dev Provides the Cover Details of a given Cover id.
     /// @param _cid Cover Id.
@@ -330,23 +336,23 @@ contract quotation2 {
         sa = qd1.getCoverSumAssured(_cid);
     }
 
-    /// @dev Get Product ID.
-    /// @param _cid Cover Id
-    function getCoverProductName(uint _cid) constant returns(bytes8)
-    {
-        qd1 = quotationData(quotationDataAddress);
-        return qd1.getProductNameOfCover(_cid);
-    }   
+    // /// @dev Get Product ID.
+    // /// @param _cid Cover Id
+    // function getCoverProductName(uint _cid) constant returns(bytes8)
+    // {
+    //     qd1 = quotationData(quotationDataAddress);
+    //     return qd1.getProductNameOfCover(_cid);
+    // }   
     
-    function verifySign(uint amt,bytes4 curr,uint16 CP,address smaratCA,uint Price,uint price_nxm,uint expire,uint8 _v,bytes32 _r,bytes32 _s)  returns(bool)
+    function verifySign(uint[] coverDetails,bytes4 curr,address smaratCA,uint8 _v,bytes32 _r,bytes32 _s)  returns(bool)
     {
-        bytes32 hash = getOrderHash(amt,curr,CP,smaratCA,Price,price_nxm,expire);
+        bytes32 hash = getOrderHash(coverDetails,curr,smaratCA);
         return  isValidSignature(hash,_v,_r,_s);
     }
    
-    function getOrderHash(uint amt,bytes4 curr,uint CP,address smaratCA,uint Price,uint price_nxm,uint expire) constant returns (bytes32)
+    function getOrderHash(uint[] coverDetails,bytes4 curr,address smaratCA) constant returns (bytes32)
     {
-        return keccak256(amt,curr,CP,smaratCA,Price,price_nxm,expire);
+        return keccak256(coverDetails[1],curr,coverDetails[0],smaratCA,coverDetails[2],coverDetails[3],coverDetails[4]);
     }
     
     function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant  returns(bool)

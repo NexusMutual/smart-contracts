@@ -116,15 +116,14 @@ contract fiatFaucet
     }
 
     /// @dev Making Cover(s) using ERC20 tokens.
-    /// @param PriceNxm Token Amount.
     /// @param coverCurr Currency's Name.
     /// @param cid Cover ID that will get funded.
-    function funding(uint8 prodId, uint cid, address from, address smaratCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
+    function funding(uint8 prodId, uint cid, address from, address smaratCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
     {
         tok=SupplyToken(contract_add[coverCurr]);
-        tok.debitTokensForFunding(PriceNxm , msg.sender);
+        tok.debitTokensForFunding(coverDetails[3] , msg.sender);
         q1=quotation2(quotation2Address);
-         q1.verifyCoverDetails(prodId,msg.sender,smaratCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
+        q1.verifyCoverDetails(prodId,msg.sender,smaratCAdd,coverCurr,coverDetails,_v,_r,_s);
     }
     /// @dev Get token address by currency name.
     function getCurrAddress(bytes16 curr) constant returns(address currAddress)

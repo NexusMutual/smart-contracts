@@ -253,8 +253,8 @@ contract pool2
         c1=claims(claimAddress);
         p1=pool(poolAddress);
         pd1=poolData1(poolDataAddress);
-        address _to=q2.getMemberAddress(coverid);
-        uint sumAssured1 = q2.getSumAssured(coverid);
+        address _to=qd1.getCoverMemberAddress(coverid);
+        uint sumAssured1 = qd1.getCoverSumAssured(coverid);
         bytes4 curr = qd1.getCurrencyOfCover(coverid);
         uint balance;
         // uint quoteid=q2.getQuoteId(coverid);

@@ -25,8 +25,9 @@ import "./master.sol";
 import "./pool2.sol";
 import "./USD.sol";
 import "./MCR.sol";
-import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
+import "./StandardToken.sol";
 import "./SafeMaths.sol";
+import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 contract pool is usingOraclize{
     using SafeMaths for uint;
     master ms1;
@@ -238,12 +239,12 @@ contract pool is usingOraclize{
     /// @dev Begins making cover.
     /// @param coverCurrPrice fund amounts for each selected quotation.
     /// @param smartCAdd Smart Contract Address
-    function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable 
+   function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable
     {
         q2=quotation2(quotation2Address);
         if(msg.value==coverCurrPrice)
         {
-            q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
+             q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
         }
         else
         {
@@ -440,5 +441,13 @@ contract pool is usingOraclize{
         takerAddress=pd1.get0xTakerAddress();
         makerFee=pd1.get0xMakerFee();
         takerFee=pd1.get0xTakerFee();
+    }
+    function makeCoverUsingCA(uint8 prodId, uint cid, address from, address smaratCAdd,bytes4 coverCurr,uint16 coverPeriod, uint coverCurrPrice, uint PriceNxm, uint16 coverAmount, uint expireTime, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
+    {
+        pd1=poolData1(poolDataAddress);
+        StandardToken tok=StandardToken(pd1.getAllCurrencies(coverCurr));
+        tok.transferFrom(msg.sender,this,coverCurrPrice);
+        q2=quotation2(quotation2Address);
+        q2.verifyCoverDetails(prodId,msg.sender,smaratCAdd,coverCurr,coverPeriod,coverCurrPrice,PriceNxm,coverAmount,expireTime,_v,_r,_s);
     }
 }

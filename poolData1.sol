@@ -17,17 +17,27 @@
 pragma solidity ^0.4.11;
 import "./master.sol";
 import "./SafeMaths.sol";
+
 contract poolData1
 {
     using SafeMaths for uint;
     master ms1;
     address masterAddress;
     uint32 faucetCurrMultiplier;
+   
     mapping(bytes4=>string) api_curr;
-    bytes4[] allCurrencies;
+    // struct allCurrencies
+    // {
+    //     bytes16 curr_name;
+    //     address curr_add;
+    // };
+    // allCurrencies[] curr_asset;
     bytes16[] allInvestmentCurrencies;
     mapping(bytes32=>apiId) public allAPIid;
     bytes32[] public allAPIcall;
+    bytes4[] allCurrencies;
+    
+    mapping(bytes4=>address) currencies;
     struct apiId
     {
         bytes8 type_of;
@@ -57,7 +67,7 @@ contract poolData1
         bytes16 MINIACurr;
         uint64 MINRate;
     }
-    
+    // allCurrencies CURR;
     function poolData1()
     {
         variationPercX100=100; //1%
@@ -71,6 +81,9 @@ contract poolData1
         feeRecipient=0x0000000000000000000000000000000000000000;
         taker=0x0000000000000000000000000000000000000000;
         IARatesTime=SafeMaths.mul64(SafeMaths.mul64(24,60),60); //24 hours in seconds
+        currencies["ETH"]=0x00;
+        currencies["DAI"]=0x00;
+        
     }
     IARankDetails[] allIARankDetails;
     mapping(uint64=>uint) datewiseId;
@@ -123,6 +136,7 @@ contract poolData1
     {
         zeroExOrderStatus[orderHash]=status;
     } 
+  
     // @dev Gets 0x order status.
     // 0: unsigned order
     // 1:signed order and amount is transferred
@@ -612,4 +626,17 @@ contract poolData1
     {
         return(allAPIid[myid].type_of,allAPIid[myid].currency,allAPIid[myid].id,allAPIid[myid].dateAdd,allAPIid[myid].dateUpd);
     }
+    
+    function setAllCurrencies(bytes4 curr,address curr_add)onlyInternal
+    {
+        currencies[curr]=curr_add;
+    }
+    function getAllCurrencies(bytes4 curr)constant returns (address _Add)
+    {
+       _Add=currencies[curr];
+    }
+//   function addCurrency(address _add , bytes16 currName) onlyInternal
+//     {
+//         currencies[currName] = _add;
+//     }
 }

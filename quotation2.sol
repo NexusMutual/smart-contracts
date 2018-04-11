@@ -241,7 +241,7 @@ contract quotation2 {
     
     /// @dev Create cover of the quotation, change the status of the quotation ,update the total sum assured and lock the tokens of the cover of a quote.
     /// @param from Quote member Ethereum address
-    function make_Cover(uint32 prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails) internal 
+    function make_Cover(uint16 prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails) internal 
     {
         qd1 = quotationData(quotationDataAddress);
         p1=pool(poolAddress);
@@ -276,7 +276,7 @@ contract quotation2 {
 
     /// @dev Make Cover using NXM tokens.
     /// @param smartCAdd Smart Contract Address
-    function makeCoverUsingNXMTokens(uint32 prodId, uint[] coverDetails, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
+    function makeCoverUsingNXMTokens(uint16 prodId, uint[] coverDetails, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
     {
         m1=MCR(mcrAddress);
         if(m1.checkForMinMCR() == 1) throw;
@@ -288,7 +288,7 @@ contract quotation2 {
     /// @dev Make Cover(s).
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
-    function verifyCoverDetails(uint32 prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
+    function verifyCoverDetails(uint16 prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
         require(coverDetails[4] > now);
         require(verifySign(coverDetails, coverCurr, scAddress, _v, _r, _s));
         make_Cover(prodId, from, scAddress, coverCurr, coverDetails);
@@ -303,9 +303,9 @@ contract quotation2 {
     //     result=qd1.getCoverSumAssured(_cid);
     // }
 
-    /// @dev Gets the Address of Owner of a given Cover.
-    /// @param _cid Cover Id.
-    /// @return add Owner's address.
+    // /// @dev Gets the Address of Owner of a given Cover.
+    // /// @param _cid Cover Id.
+    // /// @return add Owner's address.
     // function getMemberAddress(uint _cid) onlyInternal constant returns (address add) 
     // {
     //     qd1 = quotationData(quotationDataAddress);
@@ -328,7 +328,7 @@ contract quotation2 {
     /// @return cid Cover Id.
     /// @return coverOwner Address of the owner of the cover.
     /// @return sa Amount of the cover. 
-    function getCoverDetailsForAB(uint _cid) constant returns(uint cid, address coverOwner,uint16 sa)
+    function getCoverDetailsForAB(uint _cid) constant returns(uint cid, address coverOwner,uint32 sa)
     {   
         qd1 = quotationData(quotationDataAddress);
         cid = _cid;

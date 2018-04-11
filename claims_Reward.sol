@@ -282,7 +282,7 @@ contract claims_Reward
         cd1=claimsData(claimsDataAddress);
         pd1 = poolData1(poolDataAddress);
         bytes4 curr=qd1.getCurrencyOfCover(coverid);
-        uint sumAssured=qd1.getCoverSumAssured(coverid);
+        uint32 sumAssured=qd1.getCoverSumAssured(coverid);
         p1=pool(poolAddress);
 
         if(status==7) //Final-Claim Assessor Vote Denied
@@ -293,7 +293,7 @@ contract claims_Reward
             if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
                 
-            pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+            pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),sumAssured));
             c1.checkLiquidity(curr);
             }
         }
@@ -323,7 +323,7 @@ contract claims_Reward
            
             if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),sumAssured));
                 c1.checkLiquidity(curr);
             }
         }
@@ -338,7 +338,7 @@ contract claims_Reward
             
             if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                 pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+                 pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),sumAssured));
                 c1.checkLiquidity(curr);
             }
         }
@@ -357,7 +357,7 @@ contract claims_Reward
             tc2.burnCNToken(coverid);
             if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),sumAssured));
                 c1.checkLiquidity(curr);
             }
          }
@@ -373,7 +373,7 @@ contract claims_Reward
             tc2.burnCNToken(coverid);
             if(sumAssured<=pd1.getCurrencyAssetVarMin(curr))
             {
-                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
+                pd1.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd1.getCurrencyAssetVarMin(curr),sumAssured));
                 c1.checkLiquidity(curr);
             }
         }

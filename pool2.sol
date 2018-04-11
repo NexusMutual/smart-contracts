@@ -29,7 +29,7 @@ import "./claims.sol";
 import "./fiatFaucet.sol";
 import "./SafeMaths.sol";
 import "./USD.sol";
-// import "./MCRData.sol";
+import "./MCRData.sol";
 import "./MCR.sol";
 import "./pool3.sol";
 import "github.com/0xProject/contracts/contracts/Exchange.sol";
@@ -59,10 +59,10 @@ contract pool2
     address quotationDataAddress;
     quotation2 q2;
     MCR m1;
-    // MCRData md;
+    MCRData md;
     claims_Reward cr;
     address exchangeContractAddress;
-    // address MCRDataAddress;
+    address MCRDataAddress;
     governance g1;
     poolData1 pd;
     SupplyToken tok;
@@ -160,10 +160,10 @@ contract pool2
         p3=pool3(pool3Address);
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
-    // function changeMCRDataAddress(address _add) onlyInternal
-    // {
-    //     MCRDataAddress = _add;
-    // }
+    function changeMCRDataAddress(address _add) onlyInternal
+    {
+        MCRDataAddress = _add;
+    }
     function changePool3Address(address _add) onlyInternal
     {
         pool3Address=_add;
@@ -353,7 +353,7 @@ contract pool2
     {  
         pd = poolData1(poolDataAddress);
         p1=pool(poolAddress);
-        m1=MCR(MCRAddress);
+        md=MCRData(MCRDataAddress);
         p3=pool3(pool3Address);
         bytes16 MAXIACurr;uint64 MAXRate;
         (MAXIACurr,MAXRate,,)= pd.getIARankDetailsByDate(date);
@@ -373,7 +373,7 @@ contract pool2
                             // amount of asset to sell
                             uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)) )); //*100);// ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
                             // amount of ETH to buy
-                            uint takerAmt=((SafeMaths.mul(m1.getCurrency3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); 
+                            uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); 
                             uint expirationTimeInMilliSec=SafeMaths.add(now,pd.getOrderExpirationTime("RBT"));
                             makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd.getInvestmentAssetDecimals(MAXIACurr) )),100);
                             takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,10**18),(100));

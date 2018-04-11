@@ -29,14 +29,14 @@ import "github.com/0xProject/contracts/contracts/Exchange.sol";
 contract pool3
 {
     using SafeMaths for uint;
-    poolData1 pd1;
-    master ms1;
+    poolData1 pd;
+    master ms;
     pool p1;
     fiatFaucet f1;
     SupplyToken tok;
     pool2 p2;
-    Exchange exchange1;
-    MCRData md1;
+    Exchange exchange;
+    MCRData md;
     address poolDataAddress;
     address masterAddress;
     address fiatFaucetAddress;
@@ -53,8 +53,8 @@ contract pool3
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
@@ -63,7 +63,7 @@ contract pool3
     function changePoolDataAddress(address _add) onlyInternal
     {
         poolDataAddress = _add;
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
     }
     function changeFiatFaucetAddress(address _to) onlyInternal
     {
@@ -92,41 +92,41 @@ contract pool3
     }
     function changeWETHAddress(address _add) onlyOwner
     {
-        pd1=poolData1(poolDataAddress);
-        pd1.changeWETHAddress(_add);
+        pd=poolData1(poolDataAddress);
+        pd.changeWETHAddress(_add);
     }
     function getWETHAddress() constant returns(address WETHAddr)
     {
-        pd1=poolData1(poolDataAddress);
-        return pd1.getWETHAddress();
+        pd=poolData1(poolDataAddress);
+        return pd.getWETHAddress();
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     modifier checkPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0);
+        ms=master(masterAddress);
+        require(ms.isPause()==0);
         _;
     }
       /// @dev Sets a given investment asset as active for trading.
     function activeInvestmentAsset(bytes16 curr)  onlyInternal
     {
-        pd1=poolData1(poolDataAddress);
-        pd1.changeInvestmentAssetStatus(curr,1);
+        pd=poolData1(poolDataAddress);
+        pd.changeInvestmentAssetStatus(curr,1);
     }  
      /// @dev Sets a given investment asset as inactive for trading.
     function inactiveInvestmentAsset(bytes16 curr) onlyInternal
     {
-        pd1=poolData1(poolDataAddress);
-        pd1.changeInvestmentAssetStatus(curr,0);
+        pd=poolData1(poolDataAddress);
+        pd.changeInvestmentAssetStatus(curr,0);
     }
     /// @dev Saves a given investment asset details.
     /// @param curr array of Investment asset name.
@@ -134,9 +134,9 @@ contract pool3
     /// @param date current date in yyyymmdd.
     function saveIADetails(bytes16[] curr,uint64[] rate,uint64 date) checkPause
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         p1=pool(poolAddress);
-        md1=MCRData(MCRDataAddress);
+        md=MCRData(MCRDataAddress);
         p2=pool2(pool2Address);
         bytes16 MAXCurr;
         bytes16 MINCurr;
@@ -144,27 +144,27 @@ contract pool3
         uint64 MINRate;
         uint totalRiskPoolBal;uint IABalance;
         //ONLY NOTARZIE ADDRESS CAN POST
-        if(md1.isnotarise(msg.sender)==0) throw;
+        if(md.isnotarise(msg.sender)==0) throw;
 
         (totalRiskPoolBal,IABalance)=p2.totalRiskPoolBalance(curr,rate);
-        pd1.setTotalBalance(totalRiskPoolBal,IABalance);
+        pd.setTotalBalance(totalRiskPoolBal,IABalance);
         (MAXCurr,MAXRate,MINCurr,MINRate)=p2.calculateIARank(curr,rate);
-        pd1.saveIARankDetails(MAXCurr,MAXRate,MINCurr,MINRate,date);
-        pd1.updatelastDate(date);
+        pd.saveIARankDetails(MAXCurr,MAXRate,MINCurr,MINRate,date);
+        pd.updatelastDate(date);
         // Rebalancing Trade : only once per day
         p2.rebalancingTrading0xOrders(curr,rate,date);
-        p1.saveIADetailsOracalise(pd1.getIARatesTime());
+        p1.saveIADetailsOracalise(pd.getIARatesTime());
         uint8 check;
         uint CABalance;
 
         //Excess Liquidity Trade : atleast once per day
-        for(uint16 i=0;i<md1.getCurrLength();i++)
+        for(uint16 i=0;i<md.getCurrLength();i++)
         {
-            (check,CABalance)=checkLiquidity(md1.getCurrencyByIndex(i));
+            (check,CABalance)=checkLiquidity(md.getCurrencyByIndex(i));
             if(check==1)
             {
                if(CABalance>0)
-                 ExcessLiquidityTrading(md1.getCurrencyByIndex(i),CABalance);
+                 ExcessLiquidityTrading(md.getCurrencyByIndex(i),CABalance);
             }
         }
         
@@ -173,27 +173,27 @@ contract pool3
     function check0xOrderStatus(bytes4 curr,uint orderid) onlyInternal
     {
         p1=pool(poolAddress);
-        pd1=poolData1(poolDataAddress);
+        pd=poolData1(poolDataAddress);
         f1=fiatFaucet(fiatFaucetAddress);
-        md1=MCRData(MCRDataAddress);
-        bytes32 orderHash=pd1.getCurrOrderHash(curr,orderid);
+        md=MCRData(MCRDataAddress);
+        bytes32 orderHash=pd.getCurrOrderHash(curr,orderid);
         
-        exchange1=Exchange(exchangeContractAddress);
-        uint filledAmt=exchange1.getUnavailableTakerTokenAmount(orderHash); //amount that is filled till now.(TakerToken)
+        exchange=Exchange(exchangeContractAddress);
+        uint filledAmt=exchange.getUnavailableTakerTokenAmount(orderHash); //amount that is filled till now.(TakerToken)
         bytes4 makerCurr;bytes4 takerCurr;uint makerAmt;uint takerAmt;bytes16 orderHashType;
         address makerTokenAddr;address takerTokenAddr;
-       (makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,)=pd1.getOrderDetailsByHash(orderHash);
+       (makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,)=pd.getOrderDetailsByHash(orderHash);
        if(orderHashType=="ELT")
        {
            if(makerCurr=="ETH")
                 makerTokenAddr=getWETHAddress();
            else 
                 makerTokenAddr=f1.getCurrAddress(makerCurr);
-           takerTokenAddr=pd1.getInvestmentAssetAddress(takerCurr);
+           takerTokenAddr=pd.getInvestmentAssetAddress(takerCurr);
        }
        else if(orderHashType=="ILT")
        {
-            makerTokenAddr=pd1.getInvestmentAssetAddress(makerCurr);
+            makerTokenAddr=pd.getInvestmentAssetAddress(makerCurr);
             if(takerCurr=="ETH")
                 takerTokenAddr=getWETHAddress();
             else    
@@ -202,7 +202,7 @@ contract pool3
 
        else if(orderHashType=="RBT")
        {
-            makerTokenAddr=pd1.getInvestmentAssetAddress(makerCurr);
+            makerTokenAddr=pd.getInvestmentAssetAddress(makerCurr);
             takerTokenAddr=getWETHAddress();
        }
 
@@ -227,31 +227,31 @@ contract pool3
         {
             p1.transferToPool(makerTokenAddr,makerAmt);
         }
-        pd1.updateLiquidityOrderStatus(curr,orderHashType,0);  //order closed successfully for this currency
-        if(md1.isnotarise(msg.sender)==1) // called from notarize address
+        pd.updateLiquidityOrderStatus(curr,orderHashType,0);  //order closed successfully for this currency
+        if(md.isnotarise(msg.sender)==1) // called from notarize address
         {
-            pd1.updateZeroExOrderStatus(orderHash,0); //order is not signed
+            pd.updateZeroExOrderStatus(orderHash,0); //order is not signed
         }
         else //called from oraclize api
         {
-            pd1.updateZeroExOrderStatus(orderHash,2); //order expired successfully
+            pd.updateZeroExOrderStatus(orderHash,2); //order expired successfully
         }
     } 
     /// @dev Signs a 0x order hash.
     function sign0xOrder(uint orderId,bytes32 orderHash)checkPause
     { 
-         pd1 = poolData1(poolDataAddress);
+         pd = poolData1(poolDataAddress);
          p1=pool(poolAddress);
          
-         require(msg.sender==pd1.get0xMakerAddress() && pd1.getZeroExOrderStatus(orderHash)==0); // not signed already         
+         require(msg.sender==pd.get0xMakerAddress() && pd.getZeroExOrderStatus(orderHash)==0); // not signed already         
          
          bytes16 orderType;       
          address makerTokenAddr;
          uint makerAmt;uint takerAmt;
          bytes4 makerToken;bytes4 takerToken;
          uint validTime;
-         (makerToken,makerAmt,takerToken,takerAmt,orderType,validTime,)=pd1.getOrderDetailsByHash(orderHash);
-         address _0xMakerAddress=pd1.get0xMakerAddress();
+         (makerToken,makerAmt,takerToken,takerAmt,orderType,validTime,)=pd.getOrderDetailsByHash(orderHash);
+         address _0xMakerAddress=pd.get0xMakerAddress();
          uint expireTime; 
          if(validTime>now) 
             expireTime=SafeMaths.sub(validTime,now); 
@@ -265,7 +265,7 @@ contract pool3
          }
          else if(orderType=="ILT")
          {
-            makerTokenAddr=pd1.getInvestmentAssetAddress(makerToken);
+            makerTokenAddr=pd.getInvestmentAssetAddress(makerToken);
             // transfer selling amount to the makerAddress from pool contract
             p1.transferFromPool(_0xMakerAddress,makerTokenAddr,makerAmt);
             p1.close0xOrders(takerToken,orderId,expireTime);  //orderId is the index of Currency Asset at which hash is saved.
@@ -273,26 +273,26 @@ contract pool3
          }
          else if(orderType=="RBT")
          {
-            makerTokenAddr=pd1.getInvestmentAssetAddress(makerToken);
+            makerTokenAddr=pd.getInvestmentAssetAddress(makerToken);
 
             // transfer selling amount to the makerAddress from pool contract
             p1.transferFromPool(_0xMakerAddress,makerTokenAddr,makerAmt);
             p1.close0xOrders(makerToken,orderId,expireTime);  // orderId is the index of allRebalancingOrderHash.
          }
-         pd1.updateZeroExOrderStatus(orderHash,1);
+         pd.updateZeroExOrderStatus(orderHash,1);
     }
 
    
     /// @dev Checks Excess or insufficient liquidity trade conditions for a given currency.
     function checkLiquidity(bytes4 curr) onlyInternal returns(uint8 check,uint CABalance)
     {
-        ms1=master(masterAddress);
-        md1=MCRData(MCRDataAddress);
-        if(ms1.isInternal(msg.sender)==1 || md1.isnotarise(msg.sender)==1){
-            pd1 = poolData1(poolDataAddress);
+        ms=master(masterAddress);
+        md=MCRData(MCRDataAddress);
+        if(ms.isInternal(msg.sender)==1 || md.isnotarise(msg.sender)==1){
+            pd = poolData1(poolDataAddress);
             uint64 baseMin;
             uint64 varMin;
-            (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
+            (,baseMin,varMin)=pd.getCurrencyAssetDetails(curr);
             CABalance=SafeMaths.div(getCurrencyAssetsBalance(curr),(10**18));
             //Excess liquidity trade
             if(CABalance>SafeMaths.mul(2,(SafeMaths.add(baseMin,varMin))))
@@ -311,27 +311,27 @@ contract pool3
    /// @dev Creates Excess liquidity trading order for a given currency and a given balance.
     function ExcessLiquidityTrading(bytes4 curr,uint CABalance) onlyInternal
     { 
-        ms1=master(masterAddress);
-        md1=MCRData(MCRDataAddress);
-        if(ms1.isInternal(msg.sender)==1 || md1.isnotarise(msg.sender)==1){
-            pd1 = poolData1(poolDataAddress);
-            if(pd1.getLiquidityOrderStatus(curr,"ELT")==0)
+        ms=master(masterAddress);
+        md=MCRData(MCRDataAddress);
+        if(ms.isInternal(msg.sender)==1 || md.isnotarise(msg.sender)==1){
+            pd = poolData1(poolDataAddress);
+            if(pd.getLiquidityOrderStatus(curr,"ELT")==0)
             {
                 uint64 baseMin;
                 uint64 varMin; 
                 bytes16 MINIACurr;
                 uint64 minIARate;
                 uint makerAmt;uint takerAmt;
-                (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
-                (,,MINIACurr,minIARate)=pd1.getIARankDetailsByDate(pd1.getLastDate());
+                (,baseMin,varMin)=pd.getCurrencyAssetDetails(curr);
+                (,,MINIACurr,minIARate)=pd.getIARankDetailsByDate(pd.getLastDate());
                 //  amount of assest to sell currency asset
                 if(CABalance>=SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2)))
                 {
-                    md1=MCRData(MCRDataAddress);
+                    md=MCRData(MCRDataAddress);
                     makerAmt=(SafeMaths.sub(CABalance, SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2))));//*10**18;
                     // amount of asset to buy investment asset
-                    if(md1.getCurr3DaysAvg(curr)>0){
-                        takerAmt=SafeMaths.div(( SafeMaths.mul(SafeMaths.mul(minIARate,makerAmt), 10**pd1.getInvestmentAssetDecimals(MINIACurr) )),(md1.getCurr3DaysAvg(curr))) ;      
+                    if(md.getCurr3DaysAvg(curr)>0){
+                        takerAmt=SafeMaths.div(( SafeMaths.mul(SafeMaths.mul(minIARate,makerAmt), 10**pd.getInvestmentAssetDecimals(MINIACurr) )),(md.getCurr3DaysAvg(curr))) ;      
                         zeroExOrders(curr,makerAmt,takerAmt,"ELT",0); 
                         Liquidity("ELT","0x");
                     }
@@ -346,7 +346,7 @@ contract pool3
     /// @dev Creates/cancels insufficient liquidity trading order for a given currency and a given balance.
     function InsufficientLiquidityTrading(bytes4 curr,uint CABalance,uint8 cancel) onlyInternal
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         
      
         uint64 baseMin;
@@ -354,17 +354,17 @@ contract pool3
         bytes16 MAXIACurr;
         uint64 maxIARate;
         uint makerAmt;uint takerAmt;
-        (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
-        (MAXIACurr,maxIARate,,)=pd1.getIARankDetailsByDate(pd1.getLastDate());
+        (,baseMin,varMin)=pd.getCurrencyAssetDetails(curr);
+        (MAXIACurr,maxIARate,,)=pd.getIARankDetailsByDate(pd.getLastDate());
         // amount of asset to buy currency asset
         takerAmt=SafeMaths.sub(SafeMaths.mul(3,SafeMaths.div(SafeMaths.add(baseMin,varMin),2)),CABalance);//*10**18; // multiply with decimals
         // amount of assest to sell investment assest
       
-       if(pd1.getLiquidityOrderStatus(curr,"ILT")==0)
+       if(pd.getLiquidityOrderStatus(curr,"ILT")==0)
        {   
             p1=pool(poolAddress);
-            md1=MCRData(MCRDataAddress);
-            makerAmt=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(maxIARate,takerAmt), 10**pd1.getInvestmentAssetDecimals(MAXIACurr))),( md1.getCurr3DaysAvg(curr)));  //  divide by decimals of makerToken;      
+            md=MCRData(MCRDataAddress);
+            makerAmt=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(maxIARate,takerAmt), 10**pd.getInvestmentAssetDecimals(MAXIACurr))),( md.getCurr3DaysAvg(curr)));  //  divide by decimals of makerToken;      
             if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
             {
                 zeroExOrders(curr,makerAmt,takerAmt,"ILT",cancel); 
@@ -383,12 +383,12 @@ contract pool3
     /// @dev Cancels insufficient liquidity trading order and creates a new order for a new taker amount for a given currency.
     function cancelLastInsufficientTradingOrder(bytes4 curr,uint newTakerAmt) onlyInternal
     {
-        pd1 = poolData1(poolDataAddress);
-        uint index=SafeMaths.sub(pd1.getCurrAllOrderHashLength(curr),1);
-        bytes32 lastCurrHash=pd1.getCurrOrderHash(curr,index);
+        pd = poolData1(poolDataAddress);
+        uint index=SafeMaths.sub(pd.getCurrAllOrderHashLength(curr),1);
+        bytes32 lastCurrHash=pd.getCurrOrderHash(curr,index);
         //get last 0xOrderhash taker amount (currency asset amount)
         uint lastTakerAmt;
-        (,,,lastTakerAmt,,,)=pd1.getOrderDetailsByHash(lastCurrHash);
+        (,,,lastTakerAmt,,,)=pd.getOrderDetailsByHash(lastCurrHash);
         lastTakerAmt=SafeMaths.div(lastTakerAmt,(10**18));
         if(lastTakerAmt<newTakerAmt)
         {
@@ -412,18 +412,18 @@ contract pool3
        uint expirationTimeInMilliSec;
        bytes16 MAXIACurr;
        address takerTokenAddr;
-       pd1 = poolData1(poolDataAddress);
-       exchange1=Exchange(exchangeContractAddress);
+       pd = poolData1(poolDataAddress);
+       exchange=Exchange(exchangeContractAddress);
        f1=fiatFaucet(fiatFaucetAddress);
        bytes32 orderHash;
-       (MAXIACurr,,MINIACurr,)=pd1.getIARankDetailsByDate(pd1.getLastDate());
+       (MAXIACurr,,MINIACurr,)=pd.getIARankDetailsByDate(pd.getLastDate());
        address makerTokenAddr;
        if(curr=="ETH")
        {
             if(_type=="ELT")
-                makerTokenAddr=pd1.getWETHAddress();
+                makerTokenAddr=pd.getWETHAddress();
             else if(_type=="ILT")
-                takerTokenAddr=pd1.getWETHAddress(); 
+                takerTokenAddr=pd.getWETHAddress(); 
        }
        else
        {
@@ -434,24 +434,24 @@ contract pool3
        }
        if(_type=="ELT")
        {
-            takerTokenAddr=pd1.getInvestmentAssetAddress(MINIACurr);
-            expirationTimeInMilliSec=SafeMaths.add(now,pd1.getOrderExpirationTime(_type));   //12 hours in milliseconds
-            orderHash=exchange1.getOrderHash([pd1.get0xMakerAddress(),pd1.get0xTakerAddress(),makerTokenAddr,takerTokenAddr,pd1.get0xFeeRecipient()],[SafeMaths.mul(makerAmt,10**18),takerAmt,pd1.get0xMakerFee(),pd1.get0xTakerFee(),expirationTimeInMilliSec,pd1.getOrderSalt()]);
-            pd1.setCurrOrderHash(curr,orderHash);
-            pd1.updateLiquidityOrderStatus(curr,_type,1);
-            pd1.pushOrderDetails(orderHash,curr,SafeMaths.mul(makerAmt,10**18),bytes4(MINIACurr),takerAmt,_type,expirationTimeInMilliSec);
+            takerTokenAddr=pd.getInvestmentAssetAddress(MINIACurr);
+            expirationTimeInMilliSec=SafeMaths.add(now,pd.getOrderExpirationTime(_type));   //12 hours in milliseconds
+            orderHash=exchange.getOrderHash([pd.get0xMakerAddress(),pd.get0xTakerAddress(),makerTokenAddr,takerTokenAddr,pd.get0xFeeRecipient()],[SafeMaths.mul(makerAmt,10**18),takerAmt,pd.get0xMakerFee(),pd.get0xTakerFee(),expirationTimeInMilliSec,pd.getOrderSalt()]);
+            pd.setCurrOrderHash(curr,orderHash);
+            pd.updateLiquidityOrderStatus(curr,_type,1);
+            pd.pushOrderDetails(orderHash,curr,SafeMaths.mul(makerAmt,10**18),bytes4(MINIACurr),takerAmt,_type,expirationTimeInMilliSec);
             //event
             ZeroExOrders("Call0x",makerTokenAddr,takerTokenAddr,SafeMaths.mul(makerAmt,10**18),takerAmt,expirationTimeInMilliSec,orderHash);
         }
                  
         else if(_type=="ILT")
         {
-            makerTokenAddr=pd1.getInvestmentAssetAddress(MAXIACurr); 
-            expirationTimeInMilliSec=SafeMaths.add(now,pd1.getOrderExpirationTime(_type));
-            orderHash=exchange1.getOrderHash([pd1.get0xMakerAddress(),pd1.get0xTakerAddress(),makerTokenAddr,takerTokenAddr,pd1.get0xFeeRecipient()],[makerAmt,SafeMaths.mul(takerAmt,10**18),pd1.get0xMakerFee(),pd1.get0xTakerFee(),expirationTimeInMilliSec,pd1.getOrderSalt()]);
-            pd1.setCurrOrderHash(curr,orderHash);  
-            pd1.updateLiquidityOrderStatus(curr,_type,1);
-            pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,curr,SafeMaths.mul(takerAmt,10**18),_type,expirationTimeInMilliSec);
+            makerTokenAddr=pd.getInvestmentAssetAddress(MAXIACurr); 
+            expirationTimeInMilliSec=SafeMaths.add(now,pd.getOrderExpirationTime(_type));
+            orderHash=exchange.getOrderHash([pd.get0xMakerAddress(),pd.get0xTakerAddress(),makerTokenAddr,takerTokenAddr,pd.get0xFeeRecipient()],[makerAmt,SafeMaths.mul(takerAmt,10**18),pd.get0xMakerFee(),pd.get0xTakerFee(),expirationTimeInMilliSec,pd.getOrderSalt()]);
+            pd.setCurrOrderHash(curr,orderHash);  
+            pd.updateLiquidityOrderStatus(curr,_type,1);
+            pd.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,curr,SafeMaths.mul(takerAmt,10**18),_type,expirationTimeInMilliSec);
             if(cancel==1)
             {
            
@@ -465,19 +465,19 @@ contract pool3
 
     function setOrderCancelHashValue(bytes4 curr,bytes32 orderHash) internal
     {
-        pd1 = poolData1(poolDataAddress);
-        uint lastIndex=SafeMaths.sub(pd1.getCurrAllOrderHashLength(curr),1);
-        bytes32 lastCurrHash=pd1.getCurrOrderHash(curr,lastIndex);
-        pd1.setOrderCancelHashValue(orderHash,lastCurrHash);
+        pd = poolData1(poolDataAddress);
+        uint lastIndex=SafeMaths.sub(pd.getCurrAllOrderHashLength(curr),1);
+        bytes32 lastCurrHash=pd.getCurrOrderHash(curr,lastIndex);
+        pd.setOrderCancelHashValue(orderHash,lastCurrHash);
     }
     /// @dev Get Investment asset balance and active status for a given asset name.
     function getInvestmentAssetBalAndStatus(bytes16 curr_name)constant returns(bytes16 curr,uint balance,uint8 status,uint64 _minHoldingPercX100,uint64 _maxHoldingPercX100,uint64 decimals)
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         p1=pool(poolAddress);
       
         balance=p1.getBalanceofInvestmentAsset(curr_name);
-        (curr,,status,_minHoldingPercX100,_maxHoldingPercX100,decimals)=pd1.getInvestmentAssetDetails(curr_name);
+        (curr,,status,_minHoldingPercX100,_maxHoldingPercX100,decimals)=pd.getInvestmentAssetDetails(curr_name);
     }
    
      /// @dev Get currency asset balance for a given currency name.
@@ -502,33 +502,33 @@ contract pool3
     /// @return varMin  minimum variable amount required in pool.
     function getCurrencyAssetDetails(bytes4 curr) constant returns(uint CABalance,uint CARateX100,uint baseMin,uint varMin)
     {
-        md1=MCRData(MCRDataAddress);
-        pd1=poolData1(poolDataAddress);
+        md=MCRData(MCRDataAddress);
+        pd=poolData1(poolDataAddress);
         CABalance=getCurrencyAssetsBalance(curr);
-        (,baseMin,varMin)=pd1.getCurrencyAssetDetails(curr);
-        uint lastIndex=SafeMaths.sub(md1.getMCRDataLength(),1);
-        CARateX100=md1.allCurr3DaysAvg(curr);
+        (,baseMin,varMin)=pd.getCurrencyAssetDetails(curr);
+        uint lastIndex=SafeMaths.sub(md.getMCRDataLength(),1);
+        CARateX100=md.allCurr3DaysAvg(curr);
     }
     // update investment asset  min and max holding percentages.
     function updateInvestmentAssetHoldingPerc(bytes16 _curr,uint64 _minPercX100,uint64 _maxPercX100) onlyInternal
     {
-        pd1=poolData1(poolDataAddress);
-        pd1.changeInvestmentAssetHoldingPerc(_curr,_minPercX100,_maxPercX100);
+        pd=poolData1(poolDataAddress);
+        pd.changeInvestmentAssetHoldingPerc(_curr,_minPercX100,_maxPercX100);
     }
     // update currency asset base min and var min
     function updateCurrencyAssetDetails(bytes4 _curr,uint64 _baseMin)onlyInternal
     {
-        pd1=poolData1(poolDataAddress);
-        pd1.changeCurrencyAssetBaseMin(_curr,_baseMin);
+        pd=poolData1(poolDataAddress);
+        pd.changeCurrencyAssetBaseMin(_curr,_baseMin);
     }
      // add new investment asset currency.
     function addInvestmentAssetsDetails(bytes16 curr_name,address curr,uint64 _minHoldingPercX100,uint64 _maxHoldingPercX100) onlyInternal
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         uint8 decimals;
         tok=SupplyToken(curr);
         decimals=tok.decimals();
-        pd1.addInvestmentCurrency(curr_name);
-        pd1.pushInvestmentAssetsDetails(curr_name,curr,1,_minHoldingPercX100,_maxHoldingPercX100,decimals);
+        pd.addInvestmentCurrency(curr_name);
+        pd.pushInvestmentAssetsDetails(curr_name,curr,1,_minHoldingPercX100,_maxHoldingPercX100,decimals);
      }
 }

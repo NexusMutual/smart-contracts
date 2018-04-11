@@ -29,7 +29,7 @@ import "./claims.sol";
 import "./fiatFaucet.sol";
 import "./SafeMaths.sol";
 import "./USD.sol";
-import "./MCRData.sol";
+// import "./MCRData.sol";
 import "./MCR.sol";
 import "./pool3.sol";
 import "github.com/0xProject/contracts/contracts/Exchange.sol";
@@ -37,9 +37,9 @@ import "github.com/0xProject/contracts/contracts/Exchange.sol";
 contract pool2 
 {
  using SafeMaths for uint;
-    master ms1;
+    master ms;
     address masterAddress;
-    NXMToken t1;
+    NXMToken tc1;
     NXMToken2 tc2;
     address tokenAddress;
     address token2Address;
@@ -59,15 +59,15 @@ contract pool2
     address quotationDataAddress;
     quotation2 q2;
     MCR m1;
-    MCRData md1;
-    claims_Reward cr1;
+    // MCRData md;
+    claims_Reward cr;
     address exchangeContractAddress;
-    address MCRDataAddress;
+    // address MCRDataAddress;
     governance g1;
-    poolData1 pd1;
+    poolData1 pd;
     SupplyToken tok;
     pool3 p3;
-    quotationData qd1;
+    quotationData qd;
     event Payout(address indexed to, bytes16 eventName , uint coverId ,uint tokens );
     event Liquidity(bytes16 type_of,bytes16 function_name);
     event ZeroExOrders(bytes16 func,address makerAddr,address takerAddr,uint makerAmt,uint takerAmt,uint expirationTimeInMilliSec,bytes32 orderHash);
@@ -106,27 +106,27 @@ contract pool2
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     modifier checkPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0);
+        ms=master(masterAddress);
+        require(ms.isPause()==0);
         _;
     }
     function changeClaimRewardAddress(address _to) onlyInternal
@@ -141,7 +141,7 @@ contract pool2
     function changePoolDataAddress(address _add) onlyInternal
     {
         poolDataAddress = _add;
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         p3=pool3(pool3Address);
         p3.changePoolDataAddress(poolDataAddress);
     }
@@ -160,10 +160,10 @@ contract pool2
         p3=pool3(pool3Address);
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
-    function changeMCRDataAddress(address _add) onlyInternal
-    {
-        MCRDataAddress = _add;
-    }
+    // function changeMCRDataAddress(address _add) onlyInternal
+    // {
+    //     MCRDataAddress = _add;
+    // }
     function changePool3Address(address _add) onlyInternal
     {
         pool3Address=_add;
@@ -173,66 +173,66 @@ contract pool2
     /// @param res Result fetched by the external oracle.
     function delegateCallBack(bytes32 myid, string res) onlyInternal
     {
-        pd1 = poolData1(poolDataAddress);
-        ms1=master(masterAddress);
-        if (ms1.isPause()==0) // system is not in emergency pause
+        pd = poolData1(poolDataAddress);
+        ms=master(masterAddress);
+        if (ms.isPause()==0) // system is not in emergency pause
         {
             // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
-            if(pd1.getApiIdTypeOf(myid) =="COV")
+            if(pd.getApiIdTypeOf(myid) =="COV")
             {
-                pd1.updateDateUpdOfAPI(myid);
+                pd.updateDateUpdOfAPI(myid);
                 q2=quotation2(quotation2Address);
-                q2.expireCover(pd1.getIdOfApiId(myid));
+                q2.expireCover(pd.getIdOfApiId(myid));
             }
             // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
-            else if(pd1.getApiIdTypeOf(myid) =="CLA")
+            else if(pd.getApiIdTypeOf(myid) =="CLA")
             {
-                pd1.updateDateUpdOfAPI(myid);
-                cr1=claims_Reward(claimRewardAddress);
-                cr1.changeClaimStatus(pd1.getIdOfApiId(myid));
+                pd.updateDateUpdOfAPI(myid);
+                cr=claims_Reward(claimRewardAddress);
+                cr.changeClaimStatus(pd.getIdOfApiId(myid));
 
             }
-              else if(pd1.getApiIdTypeOf(myid) =="MCR")
+              else if(pd.getApiIdTypeOf(myid) =="MCR")
             {
-                pd1.updateDateUpdOfAPI(myid);
+                pd.updateDateUpdOfAPI(myid);
             }
-            else if(pd1.getApiIdTypeOf(myid) =="MCRF")
+            else if(pd.getApiIdTypeOf(myid) =="MCRF")
             {
-                pd1.updateDateUpdOfAPI(myid);
+                pd.updateDateUpdOfAPI(myid);
                 m1=MCR(MCRAddress);
-                m1.addLastMCRData(uint64(pd1.getIdOfApiId(myid)));
+                m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
             }
-            else if(pd1.getApiIdTypeOf(myid)=="SUB")
+            else if(pd.getApiIdTypeOf(myid)=="SUB")
             {
-                 pd1.updateDateUpdOfAPI(myid);
+                 pd.updateDateUpdOfAPI(myid);
             }
-            else if(pd1.getApiIdTypeOf(myid)=="0X")
+            else if(pd.getApiIdTypeOf(myid)=="0X")
             {
-                pd1.updateDateUpdOfAPI(myid);
+                pd.updateDateUpdOfAPI(myid);
             }
-            else if(pd1.getApiIdTypeOf(myid)=="Close0x")
+            else if(pd.getApiIdTypeOf(myid)=="Close0x")
             {
-                pd1.updateDateUpdOfAPI(myid);
+                pd.updateDateUpdOfAPI(myid);
                 p3=pool3(pool3Address);
-                p3.check0xOrderStatus(pd1.getCurrOfApiId(myid),pd1.getIdOfApiId(myid));
+                p3.check0xOrderStatus(pd.getCurrOfApiId(myid),pd.getIdOfApiId(myid));
             }
         }
       
         // even when system is in emergency pause.
         // If callback is of type "proposal", then proposal id associated with the myid is checked for vote closure.
-        if(pd1.getApiIdTypeOf(myid) =="PRO")
+        if(pd.getApiIdTypeOf(myid) =="PRO")
         {
-            pd1.updateDateUpdOfAPI(myid);
+            pd.updateDateUpdOfAPI(myid);
             g1=governance(governanceAddress);
-            g1.closeProposalVote(pd1.getIdOfApiId(myid));
+            g1.closeProposalVote(pd.getIdOfApiId(myid));
         }
-        if(pd1.getApiIdTypeOf(myid) =="Pause")
+        if(pd.getApiIdTypeOf(myid) =="Pause")
         {
-            pd1.updateDateUpdOfAPI(myid);
+            pd.updateDateUpdOfAPI(myid);
             bytes4 by;
-            (,,by) = ms1.getLastEmergencyPause();
+            (,,by) = ms.getLastEmergencyPause();
             if(by=="AB")
-                ms1.addEmergencyPause(false,"AUT"); //set pause to false
+                ms.addEmergencyPause(false,"AUT"); //set pause to false
         }
     }
     /// @dev Calls the payout event incase of claims payout.
@@ -247,15 +247,15 @@ contract pool2
     function sendClaimPayout(uint coverid , uint claimid) onlyInternal  returns(bool succ)
     {
         q2=quotation2(quotation2Address);
-        qd1=quotationData(quotationDataAddress);
-        t1=NXMToken(tokenAddress);
+        qd=quotationData(quotationDataAddress);
+        tc1=NXMToken(tokenAddress);
         tc2=NXMToken2(token2Address);
         c1=claims(claimAddress);
         p1=pool(poolAddress);
-        pd1=poolData1(poolDataAddress);
-        address _to=qd1.getCoverMemberAddress(coverid);
-        uint sumAssured1 = qd1.getCoverSumAssured(coverid);
-        bytes4 curr = qd1.getCurrencyOfCover(coverid);
+        pd=poolData1(poolDataAddress);
+        address _to=qd.getCoverMemberAddress(coverid);
+        uint sumAssured1 = qd.getCoverSumAssured(coverid);
+        bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint balance;
         // uint quoteid=q2.getQuoteId(coverid);
         //Payout in Ethers in case currency of quotation is ETH
@@ -269,11 +269,11 @@ contract pool2
                 succ = p1.transferEther(sumAssured ,_to);   
                 if(succ==true)
                 {
-                    // t1.removeFromPoolFund(curr,sumAssured);
+                    // tc1.removeFromPoolFund(curr,sumAssured);
                     q2.removeSAFromCSA(coverid,sumAssured1);
                     p1.subtractQuotationOracalise(coverid);
                     // date:10/11/2017/
-                    pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
+                    pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured1)));
                     c1.checkLiquidity(curr);
                     callPayoutEvent(_to,"Payout",coverid,sumAssured);
                 }
@@ -298,11 +298,11 @@ contract pool2
             if(balance >= sumAssured)
             {
                 f1.payoutTransferFromPool(_to , curr , sumAssured);
-                // t1.removeFromPoolFund(curr,sumAssured);
+                // tc1.removeFromPoolFund(curr,sumAssured);
                 p1.subtractQuotationOracalise(coverid);
                 q2.removeSAFromCSA(coverid,sumAssured);
                 // date:10/11/2017/
-                pd1.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd1.getCurrencyAssetVarMin(curr),sumAssured1)));
+                pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured1)));
                 c1.checkLiquidity(curr);
                 callPayoutEvent(_to,"Payout",coverid,sumAssured);
                 succ=true;
@@ -313,19 +313,19 @@ contract pool2
                 succ=false;
             }
         }
-        if(qd1.getProductNameOfCover(coverid)=="SCC")
+        if(qd.getProductNameOfCover(coverid)=="SCC")
             tc2.burnStakerLockedToken(coverid,curr,sumAssured1);
     }
     /// @dev Gets the investment asset rank.
    function getIARank(bytes16 curr,uint64 rateX100)  constant returns(int RHS) //internal function
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         p1=pool(poolAddress);
         uint currentIAmaxHolding;
         uint currentIAminHolding;
 
         uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**18));
-        (currentIAminHolding,currentIAmaxHolding)=pd1.getInvestmentAssetHoldingPerc(curr);
+        (currentIAminHolding,currentIAmaxHolding)=pd.getInvestmentAssetHoldingPerc(curr);
         uint holdingPercDiff=(SafeMaths.sub(SafeMaths.div(currentIAmaxHolding,100) , SafeMaths.div(currentIAminHolding,100)));
         if(holdingPercDiff>0 && rateX100>0)
             RHS=int(SafeMaths.div(SafeMaths.mul(IABalance,100),(SafeMaths.mul(holdingPercDiff,rateX100))));
@@ -351,50 +351,50 @@ contract pool2
     /// @dev Triggers pool rebalancing trading orders.
     function rebalancingTrading0xOrders(bytes16[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
     {  
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         p1=pool(poolAddress);
         m1=MCR(MCRAddress);
         p3=pool3(pool3Address);
         bytes16 MAXIACurr;uint64 MAXRate;
-        (MAXIACurr,MAXRate,,)= pd1.getIARankDetailsByDate(date);
-        // require(pd1.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
-        if(pd1.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0){
+        (MAXIACurr,MAXRate,,)= pd.getIARankDetailsByDate(date);
+        // require(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
+        if(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0){
 
-            uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd1.getTotalRiskPoolBalance(),100000 )),(10**18));
+            uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000 )),(10**18));
             if(totalRiskBal>0 && IARate.length>0)  //if v=0 OR there is no IA, don't trade
             {
                 for(uint i=0;i<IARate.length;i++)
                 {
-                     if(pd1.getInvestmentAssetStatus(IACurr[i])==1) // if IA is active 
+                     if(pd.getInvestmentAssetStatus(IACurr[i])==1) // if IA is active 
                      {
                         if(checkTradeConditions(IACurr[i],IARate[i])==1)
                         {
                             // ORDER 1 (max RHS IA to ETH)
                             // amount of asset to sell
-                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd1.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)) )); //*100);// ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
+                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)) )); //*100);// ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
                             // amount of ETH to buy
-                            uint takerAmt=((SafeMaths.mul(m1.getCurrency3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd1.getInvestmentAssetDecimals(MAXIACurr)); 
-                            uint expirationTimeInMilliSec=SafeMaths.add(now,pd1.getOrderExpirationTime("RBT"));
-                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd1.getInvestmentAssetDecimals(MAXIACurr) )),100);
+                            uint takerAmt=((SafeMaths.mul(m1.getCurrency3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); 
+                            uint expirationTimeInMilliSec=SafeMaths.add(now,pd.getOrderExpirationTime("RBT"));
+                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd.getInvestmentAssetDecimals(MAXIACurr) )),100);
                             takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,10**18),(100));
                             if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
                             {
                                 exchange1=Exchange(exchangeContractAddress);
-                                bytes32 orderHash=exchange1.getOrderHash([pd1.get0xMakerAddress(),pd1.get0xTakerAddress(),pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),pd1.get0xFeeRecipient()],[makerAmt,takerAmt,pd1.get0xMakerFee(),pd1.get0xTakerFee(),expirationTimeInMilliSec,pd1.getOrderSalt()]);
-                                pd1.saveRebalancingOrderHash(orderHash);
-                                pd1.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,"ETH",takerAmt,"RBT",expirationTimeInMilliSec);
+                                bytes32 orderHash=exchange1.getOrderHash([pd.get0xMakerAddress(),pd.get0xTakerAddress(),pd.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),pd.get0xFeeRecipient()],[makerAmt,takerAmt,pd.get0xMakerFee(),pd.get0xTakerFee(),expirationTimeInMilliSec,pd.getOrderSalt()]);
+                                pd.saveRebalancingOrderHash(orderHash);
+                                pd.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,"ETH",takerAmt,"RBT",expirationTimeInMilliSec);
                                 
-                                pd1.updateLiquidityOrderStatus(bytes4(MAXIACurr),"RBT",1);
+                                pd.updateLiquidityOrderStatus(bytes4(MAXIACurr),"RBT",1);
                                
-                                pd1.setCurrOrderHash(bytes4(MAXIACurr),orderHash);  
+                                pd.setCurrOrderHash(bytes4(MAXIACurr),orderHash);  
                                 //events
-                                ZeroExOrders("RBT",pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,orderHash);
+                                ZeroExOrders("RBT",pd.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,orderHash);
                                 Rebalancing("OrderGen",1);
                                 return 1; // rebalancing order generated
                             }      
                             else
                             {   //events
-                                ZeroExOrders("RBT",pd1.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,"insufficient");
+                                ZeroExOrders("RBT",pd.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,"insufficient");
                                 Rebalancing("OrderGen",2);
                                 return 2; // not enough makerAmt;
                                 
@@ -413,16 +413,16 @@ contract pool2
     function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
     {
         if(IARate>0){
-            pd1 = poolData1(poolDataAddress);
+            pd = poolData1(poolDataAddress);
             p1=pool(poolAddress);
             
-            uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**pd1.getInvestmentAssetDecimals(curr)));
-            uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd1.getTotalRiskPoolBalance(),100000),(10**18));
+            uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**pd.getInvestmentAssetDecimals(curr)));
+            uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000),(10**18));
             if(IABalance>0 && totalRiskBal>0)
             {
                 uint IAMax;uint IAMin;uint checkNumber;uint z;
-                (IAMin,IAMax)=pd1.getInvestmentAssetHoldingPerc(curr);
-                z=pd1.getVariationPercX100();
+                (IAMin,IAMax)=pd.getInvestmentAssetHoldingPerc(curr);
+                z=pd.getVariationPercX100();
                 checkNumber=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(IABalance,100),100000)),(SafeMaths.mul(IARate,totalRiskBal)));
                 if( (checkNumber> SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.add(IAMax,z),totalRiskBal),100 ),100000))|| (checkNumber < SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(IAMin,z),totalRiskBal),100),100000)) )    //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
                 {
@@ -442,7 +442,7 @@ contract pool2
     /// @dev Calculates the investment asset rank.
     function calculateIARank(bytes16[] curr,uint64[] rate)  constant returns(bytes16 MAXCurr,uint64 MAXRate,bytes16 MINCurr,uint64 MINRate)
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         uint currentIAmaxHolding;
         uint currentIAminHolding;
         int MAX=0;int MIN=-1;
@@ -450,9 +450,9 @@ contract pool2
         for(uint i=0;i<curr.length;i++)
         {
             RHS=0;
-            if(pd1.getInvestmentAssetStatus(curr[i])==1) 
+            if(pd.getInvestmentAssetStatus(curr[i])==1) 
             {
-                (currentIAminHolding,currentIAmaxHolding)=pd1.getInvestmentAssetHoldingPerc(curr[i]);
+                (currentIAminHolding,currentIAmaxHolding)=pd.getInvestmentAssetHoldingPerc(curr[i]);
                 RHS=getIARank(curr[i],rate[i]);
                 if(RHS>MAX)
                 {
@@ -462,21 +462,21 @@ contract pool2
                 }
                 else if(RHS==MAX) //tie for the highest RHSx  
                 {
-                    if(currentIAmaxHolding>pd1.getInvestmentAssetMaxHoldingPerc(MAXCurr))  //Highest MaxIA%
+                    if(currentIAmaxHolding>pd.getInvestmentAssetMaxHoldingPerc(MAXCurr))  //Highest MaxIA%
                     {
                         MAX=RHS;
                         MAXCurr =curr[i];
                         MAXRate=rate[i];  
                     }
-                    else if(currentIAmaxHolding==pd1.getInvestmentAssetMaxHoldingPerc(MAXCurr)) //tie in MaxIA%
+                    else if(currentIAmaxHolding==pd.getInvestmentAssetMaxHoldingPerc(MAXCurr)) //tie in MaxIA%
                     {
-                         if(currentIAminHolding>pd1.getInvestmentAssetMinHoldingPerc(MAXCurr)) //   Highest MinIA%
+                         if(currentIAminHolding>pd.getInvestmentAssetMinHoldingPerc(MAXCurr)) //   Highest MinIA%
                         {
                             MAX=RHS;
                             MAXCurr =curr[i];  
                             MAXRate=rate[i];
                         }
-                        else if(currentIAminHolding==pd1.getInvestmentAssetMinHoldingPerc(MAXCurr)) //tie in MinIA%
+                        else if(currentIAminHolding==pd.getInvestmentAssetMinHoldingPerc(MAXCurr)) //tie in MinIA%
                         {
                             if(strCompare(bytes16ToString(curr[i]),bytes16ToString(MAXCurr))==1) //Alphabetical order of ERC20 name.
                             {
@@ -489,21 +489,21 @@ contract pool2
                 }
                 else if(RHS==MIN) //a tie for the lowest RHSx 
                 {
-                    if(currentIAmaxHolding>pd1.getInvestmentAssetMaxHoldingPerc(MINCurr))  //Highest MaxIA%
+                    if(currentIAmaxHolding>pd.getInvestmentAssetMaxHoldingPerc(MINCurr))  //Highest MaxIA%
                     {
                         MIN=RHS;
                         MINCurr =curr[i];
                         MINRate=rate[i];  
                     }
-                    else if(currentIAmaxHolding==pd1.getInvestmentAssetMaxHoldingPerc(MINCurr)) //tie
+                    else if(currentIAmaxHolding==pd.getInvestmentAssetMaxHoldingPerc(MINCurr)) //tie
                     {
-                        if(currentIAminHolding>pd1.getInvestmentAssetMinHoldingPerc(MINCurr)) //   Highest MinIA%
+                        if(currentIAminHolding>pd.getInvestmentAssetMinHoldingPerc(MINCurr)) //   Highest MinIA%
                         {
                             MIN=RHS;
                             MINCurr =curr[i];  
                             MINRate=rate[i];  
                         }
-                        else if(currentIAminHolding==pd1.getInvestmentAssetMinHoldingPerc(MINCurr)) //tie
+                        else if(currentIAminHolding==pd.getInvestmentAssetMinHoldingPerc(MINCurr)) //tie
                         {
                             if(strCompare(bytes16ToString(curr[i]),bytes16ToString(MINCurr))==1) //Alphabetical order of ERC20 name.
                             {
@@ -562,9 +562,9 @@ contract pool2
     /// @dev Unwraps ether.
     function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         p3=pool3(pool3Address);
-        tok=SupplyToken(pd1.getWETHAddress());
+        tok=SupplyToken(pd.getWETHAddress());
         bool success= tok.transfer(msg.sender,msg.value);
         if(success==true)
         p3.saveIADetails(curr,rate,date);

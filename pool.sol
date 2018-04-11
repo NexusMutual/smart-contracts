@@ -15,44 +15,44 @@
 
 pragma solidity ^0.4.11;
 import "./NXMToken.sol";
-import "./claims.sol";
+// import "./claims.sol";
 import "./fiatFaucet.sol";
 import "./governance.sol";
-import "./claims_Reward.sol";
+// import "./claims_Reward.sol";
 import "./poolData1.sol";
 import "./quotation2.sol";
 import "./master.sol";
 import "./pool2.sol";
 import "./USD.sol";
-import "./MCR.sol";
+// import "./MCR.sol";
 import "./StandardToken.sol";
 import "./SafeMaths.sol";
 import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 contract pool is usingOraclize{
     using SafeMaths for uint;
-    master ms1;
+    master ms;
     address masterAddress;
     address tokenAddress;
-    address claimAddress;
+    // address claimAddress;
     address fiatFaucetAddress;
     address poolAddress;
     address governanceAddress;
-    address claimRewardAddress;
+    // address claimRewardAddress;
     address poolDataAddress;
     address quotation2Address; 
-    address MCRAddress;
+    // address MCRAddress;
     address pool2Address;
     quotation2 q2;
-    NXMToken t1;
-    claims c1;
-    claims_Reward cr1;
+    NXMToken tc1;
+    // claims c1;
+    // claims_Reward cr;
     fiatFaucet f1;
     governance g1;
-    poolData1 pd1;
+    poolData1 pd;
     pool2 p2;
 
-    address owner;
-    MCR m1;
+    // address owner;
+    // MCR m1;
     SupplyToken tok;
 
     event apiresult(address indexed sender,string msg,bytes32 myid);
@@ -63,8 +63,8 @@ contract pool is usingOraclize{
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
@@ -72,25 +72,25 @@ contract pool is usingOraclize{
      
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     modifier isMemberAndcheckPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
+        ms=master(masterAddress);
+        require(ms.isPause()==0 && ms.isMember(msg.sender)==true);
         _;
     }
-    function changeClaimRewardAddress(address _to) onlyInternal
-    {
-        claimRewardAddress=_to;
-    }
+    // function changeClaimRewardAddress(address _to) onlyInternal
+    // {
+    //     claimRewardAddress=_to;
+    // }
    
     function changeGovernanceAddress(address _to) onlyInternal
     {
@@ -99,7 +99,7 @@ contract pool is usingOraclize{
     function changePoolDataAddress(address _add) onlyInternal
     {
         poolDataAddress = _add;
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
     }
     function changeFiatFaucetAddress(address _to) onlyInternal
     {
@@ -114,18 +114,18 @@ contract pool is usingOraclize{
     {
         tokenAddress = _to;
     }
-    function changeMCRAddress(address _add) onlyInternal
-    {
-        MCRAddress = _add;   
-    }
+    // function changeMCRAddress(address _add) onlyInternal
+    // {
+    //     MCRAddress = _add;   
+    // }
     function changeQuotation2Address(address _add) onlyInternal
     {
         quotation2Address = _add;
     }
-    function changeClaimAddress(address _to) onlyInternal
-    {
-        claimAddress = _to;
-    }
+    // function changeClaimAddress(address _to) onlyInternal
+    // {
+    //     claimAddress = _to;
+    // }
     function changePool2Address(address _to)onlyInternal
     {
         pool2Address=_to;
@@ -136,9 +136,9 @@ contract pool is usingOraclize{
     /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetails(bytes32 myid,bytes8 _typeof,uint id) internal
     {
-        pd1 = poolData1(poolDataAddress);
-        pd1.saveApiDetails(myid,_typeof,id);
-        pd1.addInAllApiCall(myid);
+        pd = poolData1(poolDataAddress);
+        pd.saveApiDetails(myid,_typeof,id);
+        pd.addInAllApiCall(myid);
 
     }
     /// @dev Save the details of the Oraclize API.
@@ -148,9 +148,9 @@ contract pool is usingOraclize{
     /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetailsCurr(bytes32 myid,bytes8 _typeof,bytes4 curr,uint id) internal
     {
-        pd1=poolData1(poolDataAddress);
-        pd1.saveApiDetailsCurr(myid,_typeof,curr,id);
-        pd1.addInAllApiCall(myid);
+        pd=poolData1(poolDataAddress);
+        pd.saveApiDetailsCurr(myid,_typeof,curr,id);
+        pd.addInAllApiCall(myid);
     }
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
     /// @param id Claim Id to be closed
@@ -230,9 +230,9 @@ contract pool is usingOraclize{
     /// @dev Handles callback of external oracle query. 
     function __callback(bytes32 myid, string res)
     {
-        ms1=master(masterAddress);
+        ms=master(masterAddress);
         p2=pool2(pool2Address);
-        if(msg.sender != oraclize_cbAddress() && ms1.isOwner(msg.sender)!=1) throw;
+        if(msg.sender != oraclize_cbAddress() && ms.isOwner(msg.sender)!=1) throw;
         p2.delegateCallBack(myid,res);     
     }
 
@@ -250,9 +250,9 @@ contract pool is usingOraclize{
     /// @dev User can buy the NXMToken equivalent to the amount paid by the user.
     function buyTokenBegin()isMemberAndcheckPause payable 
     {
-        t1=NXMToken(tokenAddress);
+        tc1=NXMToken(tokenAddress);
         uint amount= msg.value;
-        t1.buyToken(amount,msg.sender);
+        tc1.buyToken(amount,msg.sender);
     }
 
     /// @dev Sends a given Ether amount to a given address.
@@ -285,9 +285,9 @@ contract pool is usingOraclize{
     /// @dev Payable method for allocating some amount to the Pool. 
     function takeEthersOnly() payable onlyOwner
     {
-        // t1=NXMToken(tokenAddress);
+        // tc1=NXMToken(tokenAddress);
         // uint amount = msg.value;
-        // t1.addToPoolFund("ETH",amount);
+        // tc1.addToPoolFund("ETH",amount);
     }
 
     /// @dev Allocates currency tokens to the pool fund.
@@ -324,7 +324,7 @@ contract pool is usingOraclize{
                 if(succ == true)
                 {   
                     p2.callPayoutEvent(_to,"PayoutAB",id,amount);
-                    // t1.removeFromPoolFund("ETH",amount);
+                    // tc1.removeFromPoolFund("ETH",amount);
                 }
            }
         }
@@ -337,9 +337,9 @@ contract pool is usingOraclize{
         bool succ = transferEther(amount , msg.sender);   
         if(succ==true)
         {
-            t1=NXMToken(tokenAddress);
+            tc1=NXMToken(tokenAddress);
             // Subtracts the transferred amount from the Pool Fund.
-            // t1.removeFromPoolFund("ETH",amount);  
+            // tc1.removeFromPoolFund("ETH",amount);  
         }
     }
     /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
@@ -350,7 +350,7 @@ contract pool is usingOraclize{
         g1 = governance(governanceAddress);
         uint valueWEI =SafeMaths.mul (valueETH,1000000000000000000);
         if(g1.isAB(msg.sender) != 1 || (valueWEI > this.balance)) throw;
-        // t1.removeFromPoolFund("ETH",valueWEI);
+        // tc1.removeFromPoolFund("ETH",valueWEI);
         getCurrencyTokensFromFaucet(valueWEI,curr);
     }
 
@@ -366,19 +366,19 @@ contract pool is usingOraclize{
     ///@dev Gets pool balance of a given investmentasset.
     function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
     {
-        pd1 = poolData1(poolDataAddress);
-        address currAddress=pd1.getInvestmentAssetAddress(_curr);
+        pd = poolData1(poolDataAddress);
+        address currAddress=pd.getInvestmentAssetAddress(_curr);
         tok=SupplyToken(currAddress);
         return tok.balanceOf(poolAddress);
     }
     function transferIAFromPool(address _newPoolAddr) onlyOwner
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
        
-        for(uint64 i=0;i<pd1.getInvestmentCurrencyLen();i++)
+        for(uint64 i=0;i<pd.getInvestmentCurrencyLen();i++)
         {
-            bytes16 curr_name=pd1.getInvestmentCurrencyByIndex(i);
-            address curr_addr=pd1.getInvestmentAssetAddress(curr_name);
+            bytes16 curr_name=pd.getInvestmentCurrencyByIndex(i);
+            address curr_addr=pd.getInvestmentAssetAddress(curr_name);
             transferIAFromPool(_newPoolAddr,curr_addr);
         }   
     }
@@ -395,52 +395,52 @@ contract pool is usingOraclize{
     function transferToPool(address currAddr,uint amount) onlyInternal returns (bool success)
     {
         tok=SupplyToken(currAddr);
-        pd1 = poolData1(poolDataAddress);
-        success=tok.transferFrom(pd1.get0xMakerAddress(),poolAddress,amount);
+        pd = poolData1(poolDataAddress);
+        success=tok.transferFrom(pd.get0xMakerAddress(),poolAddress,amount);
     }
     ///@dev Get 0x wrapped ether pool balance.
     function getWETHPoolBalance() constant returns(uint WETH)
     {
-        pd1 = poolData1(poolDataAddress);
-        tok=SupplyToken(pd1.getWETHAddress());
+        pd = poolData1(poolDataAddress);
+        tok=SupplyToken(pd.getWETHAddress());
         return tok.balanceOf(poolAddress);
     }
     ///@dev Get 0x order details by hash.
     function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
     {
-        pd1=poolData1(poolDataAddress);
+        pd=poolData1(poolDataAddress);
         f1=fiatFaucet(fiatFaucetAddress);
         if(orderType=="ELT")
         {
             if(makerCurr=="ETH")
-                makerCurrAddr=pd1.getWETHAddress();
+                makerCurrAddr=pd.getWETHAddress();
             else
                 makerCurrAddr=f1.getCurrAddress(makerCurr);
-            takerCurrAddr=pd1.getInvestmentAssetAddress(takerCurr);
+            takerCurrAddr=pd.getInvestmentAssetAddress(takerCurr);
         }
         else if(orderType=="ILT")
         {
-            makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
+            makerCurrAddr=pd.getInvestmentAssetAddress(makerCurr);
             if(takerCurr=="ETH")
-                takerCurrAddr=pd1.getWETHAddress();
+                takerCurrAddr=pd.getWETHAddress();
             else
                 takerCurrAddr=f1.getCurrAddress(takerCurr);
         }
         else if(orderType=="RBT")
         {
-            makerCurrAddr=pd1.getInvestmentAssetAddress(makerCurr);
-            takerCurrAddr=pd1.getWETHAddress();
+            makerCurrAddr=pd.getInvestmentAssetAddress(makerCurr);
+            takerCurrAddr=pd.getWETHAddress();
         }
-        salt=pd1.getOrderSalt();
-        feeRecipient=pd1.get0xFeeRecipient();
-        takerAddress=pd1.get0xTakerAddress();
-        makerFee=pd1.get0xMakerFee();
-        takerFee=pd1.get0xTakerFee();
+        salt=pd.getOrderSalt();
+        feeRecipient=pd.get0xFeeRecipient();
+        takerAddress=pd.get0xTakerAddress();
+        makerFee=pd.get0xMakerFee();
+        takerFee=pd.get0xTakerFee();
     }
     function makeCoverUsingCA(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
     {
-        pd1=poolData1(poolDataAddress);
-        StandardToken tok=StandardToken(pd1.getAllCurrencies(coverCurr));
+        pd=poolData1(poolDataAddress);
+        StandardToken tok=StandardToken(pd.getAllCurrencies(coverCurr));
         tok.transferFrom(msg.sender,this,coverDetails[2]);
         q2=quotation2(quotation2Address);
         q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);

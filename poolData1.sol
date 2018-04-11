@@ -21,7 +21,7 @@ import "./SafeMaths.sol";
 contract poolData1
 {
     using SafeMaths for uint;
-    master ms1;
+    master ms;
     address masterAddress;
     uint32 faucetCurrMultiplier;
    
@@ -507,21 +507,21 @@ contract poolData1
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     /// @dev Gets Faucet Multiplier

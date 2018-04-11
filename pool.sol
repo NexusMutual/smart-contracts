@@ -242,7 +242,7 @@ contract pool is usingOraclize{
    function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable
     {
         q2=quotation2(quotation2Address);
-        if(msg.value==coverCurrPrice)
+        if(msg.value==coverDetails[2])
         {
              q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
         }

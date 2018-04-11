@@ -14,7 +14,6 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
-import "./quotation2.sol";
 import "./MCR.sol";
 import "./NXMTokenData.sol";
 import "./NXMToken2.sol";
@@ -24,19 +23,17 @@ import "./quotationData.sol";
 contract NXMToken {
     using SafeMaths for uint;
 
-    master ms1;
+    master ms;
     address masterAddress;
-    address quotationContact;
     address mcrAddress;
     address nxmtoken2Address;
     address tokenDataAddress;  
     address quotationDataAddress;
-    quotation2 q1;
     quotationData qd;
     MCR m1;
     NXMTokenData td;
     // address owner;
-    NXMToken2 t2;
+    NXMToken2 tc2;
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _of,bytes16 eventName , uint coverId ,uint tokens);
@@ -46,45 +43,45 @@ contract NXMToken {
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     modifier checkPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0);
+        ms=master(masterAddress);
+        require(ms.isPause()==0);
         _;
     }
     modifier isMemberAndcheckPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
+        ms=master(masterAddress);
+        require(ms.isPause()==0 && ms.isMember(msg.sender)==true);
         _;
     }
-    function NXMToken() 
-    {
-        // owner = msg.sender;
-    }
+    // function NXMToken() 
+    // {
+    //     // owner = msg.sender;
+    // }
 
     function changeMCRAddress(address _to) onlyInternal
     {
         mcrAddress = _to;
-        t2=NXMToken2(nxmtoken2Address);
-        t2.changeMCRAddress(_to);
+        tc2=NXMToken2(nxmtoken2Address);
+        tc2.changeMCRAddress(_to);
         
     }
     function changeToken2Address(address _to) onlyInternal
@@ -92,16 +89,14 @@ contract NXMToken {
         nxmtoken2Address = _to;
     }
     
-    function changeTokenDataAddress(address _add) onlyInternal
-    {
-        tokenDataAddress = _add;
-        td = NXMTokenData(tokenDataAddress);
-        t2=NXMToken2(nxmtoken2Address);
-        t2.changeTokenDataAddress(_add);
-    }
     function changeQuotationDataAddress(address _add) onlyInternal
     {
         quotationDataAddress = _add;
+    }
+    
+    function changeTokenDataAddress(address _add) onlyInternal
+    {
+        tokenDataAddress = _add;
     }
 
     /// @dev Allocates tokens to a Founder Member and stores the details. Updates the number of tokens that have been allocated already by the creator till date.
@@ -114,8 +109,8 @@ contract NXMToken {
         {
             td.changeCurrentFounderTokens(SafeMaths.add(td.currentFounderTokens(),tokens));
             td.addInAllocatedFounderTokens(_to , tokens);
-            t2=NXMToken2(nxmtoken2Address);
-            t2.rewardToken(_to,SafeMaths.mul(tokens,1000000000000000000));
+            tc2=NXMToken2(nxmtoken2Address);
+            tc2.rewardToken(_to,SafeMaths.mul(tokens,1000000000000000000));
         }
     }
    
@@ -195,12 +190,11 @@ contract NXMToken {
     function unlockCN(uint coverid) onlyInternal
     {
         td=NXMTokenData(tokenDataAddress);
-        q1=quotation2(quotationContact);
         qd=quotationData(quotationDataAddress);
         address _to=qd.getCoverMemberAddress(coverid);
-        t2=NXMToken2(nxmtoken2Address);
+        tc2=NXMToken2(nxmtoken2Address);
         //Undeposits all tokens associated with the coverid
-        t2.undepositCN(coverid,1);
+        tc2.undepositCN(coverid,1);
         uint validity; 
         uint lockedCN;
         (validity,lockedCN) = td.getUser_cover_lockedCN(_to,coverid);
@@ -265,8 +259,8 @@ contract NXMToken {
     /// @param _to Receiver's Address.
     /// @param _value Transfer tokens.
     function transfer(address _to, uint256 _value) isMemberAndcheckPause  {
-        ms1=master(masterAddress);
-        require(ms1.isMember(_to)==true);
+        ms=master(masterAddress);
+        require(ms.isMember(_to)==true);
         td = NXMTokenData(tokenDataAddress);
         if(_value <= 0) throw;
         //available transfer balance=Total Token balance - Locked tokens
@@ -321,8 +315,8 @@ contract NXMToken {
      /// @return success true if transfer is a success, false if transfer is a failure.
     function transferFrom(address _from, address _to, uint256 _value)  isMemberAndcheckPause
     returns (bool success) {
-        ms1=master(masterAddress);
-        require(ms1.isMember(_to)==true);
+        ms=master(masterAddress);
+        require(ms.isMember(_to)==true);
         td = NXMTokenData(tokenDataAddress);
         if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(_from),td.getBalanceCAWithAddress(_from)),td.getBalanceCN(_from)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;                 // Check if the sender has enough
         if (SafeMaths.add(td.getBalanceOf(_to) , _value) < td.getBalanceOf(_to)) throw;  // Check for overflows
@@ -350,11 +344,10 @@ contract NXMToken {
         if(m1.calculateTokenPrice("ETH")>0)
         {
             uint256 amount = SafeMaths.div((SafeMaths.mul(value,1000000000000000000)),m1.calculateTokenPrice("ETH"));
-      
             // td.changePoolFundValue("ETH",SafeMaths.add(td.getPoolFundValue("ETH"),value));
-            t2=NXMToken2(nxmtoken2Address);  
-        // Allocate tokens         
-            t2.rewardToken(_to,amount);
+            tc2=NXMToken2(nxmtoken2Address);  
+            // Allocate tokens         
+            tc2.rewardToken(_to,amount);
         }
     }
    
@@ -381,30 +374,24 @@ contract NXMToken {
         Burn(_of,"BurnForFunding",0,tokens);
     }
    
-    
-    function changeQuoteAddress(address conad) onlyInternal
-    {
-        quotationContact=conad;
-        t2=NXMToken2(nxmtoken2Address);
-        t2.changeQuotationAddress(conad);
-    }
-    /// @dev Gets the number of tokens of a given currency.
-    /// @param curr Currency name.
-    /// @return tokens Number of tokens.
+    // /// @dev Gets the number of tokens of a given currency.
+    // /// @param curr Currency name.
+    // /// @return tokens Number of tokens.
     // function getCurrencyWiseTokens(bytes4 curr)constant returns(uint tokens)
     // {
     //     td = NXMTokenData(tokenDataAddress);
     //     tokens = td.getCurrencyTokens(curr);
     // }
+    
     /// @dev Undeposit, Deposit, Unlock and Push In Locked CN
     /// @param _of address of Member
     /// @param _coverid Cover Id
     /// @param _Locktime Pending Time + Cover Period 7*1 days
     function DepositLockCN_EPOff(address _of, uint _coverid,uint _Locktime) onlyInternal
     {
-        q1 = quotation2(quotationContact);
+        qd = quotationData(quotationDataAddress);
         td = NXMTokenData(tokenDataAddress);
-        t2=NXMToken2(nxmtoken2Address);
+        tc2 = NXMToken2(nxmtoken2Address);
 
         uint timestamp=now+_Locktime;
 
@@ -413,50 +400,49 @@ contract NXMToken {
         (dCN_ValidUpto,dCN_LastAmount)=td.getUser_cover_depositCNByIndex(_of,_coverid,SafeMaths.sub(td.getUser_cover_depositCNLength(_of,_coverid),1));
         uint dCN_Amount = td.getDepositCN(_coverid,_of);
 
-        uint coverValidUntil;
-        (,,coverValidUntil,,,)=q1.getCoverByCoverId(_coverid);
+        uint coverValidUntil=qd.getCoverValidity(_coverid);
         if(coverValidUntil>timestamp){
             if(dCN_ValidUpto<timestamp)
             {
                 if(dCN_Amount>0)
-                   {t2.undepositCN(_coverid,1);
-                    t2.depositCN(_coverid,dCN_Amount,timestamp,_of); }
+                   {tc2.undepositCN(_coverid,1);
+                    tc2.depositCN(_coverid,dCN_Amount,timestamp,_of); }
                 else
-                    t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
+                    tc2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
             }
         }
         else if(coverValidUntil>now){
             unlockCN(_coverid);
             if(dCN_Amount>0){
                 td.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_Amount);
-                t2.depositCN(_coverid,dCN_Amount,timestamp,_of);
+                tc2.depositCN(_coverid,dCN_Amount,timestamp,_of);
             }
             else{
                 td.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_LastAmount);
-                t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
+                tc2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
             }
             
         }
         else if(coverValidUntil<now){
             if(dCN_Amount>0){
-                t2.undepositCN(_coverid,1);
+                tc2.undepositCN(_coverid,1);
                 td.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_Amount);
-                t2.depositCN(_coverid,dCN_Amount,timestamp,_of);
+                tc2.depositCN(_coverid,dCN_Amount,timestamp,_of);
             }
             else{
                 td.pushInUser_cover_lockedCN(_of,_coverid,timestamp,dCN_LastAmount);
-                t2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
+                tc2.depositCN(_coverid,dCN_LastAmount,timestamp,_of);
             }
         }
     }
-    // Arjun - Data Begin
     function getTotalLockedNXMToken(address _scAddress) constant returns (uint _totalLockedNXM)
     {
         _totalLockedNXM=0;
         td=NXMTokenData(tokenDataAddress);
         uint stakeAmt; uint dateAdd; uint burnedAmt;
         uint nowTime=now;
-        for(uint i=0; i<td.getTotalStakerAgainstScAddress(_scAddress);i++){
+        uint totalStaker=td.getTotalStakerAgainstScAddress(_scAddress);
+        for(uint i=0; i<totalStaker;i++){
             uint scAddressIndx;
             (,scAddressIndx) = td.getScAddressIndexByScAddressAndIndex(_scAddress,i);
             (,,,stakeAmt,burnedAmt,dateAdd)=td.getStakeDetails(scAddressIndx);
@@ -488,7 +474,8 @@ contract NXMToken {
         td=NXMTokenData(tokenDataAddress);
         uint stakeAmt; uint dateAdd; uint burnedAmt; 
         uint nowTime=now;
-        for(uint i=0; i<td.getTotalScAddressesAgainstStaker(_of);i++){
+        uint totalStaker=td.getTotalScAddressesAgainstStaker(_of);
+        for(uint i=0; i<totalStaker; i++){
             uint stakerIndx;
             (,stakerIndx) = td.getStakerIndexByStakerAddAndIndex(_of,i);
             (,,,stakeAmt,burnedAmt,dateAdd)=td.getStakeDetails(stakerIndx);
@@ -504,7 +491,7 @@ contract NXMToken {
     function updateStakerCommissions(address _scAddress,uint _premiumNXM) onlyInternal
     {
         td=NXMTokenData(tokenDataAddress);
-        t2=NXMToken2(nxmtoken2Address);
+        tc2=NXMToken2(nxmtoken2Address);
         m1=MCR(mcrAddress);
         // uint tokenPrice=m1.calculateTokenPrice(_curr);
         // _premium=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(_premium,100000),tokenPrice),10**13);
@@ -522,14 +509,14 @@ contract NXMToken {
                 if(totalCommission>commissionPaid){
                     if(totalCommission>=SafeMaths.add(commissionPaid,commissionToBePaid)){
                         td.pushStakeCommissions(stakerAdd,_scAddress,scAddressIndx,commissionToBePaid,now);
-                        t2.rewardToken(stakerAdd,commissionToBePaid);
+                        tc2.rewardToken(stakerAdd,commissionToBePaid);
                         if(i>0)
                             td.setSCAddress_lastCommIndex(_scAddress,SafeMaths.sub(i,1));
                         break;
                     }
                     else{
                         td.pushStakeCommissions(stakerAdd,_scAddress,scAddressIndx,SafeMaths.sub(totalCommission,commissionPaid),now);
-                        t2.rewardToken(stakerAdd,SafeMaths.sub(totalCommission,commissionPaid));
+                        tc2.rewardToken(stakerAdd,SafeMaths.sub(totalCommission,commissionPaid));
                         commissionToBePaid=SafeMaths.sub(commissionToBePaid,SafeMaths.sub(totalCommission,commissionPaid));
                     }
                 }
@@ -539,5 +526,4 @@ contract NXMToken {
         if(commissionToBePaid>0 && stake_length>0)
             td.setSCAddress_lastCommIndex(_scAddress,SafeMaths.sub(stake_length,1));
     }
-    // Arjun - Data End
 }

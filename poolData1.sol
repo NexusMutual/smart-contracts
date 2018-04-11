@@ -635,8 +635,8 @@ contract poolData1
     {
        _Add=currencies[curr];
     }
-//   function addCurrency(address _add , bytes16 currName) onlyInternal
-//     {
-//         currencies[currName] = _add;
-//     }
+    // function addCurrency(address _add , bytes16 currName) onlyInternal
+    // {
+    //     currencies[currName] = _add;
+    // }
 }

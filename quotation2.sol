@@ -26,14 +26,14 @@ import "./claimsData.sol";
 import "./SafeMaths.sol";
 contract quotation2 {
     using SafeMaths for uint;
-    NXMToken t1;
-    NXMToken2 t2;
+    NXMToken tc1;
+    NXMToken2 tc2;
     pool p1;
-    quotationData qd1;
-    NXMTokenData td1;
-    master ms1;
+    quotationData qd;
+    NXMTokenData td;
+    master ms;
     MCR m1;
-    claimsData cd1;
+    claimsData cd;
     address masterAddress;
     address tokenDataAddress;
     address mcrAddress;
@@ -43,32 +43,32 @@ contract quotation2 {
     address quotationDataAddress;
     address claimDataAddress;
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     modifier checkPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0);
+        ms=master(masterAddress);
+        require(ms.isPause()==0);
         _;
     }
     modifier isMemberAndcheckPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
+        ms=master(masterAddress);
+        require(ms.isPause()==0 && ms.isMember(msg.sender)==true);
         _;
     }
 
     function changeTokenDataAddress(address _add) onlyInternal
     {
         tokenDataAddress = _add;
-        td1 = NXMTokenData(tokenDataAddress);      
+        td = NXMTokenData(tokenDataAddress);      
     }
     function changeMCRAddress(address _add) onlyInternal
     {
@@ -82,8 +82,8 @@ contract quotation2 {
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
@@ -101,7 +101,7 @@ contract quotation2 {
     function changeQuotationDataAddress(address _add) onlyInternal
     {
         quotationDataAddress = _add;
-        qd1 = quotationData(quotationDataAddress);
+        qd = quotationData(quotationDataAddress);
     }
     function changePoolAddress(address _add) onlyInternal
     {
@@ -110,7 +110,7 @@ contract quotation2 {
     function changeClaimDataAddress(address _add) onlyInternal
     {
         claimDataAddress = _add;
-        cd1 = claimsData(claimDataAddress);
+        cd = claimsData(claimDataAddress);
     }
 
     /// @dev Provides the information of a Cover when given the cover id.
@@ -122,12 +122,12 @@ contract quotation2 {
     /// @return status Current status of cover. 
     function getCoverByCoverId(uint _cid) constant returns(uint cid,bytes8 productName, uint validUntil,uint lockedTokens,bytes4 curr,bytes16 status)
     {
-        qd1 = quotationData(quotationDataAddress);
+        qd = quotationData(quotationDataAddress);
         uint16 statusNo;
-        (productName,cid,,curr,,statusNo) = qd1.getCoverByIndex1(_cid);
-        (,,validUntil,,)=qd1.getCoverByIndex2(_cid);
-        (,lockedTokens) = td1.getUser_cover_lockedCN(qd1.getCoverMemberAddress(_cid),_cid);
-        status=qd1.getCoverStatus(statusNo);
+        (productName,cid,,curr,,statusNo) = qd.getCoverByIndex1(_cid);
+        validUntil=qd.getCoverValidity(_cid);
+        (,lockedTokens) = td.getUser_cover_lockedCN(qd.getCoverMemberAddress(_cid),_cid);
+        status=qd.getCoverStatus(statusNo);
     }
     
     /// @dev Expires a cover after a set period of time. 
@@ -136,49 +136,49 @@ contract quotation2 {
     /// @param _cid Cover Id.
     function expireCover(uint _cid) onlyInternal
     {
-        qd1 = quotationData(quotationDataAddress);
+        qd = quotationData(quotationDataAddress);
         p1=pool(poolAddress);
-        if(checkCoverExpired(_cid) == 1 && qd1.getCoverStatusNo(_cid)!=3)
+        if(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid)!=3)
         {
-            qd1.changeCoverStatus(_cid, 3);
-            t1=NXMToken(tokenAddress);
-            t1.unlockCN(_cid);
-            bytes4 curr =  qd1.getCurrencyOfCover(_cid);
-            qd1.subFromTotalSumAssured(curr,qd1.getCoverSumAssured(_cid));
-            if(qd1.getProductNameOfCover(_cid)=="SCC"){
+            qd.changeCoverStatus(_cid, 3);
+            tc1=NXMToken(tokenAddress);
+            tc1.unlockCN(_cid);
+            bytes4 curr =  qd.getCurrencyOfCover(_cid);
+            qd.subFromTotalSumAssured(curr,qd.getCoverSumAssured(_cid));
+            if(qd.getProductNameOfCover(_cid)=="SCC"){
                 address scAddress;
-                (,scAddress)=qd1.getscAddressOfCover(_cid);
-                qd1.subFromTotalSumAssuredSC(scAddress,curr,qd1.getCoverSumAssured(_cid));
+                (,scAddress)=qd.getscAddressOfCover(_cid);
+                qd.subFromTotalSumAssuredSC(scAddress,curr,qd.getCoverSumAssured(_cid));
             }
         }
     }
 
-    /// @dev Provides the information of Quotation and Cover for a  given Cover Id.
-    /// @param _cid Cover Id.
-    /// @return claimCount number of claims submitted against a given cover.
-    /// @return lockedTokens number of tokens locked against a cover.
-    /// @return validity timestamp till which cover is valid.
-    /// @return curr Currency in which quotation is assured.
-    /// @return sum Sum Assured of quotation.
-    function getCoverAndQuoteDetails(uint _cid) constant returns(uint8 claimCount , uint lockedTokens, uint validity , bytes4 curr , uint sum)
-    {
-        qd1 = quotationData(quotationDataAddress);
-        td1 = NXMTokenData(tokenDataAddress);
-        cd1 = claimsData(claimDataAddress);
-        claimCount = SafeMaths.sub8(cd1.getCoverClaimCount(_cid),1);
-        (,lockedTokens) = td1.getUser_cover_lockedCN(qd1.getCoverMemberAddress(_cid),_cid);
-        validity = qd1.getCoverValidity(_cid);
-        sum = qd1.getCoverSumAssured(_cid);
-        curr = qd1.getCurrencyOfCover(_cid);
-    }
+    // /// @dev Provides the information of Quotation and Cover for a  given Cover Id.
+    // /// @param _cid Cover Id.
+    // /// @return claimCount number of claims submitted against a given cover.
+    // /// @return lockedTokens number of tokens locked against a cover.
+    // /// @return validity timestamp till which cover is valid.
+    // /// @return curr Currency in which quotation is assured.
+    // /// @return sum Sum Assured of quotation.
+    // function getCoverAndQuoteDetails(uint _cid) constant returns(uint8 claimCount , uint lockedTokens, uint validity , bytes4 curr , uint sum)
+    // {
+    //     qd = quotationData(quotationDataAddress);
+    //     td = NXMTokenData(tokenDataAddress);
+    //     cd = claimsData(claimDataAddress);
+    //     claimCount = SafeMaths.sub8(cd.getCoverClaimCount(_cid),1);
+    //     (,lockedTokens) = td.getUser_cover_lockedCN(qd.getCoverMemberAddress(_cid),_cid);
+    //     validity = qd.getCoverValidity(_cid);
+    //     sum = qd.getCoverSumAssured(_cid);
+    //     curr = qd.getCurrencyOfCover(_cid);
+    // }
 
     /// @dev Checks if a cover should get expired/closed or not.
     /// @param _cid Cover Index.
     /// @return expire 1 if the Cover's time has expired, 0 otherwise.
     function checkCoverExpired(uint _cid) constant returns (uint8 expire)
     {
-        qd1 = quotationData(quotationDataAddress);
-        if(qd1.getCoverValidity(_cid) < uint64(now))
+        qd = quotationData(quotationDataAddress);
+        if(qd.getCoverValidity(_cid) < uint64(now))
             expire=1;
         else
             expire=0;
@@ -189,21 +189,21 @@ contract quotation2 {
     /// @param _amount that will get subtracted' Current Sum Assured Amount that comes under a quotation.
     function removeSAFromCSA(uint _cid , uint _amount) checkPause
     {
-        ms1=master(masterAddress);
-        if(!(ms1.isOwner(msg.sender)==1 || ms1.isInternal(msg.sender)==1)) throw;
-        qd1 = quotationData(quotationDataAddress);
-        bytes4 coverCurr =  qd1.getCurrencyOfCover(_cid);
+        ms=master(masterAddress);
+        if(!(ms.isOwner(msg.sender)==1 || ms.isInternal(msg.sender)==1)) throw;
+        qd = quotationData(quotationDataAddress);
+        bytes4 coverCurr =  qd.getCurrencyOfCover(_cid);
         address _add;
-        (,_add)=qd1.getscAddressOfCover(_cid);
-        qd1.subFromTotalSumAssured(coverCurr,_amount);
-        if(qd1.getProductNameOfCover(_cid)=="SCC"){
-            qd1.subFromTotalSumAssuredSC(_add,coverCurr,_amount);
+        (,_add)=qd.getscAddressOfCover(_cid);
+        qd.subFromTotalSumAssured(coverCurr,_amount);
+        if(qd.getProductNameOfCover(_cid)=="SCC"){
+            qd.subFromTotalSumAssuredSC(_add,coverCurr,_amount);
         }
     }
 
-    /// @dev Creates a new Quotation
-    /// @param arr1 arr1=[productId(Insurance product),sumAssured,coverPeriod(in days)]
-    /// @param arr2 arr2=[currencyCode,Latitude,Longitude]
+    // /// @dev Creates a new Quotation
+    // /// @param arr1 arr1=[productId(Insurance product),sumAssured,coverPeriod(in days)]
+    // /// @param arr2 arr2=[currencyCode,Latitude,Longitude]
     // function addBulkQuote(uint[] arr1 ,bytes16[] arr2, /*int[] arr3, bytes32[] arr4, address[] arr5*/ address[] addParams) isMemberAndcheckPause
     // {
     //     uint k=0;
@@ -243,14 +243,14 @@ contract quotation2 {
     /// @param from Quote member Ethereum address
     function make_Cover(uint16 prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails) internal 
     {
-        qd1 = quotationData(quotationDataAddress);
+        qd = quotationData(quotationDataAddress);
         p1=pool(poolAddress);
-        uint cid=qd1.getCoverLength();
-        qd1.addCover(uint16(coverDetails[0]),uint16(coverDetails[1]),qd1.getProductName(prodId),cid,from,coverCurr,scAddress);
-        uint coverLength_new=qd1.getCoverLength();
+        uint cid=qd.getCoverLength();
+        qd.addCover(uint16(coverDetails[0]),uint16(coverDetails[1]),qd.getProductName(prodId),cid,from,coverCurr,scAddress);
+        uint coverLength_new=qd.getCoverLength();
         if(SafeMaths.sub(coverLength_new,cid)>1){
             for(uint i=cid; i<coverLength_new; i++){
-                if(qd1.getCoverMemberAddress(i)==from){ 
+                if(qd.getCoverMemberAddress(i)==from){ 
                     cid=i;
                     break;
                 }
@@ -262,16 +262,16 @@ contract quotation2 {
             p1.closeCoverOraclise(cid,uint64(SafeMaths.mul(coverDetails[0] , 1 days)));
         }
         
-        t2=NXMToken2(token2Address);
-        qd1.changeLockedTokens(cid,t2.lockCN(coverDetails[3],uint16(coverDetails[0]),cid,from));
-        qd1.addInTotalSumAssured(coverCurr,coverDetails[1]);
-        if(qd1.getProductNameOfCover(prodId)=="SCC" && scAddress != 0x000){ 
-            qd1.addInTotalSumAssuredSC(scAddress,coverCurr,coverDetails[1]);
-            t1=NXMToken(tokenAddress);
-            if(t1.getTotalLockedNXMToken(scAddress)>0)
-                t1.updateStakerCommissions(scAddress,coverDetails[3]);
+        tc2=NXMToken2(token2Address);
+        qd.changeLockedTokens(cid,tc2.lockCN(coverDetails[3],uint16(coverDetails[0]),cid,from));
+        qd.addInTotalSumAssured(coverCurr,coverDetails[1]);
+        if(qd.getProductNameOfCover(prodId)=="SCC" && scAddress != 0x000){ 
+            qd.addInTotalSumAssuredSC(scAddress,coverCurr,coverDetails[1]);
+            tc1=NXMToken(tokenAddress);
+            if(tc1.getTotalLockedNXMToken(scAddress)>0)
+                tc1.updateStakerCommissions(scAddress,coverDetails[3]);
         }
-        qd1.callCoverEvent(from, scAddress, coverDetails[2], "xyz");
+        qd.callCoverEvent(from, scAddress, coverDetails[2], "xyz");
     }
 
     /// @dev Make Cover using NXM tokens.
@@ -280,8 +280,8 @@ contract quotation2 {
     {
         m1=MCR(mcrAddress);
         if(m1.checkForMinMCR() == 1) throw;
-        t1=NXMToken(tokenAddress);
-        t1.burnTokenForFunding(coverDetails[3],msg.sender);
+        tc1=NXMToken(tokenAddress);
+        tc1.burnTokenForFunding(coverDetails[3],msg.sender);
         verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
     }
 
@@ -299,8 +299,8 @@ contract quotation2 {
     // /// @return result Sum Assured amount.
     // function getSumAssured(uint _cid) constant returns (uint result)
     // {
-    //     qd1 = quotationData(quotationDataAddress);
-    //     result=qd1.getCoverSumAssured(_cid);
+    //     qd = quotationData(quotationDataAddress);
+    //     result=qd.getCoverSumAssured(_cid);
     // }
 
     // /// @dev Gets the Address of Owner of a given Cover.
@@ -308,8 +308,8 @@ contract quotation2 {
     // /// @return add Owner's address.
     // function getMemberAddress(uint _cid) onlyInternal constant returns (address add) 
     // {
-    //     qd1 = quotationData(quotationDataAddress);
-    //     add=qd1.getCoverMemberAddress(_cid);
+    //     qd = quotationData(quotationDataAddress);
+    //     add=qd.getCoverMemberAddress(_cid);
     // }
 
     // /// @dev Updates the status and claim's count by 1 of an existing cover.
@@ -317,31 +317,31 @@ contract quotation2 {
     // /// @param newstatus New status name.
     // function updateCoverStatusAndCount(uint _cid,uint16 newstatus) onlyInternal
     // {
-    //     qd1 = quotationData(quotationDataAddress);
-    //     qd1.changeCoverStatus(_cid,newstatus);
-    //     cd1=claimsData(claimDataAddress);
-    //     cd1.addCover_Claim(_cid,cd1.getCoverClaimCount(_cid)); //cc+1
+    //     qd = quotationData(quotationDataAddress);
+    //     qd.changeCoverStatus(_cid,newstatus);
+    //     cd=claimsData(claimDataAddress);
+    //     cd.addCover_Claim(_cid,cd.getCoverClaimCount(_cid)); //cc+1
     // }
 
-    /// @dev Provides the Cover Details of a given Cover id.
-    /// @param _cid Cover Id.
-    /// @return cid Cover Id.
-    /// @return coverOwner Address of the owner of the cover.
-    /// @return sa Amount of the cover. 
-    function getCoverDetailsForAB(uint _cid) constant returns(uint cid, address coverOwner,uint32 sa)
-    {   
-        qd1 = quotationData(quotationDataAddress);
-        cid = _cid;
-        coverOwner = qd1.getCoverMemberAddress(_cid);
-        sa = qd1.getCoverSumAssured(_cid);
-    }
+    // /// @dev Provides the Cover Details of a given Cover id.
+    // /// @param _cid Cover Id.
+    // /// @return cid Cover Id.
+    // /// @return coverOwner Address of the owner of the cover.
+    // /// @return sa Amount of the cover. 
+    // function getCoverDetailsForAB(uint _cid) constant returns(uint cid, address coverOwner,uint32 sa)
+    // {   
+    //     qd = quotationData(quotationDataAddress);
+    //     cid = _cid;
+    //     coverOwner = qd.getCoverMemberAddress(_cid);
+    //     sa = qd.getCoverSumAssured(_cid);
+    // }
 
     // /// @dev Get Product ID.
     // /// @param _cid Cover Id
     // function getCoverProductName(uint _cid) constant returns(bytes8)
     // {
-    //     qd1 = quotationData(quotationDataAddress);
-    //     return qd1.getProductNameOfCover(_cid);
+    //     qd = quotationData(quotationDataAddress);
+    //     return qd.getProductNameOfCover(_cid);
     // }   
     
     function verifySign(uint[] coverDetails,bytes4 curr,address smaratCA,uint8 _v,bytes32 _r,bytes32 _s)  returns(bool)
@@ -357,10 +357,10 @@ contract quotation2 {
     
     function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant  returns(bool)
     {
-        qd1 = quotationData(quotationDataAddress);
+        qd = quotationData(quotationDataAddress);
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = keccak256(prefix, hash);
         address a= ecrecover(prefixedHash, v, r, s);      
-        return (a==qd1.getAuthQuoteEngine());
+        return (a==qd.getAuthQuoteEngine());
     }
 }

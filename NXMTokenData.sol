@@ -19,7 +19,7 @@ import "./master.sol";
 import "./SafeMaths.sol";
 contract NXMTokenData {
     using SafeMaths for uint;
-    master ms1;
+    master ms;
     address masterAddress;
     string public version = 'NXM 0.1';
     bytes8 public name;
@@ -54,7 +54,6 @@ contract NXMTokenData {
         uint amount;
     }
     
-    
     struct allocatedTokens{
         address memberAdd;
         uint tokens;
@@ -62,14 +61,11 @@ contract NXMTokenData {
         uint blockNumber;
     }
 
-    // Arjun - Data Begin
-    // smartContractAddress[] smartContractAddresses;
     mapping (address => uint[]) scAddress_Stake;
     stake[] stakeDetails;
     mapping (address => uint[]) staker_Index;
     mapping(address => uint) public scaddress_lastCommIndex;
     mapping (address => mapping(address => mapping(uint => stakeCommission[]))) staker_SC_index_Commission;
-    // Arjun - Data End
     allocatedTokens[] allocatedFounderTokens;
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping(uint=>lockToken[])) public user_cover_depositCN;
@@ -104,10 +100,8 @@ contract NXMTokenData {
         bookTime = SafeMaths.mul64(SafeMaths.mul64(12,60),60);
         minVoteLockPeriod = SafeMaths.mul64(7 , 1 days);     
         LockTokenTimeAfterCoverExp=SafeMaths.mul(35,1 days);  
-        // Arjun - Data Begin 
         scValidDays=200;
         joiningFee=2000000000000000; //gwei - 0.002*(10**18)
-        // Arjun - Data End             
     }
     function changeMasterAddress(address _add)
     {
@@ -115,21 +109,21 @@ contract NXMTokenData {
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     /// @dev Gets the number of NXM Tokens that are alloted by the creator to the founders.

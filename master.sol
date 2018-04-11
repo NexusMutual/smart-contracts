@@ -85,15 +85,16 @@ contract master
     address  pool2Address;
     address  governance2Address;
     address  memberAddress;
-    claimsData cd1;
     //date 21/11/2017
     address zeroExExchangeAddress;
     address pool3Address;
+    
+    claimsData cd;
     quotation2 q2;
-    NXMToken t1;
-    NXMToken2 t2;
+    NXMToken tc1;
+    NXMToken2 tc2;
     claims c1;
-    claims_Reward cr1;
+    claims_Reward cr;
     pool p1;
     governance g1;
     governance2 g2;
@@ -101,19 +102,18 @@ contract master
     MCR m1;
     SupplyToken s1;
     masters2 m2;
-    quotationData qd1;
-    NXMTokenData td1;
-    governanceData gd1;
-    poolData1 pd1;
-    MCRData md1;
+    quotationData qd;
+    NXMTokenData td;
+    governanceData gd;
+    poolData1 pd;
+    MCRData md;
     pool2 p2;
     pool3 p3;
-    MemberRoles mr1;
+    MemberRoles mr;
 
     address public owner;
     uint pauseTime;
-    modifier onlyOwner
-    {  
+    modifier onlyOwner {  
         require(isOwner(msg.sender) == 1);
         _; 
     }
@@ -140,30 +140,30 @@ contract master
     /// @dev Add Emergency pause
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
-   function addEmergencyPause(bool _pause,bytes4 _by) onlyInternal
-   {
+    function addEmergencyPause(bool _pause,bytes4 _by) onlyInternal
+    {
         emergency_Paused.push(emergencyPause(_pause,now,_by));
         if(_pause==false)
         {
             c1=claims(claimsAddress);
             c1.submitClaimAfterEPOff();     //Submitting Requested Claims.
-            cr1=claims_Reward(claims_RewardAddress);
-            cr1.StartAllPendingClaimsVoting();   //Start Voting of pending Claims again.
+            cr=claims_Reward(claims_RewardAddress);
+            cr.StartAllPendingClaimsVoting();   //Start Voting of pending Claims again.
         }
     }
     ///@dev update time in seconds for which emergency pause is applied.
-   function updatePauseTime(uint _time) onlyInternal
-   {
+    function updatePauseTime(uint _time) onlyInternal
+    {
         pauseTime=_time;
-   }
-   ///@dev get time in seconds for which emergency pause is applied.
-   function getPauseTime() constant returns(uint _time)
-   {
+    }
+    ///@dev get time in seconds for which emergency pause is applied.
+    function getPauseTime() constant returns(uint _time)
+    {
         return pauseTime;
-   }
-   /// @dev Changes all reference contract addresses in master
-   function changeAddressinMaster(uint version) onlyInternal
-   {
+    }
+    /// @dev Changes all reference contract addresses in master
+    function changeAddressinMaster(uint version) onlyInternal
+    {
        changeAllAddress1(version);
        changeAllAddress2(version);
        quoteDataAddress = allContractVersions[version][1].contractAddress;
@@ -191,44 +191,45 @@ contract master
        pool2Address=allContractVersions[version][18].contractAddress;
        pool3Address=allContractVersions[version][25].contractAddress;
        memberAddress=allContractVersions[version][26].contractAddress;
-   }
+    }
     /// @dev Links all contracts to master.sol by passing address of Master contract to the functions of other contracts.
-   function changeMasterAddress(address _add) onlyOwner
-   {
+    function changeMasterAddress(address _add) onlyOwner
+    {
         
-       qd1=quotationData(quoteDataAddress);
-       qd1.changeMasterAddress(_add);
+       qd=quotationData(quoteDataAddress);
+       qd.changeMasterAddress(_add);
        q2=quotation2(quotation2Address);
        q2.changeMasterAddress(_add);
-       td1=NXMTokenData(tokenDataAddress);
-       td1.changeMasterAddress(_add);
+       td=NXMTokenData(tokenDataAddress);
+       td.changeMasterAddress(_add);
 
-       t1=NXMToken(NXMTokenAddress);
-       t1.changeMasterAddress(_add);
-       t2=NXMToken2(NXMToken2Address);
-       t2.changeMasterAddress(_add);
+       tc1=NXMToken(NXMTokenAddress);
+       tc1.changeMasterAddress(_add);
+       
+       tc2=NXMToken2(NXMToken2Address);
+       tc2.changeMasterAddress(_add);
 
-       cd1=claimsData(claimDataAddress);
-       cd1.changeMasterAddress(_add);
+       cd=claimsData(claimDataAddress);
+       cd.changeMasterAddress(_add);
 
        c1=claims(claimsAddress);
        c1.changeMasterAddress(_add);
 
-       cr1=claims_Reward(claims_RewardAddress);
-       cr1.changeMasterAddress(_add);          
-       pd1=poolData1(poolDataAddress);
-       pd1.changeMasterAddress(_add);
+       cr=claims_Reward(claims_RewardAddress);
+       cr.changeMasterAddress(_add);          
+       pd=poolData1(poolDataAddress);
+       pd.changeMasterAddress(_add);
 
        p1=pool(poolAddress);
        p1.changeMasterAddress(_add);
-       gd1=governanceData(governanceDataAddress);
-       gd1.changeMasterAddress(_add);
+       gd=governanceData(governanceDataAddress);
+       gd.changeMasterAddress(_add);
 
        g1=governance(governanceAddress);
        g1.changeMasterAddress(_add);
 
-       md1=MCRData(mcrDataAddress);
-       md1.changeMasterAddress(_add);
+       md=MCRData(mcrDataAddress);
+       md.changeMasterAddress(_add);
 
        m1=MCR(MCRAddress);
        m1.changeMasterAddress(_add);
@@ -247,210 +248,208 @@ contract master
        g2=governance2(governance2Address);
        g2.changeMasterAddress(_add);
 
-       mr1=MemberRoles(memberAddress);
-       mr1.changeMasterAddress(_add);
+       mr=MemberRoles(memberAddress);
+       mr.changeMasterAddress(_add);
     }
     /// @dev Link contracts to one another.
-   function changeOtherAddress() onlyInternal
-   {   
+    function changeOtherAddress() onlyInternal
+    {   
         
-      q2=quotation2(quotation2Address);
-      q2.changeTokenAddress(NXMTokenAddress);
-      q2.changePoolAddress(poolAddress);
-      q2.changeQuotationDataAddress(quoteDataAddress);
-      q2.changeMCRAddress(MCRAddress);
-       q2.changeToken2Address(NXMToken2Address);
-      // Arjun - Data Begin
-      q2.changeTokenDataAddress(tokenDataAddress);
-      // Arjun - Data End
-
-
-      t1=NXMToken(NXMTokenAddress);
-      t1.changeToken2Address(NXMToken2Address);
-      t1.changeQuoteAddress(quotation2Address);
-      t1.changeMCRAddress(MCRAddress);
-      t1.changeTokenDataAddress(tokenDataAddress);
-      t1.changeQuotationDataAddress(quoteDataAddress);
-
-
-      t2=NXMToken2(NXMToken2Address);        
-      t2.changeTokenAddress(NXMTokenAddress);
-      t2.changePoolAddress(poolAddress);
-      t2.changeQuotationDataAddress(quoteDataAddress);
-      t2.changeMemberRolesAddress(memberAddress);
-
-      c1=claims(claimsAddress);
-      c1.changeTokenAddress(NXMTokenAddress);
-      c1.changeQuotationAddress(quotation2Address);
-      c1.changeClaimRewardAddress(claims_RewardAddress);
-      c1.changePoolAddress(poolAddress);
-      c1.changeGovernanceAddress(governanceAddress);
-      c1.changeClaimDataAddress(claimDataAddress);
-      c1.changeToken2Address(NXMToken2Address);
-      c1.changeTokenDataAddress(tokenDataAddress);
-      c1.changeFiatFaucetAddress(fiatFaucetAddress);
-      c1.changeMCRDataAddress(mcrDataAddress);
-      c1.changePoolDataAddress(poolDataAddress);
-      c1.changePool2Address(pool2Address);
-      c1.changePool3Address(pool3Address);
-
-      cr1=claims_Reward(claims_RewardAddress);
-      cr1.changeTokenAddress(NXMTokenAddress);
-      // cr1.changeQuotationAddress(quotation2Address);
-      cr1.changeQuotationDataAddress(quoteDataAddress);
-      cr1.changeClaimsAddress(claimsAddress);
-      cr1.changePoolAddress(poolAddress);
-      cr1.changeToken2Address(NXMToken2Address);
-      cr1.changeClaimDataAddress(claimDataAddress);
-      cr1.changePool2Address(pool2Address);
-      cr1.changePoolDataAddress(poolDataAddress);
-      cr1.changeTokenDataAddress(tokenDataAddress);
-
-      p1=pool(poolAddress);
-      p1.changeTokenAddress(NXMTokenAddress);
-      p1.changeClaimAddress(claimsAddress);
-      p1.changeFiatFaucetAddress(fiatFaucetAddress);
-      p1.changeGovernanceAddress(governanceAddress);
-      p1.changePoolAddress(poolAddress);
-      p1.changeClaimRewardAddress(claims_RewardAddress);
-      p1.changePoolDataAddress(poolDataAddress);
-      p1.changeQuotation2Address(quotation2Address);
-      p1.changeMCRAddress(MCRAddress);
-      p1.changePool2Address(pool2Address);
-
-      g1=governance(governanceAddress);
-      g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress,poolDataAddress,pool3Address);
-      g1.changeGovernanceDataAddress(governanceDataAddress);
-      g1.changeToken2Address(NXMToken2Address);
-      g1.changeTokenDataAddress(tokenDataAddress);
-
-      m1=MCR(MCRAddress);
-      m1.changeTokenAddress(NXMTokenAddress);
-      m1.changePoolAddress(poolAddress);
-      m1.changeFiatFaucetAddress(fiatFaucetAddress);
-      m1.changeMCRDataAddress(mcrDataAddress);
-      m1.changeToken2Address(NXMToken2Address);
-      m1.changeTokenDataAddress(tokenDataAddress);
-      m1.changeQuotationDataAddress(quoteDataAddress);
-
-      s1=SupplyToken(faucetUSDAddress);
-      s1.changePoolAddress(poolAddress);
-      s1.changeFiatTokenAddress(fiatFaucetAddress);
-
-      s1=SupplyToken(faucetEURAddress);
-      s1.changePoolAddress(poolAddress);
-      s1.changeFiatTokenAddress(fiatFaucetAddress);
-
-      s1=SupplyToken(faucetGBPAddress);
-      s1.changePoolAddress(poolAddress);
-      s1.changeFiatTokenAddress(fiatFaucetAddress);
-
-      f1=fiatFaucet(fiatFaucetAddress);
-      f1.changeQuotationAddress(quotation2Address);
-      f1.changeTokenAddress(NXMTokenAddress);
-      f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
-
-      m2=masters2(masters2Address);
-      m2.changePoolAddress(poolAddress);
-      m2.changeClaimsAddress(claimsAddress);
-      m2.changeClaimRewardAddress(claims_RewardAddress);
-      m2.changeGovernanceAddress(governanceAddress);
-      m2.changeClaimDataAddress(claimDataAddress);
-      m2.changeMCRAddress(MCRAddress); 
-      m2.changeQuotationDataAddress(quoteDataAddress); 
-      m2.changePoolDataAddress(poolDataAddress); //add in new version
-
-      p2=pool2(pool2Address);   
-      p2.changePool3Address(pool3Address);
-      p2.changeGovernanceAddress(governanceAddress);
-      p2.changeClaimRewardAddress(claims_RewardAddress);
-      p2.changePoolDataAddress(poolDataAddress);
-      p2.changeQuotation2Address(quotation2Address);
-      p2.changePoolAddress(poolAddress);
-      p2.changeTokenAddress(NXMTokenAddress);
-      p2.changeClaimAddress(claimsAddress);
-      p2.changeFiatFaucetAddress(fiatFaucetAddress);
-      p2.changeMCRAddress(MCRAddress); 
-      p2.changeMCRDataAddress(mcrDataAddress);
-      p2.changeToken2Address(NXMToken2Address);
-
-      p3=pool3(pool3Address);
-      p3.changePoolDataAddress(poolDataAddress);
-      p3.changeFiatFaucetAddress(fiatFaucetAddress);
-      p3.changePoolAddress(poolAddress);
-      p3.changeMCRDataAddress(mcrDataAddress);
-      p3.changePool2Address(pool2Address);
-
-      g2=governance2(governance2Address);
-      g2.changeGovernanceDataAddress(governanceDataAddress);
-      g2.changePoolAddress(poolAddress);
-
-      mr1=MemberRoles(memberAddress);
-      mr1.changeToken2Address(NXMToken2Address);
+        q2=quotation2(quotation2Address);
+        q2.changeTokenAddress(NXMTokenAddress);
+        q2.changePoolAddress(poolAddress);
+        q2.changeQuotationDataAddress(quoteDataAddress);
+        q2.changeMCRAddress(MCRAddress);
+        q2.changeToken2Address(NXMToken2Address);
+        q2.changeTokenDataAddress(tokenDataAddress);
+        
+        
+        tc1=NXMToken(NXMTokenAddress);
+        tc1.changeToken2Address(NXMToken2Address);
+        // tc1.changeQuoteAddress(quotation2Address);
+        tc1.changeMCRAddress(MCRAddress);
+        tc1.changeTokenDataAddress(tokenDataAddress);
+        tc1.changeQuotationDataAddress(quoteDataAddress);
+        
+        
+        tc2=NXMToken2(NXMToken2Address);        
+        tc2.changeTokenAddress(NXMTokenAddress);
+        tc2.changePoolAddress(poolAddress);
+        tc2.changeQuotationDataAddress(quoteDataAddress);
+        tc2.changeMemberRolesAddress(memberAddress);
+        
+        c1=claims(claimsAddress);
+        c1.changeTokenAddress(NXMTokenAddress);
+        c1.changeQuotationAddress(quotation2Address);
+        c1.changeClaimRewardAddress(claims_RewardAddress);
+        c1.changePoolAddress(poolAddress);
+        c1.changeGovernanceAddress(governanceAddress);
+        c1.changeClaimDataAddress(claimDataAddress);
+        c1.changeToken2Address(NXMToken2Address);
+        c1.changeTokenDataAddress(tokenDataAddress);
+        c1.changeFiatFaucetAddress(fiatFaucetAddress);
+        // c1.changeMCRDataAddress(mcrDataAddress);
+        c1.changePoolDataAddress(poolDataAddress);
+        c1.changePool2Address(pool2Address);
+        c1.changePool3Address(pool3Address);
+        
+        cr=claims_Reward(claims_RewardAddress);
+        cr.changeTokenAddress(NXMTokenAddress);
+        // cr.changeQuotationAddress(quotation2Address);
+        cr.changeQuotationDataAddress(quoteDataAddress);
+        cr.changeClaimsAddress(claimsAddress);
+        cr.changePoolAddress(poolAddress);
+        cr.changeToken2Address(NXMToken2Address);
+        cr.changeClaimDataAddress(claimDataAddress);
+        cr.changePool2Address(pool2Address);
+        cr.changePoolDataAddress(poolDataAddress);
+        // cr.changeTokenDataAddress(tokenDataAddress);
+        
+        p1=pool(poolAddress);
+        p1.changeTokenAddress(NXMTokenAddress);
+        // p1.changeClaimAddress(claimsAddress);
+        p1.changeFiatFaucetAddress(fiatFaucetAddress);
+        p1.changeGovernanceAddress(governanceAddress);
+        p1.changePoolAddress(poolAddress);
+        // p1.changeClaimRewardAddress(claims_RewardAddress);
+        p1.changePoolDataAddress(poolDataAddress);
+        p1.changeQuotation2Address(quotation2Address);
+        // p1.changeMCRAddress(MCRAddress);
+        p1.changePool2Address(pool2Address);
+        
+        g1=governance(governanceAddress);
+        g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress,poolDataAddress,pool3Address);
+        g1.changeGovernanceDataAddress(governanceDataAddress);
+        g1.changeToken2Address(NXMToken2Address);
+        g1.changeTokenDataAddress(tokenDataAddress);
+        
+        m1=MCR(MCRAddress);
+        m1.changeTokenAddress(NXMTokenAddress);
+        m1.changePoolAddress(poolAddress);
+        m1.changeFiatFaucetAddress(fiatFaucetAddress);
+        m1.changeMCRDataAddress(mcrDataAddress);
+        // m1.changeToken2Address(NXMToken2Address);
+        // m1.changeTokenDataAddress(tokenDataAddress);
+        m1.changeQuotationDataAddress(quoteDataAddress);
+        
+        s1=SupplyToken(faucetUSDAddress);
+        s1.changePoolAddress(poolAddress);
+        s1.changeFiatTokenAddress(fiatFaucetAddress);
+        
+        s1=SupplyToken(faucetEURAddress);
+        s1.changePoolAddress(poolAddress);
+        s1.changeFiatTokenAddress(fiatFaucetAddress);
+        
+        s1=SupplyToken(faucetGBPAddress);
+        s1.changePoolAddress(poolAddress);
+        s1.changeFiatTokenAddress(fiatFaucetAddress);
+        
+        f1=fiatFaucet(fiatFaucetAddress);
+        f1.changeQuotationAddress(quotation2Address);
+        f1.changeTokenAddress(NXMTokenAddress);
+        f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
+        
+        m2=masters2(masters2Address);
+        m2.changePoolAddress(poolAddress);
+        m2.changeClaimsAddress(claimsAddress);
+        m2.changeClaimRewardAddress(claims_RewardAddress);
+        m2.changeGovernanceAddress(governanceAddress);
+        m2.changeClaimDataAddress(claimDataAddress);
+        m2.changeMCRAddress(MCRAddress); 
+        m2.changeQuotationDataAddress(quoteDataAddress); 
+        m2.changePoolDataAddress(poolDataAddress); //add in new version
+        
+        p2=pool2(pool2Address);   
+        p2.changePool3Address(pool3Address);
+        p2.changeGovernanceAddress(governanceAddress);
+        p2.changeClaimRewardAddress(claims_RewardAddress);
+        p2.changePoolDataAddress(poolDataAddress);
+        p2.changeQuotation2Address(quotation2Address);
+        p2.changePoolAddress(poolAddress);
+        p2.changeTokenAddress(NXMTokenAddress);
+        p2.changeClaimAddress(claimsAddress);
+        p2.changeFiatFaucetAddress(fiatFaucetAddress);
+        p2.changeMCRAddress(MCRAddress); 
+        p2.changeMCRDataAddress(mcrDataAddress);
+        p2.changeToken2Address(NXMToken2Address);
+        
+        p3=pool3(pool3Address);
+        p3.changePoolDataAddress(poolDataAddress);
+        p3.changeFiatFaucetAddress(fiatFaucetAddress);
+        p3.changePoolAddress(poolAddress);
+        p3.changeMCRDataAddress(mcrDataAddress);
+        p3.changePool2Address(pool2Address);
+        
+        g2=governance2(governance2Address);
+        g2.changeGovernanceDataAddress(governanceDataAddress);
+        g2.changePoolAddress(poolAddress);
+        
+        // mr=MemberRoles(memberAddress);
+        // mr.changeToken2Address(NXMToken2Address);
       
-   }
-   /// @dev Updates the version of contracts and calls the oraclize query to update UI.
-   function switchToRecentVersion() onlyInternal
-   {
+    }
+    /// @dev Updates the version of contracts and calls the oraclize query to update UI.
+    function switchToRecentVersion() onlyInternal
+    {
        uint version = SafeMaths.sub(versionLength,1);
        p1=pool(poolAddress);
        p1.versionOraclise(version);
        addInContractChangeDate(now,version);
        changeAddressinMaster(version);
        changeOtherAddress();
-   }
-   /// @dev Stores the date when version of contracts get switched.
-   /// @param _date Current date stamp.
-   /// @param vno Active version number to which contracts have been switched.
-   function addInContractChangeDate(uint _date , uint vno) internal
-   {
+    }
+    /// @dev Stores the date when version of contracts get switched.
+    /// @param _date Current date stamp.
+    /// @param vno Active version number to which contracts have been switched.
+    function addInContractChangeDate(uint _date , uint vno) internal
+    {
        contractChangeDate.push(changeVersion(_date,vno));
-   }
-   /// @dev Adds Contract's name  and its ethereum address in a given version.
-   /// @param vno Version Number.
-   /// @param name Contract's Name.
-   /// @param _add Contract's address.
-   function addContractDetails(uint vno,bytes16 name,address _add) internal
-   {
+    }
+    /// @dev Adds Contract's name  and its ethereum address in a given version.
+    /// @param vno Version Number.
+    /// @param name Contract's Name.
+    /// @param _add Contract's address.
+    function addContractDetails(uint vno,bytes16 name,address _add) internal
+    {
        allContractVersions[vno].push(contractDetails(name,_add));        
-   }
-   /// @dev Deactivates address of a contract from last version.
-   // Sets value 0 for last version of contract address signifying that contract of last version is no longer active.
-   // Sets value 1 signifying that contract of recent version is active.
-   /// @param version Recent version number.
-   /// @param index Index Number of contract whose address will be removed.
-   function addRemoveAddress(uint version,uint index) internal
-   {
+    }
+    /// @dev Deactivates address of a contract from last version.
+    // Sets value 0 for last version of contract address signifying that contract of last version is no longer active.
+    // Sets value 1 signifying that contract of recent version is active.
+    /// @param version Recent version number.
+    /// @param index Index Number of contract whose address will be removed.
+    function addRemoveAddress(uint version,uint index) internal
+    {
        uint version_old=0;
        if(version>0)
            version_old=SafeMaths.sub(version,1);
        contracts_active[allContractVersions[version_old][index].contractAddress]=0;
        contracts_active[allContractVersions[version][index].contractAddress]=1;
-   }
+    }
   
-   /// @dev Sets the length of version.
-   function setVersionLength(uint len) internal
-   {
+    /// @dev Sets the length of version.
+    function setVersionLength(uint len) internal
+    {
        versionLength = len;
-   }
-   ///@dev checks whether the address is a latest contract address.
-   function isInternal(address _add) constant returns(uint check)
-   {
+    }
+    ///@dev checks whether the address is a latest contract address.
+    function isInternal(address _add) constant returns(uint check)
+    {
        check=0; // should be 0
        if((contracts_active[_add] == 1 || owner==_add )) //remove owner for production release
            check=1;
-   }
+    }
 
-   function isOwner(address _add) constant returns(uint check)
-   {
+    function isOwner(address _add) constant returns(uint check)
+    {
        check=0;
        if(owner == _add)
            check=1;
-   }
+    }
     
-   /// @dev emergency pause function. if check=0 function will execute otherwise not.
-   function isPause()constant returns(uint check)
-   {
+    /// @dev emergency pause function. if check=0 function will execute otherwise not.
+    function isPause()constant returns(uint check)
+    {
        
        if(emergency_Paused.length>0)
        {
@@ -461,19 +460,19 @@ contract master
        }
         else
            return 0; //in emergency pause state
-   }
-   function isMember(address _add) constant returns (bool)
-   {
-    return mr1.isMember(_add);
-   }
-   ///@dev Change owner of the contract.
-   function changeOwner(address to) onlyOwner
-   {
+    }
+    function isMember(address _add) constant returns (bool)
+    {
+        return mr.isMember(_add);
+    }
+    ///@dev Change owner of the contract.
+    function changeOwner(address to) onlyOwner
+    {
        if(owner == msg.sender)
             owner = to;
-   }
-   ///@dev Get emergency pause details by index.
-   function getEmergencyPauseByIndex (uint indx) constant returns(uint _indx,bool _pause,uint _time, bytes4 _by) {
+    }
+    ///@dev Get emergency pause details by index.
+    function getEmergencyPauseByIndex (uint indx) constant returns(uint _indx,bool _pause,uint _time, bytes4 _by) {
         _pause  =emergency_Paused[indx].pause;
         _time   =emergency_Paused[indx].time;
         _by     =emergency_Paused[indx].by;
@@ -490,18 +489,16 @@ contract master
         _by="";
         uint len = getEmergencyPausedLength();
         if(len>0){
-        _pause  =emergency_Paused[SafeMaths.sub(len,1)].pause;
-        _time    =emergency_Paused[SafeMaths.sub(len,1)].time;
-        _by     =emergency_Paused[SafeMaths.sub(len,1)].by;
-    }
-        
+            _pause  =emergency_Paused[SafeMaths.sub(len,1)].pause;
+            _time    =emergency_Paused[SafeMaths.sub(len,1)].time;
+            _by     =emergency_Paused[SafeMaths.sub(len,1)].by;
+        }
     }
     
     /// @dev Sets the older version contract address as inactive and the latest one as active.
     /// @param version Latest version number.
     function changeAllAddress1(uint version) onlyInternal
     {
-    
         addRemoveAddress(version,0);
         addRemoveAddress(version,1);
         addRemoveAddress(version,2);
@@ -520,7 +517,6 @@ contract master
     /// @param version Latest version number.
     function changeAllAddress2(uint version) onlyInternal
     {
-       
         addRemoveAddress(version,13);
         addRemoveAddress(version,14);
         addRemoveAddress(version,15);
@@ -535,7 +531,6 @@ contract master
         addRemoveAddress(version,24);
         addRemoveAddress(version,25);
         addRemoveAddress(version,26);
-
     }
     /// @dev Creates a new version of contract addresses
     /// @param arr Array of addresses of compiled contracts.
@@ -564,7 +559,6 @@ contract master
     /// @param arr Array of addresses of compiled contracts.
     function addNewVersion2(uint versionNo,address[] arr) onlyOwner
     {
-       
         addContractDetails(versionNo,"Pool",arr[0]);
         addContractDetails(versionNo,"Governance",arr[1]);
         addContractDetails(versionNo,"Governance2",arr[2]);

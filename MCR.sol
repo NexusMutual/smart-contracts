@@ -17,32 +17,28 @@
 
 pragma solidity ^0.4.11;
 import "./pool.sol";
-import "./NXMToken.sol";
 import "./fiatFaucet.sol";
 import "./MCRData.sol";
 import "./master.sol";
-import "./NXMToken2.sol";
-import "./NXMTokenData.sol";
+import "./NXMToken.sol";
 import "./SafeMaths.sol";
 contract MCR
 {
     using SafeMaths for uint;
+    
     pool p1;
-    NXMToken t1;
     fiatFaucet f1;
-    MCRData md1;
+    NXMToken tc1;
+    MCRData md;
+    master ms;
+    quotationData qd;
     address MCRDataAddress;
     address poolAddress;
-    address tokenAddress;
     address fiatFaucetAddress;
-    master ms1;
+    address tokenAddress;
     address masterAddress;
-    NXMToken2 t2;
-    address token2Address;
-    NXMTokenData td1;
-    quotationData qd1;
     address quotationDataAddress;
-    address tokenDataAddress;
+    
     event apiresult(address indexed sender,string msg);
     event MCR(uint indexed date,uint blockNumber,bytes4[] allCurr,uint32[] allCurrRates,uint mcrEtherx100,uint32 mcrPercx100,uint64 vFull);
     
@@ -52,117 +48,42 @@ contract MCR
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
-        
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
      modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     modifier checkPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0);
+        ms=master(masterAddress);
+        require(ms.isPause()==0);
         _;
-    }
-    function changeToken2Address(address _add) onlyInternal
-    {
-        token2Address =_add;
-    }
-     function changeTokenDataAddress(address _add) onlyInternal
-    {
-        tokenDataAddress = _add;
-        td1=NXMTokenData(tokenDataAddress);
     }
     function changeMCRDataAddress(address _add) onlyInternal
     {
         MCRDataAddress = _add;
-        md1 = MCRData(MCRDataAddress);
+        md = MCRData(MCRDataAddress);
     }
     function changeQuotationDataAddress(address _add) onlyInternal
     {
         quotationDataAddress=_add;
-        qd1=quotationData(quotationDataAddress);
-
+        qd=quotationData(quotationDataAddress);
     }
-    /// @dev Changes minimum Capital Requirement for system to sustain.
-    function changeMinReqMCR(uint32 minMCR) onlyInternal
-    {
-        md1.changeMinReqMCR(minMCR);
-    }
-    /// @dev Gets minimum value of Capital Requirement.
-    function getminMCRReq()constant returns(uint32 mcrmin)
-    {
-        md1 = MCRData(MCRDataAddress);
-        mcrmin = md1.getMinMCR();
-    }
-    /// @dev Checks if last notarised Minimum Capital Requirement(MCR) percentage is less than minimum capital required or not.
-    /// @return check 1 if last added MCR%<Minimum MCR value
-    function checkForMinMCR()constant returns(uint8 check)
-    {
-        md1 = MCRData(MCRDataAddress);
-        check=0;
-        if(getlastMCRPerc() < md1.getMinMCR())
-            check=1;
-    }
-     /// @dev Changes time period for obtaining new MCR data from external oracle query.
-    function changeMCRTime(uint64 _time) onlyOwner
-    {
-        md1 = MCRData(MCRDataAddress);
-        md1.changeMCRTime(_time);
-    }
-      /// @dev Stores name of currencies accepted by the system.
-      /// @param curr Currency Name.
-    function addCurrency(bytes4 curr) checkPause
-    {
-        ms1=master(masterAddress);
-        if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
-        md1 = MCRData(MCRDataAddress);
-        md1.addCurrency(curr);
-        
-    }
-    /// @dev Gets number of currencies accepted by the system.
-    function getCurrenciesLength()constant returns(uint len)
-    {
-        md1 = MCRData(MCRDataAddress);
-        len = md1.getCurrLength();
-    }
-    /// @dev Gets name of currency at a given index.
-    function getCurrencyByIndex(uint16 index) constant returns(uint16 id ,bytes4 curr)
-    {
-        md1 = MCRData(MCRDataAddress);
-        curr = md1.getCurrencyByIndex(index);
-        id = index;
-    }
-    /// @dev Gets the 3 day average exchange rate of a currency.
-    /// @param curr Currency Name.
-    /// @return rate Average exchange rate (of last 3 days) against ETH.
-    function getCurrency3DaysAvg(bytes4 curr)constant returns(uint avg)
-    {
-        md1 = MCRData(MCRDataAddress);
-        avg = md1.getCurr3DaysAvg(curr);
-    }
-
     function changePoolAddress(address _add) onlyInternal
     {
         poolAddress = _add;
-    }
-    /// @dev Changes scaling factor.
-    function changeSF(uint32 val) onlyOwner
-    {
-        md1 = MCRData(MCRDataAddress);
-        md1.changeSF(val);
     }
     function changeTokenAddress(address _add) onlyInternal
     {
@@ -172,11 +93,74 @@ contract MCR
     {
         fiatFaucetAddress = _add;
     }
-     /// @dev Changes address which can notise MCR
-     function changenotariseAddress(address add) onlyOwner
+    /// @dev Changes minimum Capital Requirement for system to sustain.
+    function changeMinReqMCR(uint32 minMCR) onlyInternal
     {
-        md1 = MCRData(MCRDataAddress);
-        md1.changeNotariseAdd(add);
+        md.changeMinReqMCR(minMCR);
+    }
+    // /// @dev Gets minimum value of Capital Requirement.
+    // function getminMCRReq()constant returns(uint32 mcrmin)
+    // {
+    //     md = MCRData(MCRDataAddress);
+    //     mcrmin = md.getMinMCR();
+    // }
+    /// @dev Checks if last notarised Minimum Capital Requirement(MCR) percentage is less than minimum capital required or not.
+    /// @return check 1 if last added MCR%<Minimum MCR value
+    function checkForMinMCR()constant returns(uint8 check)
+    {
+        md = MCRData(MCRDataAddress);
+        check=0;
+        if(md.getlastMCRPerc() < md.getMinMCR())
+            check=1;
+    }
+     /// @dev Changes time period for obtaining new MCR data from external oracle query.
+    function changeMCRTime(uint64 _time) onlyOwner
+    {
+        md = MCRData(MCRDataAddress);
+        md.changeMCRTime(_time);
+    }
+      /// @dev Stores name of currencies accepted by the system.
+      /// @param curr Currency Name.
+    function addCurrency(bytes4 curr) checkPause
+    {
+        ms=master(masterAddress);
+        if( ms.isInternal(msg.sender) != 1 && ms.isOwner(msg.sender)!=1) throw;
+        md = MCRData(MCRDataAddress);
+        md.addCurrency(curr);
+    }
+    // /// @dev Gets number of currencies accepted by the system.
+    // function getCurrenciesLength()constant returns(uint len)
+    // {
+    //     md = MCRData(MCRDataAddress);
+    //     len = md.getCurrLength();
+    // }
+    /// @dev Gets name of currency at a given index.
+    function getCurrencyByIndex(uint16 index) constant returns(uint16 id ,bytes4 curr)
+    {
+        md = MCRData(MCRDataAddress);
+        curr = md.getCurrencyByIndex(index);
+        id = index;
+    }
+    // /// @dev Gets the 3 day average exchange rate of a currency.
+    // /// @param curr Currency Name.
+    // /// @return rate Average exchange rate (of last 3 days) against ETH.
+    // function getCurrency3DaysAvg(bytes4 curr)constant returns(uint avg)
+    // {
+    //     md = MCRData(MCRDataAddress);
+    //     avg = md.getCurr3DaysAvg(curr);
+    // }
+
+    /// @dev Changes scaling factor.
+    function changeSF(uint32 val) onlyOwner
+    {
+        md = MCRData(MCRDataAddress);
+        md.changeSF(val);
+    }
+    /// @dev Changes address which can notise MCR
+    function changenotariseAddress(address add) onlyOwner
+    {
+        md = MCRData(MCRDataAddress);
+        md.changeNotariseAdd(add);
     }
 
     /// @dev Adds new MCR data and calls for Surplus distribution.
@@ -185,13 +169,10 @@ contract MCR
     /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
     function addMCRData(uint32 mcrP , uint mcrE , uint64 vF ,bytes4[] curr, uint64 onlyDate,uint32[] _3dayAvg) checkPause
     {
-
-        md1 = MCRData(MCRDataAddress);
-        if(md1.isnotarise(msg.sender)==0) throw;
-        t1=NXMToken(tokenAddress);
-        t2=NXMToken2(token2Address);
+        md = MCRData(MCRDataAddress);
+        if(md.isnotarise(msg.sender)==0) throw;
         vF = SafeMaths.mul64(vF , 1000000000000000000);
-        uint len = md1.getMCRDataLength();
+        uint len = md.getMCRDataLength();
         
        addMCRData_Extended(len,onlyDate,curr,mcrE,mcrP,vF,_3dayAvg);
     }
@@ -208,17 +189,17 @@ contract MCR
              
             if(VTP>=vF)
             {
-                upperThreshold=SafeMaths.div(VTP,(SafeMaths.mul(md1.getMinCap(),1000000000000000000)));
+                upperThreshold=SafeMaths.div(VTP,(SafeMaths.mul(md.getMinCap(),1000000000000000000)));
                 upperThreshold=SafeMaths.mul(upperThreshold,100);
             }
             else
             {
-                upperThreshold=SafeMaths.div(vF,(SafeMaths.mul(md1.getMinCap(),1000000000000000000)));
+                upperThreshold=SafeMaths.div(vF,(SafeMaths.mul(md.getMinCap(),1000000000000000000)));
                 upperThreshold=SafeMaths.mul(upperThreshold,100);
             }
             if(VTP>0)
             {
-                lower=SafeMaths.div((SafeMaths.mul(getAllSumAssurance(),100)),md1.getShockParameter());
+                lower=SafeMaths.div((SafeMaths.mul(getAllSumAssurance(),100)),md.getShockParameter());
                 lower=SafeMaths.mul(lower,1000000000000000000);
             }
             if(lower>0)
@@ -228,15 +209,15 @@ contract MCR
         }    
         if(len==1 || ((SafeMaths.div(mcrP,100))>=lowerThreshold && (SafeMaths.div(mcrP,100))<=upperThreshold))
         {            
-            md1.pushMCRData(mcrP,vF,newMCRDate);
+            md.pushMCRData(mcrP,vF,newMCRDate);
             for(uint i=0;i<curr.length;i++)
             {
-                md1.updateCurr3DaysAvg(curr[i],_3dayAvg[i]);
+                md.updateCurr3DaysAvg(curr[i],_3dayAvg[i]);
             }
           
             MCR(newMCRDate,block.number,curr,_3dayAvg,mcrE,mcrP,vF);
             // Oraclize call for next MCR calculation
-            if(md1.getLastMCRDate()<newMCRDate)
+            if(md.getLastMCRDate()<newMCRDate)
             {
                 callOracliseForMCR();
             }
@@ -245,25 +226,25 @@ contract MCR
         {
             // callOracliseForMCRFail(newMCRDate);
             p1=pool(poolAddress);
-            p1.MCROracliseFail(newMCRDate,md1.getMCRFailTime());
+            p1.MCROracliseFail(newMCRDate,md.getMCRFailTime());
         }   
     }
     
     function addLastMCRData(uint64 Date) checkPause
     {
-        md1 = MCRData(MCRDataAddress);
-        uint64 lastdate=md1.getLastMCRDate();
+        md = MCRData(MCRDataAddress);
+        uint64 lastdate=md.getLastMCRDate();
         uint64 failedDate=uint64(Date);
         if(failedDate>=lastdate)
         {
             uint32 mcrP;uint64 vF;
-            (mcrP,vF, )=md1.getLastMCR();
-            uint16 len=md1.getCurrLength();
-            md1.pushMCRData(mcrP,vF,Date);
+            (mcrP,vF, )=md.getLastMCR();
+            uint16 len=md.getCurrLength();
+            md.pushMCRData(mcrP,vF,Date);
             for(uint16 j=0;j<len;j++)
             {
-                bytes4 curr_name=md1.getCurrencyByIndex(j);
-                md1.updateCurr3DaysAvg(curr_name,md1.getCurr3DaysAvg(curr_name));
+                bytes4 curr_name=md.getCurrencyByIndex(j);
+                md.updateCurr3DaysAvg(curr_name,md.getCurr3DaysAvg(curr_name));
             }
             
             MCR(Date,block.number,new bytes4[](0),new uint32[](0),0,mcrP,vF);
@@ -274,20 +255,20 @@ contract MCR
 
     function getAllSumAssurance() constant returns(uint amount)
     {
-        md1 = MCRData(MCRDataAddress);
-        qd1=quotationData(quotationDataAddress);
-        uint len=md1.getCurrLength();
+        md = MCRData(MCRDataAddress);
+        qd=quotationData(quotationDataAddress);
+        uint len=md.getCurrLength();
         
         for(uint16 i=0;i<len;i++)
         {
-            bytes4 curr_name=md1.getCurrencyByIndex(i);
+            bytes4 curr_name=md.getCurrencyByIndex(i);
             if(curr_name=="ETH")
             {
-                amount=SafeMaths.add(amount,qd1.getTotalSumAssured(curr_name));
+                amount=SafeMaths.add(amount,qd.getTotalSumAssured(curr_name));
             }
             else
-            {   if(md1.getCurr3DaysAvg(curr_name)>0)
-                amount=SafeMaths.add(amount,SafeMaths.div((SafeMaths.mul(qd1.getTotalSumAssured(curr_name),100)),md1.getCurr3DaysAvg(curr_name)));
+            {   if(md.getCurr3DaysAvg(curr_name)>0)
+                amount=SafeMaths.add(amount,SafeMaths.div((SafeMaths.mul(qd.getTotalSumAssured(curr_name),100)),md.getCurr3DaysAvg(curr_name)));
             }
         }
         
@@ -296,16 +277,16 @@ contract MCR
     /// @dev Calls oraclize query to calculate MCR details after 24 hours.
     function callOracliseForMCR() internal
     {
-        md1 = MCRData(MCRDataAddress);
+        md = MCRData(MCRDataAddress);
         p1=pool(poolAddress);
-        p1.MCROraclise(md1.getMCRTime());
+        p1.MCROraclise(md.getMCRTime());
     }
 
     // function callOracliseForMCRFail(uint64 failedDate) internal
     // {
-    //     md1 = MCRData(MCRDataAddress);
+    //     md = MCRData(MCRDataAddress);
     //     p1=pool(poolAddress);
-    //     p1.MCROracliseFail(failedDate,md1.getMCRFailTime());
+    //     p1.MCROracliseFail(failedDate,md.getMCRFailTime());
     // }
      
     /// @dev Gets the details of last added MCR.
@@ -316,45 +297,44 @@ contract MCR
     /// @return blockNumber Block Number.
     function getLastMCR() constant returns( uint mcrPercx100,uint vFull, uint64 date)
     {
-        md1 = MCRData(MCRDataAddress);
-       (mcrPercx100,vFull,date) = md1.getLastMCR();
+        md = MCRData(MCRDataAddress);
+       (mcrPercx100,vFull,date) = md.getLastMCR();
     }
 
-    /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
-    /// @return val MCR% value multiplied by 100.
-    function getlastMCRPerc() constant returns(uint val)
-    {
-        md1 = MCRData(MCRDataAddress);
-        val = md1.getlastMCRPerc();
-    }
+    // /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
+    // /// @return val MCR% value multiplied by 100.
+    // function getlastMCRPerc() constant returns(uint val)
+    // {
+    //     md = MCRData(MCRDataAddress);
+    //     val = md.getlastMCRPerc();
+    // }
 
-    /// @dev Gets Fund value in Ether used in the last full daily calculation of the Capital model.
-    function getLastVfull() constant returns( uint vf)
-    {
-        md1 = MCRData(MCRDataAddress);
-        vf = md1.getLastVfull();
-    }
+    // /// @dev Gets Fund value in Ether used in the last full daily calculation of the Capital model.
+    // function getLastVfull() constant returns( uint vf)
+    // {
+    //     md = MCRData(MCRDataAddress);
+    //     vf = md.getLastVfull();
+    // }
     
     /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation and MCR%(Tp) ,i.e, MCR% used in the Token Price Calculation.
     /// @return Vtp  Pool Fund Value in Ether used for the Token Price Model 
     /// @return MCRtp MCR% used in the Token Price Model.
     function calVtpAndMCRtp() constant returns(uint Vtp , uint MCRtp)
     {
-        md1 = MCRData(MCRDataAddress);
+        md = MCRData(MCRDataAddress);
         Vtp = 0;
         p1=pool(poolAddress);
-        t1 = NXMToken(tokenAddress);
         f1=fiatFaucet(fiatFaucetAddress);
-        uint len = md1.getCurrLength();
+        uint len = md.getCurrLength();
         for(uint16 i=0;i<len;i++)
         {   
-            bytes4 currency = md1.getCurrencyByIndex(i);
+            bytes4 currency = md.getCurrencyByIndex(i);
             if(currency!="ETH")
             {
 
                 uint currTokens=f1.getBalance(poolAddress,currency); 
-                if(md1.getCurr3DaysAvg(currency)>0)
-                Vtp = SafeMaths.add(Vtp,SafeMaths.div(SafeMaths.mul(currTokens , 100), md1.getCurr3DaysAvg(currency)));
+                if(md.getCurr3DaysAvg(currency)>0)
+                Vtp = SafeMaths.add(Vtp,SafeMaths.div(SafeMaths.mul(currTokens , 100), md.getCurr3DaysAvg(currency)));
             }
             else
                 Vtp = SafeMaths.add(Vtp,p1.getEtherPoolBalance());
@@ -372,14 +352,15 @@ contract MCR
     /// @return tokenPrice Token price.
     function calculateTokenPrice(bytes4 curr) constant returns (uint tokenPrice)
     {
-        md1 = MCRData(MCRDataAddress);
+        md = MCRData(MCRDataAddress);
+        tc1= NXMToken(tokenAddress);
         uint MCRtp;
         (,MCRtp) = calVtpAndMCRtp();                       
-        uint TO = SafeMaths.div(t1.totalSupply(),1000000000000000000); 
+        uint TO = SafeMaths.div(tc1.totalSupply(),1000000000000000000); 
         uint getSFx100000;
         uint getGrowthStep;
         uint getCurr3DaysAvg;
-        (getSFx100000,getGrowthStep,getCurr3DaysAvg)=md1.getTokenPriceDetails(curr);
+        (getSFx100000,getGrowthStep,getCurr3DaysAvg)=md.getTokenPriceDetails(curr);
         if(SafeMaths.div((SafeMaths.mul(MCRtp , MCRtp)),100000000) >=1)
         {
             tokenPrice = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(getSFx100000 ,(SafeMaths.add(getGrowthStep,TO))) , MCRtp) , MCRtp) , 100000)),getGrowthStep);  

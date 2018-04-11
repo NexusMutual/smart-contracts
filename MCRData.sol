@@ -21,7 +21,7 @@ import "./SafeMaths.sol";
 contract MCRData
 {
     using SafeMaths for uint;
-    master ms1;
+    master ms;
     address masterAddress;
     uint32 public minMCRReq;
     uint32 public SFx100000;
@@ -32,13 +32,13 @@ contract MCRData
     uint64 MCRTime;
     bytes4[] allCurrencies;
     
-    struct mcrData
+    struct mcr_Data
     { 
         uint32 mcrPercx100;
         uint64 vFull;    //pool funds
         uint64 date;
     }
-    mcrData[] public allMCRData;
+    mcr_Data[] public allMCRData;
     mapping(bytes4=>uint32) public allCurr3DaysAvg;
     address notariseMCR;
 
@@ -49,7 +49,7 @@ contract MCRData
         MCRTime =  SafeMaths.mul64(SafeMaths.mul64(24,60),60);
         MCRFailTime=SafeMaths.mul64(6,3600);
         minMCRReq = 0;
-        allMCRData.push(mcrData(0,0,0));
+        allMCRData.push(mcr_Data(0,0,0));
         minCap=1;
         shockParameter=50;
     }
@@ -59,21 +59,21 @@ contract MCRData
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     /// @dev Changes address of Notary.
@@ -177,7 +177,7 @@ contract MCRData
     /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
     function pushMCRData(uint32 mcrp,uint64 vf,uint64 time) onlyInternal
     {
-        allMCRData.push(mcrData(mcrp,vf,time));
+        allMCRData.push(mcr_Data(mcrp,vf,time));
     }
 
     /// @dev Gets number of currencies that the system accepts.

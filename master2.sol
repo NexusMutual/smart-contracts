@@ -31,23 +31,24 @@ contract masters2 {
     using SafeMaths for uint;
     
     
-    address  claimsAddress;
-    address  governanceAddress;
+    address claimsAddress;
+    address governanceAddress;
     address claims_RewardAddress;
     address poolAddress;
     address quotationDataAddress;
     address poolDataAddress;
-    governance g1;
-    claims c1;
-    master ms1;
-    pool p1;
-    claimsData cd1;
-    claims_Reward cr1;
-    quotationData qd1;
-    poolData1 pd1;
     address masterAddress;
     address claimsDataAddress;
     address MCRAddress;
+    
+    governance g1;
+    claims c1;
+    master ms;
+    pool p1;
+    claimsData cd;
+    claims_Reward cr;
+    quotationData qd;
+    poolData1 pd;
     MCR m1;
     SupplyToken tok;
 
@@ -57,21 +58,21 @@ contract masters2 {
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
      modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == 1);
         _; 
     }
     function changeClaimDataAddress(address _add) onlyInternal
@@ -191,51 +192,54 @@ contract masters2 {
     {
         uint64 timeLeft;
         p1=pool(poolAddress);
-        cr1=claims_Reward(claims_RewardAddress);
+        cr=claims_Reward(claims_RewardAddress);
         c1=claims(claimsAddress);
         c1.setTimes(_mintime,_maxtime,escaltime,payouttime);
-        cd1=claimsData(claimsDataAddress);
-        for(uint i=cd1.pendingClaim_start();i<cd1.actualClaimLength();i++)
+        cd=claimsData(claimsDataAddress);
+        uint nowTime = now;
+        uint pendingClaim_start=cd.pendingClaim_start();
+        uint actualClaimLength=cd.actualClaimLength();
+        for(uint i=pendingClaim_start;i<actualClaimLength;i++)
         {
-            uint stat=cd1.getClaimStatus(i);
-            uint date_upd=cd1.getClaimDateUpd(i);
-            if(stat==1 && (SafeMaths.add(date_upd , escaltime) <= uint64(now)))
+            uint stat=cd.getClaimStatus(i);
+            uint date_upd=cd.getClaimDateUpd(i);
+            if(stat==1 && (SafeMaths.add(date_upd, escaltime) <= nowTime))
             {
-                cr1.changeClaimStatus(i);
+                cr.changeClaimStatus(i);
             }
-            else if(stat==1 && (SafeMaths.add(date_upd , escaltime) >uint64(now)))
+            else if(stat==1 && (SafeMaths.add(date_upd, escaltime) >nowTime))
             {
-                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(date_upd , escaltime) , now));
+                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(date_upd, escaltime), nowTime));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if((stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _mintime) <=uint64( now)) )
+            if((stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd, _mintime) <= nowTime) )
             {
-                cr1.changeClaimStatus(i);
+                cr.changeClaimStatus(i);
             }
-            else if( (stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _mintime) > now))
+            else if( (stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd, _mintime) > nowTime))
             {
-                timeLeft =uint64( SafeMaths.sub(SafeMaths.add(date_upd , _mintime) , now));
+                timeLeft =uint64( SafeMaths.sub(SafeMaths.add(date_upd , _mintime), nowTime));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if((stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _maxtime) <=uint64( now)) )
+            if((stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd, _maxtime) <= nowTime) )
             {
-                cr1.changeClaimStatus(i);
+                cr.changeClaimStatus(i);
             }
-            else if( (stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd , _maxtime) >uint64( now)))
+            else if( (stat==0 || (stat>=2 && stat<=6)) && (SafeMaths.add(date_upd, _maxtime) > nowTime))
             {
-                timeLeft =uint64( SafeMaths.sub(SafeMaths.add(date_upd , _maxtime) , now));
+                timeLeft =uint64( SafeMaths.sub(SafeMaths.add(date_upd, _maxtime), nowTime));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
 
-            if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) <=uint64( now)))
+            if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) <= nowTime))
             {
-                    cr1.changeClaimStatus(i);
+                    cr.changeClaimStatus(i);
             }
-            else if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) >uint64( now)))
+            else if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) > nowTime))
             {
-                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(date_upd , payouttime) ,now));
+                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(date_upd, payouttime), nowTime));
                 p1.closeClaimsOraclise(i,timeLeft);
             }
         }       
@@ -243,7 +247,6 @@ contract masters2 {
     /// @dev Adds currency master 
     function addMCRCurr() onlyOwner
     {
-        
         m1=MCR(MCRAddress);
         m1.addCurrency("ETH");
         m1.addCurrency("USD");
@@ -253,62 +256,62 @@ contract masters2 {
     ///@dev Add quotation and cover status.
     function addCoverStatus() onlyOwner
     {
-        qd1.pushCoverStatus("active");
-        qd1.pushCoverStatus("Claim Accepted");
-        qd1.pushCoverStatus("Claim Denied");
-        qd1.pushCoverStatus("Cover Expired");
-        qd1.pushCoverStatus("Claim Submitted");
-        qd1.pushCoverStatus("Requested");
+        qd.pushCoverStatus("active");
+        qd.pushCoverStatus("Claim Accepted");
+        qd.pushCoverStatus("Claim Denied");
+        qd.pushCoverStatus("Cover Expired");
+        qd.pushCoverStatus("Claim Submitted");
+        qd.pushCoverStatus("Requested");
     }
     ///@dev Add currency asset data to pool. 
     function addCurrencyAssetsDetails() internal
     {
-        pd1 = poolData1(poolDataAddress);
-        pd1.pushCurrencyAssetsDetails("ETH",6); //original 64 baseMin
-        pd1.pushCurrencyAssetsDetails("USD",100);  // original 25000
-        pd1.pushCurrencyAssetsDetails("EUR",16272);
-        pd1.pushCurrencyAssetsDetails("GBP",19231);
+        pd = poolData1(poolDataAddress);
+        pd.pushCurrencyAssetsDetails("ETH",6); //original 64 baseMin
+        pd.pushCurrencyAssetsDetails("USD",100);  // original 25000
+        pd.pushCurrencyAssetsDetails("EUR",16272);
+        pd.pushCurrencyAssetsDetails("GBP",19231);
     }
     ///@dev Add investment asset details to pool.
     function addInvestmentAssetsDetails() internal
     {
-        pd1 = poolData1(poolDataAddress);
+        pd = poolData1(poolDataAddress);
         uint8 decimals;
         //DGD
         tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
         decimals=tok.decimals();
-        pd1.pushInvestmentAssetsDetails("DGD",0xeee3870657e4716670f185df08652dd848fe8f7e,1,500,4000,decimals);
+        pd.pushInvestmentAssetsDetails("DGD",0xeee3870657e4716670f185df08652dd848fe8f7e,1,500,4000,decimals);
         //ICN
         tok=SupplyToken(0x21e6b27b23241a35d216f8641c72cfed33085fe9);
          decimals=tok.decimals();
-        pd1.pushInvestmentAssetsDetails("ICN",0x21e6b27b23241a35d216f8641c72cfed33085fe9,1,1000,3000,decimals);
+        pd.pushInvestmentAssetsDetails("ICN",0x21e6b27b23241a35d216f8641c72cfed33085fe9,1,1000,3000,decimals);
         //ZRX
         tok=SupplyToken(0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570);
          decimals=tok.decimals();
-        pd1.pushInvestmentAssetsDetails("ZRX",0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570,1,500,2500,decimals);
+        pd.pushInvestmentAssetsDetails("ZRX",0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570,1,500,2500,decimals);
         //MKR
         tok=SupplyToken(0x1dad4783cf3fe3085c1426157ab175a6119a04ba);
          decimals=tok.decimals();
-        pd1.pushInvestmentAssetsDetails("MKR",0x1dad4783cf3fe3085c1426157ab175a6119a04ba,1,500,2000,decimals); 
+        pd.pushInvestmentAssetsDetails("MKR",0x1dad4783cf3fe3085c1426157ab175a6119a04ba,1,500,2000,decimals); 
         //GNT
         tok=SupplyToken(0xef7fff64389b814a946f3e92105513705ca6b990);
          decimals=tok.decimals();
-        pd1.pushInvestmentAssetsDetails("GNT",0xef7fff64389b814a946f3e92105513705ca6b990,1,500,2000,decimals); 
+        pd.pushInvestmentAssetsDetails("GNT",0xef7fff64389b814a946f3e92105513705ca6b990,1,500,2000,decimals); 
         //MLN
         tok=SupplyToken(0x323b5d4c32345ced77393b3530b1eed0f346429d);
          decimals=tok.decimals();
-        pd1.pushInvestmentAssetsDetails("MLN",0x323b5d4c32345ced77393b3530b1eed0f346429d,1,500,2000,decimals); 
+        pd.pushInvestmentAssetsDetails("MLN",0x323b5d4c32345ced77393b3530b1eed0f346429d,1,500,2000,decimals); 
     }
     ///@dev Add investment assets names to pool.
     function addInvestmentCurrencies() internal
     {
-        pd1 = poolData1(poolDataAddress);
-        pd1.addInvestmentCurrency("DGD");
-        pd1.addInvestmentCurrency("ICN");
-        pd1.addInvestmentCurrency("ZRX");
-        pd1.addInvestmentCurrency("MKR");
-        pd1.addInvestmentCurrency("GNT");
-        pd1.addInvestmentCurrency("MLN");
+        pd = poolData1(poolDataAddress);
+        pd.addInvestmentCurrency("DGD");
+        pd.addInvestmentCurrency("ICN");
+        pd.addInvestmentCurrency("ZRX");
+        pd.addInvestmentCurrency("MKR");
+        pd.addInvestmentCurrency("GNT");
+        pd.addInvestmentCurrency("MLN");
     }
     ///@dev Initialize asset data required by pool.
     function callPoolDataMethods() onlyOwner

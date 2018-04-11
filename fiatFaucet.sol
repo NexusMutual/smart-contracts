@@ -22,12 +22,13 @@ import "./SafeMaths.sol";
 contract fiatFaucet
 {
     using SafeMaths for uint;
-    master ms1;
+    master ms;
+    quotation2 q2;
+    NXMToken tc1;
     address masterAddress;
-    quotation2 q1;
-    NXMToken t1;
     address quotation2Address;
     address tokenAddress;
+
     mapping(bytes16=>address) contract_add;
     SupplyToken tok;
     uint fiatTokenPricex1e18;
@@ -37,22 +38,22 @@ contract fiatFaucet
             masterAddress = _add;
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == 1)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == 1);
         _; 
     }
     modifier isMemberAndcheckPause
     {
-        ms1=master(masterAddress);
-        require(ms1.isPause()==0 && ms1.isMember(msg.sender)==true);
+        ms=master(masterAddress);
+        require(ms.isPause()==0 && ms.isMember(msg.sender)==true);
         _;
     }
     function fiatFaucet(){
@@ -67,11 +68,11 @@ contract fiatFaucet
     /// @param curr Currency's Name.
     function  transferToken(bytes4 curr) isMemberAndcheckPause payable 
     {
-        t1=NXMToken(tokenAddress);
+        tc1=NXMToken(tokenAddress);
         uint tokens=SafeMaths.mul(msg.value,1000);
         tok=SupplyToken(contract_add[curr]);
         tok.mintToken(msg.sender,tokens);
-        // t1.addToPoolFund(curr , tokens);
+        // tc1.addToPoolFund(curr , tokens);
         
     }
     function changeTokenAddress(address _add) onlyInternal
@@ -122,8 +123,8 @@ contract fiatFaucet
     {
         tok=SupplyToken(contract_add[coverCurr]);
         tok.debitTokensForFunding(coverDetails[3] , msg.sender);
-        q1=quotation2(quotation2Address);
-        q1.verifyCoverDetails(prodId,msg.sender,smaratCAdd,coverCurr,coverDetails,_v,_r,_s);
+        q2=quotation2(quotation2Address);
+        q2.verifyCoverDetails(prodId,msg.sender,smaratCAdd,coverCurr,coverDetails,_v,_r,_s);
     }
     /// @dev Get token address by currency name.
     function getCurrAddress(bytes16 curr) constant returns(address currAddress)

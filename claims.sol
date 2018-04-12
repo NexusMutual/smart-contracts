@@ -66,6 +66,8 @@ contract claims{
     pool2 p2;
     pool3 p3;
     quotationData qd;
+    
+    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
 
     function changeMasterAddress(address _add)
     {
@@ -292,9 +294,9 @@ contract claims{
         (acceptCA,denyCA)= cd.getClaims_tokenCA(claimid);
         (acceptMV,denyMV)= cd.getClaims_tokenMV(claimid);
         if(member==0)
-            Tokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA,denyCA)),tokenx1e18),1000000000000000000); // amount (not in tokens)
+            Tokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA,denyCA)),tokenx1e18),_DECIMAL_1e18); // amount (not in tokens)
         else
-            Tokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV,denyMV)),tokenx1e18),1000000000000000000);
+            Tokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV,denyMV)),tokenx1e18),_DECIMAL_1e18);
     }
     /// @dev Checks if voting of a claim should be closed or not.Internally called by checkVoteClosing method for claims whose status number is 0 or status number lie between 2 and 6.
     /// @param claimid Claim Id.
@@ -313,9 +315,9 @@ contract claims{
         uint denyCA;uint denyMV;
         (acceptCA,denyCA)= cd.getClaims_tokenCA(claimid);
         (acceptMV,denyMV)= cd.getClaims_tokenMV(claimid);
-        uint CATokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA,denyCA)),tokenx1e18),1000000000000000000);
-        uint MVTokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV,denyMV)),tokenx1e18),1000000000000000000);
-        uint sumassured=SafeMaths.mul(qd.getCoverSumAssured(coverid),1000000000000000000);
+        uint CATokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA,denyCA)),tokenx1e18),_DECIMAL_1e18);
+        uint MVTokens=SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV,denyMV)),tokenx1e18),_DECIMAL_1e18);
+        uint sumassured=SafeMaths.mul(qd.getCoverSumAssured(coverid),_DECIMAL_1e18);
         if(status==0 && CATokens>=SafeMaths.mul(10,sumassured))
             close=1;
         if(status>=2 && status<=6 && MVTokens>=SafeMaths.mul(10,sumassured))

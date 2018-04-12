@@ -49,7 +49,7 @@ contract quotationData{
     bytes16[] coverStatus;
     mapping(bytes4=>uint) currency_CSA;
     mapping (address=>uint[]) user_Cover;
-    mapping(uint16=>Product_Details) ProductDetails;
+    Product_Details[] ProductDetails;
     mapping(address=>mapping(bytes4=>uint)) currency_CSA_ofSCAdd;
     cover[] allCovers;
     uint public pendingCoverStart;
@@ -58,7 +58,7 @@ contract quotationData{
     function quotationData(){
         pendingCoverStart = 0;
         //Add smartcontractcover 
-        ProductDetails[0]=(Product_Details("SCC","xsdf",90,1000,12,0));
+        ProductDetails.push(Product_Details("SCC","",90,1000,12,0));
     }
     function changeMasterAddress(address _add) 
     {
@@ -119,24 +119,54 @@ contract quotationData{
         return coverStatus.length;
     }
     /// @dev Changes the existing Profit Margin value
-    function changePM(uint16 _prodId,uint16 _pm) onlyOwner
+    function changePM(uint _prodId,uint16 _pm) onlyOwner
     {
         ProductDetails[_prodId].PM = _pm;
     }
     /// @dev Changes the existing Short Term Load Period (STLP) value.
-    function changeSTLP(uint16 _prodId,uint16 _stlp) onlyOwner
+    function changeSTLP(uint _prodId,uint16 _stlp) onlyOwner
     {
         ProductDetails[_prodId].STLP = _stlp;
     }
     /// @dev Changes the existing Short Term Load (STL) value.
-    function changeSTL(uint16 _prodId,uint16 _stl) onlyOwner
+    function changeSTL(uint _prodId,uint16 _stl) onlyOwner
     {
         ProductDetails[_prodId].STL = _stl;
     }
     /// @dev Changes the existing Minimum cover period (in days)
-    function changeMinDays(uint16 _prodId,uint64 _days) onlyOwner
+    function changeMinDays(uint _prodId,uint64 _days) onlyOwner
     {
         ProductDetails[_prodId].minDays = _days;
+    }
+    
+    /// @dev Changes the existing Minimum cover period (in days)
+    function changeProductHash(uint _prodId,string _productHash) onlyOwner
+    {
+        ProductDetails[_prodId].productHash = _productHash;
+    }
+    
+    function getProductName(uint _prodId) constant returns(bytes8 _productName){
+        return ProductDetails[_prodId].productName;
+    }
+    
+    function addProductDetails(bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP) onlyOwner
+    {
+        ProductDetails.push(Product_Details(_productName,_productHash,_STLP,_STL,_PM,_minDays));
+    }
+
+    /// @dev Gets Product details.
+    /// @return  _minDays minimum cover period.
+    /// @return  _PM Profit margin.
+    /// @return  _STL short term Load.
+    /// @return  _STLP short term load period.
+    function getProductDetails(uint _prodId) constant returns(bytes8 _productName, string _productHash, uint64 _minDays, uint16 _PM, uint16 _STL, uint16 _STLP)
+    {
+        _productName=ProductDetails[_prodId].productName;
+        _productHash=ProductDetails[_prodId].productHash;
+        _minDays=ProductDetails[_prodId].minDays;
+        _PM=ProductDetails[_prodId].PM;
+        _STL=ProductDetails[_prodId].STL;
+        _STLP=ProductDetails[_prodId].STLP;
     }
     
     /// @dev Updates the pending cover start variable, which is the lowest cover id with "active" status.
@@ -177,6 +207,17 @@ contract quotationData{
     function getTotalSumAssured(bytes4 _curr) constant returns(uint amount)
     {
         amount = currency_CSA[_curr];
+    }
+    
+    function changeCoverProductName(uint _cid, bytes8 _productName) onlyInternal
+    {
+        allCovers[_cid].productName = _productName;
+    }
+    
+    /// @dev Gets the Product Id of a given Quote.
+    function getProductNameOfCover(uint _cid)constant returns(bytes8 prodName)
+    {
+        prodName = allCovers[_cid].productName;
     }
 
     /// @dev Gets the status of a given cover.
@@ -289,12 +330,6 @@ contract quotationData{
         allCovers[_cid].sumAssured = _SA;
     }
 
-    /// @dev Gets the Product Id of a given Quote.
-    function getProductNameOfCover(uint _cid)constant returns(bytes8 prodName)
-    {
-        prodName = allCovers[_cid].productName;
-    }
-
     function getscAddressOfCover(uint _cid) constant returns(uint,address)
     {
        return (_cid,allCovers[_cid].scAddress);
@@ -305,26 +340,7 @@ contract quotationData{
     {
         _add = allCovers[_cid].memberAddress;
     }
-
-    /// @dev Gets Premium details.
-    /// @return  _minDays minimum cover period.
-    /// @return  _PM Profit margin.
-    /// @return  _STL short term Load.
-    /// @return  _STLP short term load period.
-    function getPremiumDetails(uint16 _prodId) constant returns(bytes8 _productName, string _productHash, uint64 _minDays, uint16 _PM, uint16 _STL, uint16 _STLP)
-    {
-        _productName=ProductDetails[_prodId].productName;
-        _productHash=ProductDetails[_prodId].productHash;
-        _minDays=ProductDetails[_prodId].minDays;
-        _PM=ProductDetails[_prodId].PM;
-        _STL=ProductDetails[_prodId].STL;
-        _STLP=ProductDetails[_prodId].STLP;
-    }
     
-    function getProductName(uint16 _prodId) constant returns(bytes8 _productName){
-        return ProductDetails[_prodId].productName;
-    }
-
     /// @dev Provides the details of a cover Id
     /// @param _cid cover Id
     /// @return productName Insurance Product Name.
@@ -370,11 +386,6 @@ contract quotationData{
         (productName,,scAddress,currencyCode,sumAssured,) = getCoverByIndex1(_cid);
     }
     
-    function setProductDetails(uint16 _prodId,bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP)
-    {
-        ProductDetails[_prodId]=(Product_Details(_productName,_productHash,_STLP,_STL,_PM,_minDays));
-    }
-
     /// @dev Adds the amount in Total Sum Assured of a given currency.
     /// @param _add Smart Contract Address.
     /// @param _amount Amount to be added.

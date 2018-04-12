@@ -42,6 +42,7 @@ contract claims_Reward
     pool p1;
     pool2 p2;
     pool3 p3;
+    
     address public masterAddress;
     address public token2Address;
     // address public tokenDataAddress;
@@ -53,6 +54,9 @@ contract claims_Reward
     address public claimsDataAddress;
     address public poolDataAddress;
     address public pool3Address;
+    
+    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
+    uint40 private constant _DECIMAL_1e10 = 10000000000;
     
     function changeMasterAddress(address _add)
     {
@@ -141,7 +145,7 @@ contract claims_Reward
                 uint sumassured=qd.getCoverSumAssured(coverid);
                 uint threshold_unreached=0;
                 // Minimum threshold for CA voting is reached only when value of tokens used for voting > 5* sum assured of claim id
-                if(CATokens<SafeMaths.mul(SafeMaths.mul(5,sumassured),1000000000000000000))
+                if(CATokens<SafeMaths.mul(SafeMaths.mul(5,sumassured),_DECIMAL_1e18))
                     threshold_unreached=1;
 
                 uint accept=cd.getClaimVote(claimid,1);
@@ -198,7 +202,7 @@ contract claims_Reward
                 uint sumassured=qd.getCoverSumAssured(coverid);
                 uint threshold_unreached=0;
                 // Minimum threshold for member voting is reached only when value of tokens used for voting > 5* sum assured of claim id
-                if(MVTokens<SafeMaths.mul(SafeMaths.mul(5,sumassured),1000000000000000000))
+                if(MVTokens<SafeMaths.mul(SafeMaths.mul(5,sumassured),_DECIMAL_1e18))
                     threshold_unreached=1;
                 uint accept=cd.getClaimMVote(claimid,1);
                 uint deny=cd.getClaimMVote(claimid,-1);  
@@ -384,8 +388,8 @@ contract claims_Reward
         tc2=NXMToken2(token2Address);
         cd=claimsData(claimsDataAddress);
         c1=claims(claimsAddress); 
-        sumAssured=SafeMaths.mul(sumAssured,1000000000000000000);
-        uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumAssured,perc),1000000000000000000),(SafeMaths.mul(SafeMaths.mul(100,100),tc1.getTokenPrice(curr_name)))); //  1% of sum assured
+        sumAssured=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
+        uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumAssured,perc),_DECIMAL_1e18),(SafeMaths.mul(SafeMaths.mul(100,100),tc1.getTokenPrice(curr_name)))); //  1% of sum assured
         uint token;
         uint consesnsus_perc;
         uint accept=cd.getClaimVote(claimid,1);
@@ -407,7 +411,7 @@ contract claims_Reward
                     if(consesnsus_perc>70)
                         consesnsus_perc=SafeMaths.sub(consesnsus_perc,70);
 
-                    token = SafeMaths.div(cd.getVoteToken(claimid,i,1),10000000000);
+                    token = SafeMaths.div(cd.getVoteToken(claimid,i,1),_DECIMAL_1e10);
                     tc2.extendCAWithAddress(cd.getVoteVoter(claimid,i,1),SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),60),60),token);
                 }
             }
@@ -427,7 +431,7 @@ contract claims_Reward
                     else
                         consesnsus_perc=SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),3600);
 
-                    token = SafeMaths.div(cd.getVoteToken(claimid,i,1),10000000000);
+                    token = SafeMaths.div(cd.getVoteToken(claimid,i,1),_DECIMAL_1e10);
                     tc2.extendCAWithAddress(cd.getVoteVoter(claimid,i,1),consesnsus_perc,token);
                 }
             }                 
@@ -442,8 +446,8 @@ contract claims_Reward
         tc2=NXMToken2(token2Address); 
         cd=claimsData(claimsDataAddress);
         uint tokenx1e18=tc1.getTokenPrice(curr_name);
-        sumAssured=SafeMaths.mul(sumAssured,1000000000000000000);
-        uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumAssured,perc),1000000000000000000),(SafeMaths.mul(SafeMaths.mul(100,100),tokenx1e18)));
+        sumAssured=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
+        uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumAssured,perc),_DECIMAL_1e18),(SafeMaths.mul(SafeMaths.mul(100,100),tokenx1e18)));
         uint token_re;
         uint accept=cd.getClaimMVote(claimid,1);
         uint deny=cd.getClaimMVote(claimid,-1);

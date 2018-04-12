@@ -35,6 +35,10 @@ contract NXMToken2{
     MCR m1;
     NXMToken tc1;
     MemberRoles mr;
+    
+    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
+    uint40 private constant _DECIMAL_1e10 = 10000000000;
+    
     address tokenAddress;
     address quotationDataAddress;
     // address quotation2Address;
@@ -217,7 +221,7 @@ contract NXMToken2{
     {
         td=NXMTokenData(tokenDataAddress);
         // tc1=NXMToken(tokenAddress);
-        noOfTokens = SafeMaths.mul(noOfTokens, 10000000000);
+        noOfTokens = SafeMaths.mul(noOfTokens, _DECIMAL_1e10);
         if(td.getBalanceCAWithAddress(_to) < noOfTokens)throw;
         
         uint yet_to_extend = noOfTokens;
@@ -353,7 +357,6 @@ contract NXMToken2{
         td.lockCA(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
     }
 
-    // Arjun - Data Begin
     /// @dev Burns tokens locked against a Smart Contract Cover, called when a claim submitted against this cover is accepted.
     /// @param coverid Cover Id.
     function burnStakerLockedToken(uint coverid,bytes4 curr,uint SA) onlyInternal 
@@ -365,8 +368,8 @@ contract NXMToken2{
         (,_scAddress) = qd.getscAddressOfCover(coverid);
         m1=MCR(mcrAddress);
         uint tokenPrice=m1.calculateTokenPrice(curr);
-        SA=SafeMaths.mul(SA,10**18);
-        uint burnNXMAmount=SafeMaths.mul(SafeMaths.div(SA,tokenPrice),10**18);
+        SA=SafeMaths.mul(SA,_DECIMAL_1e18);
+        uint burnNXMAmount=SafeMaths.mul(SafeMaths.div(SA,tokenPrice),_DECIMAL_1e18);
         uint totalStaker=td.getTotalStakerAgainstScAddress(_scAddress);
         for(uint i=0; i<totalStaker;i++)
         {
@@ -426,5 +429,4 @@ contract NXMToken2{
         td=NXMTokenData(tokenDataAddress);
         td.setWalletAddress(_add);
     }
-    // Arjun - Data End
 }

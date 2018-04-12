@@ -25,9 +25,12 @@ contract fiatFaucet
     master ms;
     quotation2 q2;
     NXMToken tc1;
+    
     address masterAddress;
     address quotation2Address;
     address tokenAddress;
+    
+    uint40 private constant _DECIMAL_1e10 = 10000000000;
 
     mapping(bytes16=>address) contract_add;
     SupplyToken tok;
@@ -134,7 +137,7 @@ contract fiatFaucet
    
     function transferBackEther(uint256 amount) onlyInternal
     {
-        amount = SafeMaths.mul(amount , 10000000000);  
+        amount = SafeMaths.mul(amount, _DECIMAL_1e10);  
         address _add=msg.sender;
         bool succ = _add.send(amount);   
     }

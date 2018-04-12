@@ -34,6 +34,9 @@ contract NXMToken {
     NXMTokenData td;
     // address owner;
     NXMToken2 tc2;
+    
+    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
+    
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _of,bytes16 eventName , uint coverId ,uint tokens);
@@ -110,7 +113,7 @@ contract NXMToken {
             td.changeCurrentFounderTokens(SafeMaths.add(td.currentFounderTokens(),tokens));
             td.addInAllocatedFounderTokens(_to , tokens);
             tc2=NXMToken2(nxmtoken2Address);
-            tc2.rewardToken(_to,SafeMaths.mul(tokens,1000000000000000000));
+            tc2.rewardToken(_to,SafeMaths.mul(tokens,_DECIMAL_1e18));
         }
     }
    
@@ -343,7 +346,7 @@ contract NXMToken {
         m1=MCR(mcrAddress);
         if(m1.calculateTokenPrice("ETH")>0)
         {
-            uint256 amount = SafeMaths.div((SafeMaths.mul(value,1000000000000000000)),m1.calculateTokenPrice("ETH"));
+            uint256 amount = SafeMaths.div((SafeMaths.mul(value,_DECIMAL_1e18)),m1.calculateTokenPrice("ETH"));
             // td.changePoolFundValue("ETH",SafeMaths.add(td.getPoolFundValue("ETH"),value));
             tc2=NXMToken2(nxmtoken2Address);  
             // Allocate tokens         

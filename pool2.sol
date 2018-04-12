@@ -68,6 +68,9 @@ contract pool2
     SupplyToken tok;
     pool3 p3;
     quotationData qd;
+    
+    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
+
     event Payout(address indexed to, bytes16 eventName , uint coverId ,uint tokens );
     event Liquidity(bytes16 type_of,bytes16 function_name);
     event ZeroExOrders(bytes16 func,address makerAddr,address takerAddr,uint makerAmt,uint takerAmt,uint expirationTimeInMilliSec,bytes32 orderHash);
@@ -192,7 +195,7 @@ contract pool2
                 cr.changeClaimStatus(pd.getIdOfApiId(myid));
 
             }
-              else if(pd.getApiIdTypeOf(myid) =="MCR")
+            else if(pd.getApiIdTypeOf(myid) =="MCR")
             {
                 pd.updateDateUpdOfAPI(myid);
             }
@@ -254,28 +257,28 @@ contract pool2
         p1=pool(poolAddress);
         pd=poolData1(poolDataAddress);
         address _to=qd.getCoverMemberAddress(coverid);
-        uint sumAssured1 = qd.getCoverSumAssured(coverid);
+        uint sumAssured = qd.getCoverSumAssured(coverid);
+        uint sumAssured_1e18=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint balance;
         // uint quoteid=q2.getQuoteId(coverid);
         //Payout in Ethers in case currency of quotation is ETH
         if(curr=="ETH")
         {
-           uint sumAssured=SafeMaths.mul(sumAssured1,1000000000000000000);
             balance = p1.getEtherPoolBalance();
             //Check if pool has enough ETH balance
-            if(balance >= sumAssured)
+            if(balance >= sumAssured_1e18)
             {
-                succ = p1.transferEther(sumAssured ,_to);   
+                succ = p1.transferEther(sumAssured_1e18 ,_to);   
                 if(succ==true)
                 {
                     // tc1.removeFromPoolFund(curr,sumAssured);
-                    q2.removeSAFromCSA(coverid,sumAssured1);
+                    q2.removeSAFromCSA(coverid,sumAssured);
                     p1.subtractQuotationOracalise(coverid);
                     // date:10/11/2017/
-                    pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured1)));
+                    pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured)));
                     c1.checkLiquidity(curr);
-                    callPayoutEvent(_to,"Payout",coverid,sumAssured);
+                    callPayoutEvent(_to,"Payout",coverid,sumAssured_1e18);
                 }
                 else
                 {
@@ -292,19 +295,18 @@ contract pool2
         else
         {
             f1=fiatFaucet(fiatFaucetAddress);
-            sumAssured=SafeMaths.mul(sumAssured1,1000000000000000000);
             balance = f1.getBalance(poolAddress , curr);
             //Check if pool has enough fiat crypto balance
-            if(balance >= sumAssured)
+            if(balance >= sumAssured_1e18)
             {
-                f1.payoutTransferFromPool(_to , curr , sumAssured);
+                f1.payoutTransferFromPool(_to , curr , sumAssured_1e18);
                 // tc1.removeFromPoolFund(curr,sumAssured);
                 p1.subtractQuotationOracalise(coverid);
                 q2.removeSAFromCSA(coverid,sumAssured);
                 // date:10/11/2017/
-                pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured1)));
+                pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured)));
                 c1.checkLiquidity(curr);
-                callPayoutEvent(_to,"Payout",coverid,sumAssured);
+                callPayoutEvent(_to,"Payout",coverid,sumAssured_1e18);
                 succ=true;
             }
             else
@@ -314,7 +316,7 @@ contract pool2
             }
         }
         if(qd.getProductNameOfCover(coverid)=="SCC")
-            tc2.burnStakerLockedToken(coverid,curr,sumAssured1);
+            tc2.burnStakerLockedToken(coverid,curr,sumAssured);
     }
     /// @dev Gets the investment asset rank.
    function getIARank(bytes16 curr,uint64 rateX100)  constant returns(int RHS) //internal function
@@ -324,12 +326,11 @@ contract pool2
         uint currentIAmaxHolding;
         uint currentIAminHolding;
 
-        uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**18));
+        uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(_DECIMAL_1e18));
         (currentIAminHolding,currentIAmaxHolding)=pd.getInvestmentAssetHoldingPerc(curr);
         uint holdingPercDiff=(SafeMaths.sub(SafeMaths.div(currentIAmaxHolding,100) , SafeMaths.div(currentIAminHolding,100)));
         if(holdingPercDiff>0 && rateX100>0)
             RHS=int(SafeMaths.div(SafeMaths.mul(IABalance,100),(SafeMaths.mul(holdingPercDiff,rateX100))));
-        
     }
     /// @dev Gets the equivalent investment asset pool  balance in ether. 
     /// @param IACurr array of Investment asset name.
@@ -360,7 +361,7 @@ contract pool2
         // require(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
         if(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0){
 
-            uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000 )),(10**18));
+            uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000 )),(_DECIMAL_1e18));
             if(totalRiskBal>0 && IARate.length>0)  //if v=0 OR there is no IA, don't trade
             {
                 for(uint i=0;i<IARate.length;i++)
@@ -371,12 +372,12 @@ contract pool2
                         {
                             // ORDER 1 (max RHS IA to ETH)
                             // amount of asset to sell
-                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)) )); //*100);// ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
+                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)))); //*100);// ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
                             // amount of ETH to buy
                             uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); 
                             uint expirationTimeInMilliSec=SafeMaths.add(now,pd.getOrderExpirationTime("RBT"));
-                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd.getInvestmentAssetDecimals(MAXIACurr) )),100);
-                            takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,10**18),(100));
+                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd.getInvestmentAssetDecimals(MAXIACurr))),100);
+                            takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,_DECIMAL_1e18),(100));
                             if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
                             {
                                 exchange1=Exchange(exchangeContractAddress);
@@ -417,7 +418,7 @@ contract pool2
             p1=pool(poolAddress);
             
             uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**pd.getInvestmentAssetDecimals(curr)));
-            uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000),(10**18));
+            uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000),(_DECIMAL_1e18));
             if(IABalance>0 && totalRiskBal>0)
             {
                 uint IAMax;uint IAMin;uint checkNumber;uint z;

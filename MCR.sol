@@ -39,6 +39,9 @@ contract MCR
     address masterAddress;
     address quotationDataAddress;
     
+    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
+    uint32 private constant _DECIMAL_1e08 = 100000000;
+    
     event apiresult(address indexed sender,string msg);
     event MCR(uint indexed date,uint blockNumber,bytes4[] allCurr,uint32[] allCurrRates,uint mcrEtherx100,uint32 mcrPercx100,uint64 vFull);
     
@@ -171,7 +174,7 @@ contract MCR
     {
         md = MCRData(MCRDataAddress);
         if(md.isnotarise(msg.sender)==0) throw;
-        vF = SafeMaths.mul64(vF , 1000000000000000000);
+        vF = SafeMaths.mul64(vF , _DECIMAL_1e18);
         uint len = md.getMCRDataLength();
         
        addMCRData_Extended(len,onlyDate,curr,mcrE,mcrP,vF,_3dayAvg);
@@ -189,18 +192,18 @@ contract MCR
              
             if(VTP>=vF)
             {
-                upperThreshold=SafeMaths.div(VTP,(SafeMaths.mul(md.getMinCap(),1000000000000000000)));
+                upperThreshold=SafeMaths.div(VTP,(SafeMaths.mul(md.getMinCap(),_DECIMAL_1e18)));
                 upperThreshold=SafeMaths.mul(upperThreshold,100);
             }
             else
             {
-                upperThreshold=SafeMaths.div(vF,(SafeMaths.mul(md.getMinCap(),1000000000000000000)));
+                upperThreshold=SafeMaths.div(vF,(SafeMaths.mul(md.getMinCap(),_DECIMAL_1e18)));
                 upperThreshold=SafeMaths.mul(upperThreshold,100);
             }
             if(VTP>0)
             {
                 lower=SafeMaths.div((SafeMaths.mul(getAllSumAssurance(),100)),md.getShockParameter());
-                lower=SafeMaths.mul(lower,1000000000000000000);
+                lower=SafeMaths.mul(lower,_DECIMAL_1e18);
             }
             if(lower>0)
             {
@@ -356,12 +359,12 @@ contract MCR
         tc1= NXMToken(tokenAddress);
         uint MCRtp;
         (,MCRtp) = calVtpAndMCRtp();                       
-        uint TO = SafeMaths.div(tc1.totalSupply(),1000000000000000000); 
+        uint TO = SafeMaths.div(tc1.totalSupply(),_DECIMAL_1e18); 
         uint getSFx100000;
         uint getGrowthStep;
         uint getCurr3DaysAvg;
         (getSFx100000,getGrowthStep,getCurr3DaysAvg)=md.getTokenPriceDetails(curr);
-        if(SafeMaths.div((SafeMaths.mul(MCRtp , MCRtp)),100000000) >=1)
+        if(SafeMaths.div((SafeMaths.mul(MCRtp , MCRtp)),_DECIMAL_1e08) >=1)
         {
             tokenPrice = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(getSFx100000 ,(SafeMaths.add(getGrowthStep,TO))) , MCRtp) , MCRtp) , 100000)),getGrowthStep);  
         }

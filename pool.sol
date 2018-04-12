@@ -27,7 +27,8 @@ import "./USD.sol";
 // import "./MCR.sol";
 import "./StandardToken.sol";
 import "./SafeMaths.sol";
-import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
+import "./oraclize.sol";
+// import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 contract pool is usingOraclize{
     using SafeMaths for uint;
     master ms;
@@ -42,6 +43,10 @@ contract pool is usingOraclize{
     address quotation2Address; 
     // address MCRAddress;
     address pool2Address;
+    
+    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
+    uint40 private constant _DECIMAL_1e10 = 10000000000;
+    
     quotation2 q2;
     NXMToken tc1;
     // claims c1;
@@ -333,7 +338,7 @@ contract pool is usingOraclize{
     /// @dev Transfers back the given amount to the owner.
     function transferBackEther(uint256 amount) onlyOwner  
     {
-        amount = SafeMaths.mul(amount , 10000000000);  
+        amount = SafeMaths.mul(amount, _DECIMAL_1e10);  
         bool succ = transferEther(amount , msg.sender);   
         if(succ==true)
         {
@@ -348,7 +353,7 @@ contract pool is usingOraclize{
     function getCurrTokensFromFaucet(uint valueETH , bytes4 curr) onlyOwner
     {
         g1 = governance(governanceAddress);
-        uint valueWEI =SafeMaths.mul (valueETH,1000000000000000000);
+        uint valueWEI =SafeMaths.mul (valueETH,_DECIMAL_1e18);
         if(g1.isAB(msg.sender) != 1 || (valueWEI > this.balance)) throw;
         // tc1.removeFromPoolFund("ETH",valueWEI);
         getCurrencyTokensFromFaucet(valueWEI,curr);

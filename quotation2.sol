@@ -265,13 +265,13 @@ contract quotation2 {
         tc2=NXMToken2(token2Address);
         qd.changeLockedTokens(cid,tc2.lockCN(coverDetails[3],uint16(coverDetails[0]),cid,from));
         qd.addInTotalSumAssured(coverCurr,coverDetails[1]);
-        if(qd.getProductNameOfCover(prodId)=="SCC" && scAddress != 0x000){ 
+        if(qd.getProductName(prodId)=="SCC" && scAddress != 0x000){ 
             qd.addInTotalSumAssuredSC(scAddress,coverCurr,coverDetails[1]);
             tc1=NXMToken(tokenAddress);
             if(tc1.getTotalLockedNXMToken(scAddress)>0)
                 tc1.updateStakerCommissions(scAddress,coverDetails[3]);
         }
-        qd.callCoverEvent(from, scAddress, coverDetails[2], "xyz");
+        qd.callCoverEvent(from, scAddress, coverDetails[2], "");
     }
 
     /// @dev Make Cover using NXM tokens.

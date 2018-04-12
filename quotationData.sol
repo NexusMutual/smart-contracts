@@ -350,7 +350,7 @@ contract quotationData{
     /// @return sumAssured Sum assurance of cover.
     function getCoverByIndex1(uint _cid) constant returns(bytes8 productName, uint cid,address scAddress,bytes4 currencyCode,uint32 sumAssured, uint16 statusNo) 
     {
-        return (allCovers[_cid].productName,cid,allCovers[_cid].scAddress,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].status);
+        return (allCovers[_cid].productName,_cid,allCovers[_cid].scAddress,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].status);
     }
 
     /// @dev Provides details of a cover Id
@@ -360,10 +360,9 @@ contract quotationData{
     /// @return dateAdd timestamp at which cover is created.
     /// @return status current status of cover.
     /// @return amountFunded Amount funded to the cover.
-    /// @return coverId cover of a quoation.
-    function getCoverByIndex2(uint _cid) constant returns(address memberAddress,uint16 coverPeriod,uint validUntil,uint16 status, uint lockedTokens)
+    function getCoverByIndex2(uint _cid) constant returns(uint cid,address memberAddress,uint16 coverPeriod,uint validUntil,uint16 status, uint lockedTokens)
     {
-        return (allCovers[_cid].memberAddress,allCovers[_cid].coverPeriod,allCovers[_cid].validUntil,allCovers[_cid].status,allCovers[_cid].lockedTokens);
+        return (_cid,allCovers[_cid].memberAddress,allCovers[_cid].coverPeriod,allCovers[_cid].validUntil,allCovers[_cid].status,allCovers[_cid].lockedTokens);
     }
     
     /// @dev Provides the information of the quote id, mapped against the user  calling the function, at the given index
@@ -373,17 +372,17 @@ contract quotationData{
     /// @return dateAdd timestamp at which cover is created.
     /// @return status current status of cover.
     /// @return amountFunded number of tokens funded to the cover.
-    function getCoverByAddressAndIndex2(uint _cid) constant returns(address memAddress,uint16 coverPeriod,uint validUntil,bytes16 status)
+    function getCoverByAddressAndIndex2(uint _cid) constant returns(uint cid, address memAddress,uint16 coverPeriod,uint validUntil,bytes16 status)
     {
         uint16 statusNo;
-        (memAddress,coverPeriod,validUntil,statusNo,) = getCoverByIndex2(_cid);
+        (cid,memAddress,coverPeriod,validUntil,statusNo,) = getCoverByIndex2(_cid);
         status=getCoverStatus(statusNo);
     }
     
     /// @dev Gets Quote details using current address and quoteid.
-    function getCoverByAddressAndIndex1(uint _cid) constant returns(bytes8 productName,address scAddress,bytes4 currencyCode,uint32 sumAssured)
+    function getCoverByAddressAndIndex1(uint _cid) constant returns(bytes8 productName,uint cid,address scAddress,bytes4 currencyCode,uint32 sumAssured)
     {
-        (productName,,scAddress,currencyCode,sumAssured,) = getCoverByIndex1(_cid);
+        (productName,cid,scAddress,currencyCode,sumAssured,) = getCoverByIndex1(_cid);
     }
     
     /// @dev Adds the amount in Total Sum Assured of a given currency.

@@ -121,8 +121,7 @@ contract fiatFaucet
 
     /// @dev Making Cover(s) using ERC20 tokens.
     /// @param coverCurr Currency's Name.
-    /// @param cid Cover ID that will get funded.
-    function funding(uint8 prodId, uint cid, address from, address smaratCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
+    function funding(uint prodId, address smaratCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
     {
         tok=SupplyToken(contract_add[coverCurr]);
         tok.debitTokensForFunding(coverDetails[3] , msg.sender);

@@ -241,7 +241,7 @@ contract quotation2 {
     
     /// @dev Create cover of the quotation, change the status of the quotation ,update the total sum assured and lock the tokens of the cover of a quote.
     /// @param from Quote member Ethereum address
-    function make_Cover(uint16 prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails) internal 
+    function make_Cover(uint prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails) internal 
     {
         qd = quotationData(quotationDataAddress);
         p1=pool(poolAddress);
@@ -276,7 +276,7 @@ contract quotation2 {
 
     /// @dev Make Cover using NXM tokens.
     /// @param smartCAdd Smart Contract Address
-    function makeCoverUsingNXMTokens(uint16 prodId, uint[] coverDetails, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
+    function makeCoverUsingNXMTokens(uint prodId, uint[] coverDetails, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
     {
         m1=MCR(mcrAddress);
         if(m1.checkForMinMCR() == 1) throw;
@@ -288,7 +288,7 @@ contract quotation2 {
     /// @dev Make Cover(s).
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
-    function verifyCoverDetails(uint16 prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
+    function verifyCoverDetails(uint prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
         require(coverDetails[4] > now);
         require(verifySign(coverDetails, coverCurr, scAddress, _v, _r, _s));
         make_Cover(prodId, from, scAddress, coverCurr, coverDetails);

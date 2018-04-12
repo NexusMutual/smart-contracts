@@ -506,7 +506,7 @@ contract pool3
         pd=poolData1(poolDataAddress);
         CABalance=getCurrencyAssetsBalance(curr);
         (,baseMin,varMin)=pd.getCurrencyAssetDetails(curr);
-        uint lastIndex=SafeMaths.sub(md.getMCRDataLength(),1);
+        // uint lastIndex=SafeMaths.sub(md.getMCRDataLength(),1);
         CARateX100=md.allCurr3DaysAvg(curr);
     }
     // update investment asset  min and max holding percentages.

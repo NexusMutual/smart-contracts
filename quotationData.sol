@@ -58,7 +58,8 @@ contract quotationData{
     function quotationData(){
         pendingCoverStart = 0;
         //Add smartcontractcover 
-        ProductDetails.push(Product_Details("SCC","",90,1000,12,0));
+        ProductDetails.push(Product_Details("EQC","Earth Quake",90,500,12,43));
+        ProductDetails.push(Product_Details("SCC","Smart Contract Cover",90,1000,12,0));
     }
     function changeMasterAddress(address _add) 
     {
@@ -149,6 +150,14 @@ contract quotationData{
         return ProductDetails[_prodId].productName;
     }
     
+    function getProductHash(uint _prodId) constant returns(string _productHash){
+        return ProductDetails[_prodId].productHash;
+    }
+    
+    function getAllProductCount() constant returns (uint length){
+        return ProductDetails.length;
+    }
+    
     function addProductDetails(bytes8 _productName,string _productHash,uint64 _minDays,uint16 _PM,uint16 _STL,uint16 _STLP) onlyOwner
     {
         ProductDetails.push(Product_Details(_productName,_productHash,_STLP,_STL,_PM,_minDays));
@@ -159,8 +168,9 @@ contract quotationData{
     /// @return  _PM Profit margin.
     /// @return  _STL short term Load.
     /// @return  _STLP short term load period.
-    function getProductDetails(uint _prodId) constant returns(bytes8 _productName, string _productHash, uint64 _minDays, uint16 _PM, uint16 _STL, uint16 _STLP)
+    function getProductDetails(uint _prodId) constant returns(uint _productId,bytes8 _productName, string _productHash, uint64 _minDays, uint16 _PM, uint16 _STL, uint16 _STLP)
     {
+        _productId=_prodId;
         _productName=ProductDetails[_prodId].productName;
         _productHash=ProductDetails[_prodId].productHash;
         _minDays=ProductDetails[_prodId].minDays;
@@ -311,17 +321,18 @@ contract quotationData{
     }  
 
     /// @dev Creates a blank new cover.
-    function addCover(uint16 _coverPeriod,uint32 _SA,bytes8 _productName,uint _cid,address _userAddress,bytes4 _currencyCode, address _scAddress) onlyInternal
+    function addCover(uint16 _coverPeriod,uint32 _SA,bytes8 _productName,address _userAddress,bytes4 _currencyCode, address _scAddress) onlyInternal
     { 
-        allCovers[_cid].sumAssured= _SA;
-        allCovers[_cid].coverPeriod= _coverPeriod;
-        allCovers[_cid].productName = _productName;
-        allCovers[_cid].memberAddress = _userAddress;
-        allCovers[_cid].currencyCode = _currencyCode;
-        allCovers[_cid].validUntil = SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days));
-        allCovers[_cid].status = 2;
-        allCovers[_cid].scAddress=_scAddress;
-        user_Cover[_userAddress].push(_cid);
+        allCovers.push(cover(_productName,_userAddress,_currencyCode,_SA,_coverPeriod,SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days)),0,_scAddress,0));
+        // allCovers[_cid].sumAssured= _SA;
+        // allCovers[_cid].coverPeriod= _coverPeriod;
+        // allCovers[_cid].productName = _productName;
+        // allCovers[_cid].memberAddress = _userAddress;
+        // allCovers[_cid].currencyCode = _currencyCode;
+        // allCovers[_cid].validUntil = SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days));
+        // allCovers[_cid].status = 2;
+        // allCovers[_cid].scAddress=_scAddress;
+        user_Cover[_userAddress].push(SafeMaths.sub(allCovers.length,1));
     }
 
     /// @dev Updates the Sum Assured of a given cover.    

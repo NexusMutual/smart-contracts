@@ -246,7 +246,7 @@ contract quotation2 {
         qd = quotationData(quotationDataAddress);
         p1=pool(poolAddress);
         uint cid=qd.getCoverLength();
-        qd.addCover(uint16(coverDetails[0]),uint16(coverDetails[1]),qd.getProductName(prodId),cid,from,coverCurr,scAddress);
+        qd.addCover(uint16(coverDetails[0]),uint32(coverDetails[1]),qd.getProductName(prodId),from,coverCurr,scAddress);
         uint coverLength_new=qd.getCoverLength();
         if(SafeMaths.sub(coverLength_new,cid)>1){
             for(uint i=cid; i<coverLength_new; i++){
@@ -344,7 +344,7 @@ contract quotation2 {
     //     return qd.getProductNameOfCover(_cid);
     // }   
     
-    function verifySign(uint[] coverDetails,bytes4 curr,address smaratCA,uint8 _v,bytes32 _r,bytes32 _s)  returns(bool)
+    function verifySign(uint[] coverDetails,bytes4 curr,address smaratCA,uint8 _v,bytes32 _r,bytes32 _s) constant  returns(bool)
     {
         bytes32 hash = getOrderHash(coverDetails,curr,smaratCA);
         return  isValidSignature(hash,_v,_r,_s);

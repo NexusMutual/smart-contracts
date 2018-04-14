@@ -357,6 +357,7 @@ contract NXMToken2{
         td.lockCA(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
     }
 
+    // Arjun - Data Begin
     /// @dev Burns tokens locked against a Smart Contract Cover, called when a claim submitted against this cover is accepted.
     /// @param coverid Cover Id.
     function burnStakerLockedToken(uint coverid,bytes4 curr,uint SA) onlyInternal 

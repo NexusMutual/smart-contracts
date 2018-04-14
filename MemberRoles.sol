@@ -12,6 +12,7 @@
 pragma solidity ^0.4.11;
 
 import "./master.sol";
+import "./SafeMaths.sol";
 // import "./NXMToken2.sol";
 
 contract  MemberRoles
@@ -133,7 +134,7 @@ contract  MemberRoles
         if(_typeOf == 1)
         {
             require(memberRoleData[_memberRoleId].memberActive[_memberAddress] == 0);
-            memberRoleData[_memberRoleId].memberCounter = memberRoleData[_memberRoleId].memberCounter+1;
+            memberRoleData[_memberRoleId].memberCounter = SafeMaths.add(memberRoleData[_memberRoleId].memberCounter,1);
             memberRoleData[_memberRoleId].memberActive[_memberAddress] = 1;
             memberAddressToMemberRole[_memberAddress] = _memberRoleId;
             memberRoleData[_memberRoleId].memberAddress.push(_memberAddress);
@@ -186,7 +187,17 @@ contract  MemberRoles
     function isMember(address memAdd) constant returns(bool check)
     {
         check=false;
-        if(memberRoleData[0].memberActive[memAdd]==1)
+        if(memberRoleData[3].memberActive[memAdd]==1)
           check=true;
+    }
+    
+    
+    function getMemberActiveOrInactive(uint8 roleID,address memAdd) constant returns(uint)
+    {
+        return memberRoleData[roleID].memberActive[memAdd];
+    }
+    function getMemberActiveOrInactive(uint8 roleID) constant returns(uint)
+    {
+        return memberRoleData[roleID].memberCounter;
     }
 }

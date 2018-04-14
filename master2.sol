@@ -256,6 +256,7 @@ contract masters2 {
     ///@dev Add quotation and cover status.
     function addCoverStatus() onlyOwner
     {
+        qd=quotationData(quotationDataAddress);
         qd.pushCoverStatus("active");
         qd.pushCoverStatus("Claim Accepted");
         qd.pushCoverStatus("Claim Denied");

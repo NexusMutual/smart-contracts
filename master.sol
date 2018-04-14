@@ -277,6 +277,7 @@ contract master
         tc2.changePoolAddress(poolAddress);
         tc2.changeQuotationDataAddress(quoteDataAddress);
         tc2.changeMemberRolesAddress(memberAddress);
+        tc2.changeTokenDataAddress(tokenDataAddress);
         
         c1=claims(claimsAddress);
         c1.changeTokenAddress(NXMTokenAddress);
@@ -463,6 +464,7 @@ contract master
     }
     function isMember(address _add) constant returns (bool)
     {
+        mr = MemberRoles(memberAddress);
         return mr.isMember(_add);
     }
     ///@dev Change owner of the contract.

@@ -17,7 +17,7 @@
 pragma solidity ^0.4.11;
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
-import "./NXMTokenData.sol";
+// import "./NXMTokenData.sol";
 import "./pool.sol";
 import "./quotationData.sol";
 import "./MCR.sol";
@@ -30,12 +30,12 @@ contract quotation2 {
     NXMToken2 tc2;
     pool p1;
     quotationData qd;
-    NXMTokenData td;
+    // NXMTokenData td;
     master ms;
     MCR m1;
     claimsData cd;
     address masterAddress;
-    address tokenDataAddress;
+    // address tokenDataAddress;
     address mcrAddress;
     address tokenAddress;
     address token2Address;
@@ -65,11 +65,11 @@ contract quotation2 {
         _;
     }
 
-    function changeTokenDataAddress(address _add) onlyInternal
-    {
-        tokenDataAddress = _add;
-        td = NXMTokenData(tokenDataAddress);      
-    }
+    // function changeTokenDataAddress(address _add) onlyInternal
+    // {
+    //     tokenDataAddress = _add;
+    //     td = NXMTokenData(tokenDataAddress);      
+    // }
     function changeMCRAddress(address _add) onlyInternal
     {
         mcrAddress = _add;
@@ -113,22 +113,22 @@ contract quotation2 {
         cd = claimsData(claimDataAddress);
     }
 
-    /// @dev Provides the information of a Cover when given the cover id.
-    /// @param _cid Cover Id
-    /// @return cid Quotation id against which the cover was generated.
-    /// @return validUntil validity timestamp of cover.
-    /// @return claimCount Number of claims submitted against a cover.
-    /// @return lockedTokens Number of tokens locked against a cover.
-    /// @return status Current status of cover. 
-    function getCoverByCoverId(uint _cid) constant returns(uint cid,bytes8 productName, uint validUntil,uint lockedTokens,bytes4 curr,bytes16 status)
-    {
-        qd = quotationData(quotationDataAddress);
-        uint16 statusNo;
-        (productName,cid,,curr,,statusNo) = qd.getCoverByIndex1(_cid);
-        validUntil=qd.getCoverValidity(_cid);
-        (,lockedTokens) = td.getUser_cover_lockedCN(qd.getCoverMemberAddress(_cid),_cid);
-        status=qd.getCoverStatus(statusNo);
-    }
+    // /// @dev Provides the information of a Cover when given the cover id.
+    // /// @param _cid Cover Id
+    // /// @return cid Quotation id against which the cover was generated.
+    // /// @return validUntil validity timestamp of cover.
+    // /// @return claimCount Number of claims submitted against a cover.
+    // /// @return lockedTokens Number of tokens locked against a cover.
+    // /// @return status Current status of cover. 
+    // function getCoverByCoverId(uint _cid) constant returns(uint cid,bytes8 productName, uint validUntil,uint lockedTokens,bytes4 curr,bytes16 status)
+    // {
+    //     qd = quotationData(quotationDataAddress);
+    //     uint16 statusNo;
+    //     (productName,cid,,curr,,statusNo) = qd.getCoverDetailsByCoverID(_cid);
+    //     validUntil=qd.getCoverValidity(_cid);
+    //     (,lockedTokens) = td.getUser_cover_lockedCN(qd.getCoverMemberAddress(_cid),_cid);
+    //     status=qd.getCoverStatus(statusNo);
+    // }
     
     /// @dev Expires a cover after a set period of time. 
     /// @dev Changes the status of the Cover and reduces the current sum assured of all areas in which the quotation lies
@@ -140,7 +140,7 @@ contract quotation2 {
         p1=pool(poolAddress);
         if(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid)!=3)
         {
-            qd.changeCoverStatus(_cid, 3);
+            qd.changeCoverStatusNo(_cid, 3);
             tc1=NXMToken(tokenAddress);
             tc1.unlockCN(_cid);
             bytes4 curr =  qd.getCurrencyOfCover(_cid);
@@ -178,7 +178,7 @@ contract quotation2 {
     function checkCoverExpired(uint _cid) constant returns (uint8 expire)
     {
         qd = quotationData(quotationDataAddress);
-        if(qd.getCoverValidity(_cid) < uint64(now))
+        if(qd.getValidityOfCover(_cid) < uint64(now))
             expire=1;
         else
             expire=0;

@@ -298,7 +298,7 @@ contract MCR
     /// @return vFull Total Pool fund value in Ether used in the last full daily calculation from the Capital model of that month of year.
     /// @return date_add current timestamp.
     /// @return blockNumber Block Number.
-    function getLastMCR() constant returns( uint mcrPercx100,uint vFull, uint64 date)
+    function getLastMCR() constant returns(uint mcrPercx100,uint vFull, uint64 date)
     {
         md = MCRData(MCRDataAddress);
        (mcrPercx100,vFull,date) = md.getLastMCR();

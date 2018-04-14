@@ -426,7 +426,7 @@ contract claims{
         else{
             cd=claimsData(claimsDataAddress);
             cd.setClaimAtEmergencyPause(coverid,now,false);
-            qd.changeCoverStatus(coverid,5);
+            qd.changeCoverStatusNo(coverid,5);
         }
     }
     ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
@@ -444,13 +444,13 @@ contract claims{
         tc2.depositCN(coverid,tokens,timeStamp,add);
         uint len = cd.actualClaimLength(); 
         cd.addClaim(len,coverid,add,time,nowtime);
-        qd.changeCoverStatus(coverid,4);
+        qd.changeCoverStatusNo(coverid,4);
         cd.addCover_Claim(coverid, cd.getCoverClaimCount(coverid));
         // q1.updateCoverStatusAndCount(coverid,4);
         bytes4 curr=qd.getCurrencyOfCover(coverid);
-        uint32 sumAssured=qd.getCoverSumAssured(coverid);
+        uint sumAssured=qd.getCoverSumAssured(coverid);
         pd = poolData1(poolDataAddress);
-        pd.changeCurrencyAssetVarMin(curr,SafeMaths.add64(pd.getCurrencyAssetVarMin(curr),sumAssured));
+        pd.changeCurrencyAssetVarMin(curr,SafeMaths.add64(pd.getCurrencyAssetVarMin(curr),uint64(sumAssured)));
         checkLiquidity(curr);
         p1=pool(poolAddress);
         p1.closeClaimsOraclise(len, cd.max_voting_time());
@@ -536,7 +536,7 @@ contract claims{
         uint timeStamp = SafeMaths.add(now , d);
         tc2.depositCN(coverId,tokens,timeStamp,msg.sender);
         setClaimStatus(claimId,2);
-        qd.changeCoverStatus(coverId,4);
+        qd.changeCoverStatusNo(coverId,4);
         cd.addCover_Claim(coverId,cd.getCoverClaimCount(coverId));
         // q1.updateCoverStatusAndCount(coverId,4);
         p1=pool(poolAddress);

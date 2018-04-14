@@ -261,7 +261,7 @@ contract master
         q2.changeQuotationDataAddress(quoteDataAddress);
         q2.changeMCRAddress(MCRAddress);
         q2.changeToken2Address(NXMToken2Address);
-        q2.changeTokenDataAddress(tokenDataAddress);
+        // q2.changeTokenDataAddress(tokenDataAddress);
         
         
         tc1=NXMToken(NXMTokenAddress);

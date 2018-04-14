@@ -154,7 +154,7 @@ contract claims_Reward
                 if( SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) > 70 &&  threshold_unreached==0)
                 {
                    status=8;
-                   qd.changeCoverStatus(coverid,1);
+                   qd.changeCoverStatusNo(coverid,1);
                    // Call API of pool
                    reward_claim=1;
                 }
@@ -223,7 +223,7 @@ contract claims_Reward
                 { status=15; coverStatus=2;}
             }
             c1.setClaimStatus(claimid,status);
-            qd.changeCoverStatus(coverid,coverStatus);
+            qd.changeCoverStatusNo(coverid,coverStatus);
             // Reward/Punish Claim Assessors and Members who participated in claims assessment
             rewardAgainstClaim(claimid,coverid,status);
         }
@@ -252,7 +252,7 @@ contract claims_Reward
         else if(status==1)
         {
             c1.setClaimStatus(claimid,7);
-            qd.changeCoverStatus(coverid,2);
+            qd.changeCoverStatusNo(coverid,2);
             rewardAgainstClaim(claimid,coverid,status);
         }
         // when current status is between 2 and 6, i.e. "Pending Member Vote"
@@ -283,7 +283,7 @@ contract claims_Reward
         cd = claimsData(claimsDataAddress);
         pd = poolData1(poolDataAddress);
         bytes4 curr=qd.getCurrencyOfCover(coverid);
-        uint32 sumAssured=qd.getCoverSumAssured(coverid);
+        uint64 sumAssured=uint64(qd.getCoverSumAssured(coverid));
         p1=pool(poolAddress);
 
         if(status==7) // Final-Claim Assessor Vote Denied

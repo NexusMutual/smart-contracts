@@ -403,7 +403,7 @@ contract NXMToken {
         (dCN_ValidUpto,dCN_LastAmount)=td.getUser_cover_depositCNByIndex(_of,_coverid,SafeMaths.sub(td.getUser_cover_depositCNLength(_of,_coverid),1));
         uint dCN_Amount = td.getDepositCN(_coverid,_of);
 
-        uint coverValidUntil=qd.getCoverValidity(_coverid);
+        uint coverValidUntil=qd.getValidityOfCover(_coverid);
         if(coverValidUntil>timestamp){
             if(dCN_ValidUpto<timestamp)
             {

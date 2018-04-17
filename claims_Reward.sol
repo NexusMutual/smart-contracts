@@ -330,8 +330,9 @@ contract claims_Reward
         if(status==11)
         {
             c1.changeFinalVerdict(claimid,-1);
-            // uint8 cc = cd.getCoverClaimCount(coverid);
-            cd.addCover_Claim(coverid,cd.getCoverClaimCount(coverid)); //cc+1
+            uint8 cc;
+            (,cc)= cd.getCoverClaimCount(coverid);
+            cd.addCover_Claim(coverid,cc); //cc+1
             rewardCAVoters(claimid,100,curr,sumAssured);
             tc2.undepositCN(coverid,0);
             tc2.burnCNToken(coverid);

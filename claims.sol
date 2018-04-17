@@ -226,20 +226,20 @@ contract claims{
     }
      
     /// @dev Gets details of a given claim id.
-    /// @param ind Claim Id.
+    /// @param _claimId Claim Id.
     /// @return status Current status of claim id
     /// @return dateAdd Claim Submission date
     /// @return finalVerdict Decision made on the claim, 1 in case of acceptance, -1 in case of denial
     /// @return claimOwner Address through which claim is submitted
     /// @return coverid Coverid associated with the claim id
-     function getClaimbyIndex(uint ind) constant returns( uint claimId,string status,uint dateAdd ,int8 finalVerdict , address claimOwner ,uint coverid) 
+     function getClaimbyIndex(uint _claimId) constant returns( uint claimId,string status,uint dateAdd ,int8 finalVerdict , address claimOwner ,uint coverid) 
     {
         qd=quotationData(quotationDataAddress);
         cd=claimsData(claimsDataAddress);
        
         uint stat;
-        claimId=ind;
-        (coverid,dateAdd,finalVerdict,stat,,)= cd.getClaim(ind);
+        claimId=_claimId;
+        (,coverid,dateAdd,finalVerdict,stat,,)= cd.getClaim(_claimId);
         claimOwner = qd.getCoverMemberAddress(coverid);
         status = claimStatus_desc[stat];          
     }
@@ -445,7 +445,9 @@ contract claims{
         uint len = cd.actualClaimLength(); 
         cd.addClaim(len,coverid,add,time,nowtime);
         qd.changeCoverStatusNo(coverid,4);
-        cd.addCover_Claim(coverid, cd.getCoverClaimCount(coverid));
+        // uint8 CoverClaimCount;
+        // (,CoverClaimCount)=cd.getCoverClaimCount(coverid);
+        // cd.addCover_Claim(coverid,CoverClaimCount);
         // q1.updateCoverStatusAndCount(coverid,4);
         bytes4 curr=qd.getCurrencyOfCover(coverid);
         uint sumAssured=qd.getCoverSumAssured(coverid);
@@ -537,7 +539,9 @@ contract claims{
         tc2.depositCN(coverId,tokens,timeStamp,msg.sender);
         setClaimStatus(claimId,2);
         qd.changeCoverStatusNo(coverId,4);
-        cd.addCover_Claim(coverId,cd.getCoverClaimCount(coverId));
+        uint8 CoverClaimCount;
+        (,CoverClaimCount)=cd.getCoverClaimCount(coverId);
+        cd.addCover_Claim(coverId,CoverClaimCount);
         // q1.updateCoverStatusAndCount(coverId,4);
         p1=pool(poolAddress);
         p1.closeClaimsOraclise(claimId,cd.max_voting_time());

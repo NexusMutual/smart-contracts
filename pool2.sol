@@ -32,7 +32,7 @@ import "./USD.sol";
 import "./MCRData.sol";
 import "./MCR.sol";
 import "./pool3.sol";
-import "./Exchange.sol";
+import "github.com/0xProject/contracts/contracts/Exchange.sol";
 
 contract pool2 
 {

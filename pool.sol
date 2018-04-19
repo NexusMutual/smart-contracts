@@ -27,8 +27,8 @@ import "./USD.sol";
 // import "./MCR.sol";
 import "./StandardToken.sol";
 import "./SafeMaths.sol";
-import "./oraclize.sol";
-// import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
+// import "./oraclize.sol";
+import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 contract pool is usingOraclize{
     using SafeMaths for uint;
     master ms;

@@ -16,24 +16,21 @@
 //Claims Reward Contract contains the functions for calculating number of tokens  that will get rewarded, unlocked or burned depending upon the status of claim.   
 
 pragma solidity ^0.4.11;
-import "./quotationData.sol";
-import "./NXMToken.sol";
 import "./claims.sol";
-import "./pool.sol";
-import "./NXMToken2.sol";
-import "./NXMTokenData.sol";
-import "./master.sol";
 import "./claimsData.sol";
+import "./NXMToken.sol";
+import "./NXMToken2.sol";
+import "./pool.sol";
 import "./pool2.sol";
 import "./poolData1.sol";
-import "./pool3.sol";
+import "./quotationData.sol";
+import "./master.sol";
 import "./SafeMaths.sol";
 contract claims_Reward
 { 
     using SafeMaths for uint;
     NXMToken tc1;
     NXMToken2 tc2;
-    // NXMTokenData td1;
     quotationData qd;
     claimsData cd;
     poolData1 pd;
@@ -41,11 +38,9 @@ contract claims_Reward
     claims c1;
     pool p1;
     pool2 p2;
-    pool3 p3;
     
     address public masterAddress;
     address public token2Address;
-    // address public tokenDataAddress;
     address public poolAddress;
     address public tokenAddress;
     address public quotationDataAddress;
@@ -53,7 +48,6 @@ contract claims_Reward
     address public pool2Address;
     address public claimsDataAddress;
     address public poolDataAddress;
-    address public pool3Address;
     
     uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
     uint40 private constant _DECIMAL_1e10 = 10000000000;
@@ -85,7 +79,7 @@ contract claims_Reward
     function changeToken2Address(address _add) onlyInternal
     {
         token2Address = _add;
-        tc2 = NXMToken2(token2Address);
+        // tc2 = NXMToken2(token2Address);
     }
 
     // function changeTokenDataAddress(address _add) onlyInternal
@@ -126,7 +120,7 @@ contract claims_Reward
     }
    
     /// @dev Computes the result of Claim Assessors Voting for a given claim id.
-    function changeClaimStatusCA(uint claimid, uint16 coverid,uint8 status) internal
+    function changeClaimStatusCA(uint claimid, uint coverid,uint8 status) internal
     {
         c1=claims(claimsAddress);
         cd=claimsData(claimsDataAddress);
@@ -179,7 +173,7 @@ contract claims_Reward
     }
 
     /// @dev Computes the result of Member Voting for a given claim id.
-    function changeClaimStatusMV(uint claimid,uint16 coverid,uint8 status) internal
+    function changeClaimStatusMV(uint claimid,uint coverid,uint8 status) internal
     {
         c1=claims(claimsAddress); 
         cd=claimsData(claimsDataAddress);
@@ -238,7 +232,7 @@ contract claims_Reward
         c1=claims(claimsAddress);
         cd=claimsData(claimsDataAddress);
         qd=quotationData(quotationDataAddress);
-        uint16 coverid=cd.getClaimCoverId(claimid);
+        uint coverid=cd.getClaimCoverId(claimid);
         // uint quoteId = qd.getCoverQuoteid(coverid);
         uint8 status=cd.getClaimStatus(claimid);
         
@@ -273,7 +267,7 @@ contract claims_Reward
     }
     /// @dev Rewards/Punishes users who  participated in claims assessment. Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
-    function rewardAgainstClaim(uint claimid,uint16 coverid, uint8 status) internal
+    function rewardAgainstClaim(uint claimid,uint coverid, uint8 status) internal
     {
         tc1=NXMToken(tokenAddress);
         tc2=NXMToken2(token2Address);
@@ -284,7 +278,7 @@ contract claims_Reward
         pd = poolData1(poolDataAddress);
         bytes4 curr=qd.getCurrencyOfCover(coverid);
         uint64 sumAssured=uint64(qd.getCoverSumAssured(coverid));
-        p1=pool(poolAddress);
+        // p1=pool(poolAddress);
 
         if(status==7) // Final-Claim Assessor Vote Denied
         {

@@ -23,7 +23,7 @@ contract claimsData
     address masterAddress;
     struct claim 
     {
-        uint16 coverId;
+        uint coverId;
         uint date_submit;
         int8 vote;
         uint8 status;
@@ -44,7 +44,7 @@ contract claimsData
     claim[]  allClaims;
     vote[]  allvotes;
     struct claim_pause {
-        uint16 coverid;
+        uint coverid;
         uint date_upd;
         bool submit;
     }
@@ -173,7 +173,7 @@ contract claimsData
     }
     function getAllVoteLength() constant returns(uint voteCount)
     {
-        return allvotes.length;
+        return SafeMaths.sub(allvotes.length,1); //Start Index always from 1.
     } 
 
     /// @dev Gets the status number of a given claim.
@@ -375,7 +375,7 @@ contract claimsData
         allClaims[_claimId].date_upd = _time;
     }
     /// @dev Gets cover id of a claim.
-    function getClaimCoverId(uint _claimId) constant returns(uint16 coverid)
+    function getClaimCoverId(uint _claimId) constant returns(uint coverid)
     {
         coverid=allClaims[_claimId].coverId;
     }
@@ -448,7 +448,7 @@ contract claimsData
         return allClaims[_claimId].vote;
     }
     /// @dev Saves the claim submission time in case of emergency pause.
-    function addClaim(uint _claimId,uint16 _coverId,address _from,uint _time,uint _nowtime) onlyInternal
+    function addClaim(uint _claimId,uint _coverId,address _from,uint _time,uint _nowtime) onlyInternal
     {
         allClaims.push(claim(_coverId,_time,0,0,_nowtime,0));
         allClaimsByAddress[_from].push(_claimId);
@@ -560,11 +560,11 @@ contract claimsData
         allClaims[_claimId].date_upd = _date_upd;
     }
 
-    function setClaimAtEmergencyPause (uint16 _coverId,uint _date_upd, bool _submit) onlyInternal {
+    function setClaimAtEmergencyPause (uint _coverId,uint _date_upd, bool _submit) onlyInternal {
         claimPause.push(claim_pause(_coverId,_date_upd,_submit));
     }
     /// @dev Get claim queued during emergency pause by index.
-    function getClaimOfEmergencyPauseByIndex (uint _index) constant returns(uint16 coverId, uint date_upd, bool submit) {
+    function getClaimOfEmergencyPauseByIndex (uint _index) constant returns(uint coverId, uint date_upd, bool submit) {
         coverId = claimPause[_index].coverid;
         date_upd= claimPause[_index].date_upd;
         submit  = claimPause[_index].submit;

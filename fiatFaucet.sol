@@ -16,7 +16,7 @@
 pragma solidity ^0.4.11;
 import "./USD.sol";
 import "./quotation2.sol";
-import "./NXMToken.sol";
+// import "./NXMToken.sol";
 import "./master.sol";
 import "./SafeMaths.sol";
 contract fiatFaucet
@@ -24,7 +24,7 @@ contract fiatFaucet
     using SafeMaths for uint;
     master ms;
     quotation2 q2;
-    NXMToken tc1;
+    // NXMToken tc1;
     
     address masterAddress;
     address quotation2Address;
@@ -71,7 +71,7 @@ contract fiatFaucet
     /// @param curr Currency's Name.
     function  transferToken(bytes4 curr) isMemberAndcheckPause payable 
     {
-        tc1=NXMToken(tokenAddress);
+        // tc1=NXMToken(tokenAddress);
         uint tokens=SafeMaths.mul(msg.value,1000);
         tok=SupplyToken(contract_add[curr]);
         tok.mintToken(msg.sender,tokens);

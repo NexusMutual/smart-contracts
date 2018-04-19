@@ -24,7 +24,7 @@ import "./SafeMaths.sol";
 import "./USD.sol";
 import "./pool2.sol";
 import "./MCRData.sol";
-import "github.com/0xProject/contracts/contracts/Exchange.sol";
+import "./Exchange.sol";
 
 contract pool3
 {
@@ -63,7 +63,7 @@ contract pool3
     function changePoolDataAddress(address _add) onlyInternal
     {
         poolDataAddress = _add;
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
     }
     function changeFiatFaucetAddress(address _to) onlyInternal
     {
@@ -220,7 +220,6 @@ contract pool3
                     makerAmt=SafeMaths.div(SafeMaths.mul(makerAmt , SafeMaths.sub(takerAmt,filledAmt)),takerAmt);
                     p1.transferToPool(makerTokenAddr,makerAmt);
                 }
-              
             }
         }
         else // order is not filled completely,transfer makerAmt as it is from signerAddress to poolAddr  
@@ -347,8 +346,6 @@ contract pool3
     function InsufficientLiquidityTrading(bytes4 curr,uint CABalance,uint8 cancel) onlyInternal
     {
         pd = poolData1(poolDataAddress);
-        
-     
         uint64 baseMin;
         uint64 varMin; 
         bytes16 MAXIACurr;

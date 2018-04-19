@@ -15,58 +15,53 @@
 
     
 pragma solidity ^0.4.11;
-import "./quotation2.sol";
+
 import "./quotationData.sol";
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
+import "./NXMTokenData.sol";
 import "./pool.sol";
+import "./pool2.sol";
+import "./pool3.sol";
+import "./poolData1.sol";
 import "./claims_Reward.sol";
 import "./governance.sol";
 import "./claimsData.sol";
 import "./master.sol";
-import "./NXMTokenData.sol";
-import "./poolData1.sol";
 import "./fiatFaucet.sol";
-// import "./MCRData.sol";
 import "./SafeMaths.sol";
-import "./pool2.sol";
-import "./pool3.sol";
+
 contract claims{
     using SafeMaths for uint;
     string[] claimStatus_desc;
 
     address public token2Address;
-    address tokenAddress;
-    address quotation2Address;
-    address claims_rewardAddress;
-    address poolAddress;
-    address governanceAddress;    
-    address claimsDataAddress;
-    address tokenDataAddress;  
-    address poolDataAddress; 
-    address fiatFaucetAddress;
-    // address MCRDataAddress;
-    address pool2Address;
-    address pool3Address;
-    address masterAddress;
-    address quotationDataAddress;
-
-    NXMToken2 tc2;    
+    NXMToken2 tc2;
+    address public tokenAddress;
     NXMToken tc1;
-    quotation2 q1;
-    master ms;
-    NXMTokenData td;
+    address public claims_rewardAddress;
     claims_Reward cr;
+    address public poolAddress;
     pool p1;
+    address public governanceAddress;    
     governance g1;
+    address public claimsDataAddress;
     claimsData cd;
+    address public tokenDataAddress;  
+    NXMTokenData td;
+    address public poolDataAddress; 
     poolData1 pd;
+    address public fiatFaucetAddress;
     fiatFaucet f1;
-    // MCRData md1;
+    address public pool2Address;
     pool2 p2;
+    address public pool3Address;
     pool3 p3;
+    address public masterAddress;
+    master ms;
+    address public quotationDataAddress;
     quotationData qd;
-    
+
     uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
 
     function changeMasterAddress(address _add)
@@ -120,10 +115,6 @@ contract claims{
     {
         tokenAddress = _add;
     }
-    function changeQuotationAddress(address _add) onlyInternal
-    {
-        quotation2Address = _add;
-    }
     function changeQuotationDataAddress(address _add) onlyInternal
     {
         quotationDataAddress = _add;
@@ -136,10 +127,6 @@ contract claims{
     {
         fiatFaucetAddress = _to;
     }
-    // function changeMCRDataAddress(address _add) onlyInternal
-    // {
-    //     MCRDataAddress = _add;
-    // }
     function changePool2Address(address _add)onlyInternal
     {
         pool2Address=_add;
@@ -268,7 +255,6 @@ contract claims{
     /// @return value Number of tokens.
     function getCATokensLockedAgainstClaim(address _of , uint claimid) constant returns(uint value)
     {
-        tc1 = NXMToken(tokenAddress);
         cd=claimsData(claimsDataAddress);
         value = cd.getTokens_claim(_of,claimid);
         td=NXMTokenData(tokenDataAddress);
@@ -415,7 +401,7 @@ contract claims{
 
     /// @dev Submits a claim for a given cover note. Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverid Cover Id.
-    function submitClaim(uint16 coverid)
+    function submitClaim(uint coverid)
     {
         qd=quotationData(quotationDataAddress);
         address qadd=qd.getCoverMemberAddress(coverid);
@@ -430,8 +416,7 @@ contract claims{
         }
     }
     ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
-    function addClaim (uint16 coverid, uint time,address add) internal {
-        // q1=quotation2(quotation2Address);
+    function addClaim (uint coverid, uint time,address add) internal {
         qd=quotationData(quotationDataAddress);
         tc2=NXMToken2(token2Address);
         cd=claimsData(claimsDataAddress);
@@ -463,7 +448,7 @@ contract claims{
         qd=quotationData(quotationDataAddress);
         uint lengthOfClaimSubmittedAtEP = cd.getLengthOfClaimSubmittedAtEP();
         uint FirstClaimIndexToSubmitAfterEP= cd.getFirstClaimIndexToSubmitAfterEP();
-        uint16 coverid;
+        uint coverid;
         uint date_upd;
         bool submit;
         for(uint i=FirstClaimIndexToSubmitAfterEP; i<lengthOfClaimSubmittedAtEP;i++){
@@ -523,10 +508,7 @@ contract claims{
     /// @param claimId Claim Id.
     function escalateClaim(uint coverId , uint claimId) isMemberAndcheckPause
     {  
-        tc2 = NXMToken2(token2Address);
         qd=quotationData(quotationDataAddress);
-        cd=claimsData(claimsDataAddress);
-        tc1=NXMToken(tokenAddress);
         address cadd=qd.getCoverMemberAddress(coverId);
         if(cadd != msg.sender) throw;
         td = NXMTokenData(tokenDataAddress);
@@ -536,6 +518,7 @@ contract claims{
         cd=claimsData(claimsDataAddress);
         uint d=SafeMaths.mul(864000 , cd.escalationTime()) ;
         uint timeStamp = SafeMaths.add(now , d);
+        tc2 = NXMToken2(token2Address);
         tc2.depositCN(coverId,tokens,timeStamp,msg.sender);
         setClaimStatus(claimId,2);
         qd.changeCoverStatusNo(coverId,4);

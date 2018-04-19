@@ -253,69 +253,59 @@ contract master
     }
     /// @dev Link contracts to one another.
     function changeOtherAddress() onlyInternal
-    {   
-        
+    {
         q2=quotation2(quotation2Address);
         q2.changeTokenAddress(NXMTokenAddress);
+        q2.changeToken2Address(NXMToken2Address);
         q2.changePoolAddress(poolAddress);
         q2.changeQuotationDataAddress(quoteDataAddress);
         q2.changeMCRAddress(MCRAddress);
-        q2.changeToken2Address(NXMToken2Address);
-        // q2.changeTokenDataAddress(tokenDataAddress);
-        
         
         tc1=NXMToken(NXMTokenAddress);
-        tc1.changeToken2Address(NXMToken2Address);
-        // tc1.changeQuoteAddress(quotation2Address);
-        tc1.changeMCRAddress(MCRAddress);
         tc1.changeTokenDataAddress(tokenDataAddress);
+        tc1.changeToken2Address(NXMToken2Address);
         tc1.changeQuotationDataAddress(quoteDataAddress);
+        tc1.changeMCRAddress(MCRAddress);
         
-        
-        tc2=NXMToken2(NXMToken2Address);        
-        tc2.changeTokenAddress(NXMTokenAddress);
-        tc2.changePoolAddress(poolAddress);
-        tc2.changeQuotationDataAddress(quoteDataAddress);
-        tc2.changeMemberRolesAddress(memberAddress);
+        tc2=NXMToken2(NXMToken2Address);
         tc2.changeTokenDataAddress(tokenDataAddress);
+        tc2.changeQuotationDataAddress(quoteDataAddress);
+        tc2.changePoolAddress(poolAddress);
+        tc2.changeMCRAddress(MCRAddress);
+        tc2.changeTokenAddress(NXMTokenAddress);
+        tc2.changeMemberRolesAddress(memberAddress);
         
         c1=claims(claimsAddress);
+        c1.changeQuotationDataAddress(quoteDataAddress);
         c1.changeTokenAddress(NXMTokenAddress);
-        c1.changeQuotationAddress(quotation2Address);
-        c1.changeClaimRewardAddress(claims_RewardAddress);
-        c1.changePoolAddress(poolAddress);
-        c1.changeGovernanceAddress(governanceAddress);
-        c1.changeClaimDataAddress(claimDataAddress);
         c1.changeToken2Address(NXMToken2Address);
         c1.changeTokenDataAddress(tokenDataAddress);
-        c1.changeFiatFaucetAddress(fiatFaucetAddress);
-        // c1.changeMCRDataAddress(mcrDataAddress);
-        c1.changePoolDataAddress(poolDataAddress);
+        c1.changePoolAddress(poolAddress);
         c1.changePool2Address(pool2Address);
         c1.changePool3Address(pool3Address);
+        c1.changePoolDataAddress(poolDataAddress);
+        c1.changeClaimRewardAddress(claims_RewardAddress);
+        c1.changeGovernanceAddress(governanceAddress);
+        c1.changeClaimDataAddress(claimDataAddress);
+        c1.changeFiatFaucetAddress(fiatFaucetAddress);
         
         cr=claims_Reward(claims_RewardAddress);
-        cr.changeTokenAddress(NXMTokenAddress);
-        // cr.changeQuotationAddress(quotation2Address);
-        cr.changeQuotationDataAddress(quoteDataAddress);
         cr.changeClaimsAddress(claimsAddress);
-        cr.changePoolAddress(poolAddress);
-        cr.changeToken2Address(NXMToken2Address);
         cr.changeClaimDataAddress(claimDataAddress);
+        cr.changeTokenAddress(NXMTokenAddress);
+        cr.changeToken2Address(NXMToken2Address);
+        cr.changePoolAddress(poolAddress);
         cr.changePool2Address(pool2Address);
         cr.changePoolDataAddress(poolDataAddress);
-        // cr.changeTokenDataAddress(tokenDataAddress);
+        cr.changeQuotationDataAddress(quoteDataAddress);
         
         p1=pool(poolAddress);
         p1.changeTokenAddress(NXMTokenAddress);
-        // p1.changeClaimAddress(claimsAddress);
         p1.changeFiatFaucetAddress(fiatFaucetAddress);
         p1.changeGovernanceAddress(governanceAddress);
         p1.changePoolAddress(poolAddress);
-        // p1.changeClaimRewardAddress(claims_RewardAddress);
         p1.changePoolDataAddress(poolDataAddress);
         p1.changeQuotation2Address(quotation2Address);
-        // p1.changeMCRAddress(MCRAddress);
         p1.changePool2Address(pool2Address);
         
         g1=governance(governanceAddress);
@@ -329,8 +319,6 @@ contract master
         m1.changePoolAddress(poolAddress);
         m1.changeFiatFaucetAddress(fiatFaucetAddress);
         m1.changeMCRDataAddress(mcrDataAddress);
-        // m1.changeToken2Address(NXMToken2Address);
-        // m1.changeTokenDataAddress(tokenDataAddress);
         m1.changeQuotationDataAddress(quoteDataAddress);
         
         s1=SupplyToken(faucetUSDAddress);
@@ -347,7 +335,6 @@ contract master
         
         f1=fiatFaucet(fiatFaucetAddress);
         f1.changeQuotationAddress(quotation2Address);
-        f1.changeTokenAddress(NXMTokenAddress);
         f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
         
         m2=masters2(masters2Address);
@@ -356,23 +343,24 @@ contract master
         m2.changeClaimRewardAddress(claims_RewardAddress);
         m2.changeGovernanceAddress(governanceAddress);
         m2.changeClaimDataAddress(claimDataAddress);
-        m2.changeMCRAddress(MCRAddress); 
-        m2.changeQuotationDataAddress(quoteDataAddress); 
-        m2.changePoolDataAddress(poolDataAddress); //add in new version
+        m2.changeMCRAddress(MCRAddress);
+        m2.changeQuotationDataAddress(quoteDataAddress);
+        m2.changePoolDataAddress(poolDataAddress);
         
-        p2=pool2(pool2Address);   
+        p2=pool2(pool2Address);
         p2.changePool3Address(pool3Address);
+        p2.changeTokenAddress(NXMTokenAddress);
+        p2.changeToken2Address(NXMToken2Address);
         p2.changeGovernanceAddress(governanceAddress);
         p2.changeClaimRewardAddress(claims_RewardAddress);
         p2.changePoolDataAddress(poolDataAddress);
         p2.changeQuotation2Address(quotation2Address);
+        p2.changeQuotationDataAddress(quoteDataAddress);
         p2.changePoolAddress(poolAddress);
-        p2.changeTokenAddress(NXMTokenAddress);
         p2.changeClaimAddress(claimsAddress);
         p2.changeFiatFaucetAddress(fiatFaucetAddress);
-        p2.changeMCRAddress(MCRAddress); 
         p2.changeMCRDataAddress(mcrDataAddress);
-        p2.changeToken2Address(NXMToken2Address);
+        p2.changeMCRAddress(MCRAddress); 
         
         p3=pool3(pool3Address);
         p3.changePoolDataAddress(poolDataAddress);
@@ -384,11 +372,150 @@ contract master
         g2=governance2(governance2Address);
         g2.changeGovernanceDataAddress(governanceDataAddress);
         g2.changePoolAddress(poolAddress);
-        
-        // mr=MemberRoles(memberAddress);
-        // mr.changeToken2Address(NXMToken2Address);
-      
     }
+    // function changeOtherAddressOfQuotation2() onlyInternal
+    // {
+    //     q2=quotation2(quotation2Address);
+    //     q2.changeTokenAddress(NXMTokenAddress);
+    //     q2.changeToken2Address(NXMToken2Address);
+    //     q2.changePoolAddress(poolAddress);
+    //     q2.changeQuotationDataAddress(quoteDataAddress);
+    //     q2.changeMCRAddress(MCRAddress);
+    // }
+    
+    // function changeOtherAddressOfNXMToken() onlyInternal
+    // {
+    //     tc1=NXMToken(NXMTokenAddress);
+    //     tc1.changeTokenDataAddress(tokenDataAddress);
+    //     tc1.changeToken2Address(NXMToken2Address);
+    //     tc1.changeQuotationDataAddress(quoteDataAddress);
+    //     tc1.changeMCRAddress(MCRAddress);
+        
+    //     tc2=NXMToken2(NXMToken2Address);
+    //     tc2.changeTokenDataAddress(tokenDataAddress);
+    //     tc2.changeQuotationDataAddress(quoteDataAddress);
+    //     tc2.changePoolAddress(poolAddress);
+    //     tc2.changeMCRAddress(MCRAddress);
+    //     tc2.changeTokenAddress(NXMTokenAddress);
+    //     tc2.changeMemberRolesAddress(memberAddress);
+    // }
+    
+    // function changeOtherAddressOfClaims() onlyInternal
+    // {
+    //     c1=claims(claimsAddress);
+    //     c1.changeQuotationDataAddress(quoteDataAddress);
+    //     c1.changeTokenAddress(NXMTokenAddress);
+    //     c1.changeToken2Address(NXMToken2Address);
+    //     c1.changeTokenDataAddress(tokenDataAddress);
+    //     c1.changePoolAddress(poolAddress);
+    //     c1.changePool2Address(pool2Address);
+    //     c1.changePool3Address(pool3Address);
+    //     c1.changePoolDataAddress(poolDataAddress);
+    //     c1.changeClaimRewardAddress(claims_RewardAddress);
+    //     c1.changeGovernanceAddress(governanceAddress);
+    //     c1.changeClaimDataAddress(claimDataAddress);
+    //     c1.changeFiatFaucetAddress(fiatFaucetAddress);
+    // }
+    // function changeOtherAddressOfClaimsReward() onlyInternal
+    // {
+    //     cr=claims_Reward(claims_RewardAddress);
+    //     cr.changeClaimsAddress(claimsAddress);
+    //     cr.changeClaimDataAddress(claimDataAddress);
+    //     cr.changeTokenAddress(NXMTokenAddress);
+    //     cr.changeToken2Address(NXMToken2Address);
+    //     cr.changePoolAddress(poolAddress);
+    //     cr.changePool2Address(pool2Address);
+    //     cr.changePoolDataAddress(poolDataAddress);
+    //     cr.changeQuotationDataAddress(quoteDataAddress);
+    // }
+    // function changeOtherAddressOfPool() onlyInternal
+    // {
+    //     p1=pool(poolAddress);
+    //     p1.changeTokenAddress(NXMTokenAddress);
+    //     p1.changeFiatFaucetAddress(fiatFaucetAddress);
+    //     p1.changeGovernanceAddress(governanceAddress);
+    //     p1.changePoolAddress(poolAddress);
+    //     p1.changePoolDataAddress(poolDataAddress);
+    //     p1.changeQuotation2Address(quotation2Address);
+    //     p1.changePool2Address(pool2Address);
+        
+    //     p2=pool2(pool2Address);
+    //     p2.changePool3Address(pool3Address);
+    //     p2.changeTokenAddress(NXMTokenAddress);
+    //     p2.changeToken2Address(NXMToken2Address);
+    //     p2.changeGovernanceAddress(governanceAddress);
+    //     p2.changeClaimRewardAddress(claims_RewardAddress);
+    //     p2.changePoolDataAddress(poolDataAddress);
+    //     p2.changeQuotation2Address(quotation2Address);
+    //     p2.changeQuotationDataAddress(quoteDataAddress);
+    //     p2.changePoolAddress(poolAddress);
+    //     p2.changeClaimAddress(claimsAddress);
+    //     p2.changeFiatFaucetAddress(fiatFaucetAddress);
+    //     p2.changeMCRDataAddress(mcrDataAddress);
+    //     p2.changeMCRAddress(MCRAddress); 
+        
+    //     p3=pool3(pool3Address);
+    //     p3.changePoolDataAddress(poolDataAddress);
+    //     p3.changeFiatFaucetAddress(fiatFaucetAddress);
+    //     p3.changePoolAddress(poolAddress);
+    //     p3.changeMCRDataAddress(mcrDataAddress);
+    //     p3.changePool2Address(pool2Address);
+        
+    // }
+    // function changeOtherAddressOfGovernance() onlyInternal
+    // {
+    //     g1=governance(governanceAddress);
+    //     g1.changeAllAddress(NXMTokenAddress,claimsAddress,poolAddress,poolDataAddress,pool3Address);
+    //     g1.changeGovernanceDataAddress(governanceDataAddress);
+    //     g1.changeToken2Address(NXMToken2Address);
+    //     g1.changeTokenDataAddress(tokenDataAddress);
+        
+    //     g2=governance2(governance2Address);
+    //     g2.changeGovernanceDataAddress(governanceDataAddress);
+    //     g2.changePoolAddress(poolAddress);
+    // }
+    // function changeOtherAddressOfMCR() onlyInternal
+    // {
+    //     m1=MCR(MCRAddress);
+    //     m1.changeTokenAddress(NXMTokenAddress);
+    //     m1.changePoolAddress(poolAddress);
+    //     m1.changeFiatFaucetAddress(fiatFaucetAddress);
+    //     m1.changeMCRDataAddress(mcrDataAddress);
+    //     m1.changeQuotationDataAddress(quoteDataAddress);
+    // }
+    // function changeOtherAddressOfSupplyToken() onlyInternal
+    // {
+    //     s1=SupplyToken(faucetUSDAddress);
+    //     s1.changePoolAddress(poolAddress);
+    //     s1.changeFiatTokenAddress(fiatFaucetAddress);
+        
+    //     s1=SupplyToken(faucetEURAddress);
+    //     s1.changePoolAddress(poolAddress);
+    //     s1.changeFiatTokenAddress(fiatFaucetAddress);
+        
+    //     s1=SupplyToken(faucetGBPAddress);
+    //     s1.changePoolAddress(poolAddress);
+    //     s1.changeFiatTokenAddress(fiatFaucetAddress);
+    // }
+    // function changeOtherAddressOfFiatFaucet() onlyInternal
+    // {
+    //     f1=fiatFaucet(fiatFaucetAddress);
+    //     f1.changeQuotationAddress(quotation2Address);
+    //     f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
+    // }
+    // function changeOtherAddressOfMaster2() onlyInternal
+    // {
+    //     m2=masters2(masters2Address);
+    //     m2.changePoolAddress(poolAddress);
+    //     m2.changeClaimsAddress(claimsAddress);
+    //     m2.changeClaimRewardAddress(claims_RewardAddress);
+    //     m2.changeGovernanceAddress(governanceAddress);
+    //     m2.changeClaimDataAddress(claimDataAddress);
+    //     m2.changeMCRAddress(MCRAddress); 
+    //     m2.changeQuotationDataAddress(quoteDataAddress); 
+    //     m2.changePoolDataAddress(poolDataAddress);
+    // }
+    
     /// @dev Updates the version of contracts and calls the oraclize query to update UI.
     function switchToRecentVersion() onlyInternal
     {

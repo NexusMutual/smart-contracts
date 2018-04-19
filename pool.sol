@@ -342,7 +342,7 @@ contract pool is usingOraclize{
         bool succ = transferEther(amount , msg.sender);   
         if(succ==true)
         {
-            tc1=NXMToken(tokenAddress);
+            // tc1=NXMToken(tokenAddress);
             // Subtracts the transferred amount from the Pool Fund.
             // tc1.removeFromPoolFund("ETH",amount);  
         }

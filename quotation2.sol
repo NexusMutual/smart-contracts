@@ -17,12 +17,10 @@
 pragma solidity ^0.4.11;
 import "./NXMToken.sol";
 import "./NXMToken2.sol";
-// import "./NXMTokenData.sol";
 import "./pool.sol";
 import "./quotationData.sol";
 import "./MCR.sol";
 import "./master.sol";
-import "./claimsData.sol";
 import "./SafeMaths.sol";
 contract quotation2 {
     using SafeMaths for uint;
@@ -30,18 +28,14 @@ contract quotation2 {
     NXMToken2 tc2;
     pool p1;
     quotationData qd;
-    // NXMTokenData td;
     master ms;
     MCR m1;
-    claimsData cd;
     address masterAddress;
-    // address tokenDataAddress;
     address mcrAddress;
     address tokenAddress;
     address token2Address;
     address poolAddress;
     address quotationDataAddress;
-    address claimDataAddress;
     modifier onlyInternal {
         ms=master(masterAddress);
         require(ms.isInternal(msg.sender) == 1);
@@ -65,11 +59,6 @@ contract quotation2 {
         _;
     }
 
-    // function changeTokenDataAddress(address _add) onlyInternal
-    // {
-    //     tokenDataAddress = _add;
-    //     td = NXMTokenData(tokenDataAddress);      
-    // }
     function changeMCRAddress(address _add) onlyInternal
     {
         mcrAddress = _add;
@@ -107,11 +96,11 @@ contract quotation2 {
     {
         poolAddress = _add;
     }
-    function changeClaimDataAddress(address _add) onlyInternal
-    {
-        claimDataAddress = _add;
-        cd = claimsData(claimDataAddress);
-    }
+    // function changeClaimDataAddress(address _add) onlyInternal
+    // {
+    //     claimDataAddress = _add;
+    //     cd = claimsData(claimDataAddress);
+    // }
 
     // /// @dev Provides the information of a Cover when given the cover id.
     // /// @param _cid Cover Id

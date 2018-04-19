@@ -54,7 +54,7 @@ contract governance2
   function changeGovernanceDataAddress(address _add) onlyInternal
   {
     governanceDataAddress = _add;
-    gd1=governanceData(governanceDataAddress);
+    // gd1=governanceData(governanceDataAddress);
   }
   function changePoolAddress(address _add) onlyInternal
   {

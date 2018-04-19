@@ -22,6 +22,7 @@ import "./MCRData.sol";
 import "./master.sol";
 import "./NXMToken.sol";
 import "./SafeMaths.sol";
+import "./quotationData.sol";
 contract MCR
 {
     using SafeMaths for uint;
@@ -77,12 +78,10 @@ contract MCR
     function changeMCRDataAddress(address _add) onlyInternal
     {
         MCRDataAddress = _add;
-        md = MCRData(MCRDataAddress);
     }
     function changeQuotationDataAddress(address _add) onlyInternal
     {
         quotationDataAddress=_add;
-        qd=quotationData(quotationDataAddress);
     }
     function changePoolAddress(address _add) onlyInternal
     {
@@ -182,6 +181,7 @@ contract MCR
     
     function addMCRData_Extended(uint len,uint64 newMCRDate,bytes4[] curr,uint mcrE,uint32 mcrP,uint64 vF,uint32[] _3dayAvg) internal
     {
+        md = MCRData(MCRDataAddress);
         uint VTP=0;
         uint lower=0;
         uint lowerThreshold=0;

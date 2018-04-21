@@ -83,23 +83,26 @@ contract NXMToken {
     function changeMCRAddress(address _to) onlyInternal
     {
         mcrAddress = _to;
-        tc2=NXMToken2(nxmtoken2Address);
-        tc2.changeMCRAddress(_to);
+        // tc2=NXMToken2(nxmtoken2Address);
+        tc2.changeMCRAddress(mcrAddress);
         
     }
     function changeToken2Address(address _to) onlyInternal
     {
         nxmtoken2Address = _to;
+        tc2=NXMToken2(nxmtoken2Address);
     }
     
     function changeQuotationDataAddress(address _add) onlyInternal
     {
         quotationDataAddress = _add;
+        qd=quotationData(quotationDataAddress);
     }
     
     function changeTokenDataAddress(address _add) onlyInternal
     {
         tokenDataAddress = _add;
+        td = NXMTokenData(tokenDataAddress);
     }
 
     /// @dev Allocates tokens to a Founder Member and stores the details. Updates the number of tokens that have been allocated already by the creator till date.
@@ -107,12 +110,12 @@ contract NXMToken {
     /// @param tokens Number of tokens.
     function allocateFounderTokens(address _to , uint tokens) onlyOwner
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         if(SafeMaths.add(td.getCurrentFounderTokens() , tokens) <= td.getInitialFounderTokens())
         {
             td.changeCurrentFounderTokens(SafeMaths.add(td.currentFounderTokens(),tokens));
             td.addInAllocatedFounderTokens(_to , tokens);
-            tc2=NXMToken2(nxmtoken2Address);
+            // tc2=NXMToken2(nxmtoken2Address);
             tc2.rewardToken(_to,SafeMaths.mul(tokens,_DECIMAL_1e18));
         }
     }
@@ -120,17 +123,17 @@ contract NXMToken {
     // Gets the total number of tokens that are in circulation.
     function totalSupply() constant returns(uint ts)
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         ts = td.getTotalSupply();
     }
     function symbol() constant returns(bytes8 _symbol)
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         _symbol=td.symbol();
     }
     function decimals() constant returns(uint8 _decimals)
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         _decimals=td.decimals();
     }
     /// @dev Gets the address of a member using index.
@@ -172,7 +175,7 @@ contract NXMToken {
     /// @param value number of tokens that will be booked for a period of time. 
     function bookCATokens(address _to , uint value)  onlyInternal
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         td.pushBookedCA(_to,value);
 
     }
@@ -183,7 +186,7 @@ contract NXMToken {
     /// @return tokensLocked Number of tokens locked.
     function getLockCAWithIndex(uint mappedIndex) constant returns(uint index , uint valid , uint tokensLocked)
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         index=mappedIndex;
         (valid,tokensLocked) = td.getLockCAWithIndex(msg.sender , index);
     }
@@ -192,10 +195,10 @@ contract NXMToken {
     /// @dev Unlocks the Tokens of a given cover id
     function unlockCN(uint coverid) onlyInternal
     {
-        td=NXMTokenData(tokenDataAddress);
-        qd=quotationData(quotationDataAddress);
+        // td=NXMTokenData(tokenDataAddress);
+        // qd=quotationData(quotationDataAddress);
         address _to=qd.getCoverMemberAddress(coverid);
-        tc2=NXMToken2(nxmtoken2Address);
+        // tc2=NXMToken2(nxmtoken2Address);
         //Undeposits all tokens associated with the coverid
         tc2.undepositCN(coverid,1);
         uint validity; 
@@ -221,7 +224,7 @@ contract NXMToken {
     /// @dev Gets the total number of tokens available for the Claim Assessment.    
     function getAvailableCAToken() constant returns (uint tokenAvailableCA)
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         tokenAvailableCA=0;uint validUpto;uint lockCAamount;
         address _of=msg.sender;
         //Tokens locked for at least a specified minimum lock period can be used for voting
@@ -243,7 +246,7 @@ contract NXMToken {
     /// @dev Gets the Token balance (lock + available) of a given address.
     function balanceOf(address _add) constant returns(uint balance) 
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         balance = td.getBalanceOf(_add);
     }
     
@@ -262,9 +265,9 @@ contract NXMToken {
     /// @param _to Receiver's Address.
     /// @param _value Transfer tokens.
     function transfer(address _to, uint256 _value) isMemberAndcheckPause  {
-        ms=master(masterAddress);
+        // ms=master(masterAddress);
         require(ms.isMember(_to)==true);
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         if(_value <= 0) throw;
         //available transfer balance=Total Token balance - Locked tokens
         if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(msg.sender),td.getBalanceCAWithAddress(msg.sender)),td.getBalanceCN(msg.sender)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;           // Check if the sender has enough
@@ -288,7 +291,7 @@ contract NXMToken {
     /// @param _value Amount upto which Spender is allowed to transfer.
     function approve(address _spender, uint256 _value) checkPause
     returns (bool success) {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         td.setAllower_spender_allowance(msg.sender,_spender, _value);
         return true;
     }
@@ -300,7 +303,7 @@ contract NXMToken {
     /// @param _extraData Extra Data.
     function approveAndCall(address _spender, uint256 _value, bytes _extraData)  checkPause
     returns (bool success) {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         td.setAllower_spender_allowance(msg.sender,_spender, _value);
         Approval(msg.sender, _spender, _value);
 
@@ -318,9 +321,9 @@ contract NXMToken {
      /// @return success true if transfer is a success, false if transfer is a failure.
     function transferFrom(address _from, address _to, uint256 _value)  isMemberAndcheckPause
     returns (bool success) {
-        ms=master(masterAddress);
+        // ms=master(masterAddress);
         require(ms.isMember(_to)==true);
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(_from),td.getBalanceCAWithAddress(_from)),td.getBalanceCN(_from)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;                 // Check if the sender has enough
         if (SafeMaths.add(td.getBalanceOf(_to) , _value) < td.getBalanceOf(_to)) throw;  // Check for overflows
         if (_value > td.getAllower_spender_allowance(_from,msg.sender)) throw;     // Check allowance
@@ -342,13 +345,13 @@ contract NXMToken {
 
     /// @dev User can buy the NXMTokens equivalent to the amount paid by the user.
     function buyToken(uint value , address _to) onlyInternal {
-        td = NXMTokenData(tokenDataAddress);
-        m1=MCR(mcrAddress);
+        // td = NXMTokenData(tokenDataAddress);
+        // m1=MCR(mcrAddress);
         if(m1.calculateTokenPrice("ETH")>0)
         {
             uint256 amount = SafeMaths.div((SafeMaths.mul(value,_DECIMAL_1e18)),m1.calculateTokenPrice("ETH"));
             // td.changePoolFundValue("ETH",SafeMaths.add(td.getPoolFundValue("ETH"),value));
-            tc2=NXMToken2(nxmtoken2Address);  
+            // tc2=NXMToken2(nxmtoken2Address);  
             // Allocate tokens         
             tc2.rewardToken(_to,amount);
         }
@@ -359,7 +362,7 @@ contract NXMToken {
     /// @return price Token Price.
     function getTokenPrice(bytes4 curr) constant returns(uint price)
     {
-        m1=MCR(mcrAddress);
+        // m1=MCR(mcrAddress);
         price= m1.calculateTokenPrice(curr); 
          
     }
@@ -369,7 +372,7 @@ contract NXMToken {
     /// @param _of User's address.
     function burnTokenForFunding(uint tokens , address _of) onlyInternal
     {
-        td = NXMTokenData(tokenDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
         if(td.getBalanceOf(_of) < tokens) throw;
         td.changeBalanceOf(_of,SafeMaths.sub(td.getBalanceOf(_of) , tokens));
         // td.changeCurrencyTokens("ETH",SafeMaths.sub(td.getCurrencyTokens("ETH"),tokens));
@@ -392,15 +395,17 @@ contract NXMToken {
     /// @param _Locktime Pending Time + Cover Period 7*1 days
     function DepositLockCN_EPOff(address _of, uint _coverid,uint _Locktime) onlyInternal
     {
-        qd = quotationData(quotationDataAddress);
-        td = NXMTokenData(tokenDataAddress);
-        tc2 = NXMToken2(nxmtoken2Address);
+        // qd = quotationData(quotationDataAddress);
+        // td = NXMTokenData(tokenDataAddress);
+        // tc2 = NXMToken2(nxmtoken2Address);
 
         uint timestamp=now+_Locktime;
 
         uint dCN_ValidUpto;
         uint dCN_LastAmount;
-        (dCN_ValidUpto,dCN_LastAmount)=td.getUser_cover_depositCNByIndex(_of,_coverid,SafeMaths.sub(td.getUser_cover_depositCNLength(_of,_coverid),1));
+        uint len;
+        (,len)=td.getUser_cover_depositCNLength(_of,_coverid);
+        (dCN_ValidUpto,dCN_LastAmount)=td.getUser_cover_depositCNByIndex(_of,_coverid,SafeMaths.sub(len,1));
         uint dCN_Amount = td.getDepositCN(_coverid,_of);
 
         uint coverValidUntil=qd.getValidityOfCover(_coverid);
@@ -441,7 +446,7 @@ contract NXMToken {
     function getTotalLockedNXMToken(address _scAddress) constant returns (uint _totalLockedNXM)
     {
         _totalLockedNXM=0;
-        td=NXMTokenData(tokenDataAddress);
+        // td=NXMTokenData(tokenDataAddress);
         uint stakeAmt; uint dateAdd; uint burnedAmt;
         uint nowTime=now;
         uint totalStaker=td.getTotalStakerAgainstScAddress(_scAddress);
@@ -460,7 +465,7 @@ contract NXMToken {
     function getLockedNXMTokenOfStaker(address _scAddress, uint _scAddressIndex) constant returns (uint _stakerLockedNXM)
     {
         _stakerLockedNXM=0;
-        td=NXMTokenData(tokenDataAddress);
+        // td=NXMTokenData(tokenDataAddress);
         address scAddress; uint stakeAmt; uint dateAdd; uint burnedAmt;
         uint nowTime=now;
         (,,scAddress,stakeAmt,burnedAmt,dateAdd)=td.getStakeDetails(_scAddressIndex);
@@ -474,7 +479,7 @@ contract NXMToken {
     function getLockedNXMTokenOfStakerByStakerAddress(address _of) constant returns (uint _stakerLockedNXM)
     {
         _stakerLockedNXM=0;
-        td=NXMTokenData(tokenDataAddress);
+        // td=NXMTokenData(tokenDataAddress);
         uint stakeAmt; uint dateAdd; uint burnedAmt; 
         uint nowTime=now;
         uint totalStaker=td.getTotalScAddressesAgainstStaker(_of);
@@ -493,9 +498,9 @@ contract NXMToken {
     
     function updateStakerCommissions(address _scAddress,uint _premiumNXM) onlyInternal
     {
-        td=NXMTokenData(tokenDataAddress);
-        tc2=NXMToken2(nxmtoken2Address);
-        m1=MCR(mcrAddress);
+        // td=NXMTokenData(tokenDataAddress);
+        // tc2=NXMToken2(nxmtoken2Address);
+        // m1=MCR(mcrAddress);
         // uint tokenPrice=m1.calculateTokenPrice(_curr);
         // _premium=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(_premium,100000),tokenPrice),10**13);
         uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premiumNXM,20),100);

@@ -44,7 +44,6 @@ contract NXMTokenData {
         address stakerAdd;
         address scAddress;
         uint amount;
-        uint burnedAmount;
         uint dateAdd;
     }
 
@@ -63,6 +62,7 @@ contract NXMTokenData {
 
     mapping (address => uint[]) scAddress_Stake;
     stake[] stakeDetails;
+    mapping (uint => uint) staker_burnedAmount;
     mapping (address => uint[]) staker_Index;
     mapping(address => uint) public scaddress_lastCommIndex;
     mapping (address => mapping(address => mapping(uint => stakeCommission[]))) staker_SC_index_Commission;
@@ -367,8 +367,9 @@ contract NXMTokenData {
     /// @param _of User's address.
     /// @param coverid Cover Id against which tokens are deposit.
     /// @return len Number of times.
-    function getUser_cover_depositCNLength(address _of , uint coverid) constant returns(uint times_deposit)
+    function getUser_cover_depositCNLength(address _of , uint coverid) constant returns(uint coverId,uint times_deposit)
     {
+        coverId=coverid;
         times_deposit = user_cover_depositCN[_of][coverid].length;
     }
     /// @dev Gets the validity and number of tokens deposited by the owner of a cover for Claim Submission.
@@ -518,7 +519,7 @@ contract NXMTokenData {
     // Arjun - Data Begin
     function addStake(address _of,address _scAddress, uint _amount) onlyInternal
     {
-        stakeDetails.push(stake(_of,_scAddress,_amount,0,now));
+        stakeDetails.push(stake(_of,_scAddress,_amount,now));
         scAddress_Stake[_scAddress].push(stakeDetails.length-1);
         staker_Index[_of].push(stakeDetails.length-1);
     }
@@ -528,12 +529,12 @@ contract NXMTokenData {
         _stakerAdd=stakeDetails[_index].stakerAdd;
         _scAddress=stakeDetails[_index].scAddress;
         _amount=stakeDetails[_index].amount;
-        _burnedAmount=stakeDetails[_index].burnedAmount;
+        _burnedAmount=staker_burnedAmount[_index];
         _dateAdd=stakeDetails[_index].dateAdd;
     }
     function updateBurnedAmount(uint _index,uint _burnedAmount) onlyInternal
     {
-        stakeDetails[_index].burnedAmount=SafeMaths.add(stakeDetails[_index].burnedAmount,_burnedAmount);
+        staker_burnedAmount[_index]=SafeMaths.add(staker_burnedAmount[_index],_burnedAmount);
     }
     function pushStakeCommissions(address _of, address _scAddress, uint _stakerIndx, uint _commissionAmt,uint _commissionDate) onlyInternal
     {

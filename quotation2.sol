@@ -81,10 +81,12 @@ contract quotation2 {
     function changeTokenAddress(address _add) onlyInternal
     {
         tokenAddress = _add;
+        tc1=NXMToken(tokenAddress);
     }
     function changeToken2Address(address _add) onlyInternal
     {
         token2Address = _add;
+        tc2=NXMToken2(token2Address);
     }
     
     function changeQuotationDataAddress(address _add) onlyInternal
@@ -95,6 +97,7 @@ contract quotation2 {
     function changePoolAddress(address _add) onlyInternal
     {
         poolAddress = _add;
+        p1=pool(poolAddress);
     }
     // function changeClaimDataAddress(address _add) onlyInternal
     // {
@@ -125,12 +128,12 @@ contract quotation2 {
     /// @param _cid Cover Id.
     function expireCover(uint _cid) onlyInternal
     {
-        qd = quotationData(quotationDataAddress);
-        p1=pool(poolAddress);
+        // qd = quotationData(quotationDataAddress);
+        // p1=pool(poolAddress);
         if(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid)!=3)
         {
             qd.changeCoverStatusNo(_cid, 3);
-            tc1=NXMToken(tokenAddress);
+            // tc1=NXMToken(tokenAddress);
             tc1.unlockCN(_cid);
             bytes4 curr =  qd.getCurrencyOfCover(_cid);
             qd.subFromTotalSumAssured(curr,qd.getCoverSumAssured(_cid));
@@ -166,7 +169,7 @@ contract quotation2 {
     /// @return expire 1 if the Cover's time has expired, 0 otherwise.
     function checkCoverExpired(uint _cid) constant returns (uint8 expire)
     {
-        qd = quotationData(quotationDataAddress);
+        // qd = quotationData(quotationDataAddress);
         if(qd.getValidityOfCover(_cid) < uint64(now))
             expire=1;
         else
@@ -178,9 +181,9 @@ contract quotation2 {
     /// @param _amount that will get subtracted' Current Sum Assured Amount that comes under a quotation.
     function removeSAFromCSA(uint _cid , uint _amount) checkPause
     {
-        ms=master(masterAddress);
+        // ms=master(masterAddress);
         if(!(ms.isOwner(msg.sender)==1 || ms.isInternal(msg.sender)==1)) throw;
-        qd = quotationData(quotationDataAddress);
+        // qd = quotationData(quotationDataAddress);
         bytes4 coverCurr =  qd.getCurrencyOfCover(_cid);
         address _add;
         (,_add)=qd.getscAddressOfCover(_cid);
@@ -230,12 +233,12 @@ contract quotation2 {
     
     /// @dev Create cover of the quotation, change the status of the quotation ,update the total sum assured and lock the tokens of the cover of a quote.
     /// @param from Quote member Ethereum address
-    function make_Cover(uint prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails) internal 
+    function make_Cover(uint prodId, address from, address scAddress, bytes4 coverCurr,uint[] coverDetails,uint16 coverPeriod) internal 
     {
-        qd = quotationData(quotationDataAddress);
-        p1=pool(poolAddress);
+        // qd = quotationData(quotationDataAddress);
+        // p1=pool(poolAddress);
         uint cid=qd.getCoverLength();
-        qd.addCover(uint16(coverDetails[0]),uint32(coverDetails[1]),qd.getProductName(prodId),from,coverCurr,scAddress);
+        qd.addCover(coverPeriod,coverDetails[0],qd.getProductName(prodId),from,coverCurr,scAddress);
         uint coverLength_new=qd.getCoverLength();
         if(SafeMaths.sub(coverLength_new,cid)>1){
             for(uint i=cid; i<coverLength_new; i++){
@@ -246,41 +249,42 @@ contract quotation2 {
             }
         }
         // if cover period of quote is less than 60 days.
-        if(coverDetails[0]<=60)
+        if(coverPeriod<=60)
         {
-            p1.closeCoverOraclise(cid,uint64(SafeMaths.mul(coverDetails[0] , 1 days)));
+            p1.closeCoverOraclise(cid,uint64(SafeMaths.mul(coverPeriod, 1 days)));
         }
         
-        tc2=NXMToken2(token2Address);
-        qd.changeLockedTokens(cid,tc2.lockCN(coverDetails[3],uint16(coverDetails[0]),cid,from));
-        qd.addInTotalSumAssured(coverCurr,coverDetails[1]);
+        // tc2=NXMToken2(token2Address);
+        // qd.changeLockedTokens(cid,tc2.lockCN(coverDetails[2],coverPeriod,cid,from));
+        tc2.lockCN(coverDetails[2],coverPeriod,cid,from);
+        qd.addInTotalSumAssured(coverCurr,coverDetails[0]);
         if(qd.getProductName(prodId)=="SCC" && scAddress != 0x000){ 
-            qd.addInTotalSumAssuredSC(scAddress,coverCurr,coverDetails[1]);
-            tc1=NXMToken(tokenAddress);
+            qd.addInTotalSumAssuredSC(scAddress,coverCurr,coverDetails[0]);
+            // tc1=NXMToken(tokenAddress);
             if(tc1.getTotalLockedNXMToken(scAddress)>0)
-                tc1.updateStakerCommissions(scAddress,coverDetails[3]);
+                tc1.updateStakerCommissions(scAddress,coverDetails[2]);
         }
-        qd.callCoverEvent(from, scAddress, coverDetails[2], "");
+       // qd.callCoverEvent(from, scAddress, coverDetails[2], "");
     }
 
     /// @dev Make Cover using NXM tokens.
     /// @param smartCAdd Smart Contract Address
-    function makeCoverUsingNXMTokens(uint prodId, uint[] coverDetails, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
+    function makeCoverUsingNXMTokens(uint prodId, uint[] coverDetails,uint16 coverPeriod, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
     {
-        m1=MCR(mcrAddress);
+        // m1=MCR(mcrAddress);
         if(m1.checkForMinMCR() == 1) throw;
-        tc1=NXMToken(tokenAddress);
-        tc1.burnTokenForFunding(coverDetails[3],msg.sender);
-        verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
+        // tc1=NXMToken(tokenAddress);
+        tc1.burnTokenForFunding(coverDetails[2],msg.sender);
+        verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }
 
     /// @dev Make Cover(s).
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
-    function verifyCoverDetails(uint prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
-        require(coverDetails[4] > now);
-        require(verifySign(coverDetails, coverCurr, scAddress, _v, _r, _s));
-        make_Cover(prodId, from, scAddress, coverCurr, coverDetails);
+    function verifyCoverDetails(uint prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails,uint16 coverPeriod, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
+        require(coverDetails[3] > now);
+        require(verifySign(coverDetails,coverPeriod, coverCurr, scAddress, _v, _r, _s));
+        make_Cover(prodId, from, scAddress, coverCurr, coverDetails,coverPeriod);
     }
 
     // /// @dev Gets the Sum Assured amount of quotation when given the cover id.
@@ -333,20 +337,20 @@ contract quotation2 {
     //     return qd.getProductNameOfCover(_cid);
     // }   
     
-    function verifySign(uint[] coverDetails,bytes4 curr,address smaratCA,uint8 _v,bytes32 _r,bytes32 _s) constant  returns(bool)
+    function verifySign(uint[] coverDetails,uint16 coverPeriod,bytes4 curr,address smaratCA,uint8 _v,bytes32 _r,bytes32 _s) constant  returns(bool)
     {
-        bytes32 hash = getOrderHash(coverDetails,curr,smaratCA);
+        bytes32 hash = getOrderHash(coverDetails,coverPeriod,curr,smaratCA);
         return  isValidSignature(hash,_v,_r,_s);
     }
    
-    function getOrderHash(uint[] coverDetails,bytes4 curr,address smaratCA) constant returns (bytes32)
+    function getOrderHash(uint[] coverDetails,uint16 coverPeriod,bytes4 curr,address smaratCA) constant returns (bytes32)
     {
-        return keccak256(coverDetails[1],curr,coverDetails[0],smaratCA,coverDetails[2],coverDetails[3],coverDetails[4]);
+        return keccak256(coverDetails[0],curr,coverPeriod,smaratCA,coverDetails[1],coverDetails[2],coverDetails[3]);
     }
     
     function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant  returns(bool)
     {
-        qd = quotationData(quotationDataAddress);
+        // qd = quotationData(quotationDataAddress);
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = keccak256(prefix, hash);
         address a= ecrecover(prefixedHash, v, r, s);      

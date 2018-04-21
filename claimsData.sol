@@ -24,17 +24,25 @@ contract claimsData
     struct claim 
     {
         uint coverId;
-        uint date_submit;
+        // uint date_submit;
         int8 vote;
         uint8 status;
         uint date_upd;
         uint8 state16Count;      
     }
+    struct vote
+    {
+        address voter;
+        uint tokens;
+        // uint claimId;
+        int8 verdict;
+        // uint date_submit;
+        // uint tokenRec;
+    }
     struct claimStatus
     {
         uint8 status;
         uint date_upd;
-    
     }
     struct claim_totalTokens
     {
@@ -59,9 +67,12 @@ contract claimsData
     claimPauseVoting[] claimPauseVotingEP;
     uint claimStartVoting_firstIndex;
     
+    event Claim(uint indexed coverId, address indexed userAddress, uint claimId, uint date_submit);
+    event Votes(address indexed userAddress, uint indexed claimId, bytes4 indexed typeOf, uint tokens, uint submitDate, int8 verdict);
+    
     // uint public vote_length;
-    mapping(uint=>uint[])  cover_claim;
-    mapping(uint=>claimStatus[]) public claim_status;   
+    // mapping(uint=>uint[])  cover_claim;
+    // mapping(uint=>claimStatus[]) public claim_status;   
     mapping(uint=>uint[])  claim_vote_ca;
     mapping(uint=>uint[])  claim_vote_member;
     mapping(address=>mapping(uint=>uint))  user_claim_voteCA;
@@ -78,15 +89,7 @@ contract claimsData
     uint32 public payoutRetryTime;
     uint32 public escalationTime;
     uint public claimDepositTime;
-    struct vote
-    {
-        address voter;
-        uint tokens;
-        uint claimId;
-        int8 verdict;
-        uint date_submit;
-        uint tokenRec;
-    }
+
     
     function claimsData()
     {
@@ -96,7 +99,7 @@ contract claimsData
         max_voting_time = 1800;
         min_voting_time=1200;
         payoutRetryTime=SafeMaths.mul32(SafeMaths.mul32(24,60),60);
-        allvotes.push(vote(0,0,0,0,now,0));
+        allvotes.push(vote(0,0,0));
         // vote_length = 1;
         claimDepositTime=SafeMaths.mul(1,7 days);
     }
@@ -145,22 +148,22 @@ contract claimsData
     }
 
     /// @dev Gets the Claim's details of given claimid. 
-    function getAllClaimsByIndex(uint _claimId) constant returns(uint coverId,uint date_submit,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
+    function getAllClaimsByIndex(uint _claimId) constant returns(uint coverId,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
     {
-        return(allClaims[_claimId].coverId,allClaims[_claimId].date_submit,allClaims[_claimId].vote,allClaims[_claimId].status,allClaims[_claimId].date_upd,allClaims[_claimId].state16Count);
+        return(allClaims[_claimId].coverId,allClaims[_claimId].vote,allClaims[_claimId].status,allClaims[_claimId].date_upd,allClaims[_claimId].state16Count);
     }
-    /// @dev Gets status details of a claim for a given index.
-    function getClaim_status(uint _claimId, uint _index) constant returns(uint8 status, uint date_upd)
-    {
-        return(claim_status[_claimId][_index].status,claim_status[_claimId][_index].date_upd);
-    }
-    /// @dev Gets the list of all the claims a given cover has.
-    /// @param _coverid Cover Id.
-    /// @return claims All the claims of a cover.
-    function getCover_claim(uint _coverid) constant returns(uint[] claims)
-    {
-        return cover_claim[_coverid];
-    }
+    // /// @dev Gets status details of a claim for a given index.
+    // function getClaim_status(uint _claimId, uint _index) constant returns(uint8 status, uint date_upd)
+    // {
+    //     return(claim_status[_claimId][_index].status,claim_status[_claimId][_index].date_upd);
+    // }
+    // /// @dev Gets the list of all the claims a given cover has.
+    // /// @param _coverid Cover Id.
+    // /// @return claims All the claims of a cover.
+    // function getCover_claim(uint _coverid) constant returns(uint[] claims)
+    // {
+    //     return cover_claim[_coverid];
+    // }
     /// @dev Gets the vote id of a given claim of a given Claim Assessor.
     function getUser_Claim_VoteCA(address _add,uint _claimId) constant returns(uint id_vote)
     {
@@ -234,14 +237,14 @@ contract claimsData
        }
     }
 
-    /// @dev Provides information of a vote when given its vote id.
-    /// @param _voteid Vote Id.
-    function getVoteDetails(uint _voteid) constant returns(uint tokens,uint claimId,int8 verdict, uint date_submit,uint tokenRec,int8 claimVerdict,uint8 status)
-    {
-        int8 decision = allClaims[allvotes[_voteid].claimId].vote;
-        status= allClaims[allvotes[_voteid].claimId].status;
-        return (allvotes[_voteid].tokens,allvotes[_voteid].claimId,allvotes[_voteid].verdict,allvotes[_voteid].date_submit,allvotes[_voteid].tokenRec ,decision ,status);
-    }
+    // /// @dev Provides information of a vote when given its vote id.
+    // /// @param _voteid Vote Id.
+    // function getVoteDetails(uint _voteid) constant returns(uint tokens,uint claimId,int8 verdict, uint date_submit,uint tokenRec,int8 claimVerdict,uint8 status)
+    // {
+    //     int8 decision = allClaims[allvotes[_voteid].claimId].vote;
+    //     status= allClaims[allvotes[_voteid].claimId].status;
+    //     return (allvotes[_voteid].tokens,allvotes[_voteid].claimId,allvotes[_voteid].verdict,allvotes[_voteid].date_submit,allvotes[_voteid].tokenRec ,decision ,status);
+    // }
     /// @dev Gets the voter's address of a given vote id.
     function getVoter_Vote(uint _voteid) constant returns(address voter)
     {
@@ -249,9 +252,9 @@ contract claimsData
     }
     /// @dev Provides information of a Claim when given its claim id.
     /// @param _claimId Claim Id.
-    function getClaim(uint _claimId) constant returns(uint claimId, uint coverId,uint date_submit,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
+    function getClaim(uint _claimId) constant returns(uint claimId, uint coverId,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
     {
-        return(_claimId,allClaims[_claimId].coverId,allClaims[_claimId].date_submit,allClaims[_claimId].vote,allClaims[_claimId].status,allClaims[_claimId].date_upd,allClaims[_claimId].state16Count);
+        return(_claimId,allClaims[_claimId].coverId,allClaims[_claimId].vote,allClaims[_claimId].status,allClaims[_claimId].date_upd,allClaims[_claimId].state16Count);
     }
 
     /// @dev Gets the total number of votes of a given claim.
@@ -344,7 +347,7 @@ contract claimsData
         statusnumber = allClaims[i].status;
     }
     /// @dev Gets details of a claim of a user at a given index.
-    function getUserClaimByIndex(uint _index,address _add)constant returns(uint8 status , uint coverid , uint claimId)
+    function getUserClaimByIndex(uint _index,address _add)constant returns(uint8 status, uint coverid, uint claimId)
     {
         claimId = allClaimsByAddress[_add][_index];
         status = allClaims[claimId].status;
@@ -415,22 +418,22 @@ contract claimsData
     {
         allClaims[_claimId].vote = _verdict;
     }
-    /// @dev Sets the Reward tokens to a vote given by Claim Assessors after voting period of a claim is over.
-    /// @param _claimId Claim Id.
-    /// @param _index index.
-    /// @param _tokens Number of tokens rewarded.
-    function updateRewardCA(uint _claimId ,uint _index, uint _tokens) onlyInternal
-    {
-        allvotes[claim_vote_ca[_claimId][_index]].tokenRec = _tokens;
-    }
-    /// @dev Sets the Reward tokens to a vote given by Members after voting period of a claim is over.
-    /// @param _claimId Claim Id.
-    /// @param _index index of vote against claimid.
-    /// @param _tokens Number of tokens to be rewarded. 
-    function updateRewardMV(uint _claimId ,uint _index, uint _tokens) onlyInternal
-    {
-        allvotes[claim_vote_member[_claimId][_index]].tokenRec = _tokens;
-    }
+    // /// @dev Sets the Reward tokens to a vote given by Claim Assessors after voting period of a claim is over.
+    // /// @param _claimId Claim Id.
+    // /// @param _index index.
+    // /// @param _tokens Number of tokens rewarded.
+    // function updateRewardCA(uint _claimId ,uint _index, uint _tokens) onlyInternal
+    // {
+    //     allvotes[claim_vote_ca[_claimId][_index]].tokenRec = _tokens;
+    // }
+    // /// @dev Sets the Reward tokens to a vote given by Members after voting period of a claim is over.
+    // /// @param _claimId Claim Id.
+    // /// @param _index index of vote against claimid.
+    // /// @param _tokens Number of tokens to be rewarded. 
+    // function updateRewardMV(uint _claimId ,uint _index, uint _tokens) onlyInternal
+    // {
+    //     allvotes[claim_vote_member[_claimId][_index]].tokenRec = _tokens;
+    // }
     function changeVerdictOfMV(uint _claimId,uint _index,int8 _verdict) onlyInternal
     {
         allvotes[claim_vote_member[_claimId][_index]].verdict = _verdict;
@@ -448,12 +451,12 @@ contract claimsData
         return allClaims[_claimId].vote;
     }
     /// @dev Saves the claim submission time in case of emergency pause.
-    function addClaim(uint _claimId,uint _coverId,address _from,uint _time,uint _nowtime) onlyInternal
+    function addClaim(uint _claimId,uint _coverId,address _from,uint _nowtime) onlyInternal
     {
-        allClaims.push(claim(_coverId,_time,0,0,_nowtime,0));
+        allClaims.push(claim(_coverId,0,0,_nowtime,0));
         allClaimsByAddress[_from].push(_claimId);
-        claim_status[_claimId].push(claimStatus(0,_nowtime));
-        cover_claim[_coverId].push(_claimId);
+        // claim_status[_claimId].push(claimStatus(0,_nowtime));
+        // cover_claim[_coverId].push(_claimId);
     }
 
     /// @dev Stores a given claim id in a given address. Maintains the record of all the claims created/submitted by a given user.
@@ -464,27 +467,28 @@ contract claimsData
         allClaimsByAddress[_from].push(_claimId);
     }
 
-    /// @dev Stores the status details of an existing claim. Maintains the record of all the status a claim has gone through.
-    function addClaimStatus(uint _claimId,uint8 _status,uint _date_upd) onlyInternal
-    {
-        claim_status[_claimId].push(claimStatus(_status,_date_upd));
-    }
-    function getLengthOfClaimStatus(uint _claimId)constant returns(uint,uint)
-    {
-        return (_claimId,claim_status[_claimId].length);
-    }
+    // /// @dev Stores the status details of an existing claim. Maintains the record of all the status a claim has gone through.
+    // function addClaimStatus(uint _claimId,uint8 _status,uint _date_upd) onlyInternal
+    // {
+    //     claim_status[_claimId].push(claimStatus(_status,_date_upd));
+    // }
+    // function getLengthOfClaimStatus(uint _claimId)constant returns(uint,uint)
+    // {
+    //     return (_claimId,claim_status[_claimId].length);
+    // }
     
-    /// @dev Stores a given claim id in a given cover. Maintains the record of all the claims submitted for a cover.
-    /// @param _coverid Cover Id.
-    /// @param _claimid Claim Id.
-    function addCover_Claim(uint _coverid,uint _claimid) onlyInternal
-    {
-        cover_claim[_coverid].push(_claimid);
-    }
+    // /// @dev Stores a given claim id in a given cover. Maintains the record of all the claims submitted for a cover.
+    // /// @param _coverid Cover Id.
+    // /// @param _claimid Claim Id.
+    // function addCover_Claim(uint _coverid,uint _claimid) onlyInternal
+    // {
+    //     cover_claim[_coverid].push(_claimid);
+    // }
     /// @dev Add Vote's details of a given claim.
-    function addVote(address _voter,uint _tokens,uint _claimId,int8 _verdict,uint _date_submit,uint _tokenRec) onlyInternal
+    function addVote(address _voter,uint _tokens,int8 _verdict) onlyInternal
     {
-       allvotes.push(vote(_voter,_tokens,_claimId,_verdict,_date_submit,_tokenRec));
+       allvotes.push(vote(_voter,_tokens,_verdict));
+       
     }
     /// @dev Stores the id of the vote given to a claim.Maintains record of all votes given by all the CA to a claim.
     /// @param _claimId Claim Id to which vote has given by the CA.
@@ -617,8 +621,16 @@ contract claimsData
         claimDepositTime=_time;
     }
     
-    function getCoverClaimCount(uint _coverid) constant returns(uint cid,uint8 count) {
-        cid = _coverid;
-        count= uint8(cover_claim[_coverid].length);
+    // function getCoverClaimCount(uint _coverid) constant returns(uint cid,uint8 count) {
+    //     cid = _coverid;
+    //     count= uint8(cover_claim[_coverid].length);
+    // }
+    
+    function callVoteEvent(address _userAddress, uint _claimId, bytes4 _typeOf, uint _tokens, uint _submitDate, int8 _verdict) onlyInternal {
+        Votes(_userAddress, _claimId, _typeOf, _tokens, _submitDate, _verdict);
+    }
+    
+    function callClaimEvent(uint _coverId, address _userAddress, uint _claimId, uint _datesubmit) onlyInternal {
+        Claim(_coverId, _userAddress, _claimId, _datesubmit);
     }
 }

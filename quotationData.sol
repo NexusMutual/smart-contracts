@@ -30,9 +30,9 @@ contract quotationData{
         uint sumAssured;
         uint16 coverPeriod;
         uint validUntil;
-        uint16 status;
+        // uint16 status;
         address scAddress;
-        uint lockedTokens;
+        // uint lockedTokens;
     }
 
     struct Product_Details{
@@ -45,6 +45,7 @@ contract quotationData{
     }
     
     address public authQuoteEngine;
+    mapping(uint=>uint8) cover_status;
     //address AuthAddress;     //authorised address for signing the cover details   
     bytes16[] coverStatus;
     mapping(bytes4=>uint) currency_CSA;
@@ -53,7 +54,7 @@ contract quotationData{
     mapping(address=>mapping(bytes4=>uint)) currency_CSA_ofSCAdd;
     cover[] allCovers;
     uint public pendingCoverStart;
-    event Cover(address indexed from, address indexed smartcontract, uint premiumCalculated,uint dateAdd,string coverHash);
+    // event Cover(address indexed from, address indexed smartcontract, uint premiumCalculated,uint dateAdd,string coverHash);
 
     function quotationData(){
         pendingCoverStart = 0;
@@ -246,17 +247,17 @@ contract quotationData{
     }
     
     /// @dev Gets the status of a given cover.
-    function getCoverStatusNo(uint _cid) constant returns(uint16 stat)
+    function getCoverStatusNo(uint _cid) constant returns(uint8 stat)
     {
-        stat = allCovers[_cid].status;
+        stat = cover_status[_cid];
     }
 
     /// @dev Changes the status of a given cover.
     /// @param _cid cover Id.
     /// @param _stat New status.
-    function changeCoverStatusNo(uint _cid , uint16 _stat) onlyInternal
+    function changeCoverStatusNo(uint _cid , uint8 _stat) onlyInternal
     {
-        allCovers[_cid].status = _stat;
+        cover_status[_cid] = _stat;
     }
  
     /// @dev Gets the Cover Period (in days) of a given cover.
@@ -323,7 +324,7 @@ contract quotationData{
     /// @dev Creates a blank new cover.
     function addCover(uint16 _coverPeriod,uint _SA,bytes8 _productName,address _userAddress,bytes4 _currencyCode, address _scAddress) onlyInternal
     { 
-        allCovers.push(cover(_productName,_userAddress,_currencyCode,_SA,_coverPeriod,SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days)),0,_scAddress,0));
+        allCovers.push(cover(_productName,_userAddress,_currencyCode,_SA,_coverPeriod,SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days)),_scAddress));
         // allCovers[_cid].sumAssured= _SA;
         // allCovers[_cid].coverPeriod= _coverPeriod;
         // allCovers[_cid].productName = _productName;
@@ -342,7 +343,7 @@ contract quotationData{
     /// @return scAddress Address Array
     function getCoverDetailsByCoverID1(uint _cid) constant returns(uint cid, bytes8 productName,address memberAddress, address scAddress,bytes16 status) 
     {
-        return (_cid,allCovers[_cid].productName,allCovers[_cid].memberAddress,allCovers[_cid].scAddress,coverStatus[allCovers[_cid].status]);
+        return (_cid,allCovers[_cid].productName,allCovers[_cid].memberAddress,allCovers[_cid].scAddress,coverStatus[cover_status[_cid]]);
     }
 
     /// @dev Provides details of a cover Id
@@ -351,10 +352,9 @@ contract quotationData{
     /// @return sumAssured Sum assurance of cover.
     /// @return coverPeriod Cover Period of cover (in days).
     /// @return validUntil is validity of cover.
-    /// @return lockedTokens Token locked for cover.
-    function getCoverDetailsByCoverID2(uint _cid) constant returns(uint cid,bytes4 currencyCode,uint sumAssured,uint16 coverPeriod,uint validUntil,uint lockedTokens)
+    function getCoverDetailsByCoverID2(uint _cid) constant returns(uint cid,bytes4 currencyCode,uint sumAssured,uint16 coverPeriod,uint validUntil)
     {
-        return (_cid,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].coverPeriod,allCovers[_cid].validUntil,allCovers[_cid].lockedTokens);
+        return (_cid,allCovers[_cid].currencyCode,allCovers[_cid].sumAssured,allCovers[_cid].coverPeriod,allCovers[_cid].validUntil);
     }
     
     // /// @dev Provides the information of the quote id, mapped against the user  calling the function, at the given index
@@ -398,18 +398,18 @@ contract quotationData{
     {
         amount = currency_CSA_ofSCAdd[_add][_curr];
     }
-    /// @dev Updates the number of tokens locked against a given cover id.
-    function changeLockedTokens(uint _cid , uint _tokens) onlyInternal
-    {
-        allCovers[_cid].lockedTokens = _tokens;
-    }
+    // /// @dev Updates the number of tokens locked against a given cover id.
+    // function changeLockedTokens(uint _cid , uint _tokens) onlyInternal
+    // {
+    //     allCovers[_cid].lockedTokens = _tokens;
+    // }
     
-    /// @dev Gets the number of tokens locked against a given cover.
-    function getCoverLockedTokens(uint _cid) constant returns(uint tokens)
-    {
-        tokens = allCovers[_cid].lockedTokens;
-    }
-    function callCoverEvent(address from, address scAddress, uint premiumCalculated,string coverHash) onlyInternal {
-        Cover(from, scAddress, premiumCalculated, now, coverHash);
-    }
+    // /// @dev Gets the number of tokens locked against a given cover.
+    // function getCoverLockedTokens(uint _cid) constant returns(uint tokens)
+    // {
+    //     tokens = allCovers[_cid].lockedTokens;
+    // }
+    // function callCoverEvent(address from, address scAddress, uint premiumCalculated,string coverHash) onlyInternal {
+    //     Cover(from, scAddress, premiumCalculated, now, coverHash);
+    // }
 }

@@ -181,7 +181,7 @@ contract claims_Reward
         // Check if voting should be closed or not 
         if(c1.checkVoteClosing(claimid)==1)
         { 
-            uint16 coverStatus;
+            uint8 coverStatus;
             uint8 status_orig=status;
             uint MVTokens=c1.getCATokens(claimid,1);
             // In case noone votes, claim is denied
@@ -324,9 +324,9 @@ contract claims_Reward
         if(status==11)
         {
             c1.changeFinalVerdict(claimid,-1);
-            uint8 cc;
-            (,cc)= cd.getCoverClaimCount(coverid);
-            cd.addCover_Claim(coverid,cc); //cc+1
+            // uint8 cc;
+            // (,cc)= cd.getCoverClaimCount(coverid);
+            // cd.addCover_Claim(coverid,cc); //cc+1
             rewardCAVoters(claimid,100,curr,sumAssured);
             tc2.undepositCN(coverid,0);
             tc2.burnCNToken(coverid);
@@ -398,7 +398,7 @@ contract claims_Reward
                 {
                     token=SafeMaths.div(SafeMaths.mul(distributableTokens,cd.getVoteToken(claimid,i,1)),(accept));
                     tc2.rewardToken(cd.getVoteVoter(claimid,i,1),token);
-                    cd.updateRewardCA(claimid,i,token);
+                    // cd.updateRewardCA(claimid,i,token);
                 }
                 else
                 {
@@ -416,7 +416,7 @@ contract claims_Reward
                 {
                     token=SafeMaths.mul(distributableTokens,SafeMaths.div(cd.getVoteToken(claimid,i,1),(deny)));
                     tc2.rewardToken(cd.getVoteVoter(claimid,i,1),token);
-                    cd.updateRewardCA(claimid,i,token);
+                    // cd.updateRewardCA(claimid,i,token);
                 }
                 else
                 {
@@ -457,7 +457,7 @@ contract claims_Reward
                 {
                     token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(accept));
                     tc2.rewardToken(voter,token_re);
-                    cd.updateRewardMV(claimid,i,token_re);
+                    // cd.updateRewardMV(claimid,i,token_re);
                 }
             }
             else if(cd.getVoteVerdict(claimid,i,0)==-1)
@@ -466,7 +466,7 @@ contract claims_Reward
                 {
                     token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(deny));
                     tc2.rewardToken(voter,token_re);
-                    cd.updateRewardMV(claimid,i,token_re);
+                    // cd.updateRewardMV(claimid,i,token_re);
                 }
             }        
         }     

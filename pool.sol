@@ -100,6 +100,7 @@ contract pool is usingOraclize{
     function changeGovernanceAddress(address _to) onlyInternal
     {
         governanceAddress = _to;
+        g1 = governance(governanceAddress);
     }
     function changePoolDataAddress(address _add) onlyInternal
     {
@@ -109,6 +110,7 @@ contract pool is usingOraclize{
     function changeFiatFaucetAddress(address _to) onlyInternal
     {
         fiatFaucetAddress = _to;
+        f1=fiatFaucet(fiatFaucetAddress);
     }
 
     function changePoolAddress(address _to) onlyInternal
@@ -118,6 +120,7 @@ contract pool is usingOraclize{
     function changeTokenAddress(address _to) onlyInternal
     {
         tokenAddress = _to;
+        tc1=NXMToken(tokenAddress);
     }
     // function changeMCRAddress(address _add) onlyInternal
     // {
@@ -126,6 +129,7 @@ contract pool is usingOraclize{
     function changeQuotation2Address(address _add) onlyInternal
     {
         quotation2Address = _add;
+        q2=quotation2(quotation2Address);
     }
     // function changeClaimAddress(address _to) onlyInternal
     // {
@@ -134,6 +138,7 @@ contract pool is usingOraclize{
     function changePool2Address(address _to)onlyInternal
     {
         pool2Address=_to;
+        p2=pool2(pool2Address);
     }
     /// @dev Save the details of the Oraclize API.
     /// @param myid Id return by the oraclize query.
@@ -141,7 +146,7 @@ contract pool is usingOraclize{
     /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetails(bytes32 myid,bytes8 _typeof,uint id) internal
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         pd.saveApiDetails(myid,_typeof,id);
         pd.addInAllApiCall(myid);
 
@@ -153,7 +158,7 @@ contract pool is usingOraclize{
     /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetailsCurr(bytes32 myid,bytes8 _typeof,bytes4 curr,uint id) internal
     {
-        pd=poolData1(poolDataAddress);
+        // pd=poolData1(poolDataAddress);
         pd.saveApiDetailsCurr(myid,_typeof,curr,id);
         pd.addInAllApiCall(myid);
     }
@@ -235,19 +240,19 @@ contract pool is usingOraclize{
     /// @dev Handles callback of external oracle query. 
     function __callback(bytes32 myid, string res)
     {
-        ms=master(masterAddress);
-        p2=pool2(pool2Address);
+        // ms=master(masterAddress);
+        // p2=pool2(pool2Address);
         if(msg.sender != oraclize_cbAddress() && ms.isOwner(msg.sender)!=1) throw;
         p2.delegateCallBack(myid,res);     
     }
 
     /// @dev Begins making cover.
     /// @param smartCAdd Smart Contract Address
-   function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable
+   function makeCoverBegin(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails, uint16 coverPeriod, uint8 _v, bytes32 _r, bytes32 _s)isMemberAndcheckPause payable
     {
-        q2=quotation2(quotation2Address);
-        if(msg.value==coverDetails[2])
-             q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
+        // q2=quotation2(quotation2Address);
+        if(msg.value==coverDetails[1])
+             q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
         else
             throw;
     }
@@ -255,7 +260,7 @@ contract pool is usingOraclize{
     /// @dev User can buy the NXMToken equivalent to the amount paid by the user.
     function buyTokenBegin()isMemberAndcheckPause payable 
     {
-        tc1=NXMToken(tokenAddress);
+        // tc1=NXMToken(tokenAddress);
         uint amount= msg.value;
         tc1.buyToken(amount,msg.sender);
     }
@@ -300,7 +305,7 @@ contract pool is usingOraclize{
     /// @param curr Currency's Name.
     function getCurrencyTokensFromFaucet(uint valueWEI , bytes4 curr) onlyInternal
     {
-        f1=fiatFaucet(fiatFaucetAddress);
+        // f1=fiatFaucet(fiatFaucetAddress);
         f1.transferToken.value(valueWEI)(curr);
     }
     /// @dev Gets the Balance of the Pool in wei.
@@ -315,8 +320,8 @@ contract pool is usingOraclize{
     /// @param id Proposal Id.
     function proposalExtServicesPayout(address _to , uint amount , uint id) onlyInternal
     {
-        p2=pool2(pool2Address);
-        g1 = governance(governanceAddress);
+        // p2=pool2(pool2Address);
+        // g1 = governance(governanceAddress);
         if(msg.sender == governanceAddress)
         {
            if(this.balance < amount)
@@ -352,7 +357,7 @@ contract pool is usingOraclize{
     /// @param curr Currency Name.
     function getCurrTokensFromFaucet(uint valueETH , bytes4 curr) onlyOwner
     {
-        g1 = governance(governanceAddress);
+        // g1 = governance(governanceAddress);
         uint valueWEI =SafeMaths.mul (valueETH,_DECIMAL_1e18);
         if(g1.isAB(msg.sender) != 1 || (valueWEI > this.balance)) throw;
         // tc1.removeFromPoolFund("ETH",valueWEI);
@@ -371,14 +376,14 @@ contract pool is usingOraclize{
     ///@dev Gets pool balance of a given investmentasset.
     function getBalanceofInvestmentAsset(bytes16 _curr) constant returns(uint balance)
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         address currAddress=pd.getInvestmentAssetAddress(_curr);
         tok=SupplyToken(currAddress);
         return tok.balanceOf(poolAddress);
     }
     function transferIAFromPool(address _newPoolAddr) onlyOwner
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
        
         for(uint64 i=0;i<pd.getInvestmentCurrencyLen();i++)
         {
@@ -400,21 +405,21 @@ contract pool is usingOraclize{
     function transferToPool(address currAddr,uint amount) onlyInternal returns (bool success)
     {
         tok=SupplyToken(currAddr);
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         success=tok.transferFrom(pd.get0xMakerAddress(),poolAddress,amount);
     }
     ///@dev Get 0x wrapped ether pool balance.
     function getWETHPoolBalance() constant returns(uint WETH)
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         tok=SupplyToken(pd.getWETHAddress());
         return tok.balanceOf(poolAddress);
     }
     ///@dev Get 0x order details by hash.
     function getOrderDetailsByHash(bytes16 orderType,bytes16 makerCurr,bytes16 takerCurr) constant returns(address makerCurrAddr,address takerCurrAddr,uint salt,address feeRecipient,address takerAddress,uint makerFee,uint takerFee)
     {
-        pd=poolData1(poolDataAddress);
-        f1=fiatFaucet(fiatFaucetAddress);
+        // pd=poolData1(poolDataAddress);
+        // f1=fiatFaucet(fiatFaucetAddress);
         if(orderType=="ELT")
         {
             if(makerCurr=="ETH")
@@ -442,12 +447,12 @@ contract pool is usingOraclize{
         makerFee=pd.get0xMakerFee();
         takerFee=pd.get0xTakerFee();
     }
-    function makeCoverUsingCA(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
+    function makeCoverUsingCA(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails,uint16 coverPeriod, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
     {
-        pd=poolData1(poolDataAddress);
+        // pd=poolData1(poolDataAddress);
         StandardToken tok=StandardToken(pd.getAllCurrencies(coverCurr));
-        tok.transferFrom(msg.sender,this,coverDetails[2]);
-        q2=quotation2(quotation2Address);
-        q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,_v,_r,_s);
+        tok.transferFrom(msg.sender,this,coverDetails[1]);
+        // q2=quotation2(quotation2Address);
+        q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }
 }

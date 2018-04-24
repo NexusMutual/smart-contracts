@@ -373,14 +373,15 @@ contract nxmToken {
     /// @dev Burns the NXM Tokens of a given address. Updates the balance of the user and total supply of the tokens. 
     /// @param tokens Number of tokens
     /// @param _of User's address.
-    function burnTokenForFunding(uint tokens , address _of) onlyInternal
+    function burnTokenForFunding(uint tokens , address _of, bytes16 str,uint id) onlyInternal
     {
         // td = NXMTokenData(tokenDataAddress);
         if(td.getBalanceOf(_of) < tokens) throw;
         td.changeBalanceOf(_of,SafeMaths.sub(td.getBalanceOf(_of) , tokens));
         // td.changeCurrencyTokens("ETH",SafeMaths.sub(td.getCurrencyTokens("ETH"),tokens));
         td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply() , tokens));
-        Burn(_of,"BurnForFunding",0,tokens);
+        callBurnEvent(_of,str,id,tokens);
+        // Burn(_of,"BurnForFunding",0,tokens);
     }
    
     // /// @dev Gets the number of tokens of a given currency.
@@ -537,4 +538,6 @@ contract nxmToken {
         if(commissionToBePaid>0 && stake_length>0)
             td.setSCAddress_lastCommIndex(_scAddress,SafeMaths.sub(stake_length,1));
     }
+    
+    
 }

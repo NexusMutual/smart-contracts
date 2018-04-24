@@ -279,7 +279,8 @@ contract quotation2 {
         // m1=mcr(mcrAddress);
         if(m1.checkForMinMCR() == 1) throw;
         // tc1=nxmToken(nxmTokenAddress);
-        tc1.burnTokenForFunding(coverDetails[2],msg.sender);
+        tc1.burnTokenForFunding(coverDetails[2],msg.sender,"BurnForFunding",0);
+        
         verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }
 

@@ -404,13 +404,14 @@ contract nxmToken2{
     function burnLockedToken_extended(address _of,uint _coverid,uint _burnNXMAmount,bytes16 str) internal{
         // td=NXMTokenData(tokenDataAddress);
         // tc1=NXMToken(tokenAddress);
-        tc1.callBurnEvent(_of,str, _coverid,_burnNXMAmount);
+        // tc1.callBurnEvent(_of,str, _coverid,_burnNXMAmount);
         // Update NXM token balance against member address and remove member in case overall balance=0
-        td.changeBalanceOf(_of,SafeMaths.sub(td.getBalanceOf(_of), _burnNXMAmount));
-        td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply(), _burnNXMAmount));
+        tc1.burnTokenForFunding(_burnNXMAmount,_of,str,_coverid);
         tc1.callTransferEvent(_of, 0, _burnNXMAmount); // notify of the event
+        
     }
-
+   
+   
     function addStake(address _scAddress, uint _amount) isMemberAndcheckPause 
     {
         // td=NXMTokenData(tokenDataAddress);

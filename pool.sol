@@ -474,7 +474,8 @@ contract pool is usingOraclize{
      require(SafeMaths.sub(getEtherPoolBalance(),sellingPrice)>=SafeMaths.div(SafeMaths.mul(pd.getCurrencyAssetBaseMin("ETH"),50),100));
      uint withdrawLimit=SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(),10000),2000),10000);
      require(sellTokens<=withdrawLimit);
-     tc1.transferFrom(msg.sender,ms.owner(),sellTokens);
+     tc1.burnTokenForFunding(sellTokens,msg.sender,"ForTokenSell",0);
+    //  tc1.callBurnEvent(msg.sender,"SellingTokens",0,tokens);
      bool succ = msg.sender.send(sellingPrice);
      if(succ==false)throw;
      

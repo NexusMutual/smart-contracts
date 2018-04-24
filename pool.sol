@@ -24,7 +24,8 @@ import "./quotation2.sol";
 import "./master.sol";
 import "./pool2.sol";
 import "./usd.sol";
-// import "./MCR.sol";
+import "./mcr.sol";
+import "./mcrData.sol";
 import "./StandardToken.sol";
 import "./SafeMaths.sol";
 import "./memberRoles.sol";
@@ -42,7 +43,9 @@ contract pool is usingOraclize{
     // // address claimRewardAddress;
     // address poolDataAddress;
     // address quotation2Address; 
-    // // address MCRAddress;
+    address mcrAddress;
+    address mcrDataAddress;
+    
     // address pool2Address;
     // address memberRolesAddress;
     
@@ -59,7 +62,8 @@ contract pool is usingOraclize{
     pool2 p2;
     memberRoles mr;
     // address owner;
-    // MCR m1;
+    mcr m1;
+    mcrData md;
     SupplyToken tok;
 
     event apiresult(address indexed sender,string msg,bytes32 myid);
@@ -132,10 +136,16 @@ contract pool is usingOraclize{
         // nxmTokenAddress = _add;
         tc1=nxmToken(nxmTokenAddress);
     }
-    // function changeMCRAddress(address _add) onlyInternal
-    // {
-    //     MCRAddress = _add;   
-    // }
+    function changeMCRAddress(address mcrAddress) onlyInternal
+    {
+        // mcrAddress = _add;
+        m1=mcr(mcrAddress);
+    }
+    function changeMCRDataAddress(address mcrDataAddress) onlyInternal
+    {
+        // mcrAddress = _add;
+        md=mcrData(mcrDataAddress);
+    }
     function changeQuotation2Address(address quotation2Address) onlyInternal
     {
         // quotation2Address = _add;
@@ -459,4 +469,15 @@ contract pool is usingOraclize{
         // q2=quotation2(quotation2Address);
         q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }
+    function sellNXMTokens(uint sellTokens)isMemberAndcheckPause{
+     uint sellingPrice= SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"),sellTokens),975),1000);
+     require(SafeMaths.sub(getEtherPoolBalance(),sellingPrice)>=SafeMaths.div(SafeMaths.mul(pd.getCurrencyAssetBaseMin("ETH"),50),100));
+     uint withdrawLimit=SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(),10000),2000),10000);
+     require(sellTokens<=withdrawLimit);
+     tc1.transferFrom(msg.sender,ms.owner(),sellTokens);
+     bool succ = msg.sender.send(sellingPrice);
+     if(succ==false)throw;
+     
+       
+  }
 }

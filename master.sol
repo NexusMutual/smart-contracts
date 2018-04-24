@@ -311,6 +311,8 @@ contract master
         p1.changeQuotation2Address(quotation2Address);
         p1.changePool2Address(pool2Address);
         p1.changeMemberRolesAddress(memberAddress);
+        p1.changeMCRDataAddress(mcrDataAddress);
+        p1.changeMCRAddress(mcrAddress);
         
         g1=governance(governanceAddress);
         g1.changeAllAddress(nxmTokenAddress,claimsAddress,poolAddress,poolDataAddress,pool3Address);

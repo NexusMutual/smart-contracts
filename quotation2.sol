@@ -15,88 +15,93 @@
 
 
 pragma solidity ^0.4.11;
-import "./NXMToken.sol";
-import "./NXMToken2.sol";
+import "./nxmToken.sol";
+import "./nxmToken2.sol";
 import "./pool.sol";
 import "./quotationData.sol";
-import "./MCR.sol";
+import "./mcr.sol";
 import "./master.sol";
+import "./memberRoles.sol";
 import "./SafeMaths.sol";
 contract quotation2 {
     using SafeMaths for uint;
-    NXMToken tc1;
-    NXMToken2 tc2;
+    nxmToken tc1;
+    nxmToken2 tc2;
     pool p1;
     quotationData qd;
     master ms;
-    MCR m1;
+    mcr m1;
+    memberRoles mr;
+    
     address masterAddress;
-    address mcrAddress;
-    address tokenAddress;
-    address token2Address;
-    address poolAddress;
-    address quotationDataAddress;
-    modifier onlyInternal {
-        ms=master(masterAddress);
-        require(ms.isInternal(msg.sender) == 1);
-        _; 
-    }
-    modifier onlyOwner{
-        ms=master(masterAddress);
-        require(ms.isOwner(msg.sender) == 1);
-        _; 
-    }
-    modifier checkPause
-    {
-        ms=master(masterAddress);
-        require(ms.isPause()==0);
-        _;
-    }
-    modifier isMemberAndcheckPause
-    {
-        ms=master(masterAddress);
-        require(ms.isPause()==0 && ms.isMember(msg.sender)==true);
-        _;
-    }
+    // address mcrAddress;
+    // address nxmTokenAddress;
+    // address nxmToken2Address;
+    // address poolAddress;
+    // address quotationDataAddress;
 
-    function changeMCRAddress(address _add) onlyInternal
-    {
-        mcrAddress = _add;
-        m1=MCR(mcrAddress);
-    }
-
-    function changeMasterAddress(address _add) 
-    {
-        if(masterAddress == 0x000)
+    function changeMasterAddress(address _add) {
+        if(masterAddress == 0x000){
             masterAddress = _add;
-        else
-        {
             ms=master(masterAddress);
-            if(ms.isInternal(msg.sender) == 1)
+        }
+        else {
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == true)
                 masterAddress = _add;
             else
                 throw;
         }     
     }
-    function changeTokenAddress(address _add) onlyInternal
-    {
-        tokenAddress = _add;
-        tc1=NXMToken(tokenAddress);
+    modifier onlyInternal {
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true);
+        _; 
     }
-    function changeToken2Address(address _add) onlyInternal
+    modifier onlyOwner {
+        // ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == true);
+        _; 
+    }
+    modifier checkPause {
+        // ms=master(masterAddress);
+        require(ms.isPause()==false);
+        _;
+    }
+    modifier isMemberAndcheckPause {
+        // ms=master(masterAddress);
+        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
+        _;
+    }
+    function changeMemberRolesAddress(address memberRolesAddress) onlyInternal
     {
-        token2Address = _add;
-        tc2=NXMToken2(token2Address);
+        // memberRolesAddress = _add;
+        mr=memberRoles(memberRolesAddress);
+    }
+    function changeMCRAddress(address mcrAddress) onlyInternal
+    {
+        // mcrAddress = _add;
+        m1=mcr(mcrAddress);
+    }
+    function changeTokenAddress(address nxmTokenAddress) onlyInternal
+    {
+        // nxmTokenAddress = _add;
+        tc1=nxmToken(nxmTokenAddress);
+    }
+    function changeToken2Address(address nxmToken2Address) onlyInternal
+    {
+        // nxmToken2Address = _add;
+        tc2=nxmToken2(nxmToken2Address);
     }
     
-    function changeQuotationDataAddress(address _add) onlyInternal
+    function changeQuotationDataAddress(address quotationDataAddress) onlyInternal
     {
-        quotationDataAddress = _add;
-        qd = quotationData(quotationDataAddress);
+        // quotationDataAddress = _add;
+        qd=quotationData(quotationDataAddress);
     }
-    function changePoolAddress(address _add) onlyInternal
+    function changePoolAddress(address poolAddress) onlyInternal
     {
-        poolAddress = _add;
+        // poolAddress = _add;
         p1=pool(poolAddress);
     }
     // function changeClaimDataAddress(address _add) onlyInternal
@@ -133,7 +138,7 @@ contract quotation2 {
         if(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid)!=3)
         {
             qd.changeCoverStatusNo(_cid, 3);
-            // tc1=NXMToken(tokenAddress);
+            // tc1=nxmToken(nxmTokenAddress);
             tc1.unlockCN(_cid);
             bytes4 curr =  qd.getCurrencyOfCover(_cid);
             qd.subFromTotalSumAssured(curr,qd.getCoverSumAssured(_cid));
@@ -155,7 +160,7 @@ contract quotation2 {
     // function getCoverAndQuoteDetails(uint _cid) constant returns(uint8 claimCount , uint lockedTokens, uint validity , bytes4 curr , uint sum)
     // {
     //     qd = quotationData(quotationDataAddress);
-    //     td = NXMTokenData(tokenDataAddress);
+    //     td = nxmTokenData(tokenDataAddress);
     //     cd = claimsData(claimDataAddress);
     //     claimCount = SafeMaths.sub8(cd.getCoverClaimCount(_cid),1);
     //     (,lockedTokens) = td.getUser_cover_lockedCN(qd.getCoverMemberAddress(_cid),_cid);
@@ -182,9 +187,9 @@ contract quotation2 {
     function removeSAFromCSA(uint _cid , uint _amount) checkPause
     {
         // ms=master(masterAddress);
-        if(!(ms.isOwner(msg.sender)==1 || ms.isInternal(msg.sender)==1)) throw;
+        if(!(ms.isOwner(msg.sender)==true || ms.isInternal(msg.sender)==true)) throw;
         // qd = quotationData(quotationDataAddress);
-        bytes4 coverCurr =  qd.getCurrencyOfCover(_cid);
+        bytes4 coverCurr = qd.getCurrencyOfCover(_cid);
         address _add;
         (,_add)=qd.getscAddressOfCover(_cid);
         qd.subFromTotalSumAssured(coverCurr,_amount);
@@ -254,13 +259,13 @@ contract quotation2 {
             p1.closeCoverOraclise(cid,uint64(SafeMaths.mul(coverPeriod, 1 days)));
         }
         
-        // tc2=NXMToken2(token2Address);
+        // tc2=nxmToken2(token2Address);
         // qd.changeLockedTokens(cid,tc2.lockCN(coverDetails[2],coverPeriod,cid,from));
         tc2.lockCN(coverDetails[2],coverPeriod,cid,from);
         qd.addInTotalSumAssured(coverCurr,coverDetails[0]);
         if(qd.getProductName(prodId)=="SCC" && scAddress != 0x000){ 
             qd.addInTotalSumAssuredSC(scAddress,coverCurr,coverDetails[0]);
-            // tc1=NXMToken(tokenAddress);
+            // tc1=nxmToken(nxmTokenAddress);
             if(tc1.getTotalLockedNXMToken(scAddress)>0)
                 tc1.updateStakerCommissions(scAddress,coverDetails[2]);
         }
@@ -271,9 +276,9 @@ contract quotation2 {
     /// @param smartCAdd Smart Contract Address
     function makeCoverUsingNXMTokens(uint prodId, uint[] coverDetails,uint16 coverPeriod, bytes4 coverCurr,address smartCAdd,uint8 _v,bytes32 _r,bytes32 _s) isMemberAndcheckPause
     {
-        // m1=MCR(mcrAddress);
+        // m1=mcr(mcrAddress);
         if(m1.checkForMinMCR() == 1) throw;
-        // tc1=NXMToken(tokenAddress);
+        // tc1=nxmToken(nxmTokenAddress);
         tc1.burnTokenForFunding(coverDetails[2],msg.sender);
         verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }

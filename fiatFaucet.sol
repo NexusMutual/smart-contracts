@@ -14,21 +14,23 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
-import "./USD.sol";
+import "./usd.sol";
 import "./quotation2.sol";
 // import "./NXMToken.sol";
 import "./master.sol";
+import "./memberRoles.sol";
 import "./SafeMaths.sol";
 contract fiatFaucet
 {
     using SafeMaths for uint;
     master ms;
     quotation2 q2;
+    memberRoles mr;
     // NXMToken tc1;
     
     address masterAddress;
-    address quotation2Address;
-    address tokenAddress;
+    // address quotation2Address;
+    // address tokenAddress;
     
     uint40 private constant _DECIMAL_1e10 = 10000000000;
 
@@ -37,27 +39,38 @@ contract fiatFaucet
     uint fiatTokenPricex1e18;
     function changeMasterAddress(address _add)
     {
-        if(masterAddress == 0x000)
+        if(masterAddress == 0x000){
             masterAddress = _add;
-        else
-        {
             ms=master(masterAddress);
-            if(ms.isInternal(msg.sender) == 1)
+        }
+        else {
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == true)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms=master(masterAddress);
-        require(ms.isInternal(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true);
         _; 
     }
     modifier isMemberAndcheckPause
     {
-        ms=master(masterAddress);
-        require(ms.isPause()==0 && ms.isMember(msg.sender)==true);
+        // ms=master(masterAddress);
+        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
         _;
+    }
+    function changeQuotationAddress(address quotation2Address) onlyInternal
+    {
+        // quotation2Address=_add;
+        q2=quotation2(quotation2Address);
+    }
+    function changeMemberRolesAddress(address memberAddress) onlyInternal
+    {
+        // memberAddress = _add;
+        mr=memberRoles(memberAddress);
     }
     function fiatFaucet(){
         fiatTokenPricex1e18 = 1000000000000000;
@@ -78,12 +91,12 @@ contract fiatFaucet
         // tc1.addToPoolFund(curr , tokens);
         
     }
-    function changeTokenAddress(address _add) onlyInternal
-    {
-        tokenAddress = _add;
-    }
+    // function changeTokenAddress(address _add) onlyInternal
+    // {
+    //     tokenAddress = _add;
+    // }
     /// @dev Stores the ERC20 TOkens address of different currency.
-    function updateCurr(address usd,address eur,address gbp) onlyInternal
+    function updateCurr(address usd, address eur, address gbp) onlyInternal
     {
         contract_add["USD"] = usd;
         contract_add["EUR"] = eur;
@@ -91,14 +104,10 @@ contract fiatFaucet
      
     }
   
-    function changeQuotationAddress(address _to) onlyInternal
-    {
-        quotation2Address=_to;
-    }
     /// @dev Adds a new currency's address.
     /// @param _add Currency's address.
     /// @param currName Currency's name.
-    function addCurrency(address _add , bytes16 currName) onlyInternal
+    function addCurrency(address _add, bytes16 currName) onlyInternal
     {
         contract_add[currName] = _add;
     }
@@ -106,7 +115,7 @@ contract fiatFaucet
     /// @dev Gets the token's balance of a given currency of a given address.
     function getBalance(address _of,bytes16 curr) constant returns(uint bal)
     {
-         tok=SupplyToken(contract_add[curr]);
+        tok=SupplyToken(contract_add[curr]);
         return tok.balanceOf(_of);
     }
     /// @dev Transfers the given tokens of a given currency from Pool contract to the given receiver's address.
@@ -125,7 +134,7 @@ contract fiatFaucet
     {
         tok=SupplyToken(contract_add[coverCurr]);
         tok.debitTokensForFunding(coverDetails[2] , msg.sender);
-        q2=quotation2(quotation2Address);
+        // q2=quotation2(quotation2Address);
         q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }
     /// @dev Get token address by currency name.

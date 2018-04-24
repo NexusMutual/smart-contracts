@@ -21,122 +21,123 @@ import "./master.sol";
 import "./SafeMaths.sol";
 contract governance2 
 {
-  using SafeMaths for uint;
-  master ms1;
-  pool p1;
-  governanceData gd1;
-  address masterAddress;
-  address poolAddress;
-  address governanceDataAddress;
-  function changeMasterAddress(address _add)
-  {
-    if(masterAddress == 0x000)
-      masterAddress = _add;
-    else
+    using SafeMaths for uint;
+    master ms;
+    pool p1;
+    governanceData gd;
+    
+    address masterAddress;
+    // address poolAddress;
+    // address governanceDataAddress;
+    
+    function changeMasterAddress(address _add)
     {
-      ms1=master(masterAddress);
-      if(ms1.isInternal(msg.sender) == 1)
-        masterAddress = _add;
-      else
-        throw;
+        if(masterAddress == 0x000){
+            masterAddress = _add;
+            ms=master(masterAddress);
+        }
+        else {
+          ms=master(masterAddress);
+          if(ms.isInternal(msg.sender) == true)
+            masterAddress = _add;
+          else
+            throw;
+        }
     }
-  }
-  modifier onlyInternal {
-    ms1=master(masterAddress);
-    require(ms1.isInternal(msg.sender) == 1);
-    _; 
-  }
-  modifier onlyOwner{
-    ms1=master(masterAddress);
-    require(ms1.isOwner(msg.sender) == 1);
-    _; 
-  }
-  function changeGovernanceDataAddress(address _add) onlyInternal
-  {
-    governanceDataAddress = _add;
-    // gd1=governanceData(governanceDataAddress);
-  }
-  function changePoolAddress(address _add) onlyInternal
-  {
-    poolAddress = _add;
-  }
-  
-  function changeProposalStatus(uint id)
-  {
-      gd1=governanceData(governanceDataAddress);
-      if(gd1.getProposalOwner(id) != msg.sender || gd1.getProposalStatus(id)!=0) throw;
-  
-        gd1.pushInProposalStatus(id,1);
-        gd1.updateProposalStatus(id,1);
-        gd1.updateProposalDateUpd(id);
+    modifier onlyInternal {
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true);
+        _; 
+    }
+    modifier onlyOwner{
+        // ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == true);
+        _; 
+    }
+    function changeGovernanceDataAddress(address governanceDataAddress) onlyInternal
+    {
+        // governanceDataAddress = _add;
+        gd=governanceData(governanceDataAddress);
+    }
+    function changePoolAddress(address poolAddress) onlyInternal
+    {
+        // poolAddress = _add;
         p1=pool(poolAddress);
-        p1.closeProposalOraclise(id,gd1.getClosingTime());
-
-  }
+    }
+    function changeProposalStatus(uint id)
+    {
+        // gd=governanceData(governanceDataAddress);
+        if(gd.getProposalOwner(id) != msg.sender || gd.getProposalStatus(id)!=0) throw;
+        
+        gd.pushInProposalStatus(id,1);
+        gd.updateProposalStatus(id,1);
+        gd.updateProposalDateUpd(id);
+        // p1=pool(poolAddress);
+        p1.closeProposalOraclise(id,gd.getClosingTime());
+    
+    }
     /// @dev Remove a specified address from the advisory board.
-  function removeAB(address memRem)
-  {
-    ms1=master(masterAddress);
-    if( ms1.isInternal(msg.sender) != 1 && ms1.isOwner(msg.sender)!=1) throw;
-    gd1=governanceData(governanceDataAddress);
-    if(gd1.isAB(memRem) == 0) throw;
-    gd1.removeAB(memRem);
-    gd1.addMemberStatusUpdate(memRem,0,now);
-  }
-  /// @dev Edit the short and long description of given proposal id.
-  function editProposal(uint id , string sd, string ld) 
-  {
-    gd1 = governanceData(governanceDataAddress);
-    if(msg.sender==gd1.getProposalOwner(id) && gd1.getProposalStatus(id) == 0 )
+    function removeAB(address memRem)
     {
-      gd1.addProposalVersion(id,gd1.getProposalVersion(id),gd1.getProposalDateAdd(id));
-      gd1.updateProposal(id,sd,0,ld,SafeMaths.add64(gd1.getProposalVersion(id),1));
-  
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true && ms.isOwner(msg.sender)==true);
+        // gd=governanceData(governanceDataAddress);
+        if(gd.isAB(memRem) == false) throw;
+        gd.removeAB(memRem);
+        gd.addMemberStatusUpdate(memRem,0,now);
     }
-    else
-      throw;
-
-  }
-  /// @dev Adds proposal details.
-  /// @param shortDesc ShortDescription about proposal.
-  /// @param longDesc LongDescription about proposal.
-  /// @param _effect address parameters used for action.
-  /// @param value address parameters used for action.
-  /// @param cat address parameters used for action.
-  /// @param options bytes parameters used for action.
-  function addProposal(string shortDesc , string longDesc , address[] _effect , uint[] value , uint16 cat,bytes16[] options)
-  {
-    gd1 = governanceData(governanceDataAddress);
-        
-    if(cat==2  &&  gd1.checkBurnVoterTokenAgaintClaim(value[0],_effect[0])==1 )
-      throw;
-        
-    uint len = gd1.getAllProLength();
-        
-    gd1.addNewProposal(len,msg.sender,shortDesc,longDesc);
-    if((gd1.isAB(msg.sender)==1 && cat==2) || cat==13 || cat==12)
+    /// @dev Edit the short and long description of given proposal id.
+    function editProposal(uint id , string sd, string ld) 
     {
-      gd1.updateCategorizeDetails(len,cat,msg.sender,_effect,value,options);
-      if(cat==2)
-        gd1.changeBurnVoterTokenAgaintClaim(value[0],_effect[0],1);
-          gd1.updateCategorisedProposal(len,1);
-    }
-    gd1.addInUserProposals(len,msg.sender);
-    if(cat==12 || cat==13)
-    {
-      changeProposalStatus(len); //submit the proposal as well
-    }
-    else
-      gd1.pushInProposalStatus(len,0);    
-  }
-  ///@dev Sets category for a proposal.
-  function categorizeProposal(uint id , uint16 cat , address[] _effect , uint[] val, bytes16[] options)
-  {
-    gd1 = governanceData(governanceDataAddress);
-    if(gd1.isAB(msg.sender)==0) throw;
-    if(gd1.isProposalCategorised(id)==1) throw;
-    gd1.updateCategorizeDetails(id,cat,msg.sender,_effect,val,options);
+        // gd = governanceData(governanceDataAddress);
+        if(msg.sender==gd.getProposalOwner(id) && gd.getProposalStatus(id) == 0 )
+        {
+          gd.addProposalVersion(id,gd.getProposalVersion(id),gd.getProposalDateAdd(id));
+          gd.updateProposal(id,sd,0,ld,SafeMaths.add64(gd.getProposalVersion(id),1));
         
-    gd1.updateCategorisedProposal(id,1);
-  }
+        }
+        else
+          throw;
+    }
+    /// @dev Adds proposal details.
+    /// @param shortDesc ShortDescription about proposal.
+    /// @param longDesc LongDescription about proposal.
+    /// @param _effect address parameters used for action.
+    /// @param value address parameters used for action.
+    /// @param cat address parameters used for action.
+    /// @param options bytes parameters used for action.
+    function addProposal(string shortDesc , string longDesc , address[] _effect , uint[] value , uint16 cat,bytes16[] options)
+    {
+        // gd = governanceData(governanceDataAddress);
+            
+        if(cat==2 && gd.checkBurnVoterTokenAgaintClaim(value[0],_effect[0])==1 )
+          throw;
+            
+        uint len = gd.getAllProLength();
+            
+        gd.addNewProposal(len,msg.sender,shortDesc,longDesc);
+        if((gd.isAB(msg.sender)==true && cat==2) || cat==13 || cat==12)
+        {
+          gd.updateCategorizeDetails(len,cat,msg.sender,_effect,value,options);
+          if(cat==2)
+            gd.changeBurnVoterTokenAgaintClaim(value[0],_effect[0],1);
+            gd.updateCategorisedProposal(len,1);
+        }
+        gd.addInUserProposals(len,msg.sender);
+        if(cat==12 || cat==13)
+        {
+          changeProposalStatus(len); //submit the proposal as well
+        }
+        else
+          gd.pushInProposalStatus(len,0);    
+    }
+    ///@dev Sets category for a proposal.
+    function categorizeProposal(uint id , uint16 cat , address[] _effect , uint[] val, bytes16[] options)
+    {
+        // gd = governanceData(governanceDataAddress);
+        if(gd.isAB(msg.sender)==false) throw;
+        if(gd.isProposalCategorised(id)==1) throw;
+        gd.updateCategorizeDetails(id,cat,msg.sender,_effect,val,options);
+        gd.updateCategorisedProposal(id,1);
+    }
 }

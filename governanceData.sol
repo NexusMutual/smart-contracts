@@ -20,7 +20,7 @@ import "./SafeMaths.sol";
 contract governanceData
 {
     using SafeMaths for uint;
-    master ms1;
+    master ms;
     address masterAddress;
     struct proposal
     {
@@ -90,28 +90,29 @@ contract governanceData
     mapping (uint=>Status[])  proposalStatus;
     mapping (address=>Status[])  member_status;
     mapping (uint=>VoteCount)  proposalVoteCount;
-    mapping (address=>uint) public AB;
+    mapping (address=>bool) public AB;
     function changeMasterAddress(address _add)
     {
-        if(masterAddress == 0x000)
+        if(masterAddress == 0x000){
             masterAddress = _add;
-        else
-        {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+        }
+        else {
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == true)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true);
         _; 
     }
     modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == true);
         _; 
     }
 
@@ -125,12 +126,12 @@ contract governanceData
     }
     /// @dev Checks if the Tokens of a User for a given Claim Id has already been burnt or not.
     /// @return check 1 if the tokens are burnt,0 otherwise. 
-    function checkIfTokensAlreadyBurned(uint claimid , address voter) constant returns(uint8 check)
+    function checkIfTokensAlreadyBurned(uint claimid , address voter) constant returns(bool check)
     {
         if(burnVoterTokenAgaintClaim[claimid][voter]==1)
-            check=1;
+            check=true;
         else
-            check=0;
+            check=false;
     }
     /// @dev Gets the Category Number of a given proposal.
     function getProposalCategoryNo(uint id) constant returns(uint16 catno)
@@ -205,12 +206,12 @@ contract governanceData
     /// @dev Verifies whether a given address is a Advisory Board(AB) Member or not.
     /// @param add User address.
     /// @return _AB 1 if the address is an AB member,0 otherwise.
-    function isAB(address add) constant returns(uint8 _AB)
+    function isAB(address add) constant returns(bool _AB)
     {
-        if(AB[add]==1)
-            _AB=1;
+        if(AB[add]==true)
+            _AB=true;
         else
-            _AB=0;
+            _AB=false;
     }
     /// @dev Gets the address of the owner of a given proposal.
     function getProposalOwner(uint id) constant returns(address own)
@@ -293,7 +294,6 @@ contract governanceData
     /// @param ld Long Description of proposal.
     function addNewProposal(uint id,address _add,string sd,string ld) onlyInternal
     {
-     
         allPro.push(proposal(id,_add,0,now,now,0,0,sd,ld,0,new address[](0),new uint[](0),0,new bytes16[](0)));
     }
     ///@dev Update proposal details when advisory board catogorizes it.
@@ -488,12 +488,12 @@ contract governanceData
     /// @dev Adds a given address as an advisory board member.
     function joinAB(address memAdd) onlyInternal
     {
-        AB[memAdd] = 1;
+        AB[memAdd] = true;
     }
     /// @dev Removes a given address from the advisory board.
     function removeAB(address memRem) onlyInternal
     {
-        AB[memRem] = 0;
+        AB[memRem] = false;
     }
     /// @dev Stores the AB joining date against a AB member's address.
     function addMemberStatusUpdate(address _add ,uint16 status , uint time) onlyInternal

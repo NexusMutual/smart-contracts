@@ -19,7 +19,7 @@ import "./master.sol";
 import "./SafeMaths.sol";
 
 contract quotationData{
-    master ms1;
+    master ms;
     address masterAddress;
     using SafeMaths for uint;
     struct cover
@@ -64,12 +64,14 @@ contract quotationData{
     }
     function changeMasterAddress(address _add) 
     {
-        if(masterAddress == 0x000)
+        if(masterAddress == 0x000){
             masterAddress = _add;
+            ms=master(masterAddress);
+        }
         else
         {
-            ms1=master(masterAddress);
-            if(ms1.isInternal(msg.sender) == 1)
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == true)
                 masterAddress = _add;
             else
                 throw;
@@ -77,13 +79,13 @@ contract quotationData{
     }
    
     modifier onlyInternal {
-        ms1=master(masterAddress);
-        require(ms1.isInternal(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true);
         _; 
     }
-    modifier onlyOwner{
-        ms1=master(masterAddress);
-        require(ms1.isOwner(msg.sender) == 1);
+    modifier onlyOwner {
+        // ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == true);
         _; 
     }
 

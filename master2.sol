@@ -20,100 +20,107 @@ import "./claims.sol";
 import "./governance.sol";
 import "./master.sol";
 import "./pool.sol";
-import "./claims_Reward.sol";
+import "./claimsReward.sol";
 import "./claimsData.sol";
-import "./MCR.sol";
+import "./mcr.sol";
 import "./quotationData.sol";
-import "./poolData1.sol";
-import "./USD.sol";
+import "./poolData.sol";
+import "./usd.sol";
 import "./SafeMaths.sol";
 contract masters2 {
     using SafeMaths for uint;
     
-    
-    address claimsAddress;
-    address governanceAddress;
-    address claims_RewardAddress;
-    address poolAddress;
-    address quotationDataAddress;
-    address poolDataAddress;
+    // address claimsAddress;
+    // address governanceAddress;
+    // address claimsRewardAddress;
+    // address poolAddress;
+    // address quotationDataAddress;
+    // address poolDataAddress;
     address masterAddress;
-    address claimsDataAddress;
-    address MCRAddress;
+    // address claimsDataAddress;
+    // address MCRAddress;
     
     governance g1;
     claims c1;
     master ms;
     pool p1;
     claimsData cd;
-    claims_Reward cr;
+    claimsReward cr;
     quotationData qd;
-    poolData1 pd;
-    MCR m1;
+    poolData pd;
+    mcr m1;
     SupplyToken tok;
 
     function changeMasterAddress(address _add)
     {
-        if(masterAddress == 0x000)
+        if(masterAddress == 0x000){
             masterAddress = _add;
-        else
-        {
             ms=master(masterAddress);
-            if(ms.isInternal(msg.sender) == 1)
+        }
+        else {
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == true)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms=master(masterAddress);
-        require(ms.isInternal(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true);
         _; 
     }
      modifier onlyOwner{
-        ms=master(masterAddress);
-        require(ms.isOwner(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == true);
         _; 
     }
-    function changeClaimDataAddress(address _add) onlyInternal
+    function changeClaimDataAddress(address claimsDataAddress) onlyInternal
     {
-        claimsDataAddress = _add;
+        // claimsDataAddress = _add;
+        cd=claimsData(claimsDataAddress);
     }
 
-    function changePoolAddress(address _to) onlyInternal
+    function changePoolAddress(address poolAddress) onlyInternal
     {
-        poolAddress = _to;
+        // poolAddress = _add;
+        p1=pool(poolAddress);
     }
-     function changeClaimsAddress(address _to) onlyInternal
+     function changeClaimsAddress(address claimsAddress) onlyInternal
     {
-        claimsAddress = _to;
+        // claimsAddress = _add;
+        c1=claims(claimsAddress);
     }
-    function changeMCRAddress(address _to) onlyInternal
+    function changeMCRAddress(address mcrAddress) onlyInternal
     {
-        MCRAddress = _to;
+        // mcrAddress = _add;
+        m1=mcr(mcrAddress);
     }
-    function changeGovernanceAddress(address _to) onlyInternal
+    function changeGovernanceAddress(address governanceAddress) onlyInternal
     {
-        governanceAddress = _to;
+        // governanceAddress = _add;
+        g1=governance(governanceAddress);
     }
 
-    function changeClaimRewardAddress(address _to) onlyInternal
+    function changeClaimRewardAddress(address claimsRewardAddress) onlyInternal
     {
-        claims_RewardAddress = _to;
+        // claimsRewardAddress = _add;
+        cr=claimsReward(claimsRewardAddress);
     }
-    function changeQuotationDataAddress(address _to) onlyInternal
+    function changeQuotationDataAddress(address quotationDataAddress) onlyInternal
     {
-        quotationDataAddress=_to;
+        // quotationDataAddress=_add;
+        qd=quotationData(quotationDataAddress);
     }
-    function changePoolDataAddress(address _add) onlyInternal
+    function changePoolDataAddress(address poolDataAddress) onlyInternal
     {
-        poolDataAddress = _add;
+        // poolDataAddress = _add;
+        pd=poolData(poolDataAddress);
     }
     /// @dev Adds Status master for a claim.
     function addStatusInClaims()  onlyOwner
     {
-        c1=claims(claimsAddress);
-        
+        // c1=claims(claimsAddress);
         c1.pushStatus("Pending-Claim Assessor Vote");
         c1.pushStatus("Pending-Claim Assessor Vote Denied, pending RM Escalation");
         c1.pushStatus("Pending-Claim Assessor Vote Denied, Pending Member Vote");
@@ -137,7 +144,7 @@ contract masters2 {
     /// @dev Adds  statuses and categories master for a proposal.
     function changeStatusAndCAtegory() onlyOwner
     {
-        g1=governance(governanceAddress);
+        // g1=governance(governanceAddress);
 
         //0
         g1.addCategory("Uncategorised",0,0);
@@ -191,17 +198,18 @@ contract masters2 {
     function changeTimes(uint32 _mintime,uint32 _maxtime,uint32 escaltime,uint32 payouttime) onlyOwner
     {
         uint64 timeLeft;
-        p1=pool(poolAddress);
-        cr=claims_Reward(claims_RewardAddress);
-        c1=claims(claimsAddress);
+        // p1=pool(poolAddress);
+        // cr=claimsReward(claimsRewardAddress);
+        // c1=claims(claimsAddress);
         c1.setTimes(_mintime,_maxtime,escaltime,payouttime);
-        cd=claimsData(claimsDataAddress);
+        // cd=claimsData(claimsDataAddress);
         uint nowTime = now;
         uint pendingClaim_start=cd.pendingClaim_start();
         uint actualClaimLength=cd.actualClaimLength();
         for(uint i=pendingClaim_start;i<actualClaimLength;i++)
         {
-            uint stat=cd.getClaimStatus(i);
+            uint stat;
+            (,stat)=cd.getClaimStatusNumber(i);
             uint date_upd=cd.getClaimDateUpd(i);
             if(stat==1 && (SafeMaths.add(date_upd, escaltime) <= nowTime))
             {
@@ -235,7 +243,7 @@ contract masters2 {
 
             if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) <= nowTime))
             {
-                    cr.changeClaimStatus(i);
+                cr.changeClaimStatus(i);
             }
             else if(stat==16 &&  (SafeMaths.add(date_upd , payouttime) > nowTime))
             {
@@ -247,7 +255,7 @@ contract masters2 {
     /// @dev Adds currency master 
     function addMCRCurr() onlyOwner
     {
-        m1=MCR(MCRAddress);
+        // m1=MCR(MCRAddress);
         m1.addCurrency("ETH");
         m1.addCurrency("USD");
         m1.addCurrency("EUR");
@@ -256,7 +264,7 @@ contract masters2 {
     ///@dev Add quotation and cover status.
     function addCoverStatus() onlyOwner
     {
-        qd=quotationData(quotationDataAddress);
+        // qd=quotationData(quotationDataAddress);
         qd.pushCoverStatus("active");
         qd.pushCoverStatus("Claim Accepted");
         qd.pushCoverStatus("Claim Denied");
@@ -267,7 +275,7 @@ contract masters2 {
     ///@dev Add currency asset data to pool. 
     function addCurrencyAssetsDetails() internal
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         pd.pushCurrencyAssetsDetails("ETH",6); //original 64 baseMin
         pd.pushCurrencyAssetsDetails("USD",100);  // original 25000
         pd.pushCurrencyAssetsDetails("EUR",16272);
@@ -276,7 +284,7 @@ contract masters2 {
     ///@dev Add investment asset details to pool.
     function addInvestmentAssetsDetails() internal
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         uint8 decimals;
         //DGD
         tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
@@ -284,29 +292,29 @@ contract masters2 {
         pd.pushInvestmentAssetsDetails("DGD",0xeee3870657e4716670f185df08652dd848fe8f7e,1,500,4000,decimals);
         //ICN
         tok=SupplyToken(0x21e6b27b23241a35d216f8641c72cfed33085fe9);
-         decimals=tok.decimals();
+        decimals=tok.decimals();
         pd.pushInvestmentAssetsDetails("ICN",0x21e6b27b23241a35d216f8641c72cfed33085fe9,1,1000,3000,decimals);
         //ZRX
         tok=SupplyToken(0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570);
-         decimals=tok.decimals();
+        decimals=tok.decimals();
         pd.pushInvestmentAssetsDetails("ZRX",0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570,1,500,2500,decimals);
         //MKR
         tok=SupplyToken(0x1dad4783cf3fe3085c1426157ab175a6119a04ba);
-         decimals=tok.decimals();
+        decimals=tok.decimals();
         pd.pushInvestmentAssetsDetails("MKR",0x1dad4783cf3fe3085c1426157ab175a6119a04ba,1,500,2000,decimals); 
         //GNT
         tok=SupplyToken(0xef7fff64389b814a946f3e92105513705ca6b990);
-         decimals=tok.decimals();
+        decimals=tok.decimals();
         pd.pushInvestmentAssetsDetails("GNT",0xef7fff64389b814a946f3e92105513705ca6b990,1,500,2000,decimals); 
         //MLN
         tok=SupplyToken(0x323b5d4c32345ced77393b3530b1eed0f346429d);
-         decimals=tok.decimals();
+        decimals=tok.decimals();
         pd.pushInvestmentAssetsDetails("MLN",0x323b5d4c32345ced77393b3530b1eed0f346429d,1,500,2000,decimals); 
     }
     ///@dev Add investment assets names to pool.
     function addInvestmentCurrencies() internal
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         pd.addInvestmentCurrency("DGD");
         pd.addInvestmentCurrency("ICN");
         pd.addInvestmentCurrency("ZRX");

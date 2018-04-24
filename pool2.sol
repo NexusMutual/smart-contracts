@@ -16,11 +16,11 @@
 
 pragma solidity ^0.4.11;
 
-import "./NXMToken.sol";
-import "./NXMToken2.sol";
+import "./nxmToken.sol";
+import "./nxmToken2.sol";
 import "./governance.sol";
-import "./claims_Reward.sol";
-import "./poolData1.sol";
+import "./claimsReward.sol";
+import "./poolData.sol";
 import "./quotation2.sol";
 import "./quotationData.sol";
 import "./master.sol";
@@ -28,9 +28,9 @@ import "./pool.sol";
 import "./claims.sol";
 import "./fiatFaucet.sol";
 import "./SafeMaths.sol";
-import "./USD.sol";
-import "./MCRData.sol";
-import "./MCR.sol";
+import "./usd.sol";
+import "./mcrData.sol";
+import "./mcr.sol";
 import "./pool3.sol";
 import "github.com/0xProject/contracts/contracts/Exchange.sol";
 
@@ -39,35 +39,37 @@ contract pool2
  using SafeMaths for uint;
     master ms;
     address masterAddress;
-    NXMToken tc1;
-    NXMToken2 tc2;
-    address tokenAddress;
-    address token2Address;
+    nxmToken tc1;
+    nxmToken2 tc2;
     pool p1;
     claims c1;
     fiatFaucet f1;
     Exchange exchange1;
-    address claimAddress;
-    address fiatFaucetAddress;
-    address poolAddress;
-    address governanceAddress;
-    address claimRewardAddress;
-    address poolDataAddress;
-    address quotation2Address;
-    address MCRAddress;
-    address pool3Address;
-    address quotationDataAddress;
     quotation2 q2;
-    MCR m1;
-    MCRData md;
-    claims_Reward cr;
-    address exchangeContractAddress;
-    address MCRDataAddress;
+    mcr m1;
+    mcrData md;
+    claimsReward cr;
     governance g1;
-    poolData1 pd;
+    poolData pd;
     SupplyToken tok;
     pool3 p3;
     quotationData qd;
+    
+    // address nxmtokenAddress;
+    // address nxmtoken2Address;
+    // address claimAddress;
+    // address fiatFaucetAddress;
+    address poolAddress;
+    // address governanceAddress;
+    // address claim_RewardAddress;
+    // address poolDataAddress;
+    // address quotation2Address;
+    // address mcrAddress;
+    // address pool3Address;
+    // address quotationDataAddress;
+    // address mcrDataAddress;
+    
+    address exchangeContractAddress;
     
     uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
 
@@ -75,123 +77,138 @@ contract pool2
     event Liquidity(bytes16 type_of,bytes16 function_name);
     event ZeroExOrders(bytes16 func,address makerAddr,address takerAddr,uint makerAmt,uint takerAmt,uint expirationTimeInMilliSec,bytes32 orderHash);
     event Rebalancing(bytes16 name,uint16 param);
-    function changeClaimAddress(address _add) onlyInternal
-    {
-        claimAddress = _add;
-    }
-    function changeFiatFaucetAddress(address _add) onlyInternal
-    {
-        fiatFaucetAddress = _add;
-        p3=pool3(pool3Address);
-        p3.changePoolDataAddress(fiatFaucetAddress);
-    }
-    function changePoolAddress(address _add) onlyInternal
-    {
-        poolAddress = _add;
-        p3=pool3(pool3Address);
-        p3.changePoolAddress(poolAddress);
-    }
-    function changeTokenAddress(address _add) onlyInternal
-    {
-        tokenAddress  = _add;
-    }
-    function changeToken2Address(address _add) onlyInternal
-    {
-        token2Address  = _add;
-    }
-    function changeMCRAddress(address _add) onlyInternal
-    {
-        MCRAddress = _add;   
-    }
+    
     function changeMasterAddress(address _add)
     {
-        if(masterAddress == 0x000)
+        if(masterAddress == 0x000){
             masterAddress = _add;
+            ms=master(masterAddress);
+        }
         else
         {
             ms=master(masterAddress);
-            if(ms.isInternal(msg.sender) == 1)
+            if(ms.isInternal(msg.sender) == true)
                 masterAddress = _add;
             else
                 throw;
         }
     }
     modifier onlyInternal {
-        ms=master(masterAddress);
-        require(ms.isInternal(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isInternal(msg.sender) == true);
         _; 
     }
     modifier onlyOwner{
-        ms=master(masterAddress);
-        require(ms.isOwner(msg.sender) == 1);
+        // ms=master(masterAddress);
+        require(ms.isOwner(msg.sender) == true);
         _; 
     }
     modifier checkPause
     {
-        ms=master(masterAddress);
-        require(ms.isPause()==0);
+        // ms=master(masterAddress);
+        require(ms.isPause()==false);
         _;
     }
-    function changeClaimRewardAddress(address _to) onlyInternal
+    function changeClaimRewardAddress(address claimRewardAddress) onlyInternal
     {
-        claimRewardAddress=_to;
+        // claim_RewardAddress=_add;
+        cr=claimsReward(claimRewardAddress);
     }
     
-    function changeGovernanceAddress(address _to) onlyInternal
+    function changeGovernanceAddress(address governanceAddress) onlyInternal
     {
-        governanceAddress = _to;
+        // governanceAddress = _add;
+        g1=governance(governanceAddress);
     }
-    function changePoolDataAddress(address _add) onlyInternal
+    function changePoolDataAddress(address poolDataAddress) onlyInternal
     {
-        poolDataAddress = _add;
-        pd = poolData1(poolDataAddress);
-        p3=pool3(pool3Address);
-        p3.changePoolDataAddress(poolDataAddress);
+        // poolDataAddress = _add;
+        pd = poolData(poolDataAddress);
+        // p3=pool3(pool3Address);
+        // p3.changePoolDataAddress(poolDataAddress);
     }
    
-    function changeQuotation2Address(address _add) onlyInternal
+    function changeQuotation2Address(address quotation2Address) onlyInternal
     {
-        quotation2Address = _add;
+        // quotation2Address = _add;
+        q2=quotation2(quotation2Address);
     }
-    function changeQuotationDataAddress(address _add) onlyInternal
+    function changeQuotationDataAddress(address quotationDataAddress) onlyInternal
     {
-        quotationDataAddress = _add;
+        // quotationDataAddress = _add;
+        qd=quotationData(quotationDataAddress);
     }
     function changeExchangeContractAddress(address _add) onlyOwner
     {
         exchangeContractAddress=_add; //0x
-        p3=pool3(pool3Address);
+        // p3=pool3(pool3Address);
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
-    function changeMCRDataAddress(address _add) onlyInternal
+    function changeMCRDataAddress(address mcrDataAddress) onlyInternal
     {
-        MCRDataAddress = _add;
+        // mcrDataAddress = _add;
+        md=mcrData(mcrDataAddress);
     }
-    function changePool3Address(address _add) onlyInternal
+    function changePool3Address(address pool3Address) onlyInternal
     {
-        pool3Address=_add;
+        // pool3Address=_add;
+        p3=pool3(pool3Address);
+    }
+    function changeClaimAddress(address claimAddress) onlyInternal
+    {
+        // claimAddress = _add;
+        c1=claims(claimAddress);
+    }
+    function changeFiatFaucetAddress(address fiatFaucetAddress) onlyInternal
+    {
+        // fiatFaucetAddress = _add;
+        f1=fiatFaucet(fiatFaucetAddress);
+        // p3=pool3(pool3Address);
+        // p3.changePoolDataAddress(fiatFaucetAddress);
+    }
+    function changePoolAddress(address _add) onlyInternal
+    {
+        poolAddress = _add;
+        p1=pool(poolAddress);
+        // p3=pool3(pool3Address);
+        // p3.changePoolAddress(poolAddress);
+    }
+    function changeTokenAddress(address nxmTokenAddress) onlyInternal
+    {
+        // nxmTokenAddress  = _add;
+        tc1=nxmToken(nxmTokenAddress);
+    }
+    function changeToken2Address(address nxmToken2Address) onlyInternal
+    {
+        // nxmToken2Address  = _add;
+        tc2=nxmToken2(nxmToken2Address);
+    }
+    function changeMCRAddress(address mcrAddress) onlyInternal
+    {
+        // mcrAddress = _add;
+        m1=mcr(mcrAddress);
     }
     /// @dev Handles the Callback of the Oraclize Query. Callback could be of type "quote", "quotation", "cover", "claim" etc.
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     /// @param res Result fetched by the external oracle.
     function delegateCallBack(bytes32 myid, string res) onlyInternal
     {
-        pd = poolData1(poolDataAddress);
-        ms=master(masterAddress);
-        if (ms.isPause()==0) // system is not in emergency pause
+        // pd = poolData1(poolDataAddress);
+        // ms=master(masterAddress);
+        if (ms.isPause()==false) // system is not in emergency pause
         {
             // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
             if(pd.getApiIdTypeOf(myid) =="COV")
             {
                 pd.updateDateUpdOfAPI(myid);
-                q2=quotation2(quotation2Address);
+                // q2=quotation2(quotation2Address);
                 q2.expireCover(pd.getIdOfApiId(myid));
             }
             // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
             else if(pd.getApiIdTypeOf(myid) =="CLA")
             {
                 pd.updateDateUpdOfAPI(myid);
-                cr=claims_Reward(claimRewardAddress);
+                // cr=claimsReward(claimRewardAddress);
                 cr.changeClaimStatus(pd.getIdOfApiId(myid));
 
             }
@@ -202,7 +219,7 @@ contract pool2
             else if(pd.getApiIdTypeOf(myid) =="MCRF")
             {
                 pd.updateDateUpdOfAPI(myid);
-                m1=MCR(MCRAddress);
+                // m1=MCR(MCRAddress);
                 m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
             }
             else if(pd.getApiIdTypeOf(myid)=="SUB")
@@ -216,7 +233,7 @@ contract pool2
             else if(pd.getApiIdTypeOf(myid)=="Close0x")
             {
                 pd.updateDateUpdOfAPI(myid);
-                p3=pool3(pool3Address);
+                // p3=pool3(pool3Address);
                 p3.check0xOrderStatus(pd.getCurrOfApiId(myid),pd.getIdOfApiId(myid));
             }
         }
@@ -226,7 +243,7 @@ contract pool2
         if(pd.getApiIdTypeOf(myid) =="PRO")
         {
             pd.updateDateUpdOfAPI(myid);
-            g1=governance(governanceAddress);
+            // g1=governance(governanceAddress);
             g1.closeProposalVote(pd.getIdOfApiId(myid));
         }
         if(pd.getApiIdTypeOf(myid) =="Pause")
@@ -249,13 +266,13 @@ contract pool2
     /// @return succ true if payout is successful, false otherwise.
     function sendClaimPayout(uint coverid , uint claimid) onlyInternal  returns(bool succ)
     {
-        q2=quotation2(quotation2Address);
-        qd=quotationData(quotationDataAddress);
-        tc1=NXMToken(tokenAddress);
-        tc2=NXMToken2(token2Address);
-        c1=claims(claimAddress);
-        p1=pool(poolAddress);
-        pd=poolData1(poolDataAddress);
+        // q2=quotation2(quotation2Address);
+        // qd=quotationData(quotationDataAddress);
+        // tc1=NXMToken(NXMTokenAddress);
+        // tc2=NXMToken2(NXMToken2Address);
+        // c1=claims(claimAddress);
+        // p1=pool(poolAddress);
+        // pd=poolData1(poolDataAddress);
         address _to=qd.getCoverMemberAddress(coverid);
         uint sumAssured = qd.getCoverSumAssured(coverid);
         uint sumAssured_1e18=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
@@ -294,7 +311,7 @@ contract pool2
         //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
         else
         {
-            f1=fiatFaucet(fiatFaucetAddress);
+            // f1=fiatFaucet(fiatFaucetAddress);
             balance = f1.getBalance(poolAddress , curr);
             //Check if pool has enough fiat crypto balance
             if(balance >= sumAssured_1e18)
@@ -321,8 +338,8 @@ contract pool2
     /// @dev Gets the investment asset rank.
    function getIARank(bytes16 curr,uint64 rateX100)  constant returns(int RHS) //internal function
     {
-        pd = poolData1(poolDataAddress);
-        p1=pool(poolAddress);
+        // pd = poolData1(poolDataAddress);
+        // p1=pool(poolAddress);
         uint currentIAmaxHolding;
         uint currentIAminHolding;
 
@@ -337,8 +354,8 @@ contract pool2
     /// @param IARate array of investment asset exchange rate.
     function totalRiskPoolBalance(bytes16[] IACurr,uint64[] IARate)  constant returns (uint balance,uint IABalance)
     {
-        m1=MCR(MCRAddress);
-        p1=pool(poolAddress);
+        // m1=MCR(MCRAddress);
+        // p1=pool(poolAddress);
         uint currBalance;
         (currBalance,)=m1.calVtpAndMCRtp();
       
@@ -352,10 +369,10 @@ contract pool2
     /// @dev Triggers pool rebalancing trading orders.
     function rebalancingTrading0xOrders(bytes16[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
     {  
-        pd = poolData1(poolDataAddress);
-        p1=pool(poolAddress);
-        md=MCRData(MCRDataAddress);
-        p3=pool3(pool3Address);
+        // pd = poolData1(poolDataAddress);
+        // p1=pool(poolAddress);
+        // md=MCRData(MCRDataAddress);
+        // p3=pool3(pool3Address);
         bytes16 MAXIACurr;uint64 MAXRate;
         (MAXIACurr,MAXRate,,)= pd.getIARankDetailsByDate(date);
         // require(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
@@ -414,8 +431,8 @@ contract pool2
     function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
     {
         if(IARate>0){
-            pd = poolData1(poolDataAddress);
-            p1=pool(poolAddress);
+            // pd = poolData1(poolDataAddress);
+            // p1=pool(poolAddress);
             
             uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**pd.getInvestmentAssetDecimals(curr)));
             uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000),(_DECIMAL_1e18));
@@ -443,7 +460,7 @@ contract pool2
     /// @dev Calculates the investment asset rank.
     function calculateIARank(bytes16[] curr,uint64[] rate)  constant returns(bytes16 MAXCurr,uint64 MAXRate,bytes16 MINCurr,uint64 MINRate)
     {
-        pd = poolData1(poolDataAddress);
+        // pd = poolData1(poolDataAddress);
         uint currentIAmaxHolding;
         uint currentIAminHolding;
         int MAX=0;int MIN=-1;
@@ -563,8 +580,8 @@ contract pool2
     /// @dev Unwraps ether.
     function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
     {
-        pd = poolData1(poolDataAddress);
-        p3=pool3(pool3Address);
+        // pd = poolData1(poolDataAddress);
+        // p3=pool3(pool3Address);
         tok=SupplyToken(pd.getWETHAddress());
         bool success= tok.transfer(msg.sender,msg.value);
         if(success==true)

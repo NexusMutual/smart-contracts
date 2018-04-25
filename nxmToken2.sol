@@ -430,8 +430,8 @@ contract nxmToken2{
         if(succ == true)
             mr.updateMemberRole(msg.sender,3,1);
     }
-    function setWalletAddress(address _add) isMemberAndcheckPause {
-        // td=NXMTokenData(tokenDataAddress);
-        td.setWalletAddress(_add);
-    }
+    // function setWalletAddress(address _add) isMemberAndcheckPause {
+    //     // td=NXMTokenData(tokenDataAddress);
+    //     td.setWalletAddress(_add);
+    // }
 }

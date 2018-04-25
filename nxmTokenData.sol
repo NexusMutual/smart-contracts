@@ -592,15 +592,16 @@ contract nxmTokenData {
             _totalStakedAmt=SafeMaths.add(_totalStakedAmt,stakeDetails[staker_Index[_of][i]].amount);
         }
     }
-    function changeSCValidDays(uint16 _days) onlyInternal
+    function changeSCValidDays(uint16 _days) onlyOwner
     {
         scValidDays=_days;
     }
-    function setJoiningfee(uint val)onlyInternal
+    function setJoiningfee(uint val)onlyOwner
     {
        joiningFee=val;
     }
-    function setWalletAddress(address _add) onlyInternal{
+    function setWalletAddress(address _add) onlyOwner 
+    {
         walletAddress=_add;
     }
     function setSCAddress_lastCommIndex(address _scAddress, uint _index) onlyInternal

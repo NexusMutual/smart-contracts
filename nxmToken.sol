@@ -380,8 +380,7 @@ contract nxmToken {
         td.changeBalanceOf(_of,SafeMaths.sub(td.getBalanceOf(_of) , tokens));
         // td.changeCurrencyTokens("ETH",SafeMaths.sub(td.getCurrencyTokens("ETH"),tokens));
         td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply() , tokens));
-        callBurnEvent(_of,str,id,tokens);
-        // Burn(_of,"BurnForFunding",0,tokens);
+        Burn(_of,str,id,tokens);
     }
    
     // /// @dev Gets the number of tokens of a given currency.
@@ -538,6 +537,4 @@ contract nxmToken {
         if(commissionToBePaid>0 && stake_length>0)
             td.setSCAddress_lastCommIndex(_scAddress,SafeMaths.sub(stake_length,1));
     }
-    
-    
 }

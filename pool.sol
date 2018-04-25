@@ -471,10 +471,11 @@ contract pool is usingOraclize{
     }
     function sellNXMTokens(uint sellTokens)isMemberAndcheckPause{
      uint sellingPrice= SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"),sellTokens),975),1000);
-     require(SafeMaths.sub(getEtherPoolBalance(),sellingPrice)>=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(pd.getCurrencyAssetBaseMin("ETH"),50),100),(10**18)));
-     uint withdrawLimit=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(),10000),2000),10000),(10**18));
-     require(sellTokens<=withdrawLimit);
-     tc1.burnTokenForFunding(sellTokens,msg.sender,"ForTokenSell",0);
+     require(SafeMaths.sub(getEtherPoolBalance(),sellingPrice)>=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(pd.getCurrencyAssetBaseMin("ETH"),50),100),_DECIMAL_1e18));
+     uint withdrawLimit=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(),10000),2000),10000),_DECIMAL_1e18);
+     uint sellTokensx10e18=SafeMaths.mul(sellTokens,_DECIMAL_1e18);
+     require(sellTokensx10e18<=withdrawLimit);
+     tc1.burnTokenForFunding(sellTokensx10e18,msg.sender,"ForTokenSell",0);
      bool succ = msg.sender.send(sellingPrice);
      if(succ==false)throw;
   }

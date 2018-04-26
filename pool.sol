@@ -478,5 +478,13 @@ contract pool is usingOraclize{
         tc1.burnTokenForFunding(sellTokensx10e18,msg.sender,"ForTokenSell",0);
         bool succ = msg.sender.send(sellingPrice);
         if(succ==false)throw;
-  }
+    }
+  
+  function getMaxSellTokens()constant returns(uint worthTokens){
+        uint maxTokensAccPoolBal=SafeMaths.sub(getEtherPoolBalance(),SafeMaths.mul(SafeMaths.div(SafeMaths.mul(50,pd.getCurrencyAssetBaseMin("ETH")),100),_DECIMAL_1e18));
+        uint maxTokensAccLimit=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(),10000),2000),10000),_DECIMAL_1e18);
+        worthTokens=SafeMaths.div(SafeMaths.mul(maxTokensAccLimit,m1.calculateTokenPrice("ETH")),_DECIMAL_1e18);
+        if(worthTokens>maxTokensAccPoolBal)
+            worthTokens=maxTokensAccPoolBal;
+    }
 }

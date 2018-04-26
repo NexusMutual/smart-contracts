@@ -288,16 +288,23 @@ contract quotation2 {
         if(m1.checkForMinMCR() == 1) throw;
         // tc1=nxmToken(nxmTokenAddress);
         tc1.burnTokenForFunding(coverDetails[2],msg.sender,"BurnForFunding",0);
-        verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
+        verifyCoverDetailsIntrnl(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
+    }
+    
+    /// @dev Make Cover(s).
+    /// @param from address of funder.
+    /// @param scAddress Smart Contract Address
+    function verifyCoverDetailsIntrnl(uint prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails,uint16 coverPeriod, uint8 _v, bytes32 _r, bytes32 _s) internal  {
+        require(coverDetails[3] > now);
+        require(verifySign(coverDetails,coverPeriod, coverCurr, scAddress, _v, _r, _s));
+        make_Cover(prodId, from, scAddress, coverCurr, coverDetails,coverPeriod);
     }
 
     /// @dev Make Cover(s).
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
     function verifyCoverDetails(uint prodId, address from, address scAddress,bytes4 coverCurr,uint[] coverDetails,uint16 coverPeriod, uint8 _v, bytes32 _r, bytes32 _s) onlyInternal  {
-        require(coverDetails[3] > now);
-        require(verifySign(coverDetails,coverPeriod, coverCurr, scAddress, _v, _r, _s));
-        make_Cover(prodId, from, scAddress, coverCurr, coverDetails,coverPeriod);
+        verifyCoverDetailsIntrnl( prodId,  from,  scAddress, coverCurr, coverDetails, coverPeriod,  _v,  _r,  _s);
     }
 
     // /// @dev Gets the Sum Assured amount of quotation when given the cover id.
@@ -370,11 +377,12 @@ contract quotation2 {
         return (a==qd.getAuthQuoteEngine());
     }
     
-    function getCoverDetailsByCoverID(uint _cid) constant returns(uint cid,bytes4 currencyCode,uint sumAssured,uint16 coverPeriod,uint validUntil,uint lockCN,uint requiredTokenDeposit,uint coverLength){
-        (cid,currencyCode,sumAssured,coverPeriod,validUntil) = qd.getCoverDetailsByCoverID2(_cid);
-        address memberAdd = qd.getCoverMemberAddress(cid);
-        (,,lockCN) = td.getUser_cover_lockedCN(memberAdd,cid);
-        (,,,requiredTokenDeposit) = td.getUser_cover_depositCNByIndex(memberAdd,cid,0);
-        (,coverLength) = td.getUser_cover_depositCNLength(memberAdd,cid);
-    }
+    // function getCoverDetailsByCoverID(uint _cid) constant returns(uint cid,bytes4 currencyCode,uint sumAssured,uint16 coverPeriod,uint validUntil,uint lockCN,uint requiredTokenDeposit,uint coverLength){
+    //     (cid,currencyCode,sumAssured,coverPeriod,validUntil) = qd.getCoverDetailsByCoverID2(_cid);
+    //     address memberAdd = qd.getCoverMemberAddress(_cid);
+    //     (,,lockCN) = td.getUser_cover_lockedCN(memberAdd,_cid);
+    //     // (,,,requiredTokenDeposit) = td.getUser_cover_depositCNByIndex(memberAdd,_cid,0);
+    //     // (,coverLength) = td.getUser_cover_depositCNLength(memberAdd,_cid);
+    //     return (cid,currencyCode,sumAssured,coverPeriod,validUntil,lockCN,requiredTokenDeposit,coverLength);
+    // }
 }

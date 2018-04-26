@@ -422,8 +422,11 @@ contract claims{
         // td = nxmTokenData(tokenDataAddress);
         uint nowtime=now;
         uint tokens;
-        (,tokens)=td.getUser_cover_lockedCN(add,coverId);
-        tokens =SafeMaths.div(SafeMaths.mul(tokens,20),100);
+        (,,,tokens)=td.getUser_cover_depositCNByIndex(add,coverId,0);
+        if(tokens==0){
+            (,tokens)=td.getUser_cover_lockedCN(add,coverId);
+            tokens =SafeMaths.div(SafeMaths.mul(tokens,20),100);
+        }
         uint timeStamp = SafeMaths.add(nowtime, cd.claimDepositTime());
         tc2.depositCN(coverId,tokens,timeStamp,add);
         uint len = cd.actualClaimLength(); 

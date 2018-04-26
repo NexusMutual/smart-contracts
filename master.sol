@@ -257,6 +257,7 @@ contract master
         q2=quotation2(quotation2Address);
         q2.changeTokenAddress(nxmTokenAddress);
         q2.changeToken2Address(nxmToken2Address);
+        q2.changeTokenDataAddress(nxmTokenDataAddress);
         q2.changePoolAddress(poolAddress);
         q2.changeQuotationDataAddress(quoteDataAddress);
         q2.changeMCRAddress(mcrAddress);

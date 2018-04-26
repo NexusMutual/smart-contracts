@@ -167,7 +167,7 @@ contract nxmToken2{
         // Unlock tokens before burning
         for(uint i=0 ; i < times_locked_token ;i++ )
         {
-            (vUpto,amount) = td.getLockedCAByindex(_to , i);
+            (,vUpto,amount) = td.getLockedCAByindex(_to ,i);
             if(now<vUpto)
             {
                 if(yetToBurned > amount)
@@ -232,7 +232,7 @@ contract nxmToken2{
         uint amount;
         for(uint i=0 ; i < len ;i++ )
         {
-            (vUpto , amount) = td.getLockedCAByindex(_to , i);
+            (,vUpto,amount) = td.getLockedCAByindex(_to , i);
             if(amount>0 && vUpto > now)
             {
                 if(yet_to_extend > amount)
@@ -262,19 +262,20 @@ contract nxmToken2{
         // uint quoteId = qd.getCoverQuoteid(coverid);
         // bytes4 curr= qd.getCoverCurrency(coverid);
         address _to = qd.getCoverMemberAddress(coverid);
-        uint depositedTokens = td.getDepositCN(coverid,_to);
+        uint depositedTokens;
+        (,depositedTokens) = td.getDepositCN(coverid,_to);
         if(depositedTokens <= 0)throw;
         //Undeposit all tokens locked against the cover
         undepositCN(coverid,1);
         uint validity;
         uint locked_tokens;
-        (validity,locked_tokens) = td.getUser_cover_lockedCN(_to,coverid);
+        (,validity,locked_tokens) = td.getUser_cover_lockedCN(_to,coverid);
         uint len = td.getLockedCNLength(_to);
         uint vUpto;
         uint amount;
         for(uint i=0;i<len ;i++)
         {
-            (vUpto,amount) = td.getLockedCNByindex(_to,i);
+            (,vUpto,amount) = td.getLockedCNByindex(_to,i);
             if(vUpto == validity && amount == locked_tokens )
             {
                 td.updateLockedCN(_to,i,vUpto,SafeMaths.sub(amount,depositedTokens));
@@ -302,9 +303,10 @@ contract nxmToken2{
     function depositCN(uint coverid,uint _value,uint _days,address _to) onlyInternal
     {
         // td=NXMTokenData(tokenDataAddress);
-        uint amount;
+        uint amount;uint depositCN;
         (,amount) = td.getUser_cover_lockedCN(_to,coverid);
-        if (SafeMaths.sub(amount , td.getDepositCN(coverid,msg.sender)) < _value) throw;           // Check if the sender has enough tokens to deposit
+        (,depositCN) = td.getDepositCN(coverid,msg.sender);
+        if (SafeMaths.sub(amount , depositCN) < _value) throw;           // Check if the sender has enough tokens to deposit
         if (_value<=0) throw;
         td.pushInUser_cover_depositCN(_to,coverid,_days,_value);
     }
@@ -317,7 +319,7 @@ contract nxmToken2{
         // td=NXMTokenData(tokenDataAddress);
         uint vUpto;
         uint amount;
-        (vUpto,amount) = td.getLockedCAByindex(msg.sender,index);
+        (,vUpto,amount) = td.getLockedCAByindex(msg.sender,index);
         if(vUpto <now || amount < noOfTokens )throw;
         td.changeLockedCAByIndex(msg.sender,index,SafeMaths.sub(amount,noOfTokens));
         td.lockCA(msg.sender,(SafeMaths.add(vUpto ,SafeMaths.mul( _days, 1 days ))),noOfTokens);
@@ -332,14 +334,16 @@ contract nxmToken2{
         // td=NXMTokenData(tokenDataAddress);
         // qd=quotationData(quotationDataAddress);
         address _to=qd.getCoverMemberAddress(coverid);
-        if (td.getDepositCN(coverid , _to) < 0) throw;           // Check if the cover has tokens
+        uint tokens_deposited;
+        (,tokens_deposited) = td.getDepositCN(coverid , _to);
+        if (tokens_deposited < 0) throw;           // Check if the cover has tokens
         uint len;
         (,len)= td.getUser_cover_depositCNLength(_to,coverid);
         uint vUpto;
         uint amount;
         for(uint i=0;i<len;i++)
         {
-            (vUpto,amount) = td.getUser_cover_depositCNByIndex(_to,coverid,i);
+            (,,vUpto,amount) = td.getUser_cover_depositCNByIndex(_to,coverid,i);
             if(vUpto>=now)
             {
                 td.updateUser_cover_depositCNByIndex(_to,coverid,i,now,amount);

@@ -25,7 +25,7 @@ contract nxmToken {
     using SafeMaths for uint;
 
     
-    // address masterAddress;
+    address masterAddress;
     // address mcrAddress;
     // address nxmToken2Address;
     // address nxmTokenDataAddress;
@@ -47,9 +47,18 @@ contract nxmToken {
     event Burn(address indexed _of,bytes16 eventName , uint coverId ,uint tokens);
     function changeMasterAddress(address _add)
     {
-        require(_add != 0x000);
-        ms=master(_add);
-        require(ms.isInternal(msg.sender) == true);
+        if(masterAddress == 0x000){
+            masterAddress = _add;
+            ms=master(masterAddress);
+        }
+        else
+        {
+            ms=master(masterAddress);
+            if(ms.isInternal(msg.sender) == true)
+                masterAddress = _add;
+            else
+                throw;
+        }
     }
     modifier onlyInternal {
         // ms=master(masterAddress);
@@ -183,16 +192,16 @@ contract nxmToken {
 
     }
 
-    /// @dev Gets the validity date and number of tokens locked under CA at a given index of mapping
-    /// @return index Id of mapping.
-    /// @return valid Lock validity (in timestamp)
-    /// @return tokensLocked Number of tokens locked.
-    function getLockCAWithIndex(uint mappedIndex) constant returns(uint index , uint valid , uint tokensLocked)
-    {
-        // td = NXMTokenData(tokenDataAddress);
-        index=mappedIndex;
-        (valid,tokensLocked) = td.getLockCAWithIndex(msg.sender , index);
-    }
+    // /// @dev Gets the validity date and number of tokens locked under CA at a given index of mapping
+    // /// @return index Id of mapping.
+    // /// @return valid Lock validity (in timestamp)
+    // /// @return tokensLocked Number of tokens locked.
+    // function getLockCAWithIndex(uint mappedIndex) constant returns(uint index , uint valid , uint tokensLocked)
+    // {
+    //     // td = NXMTokenData(tokenDataAddress);
+    //     index=mappedIndex;
+    //     (,valid,tokensLocked) = td.getLockCAWithIndex(msg.sender , index);
+    // }
 
 
     /// @dev Unlocks the Tokens of a given cover id
@@ -206,13 +215,13 @@ contract nxmToken {
         tc2.undepositCN(coverid,1);
         uint validity; 
         uint lockedCN;
-        (validity,lockedCN) = td.getUser_cover_lockedCN(_to,coverid);
+        (,validity,lockedCN) = td.getUser_cover_lockedCN(_to,coverid);
         uint len = td.getLockedCNLength(_to);
         uint vUpto;
         uint lockedCN_i;
         for(uint i=0;i<len ;i++)
         {
-            (vUpto,lockedCN_i) = td.getUser_cover_lockedCN(_to,i);
+            (,vUpto,lockedCN_i) = td.getUser_cover_lockedCN(_to,i);
             if( vUpto == validity && lockedCN_i == lockedCN)
             {
                 // Updates the validity of lock to now, thereby ending the lock on tokens
@@ -233,7 +242,7 @@ contract nxmToken {
         //Tokens locked for at least a specified minimum lock period can be used for voting
         for(uint i=0 ; i < td.getLockCALength(_of) ;i++ )
         { 
-            (validUpto,lockCAamount)= td.getLockCAWithIndex(_of,i);
+            (,validUpto,lockCAamount)= td.getLockCAWithIndex(_of,i);
             if(SafeMaths.add(now , td.getMinVoteLockPeriod()) < validUpto)
                 tokenAvailableCA=SafeMaths.add(tokenAvailableCA,lockCAamount);
         }
@@ -408,8 +417,9 @@ contract nxmToken {
         uint dCN_LastAmount;
         uint len;
         (,len)=td.getUser_cover_depositCNLength(_of,_coverid);
-        (dCN_ValidUpto,dCN_LastAmount)=td.getUser_cover_depositCNByIndex(_of,_coverid,SafeMaths.sub(len,1));
-        uint dCN_Amount = td.getDepositCN(_coverid,_of);
+        (,,dCN_ValidUpto,dCN_LastAmount)=td.getUser_cover_depositCNByIndex(_of,_coverid,SafeMaths.sub(len,1));
+        uint dCN_Amount;
+        (,dCN_Amount) = td.getDepositCN(_coverid,_of);
 
         uint coverValidUntil=qd.getValidityOfCover(_coverid);
         if(coverValidUntil>timestamp){

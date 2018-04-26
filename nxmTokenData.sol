@@ -294,10 +294,11 @@ contract nxmTokenData {
         len = lockedCA[_of].length;
     }
     /// @dev Gets the validity date and number of tokens locked under CA at a given index of mapping
-    function getLockCAWithIndex(address _of ,uint index) constant returns(uint valid , uint amt)
+    function getLockCAWithIndex(address _of ,uint _index) constant returns(uint index, uint valid , uint amt)
     {
-        valid = lockedCA[_of][index].validUpto;
-        amt = lockedCA[_of][index].amount;
+        index = _index;
+        valid = lockedCA[_of][_index].validUpto;
+        amt = lockedCA[_of][_index].amount;
     }
     /// @dev Gets number of times a user has locked tokens for claim assessment.
     /// @param _of User's address.
@@ -307,10 +308,11 @@ contract nxmTokenData {
         len = lockedCA[_of].length;
     }
    /// @dev Gets the validity date and number of tokens locked under CA at a given index of mapping
-    function getLockedCAByindex(address _of , uint index) constant returns(uint valid ,uint val)
+    function getLockedCAByindex(address _of , uint _index) constant returns(uint index, uint valid ,uint val)
     {
-        valid = lockedCA[_of][index].validUpto;
-        val = lockedCA[_of][index].amount;
+        index = _index;
+        valid = lockedCA[_of][_index].validUpto;
+        val = lockedCA[_of][_index].amount;
     }
     /// @dev Updates the number of tokens locked for Claims assessment.
     /// @param _of User's address.
@@ -336,10 +338,11 @@ contract nxmTokenData {
         len = lockedCN[_of].length;
     }
     /// @dev Gets the validity date and number of lock tokens against cover notes of a user at a given index.
-    function getLockedCNByindex(address _of , uint index) constant returns(uint valid ,uint val)
+    function getLockedCNByindex(address _of, uint _index) constant returns(uint index, uint valid ,uint val)
     {
-        valid = lockedCN[_of][index].validUpto;
-        val = lockedCN[_of][index].amount;
+        index = _index;
+        valid = lockedCN[_of][_index].validUpto;
+        val = lockedCN[_of][_index].amount;
     }
     /// @dev Updates the number and validity of tokens locked for cover notes by a user using the mapping index.
     /// @param _of User's address.
@@ -360,19 +363,20 @@ contract nxmTokenData {
         times_booked = bookedCA[_of].length;
     }
     /// @dev Gets the validity date and number of tokens booked for participation in claims assessment, at a given mapping index.
-    function getBookedCAByindex(address _of , uint index) constant returns(uint valid ,uint val)
+    function getBookedCAByindex(address _of , uint _index) constant returns(uint index, uint valid ,uint val)
     {
-        valid = bookedCA[_of][index].validUpto;
-        val = bookedCA[_of][index].amount;
+        index = _index;
+        valid = bookedCA[_of][_index].validUpto;
+        val = bookedCA[_of][_index].amount;
     }
     /// @dev Gets the number of times a user has deposit tokens to submit claim of a cover.
     /// @param _of User's address.
-    /// @param coverid Cover Id against which tokens are deposit.
+    /// @param _coverid Cover Id against which tokens are deposit.
     /// @return len Number of times.
-    function getUser_cover_depositCNLength(address _of , uint coverid) constant returns(uint coverId,uint times_deposit)
+    function getUser_cover_depositCNLength(address _of , uint _coverid) constant returns(uint coverId,uint times_deposit)
     {
-        coverId=coverid;
-        times_deposit = user_cover_depositCN[_of][coverid].length;
+        coverId=_coverid;
+        times_deposit = user_cover_depositCN[_of][_coverid].length;
     }
     /// @dev Gets the validity and number of tokens deposited by the owner of a cover for Claim Submission.
     /// @param _of user's address.
@@ -380,10 +384,12 @@ contract nxmTokenData {
     /// @param index Index value of mapping.
     /// @return valid Validity Timestamp.
     /// @return val number of tokens to be deposited.
-    function getUser_cover_depositCNByIndex(address _of , uint coverid , uint index) constant returns(uint valid ,uint val)
+    function getUser_cover_depositCNByIndex(address _of , uint _coverid , uint _index) constant returns(uint coverid, uint index, uint valid ,uint val)
     {
-        valid = user_cover_depositCN[_of][coverid][index].validUpto;
-        val = user_cover_depositCN[_of][coverid][index].amount;
+        coverid=_coverid;
+        index = _index;
+        valid = user_cover_depositCN[_of][_coverid][_index].validUpto;
+        val = user_cover_depositCN[_of][_coverid][_index].amount;
     }
     /// @dev Updates the validity and number of tokens deposited by the owner of a cover for Claim Submission.
     /// @param _of user's address
@@ -398,13 +404,14 @@ contract nxmTokenData {
     }
     /// @dev Gets validity and number of tokens locked against a given cover.
     /// @param _of User's address.
-    /// @param coverid Cover id.
+    /// @param _coverid Cover id.
     /// @return valid Validity timestamp of locked tokens.
     /// @return val number of locked tokens.
-    function getUser_cover_lockedCN(address _of , uint coverid)constant returns(uint valid ,uint val)
+    function getUser_cover_lockedCN(address _of , uint _coverid)constant returns(uint coverid,uint valid ,uint val)
     {
-        valid = user_cover_lockedCN[_of][coverid].validUpto;
-        val = user_cover_lockedCN[_of][coverid].amount;
+        coverid=_coverid;
+        valid = user_cover_lockedCN[_of][_coverid].validUpto;
+        val = user_cover_lockedCN[_of][_coverid].amount;
     }
     /// @dev Updates the validity and number of tokens locked against a cover of a user.
     function updateUser_cover_lockedCN(address _of ,uint coverid, uint timestamp,uint amount1) onlyInternal
@@ -446,25 +453,29 @@ contract nxmTokenData {
     }  
     
     /// @dev Calculates the total number of tokens deposited in a cover by a user.
-    /// @param coverId cover id.
+    /// @param _coverId cover id.
     /// @param _of user's address.
     /// @return tokens_deposited total number of tokens deposited in a cover by a user.
-    function getDepositCN(uint coverId , address _of) constant returns (uint tokens_deposited)
+    function getDepositCN(uint _coverId , address _of) constant returns (uint coverid, uint tokens_deposited)
     {
+        coverid=_coverId;
         tokens_deposited=0;
-        for(uint i=0 ; i < user_cover_depositCN[_of][coverId].length ;i++ )
+        for(uint i=0 ; i < user_cover_depositCN[_of][_coverId].length ;i++ )
         {
-            if(now<user_cover_depositCN[_of][coverId][i].validUpto)
-                tokens_deposited=SafeMaths.add(tokens_deposited,user_cover_depositCN[_of][coverId][i].amount);
+            if(now<user_cover_depositCN[_of][_coverId][i].validUpto)
+                tokens_deposited=SafeMaths.add(tokens_deposited,user_cover_depositCN[_of][_coverId][i].amount);
         }
     } 
     /// @dev Calculates the remaining number of locked tokens that are not deposit for claim submission (can be used in deposit) by a user of a cover. 
-    function getBalanceLockedTokens(uint coverId , address _of) constant returns(uint amt)
+    function getBalanceLockedTokens(uint _coverId , address _of) constant returns(uint coverid, uint amt)
     {
+        coverid=_coverId;
         uint lockedTokens=0;
-        if(user_cover_lockedCN[_of][coverId].validUpto > uint64(now))
-            lockedTokens = user_cover_lockedCN[_of][coverId].amount;
-        amt = SafeMaths.sub(lockedTokens , getDepositCN(coverId , _of));
+        if(user_cover_lockedCN[_of][_coverId].validUpto > uint64(now))
+            lockedTokens = user_cover_lockedCN[_of][_coverId].amount;
+        uint tokens_deposited;
+        (,tokens_deposited) = getDepositCN(_coverId , _of);
+        amt = SafeMaths.sub(lockedTokens ,tokens_deposited);
     }
 
     

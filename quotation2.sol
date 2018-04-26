@@ -17,6 +17,7 @@
 pragma solidity ^0.4.11;
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
+import "./nxmTokenData.sol";
 import "./pool.sol";
 import "./quotationData.sol";
 import "./mcr.sol";
@@ -27,6 +28,7 @@ contract quotation2 {
     using SafeMaths for uint;
     nxmToken tc1;
     nxmToken2 tc2;
+    nxmTokenData td;
     pool p1;
     quotationData qd;
     master ms;
@@ -92,6 +94,12 @@ contract quotation2 {
     {
         // nxmToken2Address = _add;
         tc2=nxmToken2(nxmToken2Address);
+    }
+    
+    function changeTokenDataAddress(address nxmTokenDataAddress) onlyInternal
+    {
+        // nxmToken2Address = _add;
+        td=nxmTokenData(nxmTokenDataAddress);
     }
     
     function changeQuotationDataAddress(address quotationDataAddress) onlyInternal
@@ -360,5 +368,13 @@ contract quotation2 {
         bytes32 prefixedHash = keccak256(prefix, hash);
         address a= ecrecover(prefixedHash, v, r, s);      
         return (a==qd.getAuthQuoteEngine());
+    }
+    
+    function getCoverDetailsByCoverID(uint _cid) constant returns(uint cid,bytes4 currencyCode,uint sumAssured,uint16 coverPeriod,uint validUntil,uint lockCN,uint requiredTokenDeposit,uint coverLength){
+        (cid,currencyCode,sumAssured,coverPeriod,validUntil) = qd.getCoverDetailsByCoverID2(_cid);
+        address memberAdd = qd.getCoverMemberAddress(cid);
+        (,,lockCN) = td.getUser_cover_lockedCN(memberAdd,cid);
+        (,,,requiredTokenDeposit) = td.getUser_cover_depositCNByIndex(memberAdd,cid,0);
+        (,coverLength) = td.getUser_cover_depositCNLength(memberAdd,cid);
     }
 }

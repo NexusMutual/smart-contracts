@@ -20,7 +20,7 @@ import "./nxmToken2.sol";
 import "./master.sol";
 import "./SafeMaths.sol";
 import "./quotationData.sol";
-import "./memberRoles.sol";
+// import "./memberRoles.sol";
 contract nxmToken {
     using SafeMaths for uint;
 
@@ -38,7 +38,7 @@ contract nxmToken {
     nxmTokenData td;
     // address owner;
     nxmToken2 tc2;
-    memberRoles mr;
+    // memberRoles mr;
     
     uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
     
@@ -79,7 +79,7 @@ contract nxmToken {
     modifier isMemberAndcheckPause
     {
         // ms=master(masterAddress);
-        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
+        require(ms.isPause()==false && ms.isMember(msg.sender)==true);
         _;
     }
     // function nxmToken() 
@@ -87,10 +87,10 @@ contract nxmToken {
     //     // owner = msg.sender;
     // }
     
-    function changeMemberRolesAddress(address memberRolesAddress) onlyInternal
-    {
-        mr = memberRoles(memberRolesAddress);
-    }
+    // function changeMemberRolesAddress(address memberRolesAddress) onlyInternal
+    // {
+    //     mr = memberRoles(memberRolesAddress);
+    // }
 
     function changeMCRAddress(address mcrAddress) onlyInternal
     {
@@ -278,7 +278,7 @@ contract nxmToken {
     /// @param _value Transfer tokens.
     function transfer(address _to, uint256 _value) isMemberAndcheckPause  {
         // ms=master(masterAddress);
-        require(mr.isMember(_to)==true);
+        require(ms.isMember(_to)==true);
         // td = NXMTokenData(tokenDataAddress);
         if(_value <= 0) throw;
         //available transfer balance=Total Token balance - Locked tokens
@@ -334,7 +334,7 @@ contract nxmToken {
     function transferFrom(address _from, address _to, uint256 _value)  isMemberAndcheckPause
     returns (bool success) {
         // ms=master(masterAddress);
-        require(mr.isMember(_to)==true);
+        require(ms.isMember(_to)==true);
         // td = NXMTokenData(tokenDataAddress);
         if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(_from),td.getBalanceCAWithAddress(_from)),td.getBalanceCN(_from)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;                 // Check if the sender has enough
         if (SafeMaths.add(td.getBalanceOf(_to) , _value) < td.getBalanceOf(_to)) throw;  // Check for overflows

@@ -30,7 +30,7 @@ import "./claimsData.sol";
 import "./master.sol";
 // import "./fiatFaucet.sol";
 import "./SafeMaths.sol";
-import "./memberRoles.sol";
+// import "./memberRoles.sol";
 
 contract claims{
     using SafeMaths for uint;
@@ -56,7 +56,7 @@ contract claims{
     master ms;
     // address public quotationDataAddress;
     quotationData qd;
-    memberRoles mr;
+    // memberRoles mr;
 
     uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
 
@@ -83,14 +83,14 @@ contract claims{
     modifier isMemberAndcheckPause
     {
         // ms=master(masterAddress);
-        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
+        require(ms.isPause()==false && ms.isMember(msg.sender)==true);
         _;
     }
-    function changeMemberRolesAddress(address memberAddress) onlyInternal
-    {
-        // memberAddress = _add;
-        mr=memberRoles(memberAddress);
-    }
+    // function changeMemberRolesAddress(address memberAddress) onlyInternal
+    // {
+    //     // memberAddress = _add;
+    //     mr=memberRoles(memberAddress);
+    // }
     function changeTokenDataAddress(address nxmTokenDataAddress) onlyInternal
     {
         // nxmTokenDataAddress = _add;

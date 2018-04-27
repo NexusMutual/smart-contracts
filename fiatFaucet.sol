@@ -18,14 +18,14 @@ import "./usd.sol";
 import "./quotation2.sol";
 // import "./NXMToken.sol";
 import "./master.sol";
-import "./memberRoles.sol";
+// import "./memberRoles.sol";
 import "./SafeMaths.sol";
 contract fiatFaucet
 {
     using SafeMaths for uint;
     master ms;
     quotation2 q2;
-    memberRoles mr;
+    // memberRoles mr;
     // NXMToken tc1;
     
     address masterAddress;
@@ -59,7 +59,7 @@ contract fiatFaucet
     modifier isMemberAndcheckPause
     {
         // ms=master(masterAddress);
-        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
+        require(ms.isPause()==false && ms.isMember(msg.sender)==true);
         _;
     }
     function changeQuotationAddress(address quotation2Address) onlyInternal
@@ -67,11 +67,11 @@ contract fiatFaucet
         // quotation2Address=_add;
         q2=quotation2(quotation2Address);
     }
-    function changeMemberRolesAddress(address memberAddress) onlyInternal
-    {
-        // memberAddress = _add;
-        mr=memberRoles(memberAddress);
-    }
+    // function changeMemberRolesAddress(address memberAddress) onlyInternal
+    // {
+    //     // memberAddress = _add;
+    //     mr=memberRoles(memberAddress);
+    // }
     function fiatFaucet(){
         fiatTokenPricex1e18 = 1000000000000000;
     }

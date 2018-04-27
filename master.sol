@@ -136,6 +136,12 @@ contract master
         versionLength =0;
         pauseTime=SafeMaths.mul(28,1 days); //4 weeks
     }
+    
+    function changeMemberRolesAddress(address memberAddress)
+    {
+        mr=memberRoles(memberAddress);
+        tc2.changeMemberRolesAddress(memberAddress);
+    }
 
     /// @dev Add Emergency pause
     /// @param _pause to set Emergency Pause ON/OFF
@@ -190,7 +196,7 @@ contract master
        mcrAddress =allContractVersions[version][24].contractAddress;
        pool2Address=allContractVersions[version][18].contractAddress;
        pool3Address=allContractVersions[version][25].contractAddress;
-       memberAddress=allContractVersions[version][26].contractAddress;
+    //   memberAddress=allContractVersions[version][26].contractAddress;
     }
     /// @dev Links all contracts to master.sol by passing address of Master contract to the functions of other contracts.
     function changeMasterAddress(address _add) onlyOwner
@@ -248,8 +254,8 @@ contract master
        g2=governance2(governance2Address);
        g2.changeMasterAddress(_add);
 
-       mr=memberRoles(memberAddress);
-       mr.changeMasterAddress(_add);
+    //   mr=memberRoles(memberAddress);
+    //   mr.changeMasterAddress(_add);
     }
     /// @dev Link contracts to one another.
     function changeOtherAddress() onlyInternal
@@ -261,14 +267,14 @@ contract master
         q2.changePoolAddress(poolAddress);
         q2.changeQuotationDataAddress(quoteDataAddress);
         q2.changeMCRAddress(mcrAddress);
-        q2.changeMemberRolesAddress(memberAddress);
+        // q2.changeMemberRolesAddress(memberAddress);
         
         tc1=nxmToken(nxmTokenAddress);
         tc1.changeTokenDataAddress(nxmTokenDataAddress);
         tc1.changeToken2Address(nxmToken2Address);
         tc1.changeQuotationDataAddress(quoteDataAddress);
         tc1.changeMCRAddress(mcrAddress);
-        tc1.changeMemberRolesAddress(memberAddress);
+        // tc1.changeMemberRolesAddress(memberAddress);
         
         tc2=nxmToken2(nxmToken2Address);
         tc2.changeTokenDataAddress(nxmTokenDataAddress);
@@ -276,7 +282,7 @@ contract master
         tc2.changePoolAddress(poolAddress);
         tc2.changeMCRAddress(mcrAddress);
         tc2.changeTokenAddress(nxmTokenAddress);
-        tc2.changeMemberRolesAddress(memberAddress);
+        // tc2.changeMemberRolesAddress(memberAddress);
         
         c1=claims(claimsAddress);
         c1.changeQuotationDataAddress(quoteDataAddress);
@@ -291,7 +297,7 @@ contract master
         // c1.changeGovernanceAddress(governanceAddress);
         c1.changeClaimDataAddress(claimDataAddress);
         // c1.changeFiatFaucetAddress(fiatFaucetAddress);
-        c1.changeMemberRolesAddress(memberAddress);
+        // c1.changeMemberRolesAddress(memberAddress);
         
         cr=claimsReward(claimsRewardAddress);
         cr.changeClaimsAddress(claimsAddress);
@@ -311,7 +317,7 @@ contract master
         p1.changePoolDataAddress(poolDataAddress);
         p1.changeQuotation2Address(quotation2Address);
         p1.changePool2Address(pool2Address);
-        p1.changeMemberRolesAddress(memberAddress);
+        // p1.changeMemberRolesAddress(memberAddress);
         p1.changeMCRDataAddress(mcrDataAddress);
         p1.changeMCRAddress(mcrAddress);
         
@@ -343,7 +349,7 @@ contract master
         f1=fiatFaucet(fiatFaucetAddress);
         f1.changeQuotationAddress(quotation2Address);
         f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
-        f1.changeMemberRolesAddress(memberAddress);
+        // f1.changeMemberRolesAddress(memberAddress);
         
         m2=masters2(masters2Address);
         m2.changePoolAddress(poolAddress);
@@ -597,11 +603,12 @@ contract master
         else
            return false; //in emergency pause state
     }
-    // function isMember(address _add) constant returns (bool)
-    // {
-    //     mr = MemberRoles(memberAddress);
-    //     return mr.isMember(_add);
-    // }
+    function isMember(address _add) constant returns (bool)
+    {
+        // mr = memberRoles(memberAddress);
+        uint roleID = mr.getMemberRoleIdByAddress(_add);
+        return (roleID>0 && roleID!=2);
+    }
     ///@dev Change owner of the contract.
     function changeOwner(address to) onlyOwner
     {
@@ -667,7 +674,7 @@ contract master
         addRemoveAddress(version,23);
         addRemoveAddress(version,24);
         addRemoveAddress(version,25);
-        addRemoveAddress(version,26);
+        // addRemoveAddress(version,26);
     }
     /// @dev Creates a new version of contract addresses
     /// @param arr Array of addresses of compiled contracts.
@@ -708,6 +715,6 @@ contract master
         addContractDetails(versionNo,"NXMToken3",arr[9]);
         addContractDetails(versionNo,"MCR",arr[10]);
         addContractDetails(versionNo,"Pool3",arr[11]);
-        addContractDetails(versionNo,"MemberRoles",arr[12]);
+        // addContractDetails(versionNo,"MemberRoles",arr[12]);
     }
 }

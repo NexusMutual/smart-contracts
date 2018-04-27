@@ -78,7 +78,7 @@ contract nxmToken2{
     modifier isMemberAndcheckPause
     {
         // ms=master(masterAddress);
-        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
+        require(ms.isPause()==false && ms.isMember(msg.sender)==true);
         _;
     }
     function changeTokenAddress(address nxmTokenAddress) onlyInternal
@@ -115,7 +115,7 @@ contract nxmToken2{
     function changeMemberRolesAddress(address memberAddress) onlyInternal
     {
     //   memberAddress = _add;
-       mr=memberRoles(memberAddress);
+      mr=memberRoles(memberAddress);
     }
     
     /// @dev Locks tokens against a cover.     
@@ -197,7 +197,7 @@ contract nxmToken2{
     /// @param amount Number of tokens rewarded.
     function rewardToken(address _to,uint amount)  onlyInternal  {
         // ms=master(masterAddress);
-        require(mr.isMember(_to)==true);
+        require(ms.isMember(_to)==true);
         // td = NXMTokenData(tokenDataAddress);
         //Add new member where applicable
         // if(td.getBalanceOf(_to) == 0)

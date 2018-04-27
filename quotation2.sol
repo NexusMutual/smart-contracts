@@ -22,7 +22,7 @@ import "./pool.sol";
 import "./quotationData.sol";
 import "./mcr.sol";
 import "./master.sol";
-import "./memberRoles.sol";
+// import "./memberRoles.sol";
 import "./SafeMaths.sol";
 contract quotation2 {
     using SafeMaths for uint;
@@ -33,7 +33,7 @@ contract quotation2 {
     quotationData qd;
     master ms;
     mcr m1;
-    memberRoles mr;
+    // memberRoles mr;
     
     address masterAddress;
     // address mcrAddress;
@@ -72,14 +72,14 @@ contract quotation2 {
     }
     modifier isMemberAndcheckPause {
         // ms=master(masterAddress);
-        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
+        require(ms.isPause()==false && ms.isMember(msg.sender)==true);
         _;
     }
-    function changeMemberRolesAddress(address memberRolesAddress) onlyInternal
-    {
-        // memberRolesAddress = _add;
-        mr=memberRoles(memberRolesAddress);
-    }
+    // function changeMemberRolesAddress(address memberRolesAddress) onlyInternal
+    // {
+    //     // memberRolesAddress = _add;
+    //     mr=memberRoles(memberRolesAddress);
+    // }
     function changeMCRAddress(address mcrAddress) onlyInternal
     {
         // mcrAddress = _add;

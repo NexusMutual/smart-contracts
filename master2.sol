@@ -257,9 +257,9 @@ contract masters2 {
     {
         // m1=MCR(MCRAddress);
         m1.addCurrency("ETH");
-        m1.addCurrency("USD");
-        m1.addCurrency("EUR");
-        m1.addCurrency("GBP");        
+        // m1.addCurrency("USD");
+        // m1.addCurrency("EUR");
+        // m1.addCurrency("GBP");        
     }
     ///@dev Add quotation and cover status.
     function addCoverStatus() onlyOwner

@@ -28,7 +28,7 @@ import "./mcr.sol";
 import "./mcrData.sol";
 import "./StandardToken.sol";
 import "./SafeMaths.sol";
-import "./memberRoles.sol";
+// import "./memberRoles.sol";
 // import "./oraclize.sol";
 import "github.com/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 contract pool is usingOraclize{
@@ -60,7 +60,7 @@ contract pool is usingOraclize{
     governance g1;
     poolData pd;
     pool2 p2;
-    memberRoles mr;
+    // memberRoles mr;
     // address owner;
     mcr m1;
     mcrData md;
@@ -96,15 +96,15 @@ contract pool is usingOraclize{
     }
     modifier isMemberAndcheckPause {
         // ms=master(masterAddress);
-        require(ms.isPause()==false && mr.isMember(msg.sender)==true);
+        require(ms.isPause()==false && ms.isMember(msg.sender)==true);
         _;
     }
     
-    function changeMemberRolesAddress(address memberRolesAddress) onlyInternal
-    {
-        // memberRolesAddress = _add;
-        mr=memberRoles(memberRolesAddress);
-    }
+    // function changeMemberRolesAddress(address memberRolesAddress) onlyInternal
+    // {
+    //     // memberRolesAddress = _add;
+    //     mr=memberRoles(memberRolesAddress);
+    // }
     
     // function changeClaimRewardAddress(address _to) onlyInternal
     // {
@@ -463,18 +463,14 @@ contract pool is usingOraclize{
     }
     function makeCoverUsingCA(uint8 prodId, address smartCAdd,bytes4 coverCurr,uint[] coverDetails,uint16 coverPeriod, uint8 _v, bytes32 _r, bytes32 _s) isMemberAndcheckPause
     {
-        // pd=poolData1(poolDataAddress);
         StandardToken tok=StandardToken(pd.getAllCurrencies(coverCurr));
-        tok.transferFrom(msg.sender,this,coverDetails[1]);
-        // q2=quotation2(quotation2Address);
+        tok.transferFrom(msg.sender,this,coverDetails[2]);
         q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }
     function sellNXMTokens(uint sellTokens)isMemberAndcheckPause{
         uint sellingPrice= SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"),sellTokens),975),1000);
-        require(SafeMaths.sub(getEtherPoolBalance(),sellingPrice)>=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(pd.getCurrencyAssetBaseMin("ETH"),50),100),_DECIMAL_1e18));
-        uint withdrawLimit=SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(),10000),2000),10000),_DECIMAL_1e18);
         uint sellTokensx10e18=SafeMaths.mul(sellTokens,_DECIMAL_1e18);
-        require(sellTokensx10e18<=withdrawLimit);
+        require(sellTokensx10e18<=getMaxSellTokens());
         tc1.burnTokenForFunding(sellTokensx10e18,msg.sender,"ForTokenSell",0);
         bool succ = msg.sender.send(sellingPrice);
         if(succ==false)throw;

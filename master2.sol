@@ -25,7 +25,7 @@ import "./claimsData.sol";
 import "./mcr.sol";
 import "./quotationData.sol";
 import "./poolData.sol";
-import "./usd.sol";
+// import "./usd.sol";
 import "./SafeMaths.sol";
 contract masters2 {
     using SafeMaths for uint;
@@ -49,7 +49,7 @@ contract masters2 {
     quotationData qd;
     poolData pd;
     mcr m1;
-    SupplyToken tok;
+    // SupplyToken tok;
 
     function changeMasterAddress(address _add)
     {
@@ -257,61 +257,63 @@ contract masters2 {
     {
         // m1=MCR(MCRAddress);
         m1.addCurrency("ETH");
+        m1.addCurrency("DAI");
         // m1.addCurrency("USD");
         // m1.addCurrency("EUR");
-        // m1.addCurrency("GBP");        
+        // m1.addCurrency("GBP");
     }
-    ///@dev Add quotation and cover status.
+    /// @dev Add quotation and cover status.
     function addCoverStatus() onlyOwner
     {
         // qd=quotationData(quotationDataAddress);
-        qd.pushCoverStatus("active");
+        qd.pushCoverStatus("Active");
         qd.pushCoverStatus("Claim Accepted");
         qd.pushCoverStatus("Claim Denied");
         qd.pushCoverStatus("Cover Expired");
         qd.pushCoverStatus("Claim Submitted");
         qd.pushCoverStatus("Requested");
     }
-    ///@dev Add currency asset data to pool. 
-    function addCurrencyAssetsDetails() internal
+    /// @dev Add currency asset data to pool. 
+    function addCurrencyAssetsVarBase() internal
     {
         // pd = poolData1(poolDataAddress);
-        pd.pushCurrencyAssetsDetails("ETH",6); //original 64 baseMin
-        pd.pushCurrencyAssetsDetails("USD",100);  // original 25000
-        pd.pushCurrencyAssetsDetails("EUR",16272);
-        pd.pushCurrencyAssetsDetails("GBP",19231);
+        pd.pushCurrencyAssetsVarBase("ETH",6); //original 64 baseMin
+        pd.pushCurrencyAssetsVarBase("DAI",7);
+        // pd.pushCurrencyAssetsDetails("USD",100);  // original 25000
+        // pd.pushCurrencyAssetsDetails("EUR",16272);
+        // pd.pushCurrencyAssetsDetails("GBP",19231);
     }
-    ///@dev Add investment asset details to pool.
+    /// @dev Add investment asset details to pool.
     function addInvestmentAssetsDetails() internal
     {
         // pd = poolData1(poolDataAddress);
-        uint8 decimals;
+        // uint8 decimals;
         //DGD
-        tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
-        decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("DGD",0xeee3870657e4716670f185df08652dd848fe8f7e,1,500,4000,decimals);
+        // tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
+        // decimals=tok.decimals();
+        pd.pushInvestmentAssetsDetails("DGD",0xeee3870657e4716670f185df08652dd848fe8f7e,1,500,4000,18);
         //ICN
-        tok=SupplyToken(0x21e6b27b23241a35d216f8641c72cfed33085fe9);
-        decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("ICN",0x21e6b27b23241a35d216f8641c72cfed33085fe9,1,1000,3000,decimals);
+        // tok=SupplyToken(0x21e6b27b23241a35d216f8641c72cfed33085fe9);
+        // decimals=tok.decimals();
+        pd.pushInvestmentAssetsDetails("ICN",0x21e6b27b23241a35d216f8641c72cfed33085fe9,1,1000,3000,18);
         //ZRX
-        tok=SupplyToken(0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570);
-        decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("ZRX",0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570,1,500,2500,decimals);
+        // tok=SupplyToken(0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570);
+        // decimals=tok.decimals();
+        pd.pushInvestmentAssetsDetails("ZRX",0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570,1,500,2500,18);
         //MKR
-        tok=SupplyToken(0x1dad4783cf3fe3085c1426157ab175a6119a04ba);
-        decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("MKR",0x1dad4783cf3fe3085c1426157ab175a6119a04ba,1,500,2000,decimals); 
+        // tok=SupplyToken(0x1dad4783cf3fe3085c1426157ab175a6119a04ba);
+        // decimals=tok.decimals();
+        pd.pushInvestmentAssetsDetails("MKR",0x1dad4783cf3fe3085c1426157ab175a6119a04ba,1,500,2000,18); 
         //GNT
-        tok=SupplyToken(0xef7fff64389b814a946f3e92105513705ca6b990);
-        decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("GNT",0xef7fff64389b814a946f3e92105513705ca6b990,1,500,2000,decimals); 
+        // tok=SupplyToken(0xef7fff64389b814a946f3e92105513705ca6b990);
+        // decimals=tok.decimals();
+        pd.pushInvestmentAssetsDetails("GNT",0xef7fff64389b814a946f3e92105513705ca6b990,1,500,2000,18); 
         //MLN
-        tok=SupplyToken(0x323b5d4c32345ced77393b3530b1eed0f346429d);
-        decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("MLN",0x323b5d4c32345ced77393b3530b1eed0f346429d,1,500,2000,decimals); 
+        // tok=SupplyToken(0x323b5d4c32345ced77393b3530b1eed0f346429d);
+        // decimals=tok.decimals();
+        pd.pushInvestmentAssetsDetails("MLN",0x323b5d4c32345ced77393b3530b1eed0f346429d,1,500,2000,18); 
     }
-    ///@dev Add investment assets names to pool.
+    /// @dev Add investment assets names to pool.
     function addInvestmentCurrencies() internal
     {
         // pd = poolData1(poolDataAddress);
@@ -322,11 +324,37 @@ contract masters2 {
         pd.addInvestmentCurrency("GNT");
         pd.addInvestmentCurrency("MLN");
     }
-    ///@dev Initialize asset data required by pool.
+
+    /// @dev Initialize asset data required by pool.
     function callPoolDataMethods() onlyOwner
     {
-        addCurrencyAssetsDetails();
+        addCurrencyAssetsVarBase();
+        // addCurrencyAssetsDetails();
         addInvestmentAssetsDetails();
         addInvestmentCurrencies();
-    }   
+
+        addAllCurrencies();
+    }
+
+    /// @dev Add investment asset details to pool.
+    function addCurrencyAssetsDetails() internal
+    {
+        // pd = poolData1(poolDataAddress);
+        // uint8 decimals;
+        // DGD
+        // tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
+        // decimals=tok.decimals();
+        pd.pushCurrencyAssetsDetails("ETH",0x00,1,50,400,18);
+        // ICN
+        // tok=SupplyToken(0x21e6b27b23241a35d216f8641c72cfed33085fe9);
+        // decimals=tok.decimals();
+        pd.pushCurrencyAssetsDetails("DAI",0xf7c3e9e4a7bb8ca2c1c640f03d76d1ac12887bce,1,50,300,18);
+        
+    }
+    /// @dev Add investment assets names to pool.
+    function addAllCurrencies() internal
+    {
+        pd.addAllCurrencies("ETH");
+        pd.addAllCurrencies("DAI");
+    }
 }

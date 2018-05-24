@@ -99,7 +99,6 @@ contract claimsData
     {
         escalationTime = 3600;
         pendingClaim_start = 0;
-    
         max_voting_time = 1800;
         min_voting_time=1200;
         payoutRetryTime=SafeMaths.mul32(SafeMaths.mul32(24,60),60);

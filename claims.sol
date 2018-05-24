@@ -551,9 +551,9 @@ contract claims{
         (,stat)=cd.getClaimStatusNumber(claimId);
         if(stat <2 || stat >6) throw;
         if(cd.getUser_Claim_VoteMember(msg.sender,claimId) != 0) throw;
-        uint vote_length=cd.getAllVoteLength();
         cd.addVote(msg.sender,tokens,verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
+        uint vote_length=cd.getAllVoteLength();
         cd.addClaim_vote_member(claimId,vote_length);
         cd.setUser_Claim_VoteMember(msg.sender,claimId,vote_length);
         cd.setClaim_tokensMV(claimId,verdict,tokens);

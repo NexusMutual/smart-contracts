@@ -18,7 +18,7 @@ pragma solidity ^0.4.11;
 import "./nxmTokenData.sol";
 // import "./quotation2.sol";
 import "./quotationData.sol";
-import "./pool.sol";
+// import "./pool.sol";
 import "./mcr.sol";
 import "./nxmToken.sol";
 import "./master.sol";
@@ -31,7 +31,7 @@ contract nxmToken2{
     // quotation2 q1;
     quotationData qd;
     nxmTokenData td;
-    pool p1;
+    // pool p1;
     mcr m1;
     nxmToken tc1;
     memberRoles mr;
@@ -102,11 +102,11 @@ contract nxmToken2{
         // nxmtokenDataAddress = _add;
         td=nxmTokenData(nxmTokenDataAddress);
     }
-    function changePoolAddress(address poolAddress) onlyInternal
-    {
-        // poolAddress = _add;
-        p1=pool(poolAddress);
-    }
+    // function changePoolAddress(address poolAddress) onlyInternal
+    // {
+    //     // poolAddress = _add;
+    //     p1=pool(poolAddress);
+    // }
     function changeMCRAddress(address mcrAddress) onlyInternal
     {
         // mcrAddress = _add;
@@ -114,8 +114,8 @@ contract nxmToken2{
     }
     function changeMemberRolesAddress(address memberAddress) onlyInternal
     {
-    //   memberAddress = _add;
-      mr=memberRoles(memberAddress);
+        // memberAddress = _add;
+        mr=memberRoles(memberAddress);
     }
     
     /// @dev Locks tokens against a cover.     
@@ -377,9 +377,9 @@ contract nxmToken2{
         // m1=MCR(mcrAddress);
         uint tokenPrice=m1.calculateTokenPrice(curr);
         SA=SafeMaths.mul(SA,_DECIMAL_1e18);
-        uint burnNXMAmount=SafeMaths.mul(SafeMaths.div(SA,tokenPrice),_DECIMAL_1e18);
+        uint burnNXMAmount=SafeMaths.div(SafeMaths.mul(SA,_DECIMAL_1e18),tokenPrice);
         uint totalStaker=td.getTotalStakerAgainstScAddress(_scAddress);
-        for(uint i=0; i<totalStaker;i++)
+        for(uint i=td.scAddress_lastBurnIndex(_scAddress); i<totalStaker; i++)
         {
             if(burnNXMAmount>0){
                 uint scAddressIndex;
@@ -389,12 +389,15 @@ contract nxmToken2{
                 uint stakerLockedNXM = tc1.getLockedNXMTokenOfStaker(_scAddress,scAddressIndex);
                 if(stakerLockedNXM > 0){
                     if(stakerLockedNXM>=burnNXMAmount){
-                        td.updateBurnedAmount(scAddressIndex,burnNXMAmount);
+                        td.addBurnedAmount(scAddressIndex,burnNXMAmount);
                         burnLockedToken_extended(_of,coverid,burnNXMAmount,"Burn");
+                        if(i>0)
+                            td.setSCAddress_lastBurnIndex(_scAddress,i);
+                        burnNXMAmount=0;
                         break;
                     }
                     else{
-                        td.updateBurnedAmount(scAddressIndex,stakerLockedNXM);
+                        td.addBurnedAmount(scAddressIndex,stakerLockedNXM);
                         burnLockedToken_extended(_of,coverid,stakerLockedNXM,"Burn");
                         burnNXMAmount=SafeMaths.sub(burnNXMAmount,stakerLockedNXM);
                     }
@@ -403,6 +406,8 @@ contract nxmToken2{
             else
                 break;
         }
+        if(burnNXMAmount>0 && totalStaker>0)
+            td.setSCAddress_lastBurnIndex(_scAddress,SafeMaths.sub(totalStaker,1));
     }
 
     function burnLockedToken_extended(address _of,uint _coverid,uint _burnNXMAmount,bytes16 str) internal{

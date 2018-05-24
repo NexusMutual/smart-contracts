@@ -64,7 +64,8 @@ contract nxmTokenData {
     stake[] stakeDetails;
     mapping (uint => uint) staker_burnedAmount;
     mapping (address => uint[]) staker_Index;
-    mapping(address => uint) public scAddress_lastCommIndex;
+    mapping (address => uint) public scAddress_lastCommIndex;
+    mapping (address => uint) public scAddress_lastBurnIndex;
     mapping (address => mapping(address => mapping(uint => stakeCommission[]))) staker_SC_index_Commission;
     allocatedTokens[] allocatedFounderTokens;
     mapping (address => uint256) public balanceOf;
@@ -536,6 +537,22 @@ contract nxmTokenData {
         scAddress_Stake[_scAddress].push(stakeDetails.length-1);
         staker_Index[_of].push(stakeDetails.length-1);
     }
+    function updateStake(uint _index, uint _amount) onlyInternal
+    {
+        stakeDetails[_index].amount = _amount;
+    }
+    function updateStakedDate(uint _index, uint _dateAdd) onlyInternal
+    {
+        stakeDetails[_index].dateAdd = _dateAdd;
+    }
+    function updateBurnedAmount(uint _index,uint _burnedAmount) onlyInternal
+    {
+        staker_burnedAmount[_index]=_burnedAmount;
+    }
+    function addBurnedAmount(uint _index,uint _burnedAmount) onlyInternal
+    {
+        staker_burnedAmount[_index]=SafeMaths.add(staker_burnedAmount[_index],_burnedAmount);
+    }
     function getStakeDetails(uint _index) constant returns(uint _indx,address _stakerAdd, address _scAddress,uint _amount,uint _burnedAmount, uint _dateAdd)
     {
         _indx=_index;
@@ -545,10 +562,7 @@ contract nxmTokenData {
         _burnedAmount=staker_burnedAmount[_index];
         _dateAdd=stakeDetails[_index].dateAdd;
     }
-    function updateBurnedAmount(uint _index,uint _burnedAmount) onlyInternal
-    {
-        staker_burnedAmount[_index]=SafeMaths.add(staker_burnedAmount[_index],_burnedAmount);
-    }
+    
     function pushStakeCommissions(address _of, address _scAddress, uint _stakerIndx, uint _commissionAmt,uint _commissionDate) onlyInternal
     {
         staker_SC_index_Commission[_of][_scAddress][_stakerIndx].push(stakeCommission(_commissionAmt,_commissionDate));
@@ -618,6 +632,11 @@ contract nxmTokenData {
     function setSCAddress_lastCommIndex(address _scAddress, uint _index) onlyInternal
     {
         scAddress_lastCommIndex[_scAddress]=_index;
+    }
+    
+    function setSCAddress_lastBurnIndex(address _scAddress, uint _index) onlyInternal
+    {
+        scAddress_lastBurnIndex[_scAddress]=_index;
     }
     // Arjun - Data End
 }

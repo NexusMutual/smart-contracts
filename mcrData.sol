@@ -40,7 +40,7 @@ contract mcrData
         uint64 date;
     }
     mcr_Data[] public allMCRData;
-    mapping(bytes4=>uint32) public allCurr3DaysAvg;
+    mapping(bytes8=>uint32) public allCurr3DaysAvg;
     address notariseMCR;
 
     function mcrData()
@@ -205,7 +205,7 @@ contract mcrData
     /// @dev Gets the average rate of a currency.
     /// @param curr Currency Name.
     /// @return rate Average rate X 100(of last 3 days).
-    function getCurr3DaysAvg(bytes4 curr) constant returns(uint32 rate)
+    function getCurr3DaysAvg(bytes8 curr) constant returns(uint32 rate)
     {
         rate = allCurr3DaysAvg[curr];
     }

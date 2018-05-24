@@ -22,9 +22,9 @@ import "./claims.sol";
 import "./claimsReward.sol";
 import "./pool.sol";
 import "./governance.sol";
-import "./fiatFaucet.sol";
+// import "./fiatFaucet.sol";
 import "./mcr.sol";
-import "./usd.sol";
+// import "./usd.sol";
 import "./master2.sol";
 import "./claimsData.sol";
 import "./quotationData.sol";
@@ -59,8 +59,8 @@ contract master
 
     uint  public versionLength;
     mapping(uint=>contractDetails[]) public allContractVersions;
-    changeVersion[]  contractChangeDate;
-    mapping(address=>bool) contracts_active;
+    changeVersion[] public contractChangeDate;
+    mapping(address=>bool) public contracts_active;
         
     address  quoteDataAddress;
     address  nxmTokenDataAddress;
@@ -75,11 +75,11 @@ contract master
     address  claimsRewardAddress;
     address  poolAddress;
     address  governanceAddress;
-    address  fiatFaucetAddress;
+    // address  fiatFaucetAddress;
     address  mcrAddress;
-    address  faucetUSDAddress;                             
-    address  faucetEURAddress;
-    address  faucetGBPAddress;
+    // address  faucetUSDAddress;                             
+    // address  faucetEURAddress;
+    // address  faucetGBPAddress;
     address  masters2Address;
     address  masterAddress;
     address  pool2Address;
@@ -98,9 +98,9 @@ contract master
     pool p1;
     governance g1;
     governance2 g2;
-    fiatFaucet f1;
+    // fiatFaucet f1;
     mcr m1;
-    SupplyToken s1;
+    // SupplyToken s1;
     masters2 m2;
     quotationData qd;
     nxmTokenData td;
@@ -170,92 +170,86 @@ contract master
     /// @dev Changes all reference contract addresses in master
     function changeAddressinMaster(uint version) onlyInternal
     {
-       changeAllAddress1(version);
-       changeAllAddress2(version);
-       quoteDataAddress = allContractVersions[version][1].contractAddress;
-       nxmTokenDataAddress = allContractVersions[version][2].contractAddress;
-       claimDataAddress = allContractVersions[version][3].contractAddress;
-       poolDataAddress = allContractVersions[version][4].contractAddress;
-       governanceDataAddress = allContractVersions[version][5].contractAddress;
-       mcrDataAddress = allContractVersions[version][6].contractAddress;        
-       quotation2Address = allContractVersions[version][8].contractAddress;
-       nxmTokenAddress=allContractVersions[version][9].contractAddress;
-       nxmToken2Address=allContractVersions[version][10].contractAddress;
-       claimsAddress=allContractVersions[version][11].contractAddress;
-       claimsRewardAddress=allContractVersions[version][13].contractAddress;
-       poolAddress = allContractVersions[version][14].contractAddress;
-       governanceAddress = allContractVersions[version][15].contractAddress;
-       //13/1/2018
-       governance2Address=allContractVersions[version][16].contractAddress;
-
-       fiatFaucetAddress = allContractVersions[version][17].contractAddress;        
-       faucetUSDAddress = allContractVersions[version][19].contractAddress;                             
-       faucetEURAddress =allContractVersions[version][20].contractAddress;
-       faucetGBPAddress = allContractVersions[version][21].contractAddress;
-       masters2Address=allContractVersions[version][22].contractAddress;
-       mcrAddress =allContractVersions[version][24].contractAddress;
-       pool2Address=allContractVersions[version][18].contractAddress;
-       pool3Address=allContractVersions[version][25].contractAddress;
-    //   memberAddress=allContractVersions[version][26].contractAddress;
+        changeAllAddress1(version);
+        quoteDataAddress = allContractVersions[version][1].contractAddress;
+        nxmTokenDataAddress = allContractVersions[version][2].contractAddress;
+        claimDataAddress = allContractVersions[version][3].contractAddress;
+        poolDataAddress = allContractVersions[version][4].contractAddress;
+        governanceDataAddress = allContractVersions[version][5].contractAddress;
+        mcrDataAddress = allContractVersions[version][6].contractAddress;        
+        quotation2Address = allContractVersions[version][7].contractAddress;
+        nxmTokenAddress=allContractVersions[version][8].contractAddress;
+        nxmToken2Address=allContractVersions[version][9].contractAddress;
+        claimsAddress=allContractVersions[version][10].contractAddress;
+        claimsRewardAddress=allContractVersions[version][11].contractAddress;
+        poolAddress = allContractVersions[version][12].contractAddress;
+        governanceAddress = allContractVersions[version][13].contractAddress;
+        //13/1/2018
+        governance2Address=allContractVersions[version][14].contractAddress;
+        pool2Address=allContractVersions[version][15].contractAddress;
+        masters2Address=allContractVersions[version][16].contractAddress;
+        mcrAddress =allContractVersions[version][17].contractAddress;
+        pool3Address=allContractVersions[version][18].contractAddress;
+        // memberAddress=allContractVersions[version][26].contractAddress;
     }
     /// @dev Links all contracts to master.sol by passing address of Master contract to the functions of other contracts.
     function changeMasterAddress(address _add) onlyOwner
     {
         
-       qd=quotationData(quoteDataAddress);
-       qd.changeMasterAddress(_add);
-       q2=quotation2(quotation2Address);
-       q2.changeMasterAddress(_add);
-       td=nxmTokenData(nxmTokenDataAddress);
-       td.changeMasterAddress(_add);
-
-       tc1=nxmToken(nxmTokenAddress);
-       tc1.changeMasterAddress(_add);
-       
-       tc2=nxmToken2(nxmToken2Address);
-       tc2.changeMasterAddress(_add);
-
-       cd=claimsData(claimDataAddress);
-       cd.changeMasterAddress(_add);
-
-       c1=claims(claimsAddress);
-       c1.changeMasterAddress(_add);
-
-       cr=claimsReward(claimsRewardAddress);
-       cr.changeMasterAddress(_add);          
-       pd=poolData(poolDataAddress);
-       pd.changeMasterAddress(_add);
-
-       p1=pool(poolAddress);
-       p1.changeMasterAddress(_add);
-       gd=governanceData(governanceDataAddress);
-       gd.changeMasterAddress(_add);
-
-       g1=governance(governanceAddress);
-       g1.changeMasterAddress(_add);
-
-       md=mcrData(mcrDataAddress);
-       md.changeMasterAddress(_add);
-
-       m1=mcr(mcrAddress);
-       m1.changeMasterAddress(_add);
-
-       f1=fiatFaucet(fiatFaucetAddress);
-       f1.changeMasterAddress(_add);
-
-       m2=masters2(masters2Address);
-       m2.changeMasterAddress(_add); 
-
-       p2=pool2(pool2Address);
-       p2.changeMasterAddress(_add);  
-       p3=pool3(pool3Address);
-       p3.changeMasterAddress(_add);
-
-       g2=governance2(governance2Address);
-       g2.changeMasterAddress(_add);
-
-    //   mr=memberRoles(memberAddress);
-    //   mr.changeMasterAddress(_add);
+        qd=quotationData(quoteDataAddress);
+        qd.changeMasterAddress(_add);
+        q2=quotation2(quotation2Address);
+        q2.changeMasterAddress(_add);
+        td=nxmTokenData(nxmTokenDataAddress);
+        td.changeMasterAddress(_add);
+        
+        tc1=nxmToken(nxmTokenAddress);
+        tc1.changeMasterAddress(_add);
+        
+        tc2=nxmToken2(nxmToken2Address);
+        tc2.changeMasterAddress(_add);
+        
+        cd=claimsData(claimDataAddress);
+        cd.changeMasterAddress(_add);
+        
+        c1=claims(claimsAddress);
+        c1.changeMasterAddress(_add);
+        
+        cr=claimsReward(claimsRewardAddress);
+        cr.changeMasterAddress(_add);          
+        pd=poolData(poolDataAddress);
+        pd.changeMasterAddress(_add);
+        
+        p1=pool(poolAddress);
+        p1.changeMasterAddress(_add);
+        gd=governanceData(governanceDataAddress);
+        gd.changeMasterAddress(_add);
+        
+        g1=governance(governanceAddress);
+        g1.changeMasterAddress(_add);
+        
+        md=mcrData(mcrDataAddress);
+        md.changeMasterAddress(_add);
+        
+        m1=mcr(mcrAddress);
+        m1.changeMasterAddress(_add);
+        
+        // f1=fiatFaucet(fiatFaucetAddress);
+        // f1.changeMasterAddress(_add);
+        
+        m2=masters2(masters2Address);
+        m2.changeMasterAddress(_add); 
+        
+        p2=pool2(pool2Address);
+        p2.changeMasterAddress(_add);  
+        p3=pool3(pool3Address);
+        p3.changeMasterAddress(_add);
+        
+        g2=governance2(governance2Address);
+        g2.changeMasterAddress(_add);
+        
+        // mr=memberRoles(memberAddress);
+        // mr.changeMasterAddress(_add);
     }
     /// @dev Link contracts to one another.
     function changeOtherAddress() onlyInternal
@@ -279,7 +273,7 @@ contract master
         tc2=nxmToken2(nxmToken2Address);
         tc2.changeTokenDataAddress(nxmTokenDataAddress);
         tc2.changeQuotationDataAddress(quoteDataAddress);
-        tc2.changePoolAddress(poolAddress);
+        // tc2.changePoolAddress(poolAddress);
         tc2.changeMCRAddress(mcrAddress);
         tc2.changeTokenAddress(nxmTokenAddress);
         // tc2.changeMemberRolesAddress(memberAddress);
@@ -311,7 +305,7 @@ contract master
         
         p1=pool(poolAddress);
         p1.changeTokenAddress(nxmTokenAddress);
-        p1.changeFiatFaucetAddress(fiatFaucetAddress);
+        // p1.changeFiatFaucetAddress(fiatFaucetAddress);
         p1.changeGovernanceAddress(governanceAddress);
         p1.changePoolAddress(poolAddress);
         p1.changePoolDataAddress(poolDataAddress);
@@ -330,26 +324,27 @@ contract master
         m1=mcr(mcrAddress);
         m1.changeTokenAddress(nxmTokenAddress);
         m1.changePoolAddress(poolAddress);
-        m1.changeFiatFaucetAddress(fiatFaucetAddress);
+        // m1.changeFiatFaucetAddress(fiatFaucetAddress);
         m1.changeMCRDataAddress(mcrDataAddress);
         m1.changeQuotationDataAddress(quoteDataAddress);
+        m1.changePoolDataAddress(poolDataAddress);
         
-        s1=SupplyToken(faucetUSDAddress);
-        s1.changePoolAddress(poolAddress);
-        s1.changeFiatTokenAddress(fiatFaucetAddress);
+        // s1=SupplyToken(faucetUSDAddress);
+        // s1.changePoolAddress(poolAddress);
+        // // s1.changeFiatTokenAddress(fiatFaucetAddress);
         
-        s1=SupplyToken(faucetEURAddress);
-        s1.changePoolAddress(poolAddress);
-        s1.changeFiatTokenAddress(fiatFaucetAddress);
+        // s1=SupplyToken(faucetEURAddress);
+        // s1.changePoolAddress(poolAddress);
+        // // s1.changeFiatTokenAddress(fiatFaucetAddress);
         
-        s1=SupplyToken(faucetGBPAddress);
-        s1.changePoolAddress(poolAddress);
-        s1.changeFiatTokenAddress(fiatFaucetAddress);
+        // s1=SupplyToken(faucetGBPAddress);
+        // s1.changePoolAddress(poolAddress);
+        // // s1.changeFiatTokenAddress(fiatFaucetAddress);
         
-        f1=fiatFaucet(fiatFaucetAddress);
-        f1.changeQuotationAddress(quotation2Address);
-        f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
-        // f1.changeMemberRolesAddress(memberAddress);
+        // f1=fiatFaucet(fiatFaucetAddress);
+        // f1.changeQuotationAddress(quotation2Address);
+        // f1.updateCurr(faucetUSDAddress,faucetEURAddress,faucetGBPAddress);
+        // // f1.changeMemberRolesAddress(memberAddress);
         
         m2=masters2(masters2Address);
         m2.changePoolAddress(poolAddress);
@@ -372,13 +367,13 @@ contract master
         p2.changeQuotationDataAddress(quoteDataAddress);
         p2.changePoolAddress(poolAddress);
         p2.changeClaimAddress(claimsAddress);
-        p2.changeFiatFaucetAddress(fiatFaucetAddress);
+        // p2.changeFiatFaucetAddress(fiatFaucetAddress);
         p2.changeMCRDataAddress(mcrDataAddress);
         p2.changeMCRAddress(mcrAddress); 
         
         p3=pool3(pool3Address);
         p3.changePoolDataAddress(poolDataAddress);
-        p3.changeFiatFaucetAddress(fiatFaucetAddress);
+        // p3.changeFiatFaucetAddress(fiatFaucetAddress);
         p3.changePoolAddress(poolAddress);
         p3.changeMCRDataAddress(mcrDataAddress);
         p3.changePool2Address(pool2Address);
@@ -656,26 +651,15 @@ contract master
         addRemoveAddress(version,10);
         addRemoveAddress(version,11);
         addRemoveAddress(version,12);
-    }
-    /// @dev Sets the older version contract address as inactive and the latest one as active.
-    /// @param version Latest version number.
-    function changeAllAddress2(uint version) onlyInternal
-    {
         addRemoveAddress(version,13);
         addRemoveAddress(version,14);
         addRemoveAddress(version,15);
         addRemoveAddress(version,16);
         addRemoveAddress(version,17);
         addRemoveAddress(version,18);
-        addRemoveAddress(version,19);
-        addRemoveAddress(version,20);
-        addRemoveAddress(version,21);
-        addRemoveAddress(version,22);
-        addRemoveAddress(version,23);
-        addRemoveAddress(version,24);
-        addRemoveAddress(version,25);
-        // addRemoveAddress(version,26);
+
     }
+
     /// @dev Creates a new version of contract addresses
     /// @param arr Array of addresses of compiled contracts.
     function addNewVersion(address[] arr) onlyOwner
@@ -690,31 +674,18 @@ contract master
         addContractDetails(versionNo,"PoolData",arr[3]);
         addContractDetails(versionNo,"GovernanceData",arr[4]);
         addContractDetails(versionNo,"MCRData",arr[5]);
-        addContractDetails(versionNo,"Quotation",arr[6]);
-        addContractDetails(versionNo,"Quotation2",arr[7]);
-        addContractDetails(versionNo,"NXMToken",arr[8]);
-        addContractDetails(versionNo,"NXMToken2",arr[9]);
-        addContractDetails(versionNo,"Claims",arr[10]);
-        addContractDetails(versionNo,"Claims2",arr[11]);
-        addContractDetails(versionNo,"ClaimsReward",arr[12]);
+        addContractDetails(versionNo,"Quotation2",arr[6]);
+        addContractDetails(versionNo,"NXMToken",arr[7]);
+        addContractDetails(versionNo,"NXMToken2",arr[8]);
+        addContractDetails(versionNo,"Claims",arr[9]);
+        addContractDetails(versionNo,"ClaimsReward",arr[10]);
+        addContractDetails(versionNo,"Pool",arr[11]);
+        addContractDetails(versionNo,"Governance",arr[12]);
+        addContractDetails(versionNo,"Governance2",arr[13]);
+        addContractDetails(versionNo,"Pool2",arr[14]);
+        addContractDetails(versionNo,"Masters2",arr[15]);
+        addContractDetails(versionNo,"MCR",arr[16]);
+        addContractDetails(versionNo,"Pool3",arr[17]);
     }
-    /// @dev Creates a new version of contract addresses.
-    /// @param versionNo Latest version number to which addresses need to be added
-    /// @param arr Array of addresses of compiled contracts.
-    function addNewVersion2(uint versionNo,address[] arr) onlyOwner
-    {
-        addContractDetails(versionNo,"Pool",arr[0]);
-        addContractDetails(versionNo,"Governance",arr[1]);
-        addContractDetails(versionNo,"Governance2",arr[2]);
-        addContractDetails(versionNo,"FiatFaucet",arr[3]);
-        addContractDetails(versionNo,"Pool2",arr[4]);
-        addContractDetails(versionNo,"FaucetUSD",arr[5]);
-        addContractDetails(versionNo,"FaucetEUR",arr[6]);
-        addContractDetails(versionNo,"FaucetGBP",arr[7]);
-        addContractDetails(versionNo,"Masters2",arr[8]);
-        addContractDetails(versionNo,"NXMToken3",arr[9]);
-        addContractDetails(versionNo,"MCR",arr[10]);
-        addContractDetails(versionNo,"Pool3",arr[11]);
-        // addContractDetails(versionNo,"MemberRoles",arr[12]);
-    }
+
 }

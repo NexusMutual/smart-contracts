@@ -17,7 +17,9 @@
 
 pragma solidity ^0.4.11;
 import "./pool.sol";
-import "./fiatFaucet.sol";
+import "./poolData.sol";
+import "./BasicToken.sol";
+// import "./fiatFaucet.sol";
 import "./mcrData.sol";
 import "./master.sol";
 import "./nxmToken.sol";
@@ -28,11 +30,13 @@ contract mcr
     using SafeMaths for uint;
     
     pool p1;
-    fiatFaucet f1;
+    poolData pd;
+    // fiatFaucet f1;
     nxmToken tc1;
     mcrData md;
     master ms;
     quotationData qd;
+    BasicToken btok;
     // address MCRDataAddress;
     address poolAddress;
     // address fiatFaucetAddress;
@@ -92,16 +96,20 @@ contract mcr
         poolAddress = _add;
         p1=pool(poolAddress);
     }
+    function changePoolDataAddress(address _poolDataAddress) onlyInternal
+    {
+        pd=poolData(_poolDataAddress);
+    }
     function changeTokenAddress(address nxmTokenAddress) onlyInternal
     {
         // nxmtokenAddress = _add;
         tc1= nxmToken(nxmTokenAddress);
     }
-    function changeFiatFaucetAddress(address fiatFaucetAddress) onlyInternal
-    {
-        // fiatFaucetAddress = _add;
-        f1=fiatFaucet(fiatFaucetAddress);
-    }
+    // function changeFiatFaucetAddress(address fiatFaucetAddress) onlyInternal
+    // {
+    //     // fiatFaucetAddress = _add;
+    //     f1=fiatFaucet(fiatFaucetAddress);
+    // }
     /// @dev Changes minimum Capital Requirement for system to sustain.
     function changeMinReqMCR(uint32 minMCR) onlyInternal
     {
@@ -337,14 +345,14 @@ contract mcr
         // f1=fiatFaucet(fiatFaucetAddress);
         uint len = md.getCurrLength();
         for(uint16 i=0;i<len;i++)
-        {   
+        {
             bytes4 currency = md.getCurrencyByIndex(i);
             if(currency!="ETH")
             {
-
-                uint currTokens=f1.getBalance(poolAddress,currency); 
+                btok=BasicToken(pd.getCurrencyAssetAddress(currency));
+                uint currTokens=btok.balanceOf(poolAddress); //f1.getBalance(poolAddress,currency); 
                 if(md.getCurr3DaysAvg(currency)>0)
-                Vtp = SafeMaths.add(Vtp,SafeMaths.div(SafeMaths.mul(currTokens , 100), md.getCurr3DaysAvg(currency)));
+                Vtp = SafeMaths.add(Vtp,SafeMaths.div(SafeMaths.mul(currTokens, 100), md.getCurr3DaysAvg(currency)));
             }
             else
                 Vtp = SafeMaths.add(Vtp,p1.getEtherPoolBalance());

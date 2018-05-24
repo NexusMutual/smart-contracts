@@ -26,9 +26,10 @@ import "./quotationData.sol";
 import "./master.sol";
 import "./pool.sol";
 import "./claims.sol";
-import "./fiatFaucet.sol";
+// import "./fiatFaucet.sol";
 import "./SafeMaths.sol";
-import "./usd.sol";
+// import "./usd.sol";
+import "./BasicToken.sol";
 import "./mcrData.sol";
 import "./mcr.sol";
 import "./pool3.sol";
@@ -43,7 +44,7 @@ contract pool2
     nxmToken2 tc2;
     pool p1;
     claims c1;
-    fiatFaucet f1;
+    // fiatFaucet f1;
     Exchange exchange1;
     quotation2 q2;
     mcr m1;
@@ -51,7 +52,8 @@ contract pool2
     claimsReward cr;
     governance g1;
     poolData pd;
-    SupplyToken tok;
+    // SupplyToken tok;
+    BasicToken btok;
     pool3 p3;
     quotationData qd;
     
@@ -159,13 +161,13 @@ contract pool2
         // claimAddress = _add;
         c1=claims(claimAddress);
     }
-    function changeFiatFaucetAddress(address fiatFaucetAddress) onlyInternal
-    {
-        // fiatFaucetAddress = _add;
-        f1=fiatFaucet(fiatFaucetAddress);
-        // p3=pool3(pool3Address);
-        // p3.changePoolDataAddress(fiatFaucetAddress);
-    }
+    // function changeFiatFaucetAddress(address fiatFaucetAddress) onlyInternal
+    // {
+    //     // fiatFaucetAddress = _add;
+    //     f1=fiatFaucet(fiatFaucetAddress);
+    //     // p3=pool3(pool3Address);
+    //     // p3.changePoolDataAddress(fiatFaucetAddress);
+    // }
     function changePoolAddress(address _add) onlyInternal
     {
         poolAddress = _add;
@@ -291,7 +293,7 @@ contract pool2
                 {
                     // tc1.removeFromPoolFund(curr,sumAssured);
                     q2.removeSAFromCSA(coverid,sumAssured);
-                    p1.subtractQuotationOracalise(coverid);
+                    // p1.subtractQuotationOracalise(coverid);
                     // date:10/11/2017/
                     pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured)));
                     c1.checkLiquidity(curr);
@@ -312,13 +314,15 @@ contract pool2
         else
         {
             // f1=fiatFaucet(fiatFaucetAddress);
-            balance = f1.getBalance(poolAddress , curr);
+            btok=BasicToken(pd.getCurrencyAssetAddress(curr));
+            balance = btok.balanceOf(poolAddress);
             //Check if pool has enough fiat crypto balance
             if(balance >= sumAssured_1e18)
             {
-                f1.payoutTransferFromPool(_to , curr , sumAssured_1e18);
+                // f1.payoutTransferFromPool(_to , curr , sumAssured_1e18);
+                p1.transferPayout(_to,curr,sumAssured_1e18);
                 // tc1.removeFromPoolFund(curr,sumAssured);
-                p1.subtractQuotationOracalise(coverid);
+                // p1.subtractQuotationOracalise(coverid);
                 q2.removeSAFromCSA(coverid,sumAssured);
                 // date:10/11/2017/
                 pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured)));
@@ -336,7 +340,7 @@ contract pool2
             tc2.burnStakerLockedToken(coverid,curr,sumAssured);
     }
     /// @dev Gets the investment asset rank.
-   function getIARank(bytes16 curr,uint64 rateX100)  constant returns(int RHS) //internal function
+   function getIARank(bytes8 curr,uint64 rateX100)  constant returns(int RHS) //internal function
     {
         // pd = poolData1(poolDataAddress);
         // p1=pool(poolAddress);
@@ -347,12 +351,12 @@ contract pool2
         (currentIAminHolding,currentIAmaxHolding)=pd.getInvestmentAssetHoldingPerc(curr);
         uint holdingPercDiff=(SafeMaths.sub(SafeMaths.div(currentIAmaxHolding,100) , SafeMaths.div(currentIAminHolding,100)));
         if(holdingPercDiff>0 && rateX100>0)
-            RHS=int(SafeMaths.div(SafeMaths.mul(IABalance,100),(SafeMaths.mul(holdingPercDiff,rateX100))));
+            RHS=int(SafeMaths.div(SafeMaths.mul(SafeMaths.mul(IABalance,100),100000),(SafeMaths.mul(holdingPercDiff,rateX100))));
     }
     /// @dev Gets the equivalent investment asset pool  balance in ether. 
     /// @param IACurr array of Investment asset name.
     /// @param IARate array of investment asset exchange rate.
-    function totalRiskPoolBalance(bytes16[] IACurr,uint64[] IARate)  constant returns (uint balance,uint IABalance)
+    function totalRiskPoolBalance(bytes8[] IACurr,uint64[] IARate)  constant returns (uint balance,uint IABalance)
     {
         // m1=MCR(MCRAddress);
         // p1=pool(poolAddress);
@@ -367,16 +371,16 @@ contract pool2
         balance=SafeMaths.add(currBalance,IABalance);
     }
     /// @dev Triggers pool rebalancing trading orders.
-    function rebalancingTrading0xOrders(bytes16[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
+    function rebalancingTrading0xOrders(bytes8[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
     {  
         // pd = poolData1(poolDataAddress);
         // p1=pool(poolAddress);
         // md=MCRData(MCRDataAddress);
         // p3=pool3(pool3Address);
-        bytes16 MAXIACurr;uint64 MAXRate;
+        bytes8 MAXIACurr;uint64 MAXRate;
         (MAXIACurr,MAXRate,,)= pd.getIARankDetailsByDate(date);
         // require(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
-        if(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0){
+        if(pd.getLiquidityOrderStatus(MAXIACurr,"RBT")==0){
 
             uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000 )),(_DECIMAL_1e18));
             if(totalRiskBal>0 && IARate.length>0)  //if v=0 OR there is no IA, don't trade
@@ -428,7 +432,7 @@ contract pool2
         return 4; // when V=0 or no IA is present       
     }
     /// @dev Checks whether trading is require for a given investment asset at a given exchange rate.
-    function checkTradeConditions(bytes16 curr,uint64 IARate) internal returns(int check)
+    function checkTradeConditions(bytes8 curr,uint64 IARate) constant returns(int check)
     {
         if(IARate>0){
             // pd = poolData1(poolDataAddress);
@@ -458,7 +462,7 @@ contract pool2
     }
     
     /// @dev Calculates the investment asset rank.
-    function calculateIARank(bytes16[] curr,uint64[] rate)  constant returns(bytes16 MAXCurr,uint64 MAXRate,bytes16 MINCurr,uint64 MINRate)
+    function calculateIARank(bytes8[] curr,uint64[] rate)  constant returns(bytes8 MAXCurr,uint64 MAXRate,bytes8 MINCurr,uint64 MINRate)
     {
         // pd = poolData1(poolDataAddress);
         uint currentIAmaxHolding;
@@ -578,13 +582,13 @@ contract pool2
     }
     
     /// @dev Unwraps ether.
-    function convertWETHintoETH(bytes16[] curr,uint64[] rate,uint64 date)checkPause payable
+    function convertWETHintoETH(bytes8[] curr,uint64[] rate,uint64 date)checkPause payable
     {
         // pd = poolData1(poolDataAddress);
         // p3=pool3(pool3Address);
-        tok=SupplyToken(pd.getWETHAddress());
-        bool success= tok.transfer(msg.sender,msg.value);
+        btok=BasicToken(pd.getWETHAddress());
+        bool success= btok.transfer(msg.sender,msg.value);
         if(success==true)
-        p3.saveIADetails(curr,rate,date);
+            p3.saveIADetails(curr,rate,date);
     }
 }

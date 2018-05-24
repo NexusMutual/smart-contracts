@@ -351,6 +351,7 @@ contract governance {
         address _add;
         uint value;
         uint value1;
+        uint value2;
         bytes16 type0;
         // when category is "Burn fraudulent claim assessor tokens"
         if(cat == 2)
@@ -390,13 +391,14 @@ contract governance {
         {
             // p3=pool3(pool3Address);
             type0= gd.getProposalOptions(propid,0);
-            bytes16 type1=gd.getProposalOptions(propid,1);
+            bytes8 type1=bytes8(gd.getProposalOptions(propid,1));
             value = gd.getProposalValue(propid,0);
             if (type0=="addIA")
             {
                 _add = gd.getProposalAddress_Effect(propid,0);
                 value1 = gd.getProposalValue(propid,1);
-                p3.addInvestmentAssetsDetails(type1,_add,uint64(value),uint64(value1));
+                value2 = gd.getProposalValue(propid,2);
+                p3.addInvestmentAssetsDetails(type1,_add,uint64(value),uint64(value1),uint8(value2));
             }
             else if(type0=="updIA")
             {

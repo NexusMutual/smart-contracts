@@ -336,7 +336,8 @@ contract pool3
                     makerAmt=(SafeMaths.sub(CABalance, SafeMaths.mul(3,SafeMaths.div(((SafeMaths.add(baseMin,varMin))),2))));//*10**18;
                     // amount of asset to buy investment asset
                     if(md.getCurr3DaysAvg(curr)>0){
-                        takerAmt=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(minIARate,makerAmt), 10**pd.getInvestmentAssetDecimals(MINIACurr) )),(md.getCurr3DaysAvg(curr))) ;      
+                        uint InvestmentAssetDecimals=pd.getInvestmentAssetDecimals(MINIACurr);
+                        takerAmt=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(minIARate,makerAmt), 10**InvestmentAssetDecimals )),(md.getCurr3DaysAvg(curr))) ;      
                         zeroExOrders(curr,makerAmt,takerAmt,"ELT",0); 
                         Liquidity("ELT","0x");
                     }
@@ -367,7 +368,8 @@ contract pool3
        {   
             // p1=pool(poolAddress);
             // md=mcrData(mcrDataAddress);
-            makerAmt=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(maxIARate,takerAmt), 10**pd.getInvestmentAssetDecimals(MAXIACurr))),( md.getCurr3DaysAvg(curr)));  //  divide by decimals of makerToken;      
+            uint InvestmentAssetDecimals=pd.getInvestmentAssetDecimals(MAXIACurr);
+            makerAmt=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(maxIARate,takerAmt), 10**InvestmentAssetDecimals)),( md.getCurr3DaysAvg(curr)));  //  divide by decimals of makerToken;      
             if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
             {
                 zeroExOrders(curr,makerAmt,takerAmt,"ILT",cancel); 

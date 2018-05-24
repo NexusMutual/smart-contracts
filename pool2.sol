@@ -395,9 +395,10 @@ contract pool2
                             // amount of asset to sell
                             uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)))); //*100);// ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
                             // amount of ETH to buy
+                            uint InvestmentAssetDecimals=pd.getInvestmentAssetDecimals(MAXIACurr);
                             uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); 
                             uint expirationTimeInMilliSec=SafeMaths.add(now,pd.getOrderExpirationTime("RBT"));
-                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**pd.getInvestmentAssetDecimals(MAXIACurr))),100);
+                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**InvestmentAssetDecimals)),100);
                             takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,_DECIMAL_1e18),(100));
                             if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
                             {
@@ -437,8 +438,8 @@ contract pool2
         if(IARate>0){
             // pd = poolData1(poolDataAddress);
             // p1=pool(poolAddress);
-            
-            uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**pd.getInvestmentAssetDecimals(curr)));
+            uint InvestmentAssetDecimals=pd.getInvestmentAssetDecimals(curr);
+            uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**InvestmentAssetDecimals));
             uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000),(_DECIMAL_1e18));
             if(IABalance>0 && totalRiskBal>0)
             {

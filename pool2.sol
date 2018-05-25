@@ -537,7 +537,7 @@ contract pool2
                         }
                     }
                 }
-                else if(RHS<MIN || RHS==0) 
+                else if(RHS<MIN || RHS==0 || MIN==-1 ) 
                 {
                     MIN=RHS;
                     MINCurr=curr[i];

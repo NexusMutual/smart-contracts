@@ -191,7 +191,7 @@ contract pool3
         uint filledAmt=exchange.getUnavailableTakerTokenAmount(orderHash); //amount that is filled till now.(TakerToken)
         bytes8 makerCurr;bytes8 takerCurr;uint makerAmt;uint takerAmt;bytes16 orderHashType;
         address makerTokenAddr;address takerTokenAddr;
-        (makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,)=pd.getOrderDetailsByHash(orderHash);
+        (makerCurr,makerAmt,takerCurr,takerAmt,orderHashType,,)=pd.getOrderDetailsByHash(orderHash);
         if(orderHashType=="ELT")
         {
             if(makerCurr=="ETH")

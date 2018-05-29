@@ -121,25 +121,25 @@ contract masters2 {
     function addStatusInClaims()  onlyOwner
     {
         // c1=claims(claimsAddress);
-        c1.pushStatus("Pending-Claim Assessor Vote");
-        c1.pushStatus("Pending-Claim Assessor Vote Denied, pending RM Escalation");
-        c1.pushStatus("Pending-Claim Assessor Vote Denied, Pending Member Vote");
-        c1.pushStatus("Pending-CA Vote Threshold not Reached Accept, Pending Member Vote");
-        c1.pushStatus("Pending-CA Vote Threshold not Reached Deny, Pending Member Vote");
-        c1.pushStatus("Pending-CA Consensus not reached Accept, Pending Member Vote");
-        c1.pushStatus("Pending-CA Consensus not reached Deny, Pending Member Vote");
-        c1.pushStatus("Final-Claim Assessor Vote Denied");
-        c1.pushStatus("Final-Claim Assessor Vote Accepted");
-        c1.pushStatus("Final-Member Vote Accepted");
-        c1.pushStatus("Final-Member Vote Denied");
-        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Threshold not reached");
-        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Accepted");
-        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Denied");
-        c1.pushStatus("Final-Claim Assessor Vote Accept, MV Nodecision");
-        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Nodecision");
-        c1.pushStatus("Claim Accepted Payout Pending");
-        c1.pushStatus("Claim Accepted No Payout ");
-        c1.pushStatus("Claim Accepted Payout Done");
+        c1.pushStatus("Pending-Claim Assessor Vote",0,0);
+        c1.pushStatus("Pending-Claim Assessor Vote Denied, pending RM Escalation",0,0);
+        c1.pushStatus("Pending-Claim Assessor Vote Denied, Pending Member Vote",0,0);
+        c1.pushStatus("Pending-CA Vote Threshold not Reached Accept, Pending Member Vote",0,0);
+        c1.pushStatus("Pending-CA Vote Threshold not Reached Deny, Pending Member Vote",0,0);
+        c1.pushStatus("Pending-CA Consensus not reached Accept, Pending Member Vote",0,0);
+        c1.pushStatus("Pending-CA Consensus not reached Deny, Pending Member Vote",0,0);
+        c1.pushStatus("Final-Claim Assessor Vote Denied",100,0);
+        c1.pushStatus("Final-Claim Assessor Vote Accepted",100,0);
+        c1.pushStatus("Final-Member Vote Accepted",50,50);
+        c1.pushStatus("Final-Member Vote Denied",50,50);
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Threshold not reached",100,0);
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Accepted",0,100);
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Denied",0,100);
+        c1.pushStatus("Final-Claim Assessor Vote Accept, MV Nodecision",0,0);
+        c1.pushStatus("Final-Claim Assessor Vote Denied, MV Nodecision",0,0);
+        c1.pushStatus("Claim Accepted Payout Pending",0,0);
+        c1.pushStatus("Claim Accepted No Payout ",0,0);
+        c1.pushStatus("Claim Accepted Payout Done",0,0);
     }
     /// @dev Adds  statuses and categories master for a proposal.
     function changeStatusAndCAtegory() onlyOwner

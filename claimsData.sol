@@ -38,7 +38,7 @@ contract claimsData
     {
         address voter;
         uint tokens;
-        // uint claimId;
+        uint claimId;
         int8 verdict;
         // uint date_submit;
         // uint tokenRec;
@@ -68,6 +68,21 @@ contract claimsData
         uint pendingTime;
         bool voting;
     }
+    
+    struct rewardDistributed{
+        uint last_CAvote_index; 
+        uint last_MVvote_index;
+        
+    }
+    
+    struct claimRewardDetails{
+        uint percCA;
+        uint percMV;
+        uint tokenToBeDist;
+        
+    }
+   
+    
     claimPauseVoting[] claimPauseVotingEP;
     uint claimStartVoting_firstIndex;
     
@@ -79,10 +94,12 @@ contract claimsData
     // mapping(uint=>claimStatus[]) public claim_status;   
     mapping(uint=>uint[])  claim_vote_ca;
     mapping(uint=>uint[])  claim_vote_member;
+    mapping(address=>rewardDistributed) voter_vote_rewardReceived;
+    mapping(uint=>claimRewardDetails) claim_reward_detail;
     mapping(address=>mapping(uint=>uint))  user_claim_voteCA;
     mapping(address=>mapping(uint=>uint))  user_claim_voteMember;
-    // mapping(address=>uint[])  vote_address_ca;
-    // mapping(address=>uint[])  vote_address_member;
+    mapping(address=>uint[])  vote_address_ca;
+    mapping(address=>uint[])  vote_address_member;
     mapping(address=>uint[]) allClaimsByAddress;
     mapping(uint=>claim_totalTokens) claim_tokensCA;
     mapping(uint=>claim_totalTokens) claim_tokensMV;
@@ -102,7 +119,7 @@ contract claimsData
         max_voting_time = 1800;
         min_voting_time=1200;
         payoutRetryTime=SafeMaths.mul32(SafeMaths.mul32(24,60),60);
-        allvotes.push(vote(0,0,0));
+        allvotes.push(vote(0,0,0,0));
         // vote_length = 1;
         claimDepositTime=SafeMaths.mul(1,7 days);
     }
@@ -174,6 +191,17 @@ contract claimsData
     {
         return user_claim_voteCA[_add][_claimId];
     }
+    // Prem data start
+    // function getUser_Claim_VoteCA_length(address _add) constant returns(uint count)
+    // {
+    //     return user_claim_voteCA[_add].length;
+    // }
+    
+    // function getUser_Claim_VoteMV_length(address _add) constant returns(uint count)
+    // {
+    //     return user_claim_voteMember[_add].length;
+    // }
+    // Prem data ends
     /// @dev Gets the vote id of a given claim of a given member. 
     function getUser_Claim_VoteMember(address _add,uint _claimId) constant returns(uint id_vote)
     {
@@ -245,14 +273,14 @@ contract claimsData
         }
     }
 
-    // /// @dev Provides information of a vote when given its vote id.
-    // /// @param _voteid Vote Id.
-    // function getVoteDetails(uint _voteid) constant returns(uint tokens,uint claimId,int8 verdict, uint date_submit,uint tokenRec,int8 claimVerdict,uint8 status)
-    // {
-    //     int8 decision = allClaims[allvotes[_voteid].claimId].vote;
-    //     status= allClaims[allvotes[_voteid].claimId].status;
-    //     return (allvotes[_voteid].tokens,allvotes[_voteid].claimId,allvotes[_voteid].verdict,allvotes[_voteid].date_submit,allvotes[_voteid].tokenRec ,decision ,status);
-    // }
+    /// @dev Provides information of a vote when given its vote id.
+    /// @param _voteid Vote Id.
+    function getVoteDetails(uint _voteid) constant returns(uint tokens,uint claimId,int8 verdict)  //,int8 claimVerdict,uint8 status
+    {
+        // int8 decision = allClaims[allvotes[_voteid].claimId].vote;
+        // status= allClaims[allvotes[_voteid].claimId].status;
+        return (allvotes[_voteid].tokens,allvotes[_voteid].claimId,allvotes[_voteid].verdict );  //,decision ,status
+    }
     /// @dev Gets the voter's address of a given vote id.
     function getVoter_Vote(uint _voteid) constant returns(address voter)
     {
@@ -376,7 +404,48 @@ contract claimsData
     {
         return (_claimId,allvotes[user_claim_voteCA[_of][_claimId]].tokens);
     }
+    // Prem data start
+    /// @param _voter address of the voter.
+    /// @return last_CAvote_index last index till which reward was distributed for CA
+    /// @return last_MVvote_index last index till which reward was distributed for member
+    function getRewardDistributedIndex(address _voter)constant returns(uint last_CAvote_index,uint last_MVvote_index){
+        return (voter_vote_rewardReceived[_voter].last_CAvote_index,voter_vote_rewardReceived[_voter].last_MVvote_index);
+    }
+    /// @param _voter address of the voter.
+    /// @param CAIndex last index till which reward was distributed for CA
+    function setRewardDistributedIndex_CA(address _voter,uint CAIndex)onlyInternal
+    {
+        voter_vote_rewardReceived[_voter].last_CAvote_index=CAIndex;
+      
+    }
+    /// @param _voter address of the voter.
+    /// @param MVIndex last index till which reward was distributed for member
+    function setRewardDistributedIndex_MV(address _voter,uint MVIndex)onlyInternal
+    {
+       
+        voter_vote_rewardReceived[_voter].last_MVvote_index=MVIndex;
+    }
+    /// @param claimid claim id.
+    /// @param perc_CA reward Percentage for claim assessor
+    /// @param perc_MV reward Percentage for members
+    /// @param tokens total tokens to be rewarded
+    function setClaim_reward_detail(uint claimid,uint perc_CA,uint perc_MV,uint tokens)onlyInternal
+    {
+       
+        claim_reward_detail[claimid].percCA=perc_CA;
+        claim_reward_detail[claimid].percMV=perc_MV;
+        claim_reward_detail[claimid].tokenToBeDist=tokens;
+    }
+    /// @param claimid claim id.
+    /// @return perc_CA reward Percentage for claim assessor
+    /// @return perc_MV reward Percentage for members
+    /// @return tokens total tokens to be rewarded
+    function getClaim_reward_detail(uint claimid)constant returns(uint percCA,uint percMV,uint tokens)
+    {
+        return(claim_reward_detail[claimid].percCA,claim_reward_detail[claimid].percMV,claim_reward_detail[claimid].tokenToBeDist);
+    }
     
+    // Prem data end
     /// @dev Gets last timestamp at which claim has been updated.
     function setClaimDateUpd(uint _claimId, uint _time) onlyInternal
     {
@@ -417,6 +486,33 @@ contract claimsData
             token=SafeMaths.add(token,allvotes[claim_vote_member[_claimId][i]].tokens);
         }
     }
+    
+    // Prem data start
+    /// @param _voter address  of voter
+    /// @param index index to get voteid in CA
+    function get_vote_address_ca(address _voter,uint index)constant returns(uint)
+    {
+        return vote_address_ca[_voter][index];
+    }
+    /// @param _voter address  of voter
+    /// @param index index to get voteid in member vote
+    function get_vote_address_member(address _voter,uint index)constant returns(uint)
+    {
+        return vote_address_member[_voter][index];
+    }
+    /// @param _voter address  of voter
+    function get_vote_address_ca_length(address _voter)constant returns(uint)
+    {
+        return vote_address_ca[_voter].length;
+    }
+    /// @param _voter address  of voter
+    function get_vote_address_member_length(address _voter)constant returns(uint)
+    {
+        return vote_address_member[_voter].length;
+    }
+    
+    
+    // Prem data end
 
     /// @dev Sets the final vote's result(either accepted or declined)of a claim.
     /// @param _claimId Claim Id.
@@ -492,9 +588,9 @@ contract claimsData
     //     cover_claim[_coverid].push(_claimid);
     // }
     /// @dev Add Vote's details of a given claim.
-    function addVote(address _voter,uint _tokens,int8 _verdict) onlyInternal
+    function addVote(address _voter,uint _tokens,uint claimId,int8 _verdict) onlyInternal
     {
-       allvotes.push(vote(_voter,_tokens,_verdict));
+       allvotes.push(vote(_voter,_tokens,claimId,_verdict));
     }
     /// @dev Stores the id of the vote given to a claim.Maintains record of all votes given by all the CA to a claim.
     /// @param _claimId Claim Id to which vote has given by the CA.
@@ -510,6 +606,7 @@ contract claimsData
     function setUser_Claim_VoteCA(address _from,uint _claimId,uint _voteid) onlyInternal
     {
         user_claim_voteCA[_from][_claimId]=_voteid;
+        vote_address_ca[_from].push(_voteid);
     }
 
     /// @dev Stores the tokens given by the Claim Assessors during voting of a given claim.
@@ -548,6 +645,8 @@ contract claimsData
     function setUser_Claim_VoteMember(address _from,uint _claimId,uint _voteid) onlyInternal
     {
         user_claim_voteMember[_from][_claimId]=_voteid;
+        vote_address_member[_from].push(_voteid);
+        
     }
 
     /// @dev Increases the count of failure until payout of a claim is succeeded.

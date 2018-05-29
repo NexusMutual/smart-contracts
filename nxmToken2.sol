@@ -24,6 +24,7 @@ import "./nxmToken.sol";
 import "./master.sol";
 import "./SafeMaths.sol";
 import "./memberRoles.sol";
+
 contract nxmToken2{
         using SafeMaths for uint;
 
@@ -35,6 +36,7 @@ contract nxmToken2{
     mcr m1;
     nxmToken tc1;
     memberRoles mr;
+  
     
     uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
     uint40 private constant _DECIMAL_1e10 = 10000000000;
@@ -47,6 +49,7 @@ contract nxmToken2{
     // address mcrAddress;
     // address memberAddress;
     address masterAddress;
+
     
     function changeMasterAddress(address _add)
     {
@@ -213,6 +216,13 @@ contract nxmToken2{
       
         // tc1=NXMToken(tokenAddress);
         tc1.callTransferEvent(0,_to,amount); 
+    }
+    function mintClaimRewardToken(uint amount)  onlyInternal  {
+       
+        td.changeBalanceOf(msg.sender, SafeMaths.add(td.getBalanceOf(msg.sender) , amount));// mint new tokens
+        td.changeTotalSupply(SafeMaths.add(td.getTotalSupply(),amount)); // track the supply
+        
+        tc1.callTransferEvent(0,msg.sender,amount); 
     }
        
     /// @dev Extends validity period of a given number of tokens, locked for Claim Assessment

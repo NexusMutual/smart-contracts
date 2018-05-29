@@ -287,11 +287,15 @@ contract claimsReward
         bytes4 curr=qd.getCurrencyOfCover(coverid);
         uint64 sumAssured=uint64(qd.getCoverSumAssured(coverid));
         // p1=pool(poolAddress);
+        
+        
+        
 
         if(status==7) // Final-Claim Assessor Vote Denied
         {
             c1.changeFinalVerdict(claimid,-1);
-            rewardCAVoters(claimid,100,curr,sumAssured);  // Rewards Claims Assessor only
+            
+            penalizeCAVoters(claimid);  // Rewards Claims Assessor only
             tc2.burnCNToken(coverid); // Burns tokens deposited at the time of claim submission
             if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
             {
@@ -302,15 +306,15 @@ contract claimsReward
         if(status==8)
         {
             c1.changeFinalVerdict(claimid,1);
-            rewardCAVoters(claimid,100,curr,sumAssured); // Rewards Claims Assessor only
+            penalizeCAVoters(claimid); // Rewards Claims Assessor only
             tc1.unlockCN(coverid); // Unlocks token locked against cover note
             succ = p2.sendClaimPayout(coverid,claimid); //Initiates payout
         }
         if(status==9)
         {
             c1.changeFinalVerdict(claimid,1);
-            rewardCAVoters(claimid,50,curr,sumAssured);  // Distributes rewards between claims assessor and members who voted
-            rewardMVoters(claimid,50,curr,sumAssured);
+            penalizeCAVoters(claimid);  // Distributes rewards between claims assessor and members who voted
+            // rewardMVoters(claimid,50,curr,sumAssured);
             tc1.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid,claimid);
             // if(!succ)
@@ -319,8 +323,8 @@ contract claimsReward
         if(status==10)
         {
             c1.changeFinalVerdict(claimid,-1);
-            rewardCAVoters(claimid,50,curr,sumAssured);
-            rewardMVoters(claimid,50,curr,sumAssured);
+            penalizeCAVoters(claimid);
+            // rewardMVoters(claimid,50,curr,sumAssured);
             tc2.burnCNToken(coverid);
            
             if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
@@ -335,7 +339,7 @@ contract claimsReward
             // uint8 cc;
             // (,cc)= cd.getCoverClaimCount(coverid);
             // cd.addCover_Claim(coverid,cc); //cc+1
-            rewardCAVoters(claimid,100,curr,sumAssured);
+            penalizeCAVoters(claimid);
             tc2.undepositCN(coverid,0);
             tc2.burnCNToken(coverid);
             
@@ -348,7 +352,7 @@ contract claimsReward
         if(status==12)
         {
             c1.changeFinalVerdict(claimid,1);
-            rewardMVoters(claimid,100,curr,sumAssured);
+            // rewardMVoters(claimid,100,curr,sumAssured);
             tc1.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid,claimid);
            
@@ -356,7 +360,7 @@ contract claimsReward
         if(status==13)
         {
             c1.changeFinalVerdict(claimid,-1);
-            rewardMVoters(claimid,100,curr,sumAssured);
+            // rewardMVoters(claimid,100,curr,sumAssured);
             tc2.burnCNToken(coverid);
             if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
             {
@@ -380,19 +384,25 @@ contract claimsReward
                 c1.checkLiquidity(curr);
             }
         }
+        uint distributableTokens=SafeMaths.div(SafeMaths.mul(sumAssured,_DECIMAL_1e18),tc1.getTokenPrice(curr)); //  1% of sum assured
+        uint percCA;
+        uint percMV;
+        (percCA,percMV)=c1.getRewardStatus(status);
+        cd.setClaim_reward_detail(claimid,percCA,percMV,distributableTokens);
+        
+        tc2.mintClaimRewardToken(distributableTokens);
     }
   
     /// @dev Reward the tokens to all the Claim Assessors who have participated in voting of given claim.
     /// @param claimid Claim Id.
-    /// @param perc Reward Percentage.
-    function rewardCAVoters(uint claimid,uint perc,bytes4 curr_name,uint sumAssured) internal
+   
+    function penalizeCAVoters(uint claimid)internal
     {
         // tc1=nxmToken(tokenAddress);
         // tc2=nxmToken2(token2Address);
         // cd=claimsData(claimsDataAddress);
         // c1=claims(claimsAddress); 
-        sumAssured=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
-        uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumAssured,perc),_DECIMAL_1e18),(SafeMaths.mul(SafeMaths.mul(100,100),tc1.getTokenPrice(curr_name)))); //  1% of sum assured
+        
         uint token;
         uint consesnsus_perc;
         uint accept;
@@ -405,14 +415,8 @@ contract claimsReward
         { 
             if(cd.getVoteVerdict(claimid,i,1)==1 )
             { 
-                if(cd.getFinalVerdict(claimid)==1)
-                {
-                    token=SafeMaths.div(SafeMaths.mul(distributableTokens,cd.getVoteToken(claimid,i,1)),(accept));
-                    tc2.rewardToken(cd.getVoteVoter(claimid,i,1),token);
-                    // cd.updateRewardCA(claimid,i,token);
-                }
-                else
-                {
+                if(cd.getFinalVerdict(claimid)!=1)
+                                {
                     consesnsus_perc=SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny)));
                     if(consesnsus_perc>70)
                         consesnsus_perc=SafeMaths.sub(consesnsus_perc,70);
@@ -423,13 +427,8 @@ contract claimsReward
             }
             else if(cd.getVoteVerdict(claimid,i,1)==-1)
             {
-                if(cd.getFinalVerdict(claimid)==-1)
-                {
-                    token=SafeMaths.mul(distributableTokens,SafeMaths.div(cd.getVoteToken(claimid,i,1),(deny)));
-                    tc2.rewardToken(cd.getVoteVoter(claimid,i,1),token);
-                    // cd.updateRewardCA(claimid,i,token);
-                }
-                else
+                if(cd.getFinalVerdict(claimid)!=-1)
+               
                 {
                     consesnsus_perc=SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny)));
                     if(consesnsus_perc>70)
@@ -446,45 +445,45 @@ contract claimsReward
     /// @dev Reward the tokens to all the Members who have participated in voting of given claim.
     /// @param claimid Claim Id.
     /// @param perc Reward Percentage.
-    function rewardMVoters(uint claimid,uint perc, bytes4 curr_name,uint sumAssured) internal
-    {
-        // tc1=nxmToken(tokenAddress);
-        // tc2=nxmToken2(token2Address); 
-        // cd=claimsData(claimsDataAddress);
-        uint tokenx1e18=tc1.getTokenPrice(curr_name);
-        sumAssured=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
-        uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumAssured,perc),_DECIMAL_1e18),(SafeMaths.mul(SafeMaths.mul(100,100),tokenx1e18)));
-        uint token_re;
-        uint accept;
-        (,accept)=cd.getClaimMVote(claimid,1);
-        uint deny;
-        (,deny)=cd.getClaimMVote(claimid,-1);
-        uint claimVoteLength;
-        (,claimVoteLength)=cd.getClaimVoteLength(claimid,0);
-        for(uint i=0;i<claimVoteLength;i++)
-        {
-            address voter=cd.getVoteVoter(claimid,i,0);
-            uint token=cd.getVoteToken(claimid,i,0);
-            if(cd.getVoteVerdict(claimid,i,0)==1 )
-            { 
-                if(cd.getFinalVerdict(claimid)==1)
-                {
-                    token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(accept));
-                    tc2.rewardToken(voter,token_re);
-                    // cd.updateRewardMV(claimid,i,token_re);
-                }
-            }
-            else if(cd.getVoteVerdict(claimid,i,0)==-1)
-            {
-                if(cd.getFinalVerdict(claimid)==-1)
-                {
-                    token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(deny));
-                    tc2.rewardToken(voter,token_re);
-                    // cd.updateRewardMV(claimid,i,token_re);
-                }
-            }        
-        }     
-    }
+    // function rewardMVoters(uint claimid,uint perc, bytes4 curr_name,uint sumAssured) internal
+    // {
+    //     // tc1=nxmToken(tokenAddress);
+    //     // tc2=nxmToken2(token2Address); 
+    //     // cd=claimsData(claimsDataAddress);
+    //     uint tokenx1e18=tc1.getTokenPrice(curr_name);
+    //     sumAssured=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
+    //     uint distributableTokens=SafeMaths.div(SafeMaths.mul(SafeMaths.mul(sumAssured,perc),_DECIMAL_1e18),(SafeMaths.mul(SafeMaths.mul(100,100),tokenx1e18)));
+    //     uint token_re;
+    //     uint accept;
+    //     (,accept)=cd.getClaimMVote(claimid,1);
+    //     uint deny;
+    //     (,deny)=cd.getClaimMVote(claimid,-1);
+    //     uint claimVoteLength;
+    //     (,claimVoteLength)=cd.getClaimVoteLength(claimid,0);
+    //     for(uint i=0;i<claimVoteLength;i++)
+    //     {
+    //         address voter=cd.getVoteVoter(claimid,i,0);
+    //         uint token=cd.getVoteToken(claimid,i,0);
+    //         if(cd.getVoteVerdict(claimid,i,0)==1 )
+    //         { 
+    //             if(cd.getFinalVerdict(claimid)==1)
+    //             {
+    //                 token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(accept));
+    //                 tc2.rewardToken(voter,token_re);
+    //                 // cd.updateRewardMV(claimid,i,token_re);
+    //             }
+    //         }
+    //         else if(cd.getVoteVerdict(claimid,i,0)==-1)
+    //         {
+    //             if(cd.getFinalVerdict(claimid)==-1)
+    //             {
+    //                 token_re=SafeMaths.div(SafeMaths.mul(distributableTokens , token),(deny));
+    //                 tc2.rewardToken(voter,token_re);
+    //                 // cd.updateRewardMV(claimid,i,token_re);
+    //             }
+    //         }        
+    //     }     
+    // }
 
     /// @dev Start Voting of All Pending Claims when Emergency Pause OFF.
     function StartAllPendingClaimsVoting() onlyInternal
@@ -513,4 +512,100 @@ contract claimsReward
         }
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
+    // Prem data start
+    /// @param _voter address of voter.
+    /// @param lengthVote number of times voter voted.
+    /// @param lastIndex index till which Reward was distributed.
+    /// @param check if 1 it is for CA else it is for MV.
+    /// @return tokenCalculated total tokens to be distributed to voter
+    function getRewardToBeDistributed(address _voter,uint lengthVote,uint lastIndex,uint check)constant returns(uint tokenCalculated)
+    {
+        uint voteid;
+        uint tokens;
+        uint claimId;
+        int8 verdict;
+        uint8 status;
+        uint perc;
+        uint totalTokens;
+        uint tokensToBeDist;
+        tokenCalculated=0;
+        
+        for(uint i=lastIndex;i<lengthVote;i++)
+        {
+            if(check==1)
+           voteid =cd.get_vote_address_ca(_voter,i);
+           else
+           voteid =cd.getUser_Claim_VoteMember(_voter,i);
+           
+           (tokens,claimId,verdict)=cd.getVoteDetails(voteid);
+            (,status)= cd.getClaimStatusNumber(claimId);
+            if(check==1)
+           (perc,)= c1.getRewardStatus(status);
+           else 
+            (,perc)= c1.getRewardStatus(status);
+            if(check==1){
+            if(verdict==1)
+                (,totalTokens,)=cd.getClaims_tokenCA(claimId);
+            else if(verdict==-1)
+                (,,totalTokens)=cd.getClaims_tokenCA(claimId);
+            }
+            else{
+             if(verdict==1)
+                (,totalTokens,)=cd.getClaims_tokenMV(claimId);
+            else if(verdict==-1)
+                (,,totalTokens)=cd.getClaims_tokenMV(claimId);
+            }
+            (,,tokensToBeDist)=cd.getClaim_reward_detail(claimId);
+           if(cd.getFinalVerdict(claimId)==verdict)
+           tokenCalculated+=SafeMaths.div(SafeMaths.mul(perc,SafeMaths.mul(tokens,tokensToBeDist)),SafeMaths.mul(100,totalTokens));
+            
+           }
+        
+        
+    }
+//   function getRewardToBeDistributed_MV(address _voter,uint lengthMVVote,uint lastIndexMV)constant returns(uint tokenCalculated)
+//   {
+//          tokenCalculated=0;
+       
+//         uint voteid;
+        
+//          uint tokens;
+//         uint claimId;
+//         int8 verdict;
+//         uint8 status;
+//         uint perc_MV;
+//         uint totalTokens;
+//       for(uint i=lastIndexMV;i<lengthMVVote;i++)
+//         {
+//             voteid=cd.getUser_Claim_VoteMember(_voter,i);
+//             (tokens,claimId,verdict)=cd.getVoteDetails(voteid);
+//             status= c1.getClaimStatusNumber(claimId);
+//           (,perc_MV)= c1.getRewardStatus(status);
+//           if(verdict==1)
+//                 (,totalTokens,)=cd.getClaims_tokenMV(claimId);
+//             else if(verdict==-1)
+//                 (,,totalTokens)=cd.getClaims_tokenMV(claimId);
+//           if(cd.getFinalVerdict(claimid)==verdict)
+//             tokenCalculated+=SafeMaths.div(SafeMaths.mul(perc_MV,SafeMaths.mul(tokens,tokensToBeDist)),SafeMaths.mul(100,totalTokens));
+//         }
+//   }
+    /// _voter address of voter.
+    function claimRewardToBeDistributed()checkPause
+    {
+        uint lengthCAVote=cd.get_vote_address_ca_length(msg.sender);
+        uint lengthMVVote=cd.get_vote_address_member_length(msg.sender);
+        uint lastIndexCA;
+        (lastIndexCA,)=cd.getRewardDistributedIndex(msg.sender);
+        cd.setRewardDistributedIndex_CA(msg.sender,lengthCAVote);
+        uint lastIndexMV;
+        (,lastIndexMV)=cd.getRewardDistributedIndex(msg.sender);
+        cd.setRewardDistributedIndex_MV(msg.sender,lengthMVVote);
+        uint rewadToBeDistCA=getRewardToBeDistributed(msg.sender,lengthCAVote,lastIndexCA,1);
+        uint rewadToBeDistMV=getRewardToBeDistributed(msg.sender,lengthMVVote,lastIndexMV,0);
+        uint total=SafeMaths.add(rewadToBeDistCA,rewadToBeDistMV);
+        tc1.transfer(msg.sender,total);
+        
+        
+    } 
+    // Prem data ends
 }

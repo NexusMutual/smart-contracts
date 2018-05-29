@@ -33,6 +33,7 @@ contract quotationData{
         // uint16 status;
         address scAddress;
         // uint lockedTokens;
+        uint premium;
     }
 
     struct Product_Details{
@@ -324,9 +325,9 @@ contract quotationData{
     }
 
     /// @dev Creates a blank new cover.
-    function addCover(uint16 _coverPeriod,uint _SA,bytes8 _productName,address _userAddress,bytes4 _currencyCode, address _scAddress) onlyInternal
+    function addCover(uint16 _coverPeriod,uint _SA,bytes8 _productName,address _userAddress,bytes4 _currencyCode, address _scAddress,uint premium) onlyInternal
     { 
-        allCovers.push(cover(_productName,_userAddress,_currencyCode,_SA,_coverPeriod,SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days)),_scAddress));
+        allCovers.push(cover(_productName,_userAddress,_currencyCode,_SA,_coverPeriod,SafeMaths.add(now,SafeMaths.mul(_coverPeriod,1 days)),_scAddress,premium));
         // allCovers[_cid].sumAssured= _SA;
         // allCovers[_cid].coverPeriod= _coverPeriod;
         // allCovers[_cid].productName = _productName;

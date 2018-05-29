@@ -34,8 +34,12 @@ import "./SafeMaths.sol";
 
 contract claims{
     using SafeMaths for uint;
-    string[] claimStatus_desc;
-
+    struct claimRewardStatus{
+    string claimStatus_desc;
+    uint perc_CA;
+    uint perc_MV;
+    }
+    claimRewardStatus[] reward_status; 
     // address public token2Address;
     nxmToken2 tc2;
     // address public tokenAddress;
@@ -152,10 +156,22 @@ contract claims{
     }  
    
     /// @dev Adds status names for Claims.
-    function pushStatus(string stat) onlyInternal
+    /// @param stat description for claim status
+    /// @param perc_CA reward Percentage for claim assessor
+    /// @param perc_MV reward Percentage for members
+    function pushStatus(string stat,uint perc_CA,uint perc_MV) onlyInternal
     {
-        claimStatus_desc.push(stat);
+        reward_status.push(claimRewardStatus(stat,perc_CA,perc_MV));
     }
+    // Prem data start
+    /// @param statusNumber the number of type of status
+    /// @return perc_CA reward Percentage for claim assessor
+    /// @return perc_MV reward Percentage for members
+    function getRewardStatus(uint statusNumber)constant returns(uint perc_CA,uint perc_MV)
+    {
+        return (reward_status[statusNumber].perc_CA,reward_status[statusNumber].perc_MV);
+    }
+    // Prem data end
     
     // /// @dev Gets the Number of tokens used in a specific vote, using claim id and index.
     // /// @param ca 1 for vote given as a CA, 0 for vote given as a member.
@@ -178,7 +194,7 @@ contract claims{
     {
         // cd=claimsData(claimsDataAddress);
         (coverId,claimId,voteCA,voteMV,statusnumber)=cd.getClaimFromNewStart(index,msg.sender);
-        status = claimStatus_desc[statusnumber];
+        status = reward_status[statusnumber].claimStatus_desc;
     }
      
     /// @dev Gets details of a claim submitted by the calling user, at a given index
@@ -187,7 +203,7 @@ contract claims{
         // cd=claimsData(claimsDataAddress);
         uint statusno;
         (statusno,coverId,claimId) = cd.getUserClaimByIndex(index,msg.sender);
-        status = claimStatus_desc[statusno];
+        status = reward_status[statusno].claimStatus_desc;
     }
    
     // /// @dev Gets the total number of votes cast against given claim id.
@@ -224,7 +240,7 @@ contract claims{
         claimId=_claimId;
         (,coverId,finalVerdict,stat,,)= cd.getClaim(_claimId);
         claimOwner = qd.getCoverMemberAddress(coverId);
-        status = claimStatus_desc[stat];          
+        status = reward_status[stat].claimStatus_desc;        
     }
     // /// @dev Gets details of a given vote id
     // /// @param voteid Vote Id.
@@ -500,7 +516,7 @@ contract claims{
         if(cd.getUser_Claim_VoteCA(msg.sender,claimId) != 0) throw;
         // tc1=nxmToken(tokenAddress);
         tc1.bookCATokens(msg.sender, tokens);
-        cd.addVote(msg.sender,tokens,verdict);
+        cd.addVote(msg.sender,tokens,claimId,verdict);
         cd.callVoteEvent(msg.sender, claimId, "CAV", tokens, now, verdict);
         uint vote_length=cd.getAllVoteLength();
         cd.addClaim_Vote_ca(claimId,vote_length);
@@ -523,7 +539,7 @@ contract claims{
         if(cadd != msg.sender) throw;
         // td = nxmTokenData(tokenDataAddress);
         uint tokens;
-        (,tokens)= td.getUser_cover_lockedCN(cadd,coverId);
+        (,,tokens)= td.getUser_cover_lockedCN(cadd,coverId);
         tokens = SafeMaths.div(SafeMaths.mul(tokens,20),100);
         // cd=claimsData(claimsDataAddress);
         uint d=SafeMaths.mul(864000 , cd.escalationTime()) ;
@@ -551,7 +567,7 @@ contract claims{
         (,stat)=cd.getClaimStatusNumber(claimId);
         if(stat <2 || stat >6) throw;
         if(cd.getUser_Claim_VoteMember(msg.sender,claimId) != 0) throw;
-        cd.addVote(msg.sender,tokens,verdict);
+        cd.addVote(msg.sender,tokens,claimId,verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
         uint vote_length=cd.getAllVoteLength();
         cd.addClaim_vote_member(claimId,vote_length);

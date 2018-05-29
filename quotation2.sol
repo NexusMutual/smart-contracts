@@ -251,7 +251,7 @@ contract quotation2 {
         // qd = quotationData(quotationDataAddress);
         // p1=pool(poolAddress);
         uint cid=qd.getCoverLength();
-        qd.addCover(coverPeriod,coverDetails[0],qd.getProductName(prodId),from,coverCurr,scAddress);
+        qd.addCover(coverPeriod,coverDetails[0],qd.getProductName(prodId),from,coverCurr,scAddress,coverDetails[1]);
         uint coverLength_new=qd.getCoverLength();
         if(SafeMaths.sub(coverLength_new,cid)>1){
             for(uint i=cid; i<coverLength_new; i++){

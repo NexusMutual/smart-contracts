@@ -124,9 +124,7 @@ contract claimsReward
     /// @dev Computes the result of Claim Assessors Voting for a given claim id.
     function changeClaimStatusCA(uint claimid, uint coverid,uint8 status) internal
     {
-        // c1=claims(claimsAddress);
-        // cd=claimsData(claimsDataAddress);
-        // qd=quotationData(quotationDataAddress);
+        
         // Check if voting should be closed or not
         if(c1.checkVoteClosing(claimid)==1)
         { 
@@ -134,7 +132,8 @@ contract claimsReward
             uint reward_claim=0;            
             if(CATokens==0)
             {
-                status=4;
+                // status=4;
+                status=3;
             }
             else
             { 
@@ -151,24 +150,33 @@ contract claimsReward
                
                 if( SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) > 70 &&  threshold_unreached==0)
                 {
-                   status=8;
+                //   status=8;
+                 status=7;
                    qd.changeCoverStatusNo(coverid,1);
+                   
                    // Call API of pool
                    reward_claim=1;
                 }
+                //  to be checked
                 else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 70 &&  threshold_unreached==0)
                 {
-                    status=1;
-                    // p1.closeClaimsOraclise(len,cd.escalationTime());
+                    status=6;
+                    reward_claim=1;
+                     qd.changeCoverStatusNo(coverid,2);
+                    
                 }
                 else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==0)
-                    status=6;
-                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==0)
+                    // status=6;
                     status=5;
-                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==1)
+                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==0)
+                    // status=5;
                     status=4;
-                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==1)
+                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==1)
+                    // status=4;
                     status=3;
+                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) <= SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) &&  threshold_unreached==1)
+                    // status=3;
+                    status=2;
             }
             c1.setClaimStatus(claimid,status);
             if(reward_claim==1)
@@ -179,9 +187,7 @@ contract claimsReward
     /// @dev Computes the result of Member Voting for a given claim id.
     function changeClaimStatusMV(uint claimid,uint coverid,uint8 status) internal
     {
-        // c1=claims(claimsAddress); 
-        // cd=claimsData(claimsDataAddress);
-        // qd=quotationData(quotationDataAddress);   
+          
         // Check if voting should be closed or not 
         if(c1.checkVoteClosing(claimid)==1)
         { 
@@ -191,7 +197,8 @@ contract claimsReward
             // In case noone votes, claim is denied
             if(MVTokens==0 )
             {
-                status=15; 
+                // status=15;
+                status=11;
                 coverStatus=2;                
             }
             else
@@ -207,20 +214,38 @@ contract claimsReward
                 uint deny;
                 (,deny)=cd.getClaimMVote(claimid,-1);  
 
-                if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  threshold_unreached==0 && status_orig==2)
-                { status=9;coverStatus=1;}
-                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  threshold_unreached==0 && status_orig==2)
-                { status=10;coverStatus=2;}
-                else if(  threshold_unreached==1 && status_orig==2)
+                // if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  threshold_unreached==0 && status_orig==2)
+                // { status=9;coverStatus=1;}
+                // else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  threshold_unreached==0 && status_orig==2)
+                // { status=10;coverStatus=2;}
+                // else if(  threshold_unreached==1 && status_orig==2)
+                // { status=11; coverStatus=2;}
+                // else if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
+                // { status=12; coverStatus=1;}
+                // else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
+                // { status=13;coverStatus=2;}
+                // else if(threshold_unreached==1 &&  (status_orig==3 || status_orig==5))
+                // { status=14; coverStatus=1;}
+                // else if(threshold_unreached==1 &&  (status_orig==6 || status_orig==4))
+                // { status=15; coverStatus=2;}
+                //  to be checked 
+                // if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  threshold_unreached==0 && status_orig==2)
+                // { status=9;coverStatus=1;}
+                // else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  threshold_unreached==0 && status_orig==2)
+                // { status=10;coverStatus=2;}
+                // else if(  threshold_unreached==1 && status_orig==2)
+                // { status=11; coverStatus=2;}
+                // //  till here
+                if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  status_orig>1 && status_orig<=5 && threshold_unreached==0)
+                { status=8; coverStatus=1;}
+                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  status_orig>1 && status_orig<=5 && threshold_unreached==0)
+                { status=9;coverStatus=2;}
+                else if(threshold_unreached==1 &&  (status_orig==2 || status_orig==4))
+                { status=10; coverStatus=1;}
+                else if(threshold_unreached==1 &&  (status_orig==5 || status_orig==3))
                 { status=11; coverStatus=2;}
-                else if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
-                { status=12; coverStatus=1;}
-                else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
-                { status=13;coverStatus=2;}
-                else if(threshold_unreached==1 &&  (status_orig==3 || status_orig==5))
-                { status=14; coverStatus=1;}
-                else if(threshold_unreached==1 &&  (status_orig==6 || status_orig==4))
-                { status=15; coverStatus=2;}
+                
+                
             }
             c1.setClaimStatus(claimid,status);
             qd.changeCoverStatusNo(coverid,coverStatus);
@@ -232,15 +257,12 @@ contract claimsReward
     /// @dev Depending upon the current status of the claim, corresponding functions are called and next status of the claim is decided accordingly.
     function changeClaimStatus(uint claimid) checkPause
     {
-        // ms=master(masterAddress);
-        // p2=pool2(pool2Address);
+        
         if(ms.isInternal(msg.sender) != true && ms.isOwner(msg.sender) != true) throw;
-        // c1=claims(claimsAddress);
-        // cd=claimsData(claimsDataAddress);
-        // qd=quotationData(quotationDataAddress);
+       
         uint coverid;
         (,coverid)=cd.getClaimCoverId(claimid);
-        // uint quoteId = qd.getCoverQuoteid(coverid);
+        
         uint8 status;
         (,status)=cd.getClaimStatusNumber(claimid);
         
@@ -251,24 +273,28 @@ contract claimsReward
            
         }
         // when current status is Pending-Claim Assessor Vote Denied, pending RM Escalation
-        else if(status==1)
-        {
-            c1.setClaimStatus(claimid,7);
-            qd.changeCoverStatusNo(coverid,2);
-            rewardAgainstClaim(claimid,coverid,status);
-        }
+        //  to be checked
+        // else if(status==1)
+        // {
+        //     c1.setClaimStatus(claimid,7);
+        //     qd.changeCoverStatusNo(coverid,2);
+        //     rewardAgainstClaim(claimid,coverid,status);
+        // }
         // when current status is between 2 and 6, i.e. "Pending Member Vote"
-        else if(status>=2 && status<=6)
+        // else if(status>=2 && status<=6)
+        else if(status>=1 && status<=5)
         {
             changeClaimStatusMV(claimid,coverid,status);
         }
         // when current status is "Claim Accepted Payout Pending"
-        else if(status == 16)
+        // else if(status == 16)
+        else if(status == 12)
         {
             bool succ = p2.sendClaimPayout(coverid,claimid);
             if(succ)
             {
-                c1.setClaimStatus(claimid,18);
+                // c1.setClaimStatus(claimid,18);
+                c1.setClaimStatus(claimid,14);
             }
         }
         c1.changePendingClaimStart();
@@ -277,21 +303,15 @@ contract claimsReward
     /// @param claimid Claim Id.
     function rewardAgainstClaim(uint claimid,uint coverid, uint8 status) internal
     {
-        // tc1=nxmToken(tokenAddress);
-        // tc2=nxmToken2(token2Address);
+        
         bool succ;
-        // qd=quotationData(quotationDataAddress);
-        // c1 = claims(claimsAddress);
-        // cd = claimsData(claimsDataAddress);
-        // pd = poolData1(poolDataAddress);
+       
         bytes4 curr=qd.getCurrencyOfCover(coverid);
         uint64 sumAssured=uint64(qd.getCoverSumAssured(coverid));
-        // p1=pool(poolAddress);
-        
-        
-        
+      
 
-        if(status==7) // Final-Claim Assessor Vote Denied
+        // if(status==7) // Final-Claim Assessor Vote Denied
+        if(status==6)
         {
             c1.changeFinalVerdict(claimid,-1);
             
@@ -303,64 +323,67 @@ contract claimsReward
                 c1.checkLiquidity(curr);
             }
         }
-        if(status==8)
+        // if(status==8)
+        if(status==7)
         {
             c1.changeFinalVerdict(claimid,1);
             penalizeCAVoters(claimid); // Rewards Claims Assessor only
             tc1.unlockCN(coverid); // Unlocks token locked against cover note
             succ = p2.sendClaimPayout(coverid,claimid); //Initiates payout
         }
+        //  to be checked
+        // if(status==9)
+        // {
+        //     c1.changeFinalVerdict(claimid,1);
+        //     penalizeCAVoters(claimid);  // Distributes rewards between claims assessor and members who voted
+            
+        //     tc1.unlockCN(coverid);
+        //     succ = p2.sendClaimPayout(coverid,claimid);
+           
+        // }
+        // //  to be checked
+        // if(status==10)
+        // {
+        //     c1.changeFinalVerdict(claimid,-1);
+        //     penalizeCAVoters(claimid);
+           
+        //     tc2.burnCNToken(coverid);
+           
+        //     if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
+        //     {
+        //         pd.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr),sumAssured));
+        //         c1.checkLiquidity(curr);
+        //     }
+        // }
+        // //  to be checked
+        // if(status==11)
+        // {
+        //     c1.changeFinalVerdict(claimid,-1);
+            
+        //     penalizeCAVoters(claimid);
+        //     tc2.undepositCN(coverid,0);
+        //     tc2.burnCNToken(coverid);
+            
+        //     if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
+        //     {
+        //         pd.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr),sumAssured));
+        //         c1.checkLiquidity(curr);
+        //     }
+        // }
+        // if(status==12)
+        if(status==8)
+        {
+            c1.changeFinalVerdict(claimid,1);
+            
+            tc1.unlockCN(coverid);
+            succ = p2.sendClaimPayout(coverid,claimid);
+           
+        }
+        // if(status==13)
         if(status==9)
         {
-            c1.changeFinalVerdict(claimid,1);
-            penalizeCAVoters(claimid);  // Distributes rewards between claims assessor and members who voted
-            // rewardMVoters(claimid,50,curr,sumAssured);
-            tc1.unlockCN(coverid);
-            succ = p2.sendClaimPayout(coverid,claimid);
-            // if(!succ)
-            //     throw;
-        }
-        if(status==10)
-        {
             c1.changeFinalVerdict(claimid,-1);
-            penalizeCAVoters(claimid);
-            // rewardMVoters(claimid,50,curr,sumAssured);
-            tc2.burnCNToken(coverid);
-           
-            if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
-            {
-                pd.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr),sumAssured));
-                c1.checkLiquidity(curr);
-            }
-        }
-        if(status==11)
-        {
-            c1.changeFinalVerdict(claimid,-1);
-            // uint8 cc;
-            // (,cc)= cd.getCoverClaimCount(coverid);
-            // cd.addCover_Claim(coverid,cc); //cc+1
-            penalizeCAVoters(claimid);
-            tc2.undepositCN(coverid,0);
-            tc2.burnCNToken(coverid);
             
-            if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
-            {
-                pd.changeCurrencyAssetVarMin(curr,SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr),sumAssured));
-                c1.checkLiquidity(curr);
-            }
-        }
-        if(status==12)
-        {
-            c1.changeFinalVerdict(claimid,1);
-            // rewardMVoters(claimid,100,curr,sumAssured);
-            tc1.unlockCN(coverid);
-            succ = p2.sendClaimPayout(coverid,claimid);
-           
-        }
-        if(status==13)
-        {
-            c1.changeFinalVerdict(claimid,-1);
-            // rewardMVoters(claimid,100,curr,sumAssured);
             tc2.burnCNToken(coverid);
             if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
             {
@@ -368,13 +391,15 @@ contract claimsReward
                 c1.checkLiquidity(curr);
             }
          }
-        if(status==14)
+        // if(status==14)
+        if(status==10)
         {
             c1.changeFinalVerdict(claimid,1);
             tc1.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid,claimid);
         }
-        if(status==15)
+        // if(status==15)
+        if(status==11)
         {
             c1.changeFinalVerdict(claimid,-1);
             tc2.burnCNToken(coverid);
@@ -384,7 +409,7 @@ contract claimsReward
                 c1.checkLiquidity(curr);
             }
         }
-        uint distributableTokens=SafeMaths.div(SafeMaths.mul(sumAssured,_DECIMAL_1e18),tc1.getTokenPrice(curr)); //  1% of sum assured
+        uint distributableTokens=SafeMaths.div(SafeMaths.mul(sumAssured,_DECIMAL_1e18),SafeMaths.mul(tc1.getTokenPrice(curr),100)); //  1% of sum assured
         uint percCA;
         uint percMV;
         (percCA,percMV)=c1.getRewardStatus(status);
@@ -398,10 +423,7 @@ contract claimsReward
    
     function penalizeCAVoters(uint claimid)internal
     {
-        // tc1=nxmToken(tokenAddress);
-        // tc2=nxmToken2(token2Address);
-        // cd=claimsData(claimsDataAddress);
-        // c1=claims(claimsAddress); 
+        
         
         uint token;
         uint consesnsus_perc;
@@ -488,10 +510,7 @@ contract claimsReward
     /// @dev Start Voting of All Pending Claims when Emergency Pause OFF.
     function StartAllPendingClaimsVoting() onlyInternal
     {
-        // cd=claimsData(claimsDataAddress);
-        // p1=pool(poolAddress);
-        // tc1=nxmToken(tokenAddress);
-        // qd=quotationData(quotationDataAddress);
+       
         uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
         uint i;
         uint lengthOfClaimVotingPause=cd.getLengthOfClaimVotingPause();

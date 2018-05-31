@@ -301,12 +301,14 @@ contract pool2
                 }
                 else
                 {
-                    c1.setClaimStatus(claimid , 16);
+                    // c1.setClaimStatus(claimid , 16);
+                      c1.setClaimStatus(claimid , 12);
                 }
             }
             else
             {
-                c1.setClaimStatus(claimid , 16);
+                // c1.setClaimStatus(claimid , 16);
+                c1.setClaimStatus(claimid , 12);
                 succ=false;
             }
         }
@@ -332,7 +334,8 @@ contract pool2
             }
             else
             {
-                c1.setClaimStatus(claimid , 16);
+                // c1.setClaimStatus(claimid , 16);
+                c1.setClaimStatus(claimid , 12);
                 succ=false;
             }
         }

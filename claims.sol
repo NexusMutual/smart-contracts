@@ -320,7 +320,8 @@ contract claims{
         uint sumassured=SafeMaths.mul(qd.getCoverSumAssured(coverId),_DECIMAL_1e18);
         if(status==0 && CATokens>=SafeMaths.mul(10,sumassured))
             close=1;
-        if(status>=2 && status<=6 && MVTokens>=SafeMaths.mul(10,sumassured))
+        // if(status>=2 && status<=6 && MVTokens>=SafeMaths.mul(10,sumassured))
+        if(status>=1 && status<=5 && MVTokens>=SafeMaths.mul(10,sumassured))
             close=1;    
     }
     /// @dev Checks if voting of a claim should be closed or not.
@@ -333,20 +334,26 @@ contract claims{
         uint8 status;
         (,status) = cd.getClaimStatusNumber(claimId); 
         uint date_upd = cd.getClaimDateUpd(claimId);
-        if(status==16 && SafeMaths.add(date_upd, cd.payoutRetryTime()) < now )
-            if( cd.getClaimState16Count(claimId) < 60)
+        //  if(status==16 && SafeMaths.add(date_upd, cd.payoutRetryTime()) < now )
+        //     if( cd.getClaimState16Count(claimId) < 60)
+        if(status==12 && SafeMaths.add(date_upd, cd.payoutRetryTime()) < now )
+            if( cd.getClaimState12Count(claimId) < 60)
                 close=1;
-        if(status>6)
+        // if(status>5)
+        if(status>4)
             close=-1;
-        else if(status==1 && SafeMaths.add(date_upd , cd.escalationTime()) > now)
-            close=-1;
-        else if(status==1 && SafeMaths.add(date_upd , cd.escalationTime()) <= now)
-            close=1;
+        //  to be checked
+        // else if(status==1 && SafeMaths.add(date_upd , cd.escalationTime()) > now)
+        //     close=-1;
+            //  to be checked
+        // else if(status==1 && SafeMaths.add(date_upd , cd.escalationTime()) <= now)
+        //     close=1;
         else if(SafeMaths.add(date_upd, cd.max_voting_time())<=now) 
             close=1;
         else if(SafeMaths.add(date_upd, cd.min_voting_time())>=now) 
             close=0;
-        else if(status==0 || ( status >= 2 && status <= 6 ) )
+        // else if(status==0 || ( status >= 2 && status <= 6 ) )
+        else if(status==0 || ( status >= 1 && status <= 5 ) )
         { 
             close = checkVoteClosingFinal(claimId,status);
         }
@@ -365,30 +372,36 @@ contract claims{
         // cr=claims_Reward(claims_rewardAddress);
         // cd=claimsData(claimsDataAddress);
         uint origstat;
-        uint state16Count;
+        uint state12Count;
         uint date_upd;
-        (,,,origstat,date_upd,state16Count)= cd.getClaim(claimId);
+        (,,,origstat,date_upd,state12Count)= cd.getClaim(claimId);
         (,origstat) = cd.getClaimStatusNumber(claimId);
-        if(stat==16 && origstat==16)
+        // if(stat==16 && origstat==16)
+        if(stat==12 && origstat==12)
         {
-            cd.updateState16Count(claimId,1);
+            cd.updateState12Count(claimId,1);
         }
         cd.setClaimStatus(claimId,stat);
-        if(state16Count >= 60 && stat==16)
-            cd.setClaimStatus(claimId,17);
+        // if(state12Count >= 60 && stat==16)
+         if(state12Count >= 60 && stat==12)
+            // cd.setClaimStatus(claimId,17);
+            cd.setClaimStatus(claimId,13);
         uint time=now;     
         cd.setClaimdate_upd(claimId,time);
         // cd.addClaimStatus(claimId,stat,time);
         // p1=pool(poolAddress);
-        if(stat >=3 && stat<=6)
+        // if(stat >=3 && stat<=6)
+        if(stat >=2 && stat<=5)
         {
             p1.closeClaimsOraclise(claimId, cd.max_voting_time());
         }
-        if(stat==16 && (SafeMaths.add(date_upd, cd.payoutRetryTime()) <= now) && (state16Count < 60))
+        // if(stat==16 && (SafeMaths.add(date_upd, cd.payoutRetryTime()) <= now) && (state12Count < 60))
+        if(stat==12 && (SafeMaths.add(date_upd, cd.payoutRetryTime()) <= now) && (state12Count < 60))
         {
             cr.changeClaimStatus(claimId);
         }
-        else if(stat==16 && (SafeMaths.add(date_upd, cd.payoutRetryTime()) > now) && (state16Count < 60))
+        // else if(stat==16 && (SafeMaths.add(date_upd, cd.payoutRetryTime()) > now) && (state12Count < 60))
+        else if(stat==12 && (SafeMaths.add(date_upd, cd.payoutRetryTime()) > now) && (state12Count < 60))
         {
             uint64 timeLeft =uint64(SafeMaths.sub(SafeMaths.add(date_upd, cd.payoutRetryTime()) ,now));
             p1.closeClaimsOraclise(claimId,timeLeft);
@@ -400,14 +413,15 @@ contract claims{
     {
         // cd=claimsData(claimsDataAddress);
         uint8 origstat;
-        uint8 state16Count;
+        uint8 state12Count;
         uint pendingClaim_start=cd.pendingClaim_start();
         uint actualClaimLength=cd.actualClaimLength();
         for(uint i= pendingClaim_start;i < actualClaimLength;i++)
         {
-            (,,,origstat,,state16Count)= cd.getClaim(i);
+            (,,,origstat,,state12Count)= cd.getClaim(i);
          
-            if(origstat>6 && ((origstat!=16) || (origstat==16 && state16Count >= 60)))
+            // if(origstat>6 && ((origstat!=16) || (origstat==16 && state12Count >= 60)))
+            if(origstat>5 && ((origstat!=12) || (origstat==12 && state12Count >= 60)))
                 cd.setpendingClaim_start(i);
             else
                 break;
@@ -532,28 +546,28 @@ contract claims{
     /// @dev Escalates a specified claim id. If a claim is denied by the Claim Assessors, the owner of that claim can Escalate the Claim to a member vote.
     /// @param coverId Cover Id associated with claim to be escalated.
     /// @param claimId Claim Id.
-    function escalateClaim(uint coverId, uint claimId) isMemberAndcheckPause
-    {  
-        // qd=quotationData(quotationDataAddress);
-        address cadd=qd.getCoverMemberAddress(coverId);
-        if(cadd != msg.sender) throw;
-        // td = nxmTokenData(tokenDataAddress);
-        uint tokens;
-        (,,tokens)= td.getUser_cover_lockedCN(cadd,coverId);
-        tokens = SafeMaths.div(SafeMaths.mul(tokens,20),100);
-        // cd=claimsData(claimsDataAddress);
-        uint d=SafeMaths.mul(864000 , cd.escalationTime()) ;
-        uint timeStamp = SafeMaths.add(now , d);
-        // tc2 = nxmToken2(token2Address);
-        tc2.depositCN(coverId,tokens,timeStamp,msg.sender);
-        setClaimStatus(claimId,2);
-        qd.changeCoverStatusNo(coverId,4);
-        // uint8 CoverClaimCount;
-        // (,CoverClaimCount)=cd.getCoverClaimCount(coverId);
-        // cd.addCover_Claim(coverId,CoverClaimCount);
-        // p1=pool(poolAddress);
-        p1.closeClaimsOraclise(claimId,cd.max_voting_time());
-    } 
+    // function escalateClaim(uint coverId, uint claimId) isMemberAndcheckPause
+    // {  
+    //     // qd=quotationData(quotationDataAddress);
+    //     address cadd=qd.getCoverMemberAddress(coverId);
+    //     if(cadd != msg.sender) throw;
+    //     // td = nxmTokenData(tokenDataAddress);
+    //     uint tokens;
+    //     (,,tokens)= td.getUser_cover_lockedCN(cadd,coverId);
+    //     tokens = SafeMaths.div(SafeMaths.mul(tokens,20),100);
+    //     // cd=claimsData(claimsDataAddress);
+    //     uint d=SafeMaths.mul(864000 , cd.escalationTime()) ;
+    //     uint timeStamp = SafeMaths.add(now , d);
+    //     // tc2 = nxmToken2(token2Address);
+    //     tc2.depositCN(coverId,tokens,timeStamp,msg.sender);
+    //     setClaimStatus(claimId,2);
+    //     qd.changeCoverStatusNo(coverId,4);
+    //     // uint8 CoverClaimCount;
+    //     // (,CoverClaimCount)=cd.getCoverClaimCount(coverId);
+    //     // cd.addCover_Claim(coverId,CoverClaimCount);
+    //     // p1=pool(poolAddress);
+    //     p1.closeClaimsOraclise(claimId,cd.max_voting_time());
+    // } 
 
     /// @dev Submits a member vote for assessing a claim. Tokens other than those locked under Claims Assessment can be used to cast a vote for a given claim id.
     /// @param claimId Selected claim id. 
@@ -565,7 +579,8 @@ contract claims{
         if(checkVoteClosing(claimId) == 1) throw;
         uint stat;
         (,stat)=cd.getClaimStatusNumber(claimId);
-        if(stat <2 || stat >6) throw;
+        // if(stat <2 || stat >6) throw;
+        if(stat <1 || stat >5) throw;
         if(cd.getUser_Claim_VoteMember(msg.sender,claimId) != 0) throw;
         cd.addVote(msg.sender,tokens,claimId,verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);

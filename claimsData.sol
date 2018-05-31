@@ -32,7 +32,7 @@ contract claimsData
     }
     mapping(uint=>int8) claim_Vote;
     mapping(uint=>uint8) claim_Status;
-    mapping(uint=>uint8) claim_State16Count;
+    mapping(uint=>uint8) claim_State12Count;
     
     struct vote
     {
@@ -170,9 +170,9 @@ contract claimsData
     }
 
     /// @dev Gets the Claim's details of given claimid. 
-    function getAllClaimsByIndex(uint _claimId) constant returns(uint coverId,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
+    function getAllClaimsByIndex(uint _claimId) constant returns(uint coverId,int8 vote,uint8 status,uint date_upd,uint8 state12Count)
     {
-        return(allClaims[_claimId].coverId,claim_Vote[_claimId],claim_Status[_claimId],allClaims[_claimId].date_upd,claim_State16Count[_claimId]);
+        return(allClaims[_claimId].coverId,claim_Vote[_claimId],claim_Status[_claimId],allClaims[_claimId].date_upd,claim_State12Count[_claimId]);
     }
     // /// @dev Gets status details of a claim for a given index.
     // function getClaim_status(uint _claimId, uint _index) constant returns(uint8 status, uint date_upd)
@@ -220,9 +220,9 @@ contract claimsData
         return(_claimId, claim_Status[_claimId]);
     }
     /// @dev Gets the number of Try that has been made for a successful payout of a Claim.
-    function getClaimState16Count(uint _claimId)constant returns(uint8 num)
+    function getClaimState12Count(uint _claimId)constant returns(uint8 num)
     {
-        num = claim_State16Count[_claimId];
+        num = claim_State12Count[_claimId];
     }
     /// @dev Gets the last update date of a claim. 
     function getClaimDateUpd(uint _claimId) constant returns(uint dateupd)
@@ -288,9 +288,9 @@ contract claimsData
     }
     /// @dev Provides information of a Claim when given its claim id.
     /// @param _claimId Claim Id.
-    function getClaim(uint _claimId) constant returns(uint claimId, uint coverId,int8 vote,uint8 status,uint date_upd,uint8 state16Count)
+    function getClaim(uint _claimId) constant returns(uint claimId, uint coverId,int8 vote,uint8 status,uint date_upd,uint8 state12Count)
     {
-        return(_claimId,allClaims[_claimId].coverId,claim_Vote[_claimId],claim_Status[_claimId],allClaims[_claimId].date_upd,claim_State16Count[_claimId]);
+        return(_claimId,allClaims[_claimId].coverId,claim_Vote[_claimId],claim_Status[_claimId],allClaims[_claimId].date_upd,claim_State12Count[_claimId]);
     }
 
     /// @dev Gets the total number of votes of a given claim.
@@ -650,9 +650,9 @@ contract claimsData
     }
 
     /// @dev Increases the count of failure until payout of a claim is succeeded.
-    function updateState16Count(uint _claimId,uint8 _cnt) onlyInternal
+    function updateState12Count(uint _claimId,uint8 _cnt) onlyInternal
     {
-        claim_State16Count[_claimId] =SafeMaths.add8(claim_State16Count[_claimId],_cnt);
+        claim_State12Count[_claimId] =SafeMaths.add8(claim_State12Count[_claimId],_cnt);
     }
     /// @dev Sets status of a claim.
     /// @param _claimId Claim Id.

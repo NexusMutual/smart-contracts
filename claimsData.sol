@@ -120,6 +120,7 @@ contract claimsData
         min_voting_time=1200;
         payoutRetryTime=SafeMaths.mul32(SafeMaths.mul32(24,60),60);
         allvotes.push(vote(0,0,0,0));
+        allClaims.push(claim(0,0));
         // vote_length = 1;
         claimDepositTime=SafeMaths.mul(1,7 days);
     }

@@ -536,6 +536,10 @@ contract claims{
         cd.addClaim_Vote_ca(claimId,vote_length);
         cd.setUser_Claim_VoteCA(msg.sender,claimId,vote_length);
         cd.setClaim_tokensCA(claimId,verdict,tokens);
+        // Prem data Start
+        uint time=td.lockCADays();
+        tc2.extendCAWithAddress(msg.sender,time,tokens);
+        // Prem data end
         int close = checkVoteClosing(claimId);
         if(close==1)
         {
@@ -575,6 +579,7 @@ contract claims{
     /// @param tokens Number of tokens used to case a vote
     function submitMemberVote(uint claimId,int8 verdict,uint tokens) isMemberAndcheckPause
     {
+        
         // cd=claimsData(claimsDataAddress);
         if(checkVoteClosing(claimId) == 1) throw;
         uint stat;
@@ -588,6 +593,10 @@ contract claims{
         cd.addClaim_vote_member(claimId,vote_length);
         cd.setUser_Claim_VoteMember(msg.sender,claimId,vote_length);
         cd.setClaim_tokensMV(claimId,verdict,tokens);
+        // Prem data Start
+        uint time=td.lockMVDays();
+        tc2.lockMV(SafeMaths.add(now,time),tokens);
+        // Prem data  end
         int close = checkVoteClosing(claimId);
         if(close==1)
         {

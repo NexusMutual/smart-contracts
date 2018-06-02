@@ -225,44 +225,71 @@ contract nxmToken2{
         tc1.callTransferEvent(0,msg.sender,amount); 
     }
        
-    /// @dev Extends validity period of a given number of tokens, locked for Claim Assessment
+    /// @dev Reduce validity period of a given number of tokens, locked for Claim Assessment
     /// @param _to  User's address.
-    /// @param _timestamp Timestamp for which tokens will be extended.
-    /// @param noOfTokens Number of tokens that will get extended. Should be less than or equal to the number of tokens of selected bond. 
-    function extendCAWithAddress(address _to ,uint _timestamp ,uint noOfTokens) onlyInternal
+    /// @param _timestamp Timestamp for which tokens will be reduced.
+    /// @param _noOfTokens Number of tokens that will get reduced. Should be less than or equal to the number of tokens of selected bond.
+    /// @param _claimid  reducing validity of tokens which have claim id same as _claimid.
+    function reduceCAWithAddress(address _to ,uint _timestamp ,uint _noOfTokens,uint _claimid) onlyInternal
     {
         // td=NXMTokenData(tokenDataAddress);
         // tc1=NXMToken(tokenAddress);
-        noOfTokens = SafeMaths.mul(noOfTokens, _DECIMAL_1e10);
-        if(td.getBalanceCAWithAddress(_to) < noOfTokens)throw;
+        _noOfTokens = SafeMaths.mul(_noOfTokens, _DECIMAL_1e10);
+        if(td.getBalanceCAWithAddress(_to) < _noOfTokens)throw;
         
-        uint yet_to_extend = noOfTokens;
         uint len = td.getLockedCALength(_to);
         uint vUpto;
         uint amount;
+        uint claimId;
+        uint validityExpire=td.getLastExpiredLockCA(_to);
+        bool validityExpiredCheck=false;
+        for(uint i=validityExpire; i < len ;i++ )
+        {
+            (,vUpto,amount,claimId) = td.getLockedCAByindex(_to , i);
+            if(vUpto>now && validityExpiredCheck==false )
+              {  validityExpire=i;
+                validityExpiredCheck=true;
+              }
+            if(amount>0 && vUpto > now && _claimid==claimId)
+            {
+                extendCA(i,SafeMaths.sub(vUpto , _timestamp),_noOfTokens);
+            }
+        }
+        td.setLastExpiredLockCA(_to,validityExpire);
+    }
+    /// @dev Extends validity period of a given number of tokens, locked for Claim Assessment
+    /// @param _to  User's address.
+    /// @param _timestamp Timestamp for which tokens will be extended.
+    /// @param _noOfTokens Number of tokens that will get extended. Should be less than or equal to the number of tokens of selected bond. 
+    function extendCAWithAddress(address _to ,uint _timestamp ,uint _noOfTokens)onlyInternal
+    {
+        
+        _noOfTokens = SafeMaths.mul(_noOfTokens, _DECIMAL_1e10);
+        if(td.getBalanceCAWithAddress(_to) < _noOfTokens)throw;
+        
+        uint yet_to_extend = _noOfTokens;
+        uint len = td.getLockedCALength(_to);
+        uint vUpto;
+        uint amount;
+        uint claimId;
         for(uint i=0 ; i < len ;i++ )
         {
-            (,vUpto,amount) = td.getLockedCAByindex(_to , i);
-            if(amount>0 && vUpto > now)
-            {
-                if(yet_to_extend > amount)
-                {
+            (,vUpto,amount,claimId) = td.getLockedCAByindex(_to , i);
+            
+                if(yet_to_extend>amount  )               {
                     yet_to_extend = SafeMaths.sub(yet_to_extend,amount);
-                    td.lockCA(_to,SafeMaths.add(vUpto , _timestamp),amount);
+                    td.lockCA(_to,SafeMaths.add(vUpto , _timestamp),amount,claimId);
                     td.changeLockedCAByIndex(_to,i,0);
                 }
                 else
                 {
-                    td.lockCA(_to,SafeMaths.add(vUpto , _timestamp),yet_to_extend);
+                    td.lockCA(_to,SafeMaths.add(vUpto , _timestamp),yet_to_extend,claimId);
                     td.changeLockedCAByIndex(_to,i,SafeMaths.sub(amount,yet_to_extend));
                     yet_to_extend=0;
                     break;
                 }
-            }
         }
     }
-    
-    
     /// @dev Burns tokens deposited against a cover, called when a claim submitted against this cover is denied.
     /// @param coverid Cover Id.
     function burnCNToken(uint coverid) onlyInternal {
@@ -329,10 +356,11 @@ contract nxmToken2{
         // td=NXMTokenData(tokenDataAddress);
         uint vUpto;
         uint amount;
-        (,vUpto,amount) = td.getLockedCAByindex(msg.sender,index);
+        uint claimId;
+        (,vUpto,amount,claimId) = td.getLockedCAByindex(msg.sender,index);
         if(vUpto <now || amount < noOfTokens )throw;
         td.changeLockedCAByIndex(msg.sender,index,SafeMaths.sub(amount,noOfTokens));
-        td.lockCA(msg.sender,(SafeMaths.add(vUpto ,SafeMaths.mul( _days, 1 days ))),noOfTokens);
+        td.lockCA(msg.sender,(SafeMaths.add(vUpto ,SafeMaths.mul( _days, 1 days ))),noOfTokens,claimId);
                
     }
     /// @dev Unlocks tokens deposited against a cover.Changes the validity timestamp of deposit tokens.
@@ -366,14 +394,26 @@ contract nxmToken2{
     /// @dev Locks a given number of tokens for Claim Assessment.
     /// @param _value number of tokens lock.
     /// @param _days Validity(in days) of tokens.
-    function lockCA(uint _value,uint _days) isMemberAndcheckPause
+    function lockCA(uint _value,uint _days,uint claimId) isMemberAndcheckPause
     {
         // td = NXMTokenData(tokenDataAddress);
-        if (SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(msg.sender),td.getBalanceCAWithAddress(msg.sender)),td.getBalanceCN(msg.sender)) < _value) throw;// Check if the sender has enough
+        if (tc1.getAvailableTokens(msg.sender)< _value) throw;// Check if the sender has enough
         if (_value<=0) throw;
-        td.lockCA(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
+        td.lockCA(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value,claimId);        
     }
-
+    
+    // Prem data start
+    /// @dev Locks a given number of tokens for Member vote.
+    /// @param _value number of tokens lock.
+    /// @param _days Validity(in days) of tokens.
+    function lockMV(uint _value,uint _days) isMemberAndcheckPause
+    {
+        // td = NXMTokenData(tokenDataAddress);
+        if (tc1.getAvailableTokens(msg.sender)< _value) throw;// Check if the sender has enough
+        if (_value<=0) throw;
+        td.lockMV(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
+    }
+    // Prem data end
     // Arjun - Data Begin
     /// @dev Burns tokens locked against a Smart Contract Cover, called when a claim submitted against this cover is accepted.
     /// @param coverid Cover Id.
@@ -435,7 +475,7 @@ contract nxmToken2{
     {
         // td=NXMTokenData(tokenDataAddress);
         // tc1=NXMToken(tokenAddress);
-        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(msg.sender),td.getBalanceCAWithAddress(msg.sender)),td.getBalanceCN(msg.sender)),tc1.getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _amount) throw;           // Check if the sender has enough
+        if (tc1.getAvailableTokens(msg.sender) < _amount) throw;           // Check if the sender has enough
         td.addStake(msg.sender,_scAddress, _amount);
     }
 

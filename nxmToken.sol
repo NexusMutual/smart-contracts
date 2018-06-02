@@ -242,7 +242,7 @@ contract nxmToken {
         //Tokens locked for at least a specified minimum lock period can be used for voting
         for(uint i=0 ; i < td.getLockCALength(_of) ;i++ )
         { 
-            (,validUpto,lockCAamount)= td.getLockCAWithIndex(_of,i);
+            (,validUpto,lockCAamount,)= td.getLockedCAByindex(_of,i);
             if(SafeMaths.add(now , td.getMinVoteLockPeriod()) < validUpto)
                 tokenAvailableCA=SafeMaths.add(tokenAvailableCA,lockCAamount);
         }
@@ -282,8 +282,8 @@ contract nxmToken {
         // td = NXMTokenData(tokenDataAddress);
         if(_value <= 0) throw;
         //available transfer balance=Total Token balance - Locked tokens
-        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(msg.sender),td.getBalanceCAWithAddress(msg.sender)),td.getBalanceCN(msg.sender)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;           // Check if the sender has enough
-        if (SafeMaths.add(td.getBalanceOf(_to) , _value) < td.getBalanceOf(_to)) throw; // Check for overflows
+        if (getAvailableTokens(msg.sender) < _value) throw;           // Check if the sender has enough
+        // if (SafeMaths.add(td.getBalanceOf(_to) , _value) < td.getBalanceOf(_to)) throw; // Check for overflows
         td.changeBalanceOf(msg.sender,SafeMaths.sub(td.getBalanceOf(msg.sender), _value));                      // Subtract from the sender
         // if(td.getBalanceOf(msg.sender)==0)
         //     td.decMemberCounter();
@@ -336,8 +336,8 @@ contract nxmToken {
         // ms=master(masterAddress);
         require(ms.isMember(_to)==true);
         // td = NXMTokenData(tokenDataAddress);
-        if (SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(_from),td.getBalanceCAWithAddress(_from)),td.getBalanceCN(_from)),getLockedNXMTokenOfStakerByStakerAddress(msg.sender)) < _value) throw;                 // Check if the sender has enough
-        if (SafeMaths.add(td.getBalanceOf(_to) , _value) < td.getBalanceOf(_to)) throw;  // Check for overflows
+        if (getAvailableTokens(_from) < _value) throw;                 // Check if the sender has enough
+        // if (SafeMaths.add(td.getBalanceOf(_to) , _value) < td.getBalanceOf(_to)) throw;  // Check for overflows
         if (_value > td.getAllower_spender_allowance(_from,msg.sender)) throw;     // Check allowance
         td.changeBalanceOf(_from,SafeMaths.sub(td.getBalanceOf(_from) , _value));                    // Subtract from the sender
         // if(td.getBalanceOf(_from)==0)
@@ -550,4 +550,13 @@ contract nxmToken {
         if(commissionToBePaid>0 && stake_length>0)
             td.setSCAddress_lastCommIndex(_scAddress,SafeMaths.sub(stake_length,1));
     }
+    // Prem data start 
+    /// @param _add user address.
+    /// @return tokens total available tokens.
+    function getAvailableTokens(address _add)constant returns(uint tokens)
+    {
+        return SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(_add),td.getBalanceMVWithAddress(_add)),td.getBalanceCAWithAddress(_add)),td.getBalanceCN(_add)),getLockedNXMTokenOfStakerByStakerAddress(_add));
+    }
+    // Prem data end
+    
 }

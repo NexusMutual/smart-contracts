@@ -323,6 +323,12 @@ contract quotationData{
     {
         _add = allCovers[_cid].memberAddress;
     }
+    
+    /// @dev Gets the owner address of a given cover.
+    function getCoverPremium(uint _cid) constant returns(uint _premium)
+    {
+        _premium = allCovers[_cid].premium;
+    }
 
     /// @dev Creates a blank new cover.
     function addCover(uint16 _coverPeriod,uint _SA,bytes8 _productName,address _userAddress,bytes4 _currencyCode, address _scAddress,uint premium) onlyInternal

@@ -308,6 +308,14 @@ contract claimsReward
        
         bytes4 curr=qd.getCurrencyOfCover(coverid);
         uint64 sumAssured=uint64(qd.getCoverSumAssured(coverid));
+        
+        uint distributableTokens=SafeMaths.div(SafeMaths.mul(sumAssured,_DECIMAL_1e18),SafeMaths.mul(tc1.getTokenPrice(curr),100)); //  1% of sum assured
+        uint percCA;
+        uint percMV;
+        (percCA,percMV)=c1.getRewardStatus(status);
+        cd.setClaim_reward_detail(claimid,percCA,percMV,distributableTokens);
+        
+        tc2.mintClaimRewardToken(distributableTokens);
       
 
         // if(status==7) // Final-Claim Assessor Vote Denied
@@ -409,61 +417,55 @@ contract claimsReward
                 c1.checkLiquidity(curr);
             }
         }
-        uint distributableTokens=SafeMaths.div(SafeMaths.mul(sumAssured,_DECIMAL_1e18),SafeMaths.mul(tc1.getTokenPrice(curr),100)); //  1% of sum assured
-        uint percCA;
-        uint percMV;
-        (percCA,percMV)=c1.getRewardStatus(status);
-        cd.setClaim_reward_detail(claimid,percCA,percMV,distributableTokens);
-        
-        tc2.mintClaimRewardToken(distributableTokens);
+
     }
   
     /// @dev Reward the tokens to all the Claim Assessors who have participated in voting of given claim.
     /// @param claimid Claim Id.
    
-    function penalizeCAVoters(uint claimid)internal
-    {
+    // function penalizeCAVoters(uint claimid)internal
+    // {
         
         
-        uint token;
-        uint consesnsus_perc;
-        uint accept;
-        (,accept)=cd.getClaimVote(claimid,1);
-        uint deny;
-        (,deny)=cd.getClaimVote(claimid,-1);
-        uint claimVoteLength;
-        (,claimVoteLength)=cd.getClaimVoteLength(claimid,1);
-        for(uint i=0;i<claimVoteLength;i++)
-        { 
-            if(cd.getVoteVerdict(claimid,i,1)==1 )
-            { 
-                if(cd.getFinalVerdict(claimid)!=1)
-                                {
-                    consesnsus_perc=SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny)));
-                    if(consesnsus_perc>70)
-                        consesnsus_perc=SafeMaths.sub(consesnsus_perc,70);
+    //     uint token;
+    //     uint consesnsus_perc;
+    //     uint accept;
+    //     (,accept)=cd.getClaimVote(claimid,1);
+    //     uint deny;
+    //     (,deny)=cd.getClaimVote(claimid,-1);
+    //     uint claimVoteLength;
+    //     (,claimVoteLength)=cd.getClaimVoteLength(claimid,1);
+    //     for(uint i=0;i<claimVoteLength;i++)
+    //     { 
+    //         if(cd.getVoteVerdict(claimid,i,1)==1 )
+    //         { 
+    //             if(cd.getFinalVerdict(claimid)!=1)
+    //                             {
+    //                 consesnsus_perc=SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny)));
+    //                 if(consesnsus_perc>70)
+    //                     consesnsus_perc=SafeMaths.sub(consesnsus_perc,70);
 
-                    token = SafeMaths.div(cd.getVoteToken(claimid,i,1),_DECIMAL_1e10);
-                    tc2.extendCAWithAddress(cd.getVoteVoter(claimid,i,1),SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),60),60),token);
-                }
-            }
-            else if(cd.getVoteVerdict(claimid,i,1)==-1)
-            {
-                if(cd.getFinalVerdict(claimid)!=-1)
+    //                 token = SafeMaths.div(cd.getVoteToken(claimid,i,1),_DECIMAL_1e10);
+    //                 tc2.extendCAWithAddress(cd.getVoteVoter(claimid,i,1),SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),60),60),token);
+    //             }
+    //         }
+    //         else if(cd.getVoteVerdict(claimid,i,1)==-1)
+    //         {
+    //             if(cd.getFinalVerdict(claimid)!=-1)
                
-                {
-                    consesnsus_perc=SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny)));
-                    if(consesnsus_perc>70)
-                        consesnsus_perc=SafeMaths.mul(SafeMaths.mul((SafeMaths.sub(consesnsus_perc,70)),12),3600);
-                    else
-                        consesnsus_perc=SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),3600);
+    //             {
+    //                 consesnsus_perc=SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny)));
+    //                 if(consesnsus_perc>70)
+    //                     consesnsus_perc=SafeMaths.mul(SafeMaths.mul((SafeMaths.sub(consesnsus_perc,70)),12),3600);
+    //                 else
+    //                     consesnsus_perc=SafeMaths.mul(SafeMaths.mul(consesnsus_perc,12),3600);
 
-                    token = SafeMaths.div(cd.getVoteToken(claimid,i,1),_DECIMAL_1e10);
-                    tc2.extendCAWithAddress(cd.getVoteVoter(claimid,i,1),consesnsus_perc,token);
-                }
-            }                 
-        }            
-    }
+    //                 token = SafeMaths.div(cd.getVoteToken(claimid,i,1),_DECIMAL_1e10);
+    //                 tc2.extendCAWithAddress(cd.getVoteVoter(claimid,i,1),consesnsus_perc,token);
+    //             }
+    //         }                 
+    //     }            
+    // }
     /// @dev Reward the tokens to all the Members who have participated in voting of given claim.
     /// @param claimid Claim Id.
     /// @param perc Reward Percentage.

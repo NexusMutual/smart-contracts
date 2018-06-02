@@ -507,6 +507,7 @@ contract pool is usingOraclize{
         q2.verifyCoverDetails(prodId,msg.sender,smartCAdd,coverCurr,coverDetails,coverPeriod,_v,_r,_s);
     }
     function sellNXMTokens(uint sellTokens)isMemberAndcheckPause{
+        if (tc1.getAvailableTokens(msg.sender) < sellTokens) throw;           // Check if the sender has enough
         uint sellingPrice= SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"),sellTokens),975),1000);
         uint sellTokensx10e18=SafeMaths.mul(sellTokens,_DECIMAL_1e18);
         require(sellTokensx10e18<=getMaxSellTokens());

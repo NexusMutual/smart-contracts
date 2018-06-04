@@ -323,7 +323,7 @@ contract claimsReward
         {
             c1.changeFinalVerdict(claimid,-1);
             
-            penalizeCAVoters(claimid);  // Rewards Claims Assessor only
+            // penalizeCAVoters(claimid);  // Rewards Claims Assessor only
             tc2.burnCNToken(coverid); // Burns tokens deposited at the time of claim submission
             if(sumAssured<=pd.getCurrencyAssetVarMin(curr))
             {
@@ -335,7 +335,7 @@ contract claimsReward
         if(status==7)
         {
             c1.changeFinalVerdict(claimid,1);
-            penalizeCAVoters(claimid); // Rewards Claims Assessor only
+            // penalizeCAVoters(claimid); // Rewards Claims Assessor only
             tc1.unlockCN(coverid); // Unlocks token locked against cover note
             succ = p2.sendClaimPayout(coverid,claimid); //Initiates payout
         }
@@ -559,6 +559,8 @@ contract claimsReward
            voteid =cd.getUser_Claim_VoteMember(_voter,i);
            
            (tokens,claimId,verdict)=cd.getVoteDetails(voteid);
+        //   if(check==1)
+        //   claimIdArray.push(uint(claimId));
             (,status)= cd.getClaimStatusNumber(claimId);
             if(check==1)
            (perc,)= c1.getRewardStatus(status);
@@ -621,11 +623,22 @@ contract claimsReward
         uint lastIndexMV;
         (,lastIndexMV)=cd.getRewardDistributedIndex(msg.sender);
         cd.setRewardDistributedIndex_MV(msg.sender,lengthMVVote);
-        uint rewadToBeDistCA=getRewardToBeDistributed(msg.sender,lengthCAVote,lastIndexCA,1);
-        uint rewadToBeDistMV=getRewardToBeDistributed(msg.sender,lengthMVVote,lastIndexMV,0);
+        uint rewadToBeDistCA;
+        uint voteid;
+        uint claimId;
+        
+        rewadToBeDistCA=getRewardToBeDistributed(msg.sender,lengthCAVote,lastIndexCA,1);
+        uint rewadToBeDistMV;
+        rewadToBeDistMV=getRewardToBeDistributed(msg.sender,lengthMVVote,lastIndexMV,0);
         uint total=SafeMaths.add(rewadToBeDistCA,rewadToBeDistMV);
         tc1.transfer(msg.sender,total);
-        
+        for(uint i=lastIndexCA;i<lengthCAVote;i++){
+        voteid =cd.get_vote_address_ca(msg.sender,i);
+        (,claimId,)=cd.getVoteDetails(voteid);
+        uint tokens;
+        (,tokens)=cd.getCaClaimVotes_token(claimId);
+        tc2.reduceCAWithAddress(msg.sender,tc1.getLockCADays(),tokens,claimId);
+        }
         
     } 
     // Prem data ends

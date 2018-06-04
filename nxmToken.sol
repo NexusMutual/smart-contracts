@@ -557,6 +557,10 @@ contract nxmToken {
     {
         return SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(_add),td.getBalanceMVWithAddress(_add)),td.getBalanceCAWithAddress(_add)),td.getBalanceCN(_add)),getLockedNXMTokenOfStakerByStakerAddress(_add));
     }
+    function getLockCADays()constant returns(uint16)
+    {
+        return td.lockCADays();
+    }
     // Prem data end
-    
+        
 }

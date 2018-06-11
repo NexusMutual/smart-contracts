@@ -62,6 +62,8 @@ contract quotationData{
         //Add smartcontractcover 
         // ProductDetails.push(Product_Details("EQC","Earth Quake",90,500,12,43));
         ProductDetails.push(Product_Details("SCC","Smart Contract Cover",90,1000,12,0));
+        allCovers.push(cover("0x00",0x000,"0x00",0,0,0,0x000,0));
+        
     }
     function changeMasterAddress(address _add) 
     {

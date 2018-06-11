@@ -229,30 +229,49 @@ contract nxmToken2{
     /// @param _to  User's address.
     /// @param _timestamp Timestamp for which tokens will be reduced.
     /// @param _noOfTokens Number of tokens that will get reduced. Should be less than or equal to the number of tokens of selected bond.
-    /// @param _claimid  reducing validity of tokens which have claim id same as _claimid.
-    function reduceCAWithAddress(address _to ,uint _timestamp ,uint _noOfTokens,uint _claimid) onlyInternal
+    function reduceCAWithAddress(address _to ,uint _timestamp ,uint _noOfTokens) onlyInternal
     {
-        // td=NXMTokenData(tokenDataAddress);
-        // tc1=NXMToken(tokenAddress);
-        _noOfTokens = SafeMaths.mul(_noOfTokens, _DECIMAL_1e10);
-        if(td.getBalanceCAWithAddress(_to) < _noOfTokens)throw;
-        
-        uint len = td.getLockedCALength(_to);
+
+        uint lockedCATokenLength = td.getLockedCALength(_to);
         uint vUpto;
         uint amount;
         uint claimId;
         uint validityExpire=td.getLastExpiredLockCA(_to);
         bool validityExpiredCheck=false;
-        for(uint i=validityExpire; i < len ;i++ )
+        uint yet_to_reduce = _noOfTokens;
+        for(uint i=validityExpire; i < lockedCATokenLength ;i++ )
         {
             (,vUpto,amount,claimId) = td.getLockedCAByindex(_to , i);
             if(vUpto>now && validityExpiredCheck==false )
               {  validityExpire=i;
                 validityExpiredCheck=true;
               }
-            if(amount>0 && vUpto > now && _claimid==claimId)
+            if(amount>0)
             {
-                extendCA(i,SafeMaths.sub(vUpto , _timestamp),_noOfTokens);
+                // if(vUpto > SafeMaths.add(now,_timestamp)){
+                // td.lockCA(_to,SafeMaths.sub(vUpto ,_timestamp),_noOfTokens,claimId);
+                // td.changeLockedCAByIndex(_to,i,0);
+                // }
+                // else{
+                // td.lockCA(_to,now,_noOfTokens,claimId);
+                // td.changeLockedCAByIndex(_to,i,0);
+                // }
+                uint newTime=now;
+                if(vUpto > SafeMaths.add(now,_timestamp))
+                 newTime=SafeMaths.sub(vUpto , _timestamp);
+                 if(yet_to_reduce>amount  ){
+                    yet_to_reduce = SafeMaths.sub(yet_to_reduce,amount);
+                    td.lockCA(_to,newTime,amount,claimId);
+                    td.changeLockedCAByIndex(_to,i,0);
+                }
+                else
+                {
+                    td.lockCA(_to,newTime,yet_to_reduce,claimId);
+                    td.changeLockedCAByIndex(_to,i,SafeMaths.sub(amount,yet_to_reduce));
+                    yet_to_reduce=0;
+                    break;
+                }
+             
             }
         }
         td.setLastExpiredLockCA(_to,validityExpire);
@@ -261,22 +280,21 @@ contract nxmToken2{
     /// @param _to  User's address.
     /// @param _timestamp Timestamp for which tokens will be extended.
     /// @param _noOfTokens Number of tokens that will get extended. Should be less than or equal to the number of tokens of selected bond. 
-    function extendCAWithAddress(address _to ,uint _timestamp ,uint _noOfTokens)onlyInternal
+    function extendCAWithAddress(address _to ,uint _timestamp ,uint _noOfTokens,uint claimId)onlyInternal
     {
         
-        _noOfTokens = SafeMaths.mul(_noOfTokens, _DECIMAL_1e10);
         if(td.getBalanceCAWithAddress(_to) < _noOfTokens)throw;
-        
         uint yet_to_extend = _noOfTokens;
         uint len = td.getLockedCALength(_to);
         uint vUpto;
         uint amount;
-        uint claimId;
+        // uint claimId;
         for(uint i=0 ; i < len ;i++ )
         {
-            (,vUpto,amount,claimId) = td.getLockedCAByindex(_to , i);
-            
-                if(yet_to_extend>amount  )               {
+            (,vUpto,amount,) = td.getLockedCAByindex(_to , i);
+            if(amount>0 && vUpto > now)
+            {
+                if(yet_to_extend>amount  ){
                     yet_to_extend = SafeMaths.sub(yet_to_extend,amount);
                     td.lockCA(_to,SafeMaths.add(vUpto , _timestamp),amount,claimId);
                     td.changeLockedCAByIndex(_to,i,0);
@@ -288,6 +306,7 @@ contract nxmToken2{
                     yet_to_extend=0;
                     break;
                 }
+            }
         }
     }
     /// @dev Burns tokens deposited against a cover, called when a claim submitted against this cover is denied.
@@ -404,14 +423,15 @@ contract nxmToken2{
     
     // Prem data start
     /// @dev Locks a given number of tokens for Member vote.
+    /// @param _add address  of member
     /// @param _value number of tokens lock.
     /// @param _days Validity(in days) of tokens.
-    function lockMV(uint _value,uint _days) isMemberAndcheckPause
+    function lockMV(address _add,uint _value,uint _days) onlyInternal
     {
         // td = NXMTokenData(tokenDataAddress);
-        if (tc1.getAvailableTokens(msg.sender)< _value) throw;// Check if the sender has enough
+        if (tc1.getAvailableTokens(_add)< _value) throw;// Check if the sender has enough
         if (_value<=0) throw;
-        td.lockMV(msg.sender,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
+        td.lockMV(_add,SafeMaths.add(now,SafeMaths.mul(_days,1 days)),_value);        
     }
     // Prem data end
     // Arjun - Data Begin

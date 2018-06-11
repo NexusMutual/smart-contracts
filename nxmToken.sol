@@ -76,6 +76,12 @@ contract nxmToken {
         require(ms.isPause()==false);
         _;
     }
+    modifier isMemberAndcheckPauseOrInternal
+    {
+        // ms=master(masterAddress);
+        require((ms.isPause()==false && ms.isMember(msg.sender)==true)||ms.isInternal(msg.sender) == true);
+        _;
+    }
     modifier isMemberAndcheckPause
     {
         // ms=master(masterAddress);
@@ -276,7 +282,7 @@ contract nxmToken {
     /// @dev Transfer Tokens from the sender to the given Receiver's account.
     /// @param _to Receiver's Address.
     /// @param _value Transfer tokens.
-    function transfer(address _to, uint256 _value) isMemberAndcheckPause  {
+    function transfer(address _to, uint256 _value) isMemberAndcheckPauseOrInternal  {
         // ms=master(masterAddress);
         require(ms.isMember(_to)==true);
         // td = NXMTokenData(tokenDataAddress);
@@ -559,7 +565,8 @@ contract nxmToken {
     }
     function getLockCADays()constant returns(uint16)
     {
-        return td.lockCADays();
+        uint16 _days=td.lockCADays();
+        return _days;
     }
     // Prem data end
         

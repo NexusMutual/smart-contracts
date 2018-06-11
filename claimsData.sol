@@ -21,7 +21,7 @@ contract claimsData
     using SafeMaths for uint;
     master ms;
     address masterAddress;
-    struct claim 
+    struct claim
     {
         uint coverId;
         // uint date_submit;
@@ -40,6 +40,7 @@ contract claimsData
         uint tokens;
         uint claimId;
         int8 verdict;
+        bool rewardClaimed;
         // uint date_submit;
         // uint tokenRec;
     }
@@ -119,7 +120,7 @@ contract claimsData
         max_voting_time = 1800;
         min_voting_time=1200;
         payoutRetryTime=SafeMaths.mul32(SafeMaths.mul32(24,60),60);
-        allvotes.push(vote(0,0,0,0));
+        allvotes.push(vote(0,0,0,0,false));
         allClaims.push(claim(0,0));
         // vote_length = 1;
         claimDepositTime=SafeMaths.mul(1,7 days);
@@ -276,11 +277,11 @@ contract claimsData
 
     /// @dev Provides information of a vote when given its vote id.
     /// @param _voteid Vote Id.
-    function getVoteDetails(uint _voteid) constant returns(uint tokens,uint claimId,int8 verdict)  //,int8 claimVerdict,uint8 status
+    function getVoteDetails(uint _voteid) constant returns(uint tokens,uint claimId,int8 verdict,bool rewardClaimed)  //,int8 claimVerdict,uint8 status
     {
         // int8 decision = allClaims[allvotes[_voteid].claimId].vote;
         // status= allClaims[allvotes[_voteid].claimId].status;
-        return (allvotes[_voteid].tokens,allvotes[_voteid].claimId,allvotes[_voteid].verdict );  //,decision ,status
+        return (allvotes[_voteid].tokens,allvotes[_voteid].claimId,allvotes[_voteid].verdict,allvotes[_voteid].rewardClaimed );  //,decision ,status
     }
     /// @dev Gets the voter's address of a given vote id.
     function getVoter_Vote(uint _voteid) constant returns(address voter)
@@ -511,7 +512,13 @@ contract claimsData
     {
         return vote_address_member[_voter].length;
     }
-    
+    /// @dev Sets the final vote's result(either accepted or declined)of a claim.
+    /// @param _voteid vote Id.
+    /// @param claimed true if reward for vote is claimed,false if reward for vote is not claimed.
+    function setRewardClaimed(uint _voteid , bool claimed) onlyInternal
+    {
+        allvotes[_voteid].rewardClaimed = claimed;
+    }
     
     // Prem data end
 
@@ -588,10 +595,12 @@ contract claimsData
     // {
     //     cover_claim[_coverid].push(_claimid);
     // }
+    
+    
     /// @dev Add Vote's details of a given claim.
     function addVote(address _voter,uint _tokens,uint claimId,int8 _verdict) onlyInternal
     {
-       allvotes.push(vote(_voter,_tokens,claimId,_verdict));
+       allvotes.push(vote(_voter,_tokens,claimId,_verdict,false));
     }
     /// @dev Stores the id of the vote given to a claim.Maintains record of all votes given by all the CA to a claim.
     /// @param _claimId Claim Id to which vote has given by the CA.

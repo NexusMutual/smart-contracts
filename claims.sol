@@ -63,6 +63,7 @@ contract claims{
     // memberRoles mr;
 
     uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
+    uint40 private constant _DECIMAL_1e10 = 10000000000;
 
     function changeMasterAddress(address _add)
     {
@@ -522,13 +523,12 @@ contract claims{
     /// @param tokens number of CAtokens a voter wants to use for the claim assessment.These tokens are booked for a specified period for time and hence cannot be used to cst another vote for the specified period
     function submitCAVote(uint claimId,int8 verdict,uint tokens) isMemberAndcheckPause
     {  
-        // cd=claimsData(claimsDataAddress);
+
         if(checkVoteClosing(claimId) == 1) throw;
         uint8 stat;
         (,stat)=cd.getClaimStatusNumber(claimId);
         if(stat != 0) throw;
         if(cd.getUser_Claim_VoteCA(msg.sender,claimId) != 0) throw;
-        // tc1=nxmToken(tokenAddress);
         tc1.bookCATokens(msg.sender, tokens);
         cd.addVote(msg.sender,tokens,claimId,verdict);
         cd.callVoteEvent(msg.sender, claimId, "CAV", tokens, now, verdict);
@@ -538,12 +538,13 @@ contract claims{
         cd.setClaim_tokensCA(claimId,verdict,tokens);
         // Prem data Start
         uint time=td.lockCADays();
-        tc2.extendCAWithAddress(msg.sender,time,tokens);
+        time=SafeMaths.mul(time,1 days);
+        tc2.extendCAWithAddress(msg.sender,time,tokens,claimId);
         // Prem data end
         int close = checkVoteClosing(claimId);
         if(close==1)
         {
-            // cr=claims_Reward(claims_rewardAddress);
+          
             cr.changeClaimStatus(claimId);
         }
     }
@@ -580,7 +581,7 @@ contract claims{
     function submitMemberVote(uint claimId,int8 verdict,uint tokens) isMemberAndcheckPause
     {
         
-        // cd=claimsData(claimsDataAddress);
+       
         if(checkVoteClosing(claimId) == 1) throw;
         uint stat;
         (,stat)=cd.getClaimStatusNumber(claimId);
@@ -595,12 +596,12 @@ contract claims{
         cd.setClaim_tokensMV(claimId,verdict,tokens);
         // Prem data Start
         uint time=td.lockMVDays();
-        tc2.lockMV(SafeMaths.add(now,time),tokens);
+        tc2.lockMV(msg.sender,time,tokens);
         // Prem data  end
         int close = checkVoteClosing(claimId);
         if(close==1)
         {
-            // cr=claims_Reward(claims_rewardAddress);
+            
             cr.changeClaimStatus(claimId);
         }   
     }

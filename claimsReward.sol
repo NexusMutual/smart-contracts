@@ -194,15 +194,7 @@ contract claimsReward
             uint8 coverStatus;
             uint8 status_orig=status;
             uint MVTokens=c1.getCATokens(claimid,1);
-            // In case noone votes, claim is denied
-            if(MVTokens==0 )
-            {
-                // status=15;
-                status=11;
-                coverStatus=2;                
-            }
-            else
-            {   
+              
                 // If tokens used for acceptance >50%, claim is accepted
                 uint sumassured=qd.getCoverSumAssured(coverid);
                 uint threshold_unreached=0;
@@ -212,41 +204,18 @@ contract claimsReward
                 uint accept;
                 (,accept)=cd.getClaimMVote(claimid,1);
                 uint deny;
-                (,deny)=cd.getClaimMVote(claimid,-1);  
-
-                // if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  threshold_unreached==0 && status_orig==2)
-                // { status=9;coverStatus=1;}
-                // else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  threshold_unreached==0 && status_orig==2)
-                // { status=10;coverStatus=2;}
-                // else if(  threshold_unreached==1 && status_orig==2)
-                // { status=11; coverStatus=2;}
-                // else if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
-                // { status=12; coverStatus=1;}
-                // else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  status_orig>2 && status_orig<=6 && threshold_unreached==0)
-                // { status=13;coverStatus=2;}
-                // else if(threshold_unreached==1 &&  (status_orig==3 || status_orig==5))
-                // { status=14; coverStatus=1;}
-                // else if(threshold_unreached==1 &&  (status_orig==6 || status_orig==4))
-                // { status=15; coverStatus=2;}
-                //  to be checked 
-                // if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  threshold_unreached==0 && status_orig==2)
-                // { status=9;coverStatus=1;}
-                // else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  threshold_unreached==0 && status_orig==2)
-                // { status=10;coverStatus=2;}
-                // else if(  threshold_unreached==1 && status_orig==2)
-                // { status=11; coverStatus=2;}
-                // //  till here
+                (,deny)=cd.getClaimMVote(claimid,-1);
+                if(SafeMaths.add(accept,deny)>0){
                 if(SafeMaths.div(SafeMaths.mul(accept,100),(SafeMaths.add(accept,deny))) >= 50 &&  status_orig>1 && status_orig<=5 && threshold_unreached==0)
                 { status=8; coverStatus=1;}
                 else if(SafeMaths.div(SafeMaths.mul(deny,100),(SafeMaths.add(accept,deny))) > 50 &&  status_orig>1 && status_orig<=5 && threshold_unreached==0)
                 { status=9;coverStatus=2;}
-                else if(threshold_unreached==1 &&  (status_orig==2 || status_orig==4))
+                }
+                if(threshold_unreached==1 &&  (status_orig==2 || status_orig==4))
                 { status=10; coverStatus=1;}
                 else if(threshold_unreached==1 &&  (status_orig==5 || status_orig==3))
                 { status=11; coverStatus=2;}
-                
-                
-            }
+
             c1.setClaimStatus(claimid,status);
             qd.changeCoverStatusNo(coverid,coverStatus);
             // Reward/Punish Claim Assessors and Members who participated in claims assessment

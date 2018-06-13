@@ -596,7 +596,9 @@ contract claims{
         cd.setClaim_tokensMV(claimId,verdict,tokens);
         // Prem data Start
         uint time=td.lockMVDays();
-        tc2.lockMV(msg.sender,time,tokens);
+        time=SafeMaths.add(now,SafeMaths.mul(time,1 days));
+        tokens=SafeMaths.mul(tokens,_DECIMAL_1e18);
+        td.lockMV(msg.sender,time,tokens);
         // Prem data  end
         int close = checkVoteClosing(claimId);
         if(close==1)

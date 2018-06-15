@@ -563,9 +563,9 @@ contract nxmToken {
     {
         return SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(SafeMaths.sub(td.getBalanceOf(_add),td.getBalanceMVWithAddress(_add)),td.getBalanceCAWithAddress(_add)),td.getBalanceCN(_add)),getLockedNXMTokenOfStakerByStakerAddress(_add));
     }
-    function getLockCADays()constant returns(uint16)
+    function getLockCADays()constant returns(uint32)
     {
-        uint16 _days=td.lockCADays();
+        uint32 _days=td.lockCADays();
         return _days;
     }
     // Prem data end

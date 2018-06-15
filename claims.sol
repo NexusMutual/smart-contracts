@@ -538,7 +538,7 @@ contract claims{
         cd.setClaim_tokensCA(claimId,verdict,tokens);
         // Prem data Start
         uint time=td.lockCADays();
-        time=SafeMaths.mul(time,1 days);
+        
         tc2.extendCAWithAddress(msg.sender,time,tokens,claimId);
         // Prem data end
         int close = checkVoteClosing(claimId);
@@ -596,8 +596,8 @@ contract claims{
         cd.setClaim_tokensMV(claimId,verdict,tokens);
         // Prem data Start
         uint time=td.lockMVDays();
-        time=SafeMaths.add(now,SafeMaths.mul(time,1 days));
-        tokens=SafeMaths.mul(tokens,_DECIMAL_1e18);
+        time=SafeMaths.add(now,time);
+        // tokens=SafeMaths.mul(tokens,_DECIMAL_1e18);
         td.lockMV(msg.sender,time,tokens);
         // Prem data  end
         int close = checkVoteClosing(claimId);

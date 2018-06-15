@@ -32,8 +32,8 @@ contract nxmTokenData {
     uint64  bookTime;
     uint64  minVoteLockPeriod;
     uint16 public scValidDays;
-    uint16 public lockMVDays;
-    uint16 public lockCADays;
+    uint32 public lockMVDays;
+    uint32 public lockCADays;
     uint public joiningFee;
     address public walletAddress;
 
@@ -411,13 +411,13 @@ contract nxmTokenData {
         lockedMV[_of].push(lockToken(_timestamp,_value));
     }
     
-    function setlockMVDays(uint16 _val) onlyInternal
+    function setlockMVDays(uint32 _val) onlyInternal
     {
         lockMVDays=_val;
         
     }
     
-    function setlockCADays(uint16 _val) onlyInternal
+    function setlockCADays(uint32 _val) onlyInternal
     {
         lockCADays=_val;
         

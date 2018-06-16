@@ -414,17 +414,17 @@ contract claimsReward
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
     // Prem data start
-    function getRewardToBeGiven(uint check,uint voteid,uint flag)constant returns(uint tokenCalculated,bool lastClaimedCheck,uint tokens)
+    function getRewardToBeGiven(uint check,uint voteid,uint flag)constant returns(uint tokenCalculated,bool lastClaimedCheck,uint tokens,uint perc)
     {
         
         uint claimId;
         int8 verdict;
         bool claimed;
         uint tokensToBeDist;
-        uint perc;
+        // uint perc;
         uint totalTokens;
-        tokens=0;
-        (,claimId,verdict,claimed)=cd.getVoteDetails(voteid);
+        // (tokens,,,)=cd.getVoteDetails(voteid);
+        (tokens,claimId,verdict,claimed)=cd.getVoteDetails(voteid);
         lastClaimedCheck=false;
          if(cd.getFinalVerdict(claimId)==0)lastClaimedCheck=true;
         int8 claimVerdict=cd.getFinalVerdict(claimId);
@@ -453,7 +453,7 @@ contract claimsReward
         
         if(totalTokens>0){
            
-             (tokens,,,)=cd.getVoteDetails(voteid);
+            
         tokenCalculated=SafeMaths.div(SafeMaths.mul(perc,SafeMaths.mul(tokens,tokensToBeDist)),SafeMaths.mul(100,totalTokens));
         }
             
@@ -479,16 +479,23 @@ contract claimsReward
         bool claimed;
         uint tokens=0;
         uint claimId;
+        uint perc;
+        uint i;
         // (lastClaimedCA,lastClaimedMV)=getRewardToBeDistributedByUser();
-        for(uint i=lastIndexCA;i<lengthCAVote;i++)
+        for(i=lastIndexCA;i<lengthCAVote;i++)
         {
           voteid =cd.get_vote_address_ca(msg.sender,i);
-          (tokenForVoteId,lastClaimedCheck,tokens)=getRewardToBeGiven(1,voteid,0);
+          (tokenForVoteId,lastClaimedCheck,tokens,perc)=getRewardToBeGiven(1,voteid,0);
           if(lastClaimedCA==lengthCAVote && lastClaimedCheck==true)
           lastClaimedCA=i;
             (,claimId,,claimed)=cd.getVoteDetails(voteid);
             
-            if(claimed==false && cd.getFinalVerdict(claimId)!=0){
+            if(perc>0 && tokens>0){
+            tc2.reduceCAWithAddress(msg.sender,_days,tokens);
+            cd.setRewardClaimed(voteid,true);
+            }
+            else if(perc==0&&cd.getFinalVerdict(claimId)!=0)
+            {
             tc2.reduceCAWithAddress(msg.sender,_days,tokens);
             cd.setRewardClaimed(voteid,true);
             }
@@ -496,12 +503,12 @@ contract claimsReward
             total=SafeMaths.add(tokenForVoteId,total);
             
         }
-        for(uint j=lastIndexMV;j<lengthMVVote;j++)
+        for(i=lastIndexMV;i<lengthMVVote;i++)
         {
-           voteid =cd.get_vote_address_member(msg.sender,j);
-           (tokenForVoteId,lastClaimedCheck,tokens)=getRewardToBeGiven(0,voteid,0);
+           voteid =cd.get_vote_address_member(msg.sender,i);
+           (tokenForVoteId,lastClaimedCheck,tokens,)=getRewardToBeGiven(0,voteid,0);
           if(lastClaimedMV==lengthMVVote && lastClaimedCheck==true)
-          lastClaimedMV=j;
+          lastClaimedMV=i;
           (,claimId,,claimed)=cd.getVoteDetails(voteid);
             
             if(claimed==false && cd.getFinalVerdict(claimId)!=0)
@@ -514,8 +521,6 @@ contract claimsReward
         tc1.transfer(msg.sender,total);
         cd.setRewardDistributedIndex_CA(msg.sender,lastClaimedCA);
         cd.setRewardDistributedIndex_MV(msg.sender,lastClaimedMV);
-        
-        // reduceCAtokens(msg.sender,lastIndexCA,lengthCAVote);
         
     } 
     
@@ -533,13 +538,13 @@ contract claimsReward
         for(uint i=lastIndexCA;i<lengthCAVote;i++)
         {
             voteId=cd.get_vote_address_ca(msg.sender,i);
-            (tokenForVoteId,)=getRewardToBeGiven(1,voteId,0);
+            (tokenForVoteId,,,)=getRewardToBeGiven(1,voteId,0);
             total=SafeMaths.add(total,tokenForVoteId);
         }
         for(uint j=lastIndexMV;j<lengthMVVote;j++)
         {
             voteId=cd.get_vote_address_member(msg.sender,j);
-            (tokenForVoteId,)=getRewardToBeGiven(0,voteId,0);
+            (tokenForVoteId,,,)=getRewardToBeGiven(0,voteId,0);
             total=SafeMaths.add(total,tokenForVoteId);
         }
         return (total);
@@ -565,7 +570,7 @@ contract claimsReward
         if(claimid==claimId)break;
         }
        }
-     (reward,,)= getRewardToBeGiven(check,voteId,1);
+     (reward,,,)= getRewardToBeGiven(check,voteId,1);
       
       }
     

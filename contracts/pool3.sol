@@ -24,7 +24,7 @@ import "./SafeMaths.sol";
 // import "./usd.sol";
 import "./pool2.sol";
 import "./mcrData.sol";
-import "github.com/0xProject/contracts/contracts/Exchange.sol";
+import "./Exchange.sol";
 
 contract pool3
 {

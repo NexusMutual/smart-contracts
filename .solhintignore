@@ -1,0 +1,17 @@
+```git exclude node_modules/ additiona-tests.sol
+# Dependency directories
+contracts/TokenTransferProxy.sol
+contracts/Token.sol
+contracts/StandardToken.sol
+contracts/Ownable.sol
+contracts/oraclizeAPI_0.4.sol
+contracts/Exchange.sol
+contracts/ERC20Basic.sol
+contracts/ERC20.sol
+contracts/BasicToken.sol
+contracts/Migrations.sol
+contracts/governance.sol
+contracts/governance2.sol
+contracts/governanceData.sol
+
+

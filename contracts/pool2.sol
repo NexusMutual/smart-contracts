@@ -12,7 +12,6 @@
 
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
-    
 
 pragma solidity ^0.4.11;
 
@@ -26,25 +25,26 @@ import "./quotationData.sol";
 import "./master.sol";
 import "./pool.sol";
 import "./claims.sol";
-// import "./fiatFaucet.sol";
 import "./SafeMaths.sol";
-// import "./usd.sol";
 import "./BasicToken.sol";
 import "./mcrData.sol";
 import "./mcr.sol";
 import "./pool3.sol";
 import "./Exchange.sol";
+import "./Iupgradable.sol";
 
-contract pool2 
-{
- using SafeMaths for uint;
+
+contract pool2 is Iupgradable {
+
+    using SafeMaths
+    for uint;
+
     master ms;
     address masterAddress;
     nxmToken tc1;
     nxmToken2 tc2;
     pool p1;
     claims c1;
-    // fiatFaucet f1;
     Exchange exchange1;
     quotation2 q2;
     mcr m1;
@@ -52,527 +52,386 @@ contract pool2
     claimsReward cr;
     governance g1;
     poolData pd;
-    // SupplyToken tok;
     BasicToken btok;
     pool3 p3;
     quotationData qd;
-    
-    // address nxmtokenAddress;
-    // address nxmtoken2Address;
-    // address claimAddress;
-    // address fiatFaucetAddress;
-    address poolAddress;
-    // address governanceAddress;
-    // address claim_RewardAddress;
-    // address poolDataAddress;
-    // address quotation2Address;
-    // address mcrAddress;
-    // address pool3Address;
-    // address quotationDataAddress;
-    // address mcrDataAddress;
-    
-    address exchangeContractAddress;
-    
-    uint64 private constant _DECIMAL_1e18 = 1000000000000000000;
 
-    event Payout(address indexed to, bytes16 eventName , uint coverId ,uint tokens );
-    event Liquidity(bytes16 type_of,bytes16 function_name);
-    event ZeroExOrders(bytes16 func,address makerAddr,address takerAddr,uint makerAmt,uint takerAmt,uint expirationTimeInMilliSec,bytes32 orderHash);
-    event Rebalancing(bytes16 name,uint16 param);
+    address poolAddress;
+    address exchangeContractAddress;
+
+    uint64 private constant DECIMAL1E18 = 1000000000000000000;
+
+    event Payout(address indexed to, bytes16 eventName, uint coverId, uint tokens);
+    event Liquidity(bytes16 typeOf, bytes16 functionName);
     
-    function changeMasterAddress(address _add)
-    {
-        if(masterAddress == 0x000){
+    event ZeroExOrders(
+        bytes16 func, 
+        address makerAddr, 
+        address takerAddr, 
+        uint makerAmt, 
+        uint takerAmt, 
+        uint expirationTimeInMilliSec, 
+        bytes32 orderHash
+        );
+
+    event Rebalancing(bytes16 name, uint16 param);
+
+    function changeMasterAddress(address _add) {
+        if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms=master(masterAddress);
-        }
-        else
-        {
-            ms=master(masterAddress);
-            if(ms.isInternal(msg.sender) == true)
-                masterAddress = _add;
-            else
-                throw;
+            ms = master(masterAddress);
+        } else {
+            ms = master(masterAddress);
+            require(ms.isInternal(msg.sender) == true);
+            masterAddress = _add;
         }
     }
+
     modifier onlyInternal {
-        // ms=master(masterAddress);
         require(ms.isInternal(msg.sender) == true);
-        _; 
-    }
-    modifier onlyOwner{
-        // ms=master(masterAddress);
-        require(ms.isOwner(msg.sender) == true);
-        _; 
-    }
-    modifier checkPause
-    {
-        // ms=master(masterAddress);
-        require(ms.isPause()==false);
         _;
     }
-    function changeClaimRewardAddress(address claimRewardAddress) onlyInternal
-    {
-        // claim_RewardAddress=_add;
-        cr=claimsReward(claimRewardAddress);
+
+    modifier onlyOwner {
+        require(ms.isOwner(msg.sender) == true);
+        _;
     }
-    
-    function changeGovernanceAddress(address governanceAddress) onlyInternal
-    {
-        // governanceAddress = _add;
-        g1=governance(governanceAddress);
+
+    modifier checkPause {
+        require(ms.isPause() == false);
+        _;
     }
-    function changePoolDataAddress(address poolDataAddress) onlyInternal
-    {
-        // poolDataAddress = _add;
-        pd = poolData(poolDataAddress);
-        // p3=pool3(pool3Address);
-        // p3.changePoolDataAddress(poolDataAddress);
+
+    function changeDependentContractAddress() onlyInternal {
+        uint currentVersion = ms.currentVersion();
+        m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
+        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
+        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
+        md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
+        g1 = governance(ms.versionContractAddress(currentVersion, "GOV1"));
+        q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
+        p3 = pool3(ms.versionContractAddress(currentVersion, "P3"));
+        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
+        c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
+        cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
+        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
     }
-   
-    function changeQuotation2Address(address quotation2Address) onlyInternal
-    {
-        // quotation2Address = _add;
-        q2=quotation2(quotation2Address);
-    }
-    function changeQuotationDataAddress(address quotationDataAddress) onlyInternal
-    {
-        // quotationDataAddress = _add;
-        qd=quotationData(quotationDataAddress);
-    }
-    function changeExchangeContractAddress(address _add) onlyOwner
-    {
-        exchangeContractAddress=_add; //0x
-        // p3=pool3(pool3Address);
+
+    function changeExchangeContractAddress(address _add) onlyOwner {
+        exchangeContractAddress = _add; //0x
+
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
-    function changeMCRDataAddress(address mcrDataAddress) onlyInternal
-    {
-        // mcrDataAddress = _add;
-        md=mcrData(mcrDataAddress);
-    }
-    function changePool3Address(address pool3Address) onlyInternal
-    {
-        // pool3Address=_add;
-        p3=pool3(pool3Address);
-    }
-    function changeClaimAddress(address claimAddress) onlyInternal
-    {
-        // claimAddress = _add;
-        c1=claims(claimAddress);
-    }
-    // function changeFiatFaucetAddress(address fiatFaucetAddress) onlyInternal
-    // {
-    //     // fiatFaucetAddress = _add;
-    //     f1=fiatFaucet(fiatFaucetAddress);
-    //     // p3=pool3(pool3Address);
-    //     // p3.changePoolDataAddress(fiatFaucetAddress);
-    // }
-    function changePoolAddress(address _add) onlyInternal
-    {
-        poolAddress = _add;
-        p1=pool(poolAddress);
-        // p3=pool3(pool3Address);
-        // p3.changePoolAddress(poolAddress);
-    }
-    function changeTokenAddress(address nxmTokenAddress) onlyInternal
-    {
-        // nxmTokenAddress  = _add;
-        tc1=nxmToken(nxmTokenAddress);
-    }
-    function changeToken2Address(address nxmToken2Address) onlyInternal
-    {
-        // nxmToken2Address  = _add;
-        tc2=nxmToken2(nxmToken2Address);
-    }
-    function changeMCRAddress(address mcrAddress) onlyInternal
-    {
-        // mcrAddress = _add;
-        m1=mcr(mcrAddress);
-    }
-    /// @dev Handles the Callback of the Oraclize Query. Callback could be of type "quote", "quotation", "cover", "claim" etc.
+    
+    /// @dev Handles the Callback of the Oraclize Query. 
+    //            Callback could be of type "quote", "quotation", "cover", "claim" etc.
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
-    /// @param res Result fetched by the external oracle.
-    function delegateCallBack(bytes32 myid, string res) onlyInternal
-    {
-        // pd = poolData1(poolDataAddress);
-        // ms=master(masterAddress);
-        if (ms.isPause()==false) // system is not in emergency pause
-        {
+    function delegateCallBack(bytes32 myid) onlyInternal {
+
+        if (ms.isPause() == false) { // system is not in emergency pause
+        
             // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
-            if(pd.getApiIdTypeOf(myid) =="COV")
-            {
+            if (pd.getApiIdTypeOf(myid) == "COV") {
                 pd.updateDateUpdOfAPI(myid);
-                // q2=quotation2(quotation2Address);
                 q2.expireCover(pd.getIdOfApiId(myid));
-            }
-            // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
-            else if(pd.getApiIdTypeOf(myid) =="CLA")
-            {
+            }else if (pd.getApiIdTypeOf(myid) == "CLA") {    
+                // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
                 pd.updateDateUpdOfAPI(myid);
-                // cr=claimsReward(claimRewardAddress);
                 cr.changeClaimStatus(pd.getIdOfApiId(myid));
 
-            }
-            else if(pd.getApiIdTypeOf(myid) =="MCR")
-            {
+            } else if (pd.getApiIdTypeOf(myid) == "MCR") {
                 pd.updateDateUpdOfAPI(myid);
-            }
-            else if(pd.getApiIdTypeOf(myid) =="MCRF")
-            {
+            } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
                 pd.updateDateUpdOfAPI(myid);
-                // m1=MCR(MCRAddress);
                 m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
-            }
-            else if(pd.getApiIdTypeOf(myid)=="SUB")
-            {
-                 pd.updateDateUpdOfAPI(myid);
-            }
-            else if(pd.getApiIdTypeOf(myid)=="0X")
-            {
+            } else if (pd.getApiIdTypeOf(myid) == "SUB") {
                 pd.updateDateUpdOfAPI(myid);
-            }
-            else if(pd.getApiIdTypeOf(myid)=="Close0x")
-            {
+            } else if (pd.getApiIdTypeOf(myid) == "0X") {
                 pd.updateDateUpdOfAPI(myid);
-                // p3=pool3(pool3Address);
-                p3.check0xOrderStatus(pd.getCurrOfApiId(myid),pd.getIdOfApiId(myid));
+            } else if (pd.getApiIdTypeOf(myid) == "Close0x") {
+                pd.updateDateUpdOfAPI(myid);
+                p3.check0xOrderStatus(pd.getCurrOfApiId(myid), pd.getIdOfApiId(myid));
             }
         }
-      
+
         // even when system is in emergency pause.
         // If callback is of type "proposal", then proposal id associated with the myid is checked for vote closure.
-        if(pd.getApiIdTypeOf(myid) =="PRO")
-        {
+        if (pd.getApiIdTypeOf(myid) == "PRO") {
             pd.updateDateUpdOfAPI(myid);
-            // g1=governance(governanceAddress);
             g1.closeProposalVote(pd.getIdOfApiId(myid));
         }
-        if(pd.getApiIdTypeOf(myid) =="Pause")
-        {
+        if (pd.getApiIdTypeOf(myid) == "Pause") {
             pd.updateDateUpdOfAPI(myid);
             bytes4 by;
-            (,,by) = ms.getLastEmergencyPause();
-            if(by=="AB")
-                ms.addEmergencyPause(false,"AUT"); //set pause to false
+            (, , by) = ms.getLastEmergencyPause();
+            if (by == "AB")
+                ms.addEmergencyPause(false, "AUT"); //set pause to false
         }
     }
+
     /// @dev Calls the payout event incase of claims payout.
-    function callPayoutEvent(address _add,bytes16 type1,uint id,uint sa) onlyInternal
-    {
-        Payout(_add,type1,id,sa);
+    function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
+        Payout(_add, type1, id, sa);
     }
+
     /// @dev Pays out the sum assured in case a claim is accepted
     /// @param coverid Cover Id.
     /// @param claimid Claim Id.
     /// @return succ true if payout is successful, false otherwise.
-    function sendClaimPayout(uint coverid , uint claimid) onlyInternal  returns(bool succ)
-    {
-        // q2=quotation2(quotation2Address);
-        // qd=quotationData(quotationDataAddress);
-        // tc1=NXMToken(NXMTokenAddress);
-        // tc2=NXMToken2(NXMToken2Address);
-        // c1=claims(claimAddress);
-        // p1=pool(poolAddress);
-        // pd=poolData1(poolDataAddress);
-        address _to=qd.getCoverMemberAddress(coverid);
+    function sendClaimPayout(uint coverid, uint claimid) onlyInternal returns(bool succ) {
+
+        address _to = qd.getCoverMemberAddress(coverid);
         uint sumAssured = qd.getCoverSumAssured(coverid);
-        uint sumAssured_1e18=SafeMaths.mul(sumAssured,_DECIMAL_1e18);
+        uint sumAssured1e18 = SafeMaths.mul(sumAssured, DECIMAL1E18);
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint balance;
-        // uint quoteid=q2.getQuoteId(coverid);
+
         //Payout in Ethers in case currency of quotation is ETH
-        if(curr=="ETH")
-        {
+        if (curr == "ETH") {
             balance = p1.getEtherPoolBalance();
             //Check if pool has enough ETH balance
-            if(balance >= sumAssured_1e18)
-            {
-                succ = p1.transferEther(sumAssured_1e18 ,_to);   
-                if(succ==true)
-                {
-                    // tc1.removeFromPoolFund(curr,sumAssured);
-                    q2.removeSAFromCSA(coverid,sumAssured);
-                    // p1.subtractQuotationOracalise(coverid);
-                    // date:10/11/2017/
-                    pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured)));
-                    c1.checkLiquidity(curr);
-                    callPayoutEvent(_to,"Payout",coverid,sumAssured_1e18);
+            if (balance >= sumAssured1e18) {
+                succ = p1.transferEther(sumAssured1e18, _to);
+                if (succ == true) {
+                    q2.removeSAFromCSA(coverid, sumAssured);
+                    pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));
+                    p3.checkLiquidityCreateOrder(curr);
+                    callPayoutEvent(_to, "Payout", coverid, sumAssured1e18);
+                } else {
+                    c1.setClaimStatus(claimid, 12);
                 }
-                else
-                {
-                    // c1.setClaimStatus(claimid , 16);
-                      c1.setClaimStatus(claimid , 12);
-                }
+            } else {
+                c1.setClaimStatus(claimid, 12);
+                succ = false;
             }
-            else
-            {
-                // c1.setClaimStatus(claimid , 16);
-                c1.setClaimStatus(claimid , 12);
-                succ=false;
-            }
-        }
-        //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
-        else
-        {
-            // f1=fiatFaucet(fiatFaucetAddress);
-            btok=BasicToken(pd.getCurrencyAssetAddress(curr));
+        }else {    
+          //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
+            btok = BasicToken(pd.getCurrencyAssetAddress(curr));
             balance = btok.balanceOf(poolAddress);
             //Check if pool has enough fiat crypto balance
-            if(balance >= sumAssured_1e18)
-            {
-                // f1.payoutTransferFromPool(_to , curr , sumAssured_1e18);
-                p1.transferPayout(_to,curr,sumAssured_1e18);
-                // tc1.removeFromPoolFund(curr,sumAssured);
-                // p1.subtractQuotationOracalise(coverid);
-                q2.removeSAFromCSA(coverid,sumAssured);
-                // date:10/11/2017/
-                pd.changeCurrencyAssetVarMin(curr,uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr),sumAssured)));
-                c1.checkLiquidity(curr);
-                callPayoutEvent(_to,"Payout",coverid,sumAssured_1e18);
-                succ=true;
-            }
-            else
-            {
-                // c1.setClaimStatus(claimid , 16);
-                c1.setClaimStatus(claimid , 12);
-                succ=false;
+            if (balance >= sumAssured1e18) {
+                p1.transferPayout(_to, curr, sumAssured1e18);
+                q2.removeSAFromCSA(coverid, sumAssured);
+                pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));
+                p3.checkLiquidityCreateOrder(curr);
+                callPayoutEvent(_to, "Payout", coverid, sumAssured1e18);
+                succ = true;
+            } else {
+                c1.setClaimStatus(claimid, 12);
+                succ = false;
             }
         }
-        if(qd.getProductNameOfCover(coverid)=="SCC")
-            tc2.burnStakerLockedToken(coverid,curr,sumAssured);
+        if (qd.getProductNameOfCover(coverid) == "SCC")
+            tc2.burnStakerLockedToken(coverid, curr, sumAssured);
     }
+
     /// @dev Gets the investment asset rank.
-   function getIARank(bytes8 curr,uint64 rateX100)  constant returns(int RHS) //internal function
+    function getIARank(bytes8 curr, uint64 rateX100) constant returns(int rhs) //internal function
     {
-        // pd = poolData1(poolDataAddress);
-        // p1=pool(poolAddress);
         uint currentIAmaxHolding;
         uint currentIAminHolding;
 
-        uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(_DECIMAL_1e18));
-        (currentIAminHolding,currentIAmaxHolding)=pd.getInvestmentAssetHoldingPerc(curr);
-        uint holdingPercDiff=(SafeMaths.sub(SafeMaths.div(currentIAmaxHolding,100) , SafeMaths.div(currentIAminHolding,100)));
-        if(holdingPercDiff>0 && rateX100>0)
-            RHS=int(SafeMaths.div(SafeMaths.mul(SafeMaths.mul(IABalance,100),100000),(SafeMaths.mul(holdingPercDiff,rateX100))));
+        uint iaBalance = SafeMaths.div(p1.getBalanceofInvestmentAsset(curr), (DECIMAL1E18));
+        (currentIAminHolding, currentIAmaxHolding) = pd.getInvestmentAssetHoldingPerc(curr);
+        uint holdingPercDiff = (SafeMaths.sub(SafeMaths.div(currentIAmaxHolding, 100), SafeMaths.div(currentIAminHolding, 100)));
+        if (holdingPercDiff > 0 && rateX100 > 0)
+            rhs = int(SafeMaths.div(SafeMaths.mul(SafeMaths.mul(iaBalance, 100), 100000), (SafeMaths.mul(holdingPercDiff, rateX100))));
     }
-    /// @dev Gets the equivalent investment asset pool  balance in ether. 
-    /// @param IACurr array of Investment asset name.
-    /// @param IARate array of investment asset exchange rate.
-    function totalRiskPoolBalance(bytes8[] IACurr,uint64[] IARate)  constant returns (uint balance,uint IABalance)
-    {
-        // m1=MCR(MCRAddress);
-        // p1=pool(poolAddress);
-        uint currBalance;
-        (currBalance,)=m1.calVtpAndMCRtp();
-      
-        for(uint i=0;i<IACurr.length;i++)
-        {
-            if(IARate[i]>0)
-                IABalance=SafeMaths.add(IABalance,SafeMaths.div(SafeMaths.mul(p1.getBalanceofInvestmentAsset(IACurr[i]),100),IARate[i]));
-        }
-        balance=SafeMaths.add(currBalance,IABalance);
-    }
-    /// @dev Triggers pool rebalancing trading orders.
-    function rebalancingTrading0xOrders(bytes8[] IACurr,uint64[] IARate,uint64 date)checkPause returns(uint16 result)
-    {  
-        // pd = poolData1(poolDataAddress);
-        // p1=pool(poolAddress);
-        // md=MCRData(MCRDataAddress);
-        // p3=pool3(pool3Address);
-        bytes8 MAXIACurr;uint64 MAXRate;
-        (MAXIACurr,MAXRate,,)= pd.getIARankDetailsByDate(date);
-        // require(pd.getLiquidityOrderStatus(bytes4(MAXIACurr),"RBT")==0);
-        if(pd.getLiquidityOrderStatus(MAXIACurr,"RBT")==0){
 
-            uint totalRiskBal=SafeMaths.div(( SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000 )),(_DECIMAL_1e18));
-            if(totalRiskBal>0 && IARate.length>0)  //if v=0 OR there is no IA, don't trade
-            {
-                for(uint i=0;i<IARate.length;i++)
-                {
-                     if(pd.getInvestmentAssetStatus(IACurr[i])==1) // if IA is active 
-                     {
-                        if(checkTradeConditions(IACurr[i],IARate[i])==1)
-                        {
-                            // ORDER 1 (max RHS IA to ETH)
-                            // amount of asset to sell
-                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2,pd.getVariationPercX100()),totalRiskBal),MAXRate)),(SafeMaths.mul(SafeMaths.mul(100,100),100000)))); //*100);// ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); //MULTIPLY WITH DECIMALS 
-                            // amount of ETH to buy
-                            uint InvestmentAssetDecimals=pd.getInvestmentAssetDecimals(MAXIACurr);
-                            uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"),makerAmt))/MAXRate); //*10**18);    //  ( 10**pd.getInvestmentAssetDecimals(MAXIACurr)); 
-                            uint expirationTimeInMilliSec=SafeMaths.add(now,pd.getOrderExpirationTime("RBT"));
-                            makerAmt=SafeMaths.div((SafeMaths.mul(makerAmt,10**InvestmentAssetDecimals)),100);
-                            takerAmt=SafeMaths.div(SafeMaths.mul(takerAmt,_DECIMAL_1e18),(100));
-                            if(makerAmt<=p1.getBalanceofInvestmentAsset(MAXIACurr))
-                            {
-                                exchange1=Exchange(exchangeContractAddress);
-                                bytes32 orderHash=exchange1.getOrderHash([pd.get0xMakerAddress(),pd.get0xTakerAddress(),pd.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),pd.get0xFeeRecipient()],[makerAmt,takerAmt,pd.get0xMakerFee(),pd.get0xTakerFee(),expirationTimeInMilliSec,pd.getOrderSalt()]);
+    /// @dev Gets the equivalent investment asset pool  balance in ether. 
+    /// @param iaCurr array of Investment asset name.
+    /// @param iaRate array of investment asset exchange rate.
+    function totalRiskPoolBalance(bytes8[] iaCurr, uint64[] iaRate) constant returns(uint balance, uint iaBalance) {
+        uint currBalance;
+        (currBalance, ) = m1.calVtpAndMCRtp();
+
+        for (uint i = 0; i < iaCurr.length; i++) {
+            if (iaRate[i] > 0)
+                iaBalance = SafeMaths.add(iaBalance, SafeMaths.div(SafeMaths.mul(p1.getBalanceofInvestmentAsset(iaCurr[i]), 100), iaRate[i]));
+        }
+        balance = SafeMaths.add(currBalance, iaBalance);
+    }
+
+    /// @dev Triggers pool rebalancing trading orders.
+    function rebalancingTrading0xOrders(bytes8[] iaCurr, uint64[] iaRate, uint64 date)checkPause returns(uint16 result)
+    {   
+        bytes8 maxIACurr;
+        uint64 maxRate;
+        (maxIACurr, maxRate, , ) = pd.getIARankDetailsByDate(date);
+        if (pd.getLiquidityOrderStatus(maxIACurr, "RBT") == 0) {
+            uint totalRiskBal=SafeMaths.div((SafeMaths.mul(pd.getTotalRiskPoolBalance(), 100000)), (DECIMAL1E18));
+            if (totalRiskBal > 0 && iaRate.length > 0) { //if v=0 OR there is no IA, don't trade
+                for (uint i=0; i < iaRate.length; i++) {
+                    if (pd.getInvestmentAssetStatus(iaCurr[i]) == 1) {  // if IA is active 
+                        if (checkTradeConditions(iaCurr[i], iaRate[i]) == 1) {  // ORDER 1 (max RHS IA to ETH)   // amount of asset to sell
+                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2, pd.getVariationPercX100()), 
+                                totalRiskBal), maxRate)), (SafeMaths.mul(SafeMaths.mul(100, 100), 100000)))); //MULTIPLY WITH DECIMALS 
+                            uint investmentAssetDecimals=pd.getInvestmentAssetDecimals(maxIACurr); // amount of ETH to buy
+                            uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"), makerAmt))/maxRate); 
+                            uint expirationTimeInMilliSec=SafeMaths.add(now, pd.getOrderExpirationTime("RBT"));
+                            makerAmt = SafeMaths.div((SafeMaths.mul(makerAmt, 10**investmentAssetDecimals)), 100);
+                            takerAmt = SafeMaths.div(SafeMaths.mul(takerAmt, DECIMAL1E18), (100));
+                            if (makerAmt <= p1.getBalanceofInvestmentAsset(maxIACurr)) {
+                                exchange1 = Exchange(exchangeContractAddress);
+                                bytes32 orderHash=exchange1.getOrderHash(
+                                    [pd.get0xMakerAddress(), 
+                                    pd.get0xTakerAddress(), 
+                                    pd.getInvestmentAssetAddress(maxIACurr), 
+                                    p3.getWETHAddress(), 
+                                    pd.get0xFeeRecipient()], 
+                                    [makerAmt, 
+                                    takerAmt, 
+                                    pd.get0xMakerFee(), 
+                                    pd.get0xTakerFee(), 
+                                    expirationTimeInMilliSec, 
+                                    pd.getOrderSalt()]
+                                    );
                                 pd.saveRebalancingOrderHash(orderHash);
-                                pd.pushOrderDetails(orderHash,bytes4(MAXIACurr),makerAmt,"ETH",takerAmt,"RBT",expirationTimeInMilliSec);
-                                
-                                pd.updateLiquidityOrderStatus(bytes4(MAXIACurr),"RBT",1);
-                               
-                                pd.setCurrOrderHash(bytes4(MAXIACurr),orderHash);  
+                                pd.pushOrderDetails(orderHash, bytes4(maxIACurr), makerAmt, "ETH", takerAmt, "RBT", expirationTimeInMilliSec);
+                                pd.updateLiquidityOrderStatus(bytes4(maxIACurr), "RBT", 1);
+                                pd.setCurrOrderHash(bytes4(maxIACurr), orderHash);  
                                 //events
-                                ZeroExOrders("RBT",pd.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,orderHash);
-                                Rebalancing("OrderGen",1);
+                                ZeroExOrders(
+                                    "RBT", 
+                                    pd.getInvestmentAssetAddress(maxIACurr), 
+                                    p3.getWETHAddress(), 
+                                    makerAmt, 
+                                    takerAmt, 
+                                    expirationTimeInMilliSec, 
+                                    orderHash
+                                    );
+                                Rebalancing("OrderGen", 1);
                                 return 1; // rebalancing order generated
-                            }      
-                            else
-                            {   //events
-                                ZeroExOrders("RBT",pd.getInvestmentAssetAddress(MAXIACurr),p3.getWETHAddress(),makerAmt,takerAmt,expirationTimeInMilliSec,"insufficient");
-                                Rebalancing("OrderGen",2);
-                                return 2; // not enough makerAmt;
-                                
+                            }else {   //events
+                                ZeroExOrders(
+                                    "RBT", 
+                                    pd.getInvestmentAssetAddress(maxIACurr), 
+                                    p3.getWETHAddress(), 
+                                    makerAmt, 
+                                    takerAmt, 
+                                    expirationTimeInMilliSec, 
+                                    "insufficient"
+                                    );
+                                Rebalancing("OrderGen", 2);
+                                return 2; // not enough makerAmt;    
                             }                      
                         }
-                     }
+                    }
                 }
-                Rebalancing("OrderGen",0);
+                Rebalancing("OrderGen", 0);
                 return 0; // when V!=0 but rebalancing is not required
             }
         }
-        Rebalancing("OrderGen",3);
+        Rebalancing("OrderGen", 3);
         return 4; // when V=0 or no IA is present       
     }
+
     /// @dev Checks whether trading is require for a given investment asset at a given exchange rate.
-    function checkTradeConditions(bytes8 curr,uint64 IARate) constant returns(int check)
+    function checkTradeConditions(bytes8 curr, uint64 iaRate) constant returns(int check)
     {
-        if(IARate>0){
-            // pd = poolData1(poolDataAddress);
-            // p1=pool(poolAddress);
-            uint InvestmentAssetDecimals=pd.getInvestmentAssetDecimals(curr);
-            uint IABalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr),(10**InvestmentAssetDecimals));
-            uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(),100000),(_DECIMAL_1e18));
-            if(IABalance>0 && totalRiskBal>0)
-            {
-                uint IAMax;uint IAMin;uint checkNumber;uint z;
-                (IAMin,IAMax)=pd.getInvestmentAssetHoldingPerc(curr);
-                z=pd.getVariationPercX100();
-                checkNumber=SafeMaths.div((SafeMaths.mul(SafeMaths.mul(IABalance,100),100000)),(SafeMaths.mul(IARate,totalRiskBal)));
-                if( (checkNumber> SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.add(IAMax,z),totalRiskBal),100 ),100000))|| (checkNumber < SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(IAMin,z),totalRiskBal),100),100000)) )    //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
-                {
+        if (iaRate > 0) { 
+            uint investmentAssetDecimals=pd.getInvestmentAssetDecimals(curr);
+            uint iaBalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr), (10**investmentAssetDecimals));
+            uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(), 100000), (DECIMAL1E18));
+            if (iaBalance > 0 && totalRiskBal > 0) {
+                uint iaMax;
+                uint iaMin;
+                uint checkNumber;
+                uint z;
+                (iaMin, iaMax) = pd.getInvestmentAssetHoldingPerc(curr);
+                z = pd.getVariationPercX100();
+                checkNumber = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(iaBalance, 100), 100000)), (SafeMaths.mul(iaRate, totalRiskBal)));
+                if ((checkNumber > SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.add(iaMax, z), totalRiskBal), 100), 100000)) || 
+                    (checkNumber < SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(iaMin, z), totalRiskBal), 100), 100000))) {   
+                    //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
                     return 1;    //eligibleIA
-                }
-                else
-                {
+                }else {
                     return -1; //not eligibleIA
                 }
             }
             return 0; // balance of IA is 0
-        }
-        else
+        }else {
             return -2;
+        }
     }
-    
+
     /// @dev Calculates the investment asset rank.
-    function calculateIARank(bytes8[] curr,uint64[] rate)  constant returns(bytes8 MAXCurr,uint64 MAXRate,bytes8 MINCurr,uint64 MINRate)
-    {
-        // pd = poolData1(poolDataAddress);
+    function calculateIARank(bytes8[] curr, uint64[] rate) constant returns(bytes8 maxCurr, uint64 maxRate, bytes8 minCurr, uint64 minRate) {
         uint currentIAmaxHolding;
         uint currentIAminHolding;
-        int MAX=0;int MIN=-1;
-        int RHS;
-        for(uint i=0;i<curr.length;i++)
-        {
-            RHS=0;
-            if(pd.getInvestmentAssetStatus(curr[i])==1) 
-            {
-                (currentIAminHolding,currentIAmaxHolding)=pd.getInvestmentAssetHoldingPerc(curr[i]);
-                RHS=getIARank(curr[i],rate[i]);
-                if(RHS>MAX)
-                {
-                    MAX=RHS;
-                    MAXCurr =curr[i] ;  
-                    MAXRate=rate[i];
+        int max = 0;
+        int min = -1;
+        int rhs;
+        for (uint i = 0; i < curr.length; i++) {
+            rhs = 0;
+            if (pd.getInvestmentAssetStatus(curr[i]) == 1) {
+                (currentIAminHolding, currentIAmaxHolding) = pd.getInvestmentAssetHoldingPerc(curr[i]);
+                rhs = getIARank(curr[i], rate[i]);
+                if (rhs > max) {
+                    max = rhs;
+                    maxCurr = curr[i];
+                    maxRate = rate[i];
+                } else if (rhs == max) {//tie for the highest RHSx  
+                    if (currentIAmaxHolding > pd.getInvestmentAssetMaxHoldingPerc(maxCurr)) {//Highest MaxIA%
+                        max = rhs;
+                        maxCurr = curr[i];
+                        maxRate = rate[i];
+                    } else if (currentIAmaxHolding == pd.getInvestmentAssetMaxHoldingPerc(maxCurr)) {//tie in MaxIA%
+                        if (currentIAminHolding > pd.getInvestmentAssetMinHoldingPerc(maxCurr)) { //   Highest MinIA%
+                            max = rhs;
+                            maxCurr = curr[i];
+                            maxRate = rate[i];
+                        } else if (currentIAminHolding == pd.getInvestmentAssetMinHoldingPerc(maxCurr)) { //tie in MinIA%
+                            if (strCompare(bytes16ToString(curr[i]), bytes16ToString(maxCurr)) == 1) { //Alphabetical order of ERC20 name.
+                                max = rhs;
+                                maxCurr = curr[i];
+                                maxRate = rate[i];
+                            }
+                        }
+                    }
+                } else if (rhs == min) { //a tie for the lowest RHSx 
+                    if (currentIAmaxHolding > pd.getInvestmentAssetMaxHoldingPerc(minCurr)) { //Highest MaxIA%
+                        min = rhs;
+                        minCurr = curr[i];
+                        minRate = rate[i];
+                    } else if (currentIAmaxHolding == pd.getInvestmentAssetMaxHoldingPerc(minCurr)) { //tie
+                        if (currentIAminHolding > pd.getInvestmentAssetMinHoldingPerc(minCurr)) { //   Highest MinIA%  
+                            min = rhs;
+                            minCurr = curr[i];
+                            minRate = rate[i];
+                        } else if (currentIAminHolding == pd.getInvestmentAssetMinHoldingPerc(minCurr)) {   //tie
+                            if (strCompare(bytes16ToString(curr[i]), bytes16ToString(minCurr)) == 1) {    //Alphabetical order of ERC20 name.
+                                min = rhs;
+                                minCurr = curr[i];
+                                minRate = rate[i];
+                            }
+                        }
+                    }
+                } else if (rhs < min || rhs == 0 || min == -1) {
+                    min = rhs;
+                    minCurr = curr[i];
+                    minRate = rate[i];
                 }
-                else if(RHS==MAX) //tie for the highest RHSx  
-                {
-                    if(currentIAmaxHolding>pd.getInvestmentAssetMaxHoldingPerc(MAXCurr))  //Highest MaxIA%
-                    {
-                        MAX=RHS;
-                        MAXCurr =curr[i];
-                        MAXRate=rate[i];  
-                    }
-                    else if(currentIAmaxHolding==pd.getInvestmentAssetMaxHoldingPerc(MAXCurr)) //tie in MaxIA%
-                    {
-                         if(currentIAminHolding>pd.getInvestmentAssetMinHoldingPerc(MAXCurr)) //   Highest MinIA%
-                        {
-                            MAX=RHS;
-                            MAXCurr =curr[i];  
-                            MAXRate=rate[i];
-                        }
-                        else if(currentIAminHolding==pd.getInvestmentAssetMinHoldingPerc(MAXCurr)) //tie in MinIA%
-                        {
-                            if(strCompare(bytes16ToString(curr[i]),bytes16ToString(MAXCurr))==1) //Alphabetical order of ERC20 name.
-                            {
-                                MAX=RHS;
-                                MAXCurr =curr[i];
-                                MAXRate=rate[i];  
-                            }   
-                        }
-                    }
-                }
-                else if(RHS==MIN) //a tie for the lowest RHSx 
-                {
-                    if(currentIAmaxHolding>pd.getInvestmentAssetMaxHoldingPerc(MINCurr))  //Highest MaxIA%
-                    {
-                        MIN=RHS;
-                        MINCurr =curr[i];
-                        MINRate=rate[i];  
-                    }
-                    else if(currentIAmaxHolding==pd.getInvestmentAssetMaxHoldingPerc(MINCurr)) //tie
-                    {
-                        if(currentIAminHolding>pd.getInvestmentAssetMinHoldingPerc(MINCurr)) //   Highest MinIA%
-                        {
-                            MIN=RHS;
-                            MINCurr =curr[i];  
-                            MINRate=rate[i];  
-                        }
-                        else if(currentIAminHolding==pd.getInvestmentAssetMinHoldingPerc(MINCurr)) //tie
-                        {
-                            if(strCompare(bytes16ToString(curr[i]),bytes16ToString(MINCurr))==1) //Alphabetical order of ERC20 name.
-                            {
-                                MIN=RHS;
-                                MINCurr =curr[i];
-                                MINRate=rate[i];
-                            }   
-                        }
-                    }
-                }
-                else if(RHS<MIN || RHS==0 || MIN==-1 ) 
-                {
-                    MIN=RHS;
-                    MINCurr=curr[i];
-                    MINRate=rate[i];  
-                }  
             }
-        }    
+        }
     }
-      function strCompare(string _a, string _b) internal returns (int) {
-        bytes memory a = bytes(_a);
-        bytes memory b = bytes(_b);
-        uint minLength = a.length;
-        if (b.length < minLength) minLength = b.length;
-        for (uint i = 0; i < minLength; i ++)
-            if (a[i] < b[i])
-                return -1;
-            else if (a[i] > b[i])
-                return 1;
-        if (a.length < b.length)
-            return -1;
-        else if (a.length > b.length)
-            return 1;
-        else
-            return 0;
+
+    /// @dev Unwraps ether.
+    function convertWETHintoETH(bytes8[] curr, uint64[] rate, uint64 date) checkPause payable {
+
+        btok = BasicToken(pd.getWETHAddress());
+        bool success = btok.transfer(msg.sender, msg.value);
+        if (success == true)
+            p3.saveIADetails(curr, rate, date);
     }
-       
+
     function bytes16ToString(bytes16 x)  internal constant returns (string) 
     {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
-             byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));           
+            byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));           
             if (char != 0) {
                 bytesString[charCount] = char;
                 charCount++;
@@ -584,15 +443,25 @@ contract pool2
         }
         return string(bytesStringTrimmed);
     }
-    
-    /// @dev Unwraps ether.
-    function convertWETHintoETH(bytes8[] curr,uint64[] rate,uint64 date)checkPause payable
-    {
-        // pd = poolData1(poolDataAddress);
-        // p3=pool3(pool3Address);
-        btok=BasicToken(pd.getWETHAddress());
-        bool success= btok.transfer(msg.sender,msg.value);
-        if(success==true)
-            p3.saveIADetails(curr,rate,date);
+
+    function strCompare(string _a, string _b) internal returns(int) {
+        bytes memory a = bytes(_a);
+        bytes memory b = bytes(_b);
+        uint minLength = a.length;
+        if (b.length < minLength) minLength = b.length;
+        for (uint i = 0; i < minLength; i++)
+            if (a[i] < b[i]) {
+                return -1;
+            }else if (a[i] > b[i]) {
+                return 1;
+            }
+        if (a.length < b.length) {
+            return -1;
+        }else if (a.length > b.length) {
+            return 1;
+        }else {
+            return 0;
+        }
     }
+
 }

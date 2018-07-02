@@ -245,7 +245,8 @@ contract claims is Iupgradable {
 
         address qadd = qd.getCoverMemberAddress(coverId);
         require(qadd == msg.sender);
-        // ms=master(masterAddress);
+        bytes16 cStatus=qd.getCoverStatus(uint16(coverId));
+        require(cStatus == "Active" || cStatus == "Claim Denied" || cStatus == "Requested");
         if (ms.isPause() == false)
             addClaim(coverId, now, qadd);
         else {
@@ -426,7 +427,7 @@ contract claims is Iupgradable {
         tc2.depositCN(coverId, tokens, timeStamp, add);
         uint len = cd.actualClaimLength();
         cd.addClaim(len, coverId, add, nowtime);
-        cd.callClaimEvent(coverId, msg.sender, len, time);
+        cd.callClaimEvent(coverId, add, len, time);
         qd.changeCoverStatusNo(coverId, 4);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint sumAssured = qd.getCoverSumAssured(coverId);

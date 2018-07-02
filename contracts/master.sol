@@ -119,7 +119,8 @@ contract master {
     function addEmergencyPause(bool _pause, bytes4 _by) onlyInternal {
         emergencyPaused.push(emergencyPause(_pause, now, _by));
         if (_pause == false) {
-
+            c1 = claims(versionContractAddress[currentVersion]["C1"]);
+            cr = claimsReward(versionContractAddress[currentVersion]["CR"]);
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
             cr.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
@@ -141,16 +142,6 @@ contract master {
         for (uint i = 0; i < contractNames.length; i++) {
             contracts = Iupgradable(versionContractAddress[currentVersion][contractNames[i]]);
             contracts.changeMasterAddress(_add);
-        }
-
-    }
-
-    /// @dev Link contracts to one another.
-    function changeOtherAddress() onlyInternal {
-        Iupgradable contracts;
-        for (uint i = 0; i < contractNames.length; i++) {
-            contracts = Iupgradable(versionContractAddress[currentVersion][contractNames[i]]);
-            contracts.changeDependentContractAddress();
         }
 
     }
@@ -268,6 +259,16 @@ contract master {
     /// @dev Sets the length of version.
     function setVersionLength(uint len) internal {
         versionLength = len;
+    }
+    
+    /// @dev Link contracts to one another.
+    function changeOtherAddress() internal {
+        Iupgradable contracts;
+        for (uint i = 0; i < contractNames.length; i++) {
+            contracts = Iupgradable(versionContractAddress[currentVersion][contractNames[i]]);
+            contracts.changeDependentContractAddress();
+        }
+
     }
 
 }

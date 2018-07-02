@@ -78,7 +78,7 @@ contract nxmToken2 is Iupgradable {
 
     function changeMemberRolesAddress(address memberAddress) onlyInternal
     {
-        mr=memberRoles(memberAddress);
+        mr = memberRoles(memberAddress);
     }
     
     /// @dev Locks tokens against a cover.     

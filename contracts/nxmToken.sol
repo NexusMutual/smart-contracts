@@ -39,6 +39,12 @@ contract nxmToken is Iupgradable {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _of, bytes16 eventName, uint coverId, uint tokens);
+    event Lock(
+        address indexed _of,
+        bytes32 indexed _reason,
+        uint256 _amount,
+        uint256 _validity
+    );
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
@@ -119,11 +125,11 @@ contract nxmToken is Iupgradable {
     /// i.e., these tokens cannot be used to cast another vote for a specified period of time.
     /// @param _to Claims assessor address.
     /// @param value number of tokens that will be booked for a period of time. 
-    function bookCATokens(address _to, uint value) public onlyInternal {
+    // function bookCATokens(address _to, uint value) public onlyInternal {
 
-        td.pushBookedCA(_to, value);
+    //     td.pushBookedCA(_to, value);
 
-    }
+    // }
 
     /// @dev Unlocks the Tokens of a given cover id
     function unlockCN(uint coverid) public onlyInternal {
@@ -151,31 +157,31 @@ contract nxmToken is Iupgradable {
     }
 
     /// @dev Gets the total number of tokens available for the Claim Assessment.    
-    function getAvailableCAToken() public constant returns(uint tokenAvailableCA) {
+    // function getAvailableCAToken() public constant returns(uint tokenAvailableCA) {
 
-        tokenAvailableCA = 0;
-        uint validUpto;
-        uint lockCAamount;
-        address _of = msg.sender;
-        //Tokens locked for at least a specified minimum lock period can be used for voting
-        for (uint i = 0; i < td.getLockCALength(_of); i++) {
-            (, validUpto, lockCAamount, ) = td.getLockedCAByindex(_of, i);
-            if (SafeMaths.add(now, td.getMinVoteLockPeriod()) < validUpto)
-                tokenAvailableCA = SafeMaths.add(tokenAvailableCA, lockCAamount);
-        }
-        // Booked tokens cannot be used for claims assessment
-        uint bookedamt = td.getBookedCA(_of);
-        if (tokenAvailableCA > bookedamt)
-            tokenAvailableCA = SafeMaths.sub(tokenAvailableCA, bookedamt);
-        else
-            tokenAvailableCA = 0;
-    }
+    //     tokenAvailableCA = 0;
+    //     uint validUpto;
+    //     uint lockCAamount;
+    //     address _of = msg.sender;
+    //     //Tokens locked for at least a specified minimum lock period can be used for voting
+    //     for (uint i = 0; i < td.getLockCALength(_of); i++) {
+    //         (, validUpto, lockCAamount, ) = td.getLockedCAByindex(_of, i);
+    //         if (SafeMaths.add(now, td.getMinVoteLockPeriod()) < validUpto)
+    //             tokenAvailableCA = SafeMaths.add(tokenAvailableCA, lockCAamount);
+    //     }
+    //     // Booked tokens cannot be used for claims assessment
+    //     uint bookedamt = td.getBookedCA(_of);
+    //     if (tokenAvailableCA > bookedamt)
+    //         tokenAvailableCA = SafeMaths.sub(tokenAvailableCA, bookedamt);
+    //     else
+    //         tokenAvailableCA = 0;
+    // }
 
     /// @dev Gets the Token balance (lock + available) of a given address.
-    function balanceOf(address _add) public constant returns(uint balance) {
+    // function balanceOf(address _add) public constant returns(uint balance) {
 
-        balance = td.getBalanceOf(_add);
-    }
+    //     balance = td.getBalanceOf(_add);
+    // }
 
     /// @dev Triggers an event when Tokens are burnt.
     function callBurnEvent(address _add, bytes16 str, uint id, uint value) public onlyInternal {
@@ -194,7 +200,7 @@ contract nxmToken is Iupgradable {
 
         require(ms.isMember(_to) == true);
         require(_value > 0);
-        require(getAvailableTokens(msg.sender) >= _value);
+        require(balanceOf(msg.sender) >= _value);
 
         td.changeBalanceOf(msg.sender, SafeMaths.sub(td.getBalanceOf(msg.sender), _value)); // Subtract from the sender
 
@@ -238,7 +244,7 @@ contract nxmToken is Iupgradable {
     /// @return success true if transfer is a success, false if transfer is a failure.
     function transferFrom(address _from, address _to, uint256 _value) public isMemberAndcheckPause returns(bool success) {
         // ms=master(masterAddress);
-        require(getAvailableTokens(_from) >= _value);
+        require(balanceOf(_from) >= _value);
         require(_value <= td.getAllowerSpenderAllowance(_from, msg.sender));
         td.changeBalanceOf(_from, SafeMaths.sub(td.getBalanceOf(_from), _value)); // Subtract from the sender
 
@@ -439,27 +445,149 @@ contract nxmToken is Iupgradable {
             td.setSCAddressLastCommIndex(_scAddress, SafeMaths.sub(stakeLength, 1));
     }
 
+     /**
+     * @dev Gets the balance of the specified address.
+     * @param _owner The address to query the the balance of.
+     * @return An uint256 representing the amount owned by the passed address.
+     */
+    function balanceOf(address _owner) public view returns (uint256) {
+        uint256 lockedAmount = 0;
+        for (uint256 i = 0; i < lock_reason.length; i++) {
+            lockedAmount += tokensLocked(_owner, lock_reason[i], block.timestamp);
+        }   
+        uint256 amount = ((balances[_owner].sub(lockedAmount)).sub(td.getBalanceCN(_add))).sub(getLockedNXMTokenOfStakerByStakerAddress(_add));
+
+        return amount;
+    }
+
     /// @dev Available tokens for use.
     /// @param _add user address.
     /// @return tokens total available tokens.
-    function getAvailableTokens(address _add) public constant returns(uint tokens) {
-        return SafeMaths.sub(
-            SafeMaths.sub(
-                SafeMaths.sub(
-                    SafeMaths.sub(
-                        td.getBalanceOf(_add), 
-                        td.getBalanceMVWithAddress(_add)), 
-                    td.getBalanceCAWithAddress(_add)), 
-                td.getBalanceCN(_add)), 
-            getLockedNXMTokenOfStakerByStakerAddress(_add)
-            );
+    // function getAvailableTokens(address _add) public constant returns(uint tokens) {
+    //     return SafeMaths.sub(
+    //         SafeMaths.sub(
+    //             SafeMaths.sub(
+    //                 SafeMaths.sub(
+    //                     td.getBalanceOf(_add), 
+    //                     td.getBalanceMVWithAddress(_add)), 
+    //                 td.getBalanceCAWithAddress(_add)), 
+    //             td.getBalanceCN(_add)), 
+    //         getLockedNXMTokenOfStakerByStakerAddress(_add)
+    //         );
+    // }
+
+    /**
+     * @dev Returns tokens available for transfer for a specified address
+     * @param _of The address to query the the lock tokens of
+     */
+    function totalBalanceOf(address _of)
+        public
+        view
+        returns (uint256 amount)
+    {
+        return(td.getBalanceOf(_of));
+    }
+
+    /**
+     * @dev Returns tokens locked for a specified address for a
+     *      specified purpose at a specified time
+     *
+     * @param _of The address whose tokens are locked
+     * @param _reason The purpose to query the lock tokens for
+     * @param _time The timestamp to query the lock tokens for
+     */
+    function tokensLocked(address _of, bytes32 _reason, uint256 _time)
+        public
+        view
+        returns (uint256 amount)
+    {
+        return(td.tokensLocked(_of, _reason, _time));
+    }
+
+    /**
+     * @dev Locks a specified amount of tokens against an address,
+     *      for a specified purpose and time
+     * @param _reason The purpose to lock tokens
+     * @param _amount Number of tokens to be locked
+     * @param _time Lock time in seconds
+     */
+    function lock(bytes32 _reason, uint256 _amount, uint256 _time)
+        public
+    {
+        uint256 validUntil=block.timestamp.add(_time);
+        // If tokens are already locked, the functions extendLock or
+        // increaseLockAmount should be used to make any changes
+        require(tokensLocked(msg.sender, _reason, block.timestamp) == 0);
+        require(_amount <= balanceOf(msg.sender));
+        require(reason_valid[_reason]);
+        td.lockTokens(_reason, msg.sender, _amount, _time);
+        emit Lock(msg.sender, _reason, _amount, validUntil);
+    }
+
+    /**
+     * @dev Extends lock for a specified purpose and time
+     * @param _reason The purpose to lock tokens
+     * @param _time Lock extension time in seconds
+     */
+    function extendLock(bytes32 _reason, uint256 _time)
+        public
+    {
+        require(tokensLocked(_of, _reason, block.timestamp) != 0);
+        td.changeLockValidity(_reason, _of, _time, true);
+        uint amount;
+        uint validity;
+        (amount, validity) = td.locked(_of, _reason);
+        emit Lock(_of, _reason, amount, validity);
+    }
+
+    /**
+     * @dev Extends lock for a specified purpose and time
+     * @param _reason The purpose to lock tokens
+     * @param _time Lock extension time in seconds
+     */
+    function changeLock(bytes32 _reason, address _of, uint256 _time, bool extend) onlyInternal
+        public
+    {
+        require(tokensLocked(_of, _reason, block.timestamp) != 0);
+        td.changeLockValidity(_reason, _of, _time, extend);
+        uint amount;
+        uint validity;
+        (amount, validity) = td.locked(_of, _reason);
+        emit Lock(_of, _reason, amount, validity);
+    }
+
+    /**
+     * @dev Extends lock for a specified purpose and time
+     * @param _reason The purpose to lock tokens
+     * @param _time Lock extension time in seconds
+     */
+    function reduceLock(bytes32 _reason, address _of, uint256 _time) onlyInternal
+        public
+    {
+        changeLock(_reason, msg.sender, _time, false);        
+    }
+    
+    /**
+     * @dev Increase number of tokens locked for a specified purpose
+     * @param _reason The purpose to lock tokens
+     * @param _amount Number of tokens to be increased
+     */
+    function increaseLockAmount(bytes32 _reason, uint256 _amount)
+        public
+    {
+        require(tokensLocked(msg.sender, _reason, block.timestamp) != 0);
+        td.changeLockAmount(_reason, msg.sender, _amount, true);
+        uint amount;
+        uint validity;
+        (amount, validity) = td.locked(msg.sender, _reason);
+        emit Lock(msg.sender, _reason, amount, validity);
     }
 
     /// @dev Number of days extra lock while voting as CA.
-    function getLockCADays() constant returns(uint32) {
-        uint32 _days = td.lockCADays();
-        return _days;
-    }
+    // function getLockCADays() constant returns(uint32) {
+    //     uint32 _days = td.lockCADays();
+    //     return _days;
+    // }
 
 }
 

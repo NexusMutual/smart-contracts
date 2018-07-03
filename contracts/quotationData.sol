@@ -104,7 +104,7 @@ contract quotationData is Iupgradable {
         coverStatus.push(status);
     }
 
-    /// @dev Gets status of a given cover id.
+    /// @dev Gets status of a given index.
     function getCoverStatus(uint16 index) constant returns(bytes16 status) {
         return coverStatus[index];
     }

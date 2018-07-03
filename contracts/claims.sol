@@ -245,7 +245,8 @@ contract claims is Iupgradable {
 
         address qadd = qd.getCoverMemberAddress(coverId);
         require(qadd == msg.sender);
-        bytes16 cStatus=qd.getCoverStatus(uint16(coverId));
+        bytes16 cStatus;
+        (, , , , cStatus) = qd.getCoverDetailsByCoverID1(coverId);
         require(cStatus == "Active" || cStatus == "Claim Denied" || cStatus == "Requested");
         if (ms.isPause() == false)
             addClaim(coverId, now, qadd);

@@ -39,6 +39,8 @@ contract nxmTokenData is Iupgradable {
     uint32 public lockCADays;
     uint public joiningFee;
     address public walletAddress;
+    // Add setter, length function and hasBeenLockedBefore(_of,_for)
+    mapping(address => bytes32[]) public lock_reason;
 
     struct stakeCommission {
         uint commissionAmt;
@@ -79,11 +81,12 @@ contract nxmTokenData is Iupgradable {
     allocatedTokens[] allocatedFounderTokens;
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(uint => lockToken[])) public userCoverDepositCN;
-    mapping(address => lockTokenCA[]) lockedCA;
-    mapping(address => uint) lastExpiredLockCA;
+    mapping(address => mapping(bytes32 => lockToken)) public locked;
+    // mapping(address => lockTokenCA[]) lockedCA;
+    // mapping(address => uint) lastExpiredLockCA;
     mapping(address => lockToken[]) lockedCN;
-    mapping(address => lockToken[]) bookedCA;
-    mapping(address => lockToken[]) lockedMV;
+    // mapping(address => lockToken[]) bookedCA;
+    // mapping(address => lockToken[]) lockedMV;
     mapping(address => mapping(uint => lockToken)) public userCoverLockedCN;
     mapping(address => mapping(address => uint256)) public allowerSpenderAllowance;
 
@@ -92,6 +95,7 @@ contract nxmTokenData is Iupgradable {
     event Burn(address indexed _of, bytes16 eventName, uint coverId, uint tokens);
     mapping(address => mapping(uint => lockToken[])) public burnCAToken;
     uint public lockTokenTimeAfterCoverExp;
+   
 
     function nxmTokenData(
         uint256 initialSupply,
@@ -237,48 +241,66 @@ contract nxmTokenData is Iupgradable {
     ///                 the same token cannot be used to cast another vote before a fixed period of time(in milliseconds)
     /// @param _of user's address.
     /// @param value number of tokens that will be locked for a period of time. 
-    function pushBookedCA(address _of, uint value) onlyInternal {
+    // function pushBookedCA(address _of, uint value) onlyInternal {
 
-        bookedCA[_of].push(lockToken(SafeMaths.add(now, bookTime), value));
-    }
-
-    /// @dev Gets number of times a user has locked tokens for claim assessment.
-    /// @param _of User's address.
-    /// @return len number to times
-    function getLockCALength(address _of) constant returns(uint len) {
-        len = lockedCA[_of].length;
-    }
+    //     bookedCA[_of].push(lockToken(SafeMaths.add(now, bookTime), value));
+    // }
 
     /// @dev Gets number of times a user has locked tokens for claim assessment.
     /// @param _of User's address.
     /// @return len number to times
-    function getLockedCALength(address _of) constant returns(uint len) {
-        len = lockedCA[_of].length;
-    }
+    // function getLockCALength(address _of) constant returns(uint len) {
+    //     len = lockedCA[_of].length;
+    // }
+
+    /// @dev Gets number of times a user has locked tokens for claim assessment.
+    /// @param _of User's address.
+    /// @return len number to times
+    // function getLockedCALength(address _of) constant returns(uint len) {
+    //     len = lockedCA[_of].length;
+    // }
 
     /// @dev Gets the validity date and number of tokens locked under CA at a given index of mapping
-    function getLockedCAByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val, uint _claimId) {
-        index = _index;
-        valid = lockedCA[_of][_index].tokenLock.validUpto;
-        val = lockedCA[_of][_index].tokenLock.amount;
-        _claimId = lockedCA[_of][_index].claimId;
+    // function getLockedCAByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val, uint _claimId) {
+    //     index = _index;
+    //     valid = lockedCA[_of][_index].tokenLock.validUpto;
+    //     val = lockedCA[_of][_index].tokenLock.amount;
+    //     _claimId = lockedCA[_of][_index].claimId;
 
-    }
+    // }
 
     /// @dev Updates the number of tokens locked for Claims assessment.
     /// @param _of User's address.
     /// @param index index position.
     /// @param value number of tokens.
-    function changeLockedCAByIndex(address _of, uint index, uint value) onlyInternal {
-        lockedCA[_of][index].tokenLock.amount = value;
+    function lockTokens(bytes32 _reason, address _of, uint256 _amount, uint256 _time) onlyInternal {
+        locked[_of][_reason] = lockToken(_amount, validUntil);
+        // emit Lock(_of, _reason, _amount, validUntil);        
     }
 
     /// @dev Extends the validity period of tokens locked under claims assessment.
     /// @param _of User's address.
     /// @param index index position.
     /// @param newTimestamp New validity date(timestamp).
-    function extendCA(address _of, uint index, uint newTimestamp) onlyInternal {
-        lockedCA[_of][index].tokenLock.validUpto = newTimestamp;
+    function changeLockValidity(bytes32 _reason, address _of, uint256 _time, uint256 _extend) onlyInternal {
+        if( _extend == 1)
+            locked[_of][_reason].validity += _time;
+        else
+            locked[_of][_reason].validity -= _time;
+        // emit Lock( _of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
+
+    }
+
+    /**
+     * @dev Increase number of tokens locked for a specified purpose
+     * @param _reason The purpose to lock tokens
+     * @param _amount Number of tokens to be increased
+     */
+    function increaseLockAmount(bytes32 _reason, address _of, uint256 _amount)
+        public
+    {        
+        locked[_of][_reason].amount += _amount;
+        // emit Lock(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
     }
 
     /// @dev Gets number of times a user has locked tokens for covers.
@@ -308,49 +330,49 @@ contract nxmTokenData is Iupgradable {
     /// @dev Gets number of times a user has locked tokens for member vote.
     /// @param _of User's address.
     /// @return len number of times tokens has been locked for member vote.
-    function getLockedMVLength(address _of) constant returns(uint len) {
-        len = lockedMV[_of].length;
-    }
+    // function getLockedMVLength(address _of) constant returns(uint len) {
+    //     len = lockedMV[_of].length;
+    // }
 
     /// @dev Gets the validity date and number of lock tokens against member vote of a user at a given index.
-    function getLockedMVByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val) {
-        index = _index;
-        valid = lockedMV[_of][_index].validUpto;
-        val = lockedMV[_of][_index].amount;
-    }
+    // function getLockedMVByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val) {
+    //     index = _index;
+    //     valid = lockedMV[_of][_index].validUpto;
+    //     val = lockedMV[_of][_index].amount;
+    // }
 
     /// @dev Updates the number and validity of tokens locked for member vote by a user using the mapping index.
     /// @param _of User's address.
     /// @param index index position.
     /// @param timestamp New validity date(timestamp).
     /// @param amount1 New number of tokens.
-    function updateLockedMV(address _of, uint index, uint timestamp, uint amount1) onlyInternal {
-        lockedMV[_of][index].validUpto = timestamp;
-        lockedMV[_of][index].amount = amount1;
-    }
+    // function updateLockedMV(address _of, uint index, uint timestamp, uint amount1) onlyInternal {
+    //     lockedMV[_of][index].validUpto = timestamp;
+    //     lockedMV[_of][index].amount = amount1;
+    // }
 
     /// @dev Calculates the Sum of tokens locked for Member Vote of a user.
-    function getBalanceMVWithAddress(address _to) constant returns(uint tokensLockedMV) {
-        tokensLockedMV = 0;
-        for (uint i = 0; i < lockedMV[_to].length; i++) {
-            if (now < lockedMV[_to][i].validUpto)
-                tokensLockedMV = SafeMaths.add(tokensLockedMV, lockedMV[_to][i].amount);
-        }
-    }
+    // function getBalanceMVWithAddress(address _to) constant returns(uint tokensLockedMV) {
+    //     tokensLockedMV = 0;
+    //     for (uint i = 0; i < lockedMV[_to].length; i++) {
+    //         if (now < lockedMV[_to][i].validUpto)
+    //             tokensLockedMV = SafeMaths.add(tokensLockedMV, lockedMV[_to][i].amount);
+    //     }
+    // }
 
     /// @dev Adds details of tokens that are locked for Member Vote by a user.
     /// @param _of User's address.
     /// @param _timestamp Validity of tokens.
     /// @param _value number of tokens lock.
-    function lockMV(address _of, uint _timestamp, uint _value) onlyInternal {
-        lockedMV[_of].push(lockToken(_timestamp, _value));
-    }
+    // function lockMV(address _of, uint _timestamp, uint _value) onlyInternal {
+    //     lockedMV[_of].push(lockToken(_timestamp, _value));
+    // }
 
     /// @dev set Lock MV days.
-    function setlockMVDays(uint32 _val) onlyInternal {
-        lockMVDays = _val;
+    // function setlockMVDays(uint32 _val) onlyInternal {
+    //     lockMVDays = _val;
 
-    }
+    // }
 
     /// @dev set lock CA days.
     function setlockCADays(uint32 _val) onlyInternal {
@@ -361,16 +383,16 @@ contract nxmTokenData is Iupgradable {
     /// @dev Gets number of times a user's tokens have been booked for participation in claims assessment.
     /// @param _of User's address.
     /// @return len number to times
-    function getBookedCALength(address _of) constant returns(uint timesBooked) {
-        timesBooked = bookedCA[_of].length;
-    }
+    // function getBookedCALength(address _of) constant returns(uint timesBooked) {
+    //     timesBooked = bookedCA[_of].length;
+    // }
 
     /// @dev Gets the validity date and number of tokens booked for participation in claims assessment, at a given mapping index.
-    function getBookedCAByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val) {
-        index = _index;
-        valid = bookedCA[_of][_index].validUpto;
-        val = bookedCA[_of][_index].amount;
-    }
+    // function getBookedCAByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val) {
+    //     index = _index;
+    //     valid = bookedCA[_of][_index].validUpto;
+    //     val = bookedCA[_of][_index].amount;
+    // }
 
     /// @dev Gets the number of times a user has deposit tokens to submit claim of a cover.
     /// @param _of User's address.
@@ -431,12 +453,29 @@ contract nxmTokenData is Iupgradable {
     }
 
     /// @dev Calculates the Sum of tokens locked for Claim Assessments of a user.
-    function getBalanceCAWithAddress(address _to) constant returns(uint tokensLockedCA) {
-        tokensLockedCA = 0;
-        for (uint i = 0; i < lockedCA[_to].length; i++) {
-            if (now < lockedCA[_to][i].tokenLock.validUpto)
-                tokensLockedCA = SafeMaths.add(tokensLockedCA, lockedCA[_to][i].tokenLock.amount);
-        }
+    // function getBalanceCAWithAddress(address _to) constant returns(uint tokensLockedCA) {
+    //     tokensLockedCA = 0;
+    //     for (uint i = 0; i < lockedCA[_to].length; i++) {
+    //         if (now < lockedCA[_to][i].tokenLock.validUpto)
+    //             tokensLockedCA = SafeMaths.add(tokensLockedCA, lockedCA[_to][i].tokenLock.amount);
+    //     }
+    // }
+
+    /**
+     * @dev Returns tokens locked for a specified address for a
+     *      specified purpose at a specified time
+     *
+     * @param _of The address whose tokens are locked
+     * @param _reason The purpose to query the lock tokens for
+     * @param _time The timestamp to query the lock tokens for
+     */
+    function tokensLocked(address _of, bytes32 _reason, uint256 _time)
+        public
+        view
+        returns (uint256 amount)
+    {
+        if (locked[_of][_reason].validity > _time)
+            amount = locked[_of][_reason].amount;
     }
 
     /// @dev Calculates the Sum of tokens locked for Cover Note of a user.(available + unavailable)
@@ -450,13 +489,13 @@ contract nxmTokenData is Iupgradable {
     }
 
     /// @dev Calculates the sum of tokens booked by a user for Claim Assessment.
-    function getBookedCA(address _to) constant returns(uint tokensBookedCA) {
-        tokensBookedCA = 0;
-        for (uint i = 0; i < bookedCA[_to].length; i++) {
-            if (now < bookedCA[_to][i].validUpto)
-                tokensBookedCA = SafeMaths.add(tokensBookedCA, bookedCA[_to][i].amount);
-        }
-    }
+    // function getBookedCA(address _to) constant returns(uint tokensBookedCA) {
+    //     tokensBookedCA = 0;
+    //     for (uint i = 0; i < bookedCA[_to].length; i++) {
+    //         if (now < bookedCA[_to][i].validUpto)
+    //             tokensBookedCA = SafeMaths.add(tokensBookedCA, bookedCA[_to][i].amount);
+    //     }
+    // }
 
     /// @dev Calculates the total number of tokens deposited in a cover by a user.
     /// @param _coverId cover id.
@@ -487,9 +526,9 @@ contract nxmTokenData is Iupgradable {
     /// @param _of User's address.
     /// @param _timestamp Validity of tokens.
     /// @param _value number of tokens lock.
-    function lockCA(address _of, uint _timestamp, uint _value, uint claimId) onlyInternal {
-        lockedCA[_of].push(lockTokenCA(lockToken(_timestamp, _value), claimId));
-    }
+    // function lockCA(address _of, uint _timestamp, uint _value, uint claimId) onlyInternal {
+    //     lockedCA[_of].push(lockTokenCA(lockToken(_timestamp, _value), claimId));
+    // }
 
     /// @dev Adds details of tokens that are locked against a given cover by a user.
     /// @param _of User's address.
@@ -514,9 +553,9 @@ contract nxmTokenData is Iupgradable {
     /// @param _of User's address.
     /// @param _timestamp Validity of tokens.
     /// @param value number of tokens booked.
-    function pushInBookedCA(address _of, uint _timestamp, uint value) onlyInternal {
-        bookedCA[_of].push(lockToken(_timestamp, value));
-    }
+    // function pushInBookedCA(address _of, uint _timestamp, uint value) onlyInternal {
+    //     bookedCA[_of].push(lockToken(_timestamp, value));
+    // }
 
     /// @dev Adds details of tokens that are deposit against a given cover by a user for submission of claim.
     /// @param _of User's address.
@@ -713,15 +752,15 @@ contract nxmTokenData is Iupgradable {
 
     /// @dev Gets the index till which all Locked tokens for CA are expired.
     /// @param _add addressof user
-    function getLastExpiredLockCA(address _add) constant returns(uint) {
-        return lastExpiredLockCA[_add];
-    }
+    // function getLastExpiredLockCA(address _add) constant returns(uint) {
+    //     return lastExpiredLockCA[_add];
+    // }
 
     /// @dev Sets the index till which all Locked tokens for CA are expired.
     /// @param _add addressof user
     /// @param lastIndex index to be set.
-    function setLastExpiredLockCA(address _add, uint lastIndex) onlyInternal {
-        lastExpiredLockCA[_add] = lastIndex;
-    }
+    // function setLastExpiredLockCA(address _add, uint lastIndex) onlyInternal {
+    //     lastExpiredLockCA[_add] = lastIndex;
+    // }
 
 }

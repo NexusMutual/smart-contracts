@@ -108,28 +108,10 @@ contract nxmToken2 is Iupgradable {
     /// @param _to User's address.
     function burnCAToken(uint claimid, uint _value, address _to) onlyInternal {
 
-        require(td.getBalanceCAWithAddress(_to) >= _value);
+        require(tc1.tokensLocked(_to, "CLA", now) >= _value);
         td.pushInBurnCAToken(_to, claimid, now, _value);
-
-        uint yetToBurned = _value;
-        uint timesLockedToken = td.getLockedCALength(_to);
-        uint vUpto;
-        uint amount;
-        // Unlock tokens before burning
-        for (uint i = 0; i < timesLockedToken; i++) {
-            (, vUpto, amount) = td.getLockedCAByindex(_to, i);
-            if (now < vUpto) {
-                if (yetToBurned > amount) {
-                    yetToBurned = SafeMaths.sub(yetToBurned, amount);
-                    td.changeLockedCAByIndex(_to, i, 0);
-                } else {
-                    td.changeLockedCAByIndex(_to, i, SafeMaths.sub(amount, yetToBurned));
-                    yetToBurned = 0;
-                    break;
-                }
-            }
-        }
-
+        td.changeLockAmount("CLA", _to, _value, false);
+        td.changeBalanceOf(_to, td.getBalanceOf(_to) - _value);
         burnLockedTokenExtended(_to, claimid, _value, "BurnCA");
     }
 
@@ -159,69 +141,69 @@ contract nxmToken2 is Iupgradable {
     /// @param _to  User's address.
     /// @param _time Time for which tokens will be reduced.
     /// @param _noOfTokens Number of tokens that will get reduced. Should be less than or equal to the number of tokens of selected bond.
-    function reduceCAWithAddress(address _to, uint _time, uint _noOfTokens) onlyInternal {
+    // function reduceCAWithAddress(address _to, uint _time, uint _noOfTokens) onlyInternal {
 
-        uint lockedCATokenLength = td.getLockedCALength(_to);
-        uint vUpto;
-        uint amount;
-        uint claimId;
-        uint validityExpire = td.getLastExpiredLockCA(_to);
-        bool validityExpiredCheck = false;
-        uint yetToReduce = _noOfTokens;
-        for (uint i = validityExpire; i < lockedCATokenLength; i++) {
-            (, vUpto, amount, claimId) = td.getLockedCAByindex(_to, i);
-            if (vUpto > now && validityExpiredCheck == false) {
-                validityExpire = i;
-                validityExpiredCheck = true;
-            }
-            if (amount > 0) {
+    //     uint lockedCATokenLength = td.getLockedCALength(_to);
+    //     uint vUpto;
+    //     uint amount;
+    //     uint claimId;
+    //     uint validityExpire = td.getLastExpiredLockCA(_to);
+    //     bool validityExpiredCheck = false;
+    //     uint yetToReduce = _noOfTokens;
+    //     for (uint i = validityExpire; i < lockedCATokenLength; i++) {
+    //         (, vUpto, amount, claimId) = td.getLockedCAByindex(_to, i);
+    //         if (vUpto > now && validityExpiredCheck == false) {
+    //             validityExpire = i;
+    //             validityExpiredCheck = true;
+    //         }
+    //         if (amount > 0) {
 
-                uint newTime = now;
-                if (vUpto > SafeMaths.add(now, _time))
-                    newTime = SafeMaths.sub(vUpto, _time);
-                if (yetToReduce > amount) {
-                    yetToReduce = SafeMaths.sub(yetToReduce, amount);
-                    td.lockCA(_to, newTime, amount, claimId);
-                    td.changeLockedCAByIndex(_to, i, 0);
-                } else {
-                    td.lockCA(_to, newTime, yetToReduce, claimId);
-                    td.changeLockedCAByIndex(_to, i, SafeMaths.sub(amount, yetToReduce));
-                    yetToReduce = 0;
-                    break;
-                }
+    //             uint newTime = now;
+    //             if (vUpto > SafeMaths.add(now, _time))
+    //                 newTime = SafeMaths.sub(vUpto, _time);
+    //             if (yetToReduce > amount) {
+    //                 yetToReduce = SafeMaths.sub(yetToReduce, amount);
+    //                 td.lockCA(_to, newTime, amount, claimId);
+    //                 td.changeLockedCAByIndex(_to, i, 0);
+    //             } else {
+    //                 td.lockCA(_to, newTime, yetToReduce, claimId);
+    //                 td.changeLockedCAByIndex(_to, i, SafeMaths.sub(amount, yetToReduce));
+    //                 yetToReduce = 0;
+    //                 break;
+    //             }
 
-            }
-        }
-        td.setLastExpiredLockCA(_to, validityExpire);
-    }
+    //         }
+    //     }
+    //     td.setLastExpiredLockCA(_to, validityExpire);
+    // }
 
     /// @dev Extends validity period of a given number of tokens, locked for Claim Assessment
     /// @param _to  User's address.
     /// @param _timestamp Timestamp for which tokens will be extended.
     /// @param _noOfTokens Number of tokens that will get extended. Should be less than or equal to the number of tokens of selected bond. 
-    function extendCAWithAddress(address _to, uint _timestamp, uint _noOfTokens, uint claimId) onlyInternal {
+    // function extendCAWithAddress(address _to, uint _timestamp, uint _noOfTokens, uint claimId) onlyInternal {
 
-        require(td.getBalanceCAWithAddress(_to) >= _noOfTokens);
-        uint yetToExtend = _noOfTokens;
-        uint len = td.getLockedCALength(_to);
-        uint vUpto;
-        uint amount;
-        for (uint i = 0; i < len; i++) {
-            (, vUpto, amount, ) = td.getLockedCAByindex(_to, i);
-            if (amount > 0 && vUpto > now) {
-                if (yetToExtend > amount) {
-                    yetToExtend = SafeMaths.sub(yetToExtend, amount);
-                    td.lockCA(_to, SafeMaths.add(vUpto, _timestamp), amount, claimId);
-                    td.changeLockedCAByIndex(_to, i, 0);
-                } else {
-                    td.lockCA(_to, SafeMaths.add(vUpto, _timestamp), yetToExtend, claimId);
-                    td.changeLockedCAByIndex(_to, i, SafeMaths.sub(amount, yetToExtend));
-                    yetToExtend = 0;
-                    break;
-                }
-            }
-        }
-    }
+    //     require(td.getBalanceCAWithAddress(_to) >= _noOfTokens);
+    //     uint yetToExtend = _noOfTokens;
+    //     uint len = td.getLockedCALength(_to);
+    //     uint vUpto;
+    //     uint amount;
+    //     for (uint i = 0; i < len; i++) {
+    //         (, vUpto, amount, ) = td.getLockedCAByindex(_to, i);
+    //         if (amount > 0 && vUpto > now) {
+    //             if (yetToExtend > amount) {
+    //                 yetToExtend = SafeMaths.sub(yetToExtend, amount);
+    //                 td.lockCA(_to, SafeMaths.add(vUpto, _timestamp), amount, claimId);
+    //                 td.changeLockedCAByIndex(_to, i, 0);
+    //             } else {
+    //                 td.lockCA(_to, SafeMaths.add(vUpto, _timestamp), yetToExtend, claimId);
+    //                 td.changeLockedCAByIndex(_to, i, SafeMaths.sub(amount, yetToExtend));
+    //                 yetToExtend = 0;
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
 
     /// @dev Burns tokens deposited against a cover, called when a claim submitted against this cover is denied.
     /// @param coverid Cover Id.
@@ -271,17 +253,17 @@ contract nxmToken2 is Iupgradable {
     /// @param index  index of exisiting bond.
     /// @param _days number of days for which tokens will be extended.
     /// @param noOfTokens Number of tokens that will get extended. Should be less than or equal to the no.of tokens of selected bond.
-    function extendCA(uint index, uint _days, uint noOfTokens) isMemberAndcheckPause {
+    // function extendCA(uint index, uint _days, uint noOfTokens) isMemberAndcheckPause {
 
-        uint vUpto;
-        uint amount;
-        uint claimId;
-        (, vUpto, amount, claimId) = td.getLockedCAByindex(msg.sender, index);
-        require(vUpto >= now && amount >= noOfTokens);
-        td.changeLockedCAByIndex(msg.sender, index, SafeMaths.sub(amount, noOfTokens));
-        td.lockCA(msg.sender, (SafeMaths.add(vUpto, SafeMaths.mul(_days, 1 days))), noOfTokens, claimId);
+    //     uint vUpto;
+    //     uint amount;
+    //     uint claimId;
+    //     (, vUpto, amount, claimId) = td.getLockedCAByindex(msg.sender, index);
+    //     require(vUpto >= now && amount >= noOfTokens);
+    //     td.changeLockedCAByIndex(msg.sender, index, SafeMaths.sub(amount, noOfTokens));
+    //     td.lockCA(msg.sender, (SafeMaths.add(vUpto, SafeMaths.mul(_days, 1 days))), noOfTokens, claimId);
 
-    }
+    // }
 
     /// @dev Unlocks tokens deposited against a cover.Changes the validity timestamp of deposit tokens.
     /// @dev In order to submit a claim,20% tokens are deposited by the owner. In case a claim is escalated, another 20% tokens are deposited.
@@ -309,23 +291,23 @@ contract nxmToken2 is Iupgradable {
     /// @dev Locks a given number of tokens for Claim Assessment.
     /// @param _value number of tokens lock.
     /// @param _days Validity(in days) of tokens.
-    function lockCA(uint _value, uint _days, uint claimId) isMemberAndcheckPause {
+    // function lockCA(uint _value, uint _days, uint claimId) isMemberAndcheckPause {
 
-        require(tc1.getAvailableTokens(msg.sender) >= _value); // Check if the sender has enough
-        require(_value > 0);
-        td.lockCA(msg.sender, SafeMaths.add(now, SafeMaths.mul(_days, 1 days)), _value, claimId);
-    }
+    //     require(tc1.getAvailableTokens(msg.sender) >= _value); // Check if the sender has enough
+    //     require(_value > 0);
+    //     td.lockCA(msg.sender, SafeMaths.add(now, SafeMaths.mul(_days, 1 days)), _value, claimId);
+    // }
 
     /// @dev Locks a given number of tokens for Member vote.
     /// @param _add address  of member
     /// @param _value number of tokens lock.
     /// @param _days Validity(in days) of tokens.
-    function lockMV(address _add, uint _value, uint _days) onlyInternal {
+    // function lockMV(address _add, uint _value, uint _days) onlyInternal {
 
-        require(tc1.getAvailableTokens(_add) >= _value); // Check if the sender has enough
-        require(_value > 0);
-        td.lockMV(_add, SafeMaths.add(now, SafeMaths.mul(_days, 1 days)), _value);
-    }
+    //     require(tc1.getAvailableTokens(_add) >= _value); // Check if the sender has enough
+    //     require(_value > 0);
+    //     td.lockMV(_add, SafeMaths.add(now, SafeMaths.mul(_days, 1 days)), _value);
+    // }
 
     /// @dev Burns tokens locked against a Smart Contract Cover, called when a claim submitted against this cover is accepted.
     /// @param coverid Cover Id.

@@ -209,27 +209,29 @@ contract claimsReward is Iupgradable {
         bool lastClaimedCheck;
         uint _days = tc1.getLockCADays();
         bool claimed;
-        uint tokens = 0;
+        uint counter = 0;
         uint claimId;
         uint perc;
         uint i;
         for (i = lastIndexCA; i < lengthCAVote; i++) {
             voteid = cd.getVoteAddressCA(msg.sender, i);
-            (tokenForVoteId, lastClaimedCheck, tokens, perc) = getRewardToBeGiven(1, voteid, 0);
+            (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
             if (lastClaimedCA == lengthCAVote && lastClaimedCheck == true)
                 lastClaimedCA = i;
             (, claimId, , claimed) = cd.getVoteDetails(voteid);
 
-            if (perc > 0 && tokens > 0) {
-                tc2.reduceCAWithAddress(msg.sender, _days, tokens);
+            if (perc > 0) {
+                counter++;
                 cd.setRewardClaimed(voteid, true);
             } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0) {
-                tc2.reduceCAWithAddress(msg.sender, _days, tokens);
+                counter++;
                 cd.setRewardClaimed(voteid, true);
             }
             if (tokenForVoteId > 0)
                 total = SafeMaths.add(tokenForVoteId, total);
         }
+        _days = safSafeMaths.mul(_days, counter);
+        tc1.reduceLock("CLA", msg.sender, _days);
         for (i = lastIndexMV; i < lengthMVVote; i++) {
             voteid = cd.getVoteAddressMember(msg.sender, i);
             (tokenForVoteId, lastClaimedCheck, tokens, ) = getRewardToBeGiven(0, voteid, 0);

@@ -308,7 +308,7 @@ contract governance {
     function joinAB(address memAdd) {
 
         require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
-        uint tokensHeld = tc1.balanceOf(memAdd);
+        uint tokensHeld = tc1.totalBalanceOf(memAdd);
         uint totalTokens = tc1.totalSupply();
         require(isAB(memAdd) != true && ((SafeMaths.mul(tokensHeld, 100)) / totalTokens) >= 10);
         gd.joinAB(memAdd);

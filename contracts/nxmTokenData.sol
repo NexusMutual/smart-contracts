@@ -31,8 +31,8 @@ contract nxmTokenData is Iupgradable {
     uint256 public totalSupply;
     uint initialTokens;
     uint public currentFounderTokens;
-    uint public memberCounter;
-    uint64 bookTime;
+    // uint public memberCounter;
+    // uint64 bookTime;
     uint64 minVoteLockPeriod;
     uint16 public scValidDays;
     uint32 public lockMVDays;
@@ -40,7 +40,7 @@ contract nxmTokenData is Iupgradable {
     uint public joiningFee;
     address public walletAddress;
     // Add setter, length function and hasBeenLockedBefore(_of,_for)
-    mapping(address => bytes32[]) public lock_reason;
+    mapping(address => bytes32[]) public lockReason;
 
     struct stakeCommission {
         uint commissionAmt;
@@ -115,6 +115,8 @@ contract nxmTokenData is Iupgradable {
         lockTokenTimeAfterCoverExp = SafeMaths.mul(35, 1 days);
         scValidDays = 200;
         joiningFee = 2000000000000000; //gwei - 0.002*(10**18)
+        lockCADays = SafeMaths.mul(7, 1 days);
+        lockMVDays = SafeMaths.mul(2, 1 days);
     }
 
     function changeMasterAddress(address _add) {
@@ -182,14 +184,14 @@ contract nxmTokenData is Iupgradable {
 
     /// @dev Changes the time period up to which tokens will be locked. 
     ///               Used to generate the validity period of tokens booked by a user for participating in claim's assessment/claim's voting.
-    function changeBookTime(uint64 _time) onlyOwner {
-        bookTime = _time;
-    }
+    // function changeBookTime(uint64 _time) onlyOwner {
+    //     bookTime = _time;
+    // }
 
     /// @dev Gets the time period(in milliseconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
-    function getBookTime() constant returns(uint64 _time) {
-        _time = bookTime;
-    }
+    // function getBookTime() constant returns(uint64 _time) {
+    //     _time = bookTime;
+    // }
 
     /// @dev Gets the total number of tokens (Locked + Unlocked) of a User.
     /// @param _add Address.
@@ -270,23 +272,23 @@ contract nxmTokenData is Iupgradable {
     // }
 
     /// @dev Updates the number of tokens locked for Claims assessment.
+    /// @param _reason Purpose for locking   
     /// @param _of User's address.
-    /// @param index index position.
-    /// @param value number of tokens.
+    /// @param _amount number of tokens.
+    /// @param _time validity.
     function lockTokens(bytes32 _reason, address _of, uint256 _amount, uint256 _time) onlyInternal {
-        locked[_of][_reason] = lockToken(_amount, validUntil);
+        locked[_of][_reason] = lockToken(_amount, _time);
         // emit Lock(_of, _reason, _amount, validUntil);        
     }
 
     /// @dev Extends the validity period of tokens locked under claims assessment.
     /// @param _of User's address.
-    /// @param index index position.
-    /// @param newTimestamp New validity date(timestamp).
-    function changeLockValidity(bytes32 _reason, address _of, uint256 _time, uint256 _extend) onlyInternal {
-        if( _extend == 1)
-            locked[_of][_reason].validity += _time;
+    /// @param _time New validity date(timestamp).
+    function changeLockValidity(bytes32 _reason, address _of, uint256 _time, bool _extend) onlyInternal {
+        if( _extend)
+            locked[_of][_reason].validUpto = SafeMaths.add(_time, locked[_of][_reason].validUpto);
         else
-            locked[_of][_reason].validity -= _time;
+            locked[_of][_reason].validUpto = SafeMaths.sub(_time, locked[_of][_reason].validUpto);
         // emit Lock( _of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
 
     }
@@ -299,10 +301,22 @@ contract nxmTokenData is Iupgradable {
     function increaseLockAmount(bytes32 _reason, address _of, uint256 _amount)
         public
     {        
-        locked[_of][_reason].amount += _amount;
+        locked[_of][_reason].amount = SafeMaths.add(locked[_of][_reason].amount,_amount);
         // emit Lock(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
     }
-
+    
+    /**
+     * @dev Reduce number of tokens locked for a specified purpose
+     * @param _reason The purpose to lock tokens
+     * @param _amount Number of tokens to be increased
+     */
+    function reduceLockAmount(bytes32 _reason, address _of, uint256 _amount)
+        public
+    {        
+        locked[_of][_reason].amount = SafeMaths.sub(locked[_of][_reason].amount,_amount);
+        // emit Lock(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
+    }
+    
     /// @dev Gets number of times a user has locked tokens for covers.
     /// @param _of User's address.
     /// @return len number of times tokens has been locked for covers.
@@ -474,10 +488,18 @@ contract nxmTokenData is Iupgradable {
         view
         returns (uint256 amount)
     {
-        if (locked[_of][_reason].validity > _time)
+        if (locked[_of][_reason].validUpto > _time)
             amount = locked[_of][_reason].amount;
     }
 
+    function changeLockAmount(bytes32 _reason, address _add, uint _value, bool increase){
+        if(increase)
+            increaseLockAmount(_reason, _add, _value);
+        else 
+            reduceLockAmount(_reason, _add, _value);
+            
+    }
+    
     /// @dev Calculates the Sum of tokens locked for Cover Note of a user.(available + unavailable)
     function getBalanceCN(address _to) constant returns(uint tokensLockedCN) {
         tokensLockedCN = 0;
@@ -579,6 +601,24 @@ contract nxmTokenData is Iupgradable {
         stakeDetails.push(stake(_of, _scAddress, _amount, now));
         scAddressStake[_scAddress].push(stakeDetails.length - 1);
         stakerIndex[_of].push(stakeDetails.length - 1);
+    }
+    
+    function setLockReason(address _add, bytes32 _reason) onlyInternal {
+        lockReason[_add].push(_reason);
+    }
+    
+    function getLockReasonLength(address _add) constant returns(uint) {
+         return lockReason[_add].length;
+    }
+    
+    function hasBeenLockedBefore(address _add, bytes32 _reason) constant returns(bool locked) {
+        locked = false;
+        for(uint i=0;i<lockReason[_add].length;i++) {
+            if(lockReason[_add][i] == _reason) {
+                locked=true;
+                break;
+            }
+        }
     }
 
     /// @dev changes the amount of staking at particular index.

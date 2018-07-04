@@ -352,7 +352,7 @@ contract nxmToken2 is Iupgradable {
     /// @param _scAddress smart contract address.
     /// @param _amount amount of NXM.
     function addStake(address _scAddress, uint _amount) isMemberAndcheckPause {
-        require(tc1.getAvailableTokens(msg.sender) >= _amount); // Check if the sender has enough
+        require(tc1.balanceOf(msg.sender) >= _amount); // Check if the sender has enough
         td.addStake(msg.sender, _scAddress, _amount);
     }
 

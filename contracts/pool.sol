@@ -383,7 +383,7 @@ contract pool is usingOraclize, Iupgradable {
 
     /// @dev selling NXM tokens.
     function sellNXMTokens(uint sellTokens) isMemberAndcheckPause {
-        require(tc1.getAvailableTokens(msg.sender) >= sellTokens); // Check if the sender has enough
+        require(tc1.balanceOf(msg.sender) >= sellTokens); // Check if the sender has enough
         uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
         uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
         require(sellTokensx10e18 <= getMaxSellTokens());

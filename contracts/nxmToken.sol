@@ -452,10 +452,14 @@ contract nxmToken is Iupgradable {
      */
     function balanceOf(address _owner) public view returns (uint256) {
         uint256 lockedAmount = 0;
-        for (uint256 i = 0; i < lock_reason.length; i++) {
-            lockedAmount += tokensLocked(_owner, lock_reason[i], block.timestamp);
+        uint len = td.getLockReasonLength(_owner);
+        for (uint256 i = 0; i < len; i++) {
+            bytes32 reason = td.lockReason(_owner, i);
+            uint tokensLoked = tokensLocked(_owner, reason, block.timestamp);
+            lockedAmount = SafeMaths.add(lockedAmount, tokensLoked);
         }   
-        uint256 amount = ((balances[_owner].sub(lockedAmount)).sub(td.getBalanceCN(_add))).sub(getLockedNXMTokenOfStakerByStakerAddress(_add));
+        uint balance = td.getBalanceOf(_owner);
+        uint256 amount = (((balance.sub(lockedAmount)).sub(td.getBalanceCN(_owner))).sub(getLockedNXMTokenOfStakerByStakerAddress(_owner)));
 
         return amount;
     }
@@ -511,7 +515,7 @@ contract nxmToken is Iupgradable {
      * @param _amount Number of tokens to be locked
      * @param _time Lock time in seconds
      */
-    function lock(bytes32 _reason, uint256 _amount, uint256 _time)
+    function lock(bytes32 _reason, uint256 _amount, uint256 _time) isMemberAndcheckPause
         public
     {
         uint256 validUntil=block.timestamp.add(_time);
@@ -519,9 +523,11 @@ contract nxmToken is Iupgradable {
         // increaseLockAmount should be used to make any changes
         require(tokensLocked(msg.sender, _reason, block.timestamp) == 0);
         require(_amount <= balanceOf(msg.sender));
-        require(reason_valid[_reason]);
+        // require(reason_valid[_reason]);
         td.lockTokens(_reason, msg.sender, _amount, _time);
-        emit Lock(msg.sender, _reason, _amount, validUntil);
+        if(!td.hasBeenLockedBefore(msg.sender, _reason))
+        td.setLockReason(msg.sender, _reason);
+        Lock(msg.sender, _reason, _amount, validUntil);
     }
 
     /**
@@ -529,15 +535,15 @@ contract nxmToken is Iupgradable {
      * @param _reason The purpose to lock tokens
      * @param _time Lock extension time in seconds
      */
-    function extendLock(bytes32 _reason, uint256 _time)
+    function extendLock(bytes32 _reason, uint256 _time) isMemberAndcheckPause
         public
     {
-        require(tokensLocked(_of, _reason, block.timestamp) != 0);
-        td.changeLockValidity(_reason, _of, _time, true);
+        require(tokensLocked(msg.sender, _reason, block.timestamp) != 0);
+        td.changeLockValidity(_reason, msg.sender, _time, true);
         uint amount;
         uint validity;
-        (amount, validity) = td.locked(_of, _reason);
-        emit Lock(_of, _reason, amount, validity);
+        (amount, validity) = td.locked(msg.sender, _reason);
+        Lock(msg.sender, _reason, amount, validity);
     }
 
     /**
@@ -553,7 +559,7 @@ contract nxmToken is Iupgradable {
         uint amount;
         uint validity;
         (amount, validity) = td.locked(_of, _reason);
-        emit Lock(_of, _reason, amount, validity);
+        Lock(_of, _reason, amount, validity);
     }
 
     /**
@@ -564,7 +570,7 @@ contract nxmToken is Iupgradable {
     function reduceLock(bytes32 _reason, address _of, uint256 _time) onlyInternal
         public
     {
-        changeLock(_reason, msg.sender, _time, false);        
+        changeLock(_reason, _of, _time, false);        
     }
     
     /**
@@ -580,14 +586,14 @@ contract nxmToken is Iupgradable {
         uint amount;
         uint validity;
         (amount, validity) = td.locked(msg.sender, _reason);
-        emit Lock(msg.sender, _reason, amount, validity);
+        Lock(msg.sender, _reason, amount, validity);
     }
 
     /// @dev Number of days extra lock while voting as CA.
-    // function getLockCADays() constant returns(uint32) {
-    //     uint32 _days = td.lockCADays();
-    //     return _days;
-    // }
+    function getLockCADays() constant returns(uint32) {
+        uint32 _days = td.lockCADays();
+        return _days;
+    }
 
 }
 

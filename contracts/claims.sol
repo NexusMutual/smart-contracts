@@ -162,7 +162,7 @@ contract claims is Iupgradable {
     function getCATokensLockedAgainstClaim(address _of, uint claimId) constant returns(uint value) {
 
         (, value) = cd.getTokensClaim(_of, claimId);
-        uint totalLockedCA = td.getBalanceCAWithAddress(_of);
+        uint totalLockedCA = td.tokensLocked(_of, "CLA", now);
         if (totalLockedCA < value)
             value = totalLockedCA;
     }
@@ -281,24 +281,25 @@ contract claims is Iupgradable {
     /// @param tokens number of CAtokens a voter wants to use for the claim assessment.
     //               These tokens are booked for a specified period for time and hence 
     //               cannot be used to cst another vote for the specified period
-    function submitCAVote(uint claimId, int8 verdict, uint tokens) isMemberAndcheckPause {
+    function submitCAVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
         require(checkVoteClosing(claimId) != 1);
+        uint time = cd.claimDepositTime();
+        time = SafeMaths.add(now, time);
+        uint tokens = td.tokensLocked(msg.sender, "CLA", time);
         uint8 stat;
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat == 0);
         require(cd.getUserClaimVoteCA(msg.sender, claimId) == 0);
-        tc1.bookCATokens(msg.sender, tokens);
+        // tc1.bookCATokens(msg.sender, tokens);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "CAV", tokens, now, verdict);
         uint voteLength = cd.getAllVoteLength();
         cd.addClaimVoteCA(claimId, voteLength);
         cd.setUserClaimVoteCA(msg.sender, claimId, voteLength);
         cd.setClaimTokensCA(claimId, verdict, tokens);
-
-        uint time = td.lockCADays();
-
-        tc2.extendCAWithAddress(msg.sender, time, tokens, claimId);
+        time = td.lockCADays();
+        tc1.changeLock("CLA", msg.sender, time, true);
 
         int close = checkVoteClosing(claimId);
         if (close == 1) {
@@ -313,10 +314,13 @@ contract claims is Iupgradable {
     /// @param claimId Selected claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
     /// @param tokens Number of tokens used to case a vote
-    function submitMemberVote(uint claimId, int8 verdict, uint tokens) isMemberAndcheckPause {
+    function submitMemberVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
         require(checkVoteClosing(claimId) != 1);
         uint stat;
+        uint time = td.lockMVDays();
+        time = SafeMaths.add(now, time);
+        uint tokens = td.tokensLocked(msg.sender, "Member", time);
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat >= 1 && stat <= 5);
         require(cd.getUserClaimVoteMember(msg.sender, claimId) == 0);
@@ -326,9 +330,9 @@ contract claims is Iupgradable {
         cd.addClaimVotemember(claimId, voteLength);
         cd.setUserClaimVoteMember(msg.sender, claimId, voteLength);
         cd.setClaimTokensMV(claimId, verdict, tokens);
-        uint time = td.lockMVDays();
-        time = SafeMaths.add(now, time);
-        td.lockMV(msg.sender, time, tokens);
+        time = td.lockMVDays();
+        // time = SafeMaths.add(now, time);
+        tc1.changeLock("Member", msg.sender, time, true);
         int close = checkVoteClosing(claimId);
         if (close == 1) {
 

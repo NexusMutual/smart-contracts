@@ -151,12 +151,18 @@ contract master {
         uint version = SafeMaths.sub(versionLength, 1);
         currentVersion = version;
         addInContractChangeDate(now, version);
+        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]) {
+            cr = claimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
+            cr.upgrade(versionContractAddress[currentVersion]["CR"]);
+        }
         addRemoveAddress(version);
         changeOtherAddress();
         if (currentVersion > 0) {
             p1 = pool(versionContractAddress[currentVersion]["P1"]);
             p1.versionOraclise(version);
         }
+        
+            
     }
         
     ///@dev checks whether the address is a latest contract address.

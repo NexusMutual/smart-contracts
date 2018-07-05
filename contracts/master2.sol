@@ -154,7 +154,7 @@ contract masters2 is Iupgradable {
     function changeTimes(uint32 _mintime, uint32 _maxtime, uint32 escaltime, uint32 payouttime) onlyOwner {
         uint64 timeLeft;
 
-        c1.setTimes(_mintime, _maxtime, escaltime, payouttime);
+        cd.setTimes(_mintime, _maxtime, escaltime, payouttime);
 
         uint nowTime = now;
         uint pendingClaimStart = cd.pendingClaimStart();

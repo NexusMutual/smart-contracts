@@ -233,7 +233,7 @@ contract quotation2 is Iupgradable {
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
         if (qd.getProductName(prodId) == "SCC" && scAddress != 0x000) {
             qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
-            if (tc1.getTotalLockedNXMToken(scAddress) > 0)
+            if (tc2.getTotalLockedNXMToken(scAddress) > 0)
                 tc1.updateStakerCommissions(scAddress, coverDetails[2]);
         }
     }

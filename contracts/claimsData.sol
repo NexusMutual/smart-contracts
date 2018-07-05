@@ -695,4 +695,17 @@ contract claimsData is Iupgradable {
     function callClaimEvent(uint _coverId, address _userAddress, uint _claimId, uint _datesubmit) onlyInternal {
         Claim(_coverId, _userAddress, _claimId, _datesubmit);
     }
+    
+    /// @dev Sets the minimum, maximum claims assessment voting, escalation and payout retry times 
+    /// @param _minVoteTime Minimum time(in milliseconds) for which claim assessment voting is open
+    /// @param _maxVoteTime Maximum time(in milliseconds) for which claim assessment voting is open
+    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    function setTimes(uint32 _minVoteTime, uint32 _maxVoteTime, uint32 escaltime, uint32 payouttime) onlyInternal {
+
+        setEscalationTime(escaltime);
+        setPayoutRetryTime(payouttime);
+        setMaxVotingTime(_maxVoteTime);
+        setMinVotingTime(_minVoteTime);
+    }
 }

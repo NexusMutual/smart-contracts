@@ -89,19 +89,6 @@ contract claims is Iupgradable {
         cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
     }
 
-    /// @dev Sets the minimum, maximum claims assessment voting, escalation and payout retry times 
-    /// @param _minVoteTime Minimum time(in milliseconds) for which claim assessment voting is open
-    /// @param _maxVoteTime Maximum time(in milliseconds) for which claim assessment voting is open
-    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
-    function setTimes(uint32 _minVoteTime, uint32 _maxVoteTime, uint32 escaltime, uint32 payouttime) onlyInternal {
-
-        cd.setEscalationTime(escaltime);
-        cd.setPayoutRetryTime(payouttime);
-        cd.setMaxVotingTime(_maxVoteTime);
-        cd.setMinVotingTime(_minVoteTime);
-    }
-
     /// @dev Adds status names for Claims.
     /// @param stat description for claim status
     /// @param percCA reward Percentage for claim assessor
@@ -130,14 +117,6 @@ contract claims is Iupgradable {
         uint statusno;
         (statusno, coverId, claimId) = cd.getUserClaimByIndex(index, msg.sender);
         status = rewardStatus[statusno].claimStatusDesc;
-    }
-
-    /// @dev Sets the final vote result(either accept or decline)of a given claimId.
-    /// @param claimId Claim Id.
-    /// @param verdict 1 if claim is accepted,-1 if declined.
-    function changeFinalVerdict(uint claimId, int8 verdict) onlyInternal {
-
-        cd.changeFinalVerdict(claimId, verdict);
     }
 
     /// @dev Gets details of a given claim id.
@@ -179,16 +158,15 @@ contract claims is Iupgradable {
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint tokenx1e18 = tc1.getTokenPrice(curr);
-        uint acceptCA;
-        uint acceptMV;
-        uint denyCA;
-        uint denyMV;
-        (, acceptCA, denyCA) = cd.getClaimsTokenCA(claimId);
-        (, acceptMV, denyMV) = cd.getClaimsTokenMV(claimId);
-        if (member == 0)
-            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA, denyCA)), tokenx1e18), DECIMAL1E18); // amount (not in tokens)
-        else
-            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV, denyMV)), tokenx1e18), DECIMAL1E18);
+        uint accept;
+        uint deny;
+        if (member == 0) {
+            (, accept, deny) = cd.getClaimsTokenCA(claimId);
+            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18); // amount (not in tokens)
+        }else {
+            (, accept, deny) = cd.getClaimsTokenMV(claimId);
+            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
+        }
     }
 
     /// @dev Checks if voting of a claim should be closed or not.
@@ -278,9 +256,6 @@ contract claims is Iupgradable {
     /// @dev Members who have tokens locked under Claims Assessment can assess and Vote As a CLAIM ASSESSOR for a given claim id.
     /// @param claimId  claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
-    /// @param tokens number of CAtokens a voter wants to use for the claim assessment.
-    //               These tokens are booked for a specified period for time and hence 
-    //               cannot be used to cst another vote for the specified period
     function submitCAVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
         require(checkVoteClosing(claimId) != 1);
@@ -313,7 +288,6 @@ contract claims is Iupgradable {
     //      Assessment can be used to cast a vote for a given claim id.
     /// @param claimId Selected claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
-    /// @param tokens Number of tokens used to case a vote
     function submitMemberVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
         require(checkVoteClosing(claimId) != 1);
@@ -365,14 +339,12 @@ contract claims is Iupgradable {
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint tokenx1e18 = tc1.getTokenPrice(curr);
-        uint acceptCA;
-        uint acceptMV;
-        uint denyCA;
-        uint denyMV;
-        (, acceptCA, denyCA) = cd.getClaimsTokenCA(claimId);
-        (, acceptMV, denyMV) = cd.getClaimsTokenMV(claimId);
-        uint caTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA, denyCA)), tokenx1e18), DECIMAL1E18);
-        uint mvTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV, denyMV)), tokenx1e18), DECIMAL1E18);
+        uint accept;
+        uint deny;
+        (, accept, deny) = cd.getClaimsTokenCA(claimId);
+        uint caTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
+        (, accept, deny) = cd.getClaimsTokenMV(claimId);
+        uint mvTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
         uint sumassured = SafeMaths.mul(qd.getCoverSumAssured(coverId), DECIMAL1E18);
         if (status == 0 && caTokens >= SafeMaths.mul(10, sumassured))
             close = 1;

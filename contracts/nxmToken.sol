@@ -402,13 +402,13 @@ contract nxmToken is Iupgradable {
     function lock(bytes32 _reason, uint256 _amount, uint256 _time) public isMemberAndcheckPause
         
     {
+        
         uint256 validUntil=block.timestamp.add(_time);
         // If tokens are already locked, the functions extendLock or
         // increaseLockAmount should be used to make any changes
         require(tokensLocked(msg.sender, _reason, block.timestamp) == 0);
         require(_amount <= balanceOf(msg.sender));
-        // require(reason_valid[_reason]);
-        td.lockTokens(_reason, msg.sender, _amount, _time);
+        td.lockTokens(_reason, msg.sender, _amount, validUntil);
         if (!td.hasBeenLockedBefore(msg.sender, _reason))
             td.setLockReason(msg.sender, _reason);
         Lock(msg.sender, _reason, _amount, validUntil);

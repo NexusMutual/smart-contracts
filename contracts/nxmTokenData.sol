@@ -32,14 +32,12 @@ contract nxmTokenData is Iupgradable {
     uint initialTokens;
     uint public currentFounderTokens;
     uint public memberCounter;
-    // uint64 bookTime;
     uint64 minVoteLockPeriod;
     uint16 public scValidDays;
     uint32 public lockMVDays;
     uint32 public lockCADays;
     uint public joiningFee;
     address public walletAddress;
-    // Add setter, length function and hasBeenLockedBefore(_of,_for)
     mapping(address => bytes32[]) public lockReason;
 
     struct stakeCommission {
@@ -82,11 +80,7 @@ contract nxmTokenData is Iupgradable {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(uint => lockToken[])) public userCoverDepositCN;
     mapping(address => mapping(bytes32 => lockToken)) public locked;
-    // mapping(address => lockTokenCA[]) lockedCA;
-    // mapping(address => uint) lastExpiredLockCA;
     mapping(address => lockToken[]) lockedCN;
-    // mapping(address => lockToken[]) bookedCA;
-    // mapping(address => lockToken[]) lockedMV;
     mapping(address => mapping(uint => lockToken)) public userCoverLockedCN;
     mapping(address => mapping(address => uint256)) public allowerSpenderAllowance;
 
@@ -109,7 +103,6 @@ contract nxmTokenData is Iupgradable {
         name = tokenName; // Set the name for display purposes
         symbol = tokenSymbol; // Set the symbol for display purposes
         decimals = decimalUnits;
-        // bookTime = SafeMaths.mul64(SafeMaths.mul64(12, 60), 60);
         minVoteLockPeriod = SafeMaths.mul64(7, 1 days);
         lockTokenTimeAfterCoverExp = SafeMaths.mul(35, 1 days);
         scValidDays = 200;
@@ -232,7 +225,7 @@ contract nxmTokenData is Iupgradable {
     /// @param _amount number of tokens.
     /// @param _time validity.
     function lockTokens(bytes32 _reason, address _of, uint256 _amount, uint256 _time) onlyInternal {
-        locked[_of][_reason] = lockToken(_amount, _time);
+        locked[_of][_reason] = lockToken(_time, _amount);
         // emit Lock(_of, _reason, _amount, validUntil);        
     }
 
@@ -269,7 +262,7 @@ contract nxmTokenData is Iupgradable {
         public
     {        
         locked[_of][_reason].amount = SafeMaths.sub(locked[_of][_reason].amount, _amount);
-        
+        // emit Lock(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
     }
     
     /// @dev Gets number of times a user has locked tokens for covers.
@@ -378,9 +371,9 @@ contract nxmTokenData is Iupgradable {
     }
 
     function changeLockAmount(bytes32 _reason, address _add, uint _value, bool increase) {
-        if (increase) {
+        if (increase)
             increaseLockAmount(_reason, _add, _value);
-        } else 
+        else 
             reduceLockAmount(_reason, _add, _value);
             
     }
@@ -473,7 +466,7 @@ contract nxmTokenData is Iupgradable {
     
     function hasBeenLockedBefore(address _add, bytes32 _reason) constant returns(bool locked) {
         locked = false;
-        for (uint i = 0; i < lockReason[_add].length; i++) {
+        for (uint i=0; i < lockReason[_add].length; i++) {
             if (lockReason[_add][i] == _reason) {
                 locked = true;
                 break;
@@ -649,18 +642,4 @@ contract nxmTokenData is Iupgradable {
     function setSCAddressLastBurnIndex(address _scAddress, uint _index) onlyInternal {
         scAddressLastBurnIndex[_scAddress] = _index;
     }
-
-    /// @dev Gets the index till which all Locked tokens for CA are expired.
-    /// @param _add addressof user
-    // function getLastExpiredLockCA(address _add) constant returns(uint) {
-    //     return lastExpiredLockCA[_add];
-    // }
-
-    /// @dev Sets the index till which all Locked tokens for CA are expired.
-    /// @param _add addressof user
-    /// @param lastIndex index to be set.
-    // function setLastExpiredLockCA(address _add, uint lastIndex) onlyInternal {
-    //     lastExpiredLockCA[_add] = lastIndex;
-    // }
-
 }

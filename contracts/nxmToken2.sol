@@ -297,32 +297,7 @@ contract nxmToken2 is Iupgradable {
                 _stakerLockedNXM = SafeMaths.sub(lockedNXM, burnedAmt);
         }
     }
-    
-    /// @dev The total NXM tokens locked against Smart contract.
-    /// @param _scAddress smart contract address.
-    /// @return _totalLockedNXM total NXM tokens.
-    function getTotalLockedNXMToken(address _scAddress) public constant returns(uint _totalLockedNXM) {
-        _totalLockedNXM = 0;
-
-        uint stakeAmt;
-        uint dateAdd;
-        uint burnedAmt;
-        uint nowTime = now;
-        uint totalStaker = td.getTotalStakerAgainstScAddress(_scAddress);
-        for (uint i = 0; i < totalStaker; i++) {
-            uint scAddressIndx;
-            (, scAddressIndx) = td.getScAddressIndexByScAddressAndIndex(_scAddress, i);
-            (, , , stakeAmt, burnedAmt, dateAdd) = td.getStakeDetails(scAddressIndx);
-            uint16 day1 = uint16(SafeMaths.div(SafeMaths.sub(nowTime, dateAdd), 1 days));
-            if (stakeAmt > 0 && td.scValidDays() > day1) {
-                uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(
-                    SafeMaths.sub(td.scValidDays(), day1), 100000), td.scValidDays()), stakeAmt), 100000);
-                if (lockedNXM > burnedAmt)
-                    _totalLockedNXM = SafeMaths.add(_totalLockedNXM, SafeMaths.sub(lockedNXM, burnedAmt));
-            }
-        }
-    }
-
+   
     /// @dev paying the joining fee.
     function payJoiningFee() payable checkPause {
 

@@ -236,7 +236,7 @@ contract nxmTokenData is Iupgradable {
         if (_extend)
             locked[_of][_reason].validUpto = SafeMaths.add(_time, locked[_of][_reason].validUpto);
         else
-            locked[_of][_reason].validUpto = SafeMaths.sub(_time, locked[_of][_reason].validUpto);
+            locked[_of][_reason].validUpto = SafeMaths.sub(locked[_of][_reason].validUpto, _time);
         // emit Lock( _of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
 
     }

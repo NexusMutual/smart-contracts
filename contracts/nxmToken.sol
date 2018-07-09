@@ -473,7 +473,6 @@ contract nxmToken is Iupgradable {
         Lock(msg.sender, _reason, amount, validity);
     }
     
-     
     /// @dev The total NXM tokens locked against Smart contract.
     /// @param _scAddress smart contract address.
     /// @return _totalLockedNXM total NXM tokens.

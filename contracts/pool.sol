@@ -106,7 +106,7 @@ contract pool is usingOraclize, Iupgradable {
     /// @param id Claim Id to be closed
     /// @param time Time (in milliseconds) after which claims assessment voting needs to be closed
     function closeClaimsOraclise(uint id, uint64 time) onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "http://a1.nexusmutual.io/api/claims/closeClaim", 3000000);
+        bytes32 myid = oraclize_query(time, "URL", "", 3000000);
         saveApiDetails(myid, "CLA", id);
     }
 
@@ -114,7 +114,7 @@ contract pool is usingOraclize, Iupgradable {
     /// @param id Proposal Id to be closed
     /// @param time Time (in milliseconds) after which proposal voting needs to be closed
     function closeProposalOraclise(uint id, uint64 time) onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "http://a1.nexusmutual.io/api/claims/closeClaim", 4000000);
+        bytes32 myid = oraclize_query(time, "URL", "", 4000000);
         saveApiDetails(myid, "PRO", id);
     }
 

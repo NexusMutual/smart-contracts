@@ -25,13 +25,16 @@ contract memberRoles {
     bool public constructorCheck;
 
     struct memberRoleDetails {
-        uint memberCounter;
+        uint32 memberCounter;
         mapping(address => bool) memberActive;
+        bool limitedValidity;
+        mapping(address => uint) validity;
         address[] memberAddress;
     }
 
     mapping(uint => memberRoleDetails) memberRoleData;
     mapping(address => uint) memberAddressToMemberRole;
+    mapping(uint => address) internal authorizedAddressAgainstRole;
 
     function memberRoles() {
         require(constructorCheck == false);
@@ -64,6 +67,11 @@ contract memberRoles {
     modifier onlyOwner {
 
         require(ms.isOwner(msg.sender) == true);
+        _;
+    }
+    
+    modifier checkRoleAuthority(uint _memberRoleId) {
+        require(ms.isInternal(msg.sender) || msg.sender == authorizedAddressAgainstRole[_memberRoleId]);
         _;
     }
 
@@ -108,18 +116,26 @@ contract memberRoles {
         }
     }
 
-    function updateMemberRole(address _memberAddress, uint _memberRoleId, uint8 _typeOf) onlyInternal {
-        if (_typeOf == 1) {
-            require(memberRoleData[_memberRoleId].memberActive[_memberAddress] == false);
-            memberRoleData[_memberRoleId].memberCounter = SafeMaths.add(memberRoleData[_memberRoleId].memberCounter, 1);
-            memberRoleData[_memberRoleId].memberActive[_memberAddress] = true;
-            memberAddressToMemberRole[_memberAddress] = _memberRoleId;
-            memberRoleData[_memberRoleId].memberAddress.push(_memberAddress);
-        } else if (_typeOf == 0) {
-            require(memberRoleData[_memberRoleId].memberActive[_memberAddress] == true);
-            memberRoleData[_memberRoleId].memberCounter = SafeMaths.sub(memberRoleData[_memberRoleId].memberCounter, 1);
-            memberRoleData[_memberRoleId].memberActive[_memberAddress] = false;
-
+    function updateMemberRole(
+        address _memberAddress, 
+        uint32 _roleId, 
+        bool _typeOf,
+        uint _validity
+    ) 
+        public 
+        checkRoleAuthority(_roleId) 
+    {
+        if (_typeOf) {
+            require(!memberRoleData[_roleId].memberActive[_memberAddress]);
+            memberRoleData[_roleId].memberCounter = SafeMaths.add32(memberRoleData[_roleId].memberCounter, 1);
+            memberRoleData[_roleId].memberActive[_memberAddress] = true;
+            memberRoleData[_roleId].memberAddress.push(_memberAddress);
+            memberRoleData[_roleId].validity[_memberAddress] = _validity;
+        } else {
+            require(memberRoleData[_roleId].memberActive[_memberAddress]);
+            memberRoleData[_roleId].memberCounter = SafeMaths.sub32(memberRoleData[_roleId].memberCounter, 1);
+            memberRoleData[_roleId].memberActive[_memberAddress] = false;
+            memberRoleData[_roleId].validity[_memberAddress] = _validity;
         }
     }
 

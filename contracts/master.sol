@@ -240,6 +240,15 @@ contract master {
         }
         
     }
+    
+    /// @dev Allow AB Members to Start Emergency Pause
+    function startEmergencyPause() checkPause {
+        
+        addEmergencyPause(true, "AB"); //Start Emergency Pause
+        p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
+        c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
+        
+    }
 
     /// @dev Stores the date when version of contracts get switched.
     /// @param _date Current date stamp.

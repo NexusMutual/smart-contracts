@@ -306,7 +306,7 @@ contract nxmToken2 is Iupgradable {
         require(_add != 0x0000);
         bool succ = _add.send(msg.value);
         if (succ == true)
-            mr.updateMemberRole(msg.sender, 3, 1);
+            mr.updateMemberRole(msg.sender, 3, true, 0);
     }
 
     /// @dev Burns tokens.

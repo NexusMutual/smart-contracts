@@ -22,7 +22,6 @@ import "./nxmToken.sol";
 import "./master.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
-//import "./imports/govblocks-protocol/MemberRoles.sol";
 
 
 contract MemberRoles {
@@ -30,9 +29,8 @@ contract MemberRoles {
     function updateMemberRole(address _memberAddress, uint32 _roleId, bool _typeOf, uint _validity) public;
         
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
-
-    function checkRoleIdByAddress(address _add, uint32 role) public returns(bool);
     
+    function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);  
         
 }
 

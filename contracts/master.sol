@@ -106,6 +106,7 @@ contract master is Governed {
     function changeMemberRolesAddress(address _memberRolesAddress) onlyInternal
     {
         memberRolesAddress = _memberRolesAddress;
+        mr = MemberRoles(memberRolesAddress);
         tc2 = nxmToken2(versionContractAddress[currentVersion]["TOK2"]);
         tc2.changeMemberRolesAddress(_memberRolesAddress);
         
@@ -191,7 +192,7 @@ contract master is Governed {
 
     /// @dev checks whether the address is member or not.
     function isMember(address _add) constant returns(bool) {
-        mr = MemberRoles(memberRolesAddress);
+        
         return mr.checkRoleIdByAddress(_add, 3);
     }
 

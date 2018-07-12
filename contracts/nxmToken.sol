@@ -14,13 +14,14 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./mcr.sol";
 import "./nxmTokenData.sol";
 import "./nxmToken2.sol";
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./quotationData.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract nxmToken is Iupgradable {

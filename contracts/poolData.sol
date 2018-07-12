@@ -14,9 +14,10 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract poolData is Iupgradable {

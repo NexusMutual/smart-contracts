@@ -14,15 +14,16 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./pool.sol";
 import "./poolData.sol";
-import "./BasicToken.sol";
 import "./mcrData.sol";
 import "./master.sol";
 import "./nxmToken.sol";
-import "./SafeMaths.sol";
 import "./quotationData.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
 contract mcr is Iupgradable {

@@ -27,9 +27,10 @@ import "./pool2.sol";
 import "./poolData.sol";
 import "./quotationData.sol";
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
 import "./pool3.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+
 
 
 contract claimsReward is Iupgradable {

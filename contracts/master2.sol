@@ -23,8 +23,8 @@ import "./claimsData.sol";
 import "./mcr.sol";
 import "./quotationData.sol";
 import "./poolData.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract masters2 is Iupgradable {

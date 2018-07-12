@@ -14,6 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
 import "./nxmTokenData.sol";
@@ -22,7 +23,7 @@ import "./quotationData.sol";
 import "./mcr.sol";
 import "./master.sol";
 import "./Iupgradable.sol";
-import "./SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract quotation2 is Iupgradable {

@@ -24,13 +24,13 @@ import "./quotationData.sol";
 import "./master.sol";
 import "./pool.sol";
 import "./claims.sol";
-import "./SafeMaths.sol";
-import "./BasicToken.sol";
 import "./mcrData.sol";
 import "./mcr.sol";
 import "./pool3.sol";
-import "./Exchange.sol";
 import "./Iupgradable.sol";
+import "./imports/0xProject/Exchange.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
 contract pool2 is Iupgradable {

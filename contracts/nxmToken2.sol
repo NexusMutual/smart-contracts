@@ -29,7 +29,7 @@ contract MemberRoles {
         
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
     
-    function checkRoleIdByAddress(address _add, uint role) public returns(bool);
+    function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);
     
         
 }

@@ -15,7 +15,6 @@
 
 pragma solidity ^0.4.11;
 import "./nxmToken.sol";
-import "./governance.sol";
 import "./poolData.sol";
 import "./quotation2.sol";
 import "./master.sol";
@@ -27,16 +26,16 @@ import "./BasicToken.sol";
 import "./SafeMaths.sol";
 import "./oraclizeAPI_0.4.sol";
 import "./Iupgradable.sol";
+import "./Governed.sol";
 
 
-contract pool is usingOraclize, Iupgradable {
+contract pool is usingOraclize, Iupgradable, Governed {
     using SafeMaths
     for uint;
 
     master ms;
     address masterAddress;
     address poolAddress;
-    address governanceAddress;
     address mcrAddress;
     address mcrDataAddress;
 
@@ -45,7 +44,6 @@ contract pool is usingOraclize, Iupgradable {
 
     quotation2 q2;
     nxmToken tc1;
-    governance g1;
     poolData pd;
     pool2 p2;
     mcr m1;
@@ -92,7 +90,6 @@ contract pool is usingOraclize, Iupgradable {
         tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
         md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
-        g1 = governance(ms.versionContractAddress(currentVersion, "GOV1"));
         q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
         p2 = pool2(ms.versionContractAddress(currentVersion, "P2"));
     }
@@ -108,14 +105,6 @@ contract pool is usingOraclize, Iupgradable {
     function closeClaimsOraclise(uint id, uint64 time) onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", "", 3000000);
         saveApiDetails(myid, "CLA", id);
-    }
-
-    /// @dev Calls Oraclize Query to close a given Proposal after a given period of time.
-    /// @param id Proposal Id to be closed
-    /// @param time Time (in milliseconds) after which proposal voting needs to be closed
-    function closeProposalOraclise(uint id, uint64 time) onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "", 4000000);
-        saveApiDetails(myid, "PRO", id);
     }
 
     /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
@@ -137,6 +126,31 @@ contract pool is usingOraclize, Iupgradable {
     function mcrOraclise(uint64 time) onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", "http://a3.nexusmutual.io");
         saveApiDetails(myid, "MCR", 0);
+    }
+    
+    /// @dev Sets a given investment asset as active for trading.
+    function activeInvestmentAsset(bytes8 curr) onlyAuthorizedToGovern {
+
+        pd.changeInvestmentAssetStatus(curr, 1);
+    }
+
+    /// @dev Sets a given investment asset as inactive for trading.
+    function inactiveInvestmentAsset(bytes8 curr) onlyAuthorizedToGovern {
+
+        pd.changeInvestmentAssetStatus(curr, 0);
+    }
+    
+    // add new investment asset currency.
+    function addInvestmentAssetsDetails(bytes8 currName, address curr, uint64 _minHoldingPercX100, uint64 _maxHoldingPercX100) onlyAuthorizedToGovern {
+
+        pd.addInvestmentCurrency(currName);
+        pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
+    }
+    
+    // update investment asset  min and max holding percentages.
+    function updateInvestmentAssetHoldingPerc(bytes8 _curr, uint64 _minPercX100, uint64 _maxPercX100) onlyAuthorizedToGovern {
+
+        pd.changeInvestmentAssetHoldingPerc(_curr, _minPercX100, _maxPercX100);
     }
 
     /// @dev Calls the Oraclize Query incase MCR calculation fails.
@@ -165,7 +179,7 @@ contract pool is usingOraclize, Iupgradable {
     }
 
     /// @dev Handles callback of external oracle query. 
-    function __callback(bytes32 myid) {
+    function __callback(bytes32 myid, string result) {
 
         require(msg.sender == oraclize_cbAddress() || ms.isOwner(msg.sender) == true);
         p2.delegateCallBack(myid);
@@ -200,7 +214,7 @@ contract pool is usingOraclize, Iupgradable {
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
-    function transferEther(uint amount, address _add) onlyInternal constant returns(bool succ) {
+    function transferEther(uint amount, address _add) onlyAuthorizedToGovern constant returns(bool succ) {
         succ = _add.send(amount);      
     }
 
@@ -212,26 +226,6 @@ contract pool is usingOraclize, Iupgradable {
     /// @dev Gets the Balance of the Pool in wei.
     function getEtherPoolBalance() constant returns(uint bal) {
         bal = this.balance;
-    }
-
-    /// @dev Sends the amount requested by a given proposal to an address, after the Proposal gets passed.
-    /// @dev Used for proposals categorized under Engage in external services   
-    /// @param _to Receiver's address.
-    /// @param amount Sending amount.
-    /// @param id Proposal Id.
-    function proposalExtServicesPayout(address _to, uint amount, uint id) onlyInternal {
-
-        if (msg.sender == governanceAddress) {
-            if (this.balance < amount) {
-                g1.changeStatusFromPool(id);
-            } else {
-                bool succ = _to.send(amount);
-                if (succ == true) {
-                    p2.callPayoutEvent(_to, "PayoutAB", id, amount);
-
-                }
-            }
-        }
     }
 
     /// @dev Transfers back the given amount to the owner.
@@ -247,10 +241,15 @@ contract pool is usingOraclize, Iupgradable {
     function getCurrTokensFromFaucet(uint valueETH, bytes4 curr) onlyOwner {
 
         uint valueWEI = SafeMaths.mul(valueETH, DECIMAL1E18);
-        require(g1.isAB(msg.sender) == true && (valueWEI <= this.balance));
+        require(valueWEI <= this.balance);
 
         transferPayout(msg.sender, curr, valueWEI);
 
+    }
+    
+    function change0xFeeRecipient(address _feeRecipient) onlyAuthorizedToGovern {
+
+        pd.change0xFeeRecipient(_feeRecipient);
     }
 
     ///@dev Gets pool balance of a given investmentasset.

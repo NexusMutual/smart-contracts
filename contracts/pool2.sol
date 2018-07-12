@@ -17,7 +17,6 @@ pragma solidity ^0.4.11;
 
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
-import "./governance.sol";
 import "./claimsReward.sol";
 import "./poolData.sol";
 import "./quotation2.sol";
@@ -50,7 +49,6 @@ contract pool2 is Iupgradable {
     mcr m1;
     mcrData md;
     claimsReward cr;
-    governance g1;
     poolData pd;
     BasicToken btok;
     pool3 p3;
@@ -109,7 +107,6 @@ contract pool2 is Iupgradable {
         tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
         md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
-        g1 = governance(ms.versionContractAddress(currentVersion, "GOV1"));
         q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
         p3 = pool3(ms.versionContractAddress(currentVersion, "P3"));
         p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
@@ -153,13 +150,6 @@ contract pool2 is Iupgradable {
                 pd.updateDateUpdOfAPI(myid);
                 p3.check0xOrderStatus(pd.getCurrOfApiId(myid), pd.getIdOfApiId(myid));
             }
-        }
-
-        // even when system is in emergency pause.
-        // If callback is of type "proposal", then proposal id associated with the myid is checked for vote closure.
-        if (pd.getApiIdTypeOf(myid) == "PRO") {
-            pd.updateDateUpdOfAPI(myid);
-            g1.closeProposalVote(pd.getIdOfApiId(myid));
         }
         if (pd.getApiIdTypeOf(myid) == "Pause") {
             pd.updateDateUpdOfAPI(myid);

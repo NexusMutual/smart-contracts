@@ -110,18 +110,6 @@ contract pool3 is Iupgradable {
         _;
     }
 
-    /// @dev Sets a given investment asset as active for trading.
-    function activeInvestmentAsset(bytes8 curr) onlyInternal {
-
-        pd.changeInvestmentAssetStatus(curr, 1);
-    }
-
-    /// @dev Sets a given investment asset as inactive for trading.
-    function inactiveInvestmentAsset(bytes8 curr) onlyInternal {
-
-        pd.changeInvestmentAssetStatus(curr, 0);
-    }
-
     /// @dev Saves a given investment asset details.
     /// @param curr array of Investment asset name.
     /// @param rate array of investment asset exchange rate.
@@ -388,23 +376,10 @@ contract pool3 is Iupgradable {
         caRateX100 = md.allCurr3DaysAvg(curr);
     }
 
-    // update investment asset  min and max holding percentages.
-    function updateInvestmentAssetHoldingPerc(bytes8 _curr, uint64 _minPercX100, uint64 _maxPercX100) onlyInternal {
-
-        pd.changeInvestmentAssetHoldingPerc(_curr, _minPercX100, _maxPercX100);
-    }
-
     // update currency asset base min and var min
     function updateCurrencyAssetDetails(bytes8 _curr, uint64 _baseMin) onlyInternal {
 
         pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
-    }
-
-    // add new investment asset currency.
-    function addInvestmentAssetsDetails(bytes8 currName, address curr, uint64 _minHoldingPercX100, uint64 _maxHoldingPercX100) onlyInternal {
-
-        pd.addInvestmentCurrency(currName);
-        pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
     }
 
     /// @dev Checks Excess or insufficient liquidity trade conditions for a given currency.

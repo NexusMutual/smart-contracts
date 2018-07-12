@@ -20,8 +20,18 @@ import "./mcr.sol";
 import "./nxmToken.sol";
 import "./master.sol";
 import "./SafeMaths.sol";
-import "./memberRoles.sol";
+// import "./memberRoles.sol";
 import "./Iupgradable.sol";
+
+
+contract MemberRoles {
+    
+    function updateMemberRole(address _memberAddress, uint32 _roleId, bool _typeOf, uint _validity) public;
+        
+    function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
+    
+        
+}
 
 
 contract nxmToken2 is Iupgradable {
@@ -33,7 +43,7 @@ contract nxmToken2 is Iupgradable {
     nxmTokenData td;
     mcr m1;
     nxmToken tc1;
-    memberRoles mr;
+    MemberRoles mr;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
     
@@ -67,6 +77,12 @@ contract nxmToken2 is Iupgradable {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
+    
+    modifier onlyOwner {
+
+        require(ms.isOwner(msg.sender) == true);
+        _;
+    }
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
@@ -78,7 +94,7 @@ contract nxmToken2 is Iupgradable {
 
     function changeMemberRolesAddress(address memberAddress) onlyInternal
     {
-        mr = memberRoles(memberAddress);
+        mr = MemberRoles(memberAddress);
     }
     
     /// @dev Locks tokens against a cover.     
@@ -309,6 +325,11 @@ contract nxmToken2 is Iupgradable {
             mr.updateMemberRole(msg.sender, 3, true, 0);
     }
 
+    function changeCanAddMemberAddress(address _newAdd) onlyOwner
+    {
+        mr.changeCanAddMember(3, _newAdd);
+    }
+
     /// @dev Burns tokens.
     function burnLockedTokenExtended(address _of, uint _coverid, uint _burnNXMAmount, bytes16 str) internal {
 
@@ -316,5 +337,7 @@ contract nxmToken2 is Iupgradable {
         tc1.callTransferEvent(_of, 0, _burnNXMAmount); // notify of the event
 
     }
+    
+    
 
 }

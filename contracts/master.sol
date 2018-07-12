@@ -21,9 +21,10 @@ import "./pool.sol";
 import "./SafeMaths.sol";
 import "./memberRoles.sol";
 import "./Iupgradable.sol";
+import "./Governed.sol";
 
 
-contract master {
+contract master is Governed {
 
 
     using SafeMaths
@@ -88,7 +89,6 @@ contract master {
         contractNames.push("TD");
         contractNames.push("CD");
         contractNames.push("PD");
-        contractNames.push("GD");
         contractNames.push("MD");
         contractNames.push("Q2");
         contractNames.push("TOK1");
@@ -96,8 +96,6 @@ contract master {
         contractNames.push("C1");
         contractNames.push("CR");
         contractNames.push("P1");
-        contractNames.push("GOV1");
-        contractNames.push("GOV2");
         contractNames.push("P2");
         contractNames.push("MAS2");
         contractNames.push("MCR");
@@ -116,7 +114,7 @@ contract master {
     /// @dev Add Emergency pause
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
-    function addEmergencyPause(bool _pause, bytes4 _by) onlyInternal {
+    function addEmergencyPause(bool _pause, bytes4 _by) onlyAuthorizedToGovern {
         emergencyPaused.push(emergencyPause(_pause, now, _by));
         if (_pause == false) {
             c1 = claims(versionContractAddress[currentVersion]["C1"]);
@@ -194,8 +192,8 @@ contract master {
     /// @dev checks whether the address is member or not.
     function isMember(address _add) constant returns(bool) {
         mr = memberRoles(memberRolesAddress);
-        uint roleID = mr.getMemberRoleIdByAddress(_add);
-        return (roleID > 0 && roleID != 2);
+        return mr.checkRoleIdByAddress(_add, 3) || mr.checkRoleIdByAddress(_add, 1);
+        // return (roleID > 0 && roleID != 2);
     }
 
     ///@dev Change owner of the contract.
@@ -242,7 +240,7 @@ contract master {
     }
     
     /// @dev Allow AB Members to Start Emergency Pause
-    function startEmergencyPause() checkPause {
+    function startEmergencyPause() onlyAuthorizedToGovern {
         
         addEmergencyPause(true, "AB"); //Start Emergency Pause
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks

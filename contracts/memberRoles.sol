@@ -167,4 +167,16 @@ contract memberRoles {
     function getMemberActiveOrInactive(uint8 roleID) constant returns(uint8, uint) {
         return (roleID, memberRoleData[roleID].memberCounter);
     }
+    
+    /// @dev Returns true if the given role id is assigned to a member.
+    /// @param _memberAddress Address of member
+    /// @param _roleId Checks member's authenticity with the roleId. 
+    /// i.e. Returns true if this roleId is assigned to member
+    function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool) {
+        if (memberRoleData[_roleId].memberActive[_memberAddress] 
+            && (!memberRoleData[_roleId].limitedValidity || memberRoleData[_roleId].validity[_memberAddress] > now))
+            return true;
+        else
+            return false;
+    }
 }

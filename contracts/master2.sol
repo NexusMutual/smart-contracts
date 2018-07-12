@@ -16,7 +16,6 @@
 pragma solidity ^0.4.11;
 
 import "./claims.sol";
-import "./governance.sol";
 import "./master.sol";
 import "./pool.sol";
 import "./claimsReward.sol";
@@ -34,7 +33,7 @@ contract masters2 is Iupgradable {
 
     address masterAddress;
 
-    governance g1;
+    
     claims c1;
     master ms;
     pool p1;
@@ -72,7 +71,6 @@ contract masters2 is Iupgradable {
         p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
         c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
         m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        g1 = governance(ms.versionContractAddress(currentVersion, "GOV1"));
         cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
         qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
@@ -97,53 +95,6 @@ contract masters2 is Iupgradable {
         c1.pushStatus("Claim Accepted Payout Pending", 0, 0); //16
         c1.pushStatus("Claim Accepted No Payout ", 0, 0); //17
         c1.pushStatus("Claim Accepted Payout Done", 0, 0); //18
-    }
-
-    /// @dev Adds  statuses and categories master for a proposal.
-    function changeStatusAndCAtegory() onlyOwner {
-
-        //0
-        g1.addCategory("Uncategorised", 0, 0);
-        //1
-        g1.addCategory("Implement run-off and close new business", 1, 80);
-        //2
-        g1.addCategory("Burn fraudulent claim assessor tokens", 0, 80);
-        //3
-        g1.addCategory("Pause Claim Assessors ability to assess claims for 3 days.Can only be done once a month", 0, 60);
-        //4
-        g1.addCategory("Changes to Capital Model", 1, 60);
-        //5
-        g1.addCategory("Changes to Pricing", 1, 60);
-        //6
-        g1.addCategory("Engage in external services up to the greater of $50,000USD or 2% of MCR", 0, 80);
-        //7
-        g1.addCategory("Engage in external services over the greater of $50,000USD or 2% of MCR", 1, 60);
-        //8
-        g1.addCategory("Changes to remuneration and/or membership of Advisory Board", 1, 60);
-        //9
-        g1.addCategory("Filter member proposals as necessary(which are put to a member vote)", 0, 60);
-        //10
-        g1.addCategory("Release new smart contract code as necessary to fix bugs/weaknesses or deliver enhancements/new products", 1, 60);
-        //11
-        g1.addCategory("Any change to authorities", 1, 80);
-        //12
-        g1.addCategory("Start/Stop Emergency Pause", 1, 80);
-        //13
-        g1.addCategory("Changes to Investment Model", 1, 60);
-        //14
-        g1.addCategory("Change 0x Relayer Address", 1, 60);
-        //15
-        g1.addCategory("Any other item specifically described", 1, 80);
-
-        g1.addStatus("Draft for discussion, multiple versions.");
-        g1.addStatus("Pending-Advisory Board Vote");
-        g1.addStatus("Pending-Advisory Board Vote Accepted, pending Member Vote");
-        g1.addStatus("Final-Advisory Board Vote Declined");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote not required");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Accepted");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Declined");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Quorum not Achieved");
-        g1.addStatus("Proposal Accepted, Insufficient Funds");
     }
 
     /// @dev Changes the  minimum,maximum claims assessment voting,escalation,payout retry times 

@@ -20,7 +20,6 @@ import "./mcr.sol";
 import "./nxmToken.sol";
 import "./master.sol";
 import "./SafeMaths.sol";
-// import "./memberRoles.sol";
 import "./Iupgradable.sol";
 
 
@@ -29,6 +28,8 @@ contract MemberRoles {
     function updateMemberRole(address _memberAddress, uint32 _roleId, bool _typeOf, uint _validity) public;
         
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
+    
+    function checkRoleIdByAddress(address _add, uint role) public returns(bool);
     
         
 }

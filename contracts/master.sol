@@ -19,7 +19,6 @@ import "./claimsReward.sol";
 import "./nxmToken2.sol";
 import "./pool.sol";
 import "./SafeMaths.sol";
-import "./memberRoles.sol";
 import "./Iupgradable.sol";
 import "./Governed.sol";
 
@@ -56,7 +55,7 @@ contract master is Governed {
     claims c1;
     claimsReward cr;
     pool p1;
-    memberRoles mr;
+    MemberRoles mr;
     nxmToken2 tc2;
 
     address public owner;
@@ -191,9 +190,8 @@ contract master is Governed {
 
     /// @dev checks whether the address is member or not.
     function isMember(address _add) constant returns(bool) {
-        mr = memberRoles(memberRolesAddress);
-        return mr.checkRoleIdByAddress(_add, 3) || mr.checkRoleIdByAddress(_add, 1);
-        // return (roleID > 0 && roleID != 2);
+        mr = MemberRoles(memberRolesAddress);
+        return mr.checkRoleIdByAddress(_add, 3);
     }
 
     ///@dev Change owner of the contract.

@@ -25,8 +25,8 @@ import "./poolData.sol";
 import "./claimsReward.sol";
 import "./claimsData.sol";
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract claims is Iupgradable {

@@ -18,11 +18,12 @@ pragma solidity ^0.4.11;
 import "./poolData.sol";
 import "./master.sol";
 import "./pool.sol";
-import "./SafeMaths.sol";
 import "./pool2.sol";
 import "./mcrData.sol";
-import "./Exchange.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/0xProject/Exchange.sol";
+
 
 
 contract pool3 is Iupgradable {

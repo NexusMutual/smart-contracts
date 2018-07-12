@@ -18,9 +18,10 @@ import "./claims.sol";
 import "./claimsReward.sol";
 import "./nxmToken2.sol";
 import "./pool.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
-import "./Governed.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/govblocks-protocol/Governed.sol";
+
 
 
 contract master is Governed {

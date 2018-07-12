@@ -14,13 +14,15 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./nxmTokenData.sol";
 import "./quotationData.sol";
 import "./mcr.sol";
 import "./nxmToken.sol";
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+//import "./imports/govblocks-protocol/MemberRoles.sol";
 
 
 contract MemberRoles {
@@ -28,12 +30,11 @@ contract MemberRoles {
     function updateMemberRole(address _memberAddress, uint32 _roleId, bool _typeOf, uint _validity) public;
         
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
-    
-    function checkRoleIdByAddress(address _add, uint role) public returns(bool);
+
+    function checkRoleIdByAddress(address _add, uint32 role) public returns(bool);
     
         
 }
-
 
 contract nxmToken2 is Iupgradable {
     using SafeMaths

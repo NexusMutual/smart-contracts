@@ -14,6 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./nxmToken.sol";
 import "./poolData.sol";
 import "./quotation2.sol";
@@ -21,12 +22,13 @@ import "./master.sol";
 import "./pool2.sol";
 import "./mcr.sol";
 import "./mcrData.sol";
-import "./StandardToken.sol";
-import "./BasicToken.sol";
-import "./SafeMaths.sol";
-import "./oraclizeAPI_0.4.sol";
 import "./Iupgradable.sol";
-import "./Governed.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
+import "./imports/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
+import "./imports/govblocks-protocol/Governed.sol";
+
 
 
 contract pool is usingOraclize, Iupgradable, Governed {

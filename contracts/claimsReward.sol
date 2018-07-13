@@ -90,7 +90,7 @@ contract claimsReward is Iupgradable {
 
     }
    
-    /// @dev Depending upon the current status of the claim, corresponding functions are called and next status of the claim is decided accordingly.
+    /// @dev Decides the next course of action for a given claim.    
     function changeClaimStatus(uint claimid) checkPause {
 
         require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
@@ -117,7 +117,7 @@ contract claimsReward is Iupgradable {
         c1.changePendingClaimStart();
     }
     
-    /// @dev Start Voting of All Pending Claims when Emergency Pause OFF.
+    /// @dev Resume the voting phase of all claims paused due to an emergency pause.
     function startAllPendingClaimsVoting() onlyInternal {
 
         uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
@@ -140,12 +140,12 @@ contract claimsReward is Iupgradable {
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
 
-    /// @dev Amount of tokens should be given to user for particular vote id.
-    /// @param check if 1 CA vote,else member vote
-    /// @param voteid vote id for which rewardhas to be Calculated
+    /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
+    /// @param check 1 -> CA vote, else member vote
+    /// @param voteid vote id for which reward has to be Calculated
     /// @param flag if 1 calculate even if claimed,else don't calculate if already claimed
     /// @return tokenCalculated reward to be given for vote id
-    /// @return lastClaimedCheck true if fibal verdict is still pending for that voteid
+    /// @return lastClaimedCheck true if final verdict is still pending for that voteid
     /// @return tokens number of tokens locked under that voteid
     /// @return perc percentage of reward to be given.
     function getRewardToBeGiven(uint check, uint voteid, uint flag) 
@@ -197,7 +197,7 @@ contract claimsReward is Iupgradable {
 
     }
 
-    /// @dev To Claim the reward by user.
+    /// @dev Allows a user to claim all pending  claims assessment rewards.
     function claimRewardToBeDistributed() checkPause {
         uint lengthVote = cd.getVoteAddressCALength(msg.sender);
         uint lastIndexCA;
@@ -253,13 +253,14 @@ contract claimsReward is Iupgradable {
 
     }
     
+    /// @dev Transfers all tokens held by contract to a new contract in case of upgrade.
     function upgrade(address _newAdd) onlyInternal {
         uint amount = tc1.balanceOf(address(this));
         if (amount > 0)
             tc1.transfer(_newAdd, amount);
     }
 
-    /// @dev Total Amount of tokens should be given to user.
+    /// @dev Total reward in token due for claim by a user.
     /// @return total total number of tokens
     function getRewardToBeDistributedByUser() constant returns(uint total) {
         uint lengthVote = cd.getVoteAddressCALength(msg.sender);
@@ -282,7 +283,7 @@ contract claimsReward is Iupgradable {
         return (total);
     }
 
-    /// @dev Reawad amount and claiming status.
+    /// @dev Gets reward amount and claiming status for a given claim id.
     /// @return reward amount of tokens to user.
     /// @return claimed true if already claimed false if yet to be claimed.
     function getRewardAndClaimedStatus(uint check, uint claimId) constant returns(uint reward, bool claimed) {

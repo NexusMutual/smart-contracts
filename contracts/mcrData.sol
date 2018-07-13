@@ -85,7 +85,7 @@ contract mcrData is Iupgradable {
         _;
     }
 
-    /// @dev Changes address of Notary.
+    /// @dev Changes address allowed to post MCR.
     function changeNotariseAdd(address _add) onlyInternal {
         notariseMCR = _add;
     }
@@ -204,6 +204,7 @@ contract mcrData is Iupgradable {
     }
 
     /// @dev Updates the 3 day average rate of a currency.
+    ///      To be replaced by MakeDaos on chain rates
     /// @param curr Currency Name.
     /// @param rate Average exchange rate X 100 (of last 3 days).
     function updateCurr3DaysAvg(bytes4 curr, uint32 rate) onlyInternal {

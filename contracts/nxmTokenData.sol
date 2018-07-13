@@ -301,8 +301,8 @@ contract nxmTokenData is Iupgradable {
      * @param _reason The purpose to lock tokens
      * @param _amount Number of tokens to be increased
      */
-    function increaseLockAmount(bytes32 _reason, address _of, uint256 _amount)
-        public
+    function increaseLockAmount(bytes32 _reason, address _of, uint256 _amount) public onlyInternal
+        
     {        
         locked[_of][_reason].amount = SafeMaths.add(locked[_of][_reason].amount, _amount);
         // emit Lock(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
@@ -313,8 +313,8 @@ contract nxmTokenData is Iupgradable {
      * @param _reason The purpose to lock tokens
      * @param _amount Number of tokens to be increased
      */
-    function reduceLockAmount(bytes32 _reason, address _of, uint256 _amount)
-        public
+    function reduceLockAmount(bytes32 _reason, address _of, uint256 _amount) public onlyInternal
+        
     {        
         locked[_of][_reason].amount = SafeMaths.sub(locked[_of][_reason].amount, _amount);
         // emit Lock(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
@@ -425,7 +425,7 @@ contract nxmTokenData is Iupgradable {
             amount = locked[_of][_reason].amount;
     }
 
-    function changeLockAmount(bytes32 _reason, address _add, uint _value, bool increase) {
+    function changeLockAmount(bytes32 _reason, address _add, uint _value, bool increase) onlyInternal {
         if (increase)
             increaseLockAmount(_reason, _add, _value);
         else 

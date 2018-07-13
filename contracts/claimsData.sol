@@ -689,7 +689,7 @@ contract claimsData is Iupgradable {
         claimDepositTime = _time;
     }
 
-    /// @devs Calls Vote Event.
+    /// @dev Calls Vote Event.
     function callVoteEvent(address _userAddress, uint _claimId, bytes4 _typeOf, uint _tokens, uint _submitDate, int8 _verdict) onlyInternal {
         Votes(_userAddress, _claimId, _typeOf, _tokens, _submitDate, _verdict);
     }

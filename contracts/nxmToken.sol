@@ -299,7 +299,7 @@ contract nxmToken is Iupgradable {
         }
     }
 
-    /// @dev sending commission to staker on purchase of smart contract.
+    /// @dev Sends commission to underwriter on purchase of staked smart contract.
     /// @param _scAddress staker address.
     /// @param _premiumNXM premium of cover in NXM.
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
@@ -447,7 +447,7 @@ contract nxmToken is Iupgradable {
     }
 
     /**
-     * @dev Extends lock for a specified purpose and time
+     * @dev Reduces lock for a specified purpose and time
      * @param _reason The purpose to lock tokens
      * @param _time Lock extension time in seconds
      */
@@ -458,7 +458,7 @@ contract nxmToken is Iupgradable {
     }
     
     /**
-     * @dev Increase number of tokens locked for a specified purpose
+     * @dev Increases number of tokens locked for a specified purpose
      * @param _reason The purpose to lock tokens
      * @param _amount Number of tokens to be increased
      */
@@ -473,7 +473,7 @@ contract nxmToken is Iupgradable {
         Lock(msg.sender, _reason, amount, validity);
     }
     
-    /// @dev The total NXM tokens locked against Smart contract.
+    /// @dev Gets the total NXM tokens locked against Smart contract.
     /// @param _scAddress smart contract address.
     /// @return _totalLockedNXM total NXM tokens.
     function getTotalLockedNXMToken(address _scAddress) public constant returns(uint _totalLockedNXM) {

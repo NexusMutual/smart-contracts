@@ -462,8 +462,8 @@ contract nxmToken is Iupgradable {
      * @param _reason The purpose to lock tokens
      * @param _amount Number of tokens to be increased
      */
-    function increaseLockAmount(bytes32 _reason, uint256 _amount)
-        public
+    function increaseLockAmount(bytes32 _reason, uint256 _amount) public isMemberAndcheckPause
+        
     {
         require(tokensLocked(msg.sender, _reason, block.timestamp) != 0);
         td.changeLockAmount(_reason, msg.sender, _amount, true);

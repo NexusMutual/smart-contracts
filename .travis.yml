@@ -1,0 +1,12 @@
+dist: trusty
+sudo: required
+language: node_js
+
+node_js:
+  - "9"
+
+install:
+  - npm install -g truffle
+
+script:
+  - truffle compile

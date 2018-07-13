@@ -77,7 +77,7 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Adds all the status names into array.
+    /// @dev Adds all the claim status names into array.
     function addStatusInClaims() onlyOwner {
 
         c1.pushStatus("Pending-Claim Assessor Vote", 0, 0); //0
@@ -98,10 +98,10 @@ contract masters2 is Iupgradable {
     }
 
     /// @dev Changes the  minimum,maximum claims assessment voting,escalation,payout retry times 
-    /// @param _mintime Minimum time(in milliseconds) for which claim assessment voting is open
-    /// @param _maxtime Maximum time(in milliseconds) for which claim assessment voting is open
-    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    /// @param _mintime Minimum time(in seconds) for which claim assessment voting is open
+    /// @param _maxtime Maximum time(in seconds) for which claim assessment voting is open
+    /// @param escaltime Time(in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
     function changeTimes(uint32 _mintime, uint32 _maxtime, uint32 escaltime, uint32 payouttime) onlyOwner {
         uint64 timeLeft;
 
@@ -151,7 +151,7 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Add quotation and cover status.
+    /// @dev Adds quotation status.
     function addCoverStatus() onlyOwner {
 
         qd.pushCoverStatus("Active");
@@ -162,16 +162,15 @@ contract masters2 is Iupgradable {
         qd.pushCoverStatus("Requested");
     }
 
-    /// @dev Initialize asset data required by pool.
+    /// @dev Initializes asset data required by pool module.
     function callPoolDataMethods() onlyOwner {
         addCurrencyAssetsVarBase();
         addInvestmentAssetsDetails();
         addInvestmentCurrencies();
-
         addAllCurrencies();
     }
 
-    /// @dev Add investment asset details to pool.
+    /// @dev Adds investment asset details to pool.
     function addCurrencyAssetsDetails() internal {
 
         pd.pushCurrencyAssetsDetails("ETH", 0x00, 1, 50, 400, 18);
@@ -179,13 +178,13 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Add investment assets names to pool.
+    /// @dev Adds investment asset names to pool module.
     function addAllCurrencies() internal {
         pd.addAllCurrencies("ETH");
         pd.addAllCurrencies("DAI");
     }
 
-    /// @dev Add investment assets names to pool.
+    /// @dev Adds investment assets names to pool module.
     function addInvestmentCurrencies() internal {
 
         pd.addInvestmentCurrency("DGD");
@@ -196,7 +195,7 @@ contract masters2 is Iupgradable {
         pd.addInvestmentCurrency("MLN");
     }
 
-    /// @dev Add currency asset data to pool. 
+    /// @dev Adds currency asset data to pool module. 
     function addCurrencyAssetsVarBase() internal {
 
         pd.pushCurrencyAssetsVarBase("ETH", 6); //original 64 baseMin
@@ -204,7 +203,7 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Add investment asset details to pool.
+    /// @dev Adds investment asset details to pool.
     function addInvestmentAssetsDetails() internal {
 
         //DGD

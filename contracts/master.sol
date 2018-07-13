@@ -101,6 +101,9 @@ contract master is Governed {
 
     }
 
+    /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
+    /// and can be found in the imports folder
+    /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
     function changeMemberRolesAddress(address _memberRolesAddress) onlyInternal
     {
         memberRolesAddress = _memberRolesAddress;
@@ -133,7 +136,7 @@ contract master is Governed {
         return pauseTime;
     }
 
-    /// @dev Links all contracts to master.sol by passing address of Master contract to the functions of other contracts.
+    /// @dev Updates master address of all associated contracts
     function changeMasterAddress(address _add) onlyOwner {
         Iupgradable contracts;
         for (uint i = 0; i < contractNames.length; i++) {
@@ -143,7 +146,9 @@ contract master is Governed {
 
     }
 
-    /// @dev Updates the version of contracts and calls the oraclize query to update UI.
+    /// @dev Updates the version of contracts, provides required addresses to all associated contracts
+    /// calls the oraclize query to update UI.
+    /// modifier to be changed to onlyAuthorizedToGovern in future.
     function switchToRecentVersion() onlyInternal {
         uint version = SafeMaths.sub(versionLength, 1);
         currentVersion = version;
@@ -169,14 +174,14 @@ contract master is Governed {
             check = true;
     }
 
-    /// @dev checks whether the address is a Owner or not.
+    /// @dev checks whether the address is the Owner or not.
     function isOwner(address _add) constant returns(bool check) {
         check = false;
         if (owner == _add)
             check = true;
     }
 
-    /// @dev emergency pause function. if check=0 function will execute otherwise not.
+    /// @dev Checks whether emergency pause id on/not.
     function isPause() constant returns(bool check) {
 
         if (emergencyPaused.length > 0) {
@@ -188,19 +193,20 @@ contract master is Governed {
             return false; //in emergency pause state
     }
 
-    /// @dev checks whether the address is member or not.
+    /// @dev checks whether the address is a member of the mutual or not.
     function isMember(address _add) constant returns(bool) {
         
         return mr.checkRoleIdByAddress(_add, 3);
     }
 
-    ///@dev Change owner of the contract.
+    ///@dev Changes owner of the contract.
+    ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
     function changeOwner(address to) onlyOwner {
         if (owner == msg.sender)
             owner = to;
     }
 
-    ///@dev Get emergency pause details by index.
+    ///@dev Gets emergency pause details by index.
     function getEmergencyPauseByIndex(uint indx) constant returns(uint _indx, bool _pause, uint _time, bytes4 _by) {
         _pause = emergencyPaused[indx].pause;
         _time = emergencyPaused[indx].time;
@@ -208,12 +214,12 @@ contract master is Governed {
         _indx = indx;
     }
 
-    ///@dev Get the number of emergency pause has been toggled.
+    ///@dev Gets the number of emergency pause has been toggled.
     function getEmergencyPausedLength() constant returns(uint len) {
         len = emergencyPaused.length;
     }
 
-    ///@dev Get last emergency pause details.
+    ///@dev Gets last emergency pause details.
     function getLastEmergencyPause() constant returns(bool _pause, uint _time, bytes4 _by) {
         _pause = false;
         _time = 0;
@@ -228,6 +234,7 @@ contract master is Governed {
 
     /// @dev Creates a new version of contract addresses
     /// @param arr Array of addresses of compiled contracts.
+    /// Adding a new version doesn't activate it. One needs to call switchToRecentVersion.
     function addNewVersion(Iupgradable[] arr) onlyOwner {
         uint versionNo = versionLength;
         setVersionLength(SafeMaths.add(versionNo, 1));
@@ -272,7 +279,7 @@ contract master is Governed {
         versionLength = len;
     }
     
-    /// @dev Link contracts to one another.
+    /// @dev Links internal contracts to one another.
     function changeOtherAddress() internal {
         Iupgradable contracts;
         for (uint i = 0; i < contractNames.length; i++) {

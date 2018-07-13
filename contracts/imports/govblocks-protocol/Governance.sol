@@ -588,13 +588,15 @@ contract Governance is Upgradeable {
     ) 
         internal
     {
-        governanceDat.callRewardEvent(
-            _memberAddress, 
-            i, 
-            "GBT Reward for Proposal owner", 
-            calcReward
-        );
-
+        if (calcReward > 0) {
+            governanceDat.callRewardEvent(
+                _memberAddress, 
+                i, 
+                "GBT Reward for Proposal owner", 
+                calcReward
+            );
+        }
+        
         governanceDat.setMemberReputation(
             "Reputation credit for proposal owner", 
             i, 
@@ -676,12 +678,15 @@ contract Governance is Upgradeable {
             tempfinalRewardToDistribute = 
                 calcReward 
                 + governanceDat.getDepositedTokens(_memberAddress, i, "S");
-            governanceDat.callRewardEvent(
-                _memberAddress, 
-                i, 
-                "GBT Reward earned for being Solution owner", 
-                calcReward);
-
+            if (calcReward > 0) {
+                governanceDat.callRewardEvent(
+                    _memberAddress, 
+                    i, 
+                    "GBT Reward earned for being Solution owner", 
+                    calcReward
+                );
+            }
+            
             governanceDat.setMemberReputation(
                 "Reputation credit for solution owner", 
                 i, 
@@ -749,13 +754,14 @@ contract Governance is Upgradeable {
                 + calcReward 
                 + governanceDat.getDepositedTokens(_memberAddress, _proposalId, "V");
 
-            governanceDat.callRewardEvent(
-                _memberAddress, 
-                _proposalId, 
-                "GBT Reward earned for voting in favour of final Solution", 
-                calcReward
-            );
-
+            if (calcReward > 0) {
+                governanceDat.callRewardEvent(
+                    _memberAddress, 
+                    _proposalId, 
+                    "GBT Reward earned for voting in favour of final Solution", 
+                    calcReward
+                );
+            }
             governanceDat.setReturnedTokensFlag(_memberAddress, _proposalId, "V", 1);
         }
     }

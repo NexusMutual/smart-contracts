@@ -22,7 +22,6 @@ import "./Upgradeable.sol";
 import "./usingOraclize.sol";
 import "./SimpleVoting.sol";
 import "./Governance.sol";
-// import "./oraclizeAPI_0.4.sol";
 
 
 contract Pool is usingOraclize, Upgradeable {

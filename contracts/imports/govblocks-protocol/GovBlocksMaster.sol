@@ -274,21 +274,4 @@ contract GovBlocksMaster {
     function getGBTAddress() public view returns(address) {
         return gbtAddress;
     }
-
-    /*
-    /// @dev Gets contract address of specific contracts
-    /// @param _gbUserName dApp name
-    /// @param _typeOf Contract name initials which address is to be fetched
-    function getContractInstanceByDapp(bytes32 _gbUserName, bytes2 _typeOf) 
-        internal 
-        view 
-        returns(address contractAddress) 
-    {
-        require(isAuthorizedGBOwner(_gbUserName, msg.sender));
-        address master = govBlocksDapps[_gbUserName].masterAddress;
-        master = Master(master);
-        uint16 versionNo = master.versionLength() - 1;
-        contractAddress = master.allContractVersions(versionNo, _typeOf);
-        return contractAddress;
-    }*/
 }

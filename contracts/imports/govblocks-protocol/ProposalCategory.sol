@@ -238,7 +238,7 @@ contract ProposalCategory {
     }
 
     /// @dev Add new sub category against category.
-    /// @param _categoryName Name of the main category
+    /// @param _categoryName Name of the sub category
     /// @param _actionHash Automated Action hash has Contract Address and function name 
     /// i.e. Functionality that needs to be performed after proposal acceptance.
     /// @param _mainCategoryId Id of main category
@@ -536,7 +536,7 @@ contract ProposalCategory {
         allSubIdByCategory[2].push(3);
         allSubCategory.push(SubCategory(
                 "Add new category",
-                "QmRLpTuiyW4st2jiWSzkAi25R9dbg57y5gBYMyb5r5tXQ6",
+                "QmcCKba6ahSEj1gdVwHVasY8DyWnLXy2pSLufH5kThmo2m",
                 2,
                 master.getLatestAddress("PC"),
                 "PC"
@@ -545,7 +545,7 @@ contract ProposalCategory {
         allSubIdByCategory[2].push(4);
         allSubCategory.push(SubCategory(
                 "Edit category",
-                "QmdbU7dDAtjVq6xyFNmu4K4AAHPookbNM3eZ8fUyMuuxYg",
+                "QmdKzy9qYsLFq62Pf23raHNz5f6otYWtWZfpwNPQeCnawx",
                 2,
                 master.getLatestAddress("PC"),
                 "PC"
@@ -554,7 +554,7 @@ contract ProposalCategory {
         allSubIdByCategory[2].push(5);
         allSubCategory.push(SubCategory(
                 "Add new sub category",
-                "QmdVXg2t6SPDrpFk4FXh6LApU6tSgojsnCXhZvm14Jo5S8",
+                "QmeyPccQzMTNxSavJp4dL1J88zzb4xNESn5wLTPzqMFFJX",
                 2,
                 master.getLatestAddress("PC"),
                 "PC"
@@ -563,7 +563,7 @@ contract ProposalCategory {
         allSubIdByCategory[2].push(6);
         allSubCategory.push(SubCategory(
                 "Edit sub category",
-                "QmYTMXdortXjDg73tHopPrxzPNow5sCUkuiG9M9ifSHZic",
+                "QmVeSBUghB71WHhnT8tXajSctnfz1fYx6fWXc9wXHJ8r2p",
                 2,
                 master.getLatestAddress("PC"),
                 "PC"
@@ -581,105 +581,5 @@ contract ProposalCategory {
         allSubIdByCategory[4].push(8);
         allSubCategory.push(SubCategory("Others, not specified", "", 4, address(0), "EX"));
     }
-
-    // /// @dev Sets closing time for the category
-    // /// @param _categoryId Category id
-    // /// @param _time Closing time
-    // function setClosingTime(uint _categoryId,uint24 _time)
-    // {
-    //     allCategory[_categoryId].closingTime.push(_time);
-    // }
-
-    // /// @dev Sets role sequence for categoryId=_categoryId and role sequence=_ rsuence
-    // function setRoleSequence(uint _categoryId,uint8 _ rsuence)
-    // {
-    //     allCategory[_categoryId].memberRoleSequence.push(_ rsuence);
-    // }
-
-    // /// @dev Sets majority vote for category id=_categoryId and majority value=_majorityVote
-    // function setMajorityVote(uint _categoryId,uint _majorityVote)
-    // {
-    //     allCategory[_categoryId].memberRoleMajorityVote.push(_majorityVote);
-    // }
-
-    // /// @dev Changes role name by category id
-    // /// @param _categoryId Category id
-    // /// @param _roleName Role name 
-    // function changeRoleNameById(uint _categoryId,uint8[] _roleName) internal
-    // {
-    //     allCategory[_categoryId].memberRoleSequence=new uint8[](_roleName.length);
-    //     for(uint i=0; i<_roleName.length; i++)
-    //     {
-    //         allCategory[_categoryId].memberRoleSequence[i] = _roleName[i];
-    //     }
-    // }
-
-    // /// @dev Changes majority of vote of a category by id
-    // /// @param _categoryId Category id
-    // /// @param _majorityVote Majority of votes
-    // function changeMajorityVoteById(uint _categoryId,uint[] _majorityVote) internal
-    // {
-    //     allCategory[_categoryId].memberRoleMajorityVote=new uint[](_majorityVote.length);
-    //     for(uint i=0; i<_majorityVote.length; i++)
-    //     {
-    //         allCategory[_categoryId].memberRoleMajorityVote[i] = _majorityVote[i];
-    //     }
-    // }    
-
-    // /// @dev Changes closing time by cateory id
-    // /// @param _categoryId Category id
-    // /// @param _closingTime Closing time
-    // function changeClosingTimeById(uint _categoryId,uint24[] _closingTime) internal
-    // {
-    //     allCategory[_categoryId].closingTime=new uint24[](_closingTime.length);
-    //     for(uint i=0; i<_closingTime.length; i++)
-    //     {
-    //         allCategory[_categoryId].closingTime[i] = _closingTime[i];
-    //     }
-    // }
-
-    // /// @dev Changes minimum stake by id
-    // /// @param _categoryId Category id
-    // /// @param _minStake Minimum stake
-    // function changeMinStakeById(uint _categoryId,uint8 _minStake) internal
-    // {
-    //     allCategory[_categoryId].minStake = _minStake;
-    // }
-
-    // /// @dev Changes maximum stake by category id
-    // function changeMaxStakeById(uint _categoryId,uint8 _maxStake) internal
-    // {
-    //     allCategory[_categoryId].maxStake = _maxStake;
-    // }
-
-    // /// @dev Changes incentive by category id
-    // function changeIncentiveById(uint _categoryId,uint _incentive) internal
-    // {
-    //     allCategory[_categoryId].defaultIncentive = _incentive;
-    // }
-
-    // /// @dev Changes reward percentage proposal by category id
-    // /// @param _categoryId Category id
-    // /// @param _value Reward percentage value
-    // function changeRewardPercProposal(uint _categoryId,uint _value) internal
-    // {
-    //     allCategory[_categoryId].rewardPercProposal = _value;
-    // }
-
-    // /// @dev Changes reward percentage option by category id
-    // /// @param _categoryId Category id
-    // /// @param _value Reward percentage value
-    // function changeRewardPercSolution(uint _categoryId,uint _value) internal
-    // {
-    //     allCategory[_categoryId].rewardPercSolution = _value;    
-    // }
-
-    // /// @dev Changes reward percentage vote by category id
-    // /// @param _categoryId Category id
-    // /// @param _value 
-    // function changeRewardPercVote(uint _categoryId,uint _value) internal
-    // {
-    //     allCategory[_categoryId].rewardPercVote = _value;
-    // }
 
 }

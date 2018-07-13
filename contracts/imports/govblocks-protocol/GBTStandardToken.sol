@@ -347,41 +347,4 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
         TransferGBT(address(0), _to, _amount, "Bought Tokens");
         return true;
     }
-
-    /*function getTokenPrice() public view returns(uint) {
-        return tokenPrice;
-    }*/
-
-
-
-    // function changeGBTControllerAddress(address _GBTCAddress) onlyGBM
-    // {
-    //     GBTCAddress = _GBTCAddress;
-    // }
-
-    // function addInBalance(address _Address,uint _value) onlyGBTController
-    // {
-    //     balances[_Address] = SafeMath.add(balances[_Address],_value);
-    // }
-
-    // function subFromBalance(address _Address,uint _value)  onlyGBTController
-    // {
-    //     balances[_Address] = SafeMath.sub(balances[_Address],_value);
-    // }
-
-    // function callTransferGBTEvent(address _from, address _to, uint256 _value,string _description) onlyGBTController
-    // {
-    //     TransferGBT(_from,_to,_value,_description);
-    //     Transfer(_from, _to, _value);
-    // }
-
-    // function addInTotalSupply(uint _tokens) onlyGBTController
-    // {
-    //     totalSupply = totalSupply + _tokens;
-    // }
-
-    // function subFromTotalSupply(uint _tokens) onlyGBTController
-    // {
-    //     totalSupply = totalSupply - _tokens;
-    // }
 }

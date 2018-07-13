@@ -16,7 +16,6 @@
 pragma solidity ^0.4.24;
 
 import "./Master.sol";
-//import "./StandardVotingType.sol";
 import "./GovernanceData.sol";
 import "./Governance.sol";
 import "./MemberRoles.sol";
@@ -81,25 +80,6 @@ contract SimpleVoting is VotingType, Upgradeable {
             masterAddress = _masterContractAddress;
         }
     }
-    /*
-    /// @dev Changes Global objects of the contracts || Uses latest version
-    /// @param contractName Contract name 
-    /// @param contractAddress Contract addresses
-    function changeAddress(bytes4 contractName, address contractAddress) onlyInternal
-    {
-        if(contractName == 'GD'){
-            GD = GovernanceData(contractAddress);
-        } else if(contractName == 'MR'){
-            MR = MemberRoles(contractAddress);
-        } else if(contractName == 'PC'){
-            PC = ProposalCategory(contractAddress);
-        } else if(contractName == 'VT'){
-            SVT = StandardVotingType(contractAddress);
-        } else if(contractName == 'GV'){
-            GOV = Governance(contractAddress);
-            govAddress = contractAddress;
-        }
-    }*/
 
     /// @dev updates dependancies
     function updateDependencyAddresses() public onlyInternal {
@@ -263,10 +243,6 @@ contract SimpleVoting is VotingType, Upgradeable {
         require(validateMember(_proposalId, _solutionChosen));
         require(governanceDat.getProposalStatus(_proposalId) == 2);
 
-        // uint32 _mrSequence;
-        // uint category=GD.getProposalCategory(_proposalId);
-        // uint currVotingId=GD.getProposalCurrentVotingId(_proposalId);
-        // (_mrSequence,,) = PC.getCategoryData3(category,currVotingId);
         receiveStake("V", _proposalId, _voteStake, _validityUpto, _v, _r, _s, _lockTokenTxHash);
         castVote(_proposalId, _solutionChosen, msg.sender, _voteStake);
     }
@@ -332,8 +308,6 @@ contract SimpleVoting is VotingType, Upgradeable {
         uint8 i;
         uint8 max = 0;
 
-        //used to throw if proposal closing called enough times already
-        //as the currentVotingId becomes greater than length of role sequence array
         uint32 _mrSequenceId = proposalCategory.getRoleSequencAtIndex(category, currentVotingId);
 
         require(governance.checkForClosing(_proposalId, _mrSequenceId) == 1);
@@ -406,7 +380,7 @@ contract SimpleVoting is VotingType, Upgradeable {
                 if (currentVotingId < proposalCategory.getRoleSequencLength(category)) {
                     governance.updateProposalDetails(
                         _proposalId, 
-                        proposalCategory.getRoleSequencAtIndex(category, currentVotingId), 
+                        currentVotingId, 
                         max, 
                         0
                     );
@@ -548,19 +522,9 @@ contract SimpleVoting is VotingType, Upgradeable {
         uint32 _roleId;
         uint category = proposalCategory.getCategoryIdBySubId(governanceDat.getProposalCategory(_proposalId));
 
-        // uint category=GD.getProposalCategory(_proposalId);
         uint currVotingId = governanceDat.getProposalCurrentVotingId(_proposalId);
         (_roleId, , ) = proposalCategory.getCategoryData3(category, currVotingId);
         governanceDat.addVote(msg.sender, _solutionChosen, _voteStake, finalVoteValue, _proposalId, _roleId);
-        //governanceDat.setVoteIdAgainstMember(_memberAddress, _proposalId);
-        //governanceDat.setVoteIdAgainstProposalRole(_proposalId, _roleId, voteId);
-        // GD.setVoteValue(voteId, finalVoteValue);
-        // GD.setSolutionChosen(voteId, _solutionChosen[0]);
-        //governanceDat.setProposalTotalVoteValue(
-        //    _proposalId, 
-        //    finalVoteValue + governanceDat.getProposalTotalVoteValue(_proposalId)
-        //);
-        //governanceDat.callVoteEvent(_memberAddress, _proposalId, now, _voteStake, voteId);
         governance.checkRoleVoteClosing(_proposalId, _roleId);
     }
 
@@ -612,28 +576,4 @@ contract SimpleVoting is VotingType, Upgradeable {
             }
         }
     }
-
-    // function changeMemberVote(
-    //    uint _proposalId,
-    //    uint[] _solutionChosen,
-    //    address _memberAddress,
-    //    uint _GBTPayableTokenAmount
-    //) 
-        //internal
-    // {
-    //     MR=MemberRoles(MRAddress);
-    //     GOV=Governance(G1Address);
-    //     GD=GovernanceData(GDAddress);
-    //     SVT=StandardVotingType(SVTAddress);
-
-    //     uint roleId = MR.getMemberRoleIdByAddress(_memberAddress);
-    //     uint voteId = GD.getVoteIdAgainstMember(_memberAddress,_proposalId);
-    //     uint voteVal = GD.getVoteValue(voteId);
-
-    //     GD.editProposalVoteCount(_proposalId,roleId,GD.getOptionById(voteId,0),voteVal);
-    //     GD.setProposalVoteCount(_proposalId,roleId,_optionChosen[0],voteVal);
-    //     GD.setOptionChosen(voteId,_optionChosen[0]);
-
-    // }
-
 }

@@ -17,7 +17,6 @@ pragma solidity ^0.4.11;
 
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
-import "./governance.sol";
 import "./claimsReward.sol";
 import "./poolData.sol";
 import "./quotation2.sol";
@@ -25,13 +24,13 @@ import "./quotationData.sol";
 import "./master.sol";
 import "./pool.sol";
 import "./claims.sol";
-import "./SafeMaths.sol";
-import "./BasicToken.sol";
 import "./mcrData.sol";
 import "./mcr.sol";
 import "./pool3.sol";
-import "./Exchange.sol";
 import "./Iupgradable.sol";
+import "./imports/0xProject/Exchange.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
 contract pool2 is Iupgradable {
@@ -50,7 +49,6 @@ contract pool2 is Iupgradable {
     mcr m1;
     mcrData md;
     claimsReward cr;
-    governance g1;
     poolData pd;
     BasicToken btok;
     pool3 p3;
@@ -109,7 +107,6 @@ contract pool2 is Iupgradable {
         tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
         md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
-        g1 = governance(ms.versionContractAddress(currentVersion, "GOV1"));
         q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
         p3 = pool3(ms.versionContractAddress(currentVersion, "P3"));
         p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
@@ -124,8 +121,7 @@ contract pool2 is Iupgradable {
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
     
-    /// @dev Handles the Callback of the Oraclize Query. 
-    //            Callback could be of type "quote", "quotation", "cover", "claim" etc.
+    /// @dev Handles the Callback of the Oraclize Query.     
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     function delegateCallBack(bytes32 myid) onlyInternal {
 
@@ -139,7 +135,6 @@ contract pool2 is Iupgradable {
                 // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
                 pd.updateDateUpdOfAPI(myid);
                 cr.changeClaimStatus(pd.getIdOfApiId(myid));
-
             } else if (pd.getApiIdTypeOf(myid) == "MCR") {
                 pd.updateDateUpdOfAPI(myid);
             } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
@@ -154,13 +149,6 @@ contract pool2 is Iupgradable {
                 p3.check0xOrderStatus(pd.getCurrOfApiId(myid), pd.getIdOfApiId(myid));
             }
         }
-
-        // even when system is in emergency pause.
-        // If callback is of type "proposal", then proposal id associated with the myid is checked for vote closure.
-        if (pd.getApiIdTypeOf(myid) == "PRO") {
-            pd.updateDateUpdOfAPI(myid);
-            g1.closeProposalVote(pd.getIdOfApiId(myid));
-        }
         if (pd.getApiIdTypeOf(myid) == "Pause") {
             pd.updateDateUpdOfAPI(myid);
             bytes4 by;
@@ -170,7 +158,7 @@ contract pool2 is Iupgradable {
         }
     }
 
-    /// @dev Calls the payout event incase of claims payout.
+    /// @dev Calls the payout event in case of claims payout.
     function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
         Payout(_add, type1, id, sa);
     }
@@ -192,7 +180,7 @@ contract pool2 is Iupgradable {
             balance = p1.getEtherPoolBalance();
             //Check if pool has enough ETH balance
             if (balance >= sumAssured1e18) {
-                succ = p1.transferEther(sumAssured1e18, _to);
+                succ = p1.transferEtherForPayout(sumAssured1e18, _to);
                 if (succ == true) {
                     q2.removeSAFromCSA(coverid, sumAssured);
                     pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));
@@ -327,7 +315,7 @@ contract pool2 is Iupgradable {
         return 4; // when V=0 or no IA is present       
     }
 
-    /// @dev Checks whether trading is require for a given investment asset at a given exchange rate.
+    /// @dev Checks whether trading is required for a given investment asset at a given exchange rate.
     function checkTradeConditions(bytes8 curr, uint64 iaRate) constant returns(int check)
     {
         if (iaRate > 0) { 

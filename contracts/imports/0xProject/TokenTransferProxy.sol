@@ -19,7 +19,7 @@
 pragma solidity ^0.4.11;
 
 import "./Token.sol";
-import "./Ownable.sol";
+import "../openzeppelin-solidity/ownership/Ownable.sol";
 
 /// @title TokenTransferProxy - Transfers tokens on behalf of contracts that have been approved via decentralized governance.
 /// @author Amir Bandeali - <amir@0xProject.com>, Will Warren - <will@0xProject.com>

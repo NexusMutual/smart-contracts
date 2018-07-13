@@ -18,13 +18,12 @@ import "./claims.sol";
 import "./claimsReward.sol";
 import "./nxmToken2.sol";
 import "./pool.sol";
-import "./SafeMaths.sol";
-import "./memberRoles.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/govblocks-protocol/Governed.sol";
 
 
-contract master {
-
+contract master is Governed {
 
     using SafeMaths
     for uint;
@@ -55,7 +54,7 @@ contract master {
     claims c1;
     claimsReward cr;
     pool p1;
-    memberRoles mr;
+    MemberRoles mr;
     nxmToken2 tc2;
 
     address public owner;
@@ -88,7 +87,6 @@ contract master {
         contractNames.push("TD");
         contractNames.push("CD");
         contractNames.push("PD");
-        contractNames.push("GD");
         contractNames.push("MD");
         contractNames.push("Q2");
         contractNames.push("TOK1");
@@ -96,8 +94,6 @@ contract master {
         contractNames.push("C1");
         contractNames.push("CR");
         contractNames.push("P1");
-        contractNames.push("GOV1");
-        contractNames.push("GOV2");
         contractNames.push("P2");
         contractNames.push("MAS2");
         contractNames.push("MCR");
@@ -105,9 +101,13 @@ contract master {
 
     }
 
+    /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
+    /// and can be found in the imports folder
+    /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
     function changeMemberRolesAddress(address _memberRolesAddress) onlyInternal
     {
         memberRolesAddress = _memberRolesAddress;
+        mr = MemberRoles(memberRolesAddress);
         tc2 = nxmToken2(versionContractAddress[currentVersion]["TOK2"]);
         tc2.changeMemberRolesAddress(_memberRolesAddress);
         
@@ -116,7 +116,7 @@ contract master {
     /// @dev Add Emergency pause
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
-    function addEmergencyPause(bool _pause, bytes4 _by) onlyInternal {
+    function addEmergencyPause(bool _pause, bytes4 _by) onlyAuthorizedToGovern {
         emergencyPaused.push(emergencyPause(_pause, now, _by));
         if (_pause == false) {
             c1 = claims(versionContractAddress[currentVersion]["C1"]);
@@ -136,7 +136,7 @@ contract master {
         return pauseTime;
     }
 
-    /// @dev Links all contracts to master.sol by passing address of Master contract to the functions of other contracts.
+    /// @dev Updates master address of all associated contracts
     function changeMasterAddress(address _add) onlyOwner {
         Iupgradable contracts;
         for (uint i = 0; i < contractNames.length; i++) {
@@ -146,17 +146,25 @@ contract master {
 
     }
 
-    /// @dev Updates the version of contracts and calls the oraclize query to update UI.
+    /// @dev Updates the version of contracts, provides required addresses to all associated contracts
+    /// calls the oraclize query to update UI.
+    /// modifier to be changed to onlyAuthorizedToGovern in future.
     function switchToRecentVersion() onlyInternal {
         uint version = SafeMaths.sub(versionLength, 1);
         currentVersion = version;
         addInContractChangeDate(now, version);
+        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]) {
+            cr = claimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
+            cr.upgrade(versionContractAddress[currentVersion]["CR"]);
+        }
         addRemoveAddress(version);
         changeOtherAddress();
         if (currentVersion > 0) {
             p1 = pool(versionContractAddress[currentVersion]["P1"]);
             p1.versionOraclise(version);
         }
+        
+            
     }
         
     ///@dev checks whether the address is a latest contract address.
@@ -166,14 +174,14 @@ contract master {
             check = true;
     }
 
-    /// @dev checks whether the address is a Owner or not.
+    /// @dev checks whether the address is the Owner or not.
     function isOwner(address _add) constant returns(bool check) {
         check = false;
         if (owner == _add)
             check = true;
     }
 
-    /// @dev emergency pause function. if check=0 function will execute otherwise not.
+    /// @dev Checks whether emergency pause id on/not.
     function isPause() constant returns(bool check) {
 
         if (emergencyPaused.length > 0) {
@@ -185,20 +193,20 @@ contract master {
             return false; //in emergency pause state
     }
 
-    /// @dev checks whether the address is member or not.
+    /// @dev checks whether the address is a member of the mutual or not.
     function isMember(address _add) constant returns(bool) {
-        mr = memberRoles(memberRolesAddress);
-        uint roleID = mr.getMemberRoleIdByAddress(_add);
-        return (roleID > 0 && roleID != 2);
+        
+        return mr.checkRoleIdByAddress(_add, 3);
     }
 
-    ///@dev Change owner of the contract.
+    ///@dev Changes owner of the contract.
+    ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
     function changeOwner(address to) onlyOwner {
         if (owner == msg.sender)
             owner = to;
     }
 
-    ///@dev Get emergency pause details by index.
+    ///@dev Gets emergency pause details by index.
     function getEmergencyPauseByIndex(uint indx) constant returns(uint _indx, bool _pause, uint _time, bytes4 _by) {
         _pause = emergencyPaused[indx].pause;
         _time = emergencyPaused[indx].time;
@@ -206,12 +214,12 @@ contract master {
         _indx = indx;
     }
 
-    ///@dev Get the number of emergency pause has been toggled.
+    ///@dev Gets the number of emergency pause has been toggled.
     function getEmergencyPausedLength() constant returns(uint len) {
         len = emergencyPaused.length;
     }
 
-    ///@dev Get last emergency pause details.
+    ///@dev Gets last emergency pause details.
     function getLastEmergencyPause() constant returns(bool _pause, uint _time, bytes4 _by) {
         _pause = false;
         _time = 0;
@@ -226,12 +234,22 @@ contract master {
 
     /// @dev Creates a new version of contract addresses
     /// @param arr Array of addresses of compiled contracts.
+    /// Adding a new version doesn't activate it. One needs to call switchToRecentVersion.
     function addNewVersion(Iupgradable[] arr) onlyOwner {
         uint versionNo = versionLength;
         setVersionLength(SafeMaths.add(versionNo, 1));
         for (uint i = 0; i < contractNames.length; i++) {
             versionContractAddress[versionNo][contractNames[i]] = arr[i];
         }
+        
+    }
+    
+    /// @dev Allow AB Members to Start Emergency Pause
+    function startEmergencyPause() onlyAuthorizedToGovern {
+        
+        addEmergencyPause(true, "AB"); //Start Emergency Pause
+        p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
+        c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
         
     }
 
@@ -261,7 +279,7 @@ contract master {
         versionLength = len;
     }
     
-    /// @dev Link contracts to one another.
+    /// @dev Links internal contracts to one another.
     function changeOtherAddress() internal {
         Iupgradable contracts;
         for (uint i = 0; i < contractNames.length; i++) {

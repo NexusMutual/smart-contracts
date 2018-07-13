@@ -14,15 +14,16 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./pool.sol";
 import "./poolData.sol";
-import "./BasicToken.sol";
 import "./mcrData.sol";
 import "./master.sol";
 import "./nxmToken.sol";
-import "./SafeMaths.sol";
 import "./quotationData.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
 contract mcr is Iupgradable {
@@ -86,8 +87,8 @@ contract mcr is Iupgradable {
         md.changeMinReqMCR(minMCR);
     }
 
-    /// @dev Checks if last notarised Minimum Capital Requirement(MCR) percentage is less than minimum capital required or not.
-    /// @return check 1 if last added MCR%<Minimum MCR value
+    /// @dev Checks if last notarised Minimum Capital Requirement(MCR) percentage < minimum capital required or not.
+    /// @return check 1 if last added MCR% < Minimum MCR value
     function checkForMinMCR() constant returns(uint8 check) {
 
         check = 0;
@@ -115,7 +116,7 @@ contract mcr is Iupgradable {
         id = index;
     }
 
-    /// @dev Changes scaling factor.
+    /// @dev Changes scaling factor which determines token price.
     function changeSF(uint32 val) onlyOwner {
         md.changeSF(val);
     }
@@ -161,7 +162,7 @@ contract mcr is Iupgradable {
         }
     }
     
-    /// @dev get sum assured for all currencies.
+    /// @dev Gets total sum assured(in ETH).
     function getAllSumAssurance() constant returns(uint amount) {
 
         uint len = md.getCurrLength();
@@ -179,8 +180,8 @@ contract mcr is Iupgradable {
 
     }
 
-    /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation and MCR%(Tp) 
-    //                      ,i.e, MCR% used in the Token Price Calculation.
+    /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation  
+    //                      and MCR%(Tp),i.e, MCR% used in the Token Price Calculation.
     /// @return vtp  Pool Fund Value in Ether used for the Token Price Model 
     /// @return mcrtp MCR% used in the Token Price Model.
     function calVtpAndMCRtp() constant returns(uint vtp, uint mcrtp) {
@@ -204,7 +205,7 @@ contract mcr is Iupgradable {
         }
     }
 
-    /// @dev Calculates the Token Price of a currency.
+    /// @dev Calculates the Token Price of NXM in a given currency.
     /// @param curr Currency name.
     /// @return tokenPrice Token price.
     function calculateTokenPrice(bytes4 curr) constant returns(uint tokenPrice) {
@@ -227,7 +228,8 @@ contract mcr is Iupgradable {
         tokenPrice = (SafeMaths.div(SafeMaths.mul((tokenPrice), getCurr3DaysAvg), 100));
     }
 
-    /// @dev Adds MCR Data.
+    /// @dev Adds MCR Data. 
+    ///      Checks if MCR is within valid thresholds in order to rule out any incorrect calculations
     function addMCRDataExtended(uint len, uint64 newMCRDate, bytes4[] curr, uint32 mcrE, uint32 mcrP, uint64 vF, uint32[] _threeDayAvg) internal {
         uint vtp = 0;
         uint lower = 0;
@@ -270,7 +272,6 @@ contract mcr is Iupgradable {
 
     /// @dev Calls oraclize query to calculate MCR details after 24 hours.
     function callOracliseForMCR() internal {
-
         p1.mcrOraclise(md.getMCRTime());
     }
 

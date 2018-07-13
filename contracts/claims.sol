@@ -25,8 +25,8 @@ import "./poolData.sol";
 import "./claimsReward.sol";
 import "./claimsData.sol";
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract claims is Iupgradable {
@@ -89,27 +89,15 @@ contract claims is Iupgradable {
         cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
     }
 
-    /// @dev Sets the minimum, maximum claims assessment voting, escalation and payout retry times 
-    /// @param _minVoteTime Minimum time(in milliseconds) for which claim assessment voting is open
-    /// @param _maxVoteTime Maximum time(in milliseconds) for which claim assessment voting is open
-    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
-    function setTimes(uint32 _minVoteTime, uint32 _maxVoteTime, uint32 escaltime, uint32 payouttime) onlyInternal {
-
-        cd.setEscalationTime(escaltime);
-        cd.setPayoutRetryTime(payouttime);
-        cd.setMaxVotingTime(_maxVoteTime);
-        cd.setMinVotingTime(_minVoteTime);
-    }
-
-    /// @dev Adds status names for Claims.
+    /// @dev Adds status under which a claim can lie.
     /// @param stat description for claim status
-    /// @param percCA reward Percentage for claim assessor
-    /// @param percMV reward Percentage for members
+    /// @param percCA reward percentage for claim assessor
+    /// @param percMV reward percentage for members
     function pushStatus(string stat, uint percCA, uint percMV) onlyInternal {
         rewardStatus.push(claimRewardStatus(stat, percCA, percMV));
     }
 
+    /// @dev Gets the reward percentage to be distributed for a given status id
     /// @param statusNumber the number of type of status
     /// @return percCA reward Percentage for claim assessor
     /// @return percMV reward Percentage for members
@@ -117,7 +105,7 @@ contract claims is Iupgradable {
         return (rewardStatus[statusNumber].percCA, rewardStatus[statusNumber].percMV);
     }
 
-    /// @dev Gets claim details of claim id=pending claim start + given index
+    /// @dev Gets claim details of claim id = pending claim start + given index
     function getClaimFromNewStart(uint index) 
     constant 
     returns(string status, uint coverId, uint claimId, int8 voteCA, int8 voteMV, uint8 statusnumber) {
@@ -132,18 +120,10 @@ contract claims is Iupgradable {
         status = rewardStatus[statusno].claimStatusDesc;
     }
 
-    /// @dev Sets the final vote result(either accept or decline)of a given claimId.
-    /// @param claimId Claim Id.
-    /// @param verdict 1 if claim is accepted,-1 if declined.
-    function changeFinalVerdict(uint claimId, int8 verdict) onlyInternal {
-
-        cd.changeFinalVerdict(claimId, verdict);
-    }
-
     /// @dev Gets details of a given claim id.
     /// @param _claimId Claim Id.
     /// @return status Current status of claim id
-    /// @return finalVerdict Decision made on the claim, 1 in case of acceptance, -1 in case of denial
+    /// @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
     /// @return claimOwner Address through which claim is submitted
     /// @return coverId Coverid associated with the claim id
     function getClaimbyIndex(uint _claimId) constant returns(uint claimId, string status, int8 finalVerdict, address claimOwner, uint coverId) {
@@ -162,16 +142,16 @@ contract claims is Iupgradable {
     function getCATokensLockedAgainstClaim(address _of, uint claimId) constant returns(uint value) {
 
         (, value) = cd.getTokensClaim(_of, claimId);
-        uint totalLockedCA = td.getBalanceCAWithAddress(_of);
+        uint totalLockedCA = td.tokensLocked(_of, "CLA", now);
         if (totalLockedCA < value)
             value = totalLockedCA;
     }
 
     /// @dev Calculates total amount that has been used to assess a claim. 
-    //      Computaion:Adds acceptCA(tokens used for voting in favor a claim) 
+    //      Computaion:Adds acceptCA(tokens used for voting in favor of a claim) 
     //      denyCA(tokens used for voting against a claim) *  current token price.
     /// @param claimId Claim Id.
-    /// @param member Member type 0 for calculating the amount used by Claim Assessors, else result gives amount used by members.
+    /// @param member Member type 0 -> Claim Assessors, else members.
     /// @return tokens Total Amount used in claims assessment.
     function getCATokens(uint claimId, uint member) constant returns(uint tokens) {
 
@@ -179,21 +159,21 @@ contract claims is Iupgradable {
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint tokenx1e18 = tc1.getTokenPrice(curr);
-        uint acceptCA;
-        uint acceptMV;
-        uint denyCA;
-        uint denyMV;
-        (, acceptCA, denyCA) = cd.getClaimsTokenCA(claimId);
-        (, acceptMV, denyMV) = cd.getClaimsTokenMV(claimId);
-        if (member == 0)
-            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA, denyCA)), tokenx1e18), DECIMAL1E18); // amount (not in tokens)
-        else
-            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV, denyMV)), tokenx1e18), DECIMAL1E18);
+        uint accept;
+        uint deny;
+        if (member == 0) {
+            (, accept, deny) = cd.getClaimsTokenCA(claimId);
+            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18); // amount (not in tokens)
+        }else {
+            (, accept, deny) = cd.getClaimsTokenMV(claimId);
+            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
+        }
     }
 
     /// @dev Checks if voting of a claim should be closed or not.
     /// @param claimId Claim Id.
-    /// @return close 1 if voting should be closed, 0 if voting should not be closed,-1 if voting has already been closed.
+    /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
+    /// -1 -> voting has already been closed.
     function checkVoteClosing(uint claimId) constant returns(int8 close) {
         
         close = 0;
@@ -215,14 +195,14 @@ contract claims is Iupgradable {
         }
     }
 
-    /// @dev setting the status of claim using claim id.
+    /// @dev Sets the status of claim using claim id.
     /// @param claimId claim id.
     /// @param stat status to be set.
     function setClaimStatus(uint claimId, uint8 stat) onlyInternal {
         setClaimStatusInternal(claimId, stat);
     }
 
-    /// @dev Updates the pending claim start variable, which is the lowest claim id with a pending decision/payout.
+    /// @dev Updates the pending claim start variable, the lowest claim id with a pending decision/payout.
     function changePendingClaimStart() onlyInternal {
 
         uint8 origstat;
@@ -239,7 +219,8 @@ contract claims is Iupgradable {
         }
     }
 
-    /// @dev Submits a claim for a given cover note. Adds claim to queue incase of emergency pause else directly submits the claim.
+    /// @dev Submits a claim for a given cover note. 
+    ///      Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverId Cover Id.
     function submitClaim(uint coverId) {
 
@@ -275,15 +256,17 @@ contract claims is Iupgradable {
         cd.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
     }
 
-    /// @dev Members who have tokens locked under Claims Assessment can assess and Vote As a CLAIM ASSESSOR for a given claim id.
+    /// @dev Castes vote for members who have tokens locked under Claims Assessment
     /// @param claimId  claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
-    /// @param tokens number of CAtokens a voter wants to use for the claim assessment.
-    //               These tokens are booked for a specified period for time and hence 
-    //               cannot be used to cst another vote for the specified period
-    function submitCAVote(uint claimId, int8 verdict, uint tokens) isMemberAndcheckPause {
+    function submitCAVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
         require(checkVoteClosing(claimId) != 1);
+        uint time = cd.claimDepositTime();
+        time = SafeMaths.add(now, time);
+        uint tokens = td.tokensLocked(msg.sender, "CLA", time);
+        tokens = SafeMaths.sub(tokens, td.getBookedCA(msg.sender));
+        require(tokens > 0);
         uint8 stat;
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat == 0);
@@ -295,10 +278,8 @@ contract claims is Iupgradable {
         cd.addClaimVoteCA(claimId, voteLength);
         cd.setUserClaimVoteCA(msg.sender, claimId, voteLength);
         cd.setClaimTokensCA(claimId, verdict, tokens);
-
-        uint time = td.lockCADays();
-
-        tc2.extendCAWithAddress(msg.sender, time, tokens, claimId);
+        time = td.lockCADays();
+        tc1.changeLock("CLA", msg.sender, time, true);
 
         int close = checkVoteClosing(claimId);
         if (close == 1) {
@@ -312,11 +293,11 @@ contract claims is Iupgradable {
     //      Assessment can be used to cast a vote for a given claim id.
     /// @param claimId Selected claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
-    /// @param tokens Number of tokens used to case a vote
-    function submitMemberVote(uint claimId, int8 verdict, uint tokens) isMemberAndcheckPause {
+    function submitMemberVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
         require(checkVoteClosing(claimId) != 1);
         uint stat;
+        uint tokens = tc1.balanceOf(msg.sender);
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat >= 1 && stat <= 5);
         require(cd.getUserClaimVoteMember(msg.sender, claimId) == 0);
@@ -326,16 +307,13 @@ contract claims is Iupgradable {
         cd.addClaimVotemember(claimId, voteLength);
         cd.setUserClaimVoteMember(msg.sender, claimId, voteLength);
         cd.setClaimTokensMV(claimId, verdict, tokens);
-        uint time = td.lockMVDays();
-        time = SafeMaths.add(now, time);
-        td.lockMV(msg.sender, time, tokens);
         int close = checkVoteClosing(claimId);
         if (close == 1) {
 
             cr.changeClaimStatus(claimId);
         }
     }
-
+    
     /// @dev Pause Voting of All Pending Claims when Emergency Pause Start.
     function pauseAllPendingClaimsVoting() onlyInternal {
         uint firstIndex = cd.pendingClaimStart();
@@ -361,14 +339,12 @@ contract claims is Iupgradable {
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint tokenx1e18 = tc1.getTokenPrice(curr);
-        uint acceptCA;
-        uint acceptMV;
-        uint denyCA;
-        uint denyMV;
-        (, acceptCA, denyCA) = cd.getClaimsTokenCA(claimId);
-        (, acceptMV, denyMV) = cd.getClaimsTokenMV(claimId);
-        uint caTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptCA, denyCA)), tokenx1e18), DECIMAL1E18);
-        uint mvTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(acceptMV, denyMV)), tokenx1e18), DECIMAL1E18);
+        uint accept;
+        uint deny;
+        (, accept, deny) = cd.getClaimsTokenCA(claimId);
+        uint caTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
+        (, accept, deny) = cd.getClaimsTokenMV(claimId);
+        uint mvTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
         uint sumassured = SafeMaths.mul(qd.getCoverSumAssured(coverId), DECIMAL1E18);
         if (status == 0 && caTokens >= SafeMaths.mul(10, sumassured))
             close = 1;
@@ -411,7 +387,8 @@ contract claims is Iupgradable {
         }
     }
 
-    ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
+    ///@dev Submits a claim for a given cover note.
+    ///     Deposits 20% of the tokens locked against cover.
     function addClaim(uint coverId, uint time, address add) internal {
 
         uint nowtime = now;

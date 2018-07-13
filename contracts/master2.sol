@@ -16,7 +16,6 @@
 pragma solidity ^0.4.11;
 
 import "./claims.sol";
-import "./governance.sol";
 import "./master.sol";
 import "./pool.sol";
 import "./claimsReward.sol";
@@ -24,8 +23,8 @@ import "./claimsData.sol";
 import "./mcr.sol";
 import "./quotationData.sol";
 import "./poolData.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract masters2 is Iupgradable {
@@ -34,7 +33,7 @@ contract masters2 is Iupgradable {
 
     address masterAddress;
 
-    governance g1;
+    
     claims c1;
     master ms;
     pool p1;
@@ -72,14 +71,13 @@ contract masters2 is Iupgradable {
         p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
         c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
         m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        g1 = governance(ms.versionContractAddress(currentVersion, "GOV1"));
         cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
         qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
 
     }
 
-    /// @dev Adds all the status names into array.
+    /// @dev Adds all the claim status names into array.
     function addStatusInClaims() onlyOwner {
 
         c1.pushStatus("Pending-Claim Assessor Vote", 0, 0); //0
@@ -99,62 +97,15 @@ contract masters2 is Iupgradable {
         c1.pushStatus("Claim Accepted Payout Done", 0, 0); //18
     }
 
-    /// @dev Adds  statuses and categories master for a proposal.
-    function changeStatusAndCAtegory() onlyOwner {
-
-        //0
-        g1.addCategory("Uncategorised", 0, 0);
-        //1
-        g1.addCategory("Implement run-off and close new business", 1, 80);
-        //2
-        g1.addCategory("Burn fraudulent claim assessor tokens", 0, 80);
-        //3
-        g1.addCategory("Pause Claim Assessors ability to assess claims for 3 days.Can only be done once a month", 0, 60);
-        //4
-        g1.addCategory("Changes to Capital Model", 1, 60);
-        //5
-        g1.addCategory("Changes to Pricing", 1, 60);
-        //6
-        g1.addCategory("Engage in external services up to the greater of $50,000USD or 2% of MCR", 0, 80);
-        //7
-        g1.addCategory("Engage in external services over the greater of $50,000USD or 2% of MCR", 1, 60);
-        //8
-        g1.addCategory("Changes to remuneration and/or membership of Advisory Board", 1, 60);
-        //9
-        g1.addCategory("Filter member proposals as necessary(which are put to a member vote)", 0, 60);
-        //10
-        g1.addCategory("Release new smart contract code as necessary to fix bugs/weaknesses or deliver enhancements/new products", 1, 60);
-        //11
-        g1.addCategory("Any change to authorities", 1, 80);
-        //12
-        g1.addCategory("Start/Stop Emergency Pause", 1, 80);
-        //13
-        g1.addCategory("Changes to Investment Model", 1, 60);
-        //14
-        g1.addCategory("Change 0x Relayer Address", 1, 60);
-        //15
-        g1.addCategory("Any other item specifically described", 1, 80);
-
-        g1.addStatus("Draft for discussion, multiple versions.");
-        g1.addStatus("Pending-Advisory Board Vote");
-        g1.addStatus("Pending-Advisory Board Vote Accepted, pending Member Vote");
-        g1.addStatus("Final-Advisory Board Vote Declined");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote not required");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Accepted");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Declined");
-        g1.addStatus("Final-Advisory Board Vote Accepted, Member Vote Quorum not Achieved");
-        g1.addStatus("Proposal Accepted, Insufficient Funds");
-    }
-
     /// @dev Changes the  minimum,maximum claims assessment voting,escalation,payout retry times 
-    /// @param _mintime Minimum time(in milliseconds) for which claim assessment voting is open
-    /// @param _maxtime Maximum time(in milliseconds) for which claim assessment voting is open
-    /// @param escaltime Time(in milliseconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in milliseconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    /// @param _mintime Minimum time(in seconds) for which claim assessment voting is open
+    /// @param _maxtime Maximum time(in seconds) for which claim assessment voting is open
+    /// @param escaltime Time(in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
     function changeTimes(uint32 _mintime, uint32 _maxtime, uint32 escaltime, uint32 payouttime) onlyOwner {
         uint64 timeLeft;
 
-        c1.setTimes(_mintime, _maxtime, escaltime, payouttime);
+        cd.setTimes(_mintime, _maxtime, escaltime, payouttime);
 
         uint nowTime = now;
         uint pendingClaimStart = cd.pendingClaimStart();
@@ -200,7 +151,7 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Add quotation and cover status.
+    /// @dev Adds quotation status.
     function addCoverStatus() onlyOwner {
 
         qd.pushCoverStatus("Active");
@@ -211,16 +162,15 @@ contract masters2 is Iupgradable {
         qd.pushCoverStatus("Requested");
     }
 
-    /// @dev Initialize asset data required by pool.
+    /// @dev Initializes asset data required by pool module.
     function callPoolDataMethods() onlyOwner {
         addCurrencyAssetsVarBase();
         addInvestmentAssetsDetails();
         addInvestmentCurrencies();
-
         addAllCurrencies();
     }
 
-    /// @dev Add investment asset details to pool.
+    /// @dev Adds investment asset details to pool.
     function addCurrencyAssetsDetails() internal {
 
         pd.pushCurrencyAssetsDetails("ETH", 0x00, 1, 50, 400, 18);
@@ -228,13 +178,13 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Add investment assets names to pool.
+    /// @dev Adds investment asset names to pool module.
     function addAllCurrencies() internal {
         pd.addAllCurrencies("ETH");
         pd.addAllCurrencies("DAI");
     }
 
-    /// @dev Add investment assets names to pool.
+    /// @dev Adds investment assets names to pool module.
     function addInvestmentCurrencies() internal {
 
         pd.addInvestmentCurrency("DGD");
@@ -245,7 +195,7 @@ contract masters2 is Iupgradable {
         pd.addInvestmentCurrency("MLN");
     }
 
-    /// @dev Add currency asset data to pool. 
+    /// @dev Adds currency asset data to pool module. 
     function addCurrencyAssetsVarBase() internal {
 
         pd.pushCurrencyAssetsVarBase("ETH", 6); //original 64 baseMin
@@ -253,7 +203,7 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Add investment asset details to pool.
+    /// @dev Adds investment asset details to pool.
     function addInvestmentAssetsDetails() internal {
 
         //DGD

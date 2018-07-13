@@ -14,6 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity ^0.4.11;
+
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
 import "./nxmTokenData.sol";
@@ -22,7 +23,7 @@ import "./quotationData.sol";
 import "./mcr.sol";
 import "./master.sol";
 import "./Iupgradable.sol";
-import "./SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract quotation2 is Iupgradable {
@@ -132,7 +133,7 @@ contract quotation2 is Iupgradable {
         }
     }
 
-    /// @dev Make Cover using NXM tokens.
+    /// @dev Makes Cover funded via NXM tokens.
     /// @param smartCAdd Smart Contract Address
     function makeCoverUsingNXMTokens(
         uint prodId, 
@@ -150,7 +151,7 @@ contract quotation2 is Iupgradable {
         verifyCoverDetailsIntrnl(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
-    /// @dev Make Cover(s).
+    /// @dev Verifies cover details signed off chain.
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
     function verifyCoverDetails(
@@ -167,8 +168,8 @@ contract quotation2 is Iupgradable {
         verifyCoverDetailsIntrnl(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
-    /// @dev Verifying signature.
-    /// @param coverDetails details realted to cover.
+    /// @dev Verifies signature.
+    /// @param coverDetails details related to cover.
     /// @param coverPeriod validity of cover.
     /// @param smaratCA smarat contract address.
     /// @param _v argument from vrs hash. 
@@ -187,7 +188,7 @@ contract quotation2 is Iupgradable {
         return isValidSignature(hash, _v, _r, _s);
     }
 
-    /// @dev getting order hash for signature.
+    /// @dev Gets order hash for given cover details.
     /// @param coverDetails details realted to cover.
     /// @param coverPeriod validity of cover.
     /// @param smaratCA smarat contract address.
@@ -195,7 +196,7 @@ contract quotation2 is Iupgradable {
         return keccak256(coverDetails[0], curr, coverPeriod, smaratCA, coverDetails[1], coverDetails[2], coverDetails[3]);
     }
 
-    /// @dev Verifying signature.
+    /// @dev Verifies signature.
     /// @param hash order hash
     /// @param v argument from vrs hash. 
     /// @param r argument from vrs hash.
@@ -208,8 +209,8 @@ contract quotation2 is Iupgradable {
         return (a == qd.getAuthQuoteEngine());
     }
 
-    /// @dev Create cover of the quotation, change the status of the quotation ,
-    //                update the total sum assured and lock the tokens of the cover of a quote.
+    /// @dev Creates cover of the quotation, changes the status of the quotation ,
+    //                updates the total sum assured and locks the tokens of the cover against a quote.
     /// @param from Quote member Ethereum address
     function makeCover(uint prodId, address from, address scAddress, bytes4 coverCurr, uint[] coverDetails, uint16 coverPeriod) internal {
 
@@ -238,7 +239,7 @@ contract quotation2 is Iupgradable {
         }
     }
 
-    /// @dev Make Cover(s).
+    /// @dev Makes a vover.
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
     function verifyCoverDetailsIntrnl(

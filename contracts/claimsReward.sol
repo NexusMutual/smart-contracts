@@ -21,14 +21,15 @@ import "./claims.sol";
 import "./claimsData.sol";
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
+import "./nxmTokenData.sol";
 import "./pool.sol";
 import "./pool2.sol";
 import "./poolData.sol";
 import "./quotationData.sol";
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
 import "./pool3.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract claimsReward is Iupgradable {
@@ -38,6 +39,7 @@ contract claimsReward is Iupgradable {
 
     nxmToken tc1;
     nxmToken2 tc2;
+    nxmTokenData td;
     quotationData qd;
     claimsData cd;
     poolData pd;
@@ -84,10 +86,11 @@ contract claimsReward is Iupgradable {
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
         p2 = pool2(ms.versionContractAddress(currentVersion, "P2"));
         p3 = pool3(ms.versionContractAddress(currentVersion, "P3"));
+        td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
 
     }
    
-    /// @dev Depending upon the current status of the claim, corresponding functions are called and next status of the claim is decided accordingly.
+    /// @dev Decides the next course of action for a given claim.    
     function changeClaimStatus(uint claimid) checkPause {
 
         require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
@@ -114,7 +117,7 @@ contract claimsReward is Iupgradable {
         c1.changePendingClaimStart();
     }
     
-    /// @dev Start Voting of All Pending Claims when Emergency Pause OFF.
+    /// @dev Resume the voting phase of all claims paused due to an emergency pause.
     function startAllPendingClaimsVoting() onlyInternal {
 
         uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
@@ -137,12 +140,12 @@ contract claimsReward is Iupgradable {
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
 
-    /// @dev Amount of tokens should be given to user for particular vote id.
-    /// @param check if 1 CA vote,else member vote
-    /// @param voteid vote id for which rewardhas to be Calculated
+    /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
+    /// @param check 1 -> CA vote, else member vote
+    /// @param voteid vote id for which reward has to be Calculated
     /// @param flag if 1 calculate even if claimed,else don't calculate if already claimed
     /// @return tokenCalculated reward to be given for vote id
-    /// @return lastClaimedCheck true if fibal verdict is still pending for that voteid
+    /// @return lastClaimedCheck true if final verdict is still pending for that voteid
     /// @return tokens number of tokens locked under that voteid
     /// @return perc percentage of reward to be given.
     function getRewardToBeGiven(uint check, uint voteid, uint flag) 
@@ -194,47 +197,50 @@ contract claimsReward is Iupgradable {
 
     }
 
-    /// @dev To Claim the reward by user.
+    /// @dev Allows a user to claim all pending  claims assessment rewards.
     function claimRewardToBeDistributed() checkPause {
-        uint lengthCAVote = cd.getVoteAddressCALength(msg.sender);
-        uint lengthMVVote = cd.getVoteAddressMemberLength(msg.sender);
+        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
         uint lastIndexCA;
         uint lastIndexMV;
         uint voteid;
         (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
         uint total = 0;
-        uint lastClaimedCA = lengthCAVote;
-        uint lastClaimedMV = lengthMVVote;
+        uint lastClaimed = lengthVote;
         uint tokenForVoteId = 0;
         bool lastClaimedCheck;
-        uint _days = tc1.getLockCADays();
+        uint _days = td.lockCADays();
         bool claimed;
-        uint tokens = 0;
+        uint counter = 0;
         uint claimId;
         uint perc;
         uint i;
-        for (i = lastIndexCA; i < lengthCAVote; i++) {
+        for (i = lastIndexCA; i < lengthVote; i++) {
             voteid = cd.getVoteAddressCA(msg.sender, i);
-            (tokenForVoteId, lastClaimedCheck, tokens, perc) = getRewardToBeGiven(1, voteid, 0);
-            if (lastClaimedCA == lengthCAVote && lastClaimedCheck == true)
-                lastClaimedCA = i;
+            (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
+            if (lastClaimed == lengthVote && lastClaimedCheck == true)
+                lastClaimed = i;
             (, claimId, , claimed) = cd.getVoteDetails(voteid);
 
-            if (perc > 0 && tokens > 0) {
-                tc2.reduceCAWithAddress(msg.sender, _days, tokens);
+            if (perc > 0) {
+                counter++;
                 cd.setRewardClaimed(voteid, true);
             } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0) {
-                tc2.reduceCAWithAddress(msg.sender, _days, tokens);
+                counter++;
                 cd.setRewardClaimed(voteid, true);
             }
             if (tokenForVoteId > 0)
                 total = SafeMaths.add(tokenForVoteId, total);
         }
-        for (i = lastIndexMV; i < lengthMVVote; i++) {
+        cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
+        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
+        lastClaimed = lengthVote;
+        _days = SafeMaths.mul(_days, counter);
+        tc1.reduceLock("CLA", msg.sender, _days);
+        for (i = lastIndexMV; i < lengthVote; i++) {
             voteid = cd.getVoteAddressMember(msg.sender, i);
-            (tokenForVoteId, lastClaimedCheck, tokens, ) = getRewardToBeGiven(0, voteid, 0);
-            if (lastClaimedMV == lengthMVVote && lastClaimedCheck == true)
-                lastClaimedMV = i;
+            (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);
+            if (lastClaimed == lengthVote && lastClaimedCheck == true)
+                lastClaimed = i;
             (, claimId, , claimed) = cd.getVoteDetails(voteid);
             if (claimed == false && cd.getFinalVerdict(claimId) != 0)
                 cd.setRewardClaimed(voteid, true);
@@ -243,27 +249,33 @@ contract claimsReward is Iupgradable {
         }
         if (total > 0)
             tc1.transfer(msg.sender, total);
-        cd.setRewardDistributedIndexCA(msg.sender, lastClaimedCA);
-        cd.setRewardDistributedIndexMV(msg.sender, lastClaimedMV);
+        cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
 
     }
+    
+    /// @dev Transfers all tokens held by contract to a new contract in case of upgrade.
+    function upgrade(address _newAdd) onlyInternal {
+        uint amount = tc1.balanceOf(address(this));
+        if (amount > 0)
+            tc1.transfer(_newAdd, amount);
+    }
 
-    /// @dev Total Amount of tokens should be given to user.
+    /// @dev Total reward in token due for claim by a user.
     /// @return total total number of tokens
     function getRewardToBeDistributedByUser() constant returns(uint total) {
-        uint lengthCAVote = cd.getVoteAddressCALength(msg.sender);
-        uint lengthMVVote = cd.getVoteAddressMemberLength(msg.sender);
+        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
         uint lastIndexCA;
         uint lastIndexMV;
         uint tokenForVoteId;
         uint voteId;
         (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
-        for (uint i = lastIndexCA; i < lengthCAVote; i++) {
+        for (uint i = lastIndexCA; i < lengthVote; i++) {
             voteId = cd.getVoteAddressCA(msg.sender, i);
             (tokenForVoteId, , , ) = getRewardToBeGiven(1, voteId, 0);
             total = SafeMaths.add(total, tokenForVoteId);
         }
-        for (uint j = lastIndexMV; j < lengthMVVote; j++) {
+        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
+        for (uint j = lastIndexMV; j < lengthVote; j++) {
             voteId = cd.getVoteAddressMember(msg.sender, j);
             (tokenForVoteId, , , ) = getRewardToBeGiven(0, voteId, 0);
             total = SafeMaths.add(total, tokenForVoteId);
@@ -271,22 +283,22 @@ contract claimsReward is Iupgradable {
         return (total);
     }
 
-    /// @dev Reawad amount and claiming status.
+    /// @dev Gets reward amount and claiming status for a given claim id.
     /// @return reward amount of tokens to user.
     /// @return claimed true if already claimed false if yet to be claimed.
     function getRewardAndClaimedStatus(uint check, uint claimId) constant returns(uint reward, bool claimed) {
         uint voteId;
-        uint lengthCAVote = cd.getVoteAddressCALength(msg.sender);
-        uint lengthMVVote = cd.getVoteAddressMemberLength(msg.sender);
         uint claimid;
         if (check == 1) {
-            for (uint i = 0; i < lengthCAVote; i++) {
+            uint lengthVote = cd.getVoteAddressCALength(msg.sender);
+            for (uint i = 0; i < lengthVote; i++) {
                 voteId = cd.getVoteAddressCA(msg.sender, i);
                 (, claimid, , claimed) = cd.getVoteDetails(voteId);
                 if (claimid == claimId) break;
             }
         } else {
-            for (uint j = 0; j < lengthMVVote; j++) {
+            lengthVote = cd.getVoteAddressMemberLength(msg.sender);
+            for (uint j = 0; j < lengthVote; j++) {
                 voteId = cd.getVoteAddressMember(msg.sender, j);
                 (, claimid, , claimed) = cd.getVoteDetails(voteId);
                 if (claimid == claimId) break;
@@ -316,7 +328,7 @@ contract claimsReward is Iupgradable {
             tc2.mintClaimRewardToken(distributableTokens);
         }
         if (status == 6) {  // Final-Claim Assessor Vote Denied
-            c1.changeFinalVerdict(claimid, -1);
+            cd.changeFinalVerdict(claimid, -1);
             // Rewards Claims Assessor only
             tc2.burnCNToken(coverid); // Burns tokens deposited at the time of claim submission
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
@@ -325,18 +337,18 @@ contract claimsReward is Iupgradable {
             }
         }
         if (status == 7) {
-            c1.changeFinalVerdict(claimid, 1);
+            cd.changeFinalVerdict(claimid, 1);
             // Rewards Claims Assessor only
             tc1.unlockCN(coverid); // Unlocks token locked against cover note
             succ = p2.sendClaimPayout(coverid, claimid); //Initiates payout
         }
         if (status == 8) {
-            c1.changeFinalVerdict(claimid, 1);
+            cd.changeFinalVerdict(claimid, 1);
             tc1.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
         }
         if (status == 9) {
-            c1.changeFinalVerdict(claimid, -1);
+            cd.changeFinalVerdict(claimid, -1);
             tc2.burnCNToken(coverid);
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
                 pd.changeCurrencyAssetVarMin(curr, SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr), sumAssured));
@@ -344,12 +356,12 @@ contract claimsReward is Iupgradable {
             }
         }
         if (status == 10) {
-            c1.changeFinalVerdict(claimid, 1);
+            cd.changeFinalVerdict(claimid, 1);
             tc1.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
         }
         if (status == 11) {
-            c1.changeFinalVerdict(claimid, -1);
+            cd.changeFinalVerdict(claimid, -1);
             tc2.burnCNToken(coverid);
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
                 pd.changeCurrencyAssetVarMin(curr, SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr), sumAssured));

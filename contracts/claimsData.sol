@@ -15,8 +15,8 @@
 
 pragma solidity ^0.4.11;
 import "./master.sol";
-import "./SafeMaths.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract claimsData is Iupgradable {
@@ -145,22 +145,22 @@ contract claimsData is Iupgradable {
         _;
     }
 
-    /// @dev setting the escalation time.
+    /// @dev Sets the escalation time.
     function setEscalationTime(uint32 _time) onlyInternal {
         escalationTime = _time;
     }
 
-    /// @dev Sets Maximum time(in milliseconds) for which claim assessment voting is open
+    /// @dev Sets Maximum time(in seconds) for which claim assessment voting is open
     function setMaxVotingTime(uint32 _time) onlyInternal {
         maxVotingTime = _time;
     }
 
-    /// @dev Sets Minimum time(in milliseconds) for which claim assessment voting is open
+    /// @dev Sets Minimum time(in seconds) for which claim assessment voting is open
     function setMinVotingTime(uint32 _time) onlyInternal {
         minVotingTime = _time;
     }
 
-    /// @dev Sets the Retry Time 
+    /// @dev Sets the payout retry time 
     function setPayoutRetryTime(uint32 _time) onlyInternal {
         payoutRetryTime = _time;
     }
@@ -186,7 +186,7 @@ contract claimsData is Iupgradable {
         return userClaimVoteMember[_add][_claimId];
     }
     
-    /// @dev get the count of all votes.
+    /// @dev Gets the count of all votes.
     function getAllVoteLength() constant returns(uint voteCount) {
         return SafeMaths.sub(allvotes.length, 1); //Start Index always from 1.
     }
@@ -198,7 +198,7 @@ contract claimsData is Iupgradable {
         return (_claimId, claimsStatus[_claimId]);
     }
 
-    /// @dev Gets the number of Try that has been made for a successful payout of a Claim.
+    /// @dev Gets the number of tries that have been made for a successful payout of a Claim.
     function getClaimState12Count(uint _claimId) constant returns(uint8 num) {
         num = claimState12Count[_claimId];
     }
@@ -217,21 +217,21 @@ contract claimsData is Iupgradable {
 
     /// @dev Gets the number of tokens that has been locked while giving vote to a claim by  Claim Assessors.
     /// @param _claimId Claim Id.
-    /// @return accept Total number of tokens when CA accepts the claim. CA gives vote in favor.
-    /// @return deny Total number of tokens when CA declines the claim. CA gives vote in against.
+    /// @return accept Total number of tokens when CA accepts the claim.
+    /// @return deny Total number of tokens when CA declines the claim.
     function getClaimsTokenCA(uint _claimId) constant returns(uint claimId, uint accept, uint deny) {
         return (_claimId, claimTokensCA[_claimId].accept, claimTokensCA[_claimId].deny);
     }
 
-    /// @dev Gets the number of tokens that has been locked while giving vote to a claim by Members.
+    /// @dev Gets the number of tokens that have been locked while assessing a claim as a member.
     /// @param _claimId Claim Id.
-    /// @return accept Total number of tokens when member accepts the claim. Member gives vote in favor.
-    /// @return deny Total number of tokens when member declines the claim. Member gives vote in against.
+    /// @return accept Total number of tokens in acceptance of the claim.
+    /// @return deny Total number of tokens against the claim.
     function getClaimsTokenMV(uint _claimId) constant returns(uint claimId, uint accept, uint deny) {
         return (_claimId, claimTokensMV[_claimId].accept, claimTokensMV[_claimId].deny);
     }
 
-    /// @dev Gets the total number of tokens of a given Claim ,received during voting period done by Claims Assessors.
+    /// @dev Gets the total number of votes cast as claims assessor for/against a given claim
     function getCaClaimVotesToken(uint _claimId) constant returns(uint claimId, uint cnt) {
         claimId = _claimId;
         cnt = 0;
@@ -240,7 +240,7 @@ contract claimsData is Iupgradable {
         }
     }
 
-    /// @dev Gets the total number of tokens of a given Claim ,received during voting period done by Members.
+    /// @dev Gets the total number of tokens cast as a member for/against a given claim
     function getMemberClaimVotesToken(uint _claimId) constant returns(uint claimId, uint cnt) {
         claimId = _claimId;
         cnt = 0;
@@ -284,9 +284,9 @@ contract claimsData is Iupgradable {
 
     /// @dev Gets the total number of votes of a given claim.
     /// @param _claimId Claim Id.
-    /// @param _ca if 1: returns the number of votes given by Claim Assessors to a claim, 
+    /// @param _ca if 1: votes given by Claim Assessors to a claim, 
     //        else returns the number of votes of given by Members to a claim.
-    /// @return len total number of votes of a given claim.
+    /// @return len total number of votes for/against a given claim.
     function getClaimVoteLength(uint _claimId, uint8 _ca) constant returns(uint claimId, uint len) {
         claimId = _claimId;
         if (_ca == 1)
@@ -341,19 +341,19 @@ contract claimsData is Iupgradable {
         len = allClaims.length;
     }
 
-    /// @dev Updates the pending claim start variable, which is the lowest claim id with a pending decision/payout.
+    /// @dev Updates the pending claim start variable, the lowest claim id with a pending decision/payout.
     function setpendingClaimStart(uint _start) onlyInternal {
         require(pendingClaimStart <= _start);
         pendingClaimStart = _start;
     }
 
     /// @dev Gets details of a claim.
-    /// @param _index claim id=pending claim start + given index
+    /// @param _index claim id = pending claim start + given index
     /// @param _add User's address.
     /// @return coverid cover against which claim has been submitted.
     /// @return claimId Claim  Id.
-    /// @return voteCA verdict of vote given as a Claim Assessor.1 for accept,-1 for deny,0 if vote is not given for claim.
-    /// @return voteMV verdict of vote given as a Member.1 for accept,-1 for deny,0 if vote i not given for claim.
+    /// @return voteCA verdict of vote given as a Claim Assessor.
+    /// @return voteMV verdict of vote given as a Member.
     /// @return statusnumber Status of claim.
     function getClaimFromNewStart(uint _index, address _add) 
     constant 
@@ -445,7 +445,7 @@ contract claimsData is Iupgradable {
         return (_claimId, allClaims[_claimId].coverId);
     }
 
-    /// @dev Gets total number of tokens of a claim given to it during voting by Claim Assessors.
+    /// @dev Gets total number of tokens staked during voting by Claim Assessors.
     /// @param _claimId Claim Id.
     /// @param _verdict 1 to get total number of accept tokens, -1 to get total number of deny tokens.
     /// @return token token Number of tokens(either accept or deny on the basis of verdict given as parameter).
@@ -458,7 +458,7 @@ contract claimsData is Iupgradable {
         }
     }
 
-    /// @dev Gets total number of tokens of a claim given to it during voting by Members.
+    /// @dev Gets total number of tokens staked during voting by Members.
     /// @param _claimId Claim Id.
     /// @param _verdict 1 to get total number of accept tokens, -1 to get total number of deny tokens.
     /// @return token token Number of tokens(either accept or deny on the basis of verdict given as parameter).
@@ -471,7 +471,7 @@ contract claimsData is Iupgradable {
         }
     }
 
-    /// @param _voter address  of voter
+    /// @param _voter address  of voteid
     /// @param index index to get voteid in CA
     function getVoteAddressCA(address _voter, uint index) constant returns(uint) {
         return voteAddressCA[_voter][index];
@@ -493,9 +493,9 @@ contract claimsData is Iupgradable {
         return voteAddressMember[_voter].length;
     }
 
-    /// @dev Sets the final vote's result(either accepted or declined)of a claim.
+    /// @dev Sets the reward claim status against a vote id.
     /// @param _voteid vote Id.
-    /// @param claimed true if reward for vote is claimed,false if reward for vote is not claimed.
+    /// @param claimed true if reward for vote is claimed, else false.
     function setRewardClaimed(uint _voteid, bool claimed) onlyInternal {
         allvotes[_voteid].rewardClaimed = claimed;
     }
@@ -524,7 +524,7 @@ contract claimsData is Iupgradable {
         return claimVote[_claimId];
     }
 
-    /// @dev Saves the claim submission time in case of emergency pause.
+    /// @dev Creates a new claim.
     function addClaim(uint _claimId, uint _coverId, address _from, uint _nowtime) onlyInternal {
         allClaims.push(claim(_coverId, _nowtime));
         allClaimsByAddress[_from].push(_claimId);
@@ -543,7 +543,8 @@ contract claimsData is Iupgradable {
         allvotes.push(vote(_voter, _tokens, claimId, _verdict, false));
     }
 
-    /// @dev Stores the id of the vote given to a claim.Maintains record of all votes given by all the CA to a claim.
+    /// @dev Stores the id of the claim assessor vote given to a claim.
+    ///      Maintains record of all votes given by all the CA to a claim.
     /// @param _claimId Claim Id to which vote has given by the CA.
     /// @param _voteid Vote Id. 
     function addClaimVoteCA(uint _claimId, uint _voteid) onlyInternal {
@@ -581,7 +582,8 @@ contract claimsData is Iupgradable {
             claimTokensMV[_claimId].deny = SafeMaths.add(claimTokensMV[_claimId].deny, _tokens);
     }
 
-    /// @dev Stores the id of the vote given to a claim.Maintains record of all votes given by all the Members to a claim.
+    /// @dev Stores the id of the member vote given to a claim.
+    ///      Maintains record of all votes given by all the Members to a claim.
     /// @param _claimId Claim Id to which vote has been given by the Member.
     /// @param _voteid Vote Id.
     function addClaimVotemember(uint _claimId, uint _voteid) onlyInternal {
@@ -598,7 +600,7 @@ contract claimsData is Iupgradable {
 
     }
 
-    /// @dev Increases the count of failure until payout of a claim is succeeded.
+    /// @dev Increases the count of failure until payout of a claim is successful.
     function updateState12Count(uint _claimId, uint8 _cnt) onlyInternal {
         claimState12Count[_claimId] = SafeMaths.add8(claimState12Count[_claimId], _cnt);
     }
@@ -610,14 +612,14 @@ contract claimsData is Iupgradable {
         claimsStatus[_claimId] = _stat;
     }
 
-    /// @dev Sets the date of a given claim at which the Claim's details has been updated/changed.
+    /// @dev Sets the timestamp of a given claim at which the Claim's details has been updated.
     /// @param _claimId Claim Id of claim which has been changed.
     /// @param _dateUpd timestamp at which claim is updated.
     function setClaimdateUpd(uint _claimId, uint _dateUpd) onlyInternal {
         allClaims[_claimId].dateUpd = _dateUpd;
     }
 
-    /// @dev Claim at Emergency Pause.
+    /// @dev Ques claims during Emergency Pause.
     function setClaimAtEmergencyPause(uint _coverId, uint _dateUpd, bool _submit) onlyInternal {
         claimPause.push(claimsPause(_coverId, _dateUpd, _submit));
     }
@@ -629,59 +631,60 @@ contract claimsData is Iupgradable {
         submit = claimPause[_index].submit;
     }
 
-    /// @dev set submission flag true after claim is submitted.
+    /// @dev Set submission flag for claims queued during emergency pause.
+    ///      Set to true after EP is turned off and the claim is submitted .
     function setClaimSubmittedAtEPTrue(uint _index, bool _submit) onlyInternal {
         claimPause[_index].submit = _submit;
     }
 
-    /// @dev Get number of claims submitted during emergency pause.
+    /// @dev Get number of claims queued for submission during emergency pause.
     function getLengthOfClaimSubmittedAtEP() constant returns(uint len) {
         len = claimPause.length;
     }
 
-    /// @dev Set the index from which claim needs to be submitted when emergency pause is swithched off.
+    /// @dev Sets the index from which claim needs to be submitted when emergency pause is swithched off.
     function setFirstClaimIndexToSubmitAfterEP(uint _firstClaimIndexToSubmit) onlyInternal {
         claimPauseLastsubmit = _firstClaimIndexToSubmit;
     }
 
-    /// @dev Get the index from which claim needs to be submitted when emergency pause is swithched off.
+    /// @dev Gets the index from which claim needs to be submitted when emergency pause is swithched off.
     function getFirstClaimIndexToSubmitAfterEP() constant returns(uint firstClaimIndexToSubmit) {
         firstClaimIndexToSubmit = claimPauseLastsubmit;
     }
 
-    /// @dev Set the pending vote time for a claim in case of emergency pause.
+    /// @dev Sets the pending vote duration for a claim in case of emergency pause.
     function setPendingClaimDetails(uint _claimId, uint _pendingTime, bool _voting) onlyInternal {
         claimPauseVotingEP.push(claimPauseVoting(_claimId, _pendingTime, _voting));
     }
 
-    /// @dev set voting flag true after claim is reopened for voting after emergency pause.
+    /// @dev Sets voting flag true after claim is reopened for voting after emergency pause.
     function setPendingClaimVoteStatus(uint _claimId, bool _vote) onlyInternal {
         claimPauseVotingEP[_claimId].voting = _vote;
     }
 
-    /// @dev Get number of claims to be reopened for voting after emergency pause.
+    /// @dev Gets number of claims to be reopened for voting post emergency pause period.
     function getLengthOfClaimVotingPause() constant returns(uint len) {
         len = claimPauseVotingEP.length;
     }
 
-    /// @dev Get claim details to be reopened for voting after emergency pause.
+    /// @dev Gets claim details to be reopened for voting after emergency pause.
     function getPendingClaimDetailsByIndex(uint _index) constant returns(uint claimId, uint pendingTime, bool voting) {
         claimId = claimPauseVotingEP[_index].claimid;
         pendingTime = claimPauseVotingEP[_index].pendingTime;
         voting = claimPauseVotingEP[_index].voting;
     }
 
-    /// @dev Set the index from which claim needs to be reopened when emergency pause is swithched off.
+    /// @dev Sets the index from which claim needs to be reopened when emergency pause is swithched off.
     function setFirstClaimIndexToStartVotingAfterEP(uint _claimStartVotingFirstIndex) onlyInternal {
         claimStartVotingFirstIndex = _claimStartVotingFirstIndex;
     }
 
-    /// @dev Get the index from which claim needs to be reopened when emergency pause is swithched off.
+    /// @dev Gets the index from which claim needs to be reopened when emergency pause is swithched off.
     function getFirstClaimIndexToStartVotingAfterEP() constant returns(uint firstindex) {
         firstindex = claimStartVotingFirstIndex;
     }
 
-    /// @dev Set the time for which claim is deposited.
+    /// @dev Sets the time for which claim is deposited.
     function setClaimDepositTime(uint _time) onlyInternal {
         claimDepositTime = _time;
     }
@@ -694,5 +697,18 @@ contract claimsData is Iupgradable {
     /// @dev Calls Claim Event.
     function callClaimEvent(uint _coverId, address _userAddress, uint _claimId, uint _datesubmit) onlyInternal {
         Claim(_coverId, _userAddress, _claimId, _datesubmit);
+    }
+    
+    /// @dev Sets the minimum, maximum claims assessment voting, escalation and payout retry times 
+    /// @param _minVoteTime Minimum time(in seconds) for which claim assessment voting is open
+    /// @param _maxVoteTime Maximum time(in seconds) for which claim assessment voting is open
+    /// @param escaltime Time(in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
+    function setTimes(uint32 _minVoteTime, uint32 _maxVoteTime, uint32 escaltime, uint32 payouttime) onlyInternal {
+        // Escalation time to be removed in future
+        setEscalationTime(escaltime);
+        setPayoutRetryTime(payouttime);
+        setMaxVotingTime(_maxVoteTime);
+        setMinVotingTime(_minVoteTime);
     }
 }

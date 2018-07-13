@@ -18,11 +18,11 @@ pragma solidity ^0.4.11;
 import "./poolData.sol";
 import "./master.sol";
 import "./pool.sol";
-import "./SafeMaths.sol";
 import "./pool2.sol";
 import "./mcrData.sol";
-import "./Exchange.sol";
 import "./Iupgradable.sol";
+import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/0xProject/Exchange.sol";
 
 
 contract pool3 is Iupgradable {
@@ -110,19 +110,7 @@ contract pool3 is Iupgradable {
         _;
     }
 
-    /// @dev Sets a given investment asset as active for trading.
-    function activeInvestmentAsset(bytes8 curr) onlyInternal {
-
-        pd.changeInvestmentAssetStatus(curr, 1);
-    }
-
-    /// @dev Sets a given investment asset as inactive for trading.
-    function inactiveInvestmentAsset(bytes8 curr) onlyInternal {
-
-        pd.changeInvestmentAssetStatus(curr, 0);
-    }
-
-    /// @dev Saves a given investment asset details.
+    /// @dev Saves a given investment asset details. To be called daily.
     /// @param curr array of Investment asset name.
     /// @param rate array of investment asset exchange rate.
     /// @param date current date in yyyymmdd.
@@ -136,7 +124,6 @@ contract pool3 is Iupgradable {
         uint iaBalance;
         //ONLY NOTARZIE ADDRESS CAN POST
         require(md.isnotarise(msg.sender) != false);
-
         (totalRiskPoolBal, iaBalance) = p2.totalRiskPoolBalance(curr, rate);
         pd.setTotalBalance(totalRiskPoolBal, iaBalance);
         (maxCurr, maxRate, minCurr, minRate) = p2.calculateIARank(curr, rate);
@@ -147,7 +134,6 @@ contract pool3 is Iupgradable {
         p1.saveIADetailsOracalise(pd.getIARatesTime());
         uint8 check;
         uint caBalance;
-
         //Excess Liquidity Trade : atleast once per day
         for (uint16 i = 0; i < md.getCurrLength(); i++) {
             (check, caBalance) = checkLiquidity(md.getCurrencyByIndex(i));
@@ -159,7 +145,7 @@ contract pool3 is Iupgradable {
 
     }
 
-    /// @dev Checks the order fill status for a given order id of given currency.
+    /// @dev Checks the 0x order fill status for a given order id of a given currency.
     function check0xOrderStatus(bytes8 curr, uint orderid) onlyInternal {
         bytes32 orderHash = pd.getCurrOrderHash(curr, orderid);
         exchange = Exchange(exchangeContractAddress);
@@ -209,7 +195,7 @@ contract pool3 is Iupgradable {
         }
     }
 
-    /// @dev Signs a 0x order hash.
+    /// @dev Enables an authorized user to sign 0x Order Hash.
     function sign0xOrder(uint orderId, bytes32 orderHash) checkPause {
 
         require(msg.sender == pd.get0xMakerAddress() && pd.getZeroExOrderStatus(orderHash) == 0); // not signed already         
@@ -365,7 +351,7 @@ contract pool3 is Iupgradable {
         (curr, , status, _minHoldingPercX100, _maxHoldingPercX100, decimals) = pd.getInvestmentAssetDetails(currName);
     }
 
-    /// @dev Get currency asset balance for a given currency name.
+    /// @dev Gets currency asset balance for a given currency name.
     function getCurrencyAssetsBalance(bytes8 curr) constant returns(uint caBalance) {
 
         if (curr == "ETH") {
@@ -376,7 +362,7 @@ contract pool3 is Iupgradable {
 
     }
 
-    /// @dev Get currency asset details for a given currency name.
+    /// @dev Gets currency asset details for a given currency name.
     /// @return caBalance currency asset balance
     /// @return caRateX100 currency asset balance*100.
     /// @return baseMin minimum base amount required in pool.
@@ -388,23 +374,10 @@ contract pool3 is Iupgradable {
         caRateX100 = md.allCurr3DaysAvg(curr);
     }
 
-    // update investment asset  min and max holding percentages.
-    function updateInvestmentAssetHoldingPerc(bytes8 _curr, uint64 _minPercX100, uint64 _maxPercX100) onlyInternal {
-
-        pd.changeInvestmentAssetHoldingPerc(_curr, _minPercX100, _maxPercX100);
-    }
-
     // update currency asset base min and var min
     function updateCurrencyAssetDetails(bytes8 _curr, uint64 _baseMin) onlyInternal {
 
         pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
-    }
-
-    // add new investment asset currency.
-    function addInvestmentAssetsDetails(bytes8 currName, address curr, uint64 _minHoldingPercX100, uint64 _maxHoldingPercX100) onlyInternal {
-
-        pd.addInvestmentCurrency(currName);
-        pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
     }
 
     /// @dev Checks Excess or insufficient liquidity trade conditions for a given currency.

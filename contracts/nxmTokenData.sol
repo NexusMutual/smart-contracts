@@ -142,17 +142,17 @@ contract nxmTokenData is Iupgradable {
         _;
     }
 
-    /// @dev Gets the number of NXM Tokens that are alloted by the creator to the founders.
+    /// @dev Gets the number of NXM Tokens that are alloted by the creator to be distributed among founders.
     function getCurrentFounderTokens() constant returns(uint tokens) {
         tokens = currentFounderTokens;
     }
 
-    /// @dev Gets the minimum time(in milliseconds) for which CA tokens should be locked, in order to participate in claims assessment.
+    /// @dev Gets the minimum time(in seconds) for which CA tokens should be locked, in order to participate in claims assessment.
     function getMinVoteLockPeriod() constant returns(uint64 period) {
         period = minVoteLockPeriod;
     }
 
-    /// @dev Sets the minimum time(in milliseconds) for which CA tokens should be locked, in order to be used in claims assessment.
+    /// @dev Sets the minimum time(in seconds) for which CA tokens should be locked, in order to be used in claims assessment.
     function changeMinVoteLockPeriod(uint64 period) onlyOwner {
         minVoteLockPeriod = period;
     }
@@ -170,7 +170,7 @@ contract nxmTokenData is Iupgradable {
 
     }
 
-    /// @dev Adds the number of tokens received by an address a founder tokens.
+    /// @dev Adds the number of tokens received by an address as founder tokens.
     /// @param _to Address of founder member.
     /// @param tokens Number of tokens allocated.
     function addInAllocatedFounderTokens(address _to, uint tokens) onlyInternal {
@@ -240,7 +240,7 @@ contract nxmTokenData is Iupgradable {
         bookTime = _time;
     }
     
-    /// @dev Gets the time period(in milliseconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
+    /// @dev Gets the time period(in seconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
     function getBookTime() constant returns(uint64 _time) {
         _time = bookTime;
     }
@@ -252,7 +252,7 @@ contract nxmTokenData is Iupgradable {
         val = bookedCA[_of][_index].amount;
     }
     
-    /// @dev Calculates the sum of tokens booked by a user for Claim Assessment.
+    /// @dev Calculates the sum of tokens booked by a user for Claims Assessment.
     function getBookedCA(address _to) constant returns(uint tokensBookedCA) {
         tokensBookedCA = 0;
         for (uint i = 0; i < bookedCA[_to].length; i++) {
@@ -344,7 +344,7 @@ contract nxmTokenData is Iupgradable {
         lockedCN[_of][index].amount = amount1;
     }
 
-    /// @dev set lock CA days.
+    /// @dev Sets lock CA days - number of days for which tokens are locked while submitting a vote.
     function setlockCADays(uint32 _val) onlyInternal {
         lockCADays = _val;
 
@@ -443,7 +443,7 @@ contract nxmTokenData is Iupgradable {
 
     }
 
-    /// @dev Calculates the total number of tokens deposited in a cover by a user.
+    /// @dev Calculates the total number of tokens deposited against a cover by a user.
     /// @param _coverId cover id.
     /// @param _of user's address.
     /// @return tokensDeposited total number of tokens deposited in a cover by a user.
@@ -487,7 +487,7 @@ contract nxmTokenData is Iupgradable {
         burnCAToken[_of][claimid].push(lockToken(timestamp, amount));
     }
 
-    /// @dev Adds details of tokens that are deposit against a given cover by a user for submission of claim.
+    /// @dev Adds details of tokens that are deposited against a given cover by a user for submission of claim.
     /// @param _of User's address.
     /// @param coverid Cover Id.
     /// @param timestamp Validity of tokens.
@@ -496,12 +496,12 @@ contract nxmTokenData is Iupgradable {
         userCoverDepositCN[_of][coverid].push(lockToken(timestamp, amount1));
     }
 
-    /// @dev Locked Token after Cover Expired for given time.
+    /// @dev Sets extra lock period for a cover, post its expiry.
     function setLockTokenTimeAfterCoverExp(uint time) onlyInternal {
         lockTokenTimeAfterCoverExp = time;
     }
 
-    /// @dev adding new stake record.
+    /// @dev Adds a new stake record.
     /// @param _of staker address.
     /// @param _scAddress smart contract address.
     /// @param _amount amountof NXM to be staked.
@@ -511,14 +511,17 @@ contract nxmTokenData is Iupgradable {
         stakerIndex[_of].push(stakeDetails.length - 1);
     }
     
+    /// @dev Adds a new token lock reason against an address.
     function setLockReason(address _add, bytes32 _reason) onlyInternal {
         lockReason[_add].push(_reason);
     }
     
+    /// @dev Gets the number of reasons aginst which a users token is locked
     function getLockReasonLength(address _add) constant returns(uint) {
         return lockReason[_add].length;
     }
     
+    /// @dev Checks if tokens have been locked before by an address for the same reason.
     function hasBeenLockedBefore(address _add, bytes32 _reason) constant returns(bool locked) {
         locked = false;
         for (uint i=0; i < lockReason[_add].length; i++) {
@@ -529,7 +532,7 @@ contract nxmTokenData is Iupgradable {
         }
     }
 
-    /// @dev changes the amount of staking at particular index.
+    /// @dev changes the amount of underwritten stake at a particular index.
     /// @param _index index at which amount is to be changed.
     /// @param _amount amount of NXM.
     function updateStake(uint _index, uint _amount) onlyInternal {
@@ -583,7 +586,7 @@ contract nxmTokenData is Iupgradable {
         _dateAdd = stakeDetails[_index].dateAdd;
     }
 
-    /// @dev pushes the commission of staker.
+    /// @dev pushes the commission earned by a staker.
     /// @param _of address of staker.
     /// @param _scAddress address of smart contract.
     /// @param _stakerIndx index of the staker to distribute commission.
@@ -625,7 +628,7 @@ contract nxmTokenData is Iupgradable {
         _length = stakerSCIndexCommission[_of][_scAddress][_stakerIndx].length;
     }
 
-    /// @dev Gets total stake commission given to staker.
+    /// @dev Gets total stake commission given to an underwriter.
     /// @param _of address of staker.
     /// @param _scAddress smart contract address.
     /// @param _stakerIndx index of the staker commission.
@@ -639,7 +642,7 @@ contract nxmTokenData is Iupgradable {
         }
     }
 
-    /// @dev Gets total number of stakers against smart contract.
+    /// @dev Gets total number of underwriters against a given smart contract.
     function getTotalStakerAgainstScAddress(address _scAddress) constant returns(uint) {
         return scAddressStake[_scAddress].length;
     }
@@ -650,18 +653,18 @@ contract nxmTokenData is Iupgradable {
         _scAddressIndx = scAddressStake[_scAddress][_index];
     }
 
-    /// @dev Gets total number of smart contract address on which staker had staked.
+    /// @dev Gets total number of smart contract address on which underwriter had staked.
     function getTotalScAddressesAgainstStaker(address _of) constant returns(uint) {
         return stakerIndex[_of].length;
     }
 
-    /// @dev Gets staker index from array of smart contracts on which staker staked.
+    /// @dev Gets underwriter index from array of smart contracts on which underwriter staked.
     function getStakerIndexByStakerAddAndIndex(address _of, uint _index) constant returns(uint _indx, uint _stakerIndx) {
         _indx = _index;
         _stakerIndx = stakerIndex[_of][_index];
     }
 
-    /// @dev Gets total amount staked on smart contract by staker.
+    /// @dev Gets total amount staked on a given smart contract by underwriters.
     function getTotalStakedAmtByStakerAgainstScAddress(address _of, address _scAddress) constant returns(uint _totalStakedAmt) {
         _totalStakedAmt = 0;
         for (uint i = 0; i < stakerIndex[_of].length; i++) {
@@ -670,6 +673,7 @@ contract nxmTokenData is Iupgradable {
         }
     }
 
+    /// @dev Sets number of days for which NXM needs to staked in case of underwriting 
     function changeSCValidDays(uint16 _days) onlyOwner {
         scValidDays = _days;
     }
@@ -679,7 +683,7 @@ contract nxmTokenData is Iupgradable {
         joiningFee = val;
     }
 
-    /// @dev Sets wallet address.
+    /// @dev Sets multi sig wallet address where membership fee shall be transferred.
     function setWalletAddress(address _add) onlyOwner {
         walletAddress = _add;
     }

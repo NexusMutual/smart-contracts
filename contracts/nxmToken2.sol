@@ -140,17 +140,15 @@ contract nxmToken2 is Iupgradable, Governed {
     function rewardToken(address _to, uint amount) onlyInternal {
 
         require(ms.isMember(_to) == true);
-
         // Change total supply and individual balance of user
         td.changeBalanceOf(_to, SafeMaths.add(td.getBalanceOf(_to), amount)); // mint new tokens
         td.changeTotalSupply(SafeMaths.add(td.getTotalSupply(), amount)); // track the supply
         tc1.callTransferEvent(0, _to, amount);
     }
 
-    /// @dev minting the tokens.
+    /// @dev Mint tokens to be distributes as reward for claims assessment.
     /// @param amount amount of tokens to be minted.
     function mintClaimRewardToken(uint amount) onlyInternal {
-
         td.changeBalanceOf(msg.sender, SafeMaths.add(td.getBalanceOf(msg.sender), amount)); // mint new tokens
         td.changeTotalSupply(SafeMaths.add(td.getTotalSupply(), amount)); // track the supply
         tc1.callTransferEvent(0, msg.sender, amount);
@@ -200,8 +198,8 @@ contract nxmToken2 is Iupgradable, Governed {
         td.pushInUserCoverDepositCN(_to, coverid, _days, _value);
     }
 
-    /// @dev Unlocks tokens deposited against a cover.Changes the validity timestamp of deposit tokens.
-    /// @dev In order to submit a claim,20% tokens are deposited by the owner. In case a claim is escalated, another 20% tokens are deposited.
+    /// @dev Unlocks tokens deposited against a cover.
+    /// @dev In order to submit a claim,20% tokens are deposited by the owner.
     /// @param coverid Cover Id.
     /// @param allDeposit 0 in case we want only 1 undeposit against a cover,1 in order to undeposit all deposits against a cover
     function undepositCN(uint coverid, uint8 allDeposit) onlyInternal {
@@ -223,7 +221,8 @@ contract nxmToken2 is Iupgradable, Governed {
         }
     }
 
-    /// @dev Burns tokens locked against a Smart Contract Cover, called when a claim submitted against this cover is accepted.
+    /// @dev Burns tokens staked against a Smart Contract Cover.
+    ///      Called when a claim submitted against this cover is accepted.
     /// @param coverid Cover Id.
     function burnStakerLockedToken(uint coverid, bytes4 curr, uint sa) onlyInternal {
 
@@ -270,7 +269,7 @@ contract nxmToken2 is Iupgradable, Governed {
         td.addStake(msg.sender, _scAddress, _amount);
     }
     
-    /// @dev total locked NXM tokens for staker in all the smart contracts.
+    /// @dev Gets total locked NXM tokens for staker in all the smart contracts.
     /// @param _of staker address.
     /// @return _stakerLockedNXM total locked NXM tokens.
     function getLockedNXMTokenOfStakerByStakerAddress(address _of) public constant returns(uint _stakerLockedNXM) {
@@ -295,7 +294,7 @@ contract nxmToken2 is Iupgradable, Governed {
         }
     }
     
-    /// @dev NXM tokens locked against particular Smart contract at particular index.
+    /// @dev NXM tokens locked against particular smart contract at particular index.
     /// @param _scAddress smart contract address.
     /// @param _scAddressIndex index.
     /// @return _stakerLockedNXM locked NXM tokens.
@@ -317,7 +316,7 @@ contract nxmToken2 is Iupgradable, Governed {
         }
     }
    
-    /// @dev paying the joining fee.
+    /// @dev Called by user to pay joining membership fee
     function payJoiningFee() payable checkPause {
 
         require(msg.value == td.joiningFee());
@@ -328,12 +327,15 @@ contract nxmToken2 is Iupgradable, Governed {
             mr.updateMemberRole(msg.sender, 3, true, 0);
     }
 
+    /// @dev Change the address who can update GovBlocks member role.
+    ///      Called when updating to a new version. 
+    ///      Need to remove onlyOwner to onlyInternal and update automatically at version change
     function changeCanAddMemberAddress(address _newAdd) onlyOwner
     {
         mr.changeCanAddMember(3, _newAdd);
     }
 
-    /// @dev Burns tokens.
+    /// @dev Burns tokens to fund a cover.
     function burnLockedTokenExtended(address _of, uint _coverid, uint _burnNXMAmount, bytes16 str) internal {
 
         tc1.burnTokenForFunding(_burnNXMAmount, _of, str, _coverid);

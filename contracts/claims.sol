@@ -89,14 +89,15 @@ contract claims is Iupgradable {
         cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
     }
 
-    /// @dev Adds status names for Claims.
+    /// @dev Adds status under which a claim can lie.
     /// @param stat description for claim status
-    /// @param percCA reward Percentage for claim assessor
-    /// @param percMV reward Percentage for members
+    /// @param percCA reward percentage for claim assessor
+    /// @param percMV reward percentage for members
     function pushStatus(string stat, uint percCA, uint percMV) onlyInternal {
         rewardStatus.push(claimRewardStatus(stat, percCA, percMV));
     }
 
+    /// @dev Gets the reward percentage to be distributed for a given status id
     /// @param statusNumber the number of type of status
     /// @return percCA reward Percentage for claim assessor
     /// @return percMV reward Percentage for members
@@ -104,7 +105,7 @@ contract claims is Iupgradable {
         return (rewardStatus[statusNumber].percCA, rewardStatus[statusNumber].percMV);
     }
 
-    /// @dev Gets claim details of claim id=pending claim start + given index
+    /// @dev Gets claim details of claim id = pending claim start + given index
     function getClaimFromNewStart(uint index) 
     constant 
     returns(string status, uint coverId, uint claimId, int8 voteCA, int8 voteMV, uint8 statusnumber) {
@@ -122,7 +123,7 @@ contract claims is Iupgradable {
     /// @dev Gets details of a given claim id.
     /// @param _claimId Claim Id.
     /// @return status Current status of claim id
-    /// @return finalVerdict Decision made on the claim, 1 in case of acceptance, -1 in case of denial
+    /// @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
     /// @return claimOwner Address through which claim is submitted
     /// @return coverId Coverid associated with the claim id
     function getClaimbyIndex(uint _claimId) constant returns(uint claimId, string status, int8 finalVerdict, address claimOwner, uint coverId) {
@@ -147,10 +148,10 @@ contract claims is Iupgradable {
     }
 
     /// @dev Calculates total amount that has been used to assess a claim. 
-    //      Computaion:Adds acceptCA(tokens used for voting in favor a claim) 
+    //      Computaion:Adds acceptCA(tokens used for voting in favor of a claim) 
     //      denyCA(tokens used for voting against a claim) *  current token price.
     /// @param claimId Claim Id.
-    /// @param member Member type 0 for calculating the amount used by Claim Assessors, else result gives amount used by members.
+    /// @param member Member type 0 -> Claim Assessors, else members.
     /// @return tokens Total Amount used in claims assessment.
     function getCATokens(uint claimId, uint member) constant returns(uint tokens) {
 
@@ -171,7 +172,8 @@ contract claims is Iupgradable {
 
     /// @dev Checks if voting of a claim should be closed or not.
     /// @param claimId Claim Id.
-    /// @return close 1 if voting should be closed, 0 if voting should not be closed,-1 if voting has already been closed.
+    /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
+    /// -1 -> voting has already been closed.
     function checkVoteClosing(uint claimId) constant returns(int8 close) {
         
         close = 0;
@@ -193,14 +195,14 @@ contract claims is Iupgradable {
         }
     }
 
-    /// @dev setting the status of claim using claim id.
+    /// @dev Sets the status of claim using claim id.
     /// @param claimId claim id.
     /// @param stat status to be set.
     function setClaimStatus(uint claimId, uint8 stat) onlyInternal {
         setClaimStatusInternal(claimId, stat);
     }
 
-    /// @dev Updates the pending claim start variable, which is the lowest claim id with a pending decision/payout.
+    /// @dev Updates the pending claim start variable, the lowest claim id with a pending decision/payout.
     function changePendingClaimStart() onlyInternal {
 
         uint8 origstat;
@@ -217,7 +219,8 @@ contract claims is Iupgradable {
         }
     }
 
-    /// @dev Submits a claim for a given cover note. Adds claim to queue incase of emergency pause else directly submits the claim.
+    /// @dev Submits a claim for a given cover note. 
+    ///      Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverId Cover Id.
     function submitClaim(uint coverId) {
 
@@ -253,7 +256,7 @@ contract claims is Iupgradable {
         cd.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
     }
 
-    /// @dev Members who have tokens locked under Claims Assessment can assess and Vote As a CLAIM ASSESSOR for a given claim id.
+    /// @dev Castes vote for members who have tokens locked under Claims Assessment
     /// @param claimId  claim id. 
     /// @param verdict 1 for Accept,-1 for Deny.
     function submitCAVote(uint claimId, int8 verdict) isMemberAndcheckPause {
@@ -384,7 +387,8 @@ contract claims is Iupgradable {
         }
     }
 
-    ///@dev Submits a claim for a given cover note. Deposits 20% of the tokens locked against cover.
+    ///@dev Submits a claim for a given cover note.
+    ///     Deposits 20% of the tokens locked against cover.
     function addClaim(uint coverId, uint time, address add) internal {
 
         uint nowtime = now;

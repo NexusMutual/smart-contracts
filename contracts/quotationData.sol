@@ -90,7 +90,7 @@ contract quotationData is Iupgradable {
         _;
     }
 
-    /// @dev Changes authorised address for posting IPFS hash.
+    /// @dev Changes authorised address for generating quote off chain.
     function changeAuthQuoteEngine(address _add) onlyOwner {
         authQuoteEngine = _add;
     }
@@ -160,7 +160,7 @@ contract quotationData is Iupgradable {
         return productDetails.length;
     }
 
-    /// @dev adding the Product details.
+    /// @dev Adds insured product details.
     function addProductDetails(bytes8 _productName, string _productHash, uint16 _minDays, uint16 _pm, uint16 _stl, uint16 _stlp) onlyOwner {
         productDetails.push(Product_Details(_productName, _productHash, _stlp, _stl, _pm, _minDays));
     }
@@ -190,17 +190,20 @@ contract quotationData is Iupgradable {
         _stlp = productDetails[_prodId].stlp;
     }
 
-    /// @dev Updates the pending cover start variable, which is the lowest cover id with "active" status.
+    /// @dev Updates the pending cover start variable.
+    ///      It is the lowest cover id with "active" status.
     /// @param val new start position
     function updatePendingCoverStart(uint val) onlyInternal {
         pendingCoverStart = val;
     }
 
+    /// @dev Gets the pending cover start variable.
+    ///      It is the lowest cover id with "active" status.
     function getPendingCoverStart() constant returns(uint val) {
         val = pendingCoverStart;
     }
 
-    /// @dev Gets total number Covers created till date.
+    /// @dev Gets total number covers created till date.
     function getCoverLength() constant returns(uint len) {
         return (allCovers.length);
     }
@@ -295,7 +298,7 @@ contract quotationData is Iupgradable {
         date = allCovers[_cid].validUntil;
     }
 
-    /// @dev Change the validity date (timestamp) of a given cover.
+    /// @dev Changes the validity date (timestamp) of a given cover.
     function changeValidityOfCover(uint _cid, uint _date) onlyInternal {
         allCovers[_cid].validUntil = _date;
     }
@@ -375,21 +378,21 @@ contract quotationData is Iupgradable {
         return (_cid, allCovers[_cid].currencyCode, allCovers[_cid].sumAssured, allCovers[_cid].coverPeriod, allCovers[_cid].validUntil);
     }
 
-    /// @dev Adds the amount in Total Sum Assured of a given currency.
+    /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.
     /// @param _add Smart Contract Address.
     /// @param _amount Amount to be added.
     function addInTotalSumAssuredSC(address _add, bytes4 _curr, uint _amount) onlyInternal {
         currencyCSAOfSCAdd[_add][_curr] = SafeMaths.add(currencyCSAOfSCAdd[_add][_curr], _amount);
     }
 
-    /// @dev Subtracts the amount from Total Sum Assured of a given currency.
+    /// @dev Subtracts the amount from Total Sum Assured of a given currency and smart contract address.
     /// @param _add Smart Contract Address.
     /// @param _amount Amount to be subtracted.
     function subFromTotalSumAssuredSC(address _add, bytes4 _curr, uint _amount) onlyInternal {
         currencyCSAOfSCAdd[_add][_curr] = SafeMaths.sub(currencyCSAOfSCAdd[_add][_curr], _amount);
     }
 
-    /// @dev Gets the Total Sum Assured amount of a given currency.
+    /// @dev Gets the Total Sum Assured amount of a given currency and smart contract address.
     function getTotalSumAssuredSC(address _add, bytes4 _curr) constant returns(uint amount) {
         amount = currencyCSAOfSCAdd[_add][_curr];
     }

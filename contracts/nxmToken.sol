@@ -92,7 +92,7 @@ contract nxmToken is Iupgradable {
         td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
     }
 
-    /// @dev Allocates tokens to a Founder Member and stores the details.
+    /// @dev Allocates tokens to Founder Members.
     /// Updates the number of tokens that have been allocated already by the creator till date.
     /// @param _to Member address.
     /// @param tokens Number of tokens.
@@ -123,7 +123,7 @@ contract nxmToken is Iupgradable {
         _decimals = td.decimals();
     }
 
-    /// @dev Unlocks the Tokens of a given cover id
+    /// @dev Unlocks tokens locked against a given cover id
     function unlockCN(uint coverid) public onlyInternal {
 
         address _to = qd.getCoverMemberAddress(coverid);
@@ -158,9 +158,7 @@ contract nxmToken is Iupgradable {
     /// @param _to Claims assessor address.
     /// @param value number of tokens that will be booked for a period of time. 
     function bookCATokens(address _to, uint value) public onlyInternal {
-
         td.pushBookedCA(_to, value);
-
     }
 
     /// @dev Triggers an event when Transfer of NXM tokens occur. 
@@ -177,11 +175,8 @@ contract nxmToken is Iupgradable {
         require(ms.isMember(_to) == true || _to == address(ms.versionContractAddress(currentVersion, "CR")));
         require(_value > 0);
         require(balanceOf(msg.sender) >= _value);
-
-        td.changeBalanceOf(msg.sender, SafeMaths.sub(td.getBalanceOf(msg.sender), _value)); // Subtract from the sender
-
-        td.changeBalanceOf(_to, SafeMaths.add(td.getBalanceOf(_to), _value)); // Add the same to the recipient
-
+        td.changeBalanceOf(msg.sender, SafeMaths.sub(td.getBalanceOf(msg.sender), _value)); 
+        td.changeBalanceOf(_to, SafeMaths.add(td.getBalanceOf(_to), _value));
         Transfer(msg.sender, _to, _value); // Notify anyone listening that this transfer took place
     }
 
@@ -232,12 +227,10 @@ contract nxmToken is Iupgradable {
         return true;
     }
 
-    /// @dev User can buy the NXMTokens equivalent to the amount paid by the user.
+    /// @dev Enables purchase of tokens at the current token price
     function buyToken(uint value, address _to) public onlyInternal {
-
         if (m1.calculateTokenPrice("ETH") > 0) {
             uint256 amount = SafeMaths.div((SafeMaths.mul(value, DECIMAL1E18)), m1.calculateTokenPrice("ETH"));
-
             // Allocate tokens         
             tc2.rewardToken(_to, amount);
         }
@@ -247,18 +240,15 @@ contract nxmToken is Iupgradable {
     /// @param curr Currency name.
     /// @return price Token Price.
     function getTokenPrice(bytes4 curr) public constant returns(uint price) {
-
         price = m1.calculateTokenPrice(curr);
-
     }
 
-    /// @dev Burns the NXM Tokens of a given address. Updates the balance of the user and total supply of the tokens. 
+    /// @dev Enables a member to purchase a cover by paying in NXM.
     /// @param tokens Number of tokens
     /// @param _of User's address.
     function burnTokenForFunding(uint tokens, address _of, bytes16 str, uint id) public onlyInternal {
         require(td.getBalanceOf(_of) >= tokens);
         td.changeBalanceOf(_of, SafeMaths.sub(td.getBalanceOf(_of), tokens));
-
         td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply(), tokens));
         Burn(_of, str, id, tokens);
     }
@@ -270,7 +260,6 @@ contract nxmToken is Iupgradable {
     function depositLockCNEPOff(address _of, uint _coverid, uint _locktime) public onlyInternal {
 
         uint timestamp = now + _locktime;
-
         uint dCNValidUpto;
         uint dCNLastAmount;
         uint len;

@@ -121,8 +121,7 @@ contract pool2 is Iupgradable {
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
     
-    /// @dev Handles the Callback of the Oraclize Query. 
-    //            Callback could be of type "quote", "quotation", "cover", "claim" etc.
+    /// @dev Handles the Callback of the Oraclize Query.     
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     function delegateCallBack(bytes32 myid) onlyInternal {
 
@@ -136,7 +135,6 @@ contract pool2 is Iupgradable {
                 // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
                 pd.updateDateUpdOfAPI(myid);
                 cr.changeClaimStatus(pd.getIdOfApiId(myid));
-
             } else if (pd.getApiIdTypeOf(myid) == "MCR") {
                 pd.updateDateUpdOfAPI(myid);
             } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
@@ -160,7 +158,7 @@ contract pool2 is Iupgradable {
         }
     }
 
-    /// @dev Calls the payout event incase of claims payout.
+    /// @dev Calls the payout event in case of claims payout.
     function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
         Payout(_add, type1, id, sa);
     }
@@ -317,7 +315,7 @@ contract pool2 is Iupgradable {
         return 4; // when V=0 or no IA is present       
     }
 
-    /// @dev Checks whether trading is require for a given investment asset at a given exchange rate.
+    /// @dev Checks whether trading is required for a given investment asset at a given exchange rate.
     function checkTradeConditions(bytes8 curr, uint64 iaRate) constant returns(int check)
     {
         if (iaRate > 0) { 

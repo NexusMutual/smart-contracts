@@ -104,7 +104,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
     /// @param id Claim Id to be closed
-    /// @param time Time (in milliseconds) after which claims assessment voting needs to be closed
+    /// @param time Time (in seconds) after which claims assessment voting needs to be closed
     function closeClaimsOraclise(uint id, uint64 time) onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", "", 3000000);
         saveApiDetails(myid, "CLA", id);
@@ -112,7 +112,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
     /// @param id Quote Id to be expired
-    /// @param time Time (in milliseconds) after which the cover should be expired
+    /// @param time Time (in seconds) after which the cover should be expired
     function closeCoverOraclise(uint id, uint64 time) onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/", uint2str(id)), 1000000);
         saveApiDetails(myid, "COV", id);
@@ -156,14 +156,14 @@ contract pool is usingOraclize, Iupgradable, Governed {
         pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
     }
     
-    // update investment asset  min and max holding percentages.
+    // @dev Updates investment asset min and max holding percentages.
     function updateInvestmentAssetHoldingPerc(bytes8 _curr, uint64 _minPercX100, uint64 _maxPercX100) onlyAuthorizedToGovern {
 
         pd.changeInvestmentAssetHoldingPerc(_curr, _minPercX100, _maxPercX100);
     }
 
-    /// @dev Calls the Oraclize Query incase MCR calculation fails.
-    /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
+    /// @dev Calls the Oraclize Query in case MCR calculation fails.
+    /// @param time Time (in seconds) after which the next MCR calculation should be initiated
     function mcrOracliseFail(uint id, uint64 time) onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", "", 1000000);
         saveApiDetails(myid, "MCRF", id);
@@ -194,7 +194,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
         p2.delegateCallBack(myid);
     }
 
-    /// @dev Begins making cover.
+    /// @dev Enables user to purchase cover with funding in ETH.
     /// @param smartCAdd Smart Contract Address
     function makeCoverBegin(
         uint8 prodId, 
@@ -212,14 +212,14 @@ contract pool is usingOraclize, Iupgradable, Governed {
         
     }
 
-    /// @dev User can buy the nxmToken equivalent to the amount paid by the user.
+    /// @dev Enables user to purchase NXM at the current token price.
     function buyTokenBegin() isMemberAndcheckPause payable {
 
         uint amount = msg.value;
         tc1.buyToken(amount, msg.sender);
     }
 
-    /// @dev Sends a given Ether amount to a given address.
+    /// @dev Sends a given amount of Ether to a given address.
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
@@ -227,7 +227,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
         succ = _add.send(amount);      
     }
     
-    /// @dev Sends a given Ether amount to a given address.
+    /// @dev Sends a given Ether amount to a given address for claims payout.
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
@@ -257,6 +257,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     }
     
+    /// @dev Changes the 0x Relayer address
     function change0xFeeRecipient(address _feeRecipient) onlyAuthorizedToGovern {
 
         pd.change0xFeeRecipient(_feeRecipient);
@@ -270,6 +271,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     }
 
     /// @dev transfers investment assets from old pool to new pool address.
+    ///      To be automated by version control in master
     function transferIAFromPool(address _newPoolAddr) onlyOwner {
 
         for (uint64 i = 0; i < pd.getInvestmentCurrencyLen(); i++) {
@@ -281,6 +283,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     }
 
     ///@dev Transfers investment asset from current pool address to the new pool address.
+    ///      To be automated by version control in master
     function transferIAFromPool(address _newPoolAddr, address currAddr) onlyInternal {
         btok = BasicToken(currAddr);
         if (btok.balanceOf(this) > 0) {
@@ -315,33 +318,33 @@ contract pool is usingOraclize, Iupgradable, Governed {
         }
     }
 
-    /// @dev Transfers Amount to user when claim get accepted.
+    /// @dev Transfers Amount to user when claim gets accepted.
     function transferPayout(address _to, bytes8 _curr, uint _value) onlyInternal {
         btok = BasicToken(pd.getCurrencyAssetAddress(_curr));
         if (btok.balanceOf(this) > _value)
             btok.transfer(_to, _value);
     }
 
-    /// @dev Transfers currency asset from current pool address to the new pool address.
+    /// @dev Transfers specific currency asset from current pool address to the new pool address.
     function transferFromPool(address _to, address _currAddr, uint _amount) onlyInternal {
         btok = BasicToken(_currAddr);
         if (btok.balanceOf(this) >= _amount)
             btok.transfer(_to, _amount);
     }
 
-    /// @dev Transfers amount to pool from maker.
+    /// @dev Transfers amount to pool from 0x order maker.
     function transferToPool(address currAddr, uint amount) onlyInternal returns(bool success) {
         stok = StandardToken(currAddr);
         success = stok.transferFrom(pd.get0xMakerAddress(), poolAddress, amount);
     }
 
-    ///@dev Get 0x wrapped ether pool balance.
+    ///@dev Gets 0x wrapped ether pool balance.
     function getWETHPoolBalance() constant returns(uint wETH) {
         btok = BasicToken(pd.getWETHAddress());
         return btok.balanceOf(poolAddress);
     }
 
-    ///@dev Get 0x order details by hash.
+    ///@dev Gets 0x order details by hash.
     function getOrderDetailsByHash(bytes16 orderType, bytes8 makerCurr, bytes8 takerCurr) 
     constant 
     returns(
@@ -377,7 +380,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
         takerFee = pd.get0xTakerFee();
     }
 
-    /// @dev make cover currency.
+    /// @dev Enables user to purchase cover via currency asset eg DAI
     function makeCoverUsingCA(
         uint8 prodId, 
         address smartCAdd, 
@@ -393,7 +396,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
         q2.verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
-    /// @dev selling NXM tokens.
+    /// @dev Enables user to sell NXM tokens
     function sellNXMTokens(uint sellTokens) isMemberAndcheckPause {
         require(tc1.balanceOf(msg.sender) >= sellTokens); // Check if the sender has enough
         uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
@@ -404,7 +407,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
         require(succ != false);
     }
 
-    /// @dev Max numbers of tokens can be sold.
+    /// @dev Gets max numbers of tokens that can be sold at the moment.
     function getMaxSellTokens() constant returns(uint maxTokens) {
         uint maxTokensAccPoolBal = SafeMaths.sub(getEtherPoolBalance(), SafeMaths.mul(
             SafeMaths.div(SafeMaths.mul(50, pd.getCurrencyAssetBaseMin("ETH")), 100), DECIMAL1E18));
@@ -419,7 +422,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @param _typeof type of the query for which oraclize call is made.
     /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetails(bytes32 myid, bytes8 _typeof, uint id) internal {
-
         pd.saveApiDetails(myid, _typeof, id);
         pd.addInAllApiCall(myid);
 

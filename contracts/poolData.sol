@@ -221,12 +221,12 @@ contract poolData is Iupgradable {
         allOrders[orderHash].cancelOrderHash = cancelOrderHash;
     }
 
-    /// @dev Changes time after which investment asset rate.
+    /// @dev Changes time after which investment asset rates need to be fed.
     function changeIARatesTime(uint64 _newTime) onlyInternal {
         iaRatesTime = _newTime;
     }
 
-    /// @dev Gets time after which investment asset rate.
+    /// @dev Gets time after which investment asset rates need to be fed .
     function getIARatesTime() constant returns(uint64 time) {
         return iaRatesTime;
     }
@@ -464,7 +464,7 @@ contract poolData is Iupgradable {
         return allCurrencies.length;
     }
 
-    /// @dev Gets all the All currencies.
+    /// @dev Gets all currencies.
     function getAllCurrencies() constant returns(bytes8[] currencies) {
         return allCurrencies;
     }
@@ -495,12 +495,12 @@ contract poolData is Iupgradable {
         return allCurrencyAssetsVarBase[_curr].varMin;
     }
 
-    /// @dev Gets  base minimum of  a given currency asset.
+    /// @dev Gets base minimum of  a given currency asset.
     function getCurrencyAssetBaseMin(bytes8 _curr) constant returns(uint64 baseMin) {
         return allCurrencyAssetsVarBase[_curr].baseMin;
     }
 
-    /// @dev changes base minimum of a given currency asset.
+    /// @dev Changes base minimum of a given currency asset.
     function changeCurrencyAssetBaseMin(bytes8 _curr, uint64 _baseMin) onlyInternal {
         allCurrencyAssetsVarBase[_curr].baseMin = _baseMin;
     }

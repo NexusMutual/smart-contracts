@@ -18,6 +18,7 @@ import "./master.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
+
 contract claimsData is Iupgradable {
 
     using SafeMaths for uint;

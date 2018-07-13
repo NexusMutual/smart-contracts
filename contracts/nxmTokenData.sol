@@ -32,7 +32,7 @@ contract nxmTokenData is Iupgradable {
     uint256 public totalSupply;
     uint initialTokens;
     uint public currentFounderTokens;
-    uint public memberCounter;
+    uint64 bookTime;
     uint64 minVoteLockPeriod;
     uint16 public scValidDays;
     uint32 public lockMVDays;
@@ -82,6 +82,7 @@ contract nxmTokenData is Iupgradable {
     mapping(address => mapping(uint => lockToken[])) public userCoverDepositCN;
     mapping(address => mapping(bytes32 => lockToken)) public locked;
     mapping(address => lockToken[]) lockedCN;
+    mapping(address => lockToken[]) bookedCA;
     mapping(address => mapping(uint => lockToken)) public userCoverLockedCN;
     mapping(address => mapping(address => uint256)) public allowerSpenderAllowance;
 
@@ -104,6 +105,7 @@ contract nxmTokenData is Iupgradable {
         name = tokenName; // Set the name for display purposes
         symbol = tokenSymbol; // Set the symbol for display purposes
         decimals = decimalUnits;
+        bookTime = SafeMaths.mul64(SafeMaths.mul64(12, 60), 60);
         minVoteLockPeriod = SafeMaths.mul64(7, 1 days);
         lockTokenTimeAfterCoverExp = SafeMaths.mul(35, 1 days);
         scValidDays = 200;
@@ -213,6 +215,58 @@ contract nxmTokenData is Iupgradable {
     /// @return value tokens upto which Spender is allowed to transfer.
     function getAllowerSpenderAllowance(address a1, address a2) constant returns(uint value) {
         value = allowerSpenderAllowance[a1][a2];
+    }
+    
+    /// @dev books the user's tokens for maintaining Assessor Velocity, i.e. 
+    ///                 once a token is used to cast a vote as a claims assessor, 
+    ///                 the same token cannot be used to cast another vote before a fixed period of time(in milliseconds)
+    /// @param _of user's address.
+    /// @param value number of tokens that will be locked for a period of time. 
+    function pushBookedCA(address _of, uint value) onlyInternal {
+
+        bookedCA[_of].push(lockToken(SafeMaths.add(now, bookTime), value));
+    }
+    
+    /// @dev Gets number of times a user's tokens have been booked for participation in claims assessment.
+    /// @param _of User's address.
+    /// @return len number to times
+    function getBookedCALength(address _of) constant returns(uint timesBooked) {
+        timesBooked = bookedCA[_of].length;
+    }
+    
+    /// @dev Changes the time period up to which tokens will be locked. 
+    ///               Used to generate the validity period of tokens booked by a user for participating in claim's assessment/claim's voting.
+    function changeBookTime(uint64 _time) onlyOwner {
+        bookTime = _time;
+    }
+    
+    /// @dev Gets the time period(in milliseconds) for which a claims assessor's tokens are booked, i.e., cannot be used to caste another vote.
+    function getBookTime() constant returns(uint64 _time) {
+        _time = bookTime;
+    }
+    
+    /// @dev Gets the validity date and number of tokens booked for participation in claims assessment, at a given mapping index.
+    function getBookedCAByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val) {
+        index = _index;
+        valid = bookedCA[_of][_index].validUpto;
+        val = bookedCA[_of][_index].amount;
+    }
+    
+    /// @dev Calculates the sum of tokens booked by a user for Claim Assessment.
+    function getBookedCA(address _to) constant returns(uint tokensBookedCA) {
+        tokensBookedCA = 0;
+        for (uint i = 0; i < bookedCA[_to].length; i++) {
+            if (now < bookedCA[_to][i].validUpto)
+                tokensBookedCA = SafeMaths.add(tokensBookedCA, bookedCA[_to][i].amount);
+        }
+    }
+    
+    /// @dev Adds details of tokens that are Booked for Claim Assessment by a user.
+    /// @param _of User's address.
+    /// @param _timestamp Validity of tokens.
+    /// @param value number of tokens booked.
+    function pushInBookedCA(address _of, uint _timestamp, uint value) onlyInternal {
+        bookedCA[_of].push(lockToken(_timestamp, value));
     }
 
     /// @dev Gets the maximum number of tokens that can be allocated as Founder Tokens

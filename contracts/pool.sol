@@ -30,7 +30,6 @@ import "./imports/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 
 
-
 contract pool is usingOraclize, Iupgradable, Governed {
     using SafeMaths
     for uint;
@@ -54,6 +53,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
     BasicToken btok;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
+
+    function () public payable {}
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
@@ -143,8 +144,14 @@ contract pool is usingOraclize, Iupgradable, Governed {
     }
     
     // add new investment asset currency.
-    function addInvestmentAssetsDetails(bytes8 currName, address curr, uint64 _minHoldingPercX100, uint64 _maxHoldingPercX100) onlyAuthorizedToGovern {
-
+    function addInvestmentAssetsDetails(
+        bytes8 currName,
+        address curr,
+        uint64 _minHoldingPercX100, 
+        uint64 _maxHoldingPercX100
+    )
+        onlyAuthorizedToGovern 
+    {
         pd.addInvestmentCurrency(currName);
         pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
     }
@@ -219,6 +226,14 @@ contract pool is usingOraclize, Iupgradable, Governed {
     function transferEther(uint amount, address _add) onlyAuthorizedToGovern constant returns(bool succ) {
         succ = _add.send(amount);      
     }
+    
+    /// @dev Sends a given Ether amount to a given address.
+    /// @param amount amount (in wei) to send.
+    /// @param _add Receiver's address.
+    /// @return succ True if transfer is a success, otherwise False.
+    function transferEtherForPayout(uint amount, address _add) onlyInternal constant returns(bool succ) {
+        succ = _add.send(amount);      
+    }
 
     /// @dev Payable method for allocating some amount to the Pool. 
     function takeEthersOnly() payable onlyOwner {
@@ -228,13 +243,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @dev Gets the Balance of the Pool in wei.
     function getEtherPoolBalance() constant returns(uint bal) {
         bal = this.balance;
-    }
-
-    /// @dev Transfers back the given amount to the owner.
-    function transferBackEther(uint256 amount) onlyOwner {
-        amount = SafeMaths.mul(amount, DECIMAL1E10);
-        bool succ = transferEther(amount, msg.sender);
-        if (succ == true) {}
     }
 
     /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
@@ -269,6 +277,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
             address currAddr = pd.getInvestmentAssetAddress(currName);
             transferIAFromPool(_newPoolAddr, currAddr);
         }
+
     }
 
     ///@dev Transfers investment asset from current pool address to the new pool address.
@@ -289,13 +298,15 @@ contract pool is usingOraclize, Iupgradable, Governed {
     ///@dev Transfers currency from current pool address to the new pool address.
     function transferCurrencyFromPool(address _newPoolAddr) onlyOwner {
 
-        for (uint64 i = 0; i < pd.getAllCurrenciesLen(); i++) {
+        for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes8 currName = pd.getAllCurrenciesByIndex(i);
             address currAddr = pd.getCurrencyAssetAddress(currName);
             transferCurrencyFromPool(_newPoolAddr, currAddr);
         }
+        _newPoolAddr.send(this.balance);
+        
     }
-
+     
     ///@dev Transfers investment asset from current pool address to the new pool address.
     function transferCurrencyFromPool(address _newPoolAddr, address currAddr) onlyInternal {
         btok = BasicToken(currAddr);

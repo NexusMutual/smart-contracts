@@ -182,7 +182,7 @@ contract pool2 is Iupgradable {
             balance = p1.getEtherPoolBalance();
             //Check if pool has enough ETH balance
             if (balance >= sumAssured1e18) {
-                succ = p1.transferEther(sumAssured1e18, _to);
+                succ = p1.transferEtherForPayout(sumAssured1e18, _to);
                 if (succ == true) {
                     q2.removeSAFromCSA(coverid, sumAssured);
                     pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));

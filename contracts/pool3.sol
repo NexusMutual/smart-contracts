@@ -25,7 +25,6 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/0xProject/Exchange.sol";
 
 
-
 contract pool3 is Iupgradable {
     using SafeMaths
     for uint;

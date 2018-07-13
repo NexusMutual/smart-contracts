@@ -152,6 +152,16 @@ contract nxmToken is Iupgradable {
     function callBurnEvent(address _add, bytes16 str, uint id, uint value) public onlyInternal {
         Burn(_add, str, id, value);
     }
+    
+    /// @dev Books the user's tokens for maintaining Assessor Velocity
+    /// i.e., these tokens cannot be used to cast another vote for a specified period of time.
+    /// @param _to Claims assessor address.
+    /// @param value number of tokens that will be booked for a period of time. 
+    function bookCATokens(address _to, uint value) public onlyInternal {
+
+        td.pushBookedCA(_to, value);
+
+    }
 
     /// @dev Triggers an event when Transfer of NXM tokens occur. 
     function callTransferEvent(address _from, address _to, uint value) public onlyInternal {

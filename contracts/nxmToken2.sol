@@ -21,6 +21,7 @@ import "./mcr.sol";
 import "./nxmToken.sol";
 import "./master.sol";
 import "./Iupgradable.sol";
+import "./imports/govblocks-protocol/Governed.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
@@ -30,11 +31,13 @@ contract MemberRoles {
         
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
     
-    function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);  
+    function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);
+    
         
 }
 
-contract nxmToken2 is Iupgradable {
+
+contract nxmToken2 is Iupgradable, Governed {
     using SafeMaths
     for uint;
 
@@ -122,7 +125,7 @@ contract nxmToken2 is Iupgradable {
     /// @param claimid Claim Id.
     /// @param _value number of tokens to be burned
     /// @param _to User's address.
-    function burnCAToken(uint claimid, uint _value, address _to) onlyInternal {
+    function burnCAToken1(uint claimid, uint _value, address _to) onlyAuthorizedToGovern {
 
         require(tc1.tokensLocked(_to, "CLA", now) >= _value);
         td.pushInBurnCAToken(_to, claimid, now, _value);

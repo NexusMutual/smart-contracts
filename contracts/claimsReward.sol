@@ -32,7 +32,6 @@ import "./pool3.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-
 contract claimsReward is Iupgradable {
     
     using SafeMaths

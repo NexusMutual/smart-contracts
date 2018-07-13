@@ -262,11 +262,13 @@ contract claims is Iupgradable {
         uint time = cd.claimDepositTime();
         time = SafeMaths.add(now, time);
         uint tokens = td.tokensLocked(msg.sender, "CLA", time);
+        tokens = SafeMaths.sub(tokens, td.getBookedCA(msg.sender));
+        require(tokens > 0);
         uint8 stat;
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat == 0);
         require(cd.getUserClaimVoteCA(msg.sender, claimId) == 0);
-        // tc1.bookCATokens(msg.sender, tokens);
+        tc1.bookCATokens(msg.sender, tokens);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "CAV", tokens, now, verdict);
         uint voteLength = cd.getAllVoteLength();

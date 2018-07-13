@@ -23,9 +23,7 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 
 
-
 contract master is Governed {
-
 
     using SafeMaths
     for uint;

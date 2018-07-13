@@ -8,9 +8,9 @@
 <p>Token contracts maintain details of NXM Members and the NXM Tokens held by each of them. NXM tokens can be used to purchase a cover, submit a claim, underwrite smart contracts,  assess a claim or transfer tokens to other addresses.</p>
 <h4><a id="Core_Contracts_9"></a>Core Contracts</h4>
 <ul>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/nxmToken.sol">nxmToken.sol</a></li>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/nxmToken2.sol">nxmToken2.sol</a></li>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/nxmTokenData.sol">nxmTokenData.sol</a></li>
+<li>nxmToken.sol</li>
+<li>nxmToken2.sol</li>
+<li>nxmTokenData.sol</li>
 </ul>
 <blockquote>
 <p>Note: The smart contracts of this module had to be split in multiple smart contracts to cater to the Ethereum Gas limits. The above mentioned contracts need to be seen in conjunction</p>
@@ -28,8 +28,8 @@
 <p>Quotation contracts contain all logic associated with creating and expiring covers. Smart contract cover is the first insurance product supported by the mutual. A member can generate a quotation offchain , and fund the same via NXM tokens / currency assets(currently ETH and DAI). This creates a cover on-chain. Quotation contracts interact with Token Contracts to lock NXM tokens against a cover which are then used at the time of claim submission.</p>
 <h4><a id="Core_Contracts_31"></a>Core Contracts</h4>
 <ul>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/quotation2.sol">quotation2.sol</a></li>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/quotationData.sol">quotationData.sol</a></li>
+<li>quotation2.sol</li>
+<li>quotationData.sol</li>
 </ul>
 <h5><a id="Some_important_functions_40"></a>Some important functions</h5>
 <ul>
@@ -40,8 +40,8 @@
 <p>Claim contracts manages the entire claim lifecycle starting from submitting a claim against a cover note to taking part in claims assessment to closing a claim. </p>
 <h4><a id="Core_Contracts_49"></a>Core Contracts</h4>
 <ul>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/claims.sol">claims.sol</a></li>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/claimsData.sol">claimsData.sol</a></li>
+<li>claims.sol</li>
+<li>claimsData.sol</li>
 </ul>
 <h5><a id="Some_important_functions_58"></a>Some important functions</h5>
 <ul>
@@ -55,7 +55,7 @@
 <p>Claims Reward Contract contains the methods for rewarding or punishing the Claim assessors/Members based on the vote cast and the final verdict.</p>
 <h4><a id="Core_Contract_67"></a>Core Contract</h4>
 <ul>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/claimsReward.sol">claimsReward.sol</a></li>
+<li>claimsReward.sol</li>
 </ul>
 <h5><a id="Some_important_functions_73"></a>Some important functions</h5>
 <ul>
@@ -68,9 +68,9 @@
 <p>Pool contracts contain all logic associated with calling External oracles through <a href="manages the entire claim lifecycle">Oraclize</a> and processing the results retrieved from the same. The module also encompasses on-chain investment asset management using <a href="https://0xproject.com/">0x-protocol</a>.</p>
 <h4><a id="Core_Contract_81"></a>Core Contract</h4>
 <ul>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/pool.sol">pool.sol</a></li>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/pool2.sol">pool2.sol</a></li>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/poolData.sol">poolData.sol</a></li>
+<li>pool.sol</li>
+<li>pool2.sol</li>
+<li>poolData.sol</li>
 </ul>
 <blockquote>
 <p>Note: The smart contracts of this module had to be split in multiple smart contracts to cater to the Ethereum Gas limits. The above mentioned contracts need to be seen in conjunction</p>
@@ -88,8 +88,8 @@
 <p>MCR contracts contain functions for recording the Minimum Capital Requirement (MCR) of the system, each day, thus determining the NXM token price.</p>
 <h4><a id="Core_Contract_104"></a>Core Contract</h4>
 <ul>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/mcr.sol">mcr.sol</a></li>
-<li><a href="https://github.com/somish/NexusMutual/blob/revise-token-module/contracts/mcrData.sol">mcrData.sol</a></li>
+<li>mcr.sol</li>
+<li>mcrData.sol</li>
 </ul>
 <h5><a id="Some_important_function_112"></a>Some important function</h5>
 <ul>

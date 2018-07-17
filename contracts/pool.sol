@@ -402,7 +402,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
         uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
         uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
         require(sellTokensx10e18 <= getMaxSellTokens());
-        tc1.burnTokenForFunding(sellTokensx10e18, msg.sender, "ForTokenSell", 0);
+        //tc1.burnTokenForFunding(sellTokensx10e18, msg.sender, "ForTokenSell", 0);
+        tc1.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
         bool succ = msg.sender.send(sellingPrice);
         require(succ != false);
     }

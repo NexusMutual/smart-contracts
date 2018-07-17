@@ -147,7 +147,8 @@ contract quotation2 is Iupgradable {
         ) isMemberAndcheckPause {
 
         require(m1.checkForMinMCR() != 1);
-        tc1.burnTokenForFunding(coverDetails[2], msg.sender, "BurnForFunding", 0);
+        //tc1.burnTokenForFunding(coverDetails[2], msg.sender, "BurnForFunding", 0);
+        tc1.burnToken(msg.sender, "BurnCP", 0, coverDetails[2]);
         verifyCoverDetailsIntrnl(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 

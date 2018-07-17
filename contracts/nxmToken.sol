@@ -243,6 +243,19 @@ contract nxmToken is Iupgradable {
         price = m1.calculateTokenPrice(curr);
     }
 
+    /// @dev Burn NXM Token on different events
+    /// @param _of address from where NXM token burns
+    /// @param eventName Event for which token was burned
+    /// @param id CoverId/ ClaimId / Id
+    /// @param tokens Amount of NXM token to be burned
+    function burnToken(address _of, bytes16 eventName, uint id, uint tokens) onlyInternal {
+        require(td.getBalanceOf(_of) >= tokens);
+        td.changeBalanceOf(_of, SafeMaths.sub(td.getBalanceOf(_of), tokens));
+        td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply(), tokens));
+        Burn(_of, eventName, id, tokens);
+    }
+
+/* 
     /// @dev Enables a member to purchase a cover by paying in NXM.
     /// @param tokens Number of tokens
     /// @param _of User's address.
@@ -252,7 +265,7 @@ contract nxmToken is Iupgradable {
         td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply(), tokens));
         Burn(_of, str, id, tokens);
     }
-
+ */
     /// @dev Undeposit, Deposit, Unlock and Push In Locked CN
     /// @param _of address of Member
     /// @param _coverid Cover Id

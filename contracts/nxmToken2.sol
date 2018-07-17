@@ -130,8 +130,9 @@ contract nxmToken2 is Iupgradable, Governed {
         require(tc1.tokensLocked(_to, "CLA", now) >= _value);
         td.pushInBurnCAToken(_to, claimid, now, _value);
         td.changeLockAmount("CLA", _to, _value, false);
-        td.changeBalanceOf(_to, td.getBalanceOf(_to) - _value);
-        burnLockedTokenExtended(_to, claimid, _value, "BurnCA");
+        //td.changeBalanceOf(_to, td.getBalanceOf(_to) - _value);
+        //burnLockedTokenExtended(_to, claimid, _value, "BurnCA");
+        tc1.burnToken(_to,"BurnCA", claimid, _value);
     }
 
     /// @dev Allocates tokens against a given address
@@ -179,7 +180,9 @@ contract nxmToken2 is Iupgradable, Governed {
         }
 
         td.updateUserCoverLockedCN(_to, coverid, validity, SafeMaths.sub(lockedTokens, depositedTokens));
-        burnLockedTokenExtended(_to, coverid, depositedTokens, "Burn");
+        //nervehammer changes
+        //burnLockedTokenExtended(_to, coverid, depositedTokens, "Burn");
+        tc1.burnToken(_to, "Burn CN", coverid, depositedTokens);
     }
 
     /// @dev Deposits locked tokens against a given cover id, called whenever a claim is submitted against a coverid
@@ -243,14 +246,16 @@ contract nxmToken2 is Iupgradable, Governed {
                 if (stakerLockedNXM > 0) {
                     if (stakerLockedNXM >= burnNXMAmount) {
                         td.addBurnedAmount(scAddressIndex, burnNXMAmount);
-                        burnLockedTokenExtended(_of, coverid, burnNXMAmount, "Burn");
+                        //burnLockedTokenExtended(_of, coverid, burnNXMAmount, "Burn");
+                        tc1.burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
                         if (i > 0)
                             td.setSCAddressLastBurnIndex(_scAddress, i);
                         burnNXMAmount = 0;
                         break;
                     } else {
                         td.addBurnedAmount(scAddressIndex, stakerLockedNXM);
-                        burnLockedTokenExtended(_of, coverid, stakerLockedNXM, "Burn");
+                        //burnLockedTokenExtended(_of, coverid, stakerLockedNXM, "Burn");
+                        tc1.burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
                         burnNXMAmount = SafeMaths.sub(burnNXMAmount, stakerLockedNXM);
                     }
                 }
@@ -335,13 +340,13 @@ contract nxmToken2 is Iupgradable, Governed {
         mr.changeCanAddMember(3, _newAdd);
     }
 
-    /// @dev Burns tokens to fund a cover.
+/*     /// @dev Burns tokens to fund a cover.
     function burnLockedTokenExtended(address _of, uint _coverid, uint _burnNXMAmount, bytes16 str) internal {
 
         tc1.burnTokenForFunding(_burnNXMAmount, _of, str, _coverid);
         tc1.callTransferEvent(_of, 0, _burnNXMAmount); // notify of the event
 
-    }
+    } */
     
     
 

@@ -96,7 +96,7 @@ contract quotation2 is Iupgradable {
         if (checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid) != 3) {
             qd.changeCoverStatusNo(_cid, 3);
 
-            tc1.unlockCN(_cid);
+            tc2.unlockCN(_cid);
             bytes4 curr = qd.getCurrencyOfCover(_cid);
             qd.subFromTotalSumAssured(curr, qd.getCoverSumAssured(_cid));
             if (qd.getProductNameOfCover(_cid) == "SCC") {
@@ -148,7 +148,8 @@ contract quotation2 is Iupgradable {
 
         require(m1.checkForMinMCR() != 1);
         //tc1.burnTokenForFunding(coverDetails[2], msg.sender, "BurnForFunding", 0);
-        tc1.burnToken(msg.sender, "BurnCP", 0, coverDetails[2]);
+        tc2.burnToken(msg.sender, "BurnCP", 0, coverDetails[2]);
+        tc1.callTransferEvent(msg.sender, 0, coverDetails[2]);
         verifyCoverDetailsIntrnl(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
@@ -235,8 +236,8 @@ contract quotation2 is Iupgradable {
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
         if (qd.getProductName(prodId) == "SCC" && scAddress != 0x000) {
             qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
-            if (tc1.getTotalLockedNXMToken(scAddress) > 0)
-                tc1.updateStakerCommissions(scAddress, coverDetails[2]);
+            if (tc2.getTotalLockedNXMToken(scAddress) > 0)
+                tc2.updateStakerCommissions(scAddress, coverDetails[2]);
         }
     }
 

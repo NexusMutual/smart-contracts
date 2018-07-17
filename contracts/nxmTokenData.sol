@@ -26,8 +26,8 @@ contract nxmTokenData is Iupgradable {
 
     address masterAddress;
     string public version = "NXM 0.1";
-    bytes8 public name;
-    bytes8 public symbol;
+    string public name;
+    string public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
     uint initialTokens;
@@ -85,18 +85,14 @@ contract nxmTokenData is Iupgradable {
     mapping(address => lockToken[]) bookedCA;
     mapping(address => mapping(uint => lockToken)) public userCoverLockedCN;
     mapping(address => mapping(address => uint256)) public allowerSpenderAllowance;
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-    event Burn(address indexed _of, bytes16 eventName, uint coverId, uint tokens);
     mapping(address => mapping(uint => lockToken[])) public burnCAToken;
     uint public lockTokenTimeAfterCoverExp;
    
     function nxmTokenData(
         uint256 initialSupply,
-        bytes8 tokenName,
+        string tokenName,
         uint8 decimalUnits,
-        bytes8 tokenSymbol
+        string tokenSymbol
     ) {
 
         initialTokens = 1500000;

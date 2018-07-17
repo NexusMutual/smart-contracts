@@ -134,7 +134,7 @@ contract claimsReward is Iupgradable {
             uint coverid;
             (, coverid) = cd.getClaimCoverId(claimID);
             address qadd = qd.getCoverMemberAddress(coverid);
-            tc1.depositLockCNEPOff(qadd, coverid, SafeMaths.add(pendingTime, cd.claimDepositTime()));
+            tc2.depositLockCNEPOff(qadd, coverid, SafeMaths.add(pendingTime, cd.claimDepositTime()));
             p1.closeClaimsOraclise(claimID, uint64(pTime));
         }
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
@@ -315,7 +315,7 @@ contract claimsReward is Iupgradable {
         bool succ;
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint64 sumAssured = uint64(qd.getCoverSumAssured(coverid));
-        uint currPrice = tc1.getTokenPrice(curr);
+        uint currPrice = tc2.getTokenPrice(curr);
         uint distributableTokens = SafeMaths.div(
             SafeMaths.mul(
                 SafeMaths.mul(sumAssured, DECIMAL1E18), DECIMAL1E18), 
@@ -339,12 +339,12 @@ contract claimsReward is Iupgradable {
         if (status == 7) {
             cd.changeFinalVerdict(claimid, 1);
             // Rewards Claims Assessor only
-            tc1.unlockCN(coverid); // Unlocks token locked against cover note
+            tc2.unlockCN(coverid); // Unlocks token locked against cover note
             succ = p2.sendClaimPayout(coverid, claimid); //Initiates payout
         }
         if (status == 8) {
             cd.changeFinalVerdict(claimid, 1);
-            tc1.unlockCN(coverid);
+            tc2.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
         }
         if (status == 9) {
@@ -357,7 +357,7 @@ contract claimsReward is Iupgradable {
         }
         if (status == 10) {
             cd.changeFinalVerdict(claimid, 1);
-            tc1.unlockCN(coverid);
+            tc2.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
         }
         if (status == 11) {

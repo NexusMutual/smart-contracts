@@ -41,10 +41,10 @@ contract pool is usingOraclize, Iupgradable, Governed {
     address mcrDataAddress;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
-    uint40 private constant DECIMAL1E10 = 10000000000;
 
     quotation2 q2;
     nxmToken tc1;
+    nxmToken2 tc2;
     poolData pd;
     pool2 p2;
     mcr m1;
@@ -216,7 +216,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     function buyTokenBegin() isMemberAndcheckPause payable {
 
         uint amount = msg.value;
-        tc1.buyToken(amount, msg.sender);
+        tc2.buyToken(amount, msg.sender);
     }
 
     /// @dev Sends a given amount of Ether to a given address.
@@ -403,7 +403,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
         uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
         require(sellTokensx10e18 <= getMaxSellTokens());
         //tc1.burnTokenForFunding(sellTokensx10e18, msg.sender, "ForTokenSell", 0);
-        tc1.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
+        tc2.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
+        tc1.callTransferEvent(msg.sender, 0, sellTokensx10e18);
         bool succ = msg.sender.send(sellingPrice);
         require(succ != false);
     }

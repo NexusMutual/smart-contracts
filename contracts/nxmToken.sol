@@ -97,7 +97,6 @@ contract nxmToken is Iupgradable {
     /// @param _to Member address.
     /// @param tokens Number of tokens.
     function allocateFounderTokens(address _to, uint tokens) public onlyOwner {
-
         if (SafeMaths.add(td.getCurrentFounderTokens(), tokens) <= td.getInitialFounderTokens()) {
             td.changeCurrentFounderTokens(SafeMaths.add(td.currentFounderTokens(), tokens));
             td.addInAllocatedFounderTokens(_to, tokens);
@@ -112,7 +111,7 @@ contract nxmToken is Iupgradable {
     }
 
     /// @dev Gets symbol of token.
-    function symbol() public constant returns(bytes8 _symbol) {
+    function symbol() public constant returns(string _symbol) {
 
         _symbol = td.symbol();
     }
@@ -123,44 +122,11 @@ contract nxmToken is Iupgradable {
         _decimals = td.decimals();
     }
 
-    /// @dev Unlocks tokens locked against a given cover id
-    function unlockCN(uint coverid) public onlyInternal {
-
-        address _to = qd.getCoverMemberAddress(coverid);
-
-        //Undeposits all tokens associated with the coverid
-        tc2.undepositCN(coverid, 1);
-        uint validity;
-        uint lockedCN;
-        (, validity, lockedCN) = td.getUserCoverLockedCN(_to, coverid);
-        uint len = td.getLockedCNLength(_to);
-        uint vUpto;
-        uint lockedCNIndex;
-        for (uint i = 0; i < len; i++) {
-            (, vUpto, lockedCNIndex) = td.getUserCoverLockedCN(_to, i);
-            if (vUpto == validity && lockedCNIndex == lockedCN) {
-                // Updates the validity of lock to now, thereby ending the lock on tokens
-                td.updateLockedCN(_to, i, now, lockedCNIndex);
-                break;
-            }
-        }
-
-        td.updateUserCoverLockedCN(_to, coverid, now, lockedCN);
-    }
-
     /// @dev Triggers an event when Tokens are burnt.
     function callBurnEvent(address _add, bytes16 str, uint id, uint value) public onlyInternal {
         Burn(_add, str, id, value);
     }
     
-    /// @dev Books the user's tokens for maintaining Assessor Velocity
-    /// i.e., these tokens cannot be used to cast another vote for a specified period of time.
-    /// @param _to Claims assessor address.
-    /// @param value number of tokens that will be booked for a period of time. 
-    function bookCATokens(address _to, uint value) public onlyInternal {
-        td.pushBookedCA(_to, value);
-    }
-
     /// @dev Triggers an event when Transfer of NXM tokens occur. 
     function callTransferEvent(address _from, address _to, uint value) public onlyInternal {
         Transfer(_from, _to, value);
@@ -223,135 +189,11 @@ contract nxmToken is Iupgradable {
 
         td.setAllowerSpenderAllowance(_from, msg.sender, SafeMaths.sub(td.getAllowerSpenderAllowance(_from, msg.sender), _value));
 
-        Transfer(_from, _to, _value);
+        emit Transfer(_from, _to, _value);
         return true;
     }
 
-    /// @dev Enables purchase of tokens at the current token price
-    function buyToken(uint value, address _to) public onlyInternal {
-        if (m1.calculateTokenPrice("ETH") > 0) {
-            uint256 amount = SafeMaths.div((SafeMaths.mul(value, DECIMAL1E18)), m1.calculateTokenPrice("ETH"));
-            // Allocate tokens         
-            tc2.rewardToken(_to, amount);
-        }
-    }
-
-    /// @dev Gets the Token price in a given currency
-    /// @param curr Currency name.
-    /// @return price Token Price.
-    function getTokenPrice(bytes4 curr) public constant returns(uint price) {
-        price = m1.calculateTokenPrice(curr);
-    }
-
-    /// @dev Burn NXM Token on different events
-    /// @param _of address from where NXM token burns
-    /// @param eventName Event for which token was burned
-    /// @param id CoverId/ ClaimId / Id
-    /// @param tokens Amount of NXM token to be burned
-    function burnToken(address _of, bytes16 eventName, uint id, uint tokens) onlyInternal {
-        require(td.getBalanceOf(_of) >= tokens);
-        td.changeBalanceOf(_of, SafeMaths.sub(td.getBalanceOf(_of), tokens));
-        td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply(), tokens));
-        Burn(_of, eventName, id, tokens);
-    }
-
-/* 
-    /// @dev Enables a member to purchase a cover by paying in NXM.
-    /// @param tokens Number of tokens
-    /// @param _of User's address.
-    function burnTokenForFunding(uint tokens, address _of, bytes16 str, uint id) public onlyInternal {
-        require(td.getBalanceOf(_of) >= tokens);
-        td.changeBalanceOf(_of, SafeMaths.sub(td.getBalanceOf(_of), tokens));
-        td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply(), tokens));
-        Burn(_of, str, id, tokens);
-    }
- */
-    /// @dev Undeposit, Deposit, Unlock and Push In Locked CN
-    /// @param _of address of Member
-    /// @param _coverid Cover Id
-    /// @param _locktime Pending Time + Cover Period 7*1 days
-    function depositLockCNEPOff(address _of, uint _coverid, uint _locktime) public onlyInternal {
-
-        uint timestamp = now + _locktime;
-        uint dCNValidUpto;
-        uint dCNLastAmount;
-        uint len;
-        (, len) = td.getUserCoverDepositCNLength(_of, _coverid);
-        (, , dCNValidUpto, dCNLastAmount) = td.getUserCoverDepositCNByIndex(_of, _coverid, SafeMaths.sub(len, 1));
-        uint dCNAmount;
-        (, dCNAmount) = td.getDepositCN(_coverid, _of);
-
-        uint coverValidUntil = qd.getValidityOfCover(_coverid);
-        if (coverValidUntil > timestamp) {
-            if (dCNValidUpto < timestamp) {
-                if (dCNAmount > 0) {
-                    tc2.undepositCN(_coverid, 1);
-                    tc2.depositCN(_coverid, dCNAmount, timestamp, _of);
-                } else
-                    tc2.depositCN(_coverid, dCNLastAmount, timestamp, _of);
-            }
-        } else if (coverValidUntil > now) {
-            unlockCN(_coverid);
-            if (dCNAmount > 0) {
-                td.pushInUserCoverLockedCN(_of, _coverid, timestamp, dCNAmount);
-                tc2.depositCN(_coverid, dCNAmount, timestamp, _of);
-            } else {
-                td.pushInUserCoverLockedCN(_of, _coverid, timestamp, dCNLastAmount);
-                tc2.depositCN(_coverid, dCNLastAmount, timestamp, _of);
-            }
-
-        } else if (coverValidUntil < now) {
-            if (dCNAmount > 0) {
-                tc2.undepositCN(_coverid, 1);
-                td.pushInUserCoverLockedCN(_of, _coverid, timestamp, dCNAmount);
-                tc2.depositCN(_coverid, dCNAmount, timestamp, _of);
-            } else {
-                td.pushInUserCoverLockedCN(_of, _coverid, timestamp, dCNLastAmount);
-                tc2.depositCN(_coverid, dCNLastAmount, timestamp, _of);
-            }
-        }
-    }
-
-    /// @dev Sends commission to underwriter on purchase of staked smart contract.
-    /// @param _scAddress staker address.
-    /// @param _premiumNXM premium of cover in NXM.
-    function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
-
-        uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premiumNXM, 20), 100);
-        uint stakeLength = td.getTotalStakerAgainstScAddress(_scAddress);
-        for (uint i = td.scAddressLastCommIndex(_scAddress); i < stakeLength; i++) {
-            if (commissionToBePaid > 0) {
-                uint scAddressIndx;
-                (, scAddressIndx) = td.getScAddressIndexByScAddressAndIndex(_scAddress, i);
-                uint stakeAmt;
-                address stakerAdd;
-                (, stakerAdd, , stakeAmt, , ) = td.getStakeDetails(scAddressIndx);
-                uint totalCommission = SafeMaths.div(SafeMaths.mul(stakeAmt, 50), 100);
-                uint commissionPaid;
-                (, commissionPaid) = td.getTotalStakeCommission(stakerAdd, _scAddress, scAddressIndx);
-                if (totalCommission > commissionPaid) {
-                    if (totalCommission >= SafeMaths.add(commissionPaid, commissionToBePaid)) {
-                        td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, commissionToBePaid, now);
-                        tc2.rewardToken(stakerAdd, commissionToBePaid);
-                        if (i > 0)
-                            td.setSCAddressLastCommIndex(_scAddress, i);
-                        commissionToBePaid = 0;
-                        break;
-                    } else {
-                        td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, SafeMaths.sub(totalCommission, commissionPaid), now);
-                        tc2.rewardToken(stakerAdd, SafeMaths.sub(totalCommission, commissionPaid));
-                        commissionToBePaid = SafeMaths.sub(commissionToBePaid, SafeMaths.sub(totalCommission, commissionPaid));
-                    }
-                }
-            } else
-                break;
-
-        }
-        if (commissionToBePaid > 0 && stakeLength > 0)
-            td.setSCAddressLastCommIndex(_scAddress, SafeMaths.sub(stakeLength, 1));
-    }
-
-     /**
+    /**
      * @dev Gets the balance of the specified address.
      * @param _owner The address to query the the balance of.
      * @return An uint256 representing the amount owned by the passed address.
@@ -373,7 +215,7 @@ contract nxmToken is Iupgradable {
     /// @dev Available tokens for use.
     /// @param _add user address.
     /// @return tokens total available tokens.
-    function getAvailableTokens(address _add) public constant returns(uint tokens) {
+    function getAvailableTokens(address _add) public constant returns (uint tokens) {
         return balanceOf(_add);
     }
 
@@ -381,11 +223,7 @@ contract nxmToken is Iupgradable {
      * @dev Returns tokens available for transfer for a specified address
      * @param _of The address to query the the lock tokens of
      */
-    function totalBalanceOf(address _of)
-        public
-        view
-        returns (uint256 amount)
-    {
+    function totalBalanceOf(address _of) public view returns (uint256 amount) {
         return(td.getBalanceOf(_of));
     }
 
@@ -412,10 +250,7 @@ contract nxmToken is Iupgradable {
      * @param _amount Number of tokens to be locked
      * @param _time Lock time in seconds
      */
-    function lock(bytes32 _reason, uint256 _amount, uint256 _time) public isMemberAndcheckPause
-        
-    {
-        
+    function lock(bytes32 _reason, uint256 _amount, uint256 _time) public isMemberAndcheckPause {
         uint256 validUntil=block.timestamp.add(_time);
         // If tokens are already locked, the functions extendLock or
         // increaseLockAmount should be used to make any changes
@@ -432,9 +267,7 @@ contract nxmToken is Iupgradable {
      * @param _reason The purpose to lock tokens
      * @param _time Lock extension time in seconds
      */
-    function extendLock(bytes32 _reason, uint256 _time) public isMemberAndcheckPause
-        
-    {
+    function extendLock(bytes32 _reason, uint256 _time) public isMemberAndcheckPause {
         require(tokensLocked(msg.sender, _reason, block.timestamp) != 0);
         td.changeLockValidity(_reason, msg.sender, _time, true);
         uint amount;
@@ -448,9 +281,7 @@ contract nxmToken is Iupgradable {
      * @param _reason The purpose to lock tokens
      * @param _time Lock extension time in seconds
      */
-    function changeLock(bytes32 _reason, address _of, uint256 _time, bool extend) public onlyInternal
-        
-    {
+    function changeLock(bytes32 _reason, address _of, uint256 _time, bool extend) public onlyInternal {
         require(tokensLocked(_of, _reason, block.timestamp) != 0);
         td.changeLockValidity(_reason, _of, _time, extend);
         uint amount;
@@ -464,20 +295,16 @@ contract nxmToken is Iupgradable {
      * @param _reason The purpose to lock tokens
      * @param _time Lock extension time in seconds
      */
-    function reduceLock(bytes32 _reason, address _of, uint256 _time) public onlyInternal
-        
-    {
+    function reduceLock(bytes32 _reason, address _of, uint256 _time) public onlyInternal {
         changeLock(_reason, _of, _time, false);        
     }
-    
+        
     /**
      * @dev Increases number of tokens locked for a specified purpose
      * @param _reason The purpose to lock tokens
      * @param _amount Number of tokens to be increased
      */
-    function increaseLockAmount(bytes32 _reason, uint256 _amount) public isMemberAndcheckPause
-        
-    {
+    function increaseLockAmount(bytes32 _reason, uint256 _amount) public isMemberAndcheckPause {
         require(tokensLocked(msg.sender, _reason, block.timestamp) != 0);
         td.changeLockAmount(_reason, msg.sender, _amount, true);
         uint amount;
@@ -486,32 +313,5 @@ contract nxmToken is Iupgradable {
         Lock(msg.sender, _reason, amount, validity);
     }
     
-    /// @dev Gets the total NXM tokens locked against Smart contract.
-    /// @param _scAddress smart contract address.
-    /// @return _totalLockedNXM total NXM tokens.
-    function getTotalLockedNXMToken(address _scAddress) public constant returns(uint _totalLockedNXM) {
-        _totalLockedNXM = 0;
-
-        uint stakeAmt;
-        uint dateAdd;
-        uint burnedAmt;
-        uint nowTime = now;
-        uint totalStaker = td.getTotalStakerAgainstScAddress(_scAddress);
-        for (uint i = 0; i < totalStaker; i++) {
-            uint scAddressIndx;
-            (, scAddressIndx) = td.getScAddressIndexByScAddressAndIndex(_scAddress, i);
-            (, , , stakeAmt, burnedAmt, dateAdd) = td.getStakeDetails(scAddressIndx);
-            uint16 day1 = uint16(SafeMaths.div(SafeMaths.sub(nowTime, dateAdd), 1 days));
-            if (stakeAmt > 0 && td.scValidDays() > day1) {
-                uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(
-                    SafeMaths.sub(td.scValidDays(), day1), 100000), td.scValidDays()), stakeAmt), 100000);
-                if (lockedNXM > burnedAmt)
-                    _totalLockedNXM = SafeMaths.add(_totalLockedNXM, SafeMaths.sub(lockedNXM, burnedAmt));
-            }
-        }
-    }
-
-
-
 }
 

@@ -141,8 +141,8 @@ contract nxmToken is Iupgradable {
         require(ms.isMember(_to) == true || _to == address(ms.versionContractAddress(currentVersion, "CR")));
         require(_value > 0);
         require(balanceOf(msg.sender) >= _value);
-        td.changeBalanceOf(msg.sender, SafeMaths.sub(td.getBalanceOf(msg.sender), _value)); 
-        td.changeBalanceOf(_to, SafeMaths.add(td.getBalanceOf(_to), _value));
+        td.decreaseBalanceOf(msg.sender, _value);
+        td.increaseBalanceOf(_to, _value);
         Transfer(msg.sender, _to, _value); // Notify anyone listening that this transfer took place
     }
 
@@ -183,12 +183,9 @@ contract nxmToken is Iupgradable {
         // ms=master(masterAddress);
         require(balanceOf(_from) >= _value);
         require(_value <= td.getAllowerSpenderAllowance(_from, msg.sender));
-        td.changeBalanceOf(_from, SafeMaths.sub(td.getBalanceOf(_from), _value)); // Subtract from the sender
-
-        td.changeBalanceOf(_to, SafeMaths.add(td.getBalanceOf(_to), _value)); // Add the same to the recipient
-
+        td.decreaseBalanceOf(_from, _value); // decrease amount from the sender
+        td.increaseBalanceOf(_to, _value); // increase same to the recipient
         td.setAllowerSpenderAllowance(_from, msg.sender, SafeMaths.sub(td.getAllowerSpenderAllowance(_from, msg.sender), _value));
-
         emit Transfer(_from, _to, _value);
         return true;
     }

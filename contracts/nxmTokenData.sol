@@ -180,11 +180,18 @@ contract nxmTokenData is Iupgradable {
         bal = balanceOf[_add];
     }
 
-    /// @dev Updates the number to tokens of a user.
-    /// @param _of Address.
-    /// @param tokens New number of tokens.
-    function changeBalanceOf(address _of, uint tokens) onlyInternal {
-        balanceOf[_of] = tokens;
+    /// @dev increase the balance
+    /// @param _of address
+    /// @param by amount of tokens
+    function increaseBalanceOf(address _of, uint by) onlyInternal {
+        balanceOf[_of] = SafeMaths.add(balanceOf[_of], by);
+    }
+
+    /// @dev decrease the balance
+    /// @param _of address
+    /// @param by amount of tokens
+    function decreaseBalanceOf(address _of, uint by) onlyInternal {
+        balanceOf[_of] = SafeMaths.sub(balanceOf[_of], by);
     }
 
     /// @dev Gets total number of NXM tokens that are in circulation.
@@ -192,9 +199,16 @@ contract nxmTokenData is Iupgradable {
         ts = totalSupply;
     }
 
-    /// @dev Changes number of NXM tokens that are in circulation.
-    function changeTotalSupply(uint tokens) onlyInternal {
-        totalSupply = tokens;
+    /// @dev increase totalSupply
+    /// @param by amount of tokens
+    function increaseTotalSupply(uint by) onlyInternal {
+        totalSupply = SafeMaths.add(totalSupply, by);
+    }
+
+    /// @dev decrease totalSupply
+    /// @param by amount of tokens
+    function decreaseTotalSupply(uint by) onlyInternal {
+        totalSupply = SafeMaths.sub(totalSupply, by);
     }
 
     /// @dev Allows a given address (Spender) to spend a given amount of the money on behalf of the other user.

@@ -176,16 +176,16 @@ contract nxmToken2 is Iupgradable, Governed {
 
         require(ms.isMember(_to) == true);
         // Change total supply and individual balance of user
-        td.changeBalanceOf(_to, SafeMaths.add(td.getBalanceOf(_to), amount)); // mint new tokens
-        td.changeTotalSupply(SafeMaths.add(td.getTotalSupply(), amount)); // track the supply
+        td.increaseBalanceOf(_to, amount); // mint new tokens
+        td.increaseTotalSupply(amount); // track the supply
         tc1.callTransferEvent(0, _to, amount);
     }
 
     /// @dev Mint tokens to be distributes as reward for claims assessment.
     /// @param amount amount of tokens to be minted.
     function mintClaimRewardToken(uint amount) onlyInternal {
-        td.changeBalanceOf(msg.sender, SafeMaths.add(td.getBalanceOf(msg.sender), amount)); // mint new tokens
-        td.changeTotalSupply(SafeMaths.add(td.getTotalSupply(), amount)); // track the supply
+        td.increaseBalanceOf(msg.sender, amount); // mint new tokens
+        td.increaseTotalSupply(amount); // track the supply
         tc1.callTransferEvent(0, msg.sender, amount);
     }
 
@@ -196,8 +196,8 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @param tokens Amount of NXM token to be burned
     function burnToken(address _of, bytes16 eventName, uint id, uint tokens) onlyInternal {
         require(td.getBalanceOf(_of) >= tokens);
-        td.changeBalanceOf(_of, SafeMaths.sub(td.getBalanceOf(_of), tokens));
-        td.changeTotalSupply(SafeMaths.sub(td.getTotalSupply(), tokens));
+        td.decreaseBalanceOf(_of, tokens);
+        td.decreaseTotalSupply(tokens);
         tc1.callBurnEvent(_of, eventName, id, tokens);
     }
 

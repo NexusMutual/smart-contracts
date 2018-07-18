@@ -44,7 +44,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     quotation2 q2;
     nxmToken tc1;
-    nxmToken2 tc2;
+    //nxmToken2 tc2;
     poolData pd;
     pool2 p2;
     mcr m1;
@@ -54,8 +54,12 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
 
-    function () public payable {}
+    function pool () Governed("NEXUS-MUTUAL") {
 
+    }
+    
+    function () public payable {}
+  
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
@@ -96,7 +100,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
         q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
         p2 = pool2(ms.versionContractAddress(currentVersion, "P2"));
     }
-    
+
     /// @dev Changes pool address.
     function changePoolAddress(address _add) onlyInternal {
         poolAddress = _add;
@@ -216,7 +220,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     function buyTokenBegin() isMemberAndcheckPause payable {
 
         uint amount = msg.value;
-        tc2.buyToken(amount, msg.sender);
+        tc1.buyToken(amount, msg.sender);
     }
 
     /// @dev Sends a given amount of Ether to a given address.
@@ -245,18 +249,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
         bal = this.balance;
     }
 
-    /// @dev Allocates the Equivalent Currency Tokens for a given amount of Ethers.
-    /// @param valueETH  Tokens Purchasing Amount in ETH. 
-    /// @param curr Currency Name.
-    function getCurrTokensFromFaucet(uint valueETH, bytes4 curr) onlyOwner {
-
-        uint valueWEI = SafeMaths.mul(valueETH, DECIMAL1E18);
-        require(valueWEI <= this.balance);
-
-        transferPayout(msg.sender, curr, valueWEI);
-
-    }
-    
     /// @dev Changes the 0x Relayer address
     function change0xFeeRecipient(address _feeRecipient) onlyAuthorizedToGovern {
 
@@ -280,15 +272,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
             transferIAFromPool(_newPoolAddr, currAddr);
         }
 
-    }
-
-    ///@dev Transfers investment asset from current pool address to the new pool address.
-    ///      To be automated by version control in master
-    function transferIAFromPool(address _newPoolAddr, address currAddr) onlyInternal {
-        btok = BasicToken(currAddr);
-        if (btok.balanceOf(this) > 0) {
-            btok.transfer(_newPoolAddr, btok.balanceOf(this));
-        }
     }
 
     ///@dev Gets pool balance of a given investmentasset.
@@ -402,9 +385,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
         uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
         uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
         require(sellTokensx10e18 <= getMaxSellTokens());
-        //tc1.burnTokenForFunding(sellTokensx10e18, msg.sender, "ForTokenSell", 0);
-        tc2.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
-        tc1.callTransferEvent(msg.sender, 0, sellTokensx10e18);
+        tc1.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
+        //tc1.callTransferEvent(msg.sender, 0, sellTokensx10e18);
         bool succ = msg.sender.send(sellingPrice);
         require(succ != false);
     }
@@ -435,27 +417,16 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @param curr currencyfor which api call has been made.
     /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetailsCurr(bytes32 myid, bytes8 _typeof, bytes4 curr, uint id) internal {
-
         pd.saveApiDetailsCurr(myid, _typeof, curr, id);
         pd.addInAllApiCall(myid);
     }
-
-    function bytes16ToString(bytes16 x) internal constant returns (string) 
-    {
-        bytes memory bytesString = new bytes(32);
-        uint charCount = 0;
-        for (uint j = 0; j < 32; j++) {
-            byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));//Check for overflow and underflow conditions using SafeMaths
-            if (char != 0) {
-                bytesString[charCount] = char;
-                charCount++;
-            }
+    
+    ///@dev Transfers investment asset from current pool address to the new pool address.
+    ///      To be automated by version control in master
+    function transferIAFromPool(address _newPoolAddr, address currAddr) internal {
+        btok = BasicToken(currAddr);
+        if (btok.balanceOf(this) > 0) {
+            btok.transfer(_newPoolAddr, btok.balanceOf(this));
         }
-        bytes memory bytesStringTrimmed = new bytes(charCount);
-        for (j = 0; j < charCount; j++) {
-            bytesStringTrimmed[j] = bytesString[j];
-        }
-        return string(bytesStringTrimmed);
     }
-
 }

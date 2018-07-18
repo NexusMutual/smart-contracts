@@ -186,7 +186,7 @@ contract nxmToken is Iupgradable {
         td.decreaseBalanceOf(_from, _value); // decrease amount from the sender
         td.increaseBalanceOf(_to, _value); // increase same to the recipient
         td.setAllowerSpenderAllowance(_from, msg.sender, SafeMaths.sub(td.getAllowerSpenderAllowance(_from, msg.sender), _value));
-        emit Transfer(_from, _to, _value);
+        Transfer(_from, _to, _value);
         return true;
     }
 
@@ -310,5 +310,25 @@ contract nxmToken is Iupgradable {
         Lock(msg.sender, _reason, amount, validity);
     }
     
+    /// @dev Enables purchase of tokens at the current token price
+    function buyToken(uint value, address _to) public onlyInternal {
+        if (m1.calculateTokenPrice("ETH") > 0) {
+            uint256 amount = SafeMaths.div((SafeMaths.mul(value, DECIMAL1E18)), m1.calculateTokenPrice("ETH"));
+            // Allocate tokens         
+            tc2.rewardToken(_to, amount);
+        }
+    }
+
+    /// @dev Burn NXM Token on different events
+    /// @param _of address from where NXM token burns
+    /// @param eventName Event for which token was burned
+    /// @param id CoverId/ ClaimId / Id
+    /// @param tokens Amount of NXM token to be burned
+    function burnToken(address _of, bytes16 eventName, uint id, uint tokens) onlyInternal {
+        require(td.getBalanceOf(_of) >= tokens);
+        td.decreaseBalanceOf(_of, tokens);
+        td.decreaseTotalSupply(tokens);
+        callBurnEvent(_of, eventName, id, tokens);
+    }
 }
 

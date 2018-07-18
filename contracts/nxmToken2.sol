@@ -70,7 +70,11 @@ contract nxmToken2 is Iupgradable, Governed {
         require(ms.isOwner(msg.sender) == true);
         _;
     }
-
+    
+    function nxmToken2 () Governed("NEXUS-MUTUAL") {
+        
+    }
+    
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
@@ -101,15 +105,6 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @return price Token Price.
     function getTokenPrice(bytes4 curr) public constant returns(uint price) {
         price = m1.calculateTokenPrice(curr);
-    }
-
-    /// @dev Enables purchase of tokens at the current token price
-    function buyToken(uint value, address _to) public onlyInternal {
-        if (m1.calculateTokenPrice("ETH") > 0) {
-            uint256 amount = SafeMaths.div((SafeMaths.mul(value, DECIMAL1E18)), m1.calculateTokenPrice("ETH"));
-            // Allocate tokens         
-            rewardToken(_to, amount);
-        }
     }
 
     /// @dev Books the user's tokens for maintaining Assessor Velocity
@@ -189,18 +184,6 @@ contract nxmToken2 is Iupgradable, Governed {
         tc1.callTransferEvent(0, msg.sender, amount);
     }
 
-    /// @dev Burn NXM Token on different events
-    /// @param _of address from where NXM token burns
-    /// @param eventName Event for which token was burned
-    /// @param id CoverId/ ClaimId / Id
-    /// @param tokens Amount of NXM token to be burned
-    function burnToken(address _of, bytes16 eventName, uint id, uint tokens) onlyInternal {
-        require(td.getBalanceOf(_of) >= tokens);
-        td.decreaseBalanceOf(_of, tokens);
-        td.decreaseTotalSupply(tokens);
-        tc1.callBurnEvent(_of, eventName, id, tokens);
-    }
-
     /// @dev Burns tokens used for fraudulent voting against a claim
     /// @param claimid Claim Id.
     /// @param _value number of tokens to be burned
@@ -209,7 +192,7 @@ contract nxmToken2 is Iupgradable, Governed {
         require(tc1.tokensLocked(_to, "CLA", now) >= _value);
         td.pushInBurnCAToken(_to, claimid, now, _value);
         td.changeLockAmount("CLA", _to, _value, false);
-        burnToken(_to, "BurnCA", claimid, _value);
+        tc1.burnToken(_to, "BurnCA", claimid, _value);
     }
 
     /// @dev Burns tokens deposited against a cover, called when a claim submitted against this cover is denied.
@@ -235,7 +218,7 @@ contract nxmToken2 is Iupgradable, Governed {
             }
         }
         td.updateUserCoverLockedCN(_to, coverid, validity, SafeMaths.sub(lockedTokens, depositedTokens));
-        burnToken(_to, "Burn CN", coverid, depositedTokens);
+        tc1.burnToken(_to, "Burn CN", coverid, depositedTokens);
     }
 
     /// @dev Deposits locked tokens against a given cover id, called whenever a claim is submitted against a coverid
@@ -298,14 +281,14 @@ contract nxmToken2 is Iupgradable, Governed {
                 if (stakerLockedNXM > 0) {
                     if (stakerLockedNXM >= burnNXMAmount) {
                         td.addBurnedAmount(scAddressIndex, burnNXMAmount);
-                        burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
+                        tc1.burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
                         if (i > 0)
                             td.setSCAddressLastBurnIndex(_scAddress, i);
                         burnNXMAmount = 0;
                         break;
                     } else {
                         td.addBurnedAmount(scAddressIndex, stakerLockedNXM);
-                        burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
+                        tc1.burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
                         burnNXMAmount = SafeMaths.sub(burnNXMAmount, stakerLockedNXM);
                     }
                 }
@@ -364,7 +347,6 @@ contract nxmToken2 is Iupgradable, Governed {
    
     /// @dev Called by user to pay joining membership fee
     function payJoiningFee() public payable checkPause {
-
         require(msg.value == td.joiningFee());
         address _add = td.walletAddress();
         require(_add != 0x0000);
@@ -376,8 +358,7 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @dev Change the address who can update GovBlocks member role.
     ///      Called when updating to a new version. 
     ///      Need to remove onlyOwner to onlyInternal and update automatically at version change
-    function changeCanAddMemberAddress(address _newAdd) onlyOwner
-    {
+    function changeCanAddMemberAddress(address _newAdd) onlyOwner {
         mr.changeCanAddMember(3, _newAdd);
     }
 
@@ -386,7 +367,6 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @param _coverid Cover Id
     /// @param _locktime Pending Time + Cover Period 7*1 days
     function depositLockCNEPOff(address _of, uint _coverid, uint _locktime) public onlyInternal {
-
         uint timestamp = now + _locktime;
         uint dCNValidUpto;
         uint dCNLastAmount;
@@ -395,7 +375,6 @@ contract nxmToken2 is Iupgradable, Governed {
         (, , dCNValidUpto, dCNLastAmount) = td.getUserCoverDepositCNByIndex(_of, _coverid, SafeMaths.sub(len, 1));
         uint dCNAmount;
         (, dCNAmount) = td.getDepositCN(_coverid, _of);
-
         uint coverValidUntil = qd.getValidityOfCover(_coverid);
         if (coverValidUntil > timestamp) {
             if (dCNValidUpto < timestamp) {
@@ -427,11 +406,18 @@ contract nxmToken2 is Iupgradable, Governed {
         }
     }
 
+    /// @dev Staking on contract.
+    /// @param _scAddress smart contract address.
+    /// @param _amount amount of NXM.
+    function addStake(address _scAddress, uint _amount) isMemberAndcheckPause {
+        require(tc1.balanceOf(msg.sender) >= _amount); // Check if the sender has enough
+        td.addStake(msg.sender, _scAddress, _amount);
+    }
+
     /// @dev Sends commission to underwriter on purchase of staked smart contract.
     /// @param _scAddress staker address.
     /// @param _premiumNXM premium of cover in NXM.
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
-
         uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premiumNXM, 20), 100);
         uint stakeLength = td.getTotalStakerAgainstScAddress(_scAddress);
         for (uint i = td.scAddressLastCommIndex(_scAddress); i < stakeLength; i++) {
@@ -471,7 +457,6 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @return _totalLockedNXM total NXM tokens.
     function getTotalLockedNXMToken(address _scAddress) public constant returns(uint _totalLockedNXM) {
         _totalLockedNXM = 0;
-
         uint stakeAmt;
         uint dateAdd;
         uint burnedAmt;

@@ -76,9 +76,8 @@ contract master is Governed {
     }
 
     /// @dev Constructor
-    function master() {
+    function master() Governed("NEXUS-MUTUAL") {
         owner = msg.sender;
-
         contractsActive[address(this)] = true; //1
         masterAddress = address(this);
         versionLength = 0;

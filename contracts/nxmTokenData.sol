@@ -26,8 +26,8 @@ contract nxmTokenData is Iupgradable {
 
     address masterAddress;
     string public version = "NXM 0.1";
-    bytes8 public name;
-    bytes8 public symbol;
+    string public name;
+    string public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
     uint initialTokens;
@@ -85,18 +85,14 @@ contract nxmTokenData is Iupgradable {
     mapping(address => lockToken[]) bookedCA;
     mapping(address => mapping(uint => lockToken)) public userCoverLockedCN;
     mapping(address => mapping(address => uint256)) public allowerSpenderAllowance;
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-    event Burn(address indexed _of, bytes16 eventName, uint coverId, uint tokens);
     mapping(address => mapping(uint => lockToken[])) public burnCAToken;
     uint public lockTokenTimeAfterCoverExp;
    
     function nxmTokenData(
         uint256 initialSupply,
-        bytes8 tokenName,
+        string tokenName,
         uint8 decimalUnits,
-        bytes8 tokenSymbol
+        string tokenSymbol
     ) {
 
         initialTokens = 1500000;
@@ -184,11 +180,18 @@ contract nxmTokenData is Iupgradable {
         bal = balanceOf[_add];
     }
 
-    /// @dev Updates the number to tokens of a user.
-    /// @param _of Address.
-    /// @param tokens New number of tokens.
-    function changeBalanceOf(address _of, uint tokens) onlyInternal {
-        balanceOf[_of] = tokens;
+    /// @dev increase the balance
+    /// @param _of address
+    /// @param by amount of tokens
+    function increaseBalanceOf(address _of, uint by) onlyInternal {
+        balanceOf[_of] = SafeMaths.add(balanceOf[_of], by);
+    }
+
+    /// @dev decrease the balance
+    /// @param _of address
+    /// @param by amount of tokens
+    function decreaseBalanceOf(address _of, uint by) onlyInternal {
+        balanceOf[_of] = SafeMaths.sub(balanceOf[_of], by);
     }
 
     /// @dev Gets total number of NXM tokens that are in circulation.
@@ -196,9 +199,16 @@ contract nxmTokenData is Iupgradable {
         ts = totalSupply;
     }
 
-    /// @dev Changes number of NXM tokens that are in circulation.
-    function changeTotalSupply(uint tokens) onlyInternal {
-        totalSupply = tokens;
+    /// @dev increase totalSupply
+    /// @param by amount of tokens
+    function increaseTotalSupply(uint by) onlyInternal {
+        totalSupply = SafeMaths.add(totalSupply, by);
+    }
+
+    /// @dev decrease totalSupply
+    /// @param by amount of tokens
+    function decreaseTotalSupply(uint by) onlyInternal {
+        totalSupply = SafeMaths.sub(totalSupply, by);
     }
 
     /// @dev Allows a given address (Spender) to spend a given amount of the money on behalf of the other user.

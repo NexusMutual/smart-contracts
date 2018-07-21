@@ -165,15 +165,15 @@ contract claimsData is Iupgradable {
         payoutRetryTime = _time;
     }
 
-    /// @dev Gets the Claim's details of given claimid. 
+    /// @dev Gets the Claim's details of given claimid.
     function getAllClaimsByIndex(uint _claimId) constant returns(uint coverId, int8 vote, uint8 status, uint dateUpd, uint8 state12Count) {
-        return (
+        return(
             allClaims[_claimId].coverId, 
-            claimVote[_claimId], 
-            claimsStatus[_claimId], 
-            allClaims[_claimId].dateUpd, 
+            claimVote[_claimId],
+            claimsStatus[_claimId],
+            allClaims[_claimId].dateUpd,
             claimState12Count[_claimId]
-            );
+        );
     }
 
     /// @dev Gets the vote id of a given claim of a given Claim Assessor.

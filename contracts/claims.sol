@@ -158,7 +158,7 @@ contract claims is Iupgradable {
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
-        uint tokenx1e18 = tc1.getTokenPrice(curr);
+        uint tokenx1e18 = tc2.getTokenPrice(curr);
         uint accept;
         uint deny;
         if (member == 0) {
@@ -271,7 +271,7 @@ contract claims is Iupgradable {
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat == 0);
         require(cd.getUserClaimVoteCA(msg.sender, claimId) == 0);
-        tc1.bookCATokens(msg.sender, tokens);
+        tc2.bookCATokens(msg.sender, tokens);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "CAV", tokens, now, verdict);
         uint voteLength = cd.getAllVoteLength();
@@ -338,7 +338,7 @@ contract claims is Iupgradable {
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
-        uint tokenx1e18 = tc1.getTokenPrice(curr);
+        uint tokenx1e18 = tc2.getTokenPrice(curr);
         uint accept;
         uint deny;
         (, accept, deny) = cd.getClaimsTokenCA(claimId);

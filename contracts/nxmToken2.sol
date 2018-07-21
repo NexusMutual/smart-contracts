@@ -355,11 +355,19 @@ contract nxmToken2 is Iupgradable, Governed {
             mr.updateMemberRole(msg.sender, 3, true, 0);
     }
 
+    /// @dev Adding to Member Role called Voter while Member voting.
+    function lockForMemberVote(address voter, uint time) onlyInternal {
+
+
+        mr.updateMemberRole(voter, 4, true, time);
+    }
+
     /// @dev Change the address who can update GovBlocks member role.
     ///      Called when updating to a new version. 
     ///      Need to remove onlyOwner to onlyInternal and update automatically at version change
     function changeCanAddMemberAddress(address _newAdd) onlyOwner {
         mr.changeCanAddMember(3, _newAdd);
+        mr.changeCanAddMember(4, _newAdd);
     }
 
     /// @dev Undeposit, Deposit, Unlock and Push In Locked CN

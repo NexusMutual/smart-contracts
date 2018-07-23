@@ -75,6 +75,11 @@ contract claimsReward is Iupgradable {
         _;
     }
 
+    modifier isMemberAndcheckPause {
+        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
+        _;
+    }
+
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
         c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
@@ -175,7 +180,7 @@ contract claimsReward is Iupgradable {
     }
 
     /// @dev Allows a user to claim all pending  claims assessment rewards.
-    function claimRewardToBeDistributed() checkPause {
+    function claimRewardToBeDistributed() isMemberAndcheckPause {
         uint lengthVote = cd.getVoteAddressCALength(msg.sender);
         uint lastIndexCA;
         uint lastIndexMV;
@@ -312,32 +317,27 @@ contract claimsReward is Iupgradable {
                 pd.changeCurrencyAssetVarMin(curr, SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr), sumAssured));
                 p3.checkLiquidityCreateOrder(curr);
             }
-        }
-        if (status == 7) {
+        } else if (status == 7) {
             cd.changeFinalVerdict(claimid, 1);
             // Rewards Claims Assessor only
             tc2.unlockCN(coverid); // Unlocks token locked against cover note
             succ = p2.sendClaimPayout(coverid, claimid); //Initiates payout
-        }
-        if (status == 8) {
+        } else if (status == 8) {
             cd.changeFinalVerdict(claimid, 1);
             tc2.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
-        }
-        if (status == 9) {
+        } else if (status == 9) {
             cd.changeFinalVerdict(claimid, -1);
             tc2.burnCNToken(coverid);
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
                 pd.changeCurrencyAssetVarMin(curr, SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr), sumAssured));
                 p3.checkLiquidityCreateOrder(curr);
             }
-        }
-        if (status == 10) {
+        } else if (status == 10) {
             cd.changeFinalVerdict(claimid, 1);
             tc2.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
-        }
-        if (status == 11) {
+        } else if (status == 11) {
             cd.changeFinalVerdict(claimid, -1);
             tc2.burnCNToken(coverid);
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {

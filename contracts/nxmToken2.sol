@@ -184,17 +184,14 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
     function rewardToken(address _to, uint amount) onlyInternal {
+        require(ms.isMember(_to) || msg.sender == address(ms.versionContractAddress(ms.currentVersion(), "CR")));
         td.increaseTotalSupply(amount); // increase total supply
-        if( _to != 0x000 && ms.isMember(_to)) {
-            td.increaseBalanceOf(_to, amount); // increase balance of member    
-            tc1.callTransferEvent(0, _to, amount);
-        } else {
-            address addr = msg.sender;
-            td.increaseBalanceOf(addr, amount); // increase balance of reward contract
-            tc1.callTransferEvent(0, addr, amount);
-        }
+        if (_to == 0x000)
+            _to = msg.sender;
+        td.increaseBalanceOf(_to, amount); // increase balance of reward contract
+        tc1.callTransferEvent(0, _to, amount);
     }
-    
+        
     /// @dev Burns tokens used for fraudulent voting against a claim
     /// @param claimid Claim Id.
     /// @param _value number of tokens to be burned
@@ -453,14 +450,15 @@ contract nxmToken2 is Iupgradable, Governed {
                 if (totalCommission > commissionPaid) {
                     if (totalCommission >= SafeMaths.add(commissionPaid, commissionToBePaid)) {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, commissionToBePaid, now);
-                        rewardToken(stakerAdd, commissionToBePaid);
+                        //rewardToken(stakerAdd, commissionToBePaid);
                         if (i > 0)
                             td.setSCAddressLastCommIndex(_scAddress, i);
                         commissionToBePaid = 0;
                         break;
                     } else {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, SafeMaths.sub(totalCommission, commissionPaid), now);
-                        rewardToken(stakerAdd, SafeMaths.sub(totalCommission, commissionPaid));
+                        // Just push commission to be paid and update it after redeeming that commission
+                        //rewardToken(stakerAdd, SafeMaths.sub(totalCommission, commissionPaid));
                         commissionToBePaid = SafeMaths.sub(commissionToBePaid, SafeMaths.sub(totalCommission, commissionPaid));
                     }
                 }

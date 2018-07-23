@@ -138,9 +138,11 @@ contract nxmToken is Iupgradable {
     function transfer(address _to, uint256 _value) public isMemberAndcheckPauseOrInternal {
     
         uint currentVersion = ms.currentVersion();
+        require(!tc2.voted(msg.sender));
         require(ms.isMember(_to) == true || _to == address(ms.versionContractAddress(currentVersion, "CR")));
         require(_value > 0);
         require(balanceOf(msg.sender) >= _value);
+
         td.decreaseBalanceOf(msg.sender, _value);
         td.increaseBalanceOf(_to, _value);
         Transfer(msg.sender, _to, _value); // Notify anyone listening that this transfer took place
@@ -180,8 +182,9 @@ contract nxmToken is Iupgradable {
     /// @param _value Transfer tokens.
     /// @return success true if transfer is a success, false if transfer is a failure.
     function transferFrom(address _from, address _to, uint256 _value) public isMemberAndcheckPause returns(bool success) {
-        // ms=master(masterAddress);
+        
         require(balanceOf(_from) >= _value);
+        require(!tc2.voted(msg.sender));
         require(_value <= td.getAllowerSpenderAllowance(_from, msg.sender));
         td.decreaseBalanceOf(_from, _value); // decrease amount from the sender
         td.increaseBalanceOf(_to, _value); // increase same to the recipient
@@ -200,8 +203,10 @@ contract nxmToken is Iupgradable {
         uint len = td.getLockReasonLength(_owner);
         for (uint256 i = 0; i < len; i++) {
             bytes32 reason = td.lockReason(_owner, i);
-            uint tokensLoked = tokensLocked(_owner, reason, block.timestamp);
-            lockedAmount = SafeMaths.add(lockedAmount, tokensLoked);
+            if(reason != "MV") {
+                uint tokensLoked = tokensLocked(_owner, reason, block.timestamp);
+                lockedAmount = SafeMaths.add(lockedAmount, tokensLoked);
+            }
         }   
         uint balance = td.getBalanceOf(_owner);
         uint256 amount = (((balance.sub(lockedAmount)).sub(td.getBalanceCN(_owner))).sub(tc2.getLockedNXMTokenOfStakerByStakerAddress(_owner)));

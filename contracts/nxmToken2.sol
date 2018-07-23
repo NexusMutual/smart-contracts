@@ -21,6 +21,7 @@ import "./mcr.sol";
 import "./nxmToken.sol";
 import "./master.sol";
 import "./Iupgradable.sol";
+import "./claimsReward.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
@@ -46,6 +47,7 @@ contract nxmToken2 is Iupgradable, Governed {
     mcr m1;
     nxmToken tc1;
     MemberRoles mr;
+    claimsReward cr;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
     address masterAddress;
@@ -70,6 +72,17 @@ contract nxmToken2 is Iupgradable, Governed {
         require(ms.isOwner(msg.sender) == true);
         _;
     }
+
+    modifier canWithdraw { 
+        
+        require(getLockedNXMTokenOfStakerByStakerAddress(msg.sender)==0); // No pending stake.
+        require(td.getBalanceCN(msg.sender)==0);   // No active covers.
+        require(td.tokensLocked(msg.sender, "CLA", now)==0); // No locked tokens for CA.
+        require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
+        require(cr.getRewardToBeDistributedByUser(msg.sender)==0); // No pending reward to be claimed(claim assesment).
+        
+    }
+    
     
     function nxmToken2 () Governed("NEXUS-MUTUAL") {
         
@@ -94,6 +107,7 @@ contract nxmToken2 is Iupgradable, Governed {
         tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
         qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
         td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
+        cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
     }
 
     function changeMemberRolesAddress(address memberAddress) onlyInternal {
@@ -357,9 +371,10 @@ contract nxmToken2 is Iupgradable, Governed {
 
     /// @dev Adding to Member Role called Voter while Member voting.
     function lockForMemberVote(address voter, uint time) onlyInternal {
-
-
-        mr.updateMemberRole(voter, 4, true, time);
+        if(!mr.checkRoleIdByAddress(voter, 4))
+            mr.updateMemberRole(voter, 4, true, time);
+        // else
+        //     mr.updateRoleValidity(voter, 4, time);
     }
 
     /// @dev Change the address who can update GovBlocks member role.
@@ -484,6 +499,18 @@ contract nxmToken2 is Iupgradable, Governed {
         }
     }
 
+    /// @dev Called by existed member if if wish to Withdraw membership.
+    function withdrawMembership() canWithdraw,isMemberAndcheckPause {
+
+        tc1.burnToken(msg.sender, "Withdraw", 0, td.getBalanceOf(msg.sender));
+        mr.updateMemberRole(msg.sender, 3, false, 0);
+    }
+
+    /// @dev It will tell if user has locked tokens in member vote or not.
+    /// @param _add addressof user.
+    function voted(address _add) constant returns(bool){
+        return mr.checkRoleIdByAddress(_add, 4);
+    }
   
 
 }

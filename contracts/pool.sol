@@ -44,7 +44,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     quotation2 q2;
     nxmToken tc1;
-    //nxmToken2 tc2;
     poolData pd;
     pool2 p2;
     mcr m1;
@@ -382,11 +381,11 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @dev Enables user to sell NXM tokens
     function sellNXMTokens(uint sellTokens) isMemberAndcheckPause {
         require(tc1.balanceOf(msg.sender) >= sellTokens); // Check if the sender has enough
+        require (tc1.tokensLocked(msg.sender, "MV", now)==0);
         uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
         uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
         require(sellTokensx10e18 <= getMaxSellTokens());
         tc1.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
-        //tc1.callTransferEvent(msg.sender, 0, sellTokensx10e18);
         bool succ = msg.sender.send(sellingPrice);
         require(succ != false);
     }

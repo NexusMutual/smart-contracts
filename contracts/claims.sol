@@ -306,7 +306,15 @@ contract claims is Iupgradable {
         time = td.lockMVDays();
         time = SafeMaths.add(now, time);
         tc2.lockForMemberVote(msg.sender, time);
-        tc1.changeLock("MV", msg.sender, time, true);
+        if (!td.hasBeenLockedBefore(msg.sender, "MV")){
+            td.setLockReason(msg.sender, "MV");
+            td.lockTokens("MV", msg.sender, tokens, time);
+        } else {
+            uint mvLockValid;
+            (mvLockValid, ) = td.locked(msg.sender, "MV");
+            time = SafeMaths.sub(time,mvLockValid);
+            td.changeLockValidity("MV", msg.sender, time, true);
+        }
         uint voteLength = cd.getAllVoteLength();
         cd.addClaimVotemember(claimId, voteLength);
         cd.setUserClaimVoteMember(msg.sender, claimId, voteLength);

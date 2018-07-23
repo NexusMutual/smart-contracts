@@ -117,29 +117,6 @@ contract claimsReward is Iupgradable {
         c1.changePendingClaimStart();
     }
     
-    /// @dev Resume the voting phase of all claims paused due to an emergency pause.
-    function startAllPendingClaimsVoting() onlyInternal {
-
-        uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
-        uint i;
-        uint lengthOfClaimVotingPause = cd.getLengthOfClaimVotingPause();
-        for (i = firstIndx; i < lengthOfClaimVotingPause; i++) {
-            uint pendingTime;
-            uint claimID;
-            (claimID, pendingTime, ) = cd.getPendingClaimDetailsByIndex(i);
-            uint pTime = SafeMaths.add(SafeMaths.sub(now, cd.maxVotingTime()), pendingTime);
-            cd.setClaimdateUpd(claimID, pTime);
-            cd.setPendingClaimVoteStatus(i, true);
-
-            uint coverid;
-            (, coverid) = cd.getClaimCoverId(claimID);
-            address qadd = qd.getCoverMemberAddress(coverid);
-            tc2.depositLockCNEPOff(qadd, coverid, SafeMaths.add(pendingTime, cd.claimDepositTime()));
-            p1.closeClaimsOraclise(claimID, uint64(pTime));
-        }
-        cd.setFirstClaimIndexToStartVotingAfterEP(i);
-    }
-
     /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
     /// @param check 1 -> CA vote, else member vote
     /// @param voteid vote id for which reward has to be Calculated
@@ -325,7 +302,7 @@ contract claimsReward is Iupgradable {
         (percCA, percMV) = c1.getRewardStatus(status);
         cd.setClaimRewardDetail(claimid, percCA, percMV, distributableTokens);
         if (percCA > 0 || percMV > 0) {
-            tc2.mintClaimRewardToken(distributableTokens);
+            tc2.rewardToken(0x000, distributableTokens);
         }
         if (status == 6) {  // Final-Claim Assessor Vote Denied
             cd.changeFinalVerdict(claimid, -1);

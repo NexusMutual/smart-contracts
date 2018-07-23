@@ -180,26 +180,21 @@ contract nxmToken2 is Iupgradable, Governed {
         td.updateUserCoverLockedCN(_to, coverid, now, lockedCN);
     }
 
-    /// @dev Allocates tokens against a given address
+    /// @dev Allocates tokens against a given address or reward contract  
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
     function rewardToken(address _to, uint amount) onlyInternal {
-
-        require(ms.isMember(_to) == true);
-        // Change total supply and individual balance of user
-        td.increaseBalanceOf(_to, amount); // mint new tokens
-        td.increaseTotalSupply(amount); // track the supply
-        tc1.callTransferEvent(0, _to, amount);
+        td.increaseTotalSupply(amount); // increase total supply
+        if( _to != 0x000 && ms.isMember(_to)) {
+            td.increaseBalanceOf(_to, amount); // increase balance of member    
+            tc1.callTransferEvent(0, _to, amount);
+        } else {
+            address addr = msg.sender;
+            td.increaseBalanceOf(addr, amount); // increase balance of reward contract
+            tc1.callTransferEvent(0, addr, amount);
+        }
     }
-
-    /// @dev Mint tokens to be distributes as reward for claims assessment.
-    /// @param amount amount of tokens to be minted.
-    function mintClaimRewardToken(uint amount) onlyInternal {
-        td.increaseBalanceOf(msg.sender, amount); // mint new tokens
-        td.increaseTotalSupply(amount); // track the supply
-        tc1.callTransferEvent(0, msg.sender, amount);
-    }
-
+    
     /// @dev Burns tokens used for fraudulent voting against a claim
     /// @param claimid Claim Id.
     /// @param _value number of tokens to be burned

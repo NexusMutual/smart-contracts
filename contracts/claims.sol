@@ -338,6 +338,29 @@ contract claims is Iupgradable {
         }
     }
 
+    /// @dev Resume the voting phase of all claims paused due to an emergency pause.
+    function startAllPendingClaimsVoting() onlyInternal {
+
+        uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
+        uint i;
+        uint lengthOfClaimVotingPause = cd.getLengthOfClaimVotingPause();
+        for (i = firstIndx; i < lengthOfClaimVotingPause; i++) {
+            uint pendingTime;
+            uint claimID;
+            (claimID, pendingTime, ) = cd.getPendingClaimDetailsByIndex(i);
+            uint pTime = SafeMaths.add(SafeMaths.sub(now, cd.maxVotingTime()), pendingTime);
+            cd.setClaimdateUpd(claimID, pTime);
+            cd.setPendingClaimVoteStatus(i, true);
+
+            uint coverid;
+            (, coverid) = cd.getClaimCoverId(claimID);
+            address qadd = qd.getCoverMemberAddress(coverid);
+            tc2.depositLockCNEPOff(qadd, coverid, SafeMaths.add(pendingTime, cd.claimDepositTime()));
+            p1.closeClaimsOraclise(claimID, uint64(pTime));
+        }
+        cd.setFirstClaimIndexToStartVotingAfterEP(i);
+    }
+
     /// @dev Checks if voting of a claim should be closed or not.
     //             Internally called by checkVoteClosing method 
     //             for claims whose status number is 0 or status number lie between 2 and 6.

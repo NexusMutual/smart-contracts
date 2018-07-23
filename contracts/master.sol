@@ -119,9 +119,8 @@ contract master is Governed {
         emergencyPaused.push(emergencyPause(_pause, now, _by));
         if (_pause == false) {
             c1 = claims(versionContractAddress[currentVersion]["C1"]);
-            cr = claimsReward(versionContractAddress[currentVersion]["CR"]);
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
-            cr.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
+            c1.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
     }
 

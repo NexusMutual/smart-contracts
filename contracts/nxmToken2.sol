@@ -184,10 +184,8 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
     function rewardToken(address _to, uint amount) onlyInternal {
-        require(ms.isMember(_to) || msg.sender == address(ms.versionContractAddress(ms.currentVersion(), "CR")));
+        require(ms.isMember(_to) || _to == address(ms.versionContractAddress(ms.currentVersion(), "CR")));
         td.increaseTotalSupply(amount); // increase total supply
-        if (_to == 0x000)
-            _to = msg.sender;
         td.increaseBalanceOf(_to, amount); // increase balance of reward contract
         tc1.callTransferEvent(0, _to, amount);
     }

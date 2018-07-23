@@ -307,7 +307,7 @@ contract claimsReward is Iupgradable {
         (percCA, percMV) = c1.getRewardStatus(status);
         cd.setClaimRewardDetail(claimid, percCA, percMV, distributableTokens);
         if (percCA > 0 || percMV > 0) {
-            tc2.rewardToken(0x000, distributableTokens);
+            tc2.rewardToken(address(this), distributableTokens);
         }
         if (status == 6) {  // Final-Claim Assessor Vote Denied
             cd.changeFinalVerdict(claimid, -1);

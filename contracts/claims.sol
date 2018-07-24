@@ -303,16 +303,16 @@ contract claims is Iupgradable {
         require(cd.getUserClaimVoteMember(msg.sender, claimId) == 0);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
-        time = td.lockMVDays();
+        uint time = td.lockMVDays();
         time = SafeMaths.add(now, time);
         tc2.lockForMemberVote(msg.sender, time);
-        if (!td.hasBeenLockedBefore(msg.sender, "MV")){
+        if (!td.hasBeenLockedBefore(msg.sender, "MV")) {
             td.setLockReason(msg.sender, "MV");
             td.lockTokens("MV", msg.sender, tokens, time);
         } else {
             uint mvLockValid;
             (mvLockValid, ) = td.locked(msg.sender, "MV");
-            time = SafeMaths.sub(time,mvLockValid);
+            time = SafeMaths.sub(time, mvLockValid);
             td.changeLockValidity("MV", msg.sender, time, true);
         }
         uint voteLength = cd.getAllVoteLength();

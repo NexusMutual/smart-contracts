@@ -203,7 +203,7 @@ contract nxmToken is Iupgradable {
         uint len = td.getLockReasonLength(_owner);
         for (uint256 i = 0; i < len; i++) {
             bytes32 reason = td.lockReason(_owner, i);
-            if(reason != "MV") {
+            if (reason != "MV") {
                 uint tokensLoked = tokensLocked(_owner, reason, block.timestamp);
                 lockedAmount = SafeMaths.add(lockedAmount, tokensLoked);
             }

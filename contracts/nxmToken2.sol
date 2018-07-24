@@ -75,14 +75,14 @@ contract nxmToken2 is Iupgradable, Governed {
 
     modifier canWithdraw { 
         
-        require(getLockedNXMTokenOfStakerByStakerAddress(msg.sender)==0); // No pending stake.
-        require(td.getBalanceCN(msg.sender)==0);   // No active covers.
-        require(td.tokensLocked(msg.sender, "CLA", now)==0); // No locked tokens for CA.
+        require(getLockedNXMTokenOfStakerByStakerAddress(msg.sender) == 0); // No pending stake.
+        require(td.getBalanceCN(msg.sender) == 0);   // No active covers.
+        require(td.tokensLocked(msg.sender, "CLA", now) == 0); // No locked tokens for CA.
         require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
-        require(cr.getRewardToBeDistributedByUser(msg.sender)==0); // No pending reward to be claimed(claim assesment).
+        // require(cr.getRewardToBeDistributedByUser()==0); // No pending reward to be claimed(claim assesment).
+        _;
         
     }
-    
     
     function nxmToken2 () Governed("NEXUS-MUTUAL") {
         
@@ -371,7 +371,7 @@ contract nxmToken2 is Iupgradable, Governed {
 
     /// @dev Adding to Member Role called Voter while Member voting.
     function lockForMemberVote(address voter, uint time) onlyInternal {
-        if(!mr.checkRoleIdByAddress(voter, 4))
+        if (!mr.checkRoleIdByAddress(voter, 4))
             mr.updateMemberRole(voter, 4, true, time);
         // else
         //     mr.updateRoleValidity(voter, 4, time);
@@ -500,7 +500,7 @@ contract nxmToken2 is Iupgradable, Governed {
     }
 
     /// @dev Called by existed member if if wish to Withdraw membership.
-    function withdrawMembership() canWithdraw,isMemberAndcheckPause {
+    function withdrawMembership() canWithdraw isMemberAndcheckPause {
 
         tc1.burnToken(msg.sender, "Withdraw", 0, td.getBalanceOf(msg.sender));
         mr.updateMemberRole(msg.sender, 3, false, 0);
@@ -508,7 +508,7 @@ contract nxmToken2 is Iupgradable, Governed {
 
     /// @dev It will tell if user has locked tokens in member vote or not.
     /// @param _add addressof user.
-    function voted(address _add) constant returns(bool){
+    function voted(address _add) constant returns(bool) {
         return mr.checkRoleIdByAddress(_add, 4);
     }
   

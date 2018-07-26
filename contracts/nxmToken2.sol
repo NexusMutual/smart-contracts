@@ -76,7 +76,7 @@ contract nxmToken2 is Iupgradable, Governed {
     modifier canWithdraw { 
         
         require(getLockedNXMTokenOfStakerByStakerAddress(msg.sender) == 0); // No pending stake.
-        require(td.getBalanceCN(msg.sender) == 0);   // No active covers.
+        require(totalBalanceCNOfUser(msg.sender) == 0);   // No active covers.
         require(td.tokensLocked(msg.sender, "CLA", now) == 0); // No locked tokens for CA.
         require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
         // require(cr.getRewardToBeDistributedByUser()==0); // No pending reward to be claimed(claim assesment).
@@ -488,5 +488,15 @@ contract nxmToken2 is Iupgradable, Governed {
         return mr.checkRoleIdByAddress(_add, 4);
     }
   
-
+    function totalBalanceCNOfUser(address _add) constant returns(uint total) {
+        uint len = qd.getUserCoverLength(_add);
+        total = 0;
+        for (uint i = 0; i < len; i++) {
+            uint vUpto;
+            uint tokens;
+            (vUpto, tokens) = td.userCoverLockedCN(_add, qd.getAllCoversOfUser(_add)[i]);
+            if (vUpto > now)
+                total = SafeMaths.add(total, tokens);
+        }
+    }
 }

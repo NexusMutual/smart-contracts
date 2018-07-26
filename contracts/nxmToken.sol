@@ -233,7 +233,8 @@ contract nxmToken is Iupgradable {
             }
         }   
         uint balance = td.getBalanceOf(_owner);
-        uint256 amount = (((balance.sub(lockedAmount)).sub(td.getBalanceCN(_owner))).sub(tc2.getLockedNXMTokenOfStakerByStakerAddress(_owner)));
+        uint256 amount = (((balance.sub(lockedAmount)).sub(tc2.totalBalanceCNOfUser(_owner))).sub(
+            tc2.getLockedNXMTokenOfStakerByStakerAddress(_owner)));
 
         return amount;
     }

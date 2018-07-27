@@ -39,7 +39,7 @@ contract MemberRoles is Upgradeable {
     }
 
     mapping(uint => address) internal authorizedAddressAgainstRole;
-    mapping(uint32 => MemberRoleDetails) internal memberRoleData;
+    mapping(uint => MemberRoleDetails) internal memberRoleData;
 
     /// @dev Initiates Default settings for Member Roles contract
     function memberRolesInitiate() public {
@@ -47,11 +47,11 @@ contract MemberRoles is Upgradeable {
         uint rolelength = getTotalMemberRoles();
         memberRole.push("");
         authorizedAddressAgainstRole[rolelength] = address(0);
-        MemberRole(rolelength, "", "", false);
+        emit MemberRole(rolelength, "", "", false);
         rolelength++;
         memberRole.push("Advisory Board");
         authorizedAddressAgainstRole[rolelength] = master.owner();
-        MemberRole(
+        emit MemberRole(
             rolelength, 
             "Advisory Board", 
             "Selected few members that are deeply entrusted by the dApp. An ideal advisory board should be a mix of skills of domain, governance,research, technology, consulting etc to improve the performance of the dApp.",
@@ -60,7 +60,7 @@ contract MemberRoles is Upgradeable {
         rolelength++;
         memberRole.push("Token Holder");
         authorizedAddressAgainstRole[rolelength] = address(0);
-        MemberRole(
+        emit MemberRole(
             rolelength, 
             "Token Holder", 
             "Represents all users who hold dApp tokens. This is the most general category and anyone holding token balance is a part of this category by default.",
@@ -118,7 +118,7 @@ contract MemberRoles is Upgradeable {
     }
 
     /// @dev just to adhere to the interface
-    function changeGBTSAddress(address _gbtAddress) public {
+    function changeGBTSAddress(address) public {
     }
 
     /// @dev To Initiate default settings whenever the contract is regenerated!
@@ -172,7 +172,6 @@ contract MemberRoles is Upgradeable {
     /// @param _memberAddress Address of Member
     /// @param _roleId RoleId to update 
     /// @param _typeOf typeOf is set to be True if we want to assign this role to member, False otherwise!
-
     function updateMemberRole(
         address _memberAddress, 
         uint32 _roleId, 
@@ -192,8 +191,20 @@ contract MemberRoles is Upgradeable {
             require(memberRoleData[_roleId].memberActive[_memberAddress]);
             memberRoleData[_roleId].memberCounter = SafeMath.sub32(memberRoleData[_roleId].memberCounter, 1);
             memberRoleData[_roleId].memberActive[_memberAddress] = false;
-            memberRoleData[_roleId].validity[_memberAddress] = _validity;
         }
+    }
+
+    /// @dev Updates Validity of a user
+    function setValidityOfMember(address _memberAddress, uint32 _roleId, uint _validity) 
+        public 
+        checkRoleAuthority(_roleId) 
+    {
+        memberRoleData[_roleId].validity[_memberAddress] = _validity;
+    }
+
+    /// @dev Update validity of role
+    function setRoleValidity(uint32 _roleId, bool _validity) public checkRoleAuthority(_roleId) {
+        memberRoleData[_roleId].limitedValidity = _validity;
     }
 
     /// @dev Change Member Address who holds the authority to Add/Delete any member from specific role.
@@ -230,7 +241,8 @@ contract MemberRoles is Upgradeable {
         } else {
             authorizedAddressAgainstRole[rolelength] = _canAddMembers;
         }
-        MemberRole(rolelength, _newRoleName, _roleDescription, _limitedValidity);
+        memberRoleData[rolelength].limitedValidity = _limitedValidity;
+        emit MemberRole(rolelength, _newRoleName, _roleDescription, _limitedValidity);
     }
 
     /// @dev Gets the member addresses assigned by a specific role
@@ -238,9 +250,9 @@ contract MemberRoles is Upgradeable {
     /// @return roleId Role id
     /// @return allMemberAddress Member addresses of specified role id
     function getAllAddressByRoleId(uint32 _memberRoleId) public view returns(uint32, address[] allMemberAddress) {
-        uint length = getAllMemberLength(_memberRoleId);
+        uint length = memberRoleData[_memberRoleId].memberAddress.length;
         uint8 j = 0;
-        allMemberAddress = new address[](length);
+        allMemberAddress = new address[](memberRoleData[_memberRoleId].memberCounter);
         for (uint8 i = 0; i < length; i++) {
             address member = memberRoleData[_memberRoleId].memberAddress[i];
             if (memberRoleData[_memberRoleId].memberActive[member]

@@ -33,7 +33,8 @@ contract MemberRoles {
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
 
     function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);
-         
+    
+    function setValidityOfMember(address _memberAddress, uint32 _roleId, uint _validity) public;
 }
 
 
@@ -167,7 +168,8 @@ contract nxmToken2 is Iupgradable, Governed {
         uint vUpto;
         uint lockedCNIndex;
         for (uint i = 0; i < len; i++) {
-            (, vUpto, lockedCNIndex) = td.getUserCoverLockedCN(_to, i);
+
+            (, vUpto, lockedCNIndex) = td.getUserCoverLockedCN(_to, qd.getAllCoversOfUser(_to)[i]);
             if (vUpto == validity && lockedCNIndex == lockedCN) {
                 // Updates the validity of lock to now, thereby ending the lock on tokens
                 td.updateLockedCN(_to, i, now, lockedCNIndex);
@@ -373,8 +375,8 @@ contract nxmToken2 is Iupgradable, Governed {
     function lockForMemberVote(address voter, uint time) onlyInternal {
         if (!mr.checkRoleIdByAddress(voter, 4))
             mr.updateMemberRole(voter, 4, true, time);
-        // else
-        //     mr.updateRoleValidity(voter, 4, time);
+        else
+            mr.setValidityOfMember(voter, 4, time);
     }
 
     /// @dev Change the address who can update GovBlocks member role.

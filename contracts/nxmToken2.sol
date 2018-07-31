@@ -80,7 +80,7 @@ contract nxmToken2 is Iupgradable, Governed {
         require(totalBalanceCNOfUser(msg.sender) == 0);   // No active covers.
         require(td.tokensLocked(msg.sender, "CLA", now) == 0); // No locked tokens for CA.
         require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
-        require(getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+        require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
         _;
         
     }
@@ -491,59 +491,5 @@ contract nxmToken2 is Iupgradable, Governed {
                 total = SafeMaths.add(total, tokens);
         }
     }
-
-    function getAllPendingRewardOfUser(address _add) constant returns(uint total) {
-
-        uint caReward = cr.getRewardToBeDistributedByUser(_add);
-        uint stakeCommission = getTotalStakeCommission(_add);
-        total = SafeMaths.add(caReward, stakeCommission);
-
-    }
-
-    function claimStakeCommission() isMemberAndcheckPause {
-
-        uint total; 
-        uint len = td.getTotalScAddressesAgainstStaker(msg.sender);
-        for (uint i = 0; i < len; i++) {
-            uint stakerIndex;
-            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(msg.sender, i);
-            address scAdd;
-            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
-            uint commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, stakerIndex);
-            uint lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, stakerIndex);
-            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
-                uint commissionAmt;
-                bool claimed;
-                (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, stakerIndex, j);
-                if (!claimed) {
-                    total = SafeMaths.add(total, commissionAmt);
-                    td.setClaimedCommision(msg.sender, scAdd, stakerIndex, j);
-                }
-            }
-            td.setLastClaimedCommission(msg.sender, scAdd, stakerIndex, commissionLen);   
-        }
-    }
-
-    function getTotalStakeCommission(address _add) constant returns(uint total) {
-        
-        total = 0;
-        uint len = td.getTotalScAddressesAgainstStaker(_add);
-        for (uint i = 0; i < len; i++) {
-            uint stakerIndex;
-            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(_add, i);
-            address scAdd;
-            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
-            uint commissionLen = td.getStakeCommissionLength(_add, scAdd, stakerIndex);
-            uint lastClaimedCommission = td.getLastClaimedCommission(_add, scAdd, stakerIndex);
-            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
-                uint commissionAmt;
-                bool claimed;
-                (, , commissionAmt, , claimed) = td.getStakeCommission(_add, scAdd, stakerIndex, j);
-                if (!claimed) {
-                    total = SafeMaths.add(total, commissionAmt);
-                }
-            }
-            
-        }
-    } 
+     
 }

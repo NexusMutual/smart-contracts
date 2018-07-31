@@ -244,21 +244,21 @@ contract claimsReward is Iupgradable {
 
     /// @dev Total reward in token due for claim by a user.
     /// @return total total number of tokens
-    function getRewardToBeDistributedByUser() constant returns(uint total) {
-        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
+    function getRewardToBeDistributedByUser(address _add) constant returns(uint total) {
+        uint lengthVote = cd.getVoteAddressCALength(_add);
         uint lastIndexCA;
         uint lastIndexMV;
         uint tokenForVoteId;
         uint voteId;
-        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
+        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(_add);
         for (uint i = lastIndexCA; i < lengthVote; i++) {
-            voteId = cd.getVoteAddressCA(msg.sender, i);
+            voteId = cd.getVoteAddressCA(_add, i);
             (tokenForVoteId, , , ) = getRewardToBeGiven(1, voteId, 0);
             total = SafeMaths.add(total, tokenForVoteId);
         }
-        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
+        lengthVote = cd.getVoteAddressMemberLength(_add);
         for (uint j = lastIndexMV; j < lengthVote; j++) {
-            voteId = cd.getVoteAddressMember(msg.sender, j);
+            voteId = cd.getVoteAddressMember(_add, j);
             (tokenForVoteId, , , ) = getRewardToBeGiven(0, voteId, 0);
             total = SafeMaths.add(total, tokenForVoteId);
         }

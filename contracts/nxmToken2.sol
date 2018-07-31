@@ -80,7 +80,7 @@ contract nxmToken2 is Iupgradable, Governed {
         require(totalBalanceCNOfUser(msg.sender) == 0);   // No active covers.
         require(td.tokensLocked(msg.sender, "CLA", now) == 0); // No locked tokens for CA.
         require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
-        // require(cr.getRewardToBeDistributedByUser()==0); // No pending reward to be claimed(claim assesment).
+        require(getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
         _;
         
     }
@@ -189,7 +189,7 @@ contract nxmToken2 is Iupgradable, Governed {
         td.increaseBalanceOf(_to, amount); // increase balance of reward contract
         tc1.callTransferEvent(0, _to, amount);
     }
-        
+
     /// @dev Burns tokens used for fraudulent voting against a claim
     /// @param claimid Claim Id.
     /// @param _value number of tokens to be burned
@@ -448,15 +448,14 @@ contract nxmToken2 is Iupgradable, Governed {
                 if (totalCommission > commissionPaid) {
                     if (totalCommission >= SafeMaths.add(commissionPaid, commissionToBePaid)) {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, commissionToBePaid, now);
-                        //rewardToken(stakerAdd, commissionToBePaid);
+                        rewardToken(address(ms.versionContractAddress(ms.currentVersion(), "CR")), commissionToBePaid);
                         if (i > 0)
                             td.setSCAddressLastCommIndex(_scAddress, i);
                         commissionToBePaid = 0;
                         break;
                     } else {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, SafeMaths.sub(totalCommission, commissionPaid), now);
-                        // Just push commission to be paid and update it after redeeming that commission
-                        //rewardToken(stakerAdd, SafeMaths.sub(totalCommission, commissionPaid));
+                        rewardToken(address(ms.versionContractAddress(ms.currentVersion(), "CR")), SafeMaths.sub(totalCommission, commissionPaid));
                         commissionToBePaid = SafeMaths.sub(commissionToBePaid, SafeMaths.sub(totalCommission, commissionPaid));
                     }
                 }
@@ -492,4 +491,59 @@ contract nxmToken2 is Iupgradable, Governed {
                 total = SafeMaths.add(total, tokens);
         }
     }
+
+    function getAllPendingRewardOfUser(address _add) constant returns(uint total) {
+
+        uint caReward = cr.getRewardToBeDistributedByUser(_add);
+        uint stakeCommission = getTotalStakeCommission(_add);
+        total = SafeMaths.add(caReward, stakeCommission);
+
+    }
+
+    function claimStakeCommission() isMemberAndcheckPause {
+
+        uint total; 
+        uint len = td.getTotalScAddressesAgainstStaker(msg.sender);
+        for (uint i = 0; i < len; i++) {
+            uint stakerIndex;
+            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(msg.sender, i);
+            address scAdd;
+            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
+            uint commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, stakerIndex);
+            uint lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, stakerIndex);
+            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
+                uint commissionAmt;
+                bool claimed;
+                (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, stakerIndex, j);
+                if (!claimed) {
+                    total = SafeMaths.add(total, commissionAmt);
+                    td.setClaimedCommision(msg.sender, scAdd, stakerIndex, j);
+                }
+            }
+            td.setLastClaimedCommission(msg.sender, scAdd, stakerIndex, commissionLen);   
+        }
+    }
+
+    function getTotalStakeCommission(address _add) constant returns(uint total) {
+        
+        total = 0;
+        uint len = td.getTotalScAddressesAgainstStaker(_add);
+        for (uint i = 0; i < len; i++) {
+            uint stakerIndex;
+            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(_add, i);
+            address scAdd;
+            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
+            uint commissionLen = td.getStakeCommissionLength(_add, scAdd, stakerIndex);
+            uint lastClaimedCommission = td.getLastClaimedCommission(_add, scAdd, stakerIndex);
+            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
+                uint commissionAmt;
+                bool claimed;
+                (, , commissionAmt, , claimed) = td.getStakeCommission(_add, scAdd, stakerIndex, j);
+                if (!claimed) {
+                    total = SafeMaths.add(total, commissionAmt);
+                }
+            }
+            
+        }
+    } 
 }

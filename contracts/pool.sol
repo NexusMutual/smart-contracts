@@ -133,17 +133,12 @@ contract pool is usingOraclize, Iupgradable, Governed {
         bytes32 myid = oraclize_query(time, "URL", "http://a3.nexusmutual.io");
         saveApiDetails(myid, "MCR", 0);
     }
-    
-    /// @dev Sets a given investment asset as active for trading.
-    function activeInvestmentAsset(bytes8 curr) onlyAuthorizedToGovern {
 
-        pd.changeInvestmentAssetStatus(curr, 1);
-    }
+    /// @dev Sets a given investment asset as active or inactive for trading.
+    function changeInvestmentAssetStatus(bytes8 curr, uint8 status) onlyAuthorizedToGovern {
 
-    /// @dev Sets a given investment asset as inactive for trading.
-    function inactiveInvestmentAsset(bytes8 curr) onlyAuthorizedToGovern {
+        pd.changeInvestmentAssetStatus(curr, status);   
 
-        pd.changeInvestmentAssetStatus(curr, 0);
     }
     
     // add new investment asset currency.

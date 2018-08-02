@@ -178,62 +178,6 @@ contract claimsReward is Iupgradable {
         }
 
     }
-
-    /// @dev Allows a user to claim all pending  claims assessment rewards.
-    function claimRewardToBeDistributed() isMemberAndcheckPause {
-        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
-        uint lastIndexCA;
-        uint lastIndexMV;
-        uint voteid;
-        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
-        uint total = 0;
-        uint lastClaimed = lengthVote;
-        uint tokenForVoteId = 0;
-        bool lastClaimedCheck;
-        uint _days = td.lockCADays();
-        bool claimed;
-        uint counter = 0;
-        uint claimId;
-        uint perc;
-        uint i;
-        for (i = lastIndexCA; i < lengthVote; i++) {
-            voteid = cd.getVoteAddressCA(msg.sender, i);
-            (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
-            if (lastClaimed == lengthVote && lastClaimedCheck == true)
-                lastClaimed = i;
-            (, claimId, , claimed) = cd.getVoteDetails(voteid);
-
-            if (perc > 0) {
-                counter++;
-                cd.setRewardClaimed(voteid, true);
-            } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0) {
-                counter++;
-                cd.setRewardClaimed(voteid, true);
-            }
-            if (tokenForVoteId > 0)
-                total = SafeMaths.add(tokenForVoteId, total);
-        }
-        cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
-        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
-        lastClaimed = lengthVote;
-        _days = SafeMaths.mul(_days, counter);
-        tc1.reduceLock("CLA", msg.sender, _days);
-        for (i = lastIndexMV; i < lengthVote; i++) {
-            voteid = cd.getVoteAddressMember(msg.sender, i);
-            (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);
-            if (lastClaimed == lengthVote && lastClaimedCheck == true)
-                lastClaimed = i;
-            (, claimId, , claimed) = cd.getVoteDetails(voteid);
-            if (claimed == false && cd.getFinalVerdict(claimId) != 0)
-                cd.setRewardClaimed(voteid, true);
-            if (tokenForVoteId > 0)
-                total = SafeMaths.add(tokenForVoteId, total);
-        }
-        if (total > 0)
-            tc1.transfer(msg.sender, total);
-        cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
-
-    }
     
     /// @dev Transfers all tokens held by contract to a new contract in case of upgrade.
     function upgrade(address _newAdd) onlyInternal {
@@ -290,32 +234,6 @@ contract claimsReward is Iupgradable {
 
     }
 
-    function claimStakeCommission() isMemberAndcheckPause {
-
-        uint total=0; 
-        uint len = td.getTotalScAddressesAgainstStaker(msg.sender);
-        for (uint i = 0; i < len; i++) {
-            uint stakerIndex;
-            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(msg.sender, i);
-            address scAdd;
-            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
-            uint commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, stakerIndex);
-            uint lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, stakerIndex);
-            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
-                uint commissionAmt;
-                bool claimed;
-                (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, stakerIndex, j);
-                if (!claimed) {
-                    total = SafeMaths.add(total, commissionAmt);
-                    td.setClaimedCommision(msg.sender, scAdd, stakerIndex, j);
-                }
-            }
-            td.setLastClaimedCommission(msg.sender, scAdd, stakerIndex, commissionLen);   
-        }
-        if (total > 0)
-            tc1.transfer(msg.sender, total);
-    }
-
     function getTotalStakeCommission(address _add) constant returns(uint total) {
         
         total = 0;
@@ -337,6 +255,15 @@ contract claimsReward is Iupgradable {
             }
             
         }
+    }
+
+    function claimAllPendingReward() isMemberAndcheckPause {
+
+        if (getRewardToBeDistributedByUser(msg.sender) > 0)
+            claimRewardToBeDistributed();
+        if (getTotalStakeCommission(msg.sender) > 0)
+            claimStakeCommission();
+
     }
 
     function getAllPendingRewardOfUser(address _add) constant returns(uint total) {
@@ -507,5 +434,86 @@ contract claimsReward is Iupgradable {
         }
     }
 
+    /// @dev Allows a user to claim all pending  claims assessment rewards.
+    function claimRewardToBeDistributed() internal {
+        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
+        uint lastIndexCA;
+        uint lastIndexMV;
+        uint voteid;
+        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
+        uint total = 0;
+        uint lastClaimed = lengthVote;
+        uint tokenForVoteId = 0;
+        bool lastClaimedCheck;
+        uint _days = td.lockCADays();
+        bool claimed;
+        uint counter = 0;
+        uint claimId;
+        uint perc;
+        uint i;
+        for (i = lastIndexCA; i < lengthVote; i++) {
+            voteid = cd.getVoteAddressCA(msg.sender, i);
+            (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
+            if (lastClaimed == lengthVote && lastClaimedCheck == true)
+                lastClaimed = i;
+            (, claimId, , claimed) = cd.getVoteDetails(voteid);
+
+            if (perc > 0) {
+                counter++;
+                cd.setRewardClaimed(voteid, true);
+            } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0) {
+                counter++;
+                cd.setRewardClaimed(voteid, true);
+            }
+            if (tokenForVoteId > 0)
+                total = SafeMaths.add(tokenForVoteId, total);
+        }
+        cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
+        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
+        lastClaimed = lengthVote;
+        _days = SafeMaths.mul(_days, counter);
+        tc1.reduceLock("CLA", msg.sender, _days);
+        for (i = lastIndexMV; i < lengthVote; i++) {
+            voteid = cd.getVoteAddressMember(msg.sender, i);
+            (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);
+            if (lastClaimed == lengthVote && lastClaimedCheck == true)
+                lastClaimed = i;
+            (, claimId, , claimed) = cd.getVoteDetails(voteid);
+            if (claimed == false && cd.getFinalVerdict(claimId) != 0)
+                cd.setRewardClaimed(voteid, true);
+            if (tokenForVoteId > 0)
+                total = SafeMaths.add(tokenForVoteId, total);
+        }
+        if (total > 0)
+            tc1.transfer(msg.sender, total);
+        cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
+
+    }
+
+    function claimStakeCommission() internal {
+
+        uint total=0; 
+        uint len = td.getTotalScAddressesAgainstStaker(msg.sender);
+        for (uint i = 0; i < len; i++) {
+            uint stakerIndex;
+            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(msg.sender, i);
+            address scAdd;
+            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
+            uint commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, stakerIndex);
+            uint lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, stakerIndex);
+            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
+                uint commissionAmt;
+                bool claimed;
+                (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, stakerIndex, j);
+                if (!claimed) {
+                    total = SafeMaths.add(total, commissionAmt);
+                    td.setClaimedCommision(msg.sender, scAdd, stakerIndex, j);
+                }
+            }
+            td.setLastClaimedCommission(msg.sender, scAdd, stakerIndex, commissionLen);   
+        }
+        if (total > 0)
+            tc1.transfer(msg.sender, total);
+    }
 
 }

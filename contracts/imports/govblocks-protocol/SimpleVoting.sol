@@ -23,13 +23,13 @@ import "./Upgradeable.sol";
 import "./GBTStandardToken.sol";
 import "./ProposalCategory.sol";
 import "./GovBlocksMaster.sol";
-import "./BasicToken.sol";
 import "./Pool.sol";
 import "./Math.sol";
-import "./VotingType.sol";
+import "./BasicToken.sol";
+import "./EventCaller.sol";
+import "./Governed.sol";
 
-
-contract SimpleVoting is VotingType, Upgradeable {
+contract SimpleVoting is Upgradeable {
     using SafeMath for uint;
     GBTStandardToken internal gbt;
     GovernanceData internal governanceDat;
@@ -40,15 +40,11 @@ contract SimpleVoting is VotingType, Upgradeable {
     address internal govAddress;
     bool public constructorCheck;
     address public masterAddress;
-    GovBlocksMaster internal govBlocksMaster;
     BasicToken internal basicToken;
     Pool internal pool;
-
-    modifier onlyInternal {
-        master = Master(masterAddress);
-        require(master.isInternal(msg.sender));
-        _;
-    }
+    EventCaller internal eventCaller;
+    GovernChecker internal governChecker;
+    bytes32 public votingTypeName;
 
     modifier onlyMaster {
         require(msg.sender == masterAddress);
@@ -56,9 +52,7 @@ contract SimpleVoting is VotingType, Upgradeable {
     }
 
     modifier validateStake(uint _proposalId, uint _stake) {    
-        uint stake = _stake / (10 ** gbt.decimals());
-        uint _category = proposalCategory.getCategoryIdBySubId(governanceDat.getProposalCategory(_proposalId));
-        require(stake <= proposalCategory.getMaxStake(_category) && stake >= proposalCategory.getMinStake(_category));
+        require(proposalCategory.validateStake(_proposalId, _stake));
         _;
     }
 
@@ -82,7 +76,7 @@ contract SimpleVoting is VotingType, Upgradeable {
     }
 
     /// @dev updates dependancies
-    function updateDependencyAddresses() public onlyInternal {
+    function updateDependencyAddresses() public {
         if (!constructorCheck)
             simpleVotingInitiate();
         master = Master(masterAddress);
@@ -93,6 +87,10 @@ contract SimpleVoting is VotingType, Upgradeable {
         governance = Governance(govAddress);
         pool = Pool(master.getLatestAddress("PL"));
         gbt = GBTStandardToken(master.getLatestAddress("GS"));
+        GovBlocksMaster govBlocksMaster = GovBlocksMaster(master.gbmAddress());
+        basicToken = BasicToken(govBlocksMaster.getDappTokenAddress(master.dAppName()));
+        eventCaller = EventCaller(govBlocksMaster.eventCaller());
+        governChecker = GovernChecker(master.getGovernCheckerAddress());
     }
 
     /// @dev Changes GBT Standard Token address
@@ -100,7 +98,7 @@ contract SimpleVoting is VotingType, Upgradeable {
     function changeGBTSAddress(address _gbtAddress) public onlyMaster {
         gbt = GBTStandardToken(_gbtAddress);
     }
-
+    /*
     /// @dev Initiates add solution (Stake in ether)
     /// @param _solutionHash It contains parameters, values and description needed according to proposal
     function addSolutionInEther(
@@ -128,7 +126,7 @@ contract SimpleVoting is VotingType, Upgradeable {
             _lockTokenTxHash, 
             _action
         );
-    }
+    }*/
 
     /// @dev Initiates add solution 
     /// @param _memberAddress Address of member who is adding the solution
@@ -204,7 +202,7 @@ contract SimpleVoting is VotingType, Upgradeable {
         );
     }
 
-    /// @dev Creates proposal for voting (Stake in ether)
+    /*/// @dev Creates proposal for voting (Stake in ether)
     /// @param _proposalId Proposal id
     /// @param _solutionChosen solution id chosen while voting as a proposal might have different solution
     function proposalVotingInEther(
@@ -221,30 +219,54 @@ contract SimpleVoting is VotingType, Upgradeable {
     {
         uint tokenAmount = gbt.buyToken.value(msg.value)();
         proposalVoting(_proposalId, _solutionChosen, tokenAmount, _validityUpto, _v, _r, _s, _lockTokenTxHash);
-    }
+    }*/
 
     /// @dev Creates proposal for voting
     /// @param _proposalId Proposal id
     /// @param _solutionChosen solution chosen while voting
     /// @param _voteStake Amount payable in GBT tokens
     function proposalVoting(
-        uint64 _proposalId, 
+        uint32 _proposalId,  
         uint64[] _solutionChosen, 
-        uint _voteStake, 
+        uint _voteStake,
         uint _validityUpto, 
         uint8 _v, 
         bytes32 _r, 
         bytes32 _s, 
         bytes32 _lockTokenTxHash
     ) 
-        public 
-        validateStake(_proposalId, _voteStake) 
+        external
     {
-        require(validateMember(_proposalId, _solutionChosen));
-        require(governanceDat.getProposalStatus(_proposalId) == 2);
-
-        receiveStake("V", _proposalId, _voteStake, _validityUpto, _v, _r, _s, _lockTokenTxHash);
-        castVote(_proposalId, _solutionChosen, msg.sender, _voteStake);
+        //uint64[] memory solutionChosen = _solutionChosen;
+        uint8 categoryThenMRSequence;
+        uint8 intermediateVerdict;
+        uint32 proposalId = _proposalId;
+        uint currentVotingIdThenVoteValue;
+        (categoryThenMRSequence, currentVotingIdThenVoteValue, intermediateVerdict) 
+            = governanceDat.getProposalDetailsForSV(msg.sender, proposalId);
+        categoryThenMRSequence = proposalCategory.getMRSequenceBySubCat(categoryThenMRSequence, currentVotingIdThenVoteValue);
+        require(memberRole.checkRoleIdByAddress(msg.sender, categoryThenMRSequence));
+        if (currentVotingIdThenVoteValue == 0)
+            require(_solutionChosen[0] <= governanceDat.getTotalSolutions(proposalId));
+        else
+            require(_solutionChosen[0] == intermediateVerdict || _solutionChosen[0] == 0);
+        if (_voteStake != 0)
+            receiveStake("V", proposalId, _voteStake, _validityUpto, _v, _r, _s, _lockTokenTxHash);
+        currentVotingIdThenVoteValue = getVoteValueGivenByMember(msg.sender, _voteStake);
+        governanceDat.addVote(
+            msg.sender, 
+            _solutionChosen, 
+            _voteStake, 
+            currentVotingIdThenVoteValue, 
+            proposalId, 
+            categoryThenMRSequence
+        );
+        if(governanceDat.getAllVoteIdsLengthByProposalRole(proposalId, categoryThenMRSequence) 
+            == memberRole.getAllMemberLength(categoryThenMRSequence) 
+            && categoryThenMRSequence != 2
+        ) {
+            eventCaller.callVoteCast(proposalId);
+        }
     }
 
     /// @dev Checks if the solution is already added by a member against specific proposal
@@ -257,19 +279,20 @@ contract SimpleVoting is VotingType, Upgradeable {
         }
     }
 
-    /// @dev Returns true if the member passes all the checks to vote. i.e. If he is authorize to vote
+    /*/// @dev Returns true if the member passes all the checks to vote. i.e. If he is authorize to vote
     function validateMember(uint _proposalId, uint64[] _solutionChosen) public view returns(bool) {
-        uint8 _mrSequence;
+        uint8 mrSequence;
         uint8 category;
         uint currentVotingId;
         uint intermediateVerdict;
-        (, category, currentVotingId, intermediateVerdict, , , ) = governanceDat.getProposalDetailsById2(_proposalId);
-        uint _categoryId = proposalCategory.getCategoryIdBySubId(category);
-        (_mrSequence, , ) = proposalCategory.getCategoryData3(_categoryId, currentVotingId);
+        (category, currentVotingId, intermediateVerdict) = governanceDat.getProposalDetailsForSV(msg.sender, _proposalId);
+        mrSequence = proposalCategory.getMRSequenceBySubCat(category, currentVotingId);
+        require(
+            memberRole.checkRoleIdByAddress(msg.sender, mrSequence) 
+            && _solutionChosen.length == 1
+            && !governanceDat.checkVoteIdAgainstMember(msg.sender, _proposalId)
+        );
 
-        require(memberRole.checkRoleIdByAddress(msg.sender, _mrSequence) 
-                && _solutionChosen.length == 1
-                && !governanceDat.checkVoteIdAgainstMember(msg.sender, _proposalId));
         if (currentVotingId == 0)
             require(_solutionChosen[0] <= governanceDat.getTotalSolutions(_proposalId));
         else
@@ -277,27 +300,45 @@ contract SimpleVoting is VotingType, Upgradeable {
 
         return true;
     }
+    */
+    /// @dev gets dApp name 
+    function dAppName() public view returns (bytes32) {
+        return master.dAppName();
+    }
+
+    /// @dev checks for closing of proposal
+    function checkForClosing(uint _proposalId) public view returns(uint) {
+        uint8 category = proposalCategory.getCategoryIdBySubId(governanceDat.getProposalCategory(_proposalId));
+        uint8 currentVotingId = governanceDat.getProposalCurrentVotingId(_proposalId);
+        uint32 _mrSequenceId = proposalCategory.getRoleSequencAtIndex(category, currentVotingId);
+
+        return governance.checkForClosing(_proposalId, _mrSequenceId);
+    }
 
     /// @dev Sets vote value given by member
     function getVoteValueGivenByMember(address _memberAddress, uint _memberStake)  
         public
         view 
-        returns(uint128 finalVoteValue) 
+        returns(uint finalVoteValue) 
     {
+        uint scalingWeight;
+        uint membershipScalingFactor;
+        uint memberReputation;
+        (scalingWeight, membershipScalingFactor, memberReputation) = governanceDat.getMemberReputationSV(_memberAddress);
         uint tokensHeld = 
             SafeMath.div(
                 SafeMath.mul(
-                    SafeMath.mul(gbt.balanceOf(_memberAddress), 100), 
+                    SafeMath.mul(basicToken.balanceOf(_memberAddress), 100), 
                     100
                 ), 
-                gbt.totalSupply()
+                basicToken.totalSupply()
             );
         uint value = 
             SafeMath.mul(
-                Math.max256(_memberStake, governanceDat.scalingWeight()), 
-                Math.max256(tokensHeld, governanceDat.membershipScalingFactor())
+                Math.max256(_memberStake, scalingWeight), 
+                Math.max256(tokensHeld, membershipScalingFactor)
             );
-        finalVoteValue = SafeMath.mul128(governanceDat.getMemberReputation(_memberAddress), uint128(value));
+        finalVoteValue = SafeMath.mul(memberReputation, value);
     }
 
     /// @dev Closes Proposal Voting after All voting layers done with voting or Time out happens.
@@ -320,7 +361,6 @@ contract SimpleVoting is VotingType, Upgradeable {
             finalVoteValue[solutionChosen] = finalVoteValue[solutionChosen] + voteValue;
         }
 
-        
         for (i = 0; i < finalVoteValue.length; i++) {
             if (finalVoteValue[max] < finalVoteValue[i]) {
                 max = i;
@@ -344,7 +384,7 @@ contract SimpleVoting is VotingType, Upgradeable {
     }
 
     /// @dev Gives rewards to respective members after final decision
-    function giveRewardAfterFinalDecision(uint _proposalId) public {
+    function giveRewardAfterFinalDecision(uint _proposalId) internal {
         uint   totalReward;
         address  ownerAddress;
         uint  depositedTokens;
@@ -363,7 +403,7 @@ contract SimpleVoting is VotingType, Upgradeable {
             }    
         }
         
-        giveRewardAfterFinalDecision1(finalVerdict, _proposalId, ownerAddress, depositedTokens, totalReward);
+        giveRewardAfterFinalDecision1(_proposalId, totalReward, finalVerdict);
     }
 
     /// @dev This does the remaining functionality of closing proposal vote
@@ -384,19 +424,16 @@ contract SimpleVoting is VotingType, Upgradeable {
                         max, 
                         0
                     );
-                    pool.closeProposalOraclise(_proposalId, _closingTime);
-                    governanceDat.callOraclizeCallEvent(
-                        _proposalId, 
-                        governanceDat.getProposalDateUpd(_proposalId), 
-                        proposalCategory.getClosingTimeAtIndex(category, currentVotingId)
-                    );
+                    eventCaller.callCloseProposalOnTime(_proposalId, _closingTime + now);
                 } else {
                     governance.updateProposalDetails(_proposalId, currentVotingId - 1, max, max);
                     governanceDat.changeProposalStatus(_proposalId, 3);
-                    SimpleVoting x = SimpleVoting(
-                        proposalCategory.getContractAddress(governanceDat.getProposalCategory(_proposalId))
-                    );
-                    x.call(governanceDat.getSolutionActionByProposalId(_proposalId, max));
+                    address actionAddress = 
+                        proposalCategory.getContractAddress(governanceDat.getProposalCategory(_proposalId));
+                    if (actionAddress.call(governanceDat.getSolutionActionByProposalId(_proposalId, max))) {
+                        eventCaller.callActionSuccess(_proposalId);
+                    }
+                    eventCaller.callProposalAccepted(_proposalId);
                     giveRewardAfterFinalDecision(_proposalId);
                 }
             } else {
@@ -418,12 +455,22 @@ contract SimpleVoting is VotingType, Upgradeable {
 
     }
 
+    /// @dev castsVote
+    function castVote(uint _voteStake, uint64[] _solutionChosen, uint32 _proposalId, uint32 mrSequence) internal {
+        uint finalVoteValue = getVoteValueGivenByMember(msg.sender, _voteStake);
+        governanceDat.addVote(msg.sender, _solutionChosen, _voteStake, finalVoteValue, _proposalId, mrSequence);
+        if(governanceDat.getAllVoteIdsLengthByProposalRole(_proposalId, mrSequence) 
+            == memberRole.getAllMemberLength(mrSequence) 
+            && mrSequence != 2
+        ) {
+            eventCaller.callVoteCast(_proposalId);
+        }
+    }
+
     /// @dev Checks if the vote count against any solution passes the threshold value or not.
     function checkForThreshold(uint _proposalId, uint32 _mrSequenceId) internal view returns(bool) {
         uint thresHoldValue;
         if (_mrSequenceId == 2) {
-            address dAppTokenAddress = govBlocksMaster.getDappTokenAddress(master.dAppName());
-            basicToken = BasicToken(dAppTokenAddress);
             uint totalTokens;
 
             for (uint8 i = 0; i < governanceDat.getAllVoteIdsLengthByProposalRole(_proposalId, _mrSequenceId); i++) {
@@ -445,34 +492,69 @@ contract SimpleVoting is VotingType, Upgradeable {
     
     /// @dev Distributing reward after final decision
     function giveRewardAfterFinalDecision1(
-        uint finalVerdict,
         uint _proposalId,
-        address _ownerAddress,
-        uint depositedTokens,
-        uint totalReward
+        uint totalReward,
+        uint _finalVerdict
     ) 
         internal
     {
-        uint8 subCategory = governanceDat.getProposalCategory(_proposalId); 
+        uint8 subCategoryThenCategory = governanceDat.getProposalCategory(_proposalId); 
+        if (subCategoryThenCategory == 10) {
+            upgrade();
+        }
         uint totalVoteValue;
-        uint category = proposalCategory.getCategoryIdBySubId(subCategory);
-        // uint mrLength = PC.getRoleSequencLength(category);
-        for (uint i = 0; i < proposalCategory.getRoleSequencLength(category); i++) {
-            uint roleId = proposalCategory.getRoleSequencAtIndex(category, i);
+        subCategoryThenCategory = proposalCategory.getCategoryIdBySubId(subCategoryThenCategory);
+        uint mrLength = proposalCategory.getRoleSequencLength(subCategoryThenCategory);
+        for (uint i = 0; i < mrLength; i++) {
+            uint roleId = proposalCategory.getRoleSequencAtIndex(subCategoryThenCategory, i);
             uint mrVoteLength = governanceDat.getAllVoteIdsLengthByProposalRole(_proposalId, roleId);
             for (uint j = 0; j < mrVoteLength; j++) {
                 uint voteId = governanceDat.getVoteIdAgainstProposalRole(_proposalId, roleId, j);
-                _ownerAddress = governanceDat.getVoterAddress(voteId);
-                depositedTokens = governanceDat.getDepositedTokens(_ownerAddress, _proposalId, "V");
-                totalReward = SafeMath.add(totalReward, depositedTokens);
-                uint voteValue=governanceDat.getVoteValue(voteId);
-                totalVoteValue = SafeMath.add(totalVoteValue, voteValue);
+                (totalReward, totalVoteValue) = giveRewardAfterFinalDecision2(voteId, _proposalId, _finalVerdict, totalReward, totalVoteValue);
             }
         }
-
         totalReward = totalReward + governanceDat.getProposalIncentive(_proposalId);
         governance.setProposalDetails(_proposalId, totalReward, totalVoteValue);
     }
+
+    /// @dev Distributing reward after final decision
+    function giveRewardAfterFinalDecision2(
+        uint voteId,
+        uint _proposalId,
+        uint _finalVerdict,
+        uint _totalReward,
+        uint _totalVoteValue
+    ) 
+        internal
+        view
+        returns (uint, uint)
+    {
+        address ownerAddress;
+        uint depositedTokens;
+        uint voteValue;
+        bool punishVoters = governanceDat.punishVoters();
+        if(governanceDat.getSolutionByVoteIdAndIndex(voteId, 0) != _finalVerdict) {
+            ownerAddress = governanceDat.getVoterAddress(voteId);
+            depositedTokens = governanceDat.getDepositedTokens(ownerAddress, _proposalId, "V");
+            _totalReward = SafeMath.add(_totalReward, depositedTokens);
+            if (!punishVoters) {
+                voteValue = governanceDat.getVoteValue(voteId);
+                _totalVoteValue = SafeMath.add(_totalVoteValue, voteValue);
+            }
+        } else {
+            voteValue = governanceDat.getVoteValue(voteId);
+            _totalVoteValue = SafeMath.add(_totalVoteValue, voteValue);
+        } 
+        return(_totalReward, _totalVoteValue);
+    }
+
+    function upgrade() internal {
+        address newSV = master.getLatestAddress("GS");
+        if (newSV != address(this)) {
+            governChecker.updateAuthorized(master.dAppName(), newSV);
+        }
+        pool.transferAssets();
+    } 
 
     /// @dev Adding member address against solution index and event call to save details of solution
     function addSolution1(
@@ -511,23 +593,6 @@ contract SimpleVoting is VotingType, Upgradeable {
         governanceDat.callSolutionEvent(_proposalId, msg.sender, solutionId, _solutionHash, _dateAdd, _solutionStake);
     }
 
-    /// @dev Castes vote
-    /// @param _proposalId Proposal id
-    /// @param _solutionChosen solution chosen while casting vote against proposal.
-    /// @param _memberAddress Voter address who is casting a vote.
-    /// @param _voteStake Vote stake in GBT while casting a vote
-    function castVote(uint64 _proposalId, uint64[] _solutionChosen, address _memberAddress, uint _voteStake) internal {
-        //uint voteId = governanceDat.allVotesTotal();
-        uint128 finalVoteValue = getVoteValueGivenByMember(_memberAddress, _voteStake);
-        uint32 _roleId;
-        uint category = proposalCategory.getCategoryIdBySubId(governanceDat.getProposalCategory(_proposalId));
-
-        uint currVotingId = governanceDat.getProposalCurrentVotingId(_proposalId);
-        (_roleId, , ) = proposalCategory.getCategoryData3(category, currVotingId);
-        governanceDat.addVote(msg.sender, _solutionChosen, _voteStake, finalVoteValue, _proposalId, _roleId);
-        governance.checkRoleVoteClosing(_proposalId, _roleId);
-    }
-
     /// @dev Receives solution stake against solution in simple voting i.e. Deposit and lock the tokens
     function receiveStake(
         bytes2 _type, 
@@ -541,12 +606,12 @@ contract SimpleVoting is VotingType, Upgradeable {
     ) 
         internal 
     {
-        uint8 currVotingId = governanceDat.getProposalCurrentVotingId(_proposalId);
-        uint depositPerc = governanceDat.depositPercVote();
-        uint deposit = SafeMath.div(SafeMath.mul(_stake, depositPerc), 100);
-        uint category = proposalCategory.getCatIdByPropId(_proposalId);
-
         if (_stake != 0) {
+            require(proposalCategory.validateStake(_proposalId, _stake));
+            uint8 currVotingId = governanceDat.getProposalCurrentVotingId(_proposalId);
+            uint depositPerc = governanceDat.depositPercVote();
+            uint deposit = SafeMath.div(SafeMath.mul(_stake, depositPerc), 100);
+            uint category = proposalCategory.getCatIdByPropId(_proposalId);
             require(_validityUpto >= proposalCategory.getRemainingClosingTime(_proposalId, category, currVotingId));
             if (depositPerc == 0) {
                 gbt.lockToken(msg.sender, _stake, _validityUpto, _v, _r, _s, _lockTokenTxHash);

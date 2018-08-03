@@ -39,9 +39,10 @@ contract Master is Ownable, Upgradeable {
 
     GovBlocksMaster internal gbm;
     Upgradeable internal up;
-    bool public constructorCheck;
+    Governed internal govern;
     address public gbmAddress;
 
+    /*
     /// @dev Constructor function for master
     /// @param _govBlocksMasterAddress GovBlocks master address
     /// @param _gbUserName dApp Name which is integrating GovBlocks.
@@ -51,6 +52,16 @@ contract Master is Ownable, Upgradeable {
         gbmAddress = _govBlocksMasterAddress;
         dAppName = _gbUserName;
         owner = msg.sender;
+        addContractNames();
+    }
+    */
+    
+    function initMaster(address _ownerAddress, bytes32 _gbUserName) public {
+        require (gbmAddress == address(0));
+        contractsActive[address(this)] = true;
+        gbmAddress = msg.sender;
+        dAppName = _gbUserName;
+        owner = _ownerAddress;
         addContractNames();
     }
 
@@ -105,33 +116,24 @@ contract Master is Ownable, Upgradeable {
     }
 
     /// @dev Creates a new version of contract addresses
-    /// @param _contractAddresses Array of nine contract addresses which will be generated
-    function addNewVersion(address[6] _contractAddresses) public {
-        if(versionLength == 0) {
-            Governed govern = new Governed(dAppName);
-            GovernChecker governChecker = GovernChecker(govern.getGovernCheckerAddress());
-            governChecker.initializeAuthorized(dAppName, _contractAddresses[3]);
-        }
-        
+    /// @param _contractAddresses Array of contract addresses which will be generated
+    function addNewVersion(address[] _contractAddresses) public {
         require(isAuth());
+
+        if(versionLength == 0) {
+            govern = new Governed();
+            GovernChecker governChecker = GovernChecker(govern.getGovernCheckerAddress());
+            if(getCodeSize(address(governChecker)) > 0 )
+                governChecker.initializeAuthorized(dAppName, _contractAddresses[3]);
+        }
     
         gbm = GovBlocksMaster(gbmAddress);
         addContractDetails(versionLength, "MS", address(this));
-        addContractDetails(versionLength, "GD", _contractAddresses[0]);
-        addContractDetails(versionLength, "MR", _contractAddresses[1]);
-        addContractDetails(versionLength, "PC", _contractAddresses[2]);
-        addContractDetails(versionLength, "SV", _contractAddresses[3]);
-        //addContractDetails(versionLength, "VT", _contractAddresses[4]);
-        addContractDetails(versionLength, "GV", _contractAddresses[4]);
-        addContractDetails(versionLength, "PL", _contractAddresses[5]);
+        for (uint i = 0; i < allContractNames.length - 2; i++) {
+            addContractDetails(versionLength, allContractNames[i+1], _contractAddresses[i]);
+        }
         addContractDetails(versionLength, "GS", gbm.getGBTAddress());
-        
         setVersionLength(versionLength + 1);
-    }
-
-    /// @dev Switches to the recent version of contracts
-    function switchToRecentVersion() public {
-        require(isAuth());
         addInContractChangeDate();
         changeMasterAddress(address(this));
         changeAllAddress();
@@ -145,7 +147,7 @@ contract Master is Ownable, Upgradeable {
     function changeGBTSAddress(address _gbtAddress) public {
         require(isAuth());
         addContractDetails(versionLength - 1, "GS", _gbtAddress);
-        for (uint8 i = 1; i < allContractNames.length - 1; i++) {
+        for (uint i = 1; i < allContractNames.length - 1; i++) {
             up = Upgradeable(allContractVersions[versionLength - 1][allContractNames[i]]);
             up.changeMasterAddress(address(this));
             up.changeGBTSAddress(_gbtAddress);
@@ -156,16 +158,12 @@ contract Master is Ownable, Upgradeable {
     function changeMasterAddress(address _masterAddress) public {
         if(_masterAddress != address(this)){
             require(isAuth());
-            Master master = Master(_masterAddress);
-            require(master.versionLength() > 0);
         }
         addContractDetails(versionLength - 1, "MS", _masterAddress);
-        for (uint8 i = 1; i < allContractNames.length - 1; i++) {
+        for (uint i = 1; i < allContractNames.length - 1; i++) {
             up = Upgradeable(allContractVersions[versionLength - 1][allContractNames[i]]);
             up.changeMasterAddress(_masterAddress);
         }
-        //GBM=GovBlocksMaster(GBMAddress);
-        //GBM.changeDappMasterAddress(DappName,_MasterAddress);  Requires Auth Address
     }
 
     /// @dev Changes GovBlocks Master address
@@ -197,7 +195,7 @@ contract Master is Ownable, Upgradeable {
         contractsName = new bytes2[](allContractNames.length);
         contractsAddress = new address[](allContractNames.length);
 
-        for (uint8 i = 0; i < allContractNames.length; i++) {
+        for (uint i = 0; i < allContractNames.length; i++) {
             contractsName[i] = allContractNames[i];
             contractsAddress[i] = allContractVersions[versionNo][allContractNames[i]];
         }
@@ -240,6 +238,21 @@ contract Master is Ownable, Upgradeable {
         }
     }
 
+    /// @dev adds a new contract type to master
+    function addNewContract(bytes2 _contractName) public {
+        require(isAuth());
+        allContractNames.push(allContractNames[allContractNames.length - 1]);
+        allContractNames[allContractNames.length - 2] = _contractName;
+    }
+
+    function getEventCallerAddress() public view returns(address) {
+        return gbm.eventCaller();
+    }
+
+    function getGovernCheckerAddress() public view returns(address) {
+        return govern.getGovernCheckerAddress();
+    }
+
     /// @dev Save the initials of all the contracts
     function addContractNames() internal {
         allContractNames.push("MS");
@@ -250,6 +263,12 @@ contract Master is Ownable, Upgradeable {
         allContractNames.push("GV");
         allContractNames.push("PL");
         allContractNames.push("GS");
+    }
+
+    function getCodeSize(address _addr) internal view returns(uint _size) {
+        assembly {
+            _size := extcodesize(_addr)
+        }
     }
 
     /// @dev Sets the length of version
@@ -271,8 +290,10 @@ contract Master is Ownable, Upgradeable {
     /// @param _contractName Contract name
     function addRemoveAddress(uint16 _version, bytes2 _contractName) internal {
         uint16 versionOld;
-        if (_version > 0)
+        if (contractChangeDate.length > 1)
             versionOld = contractChangeDate[contractChangeDate.length - 2].versionNo;
+        else
+            versionOld = _version - 1;
         contractsActive[allContractVersions[versionOld][_contractName]] = false;
         contractsActive[allContractVersions[_version][_contractName]] = true;
     }
@@ -284,7 +305,7 @@ contract Master is Ownable, Upgradeable {
 
     /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.
     function changeAllAddress() internal {
-        for (uint8 i = 1; i < allContractNames.length - 1; i++) {
+        for (uint i = 1; i < allContractNames.length - 1; i++) {
             addRemoveAddress(versionLength - 1, allContractNames[i]);
             up = Upgradeable(allContractVersions[versionLength - 1][allContractNames[i]]);
             up.changeMasterAddress(address(this));

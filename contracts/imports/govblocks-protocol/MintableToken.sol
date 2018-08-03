@@ -1,9 +1,10 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.11;
 
 
 import './StandardToken.sol';
+// import '../ownership/Ownable.sol';
 import './Ownable.sol';
-// import './Ownable.sol';
+import './SafeMath.sol';
 
 
 /**
@@ -19,6 +20,15 @@ contract MintableToken is StandardToken, Ownable {
 
   bool public mintingFinished = false;
 
+  string public name;
+
+  constructor (string _name) public {
+     totalSupply_ = totalSupply_.add(100000);
+     balances[msg.sender] = balances[msg.sender].add(100000);
+     emit Mint(msg.sender, 100000);
+     emit Transfer(address(0), msg.sender, 100000);  
+     name = _name;
+  }
 
   modifier canMint() {
     require(!mintingFinished);
@@ -32,11 +42,18 @@ contract MintableToken is StandardToken, Ownable {
    * @return A boolean that indicates if the operation was successful.
    */
 
-  function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
-    totalSupply = totalSupply.add(_amount);
+  function mint(address _to, uint256 _amount) public canMint returns (bool) {
+    totalSupply_ = totalSupply_.add(_amount);
     balances[_to] = balances[_to].add(_amount);
-    Mint(_to, _amount);
-    Transfer(address(0), _to, _amount);
+    emit Mint(_to, _amount);
+    emit Transfer(address(0), _to, _amount);
+    return true;
+  }
+
+  function allot(address _to, uint256 _amount) public canMint returns (bool) {
+    balances[_to] = balances[_to].add(_amount);
+    balances[owner] = balances[owner].sub(_amount);
+    emit Transfer(owner, _to, _amount);
     return true;
   }
 
@@ -44,9 +61,9 @@ contract MintableToken is StandardToken, Ownable {
    * @dev Function to stop minting new tokens.
    * @return True if the operation was successful.
    */
-  function finishMinting() onlyOwner canMint public returns (bool) {
+  function finishMinting() public onlyOwner canMint returns (bool) {
     mintingFinished = true;
-    MintFinished();
+    emit MintFinished();
     return true;
   }
 }

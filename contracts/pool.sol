@@ -52,11 +52,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     BasicToken btok;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
-
-    function pool () Governed("NEXUS-MUTUAL") {
-
-    }
-    
+   
     function () public payable {}
   
     function changeMasterAddress(address _add) {

@@ -85,7 +85,7 @@ contract nxmToken2 is Iupgradable, Governed {
         
     }
     
-    function nxmToken2 () Governed("NEXUS-MUTUAL") {
+    function nxmToken2 () {
         
     }
     

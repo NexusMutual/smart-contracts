@@ -19,7 +19,7 @@ import "./Governed.sol";
 
 
 contract GovBlocksMaster {
-    Master internal master;
+    address public eventCaller;
     address public owner;
     address public gbtAddress;
     GovernChecker internal governChecker;
@@ -33,7 +33,7 @@ contract GovBlocksMaster {
     mapping(address => bytes32) internal govBlocksDappByAddress;
     mapping(bytes32 => GBDapps) internal govBlocksDapps;
     mapping(address => string) internal govBlocksUser;
-
+    bytes public masterByteCode;
     bytes32[] internal allGovBlocksUsers;
     string internal byteCodeHash;
     string internal contractsAbiHash;
@@ -45,11 +45,12 @@ contract GovBlocksMaster {
 
     /// @dev Initializes GovBlocks master
     /// @param _gbtAddress GBT standard token address
-    function govBlocksMasterInit(address _gbtAddress) public {
+    function govBlocksMasterInit(address _gbtAddress, address _eventCaller) public {
         require(owner == address(0));
         owner = msg.sender;
         gbtAddress = _gbtAddress;
-        Governed govern = new Governed("GBM");
+        eventCaller = _eventCaller;
+        Governed govern = new Governed();
         governChecker = GovernChecker(govern.getGovernCheckerAddress());
         //   updateGBMAddress(address(this));  
     }
@@ -66,7 +67,7 @@ contract GovBlocksMaster {
         gbtAddress = _gbtContractAddress;
         for (uint i = 0; i < allGovBlocksUsers.length; i++) {
             address masterAddress = govBlocksDapps[allGovBlocksUsers[i]].masterAddress;
-            master = Master(masterAddress);
+            Master master = Master(masterAddress);
             if (master.versionLength() > 0)
                 master.changeGBTSAddress(_gbtContractAddress);
         }
@@ -77,7 +78,7 @@ contract GovBlocksMaster {
     function updateGBMAddress(address _newGBMAddress) public onlyOwner {
         for (uint i = 0; i < allGovBlocksUsers.length; i++) {
             address masterAddress = govBlocksDapps[allGovBlocksUsers[i]].masterAddress;
-            master = Master(masterAddress);
+            Master master = Master(masterAddress);
             if (master.versionLength() > 0)
                 master.changeGBMAddress(_newGBMAddress);
         }
@@ -90,23 +91,24 @@ contract GovBlocksMaster {
     /// @param _dappDescriptionHash dApp description hash having dApp or token logo information
     function addGovBlocksUser(bytes32 _gbUserName, address _dappTokenAddress, string _dappDescriptionHash) public {
         require(govBlocksDapps[_gbUserName].masterAddress == address(0));
-        address _newMasterAddress = new Master(address(this), _gbUserName);
+        address _newMasterAddress = deployMaster(_gbUserName, masterByteCode);
         allGovBlocksUsers.push(_gbUserName);
         govBlocksDapps[_gbUserName].masterAddress = _newMasterAddress;
         govBlocksDapps[_gbUserName].tokenAddress = _dappTokenAddress;
         govBlocksDapps[_gbUserName].dappDescHash = _dappDescriptionHash;
         govBlocksDappByAddress[_newMasterAddress] = _gbUserName;
         govBlocksDappByAddress[_dappTokenAddress] = _gbUserName;
-        master = Master(_newMasterAddress);
-        master.setOwner(msg.sender);
     }
 
     /// @dev Changes dApp master address
     /// @param _gbUserName dApp name
     /// @param _newMasterAddress dApp new master address
     function changeDappMasterAddress(bytes32 _gbUserName, address _newMasterAddress) public {
-        require(msg.sender == governChecker.authorized(_gbUserName) || owner == msg.sender); // Owner for debugging only
-        govBlocksDapps[_gbUserName].masterAddress = _newMasterAddress;                       // will be removed before launch
+        if(address(governChecker) != address(0))          // Owner for debugging only, will be removed before launch
+            require(msg.sender == governChecker.authorized(_gbUserName) || owner == msg.sender);
+        else
+            require(owner == msg.sender);
+        govBlocksDapps[_gbUserName].masterAddress = _newMasterAddress;                   
         govBlocksDappByAddress[_newMasterAddress] = _gbUserName;
     }
 
@@ -127,9 +129,19 @@ contract GovBlocksMaster {
         contractsAbiHash = _abiHash;
     }
 
+    /// @dev Sets byte code of Master
+    function setMasterByteCode(bytes _masterByteCode) public onlyOwner {
+        masterByteCode = _masterByteCode;
+    }
+
     /// @dev Sets dApp user information such as Email id, name etc.
     function setDappUser(string _hash) public {
         govBlocksUser[msg.sender] = _hash;
+    }
+
+    /// @dev Sets global event caller address
+    function setEventCallerAddress(address _eventCaller) public onlyOwner {
+        eventCaller = _eventCaller;
     }
 
     /// @dev Gets byte code and abi hash
@@ -165,7 +177,7 @@ contract GovBlocksMaster {
         address masterAddress = govBlocksDapps[_gbUserName].masterAddress;
         if (masterAddress == address(0))
             return (_gbUserName, address(0), "", "", 0);
-        master = Master(masterAddress);
+        Master master = Master(masterAddress);
         versionNo = master.versionLength();
         return (_gbUserName, govBlocksDapps[_gbUserName].masterAddress, byteCodeHash, contractsAbiHash, versionNo);
     }
@@ -203,7 +215,7 @@ contract GovBlocksMaster {
         if (masterAddress == address(0))
             return (_gbUserName, address(0), address(0), "", "", 0);
             
-        master = Master(masterAddress);
+        Master master = Master(masterAddress);
         versionNo = master.versionLength();
         return (
             _gbUserName, 
@@ -273,5 +285,14 @@ contract GovBlocksMaster {
     /// @dev Gets GBT standard token address 
     function getGBTAddress() public view returns(address) {
         return gbtAddress;
+    }
+
+    /// @dev Deploys a new Master
+    function deployMaster(bytes32 _gbUserName, bytes _masterByteCode) internal returns(address deployedAddress) {
+        assembly {
+          deployedAddress := create(0, add(_masterByteCode, 0x20), mload(_masterByteCode))  // deploys contract
+        }
+        Master master = Master(deployedAddress);
+        master.initMaster(msg.sender, _gbUserName);
     }
 }

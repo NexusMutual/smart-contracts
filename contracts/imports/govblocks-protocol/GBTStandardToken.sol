@@ -26,7 +26,8 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
     string public name;
     string public symbol;
     uint public decimals;
-    address internal owner;
+    address public owner;
+    uint public totalSupply;
     //address internal GBTCAddress;
 
     struct Lock {
@@ -39,10 +40,9 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
     mapping(bytes32 => bool) public verifyTxHash;
 
     /// @dev constructor
-    function GBTStandardToken() {
+    constructor() public {
         owner = msg.sender;
         balances[address(this)] = 0;
-        totalSupply = 0;
         name = "GBT";
         symbol = "GBT";
         decimals = 18;
@@ -61,7 +61,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
         // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
-        Transfer(msg.sender, _to, _value);
+        emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
@@ -74,7 +74,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
     function transferMessage(address _to, uint256 _value, bytes32 _message) public returns(bool) {
         bool trf = transfer(_to, _value);
         if (_message != "" && trf)
-            TransferGBT(msg.sender, _to, _value, _message);
+            emit TransferGBT(msg.sender, _to, _value, _message);
         return true;
     }
 
@@ -140,7 +140,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
             userLockToken[_memberAddress].push(Lock(lockAmount, _validUpto));
         }
         allowed[_memberAddress][msg.sender] = allowed[_memberAddress][msg.sender].add(_depositAmount);
-        Approval(_memberAddress, msg.sender, allowed[_memberAddress][msg.sender]);
+        emit Approval(_memberAddress, msg.sender, allowed[_memberAddress][msg.sender]);
         verifyTxHash[_lockTokenTxHash] = transferFromMessage(
                 _memberAddress, 
                 pool, 
@@ -161,7 +161,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
         bytes32 _s
     ) 
         public
-        view 
+        pure 
         returns(bool) 
     {
         bytes32 hash = getOrderHash(_memberAddress, _spender, _amount, _validUpto, _lockTokenTxHash);
@@ -177,7 +177,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
         bytes32 _lockTokenTxHash
     ) 
         public
-        view 
+        pure 
         returns(bytes32) 
     {
         return keccak256(_memberAddress, _spender, _amount, _validUpto, _lockTokenTxHash);
@@ -186,7 +186,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
     /// @dev validates signature
     function isValidSignature(bytes32 hash, address _memberaddress, uint8 v, bytes32 r, bytes32 s) 
         public 
-        view 
+        pure 
         returns(bool) 
     {
         // bytes memory prefix = "\x19Ethereum Signed Message:\n32";
@@ -202,8 +202,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
         lockedTokens = 0;
         for (uint i = 0; i < userLockToken[_memberAddress].length; i++) {
             if (userLockToken[_memberAddress][i].validUpto > time)
-                lockedTokens - lockedTokens + userLockToken[_memberAddress][i].amount;
-
+                lockedTokens = lockedTokens + userLockToken[_memberAddress][i].amount;
         }
 
     }
@@ -236,9 +235,9 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
         balances[_from] = balances[_from].sub(_value);
         balances[_to] = balances[_to].add(_value);
         allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-        Transfer(_from, _to, _value);
+        emit Transfer(_from, _to, _value);
         if (_message != "")
-            TransferGBT(_from, _to, _value, _message);
+            emit TransferGBT(_from, _to, _value, _message);
         return true;
     }
 
@@ -254,7 +253,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
      */
     function approve(address _spender, uint256 _value) public returns(bool) {
         allowed[msg.sender][_spender] = _value;
-        Approval(msg.sender, _spender, _value);
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
 
@@ -276,7 +275,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
      */
     function increaseApproval(address _spender, uint _addedValue) public returns(bool success) {
         allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
-        Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
@@ -288,7 +287,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
         } else {
             allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
         }
-        Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
     /*modifier onlyGBTController {
@@ -317,7 +316,7 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
      */
     function finishMinting() public onlyOwner canMint returns(bool) {
         mintingFinished = true;
-        MintFinished();
+        emit MintFinished();
         return true;
     }
 
@@ -342,9 +341,9 @@ contract GBTStandardToken is ERC20Basic, ERC20 {
     function mint(address _to, uint256 _amount) internal canMint returns(bool) {
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
-        Mint(_to, _amount);
-        Transfer(address(0), _to, _amount);
-        TransferGBT(address(0), _to, _amount, "Bought Tokens");
+        emit Mint(_to, _amount);
+        emit Transfer(address(0), _to, _amount);
+        emit TransferGBT(address(0), _to, _amount, "Bought Tokens");
         return true;
     }
 }

@@ -19,6 +19,7 @@ contract GovernChecker {
     function authorized(bytes32 _dAppName) public view returns(address);
     function initializeAuthorized(bytes32 _dAppName, address authorizedAddress) public;
     function updateGBMAdress(address _govBlockMaster) public;
+    function updateAuthorized(bytes32 _dAppName, address authorizedAddress) public;
 }
 
 contract Governed {
@@ -32,16 +33,26 @@ contract Governed {
         _;
     }
 
-    function Governed (bytes32 _dAppName) {
+    constructor() public {
         setGovernChecker();
+        setDappName("NEXUS-MUTUAL");
+    }
+
+    function setDappName(bytes32 _dAppName) internal {
         dAppName = _dAppName;
     } 
 
     function setGovernChecker() public {
-        if (getCodeSize(0x56f8fec317d95c9eb755268abc2afb99afbdcb47) > 0)        //kovan testnet
-            governChecker = GovernChecker(0x56f8fec317d95c9eb755268abc2afb99afbdcb47);
-        else if (getCodeSize(0xd38c85468f36d68e3745f6b9198c4fc66b170f70) > 0)   //RSK testnet
-            governChecker = GovernChecker(0xd38c85468f36d68e3745f6b9198c4fc66b170f70);
+        if (getCodeSize(0x48F73ED5D20135E24b1AfeD5eeeDf5Ef695fF506) > 0)        //kovan testnet
+            governChecker = GovernChecker(0x48F73ED5D20135E24b1AfeD5eeeDf5Ef695fF506);
+        else if (getCodeSize(0xdF6c6a73BCf71E8CAa6A2c131bCf98f10eBb5162) > 0)   //RSK testnet
+            governChecker = GovernChecker(0xdF6c6a73BCf71E8CAa6A2c131bCf98f10eBb5162);
+        else if (getCodeSize(0x67995F25f04d61614d05607044c276727DEA9Cf0) > 0)   //Rinkeyby testnet
+            governChecker = GovernChecker(0x67995F25f04d61614d05607044c276727DEA9Cf0);
+        else if (getCodeSize(0xb5fE0857770D85302585564b04C81a5Be96022C8) > 0)   //Ropsten testnet
+            governChecker = GovernChecker(0xb5fE0857770D85302585564b04C81a5Be96022C8);
+        else if (getCodeSize(0x962d110554E0b20E18E5c3680018b49A58EF0bBB) > 0)   //Private testnet
+            governChecker = GovernChecker(0x962d110554E0b20E18E5c3680018b49A58EF0bBB);
     }
 
     function getCodeSize(address _addr) internal view returns(uint _size) {

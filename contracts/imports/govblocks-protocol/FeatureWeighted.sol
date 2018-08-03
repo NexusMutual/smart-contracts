@@ -164,7 +164,7 @@ contract FeatureWeighted is VotingType, Upgradeable {
     //         GBTC.receiveGBT(msg.sender,_memberStake);
     // }
 
-    function proposalVoting(uint _proposalId, uint[] _optionChosen, uint _GBTPayableTokenAmount) {
+    function proposalVoting(uint _proposalId, uint[] _optionChosen, uint _GBTPayableTokenAmount) external {
         //     GD=GovernanceData(GDAddress);
         //     MR=MemberRoles(MRAddress);
         //     PC=ProposalCategory(PCAddress);

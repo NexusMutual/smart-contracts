@@ -259,8 +259,8 @@ contract claimsReward is Iupgradable {
 
     function claimAllPendingReward() isMemberAndcheckPause {
 
-        if (getRewardToBeDistributedByUser(msg.sender) > 0)
-            claimRewardToBeDistributed();
+        
+        claimRewardToBeDistributed();
         if (getTotalStakeCommission(msg.sender) > 0)
             claimStakeCommission();
 

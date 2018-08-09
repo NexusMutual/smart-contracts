@@ -6,3 +6,6 @@ build
 
 # node modules
 node_modules
+
+# python script
+*.py

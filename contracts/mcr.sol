@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
 
 import "./pool.sol";
 import "./poolData.sol";
@@ -131,17 +131,14 @@ contract mcr is Iupgradable {
     /// @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
     /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
     function addMCRData(uint32 mcrP, uint32 mcrE, uint64 vF, bytes4[] curr, uint32[] _threeDayAvg, uint64 onlyDate) checkPause {
-
         require(md.isnotarise(msg.sender) != false);
         vF = SafeMaths.mul64(vF, DECIMAL1E18);
         uint len = md.getMCRDataLength();
-
         addMCRDataExtended(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
     }
 
     /// @dev Adds MCR Data for last failed attempt.
     function addLastMCRData(uint64 date) checkPause {
-
         uint64 lastdate = md.getLastMCRDate();
         uint64 failedDate = uint64(date);
         if (failedDate >= lastdate) {

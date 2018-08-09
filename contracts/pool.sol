@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
 
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
@@ -25,8 +25,8 @@ import "./mcr.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
-// import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
-import "./imports/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
+import "./imports/oraclize/ethereum-api/usingOraclize.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 
 
@@ -51,9 +51,9 @@ contract pool is usingOraclize, Iupgradable, Governed {
     // BasicToken stok;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
-   
+
     function () public payable {}
-  
+
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
@@ -188,7 +188,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     /// @dev Handles callback of external oracle query. 
     function __callback(bytes32 myid, string result) {
-
         require(msg.sender == oraclize_cbAddress() || ms.isOwner(msg.sender) == true);
         p2.delegateCallBack(myid);
     }

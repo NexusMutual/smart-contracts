@@ -16,7 +16,8 @@
 //Claims Reward Contract contains the functions for calculating number of tokens  
 // that will get rewarded, unlocked or burned depending upon the status of claim.   
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
+
 import "./claims.sol";
 import "./claimsData.sol";
 import "./nxmToken.sol";

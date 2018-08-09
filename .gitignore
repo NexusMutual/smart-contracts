@@ -2,4 +2,7 @@
 build
 
 # txt files
-.txt
+*.txt
+
+# node modules
+node_modules

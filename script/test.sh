@@ -7,9 +7,13 @@ set -o errexit
 trap cleanup EXIT
 
 cleanup() {
-  # Kill the ganache instance that we started (if we started one and if it's still running).
+  # Kill the ganache and bridge instance that we started (if we started one and if it's still running).
   if [ -n "$ganache_pid" ] && ps -p $ganache_pid > /dev/null; then
     kill -9 $ganache_pid
+  fi
+
+  if [ -n "$bridge_pid" ] && ps -p $bridge_pid > /dev/null; then
+    kill -9 $bridge_pid
   fi
 }
 
@@ -54,13 +58,18 @@ else
   start_ganache
 fi
 
-start_oraclizebridge() {
+start_ethereum-bridge() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/bridge -H localhost:"$ganache_port" -a 9 > /dev/null &
+    node_modules/.bin/ethereum-bridge -a 9 > /dev/null &
+  else
+    node_modules/.bin/ethereum-bridge -H localhost:"$ganache_port" -a 9 > /dev/null &
+  fi
+
+  bridge_pid=$!
 }
 
-echo "Starting oraclize ethereum bridge"
-	start_oraclizebridge
+echo "Starting oraclize ethereum-bridge"
+	start_ethereum-bridge
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
   node_modules/.bin/solidity-coverage

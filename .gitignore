@@ -9,3 +9,6 @@ node_modules
 
 # python script
 *.py
+
+# log files
+*.log

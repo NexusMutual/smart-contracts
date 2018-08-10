@@ -385,7 +385,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     function getMaxSellTokens() constant returns(uint maxTokens) {
         uint maxTokensAccPoolBal = SafeMaths.sub(getEtherPoolBalance(), SafeMaths.mul(
             SafeMaths.div(SafeMaths.mul(50, pd.getCurrencyAssetBaseMin("ETH")), 100), DECIMAL1E18));
-        maxTokensAccPoolBal = SafeMaths.mul(SafeMaths.div(maxTokensAccPoolBal, m1.calculateTokenPrice("ETH")), DECIMAL1E18);
+        maxTokensAccPoolBal = SafeMaths.mul(SafeMaths.div(maxTokensAccPoolBal, SafeMaths.mul(975, SafeMaths.div(m1.calculateTokenPrice("ETH"), 1000))), DECIMAL1E18);
         maxTokens = SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(), 10000), 2000), 10000), DECIMAL1E18);
         if (maxTokens > maxTokensAccPoolBal)
             maxTokens = maxTokensAccPoolBal;

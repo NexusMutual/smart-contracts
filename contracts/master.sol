@@ -246,7 +246,9 @@ contract master is Governed {
     function startEmergencyPause() onlyAuthorizedToGovern {
         
         addEmergencyPause(true, "AB"); //Start Emergency Pause
+        p1 = pool(versionContractAddress[currentVersion]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
+        c1 = claims(versionContractAddress[currentVersion]["C1"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
         
     }

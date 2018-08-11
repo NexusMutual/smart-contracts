@@ -8,22 +8,6 @@ var Pool = artifacts.require("Pool");
 var ProposalCategory = artifacts.require("ProposalCategory");
 var SimpleVoting = artifacts.require("SimpleVoting");
 var EventCaller = artifacts.require("EventCaller");
-var Claims = artifacts.require("Claims");
-var ClaimsData = artifacts.require("ClaimsData");
-var ClaimsReward = artifacts.require("ClaimsReward");
-var NXMaster = artifacts.require("NXMaster");
-var NXMaster2 = artifacts.require("NXMaster2");
-var MCR = artifacts.require("MCR");
-var MCRData = artifacts.require("MCRData");
-var NXMToken1 = artifacts.require("NXMToken1");
-var NXMToken2 = artifacts.require("NXMToken2");
-var NXMTokenData = artifacts.require("NXMTokenData");
-var Pool1 = artifacts.require("Pool1");
-var Pool2 = artifacts.require("Pool2");
-var Pool3 = artifacts.require("Pool3");
-var PoolData = artifacts.require("PoolData");
-var Quotation = artifacts.require("Quotation");
-var QuotationData = artifacts.require("QuotationData");
 const json = require('./../build/contracts/Master.json');
 var bytecode = json['bytecode'];
 
@@ -38,27 +22,9 @@ module.exports = deployer => {
     let gv;
     let pl;
     let ms;
-    let nms;
-    let nms2;
-    let nxm;
-    let nxm2;
-    let td;
-    let pl1;
-    let pl2;
-    let pl3;
-    let pd;
-    let q2;
-    let qd;
-    let cl;
-    let cr;
-    let cd;
-    let mc;
-    let mcd;
-    let nown;
-
     deployer
     .then(() => GBTStandardToken.deployed())
-    .then(function(instance){
+    .then(function(instance){ 
         gbt = instance;
         return EventCaller.deployed();
     })
@@ -77,16 +43,12 @@ module.exports = deployer => {
         return gbm.setMasterByteCode(bytecode);
     })
     .then(function() {
-        return nxmToken.deployed();
-    })
-    .then(function(instance) {
-        nxm = instance;
-        return gbm.addGovBlocksUser("0x4e455855532d4d555455414c", nxm.address, "descHash");
+        return gbm.addGovBlocksUser("0x41", GBTStandardToken.address, "descHash");
     })
     .then(function(){
         return GovernanceData.deployed();
     })
-    .then(function(instance){
+    .then(function(instance){ 
         gd = instance;
         return MemberRoles.deployed();
     })
@@ -98,14 +60,14 @@ module.exports = deployer => {
         pc = instance;
         return pc.proposalCategoryInitiate();
     })
-    .then(function(){
+    .then(function(){ 
         return SimpleVoting.deployed();
     })
-    .then(function(instance){
+    .then(function(instance){ 
         sv = instance;
         return Governance.deployed();
     })
-    .then(function(instance){
+    .then(function(instance){ 
         gv = instance;
         return Pool.deployed();
     })
@@ -118,7 +80,7 @@ module.exports = deployer => {
         return gbm.owner();
     })
     .then(function(own){
-        return ms.initMaster(own,"0x4e455855532d4d555455414c");
+        return ms.initMaster(own,"0x41");
     })
     .then(function(){
         return ms.changeGBMAddress(GovBlocksMaster.address);
@@ -128,133 +90,9 @@ module.exports = deployer => {
         return ms.addNewVersion(addr);
     })
     .then(function(){
-        return gbm.changeDappMasterAddress("0x4e455855532d4d555455414c", Master.address);
+        return gbm.changeDappMasterAddress("0x41", Master.address);
     })
     .then(function(){
-        console.log("Nexus-Mutual Dapp added!");
-        return NXMaster.deployed();
-    })
-    .then(function(instance){
-        nms = instance;
-        return NXMaster2.deployed();
-    })
-    .then(function(instance){
-        nms2 = instance;
-        return NXMToken2.deployed();
-    })
-    .then(function(instance){
-        nxm2 = instance;
-        return NXMTokenData.deployed();
-    })
-    .then(function(instance){
-        td = instance;
-        return MCR.deployed();
-    })
-    .then(function(instance){
-        mc = instance;
-        return MCRData.deployed();
-    })
-    .then(function(instance){
-        mcd = instance;
-        return Pool1.deployed();
-    })
-    .then(function(instance){
-        pl1 = instance;
-        return Pool2.deployed();
-    })
-    .then(function(instance){
-        pl2 = instance;
-        return Pool3.deployed();
-    })
-    .then(function(instance){
-        pl3 = instance;
-        return PoolData.deployed();
-    })
-    .then(function(instance){
-        pd = instance;
-        return Claims.deployed();
-    })
-    .then(function(instance){
-        cl = instance;
-        return ClaimsReward.deployed();
-    })
-    .then(function(instance){
-        cr = instance;
-        return ClaimsData.deployed();
-    })
-    .then(function(instance){
-        cd = instance;
-	return Quotation.deployed();
-    })
-    .then(function(instance){
-        q2 = instance;
-        return QuotationData.deployed();
-    })
-    .then(function(instance){
-	qd = instance;
-	var addr = [qd.address, td.address, cd.address, pd.address, mcd.address, q2.address, nxm.address, nxm2.address, cl.address, cr.address, pl1.address, pl2.address, nms2.address, mc.address, pl3.address];
-	console.log("address initialized");
-	return nms.addNewVersion(addr);
-    })
-    .then(function(){
-	console.log("Add new version");
-        return nms.switchToRecentVersion();
-    })
-    .then(function(){
-        return nms.owner();
-    })
-    .then(function(owner){
-	nown = owner;
-	return pl1.takeEthersOnly( {from: nown, value: 9000000000000000000});
-    })
-    .then(function(){
-        return td.setWalletAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
-    })
-    .then(function(){
-        return qd.changeAuthQuoteEngine("0xb24919181daead6635e613576ca11c5aa5a4e133");
-    })
-    .then(function(){
-        return nms2.addCoverStatus();
-    })
-    .then(function(){
-        return nms2.callPoolDataMethods();
-    })
-    .then(function(){
-        return nms2.addStatusInClaims();
-    })
-    .then(function(){
-        return nms2.addMCRCurr();
-    })
-    .then(function(){
-        return nms2.addStatusInClaims();
-    })
-    .then(function(){
-        return pd.changeWETHAddress("0xd0a1e359811322d97991e03f863a0c30c2cf029c");
-    })
-    .then(function(){
-        return pd.change0xMakerAddress(nown); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
-    })
-    .then(function(){
-        return pl2.changeExchangeContractAddress("0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
-    })
-    .then(function(){
-        return pl3.changeExchangeContractAddress("0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
-    })
-    .then(function(){
-        return mc.changeNotariseAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
-    })
-    .then(function(){
-	    var arg1 = 18000;
-        var arg2 = 10000;
-        var arg3 = 2;
-		var arg4 = ["0x455448","0x444149"];
-        var arg5 = [100,65407];
-        var arg6 = 20180807;
-	    return mc.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
-    })
-    .then(function(){
-		console.log("NXM initialized");
+        console.log("Initialization completed!");
     });
 };
-
-

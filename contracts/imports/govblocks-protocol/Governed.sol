@@ -29,17 +29,16 @@ contract Governed {
     bytes32 internal dAppName;
 
     modifier onlyAuthorizedToGovern() {
-        require(governChecker.authorized(dAppName) == msg.sender);
+	if(address(governChecker) != address(0))
+            require(governChecker.authorized(dAppName) == msg.sender);
         _;
     }
 
     constructor() public {
         setGovernChecker();
-        setDappName("NEXUS-MUTUAL");
     }
 
-    function 
-    setDappName(bytes32 _dAppName) internal {
+    function setDappName(bytes32 _dAppName) internal {
         dAppName = _dAppName;
     } 
 

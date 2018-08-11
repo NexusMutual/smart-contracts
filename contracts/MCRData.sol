@@ -160,8 +160,8 @@ contract MCRData is Iupgradable {
     }
 
     /// @dev Gets minimum  value of MCR required.
-    function getMinMCR() constant returns(uint32 MCR) {
-        MCR = minMCRReq;
+    function getMinMCR() constant returns(uint32 mcr) {
+        mcr = minMCRReq;
     }
 
     /// @dev Stores name of currency accepted in the system.

@@ -8,6 +8,7 @@ var Pool = artifacts.require("Pool");
 var ProposalCategory = artifacts.require("ProposalCategory");
 var SimpleVoting = artifacts.require("SimpleVoting");
 var EventCaller = artifacts.require("EventCaller");
+var NXMToken1 = artifacts.require("NXMToken1");
 const json = require('./../build/contracts/Master.json');
 var bytecode = json['bytecode'];
 
@@ -43,7 +44,10 @@ module.exports = deployer => {
         return gbm.setMasterByteCode(bytecode);
     })
     .then(function() {
-        return gbm.addGovBlocksUser("0x41", GBTStandardToken.address, "descHash");
+        return NXMToken1.deployed();
+    })
+    .then(function(instance) {
+        return gbm.addGovBlocksUser("0x4e455855532d4d555455414c", instance.address, "descHash");
     })
     .then(function(){
         return GovernanceData.deployed();
@@ -80,7 +84,7 @@ module.exports = deployer => {
         return gbm.owner();
     })
     .then(function(own){
-        return ms.initMaster(own,"0x41");
+        return ms.initMaster(own,"0x4e455855532d4d555455414c");
     })
     .then(function(){
         return ms.changeGBMAddress(GovBlocksMaster.address);
@@ -90,9 +94,9 @@ module.exports = deployer => {
         return ms.addNewVersion(addr);
     })
     .then(function(){
-        return gbm.changeDappMasterAddress("0x41", Master.address);
+        return gbm.changeDappMasterAddress("0x4e455855532d4d555455414c", Master.address);
     })
     .then(function(){
-        console.log("Initialization completed!");
+        console.log("Nexus Mutual Initialization completed!");
     });
 };

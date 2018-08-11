@@ -13,45 +13,44 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./claims.sol";
-import "./master.sol";
-import "./pool.sol";
-import "./claimsReward.sol";
-import "./claimsData.sol";
-import "./mcr.sol";
-import "./quotationData.sol";
-import "./poolData.sol";
+import "./Claims.sol";
+import "./NXMaster.sol";
+import "./Pool1.sol";
+import "./ClaimsReward.sol";
+import "./ClaimsData.sol";
+import "./MCR.sol";
+import "./QuotationData.sol";
+import "./PoolData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract masters2 is Iupgradable {
+contract NXMaster2 is Iupgradable {
     using SafeMaths
     for uint;
 
     address masterAddress;
 
-    
-    claims c1;
-    master ms;
-    pool p1;
-    claimsData cd;
-    claimsReward cr;
-    quotationData qd;
-    poolData pd;
-    mcr m1;
+    Claims c1;
+    NXMaster ms;
+    Pool1 p1;
+    ClaimsData cd;
+    ClaimsReward cr;
+    QuotationData qd;
+    PoolData pd;
+    MCR m1;
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
-            
+
         }
     }
 
@@ -67,13 +66,13 @@ contract masters2 is Iupgradable {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        cd = claimsData(ms.versionContractAddress(currentVersion, "CD"));
-        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
-        c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
-        m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
-        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
+        cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        c1 = Claims(ms.versionContractAddress(currentVersion, "C1"));
+        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
 
     }
 
@@ -97,10 +96,10 @@ contract masters2 is Iupgradable {
         c1.pushStatus("Claim Accepted Payout Done", 0, 0); //18
     }
 
-    /// @dev Changes the  minimum,maximum claims assessment voting,escalation,payout retry times 
+    /// @dev Changes the  minimum,maximum Claims assessment voting,escalation,payout retry times
     /// @param _mintime Minimum time(in seconds) for which claim assessment voting is open
     /// @param _maxtime Maximum time(in seconds) for which claim assessment voting is open
-    /// @param escaltime Time(in seconds) in which, after a denial by claims assessor, a person can escalate claim for member voting
+    /// @param escaltime Time(in seconds) in which, after a denial by Claims assessor, a person can escalate claim for member voting
     /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
     function changeTimes(uint32 _mintime, uint32 _maxtime, uint32 escaltime, uint32 payouttime) onlyOwner {
         uint64 timeLeft;
@@ -144,7 +143,7 @@ contract masters2 is Iupgradable {
         }
     }
 
-    /// @dev Adds currency master 
+    /// @dev Adds currency NXMaster
     function addMCRCurr() onlyOwner {
         m1.addCurrency("ETH");
         m1.addCurrency("DAI");
@@ -162,7 +161,7 @@ contract masters2 is Iupgradable {
         qd.pushCoverStatus("Requested");
     }
 
-    /// @dev Initializes asset data required by pool module.
+    /// @dev Initializes asset data required by Pool1 module.
     function callPoolDataMethods() onlyOwner {
         addCurrencyAssetsVarBase();
         addInvestmentAssetsDetails();
@@ -170,7 +169,7 @@ contract masters2 is Iupgradable {
         addAllCurrencies();
     }
 
-    /// @dev Adds investment asset details to pool.
+    /// @dev Adds investment asset details to Pool1.
     function addCurrencyAssetsDetails() internal {
 
         pd.pushCurrencyAssetsDetails("ETH", 0x00, 1, 50, 400, 18);
@@ -178,13 +177,13 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Adds investment asset names to pool module.
+    /// @dev Adds investment asset names to Pool1 module.
     function addAllCurrencies() internal {
         pd.addAllCurrencies("ETH");
         pd.addAllCurrencies("DAI");
     }
 
-    /// @dev Adds investment assets names to pool module.
+    /// @dev Adds investment assets names to Pool1 module.
     function addInvestmentCurrencies() internal {
 
         pd.addInvestmentCurrency("DGD");
@@ -195,7 +194,7 @@ contract masters2 is Iupgradable {
         pd.addInvestmentCurrency("MLN");
     }
 
-    /// @dev Adds currency asset data to pool module. 
+    /// @dev Adds currency asset data to Pool1 module.
     function addCurrencyAssetsVarBase() internal {
 
         pd.pushCurrencyAssetsVarBase("ETH", 6); //original 64 baseMin
@@ -203,7 +202,7 @@ contract masters2 is Iupgradable {
 
     }
 
-    /// @dev Adds investment asset details to pool.
+    /// @dev Adds investment asset details to Pool1.
     function addInvestmentAssetsDetails() internal {
 
         //DGD

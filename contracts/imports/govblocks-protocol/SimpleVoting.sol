@@ -590,7 +590,7 @@ contract SimpleVoting is Upgradeable {
     {
         governanceDat.setSolutionAdded(_proposalId, _memberAddress, _action);
         uint solutionId = governanceDat.getTotalSolutions(_proposalId);
-        governanceDat.callSolutionEvent(_proposalId, msg.sender, solutionId, _solutionHash, _dateAdd, _solutionStake);
+        governanceDat.callSolutionEvent(_proposalId, msg.sender, solutionId - 1, _solutionHash, _dateAdd, _solutionStake);
     }
 
     /// @dev Receives solution stake against solution in simple voting i.e. Deposit and lock the tokens

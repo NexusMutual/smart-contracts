@@ -13,34 +13,34 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./mcr.sol";
-import "./nxmTokenData.sol";
-import "./nxmToken2.sol";
-import "./master.sol";
-import "./quotationData.sol";
+import "./MCR.sol";
+import "./NXMTokenData.sol";
+import "./NXMToken2.sol";
+import "./NXMaster.sol";
+import "./QuotationData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract nxmToken is Iupgradable {
+contract NXMToken1 is Iupgradable {
     using SafeMaths for uint;
 
     address masterAddress;
 
-    master ms;
-    quotationData qd;
-    mcr m1;
-    nxmTokenData td;
-    nxmToken2 tc2;
+    NXMaster ms;
+    QuotationData qd;
+    MCR m1;
+    NXMTokenData td;
+    NXMToken2 tc2;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _of, bytes16 eventName, uint coverId, uint tokens);
-    
+
     event Lock(
         address indexed _of,
         bytes32 indexed _reason,
@@ -51,9 +51,9 @@ contract nxmToken is Iupgradable {
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender));
             masterAddress = _add;
         }
@@ -86,10 +86,10 @@ contract nxmToken is Iupgradable {
 
     function changeDependentContractAddress() public onlyInternal {
         uint currentVersion = ms.currentVersion();
-        m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
-        td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
+        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
     }
 
     /// @dev Allocates tokens to Founder Members.
@@ -126,8 +126,8 @@ contract nxmToken is Iupgradable {
     function callBurnEvent(address _add, bytes16 str, uint id, uint value) public onlyInternal {
         Burn(_add, str, id, value);
     }
-    
-    /// @dev Triggers an event when Transfer of NXM tokens occur. 
+
+    /// @dev Triggers an event when Transfer of NXM tokens occur.
     function callTransferEvent(address _from, address _to, uint value) public onlyInternal {
         Transfer(_from, _to, value);
     }
@@ -136,7 +136,7 @@ contract nxmToken is Iupgradable {
     /// @param _to Receiver's Address.
     /// @param _value Transfer tokens.
     function transfer(address _to, uint256 _value) public isMemberAndcheckPauseOrInternal {
-    
+
         uint currentVersion = ms.currentVersion();
         require(!tc2.voted(msg.sender));
         require(ms.isMember(_to) == true || _to == address(ms.versionContractAddress(currentVersion, "CR")));
@@ -166,23 +166,23 @@ contract nxmToken is Iupgradable {
         td.setAllowerSpenderAllowance(msg.sender, _spender, _value);
         Approval(msg.sender, _spender, _value);
 
-        //call the receiveApproval function on the contract you want to be notified. 
+        //call the receiveApproval function on the contract you want to be notified.
         ///This crafts the function signature manually so one doesn't have to include a contract in here just for this.
         //receiveApproval(address _from, uint256 _value, address _tokenContract, bytes _extraData)
-        //it is assumed that when does this that the call *should* succeed, 
+        //it is assumed that when does this that the call *should* succeed,
         //otherwise one would use vanilla approve instead.
         require(_spender.call(bytes4(bytes32(keccak256("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _value, this, _extraData));
         return true;
     }
 
-    /// @dev Transfer the Tokens from a given sender's Address to a given receiver's address. 
+    /// @dev Transfer the Tokens from a given sender's Address to a given receiver's address.
     /// If the msg.sender is not allowed to transfer tokens on the behalf of the _from , then transfer will be unsuccessful.
     /// @param _from Sender's address.
     /// @param _to Receiver's address.
     /// @param _value Transfer tokens.
     /// @return success true if transfer is a success, false if transfer is a failure.
     function transferFrom(address _from, address _to, uint256 _value) public isMemberAndcheckPause returns(bool success) {
-        
+
         require(balanceOf(_from) >= _value);
         require(!tc2.voted(msg.sender));
         require(_value <= td.getAllowerSpenderAllowance(_from, msg.sender));
@@ -322,9 +322,9 @@ contract nxmToken is Iupgradable {
      * @param _time Lock extension time in seconds
      */
     function reduceLock(bytes32 _reason, address _of, uint256 _time) public onlyInternal {
-        changeLock(_reason, _of, _time, false);        
+        changeLock(_reason, _of, _time, false);
     }
-        
+
     /**
      * @dev Increases number of tokens locked for a specified purpose
      * @param _reason The purpose to lock tokens
@@ -338,12 +338,12 @@ contract nxmToken is Iupgradable {
         (amount, validity) = td.locked(msg.sender, _reason);
         Lock(msg.sender, _reason, amount, validity);
     }
-    
+
     /// @dev Enables purchase of tokens at the current token price
     function buyToken(uint value, address _to) public onlyInternal {
         if (m1.calculateTokenPrice("ETH") > 0) {
             uint256 amount = SafeMaths.div((SafeMaths.mul(value, DECIMAL1E18)), m1.calculateTokenPrice("ETH"));
-            // Allocate tokens         
+            // Allocate tokens
             tc2.rewardToken(_to, amount);
         }
     }

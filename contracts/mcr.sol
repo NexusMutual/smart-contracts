@@ -13,29 +13,29 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./pool.sol";
-import "./poolData.sol";
-import "./mcrData.sol";
-import "./master.sol";
-import "./nxmToken.sol";
-import "./quotationData.sol";
+import "./Pool1.sol";
+import "./PoolData.sol";
+import "./MCRData.sol";
+import "./NXMaster.sol";
+import "./NXMToken1.sol";
+import "./QuotationData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
-contract mcr is Iupgradable {
+contract MCR is Iupgradable {
     using SafeMaths
     for uint;
 
-    pool p1;
-    poolData pd;
-    nxmToken tc1;
-    mcrData md;
-    master ms;
-    quotationData qd;
+    Pool1 p1;
+    PoolData pd;
+    NXMToken1 tc1;
+    MCRData md;
+    NXMaster ms;
+    QuotationData qd;
     BasicToken btok;
     address poolAddress;
     address masterAddress;
@@ -49,9 +49,9 @@ contract mcr is Iupgradable {
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
         }
@@ -74,11 +74,11 @@ contract mcr is Iupgradable {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
-        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
-        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
-        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
+        md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
 
     }
 
@@ -128,7 +128,7 @@ contract mcr is Iupgradable {
 
     /// @dev Adds new MCR data.
     /// @param mcrP  Minimum Capital Requirement in percentage.
-    /// @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
+    /// @param vF Pool1 fund value in Ether used in the last full daily calculation of the Capital model.
     /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
     function addMCRData(uint32 mcrP, uint32 mcrE, uint64 vF, bytes4[] curr, uint32[] _threeDayAvg, uint64 onlyDate) checkPause {
         require(md.isnotarise(msg.sender) != false);
@@ -158,7 +158,7 @@ contract mcr is Iupgradable {
             callOracliseForMCR();
         }
     }
-    
+
     /// @dev Gets total sum assured(in ETH).
     function getAllSumAssurance() constant returns(uint amount) {
 
@@ -177,9 +177,9 @@ contract mcr is Iupgradable {
 
     }
 
-    /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation  
+    /// @dev Calculates V(Tp) ,i.e, Pool1 Fund Value in Ether used for the Token Price Calculation
     //                      and MCR%(Tp),i.e, MCR% used in the Token Price Calculation.
-    /// @return vtp  Pool Fund Value in Ether used for the Token Price Model 
+    /// @return vtp  Pool1 Fund Value in Ether used for the Token Price Model
     /// @return mcrtp MCR% used in the Token Price Model.
     function calVtpAndMCRtp() constant returns(uint vtp, uint mcrtp) {
         vtp = 0;
@@ -236,7 +236,7 @@ contract mcr is Iupgradable {
             maxTokens = maxTokensAccPoolBal;
     }
 
-    /// @dev Adds MCR Data. 
+    /// @dev Adds MCR Data.
     ///      Checks if MCR is within valid thresholds in order to rule out any incorrect calculations
     function addMCRDataExtended(uint len, uint64 newMCRDate, bytes4[] curr, uint32 mcrE, uint32 mcrP, uint64 vF, uint32[] _threeDayAvg) internal {
         uint vtp = 0;

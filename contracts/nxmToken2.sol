@@ -13,15 +13,15 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./nxmTokenData.sol";
-import "./quotationData.sol";
-import "./mcr.sol";
-import "./nxmToken.sol";
-import "./master.sol";
+import "./NXMTokenData.sol";
+import "./QuotationData.sol";
+import "./MCR.sol";
+import "./NXMToken1.sol";
+import "./NXMaster.sol";
 import "./Iupgradable.sol";
-import "./claimsReward.sol";
+import "./ClaimsReward.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
@@ -33,7 +33,7 @@ contract MemberRoles {
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
 
     function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);
-    
+
     function setValidityOfMember(address _memberAddress, uint32 _roleId, uint _validity) public;
 
     function getValidity(address _memberAddress, uint32 _roleId) public view returns (uint);
@@ -42,17 +42,17 @@ contract MemberRoles {
 }
 
 
-contract nxmToken2 is Iupgradable, Governed {
+contract NXMToken2 is Iupgradable, Governed {
     using SafeMaths
     for uint;
 
-    master ms;
-    quotationData qd;
-    nxmTokenData td;
-    mcr m1;
-    nxmToken tc1;
-    MemberRoles mr;
-    claimsReward cr;
+    NXMaster ms;
+    QuotationData qd;
+    NXMTokenData td;
+    MCR m1;
+    NXMToken1 tc1;
+    MemberRole mr;
+    ClaimsReward cr;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
     address masterAddress;
@@ -71,48 +71,48 @@ contract nxmToken2 is Iupgradable, Governed {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
-    
+
     modifier onlyOwner {
 
         require(ms.isOwner(msg.sender) == true);
         _;
     }
 
-    modifier canWithdraw { 
-        
+    modifier canWithdraw {
+
         require(getLockedNXMTokenOfStakerByStakerAddress(msg.sender) == 0); // No pending stake.
         require(totalBalanceCNOfUser(msg.sender) == 0);   // No active covers.
         require(td.tokensLocked(msg.sender, "CLA", now) == 0); // No locked tokens for CA.
         require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
         require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
         _;
-        
+
     }
     
-    function nxmToken2 () {
+    function NXMToken2 () public {
         
     }
     
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
-          
+
         }
 
     }
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
-        td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
-        cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
+        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
+        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
     }
 
     function changeMemberRolesAddress(address memberAddress) onlyInternal {
@@ -129,12 +129,12 @@ contract nxmToken2 is Iupgradable, Governed {
     /// @dev Books the user's tokens for maintaining Assessor Velocity
     /// i.e., these tokens cannot be used to cast another vote for a specified period of time.
     /// @param _to Claims assessor address.
-    /// @param value number of tokens that will be booked for a period of time. 
+    /// @param value number of tokens that will be booked for a period of time.
     function bookCATokens(address _to, uint value) public onlyInternal {
         td.pushBookedCA(_to, value);
     }
 
-    /// @dev Locks tokens against a cover.     
+    /// @dev Locks tokens against a cover.
     /// @param premiumNxm Premium in NXM of cover.
     /// @param coverPeriod Cover Period of cover.
     /// @param coverId Cover id of a cover.
@@ -184,7 +184,7 @@ contract nxmToken2 is Iupgradable, Governed {
         td.updateUserCoverLockedCN(_to, coverid, now, lockedCN);
     }
 
-    /// @dev Allocates tokens against a given address or reward contract  
+    /// @dev Allocates tokens against a given address or reward contract
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
     function rewardToken(address _to, uint amount) onlyInternal {
@@ -332,7 +332,7 @@ contract nxmToken2 is Iupgradable, Governed {
             }
         }
     }
-    
+
     /// @dev NXM tokens locked against particular smart contract at particular index.
     /// @param _scAddress smart contract address.
     /// @param _scAddressIndex index.
@@ -354,7 +354,7 @@ contract nxmToken2 is Iupgradable, Governed {
                 _stakerLockedNXM = SafeMaths.sub(lockedNXM, burnedAmt);
         }
     }
-   
+
     /// @dev Called by user to pay joining membership fee
     function payJoiningFee() public payable checkPause {
         require(msg.value == td.joiningFee());
@@ -376,7 +376,7 @@ contract nxmToken2 is Iupgradable, Governed {
     }
 
     /// @dev Change the address who can update GovBlocks member role.
-    ///      Called when updating to a new version. 
+    ///      Called when updating to a new version.
     ///      Need to remove onlyOwner to onlyInternal and update automatically at version change
     function changeCanAddMemberAddress(address _newAdd) onlyOwner {
         mr.changeCanAddMember(3, _newAdd);
@@ -486,7 +486,7 @@ contract nxmToken2 is Iupgradable, Governed {
     function voted(address _add) constant returns(bool) {
         return mr.checkRoleIdByAddress(_add, 4);
     }
-  
+
     function totalBalanceCNOfUser(address _add) constant returns(uint total) {
         uint len = qd.getUserCoverLength(_add);
         total = 0;
@@ -498,5 +498,5 @@ contract nxmToken2 is Iupgradable, Governed {
                 total = SafeMaths.add(total, tokens);
         }
     }
-     
+
 }

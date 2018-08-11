@@ -13,18 +13,18 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./master.sol";
+import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract poolData is Iupgradable {
+contract PoolData is Iupgradable {
     using SafeMaths
     for uint;
 
-    master ms;
+    NXMaster ms;
     address masterAddress;
 
     mapping(bytes4 => string) apiCurr;
@@ -62,7 +62,7 @@ contract poolData is Iupgradable {
         uint64 minRate;
     }
 
-    function poolData() {
+    function PoolData() {
         variationPercX100 = 100; //1%
         orderSalt = 99033804502856343259430181946001007533635816863503102978577997033734866165564;
         nullAddress = 0x0000000000000000000000000000000000000000;
@@ -115,19 +115,19 @@ contract poolData is Iupgradable {
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
-                   
+
         }
     }
-    
+
     function changeDependentContractAddress() onlyInternal {
-        
+
     }
-    
+
     modifier onlyInternal {
         require(ms.isInternal(msg.sender) == true);
         _;
@@ -182,36 +182,36 @@ contract poolData is Iupgradable {
     /// @param orderHashType type of order hash.
     /// @param orderExpireTime expire time for order.
     function pushOrderDetails(
-        bytes32 orderHash, 
-        bytes8 makerCurr, 
-        uint makerAmt, 
-        bytes8 takerCurr, 
-        uint takerAmt, 
-        bytes16 orderHashType, 
+        bytes32 orderHash,
+        bytes8 makerCurr,
+        uint makerAmt,
+        bytes8 takerCurr,
+        uint takerAmt,
+        bytes16 orderHashType,
         uint orderExpireTime
         ) onlyInternal {
         allOrders[orderHash] = Order(makerCurr, makerAmt, takerCurr, takerAmt, orderHashType, orderExpireTime, "");
     }
 
     /// @dev Gets 0x order details for a given hash.
-    function getOrderDetailsByHash(bytes32 orderHash) 
-    constant 
+    function getOrderDetailsByHash(bytes32 orderHash)
+    constant
     returns(
-        bytes8 makerCurr, 
-        uint makerAmt, 
-        bytes8 takerCurr, 
-        uint takerAmt, 
-        bytes16 orderHashType, 
-        uint orderExpireTime, 
+        bytes8 makerCurr,
+        uint makerAmt,
+        bytes8 takerCurr,
+        uint takerAmt,
+        bytes16 orderHashType,
+        uint orderExpireTime,
         bytes32 cancelOrderHash
         ) {
         return (
-            allOrders[orderHash].makerCurr, 
-            allOrders[orderHash].makerAmt, 
-            allOrders[orderHash].takerCurr, 
-            allOrders[orderHash].takerAmt, 
-            allOrders[orderHash].orderHashType, 
-            allOrders[orderHash].orderExpireTime, 
+            allOrders[orderHash].makerCurr,
+            allOrders[orderHash].makerAmt,
+            allOrders[orderHash].takerCurr,
+            allOrders[orderHash].takerAmt,
+            allOrders[orderHash].orderHashType,
+            allOrders[orderHash].orderExpireTime,
             allOrders[orderHash].cancelOrderHash
             );
     }
@@ -281,7 +281,7 @@ contract poolData is Iupgradable {
         return takerFee;
     }
 
-    /// @dev Sets total risk balance and total investment asset balance to pool.
+    /// @dev Sets total risk balance and total investment asset balance to Pool1.
     function setTotalBalance(uint _balance, uint _balanceIA) onlyInternal {
         totalRiskPoolBalance = _balance;
         totalIAPoolBalance = _balanceIA;
@@ -297,12 +297,12 @@ contract poolData is Iupgradable {
         totalIAPoolBalance = _balanceIA;
     }
 
-    /// @dev Gets total investment asset balance in pool.
+    /// @dev Gets total investment asset balance in Pool1.
     function getTotalIAPoolBalance() public constant returns(uint totalIABalance) {
         return totalIAPoolBalance;
     }
 
-    /// @dev Gets total Risk balance in pool.
+    /// @dev Gets total Risk balance in Pool1.
     function getTotalRiskPoolBalance() public constant returns(uint balance) {
         return totalRiskPoolBalance;
     }
@@ -321,9 +321,9 @@ contract poolData is Iupgradable {
     /// @dev Gets investment asset rank details by given index.
     function getIARankDetailsByIndex(uint index) constant returns(bytes8 maxIACurr, uint64 maxRate, bytes8 minIACurr, uint64 minRate) {
         return (
-            allIARankDetails[index].maxIACurr, 
-            allIARankDetails[index].maxRate, 
-            allIARankDetails[index].minIACurr, 
+            allIARankDetails[index].maxIACurr,
+            allIARankDetails[index].maxRate,
+            allIARankDetails[index].minIACurr,
             allIARankDetails[index].minRate
             );
     }
@@ -332,9 +332,9 @@ contract poolData is Iupgradable {
     function getIARankDetailsByDate(uint64 date) constant returns(bytes8 maxIACurr, uint64 maxRate, bytes8 minIACurr, uint64 minRate) {
         uint index = datewiseId[date];
         return (
-            allIARankDetails[index].maxIACurr, 
-            allIARankDetails[index].maxRate, 
-            allIARankDetails[index].minIACurr, 
+            allIARankDetails[index].maxIACurr,
+            allIARankDetails[index].maxRate,
+            allIARankDetails[index].minIACurr,
             allIARankDetails[index].minRate
         );
     }
@@ -404,7 +404,7 @@ contract poolData is Iupgradable {
         currencyLastIndex[curr] = index;
     }
 
-    /// @dev Gets Last index for given currency. 
+    /// @dev Gets Last index for given currency.
     function getCurrencyLastIndex(bytes16 curr) constant returns(uint index) {
         return currencyLastIndex[curr];
     }
@@ -414,7 +414,7 @@ contract poolData is Iupgradable {
         datewiseId[date] = index;
     }
 
-    /// @dev Gets index of investment asset details for a given date.  
+    /// @dev Gets index of investment asset details for a given date.
     function getIADetailsIndexByDate(uint64 date) constant returns(uint index) {
         return (datewiseId[date]);
     }
@@ -434,7 +434,7 @@ contract poolData is Iupgradable {
         allInvestmentCurrencies.push(curr);
     }
 
-    /// @dev Gets investment currency for a given index. 
+    /// @dev Gets investment currency for a given index.
     function getInvestmentCurrencyByIndex(uint64 index) constant returns(bytes8 currName) {
         return allInvestmentCurrencies[index];
     }
@@ -454,7 +454,7 @@ contract poolData is Iupgradable {
         allCurrencies.push(curr);
     }
 
-    /// @dev Gets All currency for a given index. 
+    /// @dev Gets All currency for a given index.
     function getAllCurrenciesByIndex(uint64 index) constant returns(bytes8 currName) {
         return allCurrencies[index];
     }
@@ -518,11 +518,11 @@ contract poolData is Iupgradable {
     /// @param _maxHoldingPercX100 maximum holding percentage*100.
     /// @param decimals in ERC20 token.
     function pushInvestmentAssetsDetails(
-        bytes8 _curr, 
-        address _currAddress, 
-        uint8 _status, 
-        uint64 _minHoldingPercX100, 
-        uint64 _maxHoldingPercX100, 
+        bytes8 _curr,
+        address _currAddress,
+        uint8 _status,
+        uint64 _minHoldingPercX100,
+        uint64 _maxHoldingPercX100,
         uint8 decimals
         ) onlyInternal {
         allInvestmentAssets[_curr] = investmentAssets(_currAddress, _status, _minHoldingPercX100, _maxHoldingPercX100, decimals);
@@ -550,22 +550,22 @@ contract poolData is Iupgradable {
     }
 
     /// @dev Gets investment asset details of a given currency;
-    function getInvestmentAssetDetails(bytes8 _curr) 
-        constant 
+    function getInvestmentAssetDetails(bytes8 _curr)
+        constant
         returns(
-        bytes8 curr, 
-        address currAddress, 
-        uint8 status, 
-        uint64 minHoldingPerc, 
-        uint64 maxHoldingPerc, 
+        bytes8 curr,
+        address currAddress,
+        uint8 status,
+        uint64 minHoldingPerc,
+        uint64 maxHoldingPerc,
         uint8 decimals
         ) {
             return (
-                _curr, 
-                allInvestmentAssets[_curr].currAddress, 
-                allInvestmentAssets[_curr].status, 
-                allInvestmentAssets[_curr].minHoldingPercX100, 
-                allInvestmentAssets[_curr].maxHoldingPercX100, 
+                _curr,
+                allInvestmentAssets[_curr].currAddress,
+                allInvestmentAssets[_curr].status,
+                allInvestmentAssets[_curr].minHoldingPercX100,
+                allInvestmentAssets[_curr].maxHoldingPercX100,
                 allInvestmentAssets[_curr].decimals
             );
         }
@@ -603,11 +603,11 @@ contract poolData is Iupgradable {
     /// @param _maxHoldingPercX100 maximum holding percentage*100.
     /// @param decimals in ERC20 token.
     function pushCurrencyAssetsDetails(
-        bytes8 _curr, 
-        address _currAddress, 
-        uint8 _status, 
-        uint64 _minHoldingPercX100, 
-        uint64 _maxHoldingPercX100, 
+        bytes8 _curr,
+        address _currAddress,
+        uint8 _status,
+        uint64 _minHoldingPercX100,
+        uint64 _maxHoldingPercX100,
         uint8 decimals
         ) onlyInternal {
         allCurrencyAssets[_curr] = investmentAssets(_currAddress, _status, _minHoldingPercX100, _maxHoldingPercX100, decimals);
@@ -640,21 +640,21 @@ contract poolData is Iupgradable {
     }
 
     /// @dev Gets Currency asset details of a given currency;
-    function getCurrencyAssetDetails(bytes8 _curr) 
-    constant 
+    function getCurrencyAssetDetails(bytes8 _curr)
+    constant
     returns(
-        bytes8 curr, 
-        address currAddress, 
-        uint8 status, 
-        uint64 minHoldingPerc, 
-        uint64 maxHoldingPerc, 
+        bytes8 curr,
+        address currAddress,
+        uint8 status,
+        uint64 minHoldingPerc,
+        uint64 maxHoldingPerc,
         uint8 decimals
         ) {
         return (
-            _curr, 
-            allCurrencyAssets[_curr].currAddress, 
-            allCurrencyAssets[_curr].status, 
-            allCurrencyAssets[_curr].minHoldingPercX100, 
+            _curr,
+            allCurrencyAssets[_curr].currAddress,
+            allCurrencyAssets[_curr].status,
+            allCurrencyAssets[_curr].minHoldingPercX100,
             allCurrencyAssets[_curr].maxHoldingPercX100,
             allCurrencyAssets[_curr].decimals
             );
@@ -687,14 +687,14 @@ contract poolData is Iupgradable {
 
     /// @dev Stores Currency exchange URL of a given currency.
     /// @param curr Currency Name.
-    /// @param url Currency exchange URL 
+    /// @param url Currency exchange URL
     function addCurrRateApiUrl(bytes4 curr, string url) onlyOwner {
         apiCurr[curr] = url;
     }
 
     /// @dev Gets Currency exchange URL of a given currency.
     /// @param curr Currency Name.
-    /// @return url Currency exchange URL 
+    /// @return url Currency exchange URL
     function getCurrRateApiUrl(bytes4 curr) constant returns(string url) {
         url = apiCurr[curr];
     }
@@ -713,7 +713,7 @@ contract poolData is Iupgradable {
         id1 = allAPIid[myid].id;
     }
 
-    /// @dev Gets the Timestamp of a oracalize call. 
+    /// @dev Gets the Timestamp of a oracalize call.
     function getDateAddOfAPI(bytes32 myid) constant returns(uint64 dateAdd) {
         dateAdd = allAPIid[myid].dateAdd;
     }

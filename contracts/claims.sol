@@ -13,23 +13,23 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./quotationData.sol";
-import "./nxmToken.sol";
-import "./nxmToken2.sol";
-import "./nxmTokenData.sol";
-import "./pool.sol";
-import "./pool3.sol";
-import "./poolData.sol";
-import "./claimsReward.sol";
-import "./claimsData.sol";
-import "./master.sol";
+import "./QuotationData.sol";
+import "./NXMToken1.sol";
+import "./NXMToken2.sol";
+import "./NXMTokenData.sol";
+import "./Pool1.sol";
+import "./Pool3.sol";
+import "./PoolData.sol";
+import "./ClaimsReward.sol";
+import "./ClaimsData.sol";
+import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract claims is Iupgradable {
+contract Claims is Iupgradable {
     using SafeMaths
     for uint;
 
@@ -40,26 +40,26 @@ contract claims is Iupgradable {
     }
 
     claimRewardStatus[] rewardStatus;
-    nxmToken2 tc2;
-    nxmToken tc1;
-    claimsReward cr;
-    pool p1;
-    claimsData cd;
-    nxmTokenData td;
-    poolData pd;
-    pool3 p3;
+    NXMToken2 tc2;
+    NXMToken1 tc1;
+    ClaimsReward cr;
+    Pool1 p1;
+    ClaimsData cd;
+    NXMTokenData td;
+    PoolData pd;
+    Pool3 p3;
     address public masterAddress;
-    master ms;
-    quotationData qd;
+    NXMaster ms;
+    QuotationData qd;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
         }
@@ -78,15 +78,15 @@ contract claims is Iupgradable {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
-        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
-        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
-        cd = claimsData(ms.versionContractAddress(currentVersion, "CD"));
-        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
-        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
-        p3 = pool3(ms.versionContractAddress(currentVersion, "P3"));
-        cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
+        td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
+        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
+        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+        p3 = Pool3(ms.versionContractAddress(currentVersion, "P3"));
+        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
     }
 
     /// @dev Adds status under which a claim can lie.
@@ -106,8 +106,8 @@ contract claims is Iupgradable {
     }
 
     /// @dev Gets claim details of claim id = pending claim start + given index
-    function getClaimFromNewStart(uint index) 
-    constant 
+    function getClaimFromNewStart(uint index)
+    constant
     returns(string status, uint coverId, uint claimId, int8 voteCA, int8 voteMV, uint8 statusnumber) {
         (coverId, claimId, voteCA, voteMV, statusnumber) = cd.getClaimFromNewStart(index, msg.sender);
         status = rewardStatus[statusnumber].claimStatusDesc;
@@ -127,15 +127,14 @@ contract claims is Iupgradable {
     /// @return claimOwner Address through which claim is submitted
     /// @return coverId Coverid associated with the claim id
     function getClaimbyIndex(uint _claimId) constant returns(uint claimId, string status, int8 finalVerdict, address claimOwner, uint coverId) {
-
         uint stat;
         claimId = _claimId;
         (, coverId, finalVerdict, stat, , ) = cd.getClaim(_claimId);
         claimOwner = qd.getCoverMemberAddress(coverId);
         status = rewardStatus[stat].claimStatusDesc;
     }
-    
-    /// @dev Gets number of tokens used by a given address to assess a given claimId 
+
+    /// @dev Gets number of tokens used by a given address to assess a given claimId
     /// @param _of User's address.
     /// @param claimId Claim Id.
     /// @return value Number of tokens.
@@ -147,12 +146,12 @@ contract claims is Iupgradable {
             value = totalLockedCA;
     }
 
-    /// @dev Calculates total amount that has been used to assess a claim. 
-    //      Computaion:Adds acceptCA(tokens used for voting in favor of a claim) 
+    /// @dev Calculates total amount that has been used to assess a claim.
+    //      Computaion:Adds acceptCA(tokens used for voting in favor of a claim)
     //      denyCA(tokens used for voting against a claim) *  current token price.
     /// @param claimId Claim Id.
     /// @param member Member type 0 -> Claim Assessors, else members.
-    /// @return tokens Total Amount used in claims assessment.
+    /// @return tokens Total Amount used in Claims assessment.
     function getCATokens(uint claimId, uint member) constant returns(uint tokens) {
 
         uint coverId;
@@ -164,7 +163,7 @@ contract claims is Iupgradable {
         if (member == 0) {
             (, accept, deny) = cd.getClaimsTokenCA(claimId);
             tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18); // amount (not in tokens)
-        }else {
+        } else {
             (, accept, deny) = cd.getClaimsTokenMV(claimId);
             tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
         }
@@ -175,7 +174,7 @@ contract claims is Iupgradable {
     /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
     /// -1 -> voting has already been closed.
     function checkVoteClosing(uint claimId) constant returns(int8 close) {
-        
+
         close = 0;
 
         uint8 status;
@@ -219,7 +218,7 @@ contract claims is Iupgradable {
         }
     }
 
-    /// @dev Submits a claim for a given cover note. 
+    /// @dev Submits a claim for a given cover note.
     ///      Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverId Cover Id.
     function submitClaim(uint coverId) {
@@ -237,7 +236,7 @@ contract claims is Iupgradable {
         }
     }
 
-    ///@dev Submits the claims queued once the emergency pause is switched off.
+    ///@dev Submits the Claims queued once the emergency pause is switched off.
     function submitClaimAfterEPOff() onlyInternal {
 
         uint lengthOfClaimSubmittedAtEP = cd.getLengthOfClaimSubmittedAtEP();
@@ -257,7 +256,7 @@ contract claims is Iupgradable {
     }
 
     /// @dev Castes vote for members who have tokens locked under Claims Assessment
-    /// @param claimId  claim id. 
+    /// @param claimId  claim id.
     /// @param verdict 1 for Accept,-1 for Deny.
     function submitCAVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
@@ -288,10 +287,10 @@ contract claims is Iupgradable {
         }
     }
 
-    /// @dev Submits a member vote for assessing a claim. 
-    //      Tokens other than those locked under Claims 
+    /// @dev Submits a member vote for assessing a claim.
+    //      Tokens other than those locked under Claims
     //      Assessment can be used to cast a vote for a given claim id.
-    /// @param claimId Selected claim id. 
+    /// @param claimId Selected claim id.
     /// @param verdict 1 for Accept,-1 for Deny.
     function submitMemberVote(uint claimId, int8 verdict) isMemberAndcheckPause {
 
@@ -315,7 +314,7 @@ contract claims is Iupgradable {
             cr.changeClaimStatus(claimId);
         }
     }
-    
+
     /// @dev Pause Voting of All Pending Claims when Emergency Pause Start.
     function pauseAllPendingClaimsVoting() onlyInternal {
         uint firstIndex = cd.pendingClaimStart();
@@ -328,7 +327,7 @@ contract claims is Iupgradable {
         }
     }
 
-    /// @dev Resume the voting phase of all claims paused due to an emergency pause.
+    /// @dev Resume the voting phase of all Claims paused due to an emergency pause.
     function startAllPendingClaimsVoting() onlyInternal {
 
         uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
@@ -352,8 +351,8 @@ contract claims is Iupgradable {
     }
 
     /// @dev Checks if voting of a claim should be closed or not.
-    //             Internally called by checkVoteClosing method 
-    //             for claims whose status number is 0 or status number lie between 2 and 6.
+    //             Internally called by checkVoteClosing method
+    //             for Claims whose status number is 0 or status number lie between 2 and 6.
     /// @param claimId Claim Id.
     /// @param status Current status of claim.
     /// @return close 1 if voting should be closed,0 in case voting should not be closed,-1 if voting has already been closed.

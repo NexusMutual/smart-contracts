@@ -13,42 +13,42 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-//Claims Reward Contract contains the functions for calculating number of tokens  
-// that will get rewarded, unlocked or burned depending upon the status of claim.   
+//Claims Reward Contract contains the functions for calculating number of tokens
+// that will get rewarded, unlocked or burned depending upon the status of claim.
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./claims.sol";
-import "./claimsData.sol";
-import "./nxmToken.sol";
-import "./nxmToken2.sol";
-import "./nxmTokenData.sol";
-import "./pool.sol";
-import "./pool2.sol";
-import "./poolData.sol";
-import "./quotationData.sol";
-import "./master.sol";
+import "./Claims.sol";
+import "./ClaimsData.sol";
+import "./NXMToken1.sol";
+import "./NXMToken2.sol";
+import "./NXMTokenData.sol";
+import "./Pool1.sol";
+import "./Pool2.sol";
+import "./PoolData.sol";
+import "./QuotationData.sol";
+import "./NXMaster.sol";
 import "./Iupgradable.sol";
-import "./pool3.sol";
+import "./Pool3.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract claimsReward is Iupgradable {
-    
+contract ClaimsReward is Iupgradable {
+
     using SafeMaths
     for uint;
 
-    nxmToken tc1;
-    nxmToken2 tc2;
-    nxmTokenData td;
-    quotationData qd;
-    claimsData cd;
-    poolData pd;
-    master ms;
-    claims c1;
-    pool p1;
-    pool2 p2;
-    pool3 p3;
+    NXMToken1 tc1;
+    NXMToken2 tc2;
+    NXMTokenData td;
+    QuotationData qd;
+    ClaimsData cd;
+    PoolData pd;
+    NXMaster ms;
+    Claims c1;
+    Pool1 p1;
+    Pool2 p2;
+    Pool3 p3;
 
     address public masterAddress;
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
@@ -56,12 +56,12 @@ contract claimsReward is Iupgradable {
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
-            
+
         }
     }
 
@@ -83,20 +83,20 @@ contract claimsReward is Iupgradable {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
-        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
-        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
-        cd = claimsData(ms.versionContractAddress(currentVersion, "CD"));
-        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
-        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
-        p2 = pool2(ms.versionContractAddress(currentVersion, "P2"));
-        p3 = pool3(ms.versionContractAddress(currentVersion, "P3"));
-        td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
+        c1 = Claims(ms.versionContractAddress(currentVersion, "C1"));
+        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
+        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+        p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
+        p3 = Pool3(ms.versionContractAddress(currentVersion, "P3"));
+        td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
 
     }
-   
-    /// @dev Decides the next course of action for a given claim.    
+
+    /// @dev Decides the next course of action for a given claim.
     function changeClaimStatus(uint claimid) checkPause {
 
         require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
@@ -122,7 +122,7 @@ contract claimsReward is Iupgradable {
         }
         c1.changePendingClaimStart();
     }
-    
+
     /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
     /// @param check 1 -> CA vote, else member vote
     /// @param voteid vote id for which reward has to be Calculated
@@ -131,12 +131,12 @@ contract claimsReward is Iupgradable {
     /// @return lastClaimedCheck true if final verdict is still pending for that voteid
     /// @return tokens number of tokens locked under that voteid
     /// @return perc percentage of reward to be given.
-    function getRewardToBeGiven(uint check, uint voteid, uint flag) 
-    constant 
+    function getRewardToBeGiven(uint check, uint voteid, uint flag)
+    constant
     returns(
-        uint tokenCalculated, 
-        bool lastClaimedCheck, 
-        uint tokens, 
+        uint tokenCalculated,
+        bool lastClaimedCheck,
+        uint tokens,
         uint perc
         ) {
 
@@ -179,7 +179,7 @@ contract claimsReward is Iupgradable {
         }
 
     }
-    
+
     /// @dev Transfers all tokens held by contract to a new contract in case of upgrade.
     function upgrade(address _newAdd) onlyInternal {
         uint amount = tc1.balanceOf(address(this));
@@ -236,7 +236,7 @@ contract claimsReward is Iupgradable {
     }
 
     function getTotalStakeCommission(address _add) constant returns(uint total) {
-        
+
         total = 0;
         uint len = td.getTotalScAddressesAgainstStaker(_add);
         for (uint i = 0; i < len; i++) {
@@ -254,7 +254,7 @@ contract claimsReward is Iupgradable {
                     total = SafeMaths.add(total, commissionAmt);
                 }
             }
-            
+
         }
     }
 
@@ -274,7 +274,7 @@ contract claimsReward is Iupgradable {
 
     }
 
-    /// @dev Rewards/Punishes users who  participated in claims assessment. 
+    /// @dev Rewards/Punishes users who  participated in Claims assessment.
     //             Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
     function rewardAgainstClaim(uint claimid, uint coverid, uint8 status) internal {
@@ -284,7 +284,7 @@ contract claimsReward is Iupgradable {
         uint currPrice = tc2.getTokenPrice(curr);
         uint distributableTokens = SafeMaths.div(
             SafeMaths.mul(
-                SafeMaths.mul(sumAssured, DECIMAL1E18), DECIMAL1E18), 
+                SafeMaths.mul(sumAssured, DECIMAL1E18), DECIMAL1E18),
             SafeMaths.mul(currPrice, 100)); //  1% of sum assured
         uint percCA;
         uint percMV;
@@ -358,7 +358,7 @@ contract claimsReward is Iupgradable {
                     status = 7;
                     qd.changeCoverStatusNo(coverid, 1);
 
-                    // Call API of pool
+                    // Call API of Pool1
                     rewardClaim = 1;
                 } else if (SafeMaths.div(SafeMaths.mul(deny, 100), (SafeMaths.add(accept, deny))) > 70 && thresholdUnreached == 0) {
                     status = 6;
@@ -369,16 +369,16 @@ contract claimsReward is Iupgradable {
                             (SafeMaths.add(accept, deny))) > SafeMaths.div(SafeMaths.mul(accept, 100),
                             (SafeMaths.add(accept, deny))) && thresholdUnreached == 0) {
                     status = 5;
-                }else if (SafeMaths.div(SafeMaths.mul(deny, 100), 
-                            (SafeMaths.add(accept, deny))) <= SafeMaths.div(SafeMaths.mul(accept, 100), 
+                }else if (SafeMaths.div(SafeMaths.mul(deny, 100),
+                            (SafeMaths.add(accept, deny))) <= SafeMaths.div(SafeMaths.mul(accept, 100),
                             (SafeMaths.add(accept, deny))) && thresholdUnreached == 0) {
                     status = 4;
-                }else if (SafeMaths.div(SafeMaths.mul(deny, 100), 
-                            (SafeMaths.add(accept, deny))) > SafeMaths.div(SafeMaths.mul(accept, 100), 
+                }else if (SafeMaths.div(SafeMaths.mul(deny, 100),
+                            (SafeMaths.add(accept, deny))) > SafeMaths.div(SafeMaths.mul(accept, 100),
                             (SafeMaths.add(accept, deny))) && thresholdUnreached == 1) {
                     status = 3;
-                }else if (SafeMaths.div(SafeMaths.mul(deny, 100), 
-                            (SafeMaths.add(accept, deny))) <= SafeMaths.div(SafeMaths.mul(accept, 100), 
+                }else if (SafeMaths.div(SafeMaths.mul(deny, 100),
+                            (SafeMaths.add(accept, deny))) <= SafeMaths.div(SafeMaths.mul(accept, 100),
                             (SafeMaths.add(accept, deny))) && thresholdUnreached == 1) {
                     status = 2;
                 }
@@ -392,7 +392,7 @@ contract claimsReward is Iupgradable {
     /// @dev Computes the result of Member Voting for a given claim id.
     function changeClaimStatusMV(uint claimid, uint coverid, uint8 status) internal {
 
-        // Check if voting should be closed or not 
+        // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
             uint8 coverStatus;
             uint8 statusOrig = status;
@@ -409,11 +409,11 @@ contract claimsReward is Iupgradable {
             uint deny;
             (, deny) = cd.getClaimMVote(claimid, -1);
             if (SafeMaths.add(accept, deny) > 0) {
-                if (SafeMaths.div(SafeMaths.mul(accept, 100), 
+                if (SafeMaths.div(SafeMaths.mul(accept, 100),
                     (SafeMaths.add(accept, deny))) >= 50 && statusOrig > 1 && statusOrig <= 5 && thresholdUnreached == 0) {
                     status = 8;
                     coverStatus = 1;
-                } else if (SafeMaths.div(SafeMaths.mul(deny, 100), 
+                } else if (SafeMaths.div(SafeMaths.mul(deny, 100),
                             (SafeMaths.add(accept, deny))) > 50 && statusOrig > 1 && statusOrig <= 5 && thresholdUnreached == 0) {
                     status = 9;
                     coverStatus = 2;
@@ -429,12 +429,12 @@ contract claimsReward is Iupgradable {
 
             c1.setClaimStatus(claimid, status);
             qd.changeCoverStatusNo(coverid, coverStatus);
-            // Reward/Punish Claim Assessors and Members who participated in claims assessment
+            // Reward/Punish Claim Assessors and Members who participated in Claims assessment
             rewardAgainstClaim(claimid, coverid, status);
         }
     }
 
-    /// @dev Allows a user to claim all pending  claims assessment rewards.
+    /// @dev Allows a user to claim all pending  Claims assessment rewards.
     function claimRewardToBeDistributed() internal {
         uint lengthVote = cd.getVoteAddressCALength(msg.sender);
         uint lastIndexCA;
@@ -492,7 +492,7 @@ contract claimsReward is Iupgradable {
 
     function claimStakeCommission() internal {
 
-        uint total=0; 
+        uint total=0;
         uint len = td.getTotalScAddressesAgainstStaker(msg.sender);
         for (uint i = 0; i < len; i++) {
             uint stakerIndex;
@@ -510,7 +510,7 @@ contract claimsReward is Iupgradable {
                     td.setClaimedCommision(msg.sender, scAdd, stakerIndex, j);
                 }
             }
-            td.setLastClaimedCommission(msg.sender, scAdd, stakerIndex, commissionLen);   
+            td.setLastClaimedCommission(msg.sender, scAdd, stakerIndex, commissionLen);
         }
         if (total > 0)
             tc1.transfer(msg.sender, total);

@@ -13,28 +13,28 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./poolData.sol";
-import "./master.sol";
-import "./pool.sol";
-import "./pool2.sol";
-import "./mcrData.sol";
+import "./PoolData.sol";
+import "./NXMaster.sol";
+import "./Pool1.sol";
+import "./Pool2.sol";
+import "./MCRData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/0xProject/Exchange.sol";
 
 
-contract pool3 is Iupgradable {
+contract Pool3 is Iupgradable {
     using SafeMaths
     for uint;
 
-    poolData pd;
-    master ms;
-    pool p1;
-    pool2 p2;
+    PoolData pd;
+    NXMaster ms;
+    Pool1 p1;
+    Pool2 p2;
     Exchange exchange;
-    mcrData md;
+    MCRData md;
 
     address poolAddress;
 
@@ -44,23 +44,23 @@ contract pool3 is Iupgradable {
 
     event Liquidity(bytes16 typeOf, bytes16 functionName);
     event CheckLiquidity(bytes16 typeOf, uint balance);
-    
+
     event ZeroExOrders(
-        bytes16 func, 
-        address makerAddr, 
-        address takerAddr, 
-        uint makerAmt, 
-        uint takerAmt, 
-        uint expirationTimeInMilliSec, 
+        bytes16 func,
+        address makerAddr,
+        address takerAddr,
+        uint makerAmt,
+        uint takerAmt,
+        uint expirationTimeInMilliSec,
         bytes32 orderHash
         );
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
         }
@@ -69,12 +69,12 @@ contract pool3 is Iupgradable {
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
 
-        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
-        md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
-        p2 = pool2(ms.versionContractAddress(currentVersion, "P2"));
-        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+        md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
+        p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
     }
-    
+
     function changeExchangeContractAddress(address _add) onlyInternal {
         exchangeContractAddress = _add; //0x
     }
@@ -175,16 +175,16 @@ contract pool3 is Iupgradable {
             takerTokenAddr = getWETHAddress();
         }
         if (filledAmt > 0) {
-            if (filledAmt == takerAmt) {// order filled completely, transfer only takerAmt from signerAddress to poolAddress 
+            if (filledAmt == takerAmt) {// order filled completely, transfer only takerAmt from signerAddress to poolAddress
                 p1.transferToPool(takerTokenAddr, filledAmt);
-            } else {// order filled partially,transfer takerAmt and calculate remaining makerAmt that needs to take back from signerAddress 
+            } else {// order filled partially,transfer takerAmt and calculate remaining makerAmt that needs to take back from signerAddress
                 p1.transferToPool(takerTokenAddr, filledAmt);
                 if (takerAmt > filledAmt) {
                     makerAmt = SafeMaths.div(SafeMaths.mul(makerAmt, SafeMaths.sub(takerAmt, filledAmt)), takerAmt);
                     p1.transferToPool(makerTokenAddr, makerAmt);
                 }
             }
-        } else {// order is not filled completely,transfer makerAmt as it is from signerAddress to poolAddr  
+        } else {// order is not filled completely,transfer makerAmt as it is from signerAddress to poolAddr
             p1.transferToPool(makerTokenAddr, makerAmt);
         }
         pd.updateLiquidityOrderStatus(curr, orderHashType, 0); //order closed successfully for this currency
@@ -198,7 +198,7 @@ contract pool3 is Iupgradable {
     /// @dev Enables an authorized user to sign 0x Order Hash.
     function sign0xOrder(uint orderId, bytes32 orderHash) checkPause {
 
-        require(msg.sender == pd.get0xMakerAddress() && pd.getZeroExOrderStatus(orderHash) == 0); // not signed already         
+        require(msg.sender == pd.get0xMakerAddress() && pd.getZeroExOrderStatus(orderHash) == 0); // not signed already
 
         bytes16 orderType;
         address makerTokenAddr;
@@ -219,12 +219,12 @@ contract pool3 is Iupgradable {
             p1.close0xOrders(bytes4(makerToken), orderId, expireTime);
         } else if (orderType == "ILT") {
             makerTokenAddr = pd.getInvestmentAssetAddress(makerToken);
-            // transfer selling amount to the makerAddress from pool contract
+            // transfer selling amount to the makerAddress from Pool1 contract
             p1.transferFromPool(makerAddress, makerTokenAddr, makerAmt);
             p1.close0xOrders(bytes4(takerToken), orderId, expireTime); //orderId is the index of Currency Asset at which hash is saved.
         } else if (orderType == "RBT") {
             makerTokenAddr = pd.getInvestmentAssetAddress(makerToken);
-            // transfer selling amount to the makerAddress from pool contract
+            // transfer selling amount to the makerAddress from Pool1 contract
             p1.transferFromPool(makerAddress, makerTokenAddr, makerAmt);
             p1.close0xOrders(bytes4(makerToken), orderId, expireTime); // orderId is the index of allRebalancingOrderHash.
         }
@@ -269,7 +269,7 @@ contract pool3 is Iupgradable {
                     // amount of asset to buy investment asset
                     if (md.getCurr3DaysAvg(curr) > 0) {
                         uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(minIACurr);
-                        takerAmt = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(minIARate, makerAmt), 
+                        takerAmt = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(minIARate, makerAmt),
                             10**investmentAssetDecimals)), (md.getCurr3DaysAvg(curr)));
                         zeroExOrders(curr, makerAmt, takerAmt, "ELT", 0);
                         Liquidity("ELT", "0x");
@@ -336,14 +336,14 @@ contract pool3 is Iupgradable {
     }
 
     /// @dev Get Investment asset balance and active status for a given asset name.
-    function getInvestmentAssetBalAndStatus(bytes8 currName) 
-    constant 
+    function getInvestmentAssetBalAndStatus(bytes8 currName)
+    constant
     returns(
-        bytes16 curr, 
-        uint balance, 
-        uint8 status, 
-        uint64 _minHoldingPercX100, 
-        uint64 _maxHoldingPercX100, 
+        bytes16 curr,
+        uint balance,
+        uint8 status,
+        uint64 _minHoldingPercX100,
+        uint64 _maxHoldingPercX100,
         uint64 decimals
         ) {
 
@@ -365,8 +365,8 @@ contract pool3 is Iupgradable {
     /// @dev Gets currency asset details for a given currency name.
     /// @return caBalance currency asset balance
     /// @return caRateX100 currency asset balance*100.
-    /// @return baseMin minimum base amount required in pool.
-    /// @return varMin  minimum variable amount required in pool.
+    /// @return baseMin minimum base amount required in Pool1.
+    /// @return varMin  minimum variable amount required in Pool1.
     function getCurrencyAssetDetails(bytes8 curr) constant returns(uint caBalance, uint caRateX100, uint baseMin, uint varMin) {
         caBalance = getCurrencyAssetsBalance(curr);
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
@@ -420,34 +420,34 @@ contract pool3 is Iupgradable {
         if (_type == "ELT") {
             takerTokenAddr = pd.getInvestmentAssetAddress(minIACurr);
             expirationTimeInMilliSec = SafeMaths.add(now, pd.getOrderExpirationTime(_type)); //12 hours in milliseconds
-            orderHash = exchange.getOrderHash([pd.get0xMakerAddress(), pd.get0xTakerAddress(), 
-                makerTokenAddr, takerTokenAddr, pd.get0xFeeRecipient()], 
-                [SafeMaths.mul(makerAmt, DECIMAL1E18), takerAmt, pd.get0xMakerFee(), 
+            orderHash = exchange.getOrderHash([pd.get0xMakerAddress(), pd.get0xTakerAddress(),
+                makerTokenAddr, takerTokenAddr, pd.get0xFeeRecipient()],
+                [SafeMaths.mul(makerAmt, DECIMAL1E18), takerAmt, pd.get0xMakerFee(),
                 pd.get0xTakerFee(), expirationTimeInMilliSec, pd.getOrderSalt()]);
             pd.setCurrOrderHash(curr, orderHash);
             pd.updateLiquidityOrderStatus(curr, _type, 1);
-            pd.pushOrderDetails(orderHash, curr, SafeMaths.mul(makerAmt, DECIMAL1E18), 
+            pd.pushOrderDetails(orderHash, curr, SafeMaths.mul(makerAmt, DECIMAL1E18),
                 bytes4(minIACurr), takerAmt, _type, expirationTimeInMilliSec);
             //event
-            ZeroExOrders("Call0x", makerTokenAddr, takerTokenAddr, 
+            ZeroExOrders("Call0x", makerTokenAddr, takerTokenAddr,
                 SafeMaths.mul(makerAmt, DECIMAL1E18), takerAmt, expirationTimeInMilliSec, orderHash);
         } else if (_type == "ILT") {
             makerTokenAddr = pd.getInvestmentAssetAddress(maxIACurr);
             expirationTimeInMilliSec = SafeMaths.add(now, pd.getOrderExpirationTime(_type));
-            orderHash = exchange.getOrderHash([pd.get0xMakerAddress(), pd.get0xTakerAddress(), 
-                makerTokenAddr, takerTokenAddr, pd.get0xFeeRecipient()], 
-                [makerAmt, SafeMaths.mul(takerAmt, DECIMAL1E18), pd.get0xMakerFee(), 
+            orderHash = exchange.getOrderHash([pd.get0xMakerAddress(), pd.get0xTakerAddress(),
+                makerTokenAddr, takerTokenAddr, pd.get0xFeeRecipient()],
+                [makerAmt, SafeMaths.mul(takerAmt, DECIMAL1E18), pd.get0xMakerFee(),
                 pd.get0xTakerFee(), expirationTimeInMilliSec, pd.getOrderSalt()]);
             pd.setCurrOrderHash(curr, orderHash);
             pd.updateLiquidityOrderStatus(curr, _type, 1);
-            pd.pushOrderDetails(orderHash, bytes4(maxIACurr), makerAmt, curr, 
+            pd.pushOrderDetails(orderHash, bytes4(maxIACurr), makerAmt, curr,
                 SafeMaths.mul(takerAmt, DECIMAL1E18), _type, expirationTimeInMilliSec);
             if (cancel == 1) {
                 // saving last orderHash
                 setOrderCancelHashValue(curr, orderHash);
             }
             //event
-            ZeroExOrders("Call0x", makerTokenAddr, takerTokenAddr, makerAmt, 
+            ZeroExOrders("Call0x", makerTokenAddr, takerTokenAddr, makerAmt,
                 SafeMaths.mul(takerAmt, DECIMAL1E18), expirationTimeInMilliSec, orderHash);
         }
     }

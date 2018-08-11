@@ -13,42 +13,42 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./nxmToken.sol";
-import "./nxmToken2.sol";
-import "./nxmTokenData.sol";
-import "./pool.sol";
-import "./quotationData.sol";
-import "./mcr.sol";
-import "./master.sol";
+import "./NXMToken1.sol";
+import "./NXMToken2.sol";
+import "./NXMTokenData.sol";
+import "./Pool1.sol";
+import "./QuotationData.sol";
+import "./MCR.sol";
+import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract quotation2 is Iupgradable {
+contract Quotation is Iupgradable {
     using SafeMaths
     for uint;
 
-    nxmToken tc1;
-    nxmToken2 tc2;
-    nxmTokenData td;
-    pool p1;
-    quotationData qd;
-    master ms;
-    mcr m1;
+    NXMToken1 tc1;
+    NXMToken2 tc2;
+    NXMTokenData td;
+    Pool1 p1;
+    QuotationData qd;
+    NXMaster ms;
+    MCR m1;
 
     address masterAddress;
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
-            
+
         }
     }
 
@@ -78,16 +78,16 @@ contract quotation2 is Iupgradable {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
-        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
-        td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
-        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
+        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
+        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
 
     }
-    
-    /// @dev Expires a cover after a set period of time. 
+
+    /// @dev Expires a cover after a set period of time.
     /// @dev Changes the status of the Cover and reduces the current sum assured of all areas in which the quotation lies
     /// @dev Unlocks the CN tokens of the cover. Updates the Total Sum Assured value.
     /// @param _cid Cover Id.
@@ -136,13 +136,13 @@ contract quotation2 is Iupgradable {
     /// @dev Makes Cover funded via NXM tokens.
     /// @param smartCAdd Smart Contract Address
     function makeCoverUsingNXMTokens(
-        uint prodId, 
-        uint[] coverDetails, 
-        uint16 coverPeriod, 
-        bytes4 coverCurr, 
-        address smartCAdd, 
-        uint8 _v, 
-        bytes32 _r, 
+        uint prodId,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        bytes4 coverCurr,
+        address smartCAdd,
+        uint8 _v,
+        bytes32 _r,
         bytes32 _s
         ) isMemberAndcheckPause {
 
@@ -157,14 +157,14 @@ contract quotation2 is Iupgradable {
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
     function verifyCoverDetails(
-        uint prodId, 
-        address from, 
-        address scAddress, 
-        bytes4 coverCurr, 
-        uint[] coverDetails, 
-        uint16 coverPeriod, 
-        uint8 _v, 
-        bytes32 _r, 
+        uint prodId,
+        address from,
+        address scAddress,
+        bytes4 coverCurr,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        uint8 _v,
+        bytes32 _r,
         bytes32 _s
         ) onlyInternal {
         verifyCoverDetailsIntrnl(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
@@ -174,16 +174,16 @@ contract quotation2 is Iupgradable {
     /// @param coverDetails details related to cover.
     /// @param coverPeriod validity of cover.
     /// @param smaratCA smarat contract address.
-    /// @param _v argument from vrs hash. 
+    /// @param _v argument from vrs hash.
     /// @param _r argument from vrs hash.
     /// @param _s argument from vrs hash.
     function verifySign(
-        uint[] coverDetails, 
-        uint16 coverPeriod, 
-        bytes4 curr, 
-        address smaratCA, 
-        uint8 _v, 
-        bytes32 _r, 
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        bytes4 curr,
+        address smaratCA,
+        uint8 _v,
+        bytes32 _r,
         bytes32 _s
         ) constant returns(bool) {
         bytes32 hash = getOrderHash(coverDetails, coverPeriod, curr, smaratCA);
@@ -200,7 +200,7 @@ contract quotation2 is Iupgradable {
 
     /// @dev Verifies signature.
     /// @param hash order hash
-    /// @param v argument from vrs hash. 
+    /// @param v argument from vrs hash.
     /// @param r argument from vrs hash.
     /// @param s argument from vrs hash.
     function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant returns(bool) {
@@ -245,14 +245,14 @@ contract quotation2 is Iupgradable {
     /// @param from address of funder.
     /// @param scAddress Smart Contract Address
     function verifyCoverDetailsIntrnl(
-        uint prodId, 
-        address from, 
-        address scAddress, 
-        bytes4 coverCurr, 
-        uint[] coverDetails, 
-        uint16 coverPeriod, 
-        uint8 _v, 
-        bytes32 _r, 
+        uint prodId,
+        address from,
+        address scAddress,
+        bytes4 coverCurr,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        uint8 _v,
+        bytes32 _r,
         bytes32 _s
         ) internal {
         require(coverDetails[3] > now);

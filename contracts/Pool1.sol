@@ -13,15 +13,15 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./nxmToken.sol";
-import "./nxmToken2.sol";
-import "./poolData.sol";
-import "./quotation2.sol";
-import "./master.sol";
-import "./pool2.sol";
-import "./mcr.sol";
+import "./NXMToken1.sol";
+import "./NXMToken2.sol";
+import "./PoolData.sol";
+import "./Quotation.sol";
+import "./NXMaster.sol";
+import "./Pool2.sol";
+import "./MCR.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
@@ -30,25 +30,24 @@ import "./imports/oraclize/ethereum-api/usingOraclize.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 
 
-contract pool is usingOraclize, Iupgradable, Governed {
+contract Pool1 is usingOraclize, Iupgradable, Governed {
     using SafeMaths
     for uint;
 
-    master ms;
+    NXMaster ms;
     address masterAddress;
     address poolAddress;
     address mcrAddress;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
-    quotation2 q2;
-    nxmToken tc1;
-    nxmToken2 tc2;
-    poolData pd;
-    pool2 p2;
-    mcr m1;
+    Quotation q2;
+    NXMToken1 tc1;
+    NXMToken2 tc2;
+    PoolData pd;
+    Pool2 p2;
+    MCR m1;
     StandardToken stok;
-    // BasicToken stok;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
 
@@ -57,12 +56,12 @@ contract pool is usingOraclize, Iupgradable, Governed {
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
-            
+
         }
 
     }
@@ -93,22 +92,22 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
-        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
-        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
-        q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
-        p2 = pool2(ms.versionContractAddress(currentVersion, "P2"));
+        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
+        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+        q2 = Quotation(ms.versionContractAddress(currentVersion, "Q2"));
+        p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
     }
 
-    /// @dev Changes pool address.
+    /// @dev Changes Pool1 address.
     function changePoolAddress(address _add) onlyInternal {
         poolAddress = _add;
     }
 
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
     /// @param id Claim Id to be closed
-    /// @param time Time (in seconds) after which claims assessment voting needs to be closed
+    /// @param time Time (in seconds) after which Claims assessment voting needs to be closed
     function closeClaimsOraclise(uint id, uint64 time) onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", "", 3000000);
         saveApiDetails(myid, "CLA", id);
@@ -118,13 +117,13 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @param id Quote Id to be expired
     /// @param time Time (in seconds) after which the cover should be expired
     function closeCoverOraclise(uint id, uint64 time) onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", strConcat("http://a1.nexusmutual.io/api/claims/closeClaim_hash/", uint2str(id)), 1000000);
+        bytes32 myid = oraclize_query(time, "URL", strConcat("http://a1.nexusmutual.io/api/Claims/closeClaim_hash/", uint2str(id)), 1000000);
         saveApiDetails(myid, "COV", id);
     }
 
-    /// @dev Calls the Oraclize Query to update the version of the contracts.    
+    /// @dev Calls the Oraclize Query to update the version of the contracts.
     function versionOraclise(uint version) onlyInternal {
-        bytes32 myid = oraclize_query("URL", "http://a1.nexusmutual.io/api/mcr/setlatest/T");
+        bytes32 myid = oraclize_query("URL", "http://a1.nexusmutual.io/api/MCR/setlatest/T");
         saveApiDetails(myid, "VER", version);
     }
 
@@ -138,23 +137,23 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @dev Sets a given investment asset as active or inactive for trading.
     function changeInvestmentAssetStatus(bytes8 curr, uint8 status) onlyAuthorizedToGovern {
 
-        pd.changeInvestmentAssetStatus(curr, status);   
+        pd.changeInvestmentAssetStatus(curr, status);
 
     }
-    
+
     // add new investment asset currency.
     function addInvestmentAssetsDetails(
         bytes8 currName,
         address curr,
-        uint64 _minHoldingPercX100, 
+        uint64 _minHoldingPercX100,
         uint64 _maxHoldingPercX100
     )
-        onlyAuthorizedToGovern 
+        onlyAuthorizedToGovern
     {
         pd.addInvestmentCurrency(currName);
         pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
     }
-    
+
     // @dev Updates investment asset min and max holding percentages.
     function updateInvestmentAssetHoldingPerc(bytes8 _curr, uint64 _minPercX100, uint64 _maxPercX100) onlyAuthorizedToGovern {
 
@@ -186,7 +185,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
         saveApiDetails(myid, "Pause", 0);
     }
 
-    /// @dev Handles callback of external oracle query. 
+    /// @dev Handles callback of external oracle query.
     function __callback(bytes32 myid, string result) {
         require(msg.sender == oraclize_cbAddress() || ms.isOwner(msg.sender) == true);
         p2.delegateCallBack(myid);
@@ -195,19 +194,19 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @dev Enables user to purchase cover with funding in ETH.
     /// @param smartCAdd Smart Contract Address
     function makeCoverBegin(
-        uint8 prodId, 
-        address smartCAdd, 
-        bytes4 coverCurr, 
-        uint[] coverDetails, 
-        uint16 coverPeriod, 
-        uint8 _v, 
-        bytes32 _r, 
+        uint8 prodId,
+        address smartCAdd,
+        bytes4 coverCurr,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        uint8 _v,
+        bytes32 _r,
         bytes32 _s
         ) isMemberAndcheckPause payable {
 
         require(msg.value == coverDetails[1]);
         q2.verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
-        
+
     }
 
     /// @dev Enables user to purchase NXM at the current token price.
@@ -224,21 +223,21 @@ contract pool is usingOraclize, Iupgradable, Governed {
     function transferEther(uint amount, address _add) onlyAuthorizedToGovern checkPause constant returns(bool succ) {
         succ = _add.send(amount);      
     }
-    
-    /// @dev Sends a given Ether amount to a given address for claims payout.
+
+    /// @dev Sends a given Ether amount to a given address for Claims payout.
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
     function transferEtherForPayout(uint amount, address _add) onlyInternal constant returns(bool succ) {
-        succ = _add.send(amount);      
+        succ = _add.send(amount);
     }
 
-    /// @dev Payable method for allocating some amount to the Pool. 
+    /// @dev Payable method for allocating some amount to the Pool1.
     function takeEthersOnly() payable onlyOwner {
 
     }
 
-    /// @dev Gets the Balance of the Pool in wei.
+    /// @dev Gets the Balance of the Pool1 in wei.
     function getEtherPoolBalance() constant returns(uint bal) {
         bal = this.balance;
     }
@@ -249,15 +248,15 @@ contract pool is usingOraclize, Iupgradable, Governed {
         pd.change0xFeeRecipient(_feeRecipient);
     }
 
-    ///@dev Gets pool balance of a given investmentasset.
+    ///@dev Gets Pool1 balance of a given investmentasset.
     function getBalanceofInvestmentAsset(bytes8 _curr) constant returns(uint balance) {
         address currAddress = pd.getInvestmentAssetAddress(_curr);
         stok = StandardToken(currAddress);
         return stok.balanceOf(poolAddress);
     }
 
-    /// @dev transfers investment assets from old pool to new pool address.
-    ///      To be automated by version control in master
+    /// @dev transfers investment assets from old Pool1 to new Pool1 address.
+    ///      To be automated by version control in NXMaster
     function transferIAFromPool(address _newPoolAddr) onlyOwner {
 
         for (uint64 i = 0; i < pd.getInvestmentCurrencyLen(); i++) {
@@ -268,14 +267,14 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     }
 
-    ///@dev Gets pool balance of a given investmentasset.
+    ///@dev Gets Pool1 balance of a given investmentasset.
     function getBalanceOfCurrencyAsset(bytes8 _curr) constant returns(uint balance) {
 
         stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
         return stok.balanceOf(poolAddress);
     }
 
-    ///@dev Transfers currency from current pool address to the new pool address.
+    ///@dev Transfers currency from current Pool1 address to the new Pool1 address.
     function transferCurrencyFromPool(address _newPoolAddr) onlyOwner {
 
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
@@ -284,10 +283,10 @@ contract pool is usingOraclize, Iupgradable, Governed {
             transferCurrencyFromPool(_newPoolAddr, currAddr);
         }
         _newPoolAddr.send(this.balance);
-        
+
     }
-     
-    ///@dev Transfers investment asset from current pool address to the new pool address.
+
+    ///@dev Transfers investment asset from current Pool1 address to the new Pool1 address.
     function transferCurrencyFromPool(address _newPoolAddr, address currAddr) onlyInternal {
         stok = StandardToken(currAddr);
         if (stok.balanceOf(this) > 0) {
@@ -302,35 +301,35 @@ contract pool is usingOraclize, Iupgradable, Governed {
             stok.transfer(_to, _value);
     }
 
-    /// @dev Transfers specific currency asset from current pool address to the new pool address.
+    /// @dev Transfers specific currency asset from current Pool1 address to the new Pool1 address.
     function transferFromPool(address _to, address _currAddr, uint _amount) onlyInternal {
         stok = StandardToken(_currAddr);
         if (stok.balanceOf(this) >= _amount)
             stok.transfer(_to, _amount);
     }
 
-    /// @dev Transfers amount to pool from 0x order maker.
+    /// @dev Transfers amount to Pool1 from 0x order maker.
     function transferToPool(address currAddr, uint amount) onlyInternal returns(bool success) {
         stok = StandardToken(currAddr);
         success = stok.transferFrom(pd.get0xMakerAddress(), poolAddress, amount);
     }
 
-    ///@dev Gets 0x wrapped ether pool balance.
+    ///@dev Gets 0x wrapped ether Pool1 balance.
     function getWETHPoolBalance() constant returns(uint wETH) {
         stok = StandardToken(pd.getWETHAddress());
         return stok.balanceOf(poolAddress);
     }
 
     ///@dev Gets 0x order details by hash.
-    function getOrderDetailsByHash(bytes16 orderType, bytes8 makerCurr, bytes8 takerCurr) 
-    constant 
+    function getOrderDetailsByHash(bytes16 orderType, bytes8 makerCurr, bytes8 takerCurr)
+    constant
     returns(
-        address makerCurrAddr, 
-        address takerCurrAddr, 
-        uint salt, 
-        address feeRecipient, 
-        address takerAddress, 
-        uint makerFee, 
+        address makerCurrAddr,
+        address takerCurrAddr,
+        uint salt,
+        address feeRecipient,
+        address takerAddress,
+        uint makerFee,
         uint takerFee
         ) {
 
@@ -359,13 +358,13 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     /// @dev Enables user to purchase cover via currency asset eg DAI
     function makeCoverUsingCA(
-        uint8 prodId, 
-        address smartCAdd, 
-        bytes4 coverCurr, 
-        uint[] coverDetails, 
-        uint16 coverPeriod, 
-        uint8 _v, 
-        bytes32 _r, 
+        uint8 prodId,
+        address smartCAdd,
+        bytes4 coverCurr,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        uint8 _v,
+        bytes32 _r,
         bytes32 _s
         ) isMemberAndcheckPause {
         stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
@@ -404,9 +403,9 @@ contract pool is usingOraclize, Iupgradable, Governed {
         pd.saveApiDetailsCurr(myid, _typeof, curr, id);
         pd.addInAllApiCall(myid);
     }
-    
-    ///@dev Transfers investment asset from current pool address to the new pool address.
-    ///      To be automated by version control in master
+
+    ///@dev Transfers investment asset from current Pool1 address to the new Pool1 address.
+    ///      To be automated by version control in NXMaster
     function transferIAFromPool(address _newPoolAddr, address currAddr) internal {
         stok = StandardToken(currAddr);
         if (stok.balanceOf(this) > 0) {

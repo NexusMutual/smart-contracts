@@ -1,16 +1,11 @@
 {
   "name": "nexusmutual",
   "version": "1.0.0",
-  "description": "smartcontract covers",
+  "description": "Smart Contract Covers",
   "files": [
     "contracts",
     "test"
   ],
-  "scripts": {
-    "test": "scripts/test.sh",
-    "console": "truffle console",
-    "coverage": "scripts/coverage.sh"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/somish/NexusMutual.git"
@@ -28,16 +23,14 @@
     "url": "https://github.com/somish/NexusMutual/issues"
   },
   "homepage": "https://github.com/somish/NexusMutual#readme",
+  "dependencies": {
+    "solc": "^0.4.24",
+    "truffle": "^4.1.13",
+    "truffle-hdwallet-provider": "^0.0.5"
+  },
   "devDependencies": {
-    "chai": "^4.1.2",
-    "chai-bignumber": "^2.0.2",
-    "coveralls": "^3.0.1",
-    "ethereum-bridge": "^0.6.1",
-    "ethereumjs-util": "^5.2.0",
-    "ethjs-abi": "^0.2.1",
-    "ganache-cli": "6.1.0",
-    "solidity-coverage": "^0.5.4",
-    "truffle-hdwallet-provider": "0.0.5",
-    "web3-utils": "^1.0.0-beta.34"
+    "ganache-cli": "^6.1.6",
+    "mocha": "^5.2.0",
+    "solidity-coverage": "^0.5.5"
   }
 }

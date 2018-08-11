@@ -112,6 +112,17 @@ contract GovBlocksMaster {
         govBlocksDappByAddress[_newMasterAddress] = _gbUserName;
     }
 
+    /// @dev Changes dApp desc hash
+    /// @param _gbUserName dApp name
+    /// @param _descHash dApp new desc hash
+    function changeDappMasterAddress(bytes32 _gbUserName, string _descHash) public {
+        if(address(governChecker) != address(0))          // Owner for debugging only, will be removed before launch
+            require(msg.sender == governChecker.authorized(_gbUserName) || owner == msg.sender);
+        else
+            require(owner == msg.sender);
+        govBlocksDapps[_gbUserName].dappDescHash = _descHash;                   
+    }
+
     /// @dev Changes dApp token address
     /// @param _gbUserName  dApp name
     /// @param _dappTokenAddress dApp new token address

@@ -8,22 +8,22 @@ var Pool = artifacts.require("Pool");
 var ProposalCategory = artifacts.require("ProposalCategory");
 var SimpleVoting = artifacts.require("SimpleVoting");
 var EventCaller = artifacts.require("EventCaller");
-var claims = artifacts.require("claims");
-var claimsData = artifacts.require("claimsData");
-var claimsReward = artifacts.require("claimsReward");
-var master = artifacts.require("master");
-var master2 = artifacts.require("masters2");
-var mcr = artifacts.require("mcr");
-var mcrData = artifacts.require("mcrData");
-var nxmToken = artifacts.require("nxmToken");
-var nxmToken2 = artifacts.require("nxmToken2");
-var nxmTokenData = artifacts.require("nxmTokenData");
-var pool = artifacts.require("pool");
-var pool2 = artifacts.require("pool2");
-var pool3 = artifacts.require("pool3");
-var poolData = artifacts.require("poolData");
-var quotation2 = artifacts.require("quotation2");
-var quotationData = artifacts.require("quotationData");
+var Claims = artifacts.require("Claims");
+var ClaimsData = artifacts.require("ClaimsData");
+var ClaimsReward = artifacts.require("ClaimsReward");
+var NXMaster = artifacts.require("NXMaster");
+var NXMaster2 = artifacts.require("NXMaster2");
+var MCR = artifacts.require("MCR");
+var MCRData = artifacts.require("MCRData");
+var NXMToken1 = artifacts.require("NXMToken1");
+var NXMToken2 = artifacts.require("NXMToken2");
+var NXMTokenData = artifacts.require("NXMTokenData");
+var Pool1 = artifacts.require("Pool1");
+var Pool2 = artifacts.require("Pool2");
+var Pool3 = artifacts.require("Pool3");
+var PoolData = artifacts.require("PoolData");
+var Quotation = artifacts.require("Quotation");
+var QuotationData = artifacts.require("QuotationData");
 const json = require('./../build/contracts/Master.json');
 var bytecode = json['bytecode'];
 
@@ -58,7 +58,7 @@ module.exports = deployer => {
 
     deployer
     .then(() => GBTStandardToken.deployed())
-    .then(function(instance){ 
+    .then(function(instance){
         gbt = instance;
         return EventCaller.deployed();
     })
@@ -86,7 +86,7 @@ module.exports = deployer => {
     .then(function(){
         return GovernanceData.deployed();
     })
-    .then(function(instance){ 
+    .then(function(instance){
         gd = instance;
         return MemberRoles.deployed();
     })
@@ -98,14 +98,14 @@ module.exports = deployer => {
         pc = instance;
         return pc.proposalCategoryInitiate();
     })
-    .then(function(){ 
+    .then(function(){
         return SimpleVoting.deployed();
     })
-    .then(function(instance){ 
+    .then(function(instance){
         sv = instance;
         return Governance.deployed();
     })
-    .then(function(instance){ 
+    .then(function(instance){
         gv = instance;
         return Pool.deployed();
     })
@@ -132,63 +132,63 @@ module.exports = deployer => {
     })
     .then(function(){
         console.log("Nexus-Mutual Dapp added!");
-        return master.deployed();
+        return NXMaster.deployed();
     })
     .then(function(instance){
-        nms = instance;  
-        return master2.deployed();
+        nms = instance;
+        return NXMaster2.deployed();
     })
     .then(function(instance){
         nms2 = instance;
-        return nxmToken2.deployed();
+        return NXMToken2.deployed();
     })
     .then(function(instance){
         nxm2 = instance;
-        return nxmTokenData.deployed();
+        return NXMTokenData.deployed();
     })
     .then(function(instance){
         td = instance;
-        return mcr.deployed();
+        return MCR.deployed();
     })
     .then(function(instance){
         mc = instance;
-        return mcrData.deployed();
+        return MCRData.deployed();
     })
     .then(function(instance){
         mcd = instance;
-        return pool.deployed();
+        return Pool1.deployed();
     })
     .then(function(instance){
         pl1 = instance;
-        return pool2.deployed();
+        return Pool2.deployed();
     })
     .then(function(instance){
         pl2 = instance;
-        return pool3.deployed();
+        return Pool3.deployed();
     })
     .then(function(instance){
         pl3 = instance;
-        return poolData.deployed();
+        return PoolData.deployed();
     })
     .then(function(instance){
         pd = instance;
-        return claims.deployed();
+        return Claims.deployed();
     })
     .then(function(instance){
         cl = instance;
-        return claimsReward.deployed();
+        return ClaimsReward.deployed();
     })
     .then(function(instance){
         cr = instance;
-        return claimsData.deployed();
+        return ClaimsData.deployed();
     })
     .then(function(instance){
         cd = instance;
-	return quotation2.deployed();
+	return Quotation.deployed();
     })
     .then(function(instance){
         q2 = instance;
-        return quotationData.deployed();
+        return QuotationData.deployed();
     })
     .then(function(instance){
 	qd = instance;
@@ -252,7 +252,7 @@ module.exports = deployer => {
         var arg6 = 20180807;
 	    return mc.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
     })
-    .then(function(){ 
+    .then(function(){
 		console.log("NXM initialized");
     });
 };

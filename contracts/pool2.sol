@@ -13,46 +13,46 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./nxmToken.sol";
-import "./nxmToken2.sol";
-import "./claimsReward.sol";
-import "./poolData.sol";
-import "./quotation2.sol";
-import "./quotationData.sol";
-import "./master.sol";
-import "./pool.sol";
-import "./claims.sol";
-import "./mcrData.sol";
-import "./mcr.sol";
-import "./pool3.sol";
+import "./NXMToken1.sol";
+import "./NXMToken2.sol";
+import "./ClaimsReward.sol";
+import "./PoolData.sol";
+import "./Quotation.sol";
+import "./QuotationData.sol";
+import "./NXMaster.sol";
+import "./Pool1.sol";
+import "./Claims.sol";
+import "./MCRData.sol";
+import "./MCR.sol";
+import "./Pool3.sol";
 import "./Iupgradable.sol";
 import "./imports/0xProject/Exchange.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
-contract pool2 is Iupgradable {
+contract Pool2 is Iupgradable {
 
     using SafeMaths
     for uint;
 
-    master ms;
+    NXMaster ms;
     address masterAddress;
-    nxmToken tc1;
-    nxmToken2 tc2;
-    pool p1;
-    claims c1;
+    NXMToken1 tc1;
+    NXMToken2 tc2;
+    Pool1 p1;
+    Claims c1;
     Exchange exchange1;
-    quotation2 q2;
-    mcr m1;
-    mcrData md;
-    claimsReward cr;
-    poolData pd;
+    Quotation q2;
+    MCR m1;
+    MCRData md;
+    ClaimsReward cr;
+    PoolData pd;
     BasicToken btok;
-    pool3 p3;
-    quotationData qd;
+    Pool3 p3;
+    QuotationData qd;
 
     address poolAddress;
     address exchangeContractAddress;
@@ -61,14 +61,14 @@ contract pool2 is Iupgradable {
 
     event Payout(address indexed to, bytes16 eventName, uint coverId, uint tokens);
     event Liquidity(bytes16 typeOf, bytes16 functionName);
-    
+
     event ZeroExOrders(
-        bytes16 func, 
-        address makerAddr, 
-        address takerAddr, 
-        uint makerAmt, 
-        uint takerAmt, 
-        uint expirationTimeInMilliSec, 
+        bytes16 func,
+        address makerAddr,
+        address takerAddr,
+        uint makerAmt,
+        uint takerAmt,
+        uint expirationTimeInMilliSec,
         bytes32 orderHash
         );
 
@@ -77,9 +77,9 @@ contract pool2 is Iupgradable {
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
         }
@@ -102,17 +102,17 @@ contract pool2 is Iupgradable {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
-        tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
-        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
-        pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
-        md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
-        q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
-        p3 = pool3(ms.versionContractAddress(currentVersion, "P3"));
-        p1 = pool(ms.versionContractAddress(currentVersion, "P1"));
-        c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
-        cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
-        qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
+        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
+        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+        md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
+        q2 = Quotation(ms.versionContractAddress(currentVersion, "Q2"));
+        p3 = Pool3(ms.versionContractAddress(currentVersion, "P3"));
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        c1 = Claims(ms.versionContractAddress(currentVersion, "C1"));
+        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
+        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
     }
 
     function changeExchangeContractAddress(address _add) onlyOwner {
@@ -120,18 +120,18 @@ contract pool2 is Iupgradable {
 
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
-    
-    /// @dev Handles the Callback of the Oraclize Query.     
+
+    /// @dev Handles the Callback of the Oraclize Query.
     /// @param myid Oraclize Query ID identifying the query for which the result is being received
     function delegateCallBack(bytes32 myid) onlyInternal {
 
         if (ms.isPause() == false) { // system is not in emergency pause
-        
+
             // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
             if (pd.getApiIdTypeOf(myid) == "COV") {
                 pd.updateDateUpdOfAPI(myid);
                 q2.expireCover(pd.getIdOfApiId(myid));
-            }else if (pd.getApiIdTypeOf(myid) == "CLA") {    
+            }else if (pd.getApiIdTypeOf(myid) == "CLA") {
                 // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
                 pd.updateDateUpdOfAPI(myid);
                 cr.changeClaimStatus(pd.getIdOfApiId(myid));
@@ -158,7 +158,7 @@ contract pool2 is Iupgradable {
         }
     }
 
-    /// @dev Calls the payout event in case of claims payout.
+    /// @dev Calls the payout event in case of Claims payout.
     function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
         Payout(_add, type1, id, sa);
     }
@@ -178,7 +178,7 @@ contract pool2 is Iupgradable {
         //Payout in Ethers in case currency of quotation is ETH
         if (curr == "ETH") {
             balance = p1.getEtherPoolBalance();
-            //Check if pool has enough ETH balance
+            //Check if Pool1 has enough ETH balance
             if (balance >= sumAssured1e18) {
                 succ = p1.transferEtherForPayout(sumAssured1e18, _to);
                 if (succ == true) {
@@ -193,11 +193,11 @@ contract pool2 is Iupgradable {
                 c1.setClaimStatus(claimid, 12);
                 succ = false;
             }
-        }else {    
+        }else {
           //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
             btok = BasicToken(pd.getCurrencyAssetAddress(curr));
             balance = btok.balanceOf(poolAddress);
-            //Check if pool has enough fiat crypto balance
+            //Check if Pool1 has enough fiat crypto balance
             if (balance >= sumAssured1e18) {
                 p1.transferPayout(_to, curr, sumAssured1e18);
                 q2.removeSAFromCSA(coverid, sumAssured);
@@ -227,7 +227,7 @@ contract pool2 is Iupgradable {
             rhs = int(SafeMaths.div(SafeMaths.mul(SafeMaths.mul(iaBalance, 100), 100000), (SafeMaths.mul(holdingPercDiff, rateX100))));
     }
 
-    /// @dev Gets the equivalent investment asset pool  balance in ether. 
+    /// @dev Gets the equivalent investment asset Pool1  balance in ether.
     /// @param iaCurr array of Investment asset name.
     /// @param iaRate array of investment asset exchange rate.
     function totalRiskPoolBalance(bytes8[] iaCurr, uint64[] iaRate) constant returns(uint balance, uint iaBalance) {
@@ -241,9 +241,9 @@ contract pool2 is Iupgradable {
         balance = SafeMaths.add(currBalance, iaBalance);
     }
 
-    /// @dev Triggers pool rebalancing trading orders.
+    /// @dev Triggers Pool1 rebalancing trading orders.
     function rebalancingTrading0xOrders(bytes8[] iaCurr, uint64[] iaRate, uint64 date)checkPause returns(uint16 result)
-    {   
+    {
         bytes8 maxIACurr;
         uint64 maxRate;
         (maxIACurr, maxRate, , ) = pd.getIARankDetailsByDate(date);
@@ -251,59 +251,59 @@ contract pool2 is Iupgradable {
             uint totalRiskBal=SafeMaths.div((SafeMaths.mul(pd.getTotalRiskPoolBalance(), 100000)), (DECIMAL1E18));
             if (totalRiskBal > 0 && iaRate.length > 0) { //if v=0 OR there is no IA, don't trade
                 for (uint i=0; i < iaRate.length; i++) {
-                    if (pd.getInvestmentAssetStatus(iaCurr[i]) == 1) {  // if IA is active 
+                    if (pd.getInvestmentAssetStatus(iaCurr[i]) == 1) {  // if IA is active
                         if (checkTradeConditions(iaCurr[i], iaRate[i]) == 1) {  // ORDER 1 (max RHS IA to ETH)   // amount of asset to sell
-                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2, pd.getVariationPercX100()), 
-                                totalRiskBal), maxRate)), (SafeMaths.mul(SafeMaths.mul(100, 100), 100000)))); //MULTIPLY WITH DECIMALS 
+                            uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2, pd.getVariationPercX100()),
+                                totalRiskBal), maxRate)), (SafeMaths.mul(SafeMaths.mul(100, 100), 100000)))); //MULTIPLY WITH DECIMALS
                             uint investmentAssetDecimals=pd.getInvestmentAssetDecimals(maxIACurr); // amount of ETH to buy
-                            uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"), makerAmt))/maxRate); 
+                            uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"), makerAmt))/maxRate);
                             uint expirationTimeInMilliSec=SafeMaths.add(now, pd.getOrderExpirationTime("RBT"));
                             makerAmt = SafeMaths.div((SafeMaths.mul(makerAmt, 10**investmentAssetDecimals)), 100);
                             takerAmt = SafeMaths.div(SafeMaths.mul(takerAmt, DECIMAL1E18), (100));
                             if (makerAmt <= p1.getBalanceofInvestmentAsset(maxIACurr)) {
                                 exchange1 = Exchange(exchangeContractAddress);
                                 bytes32 orderHash=exchange1.getOrderHash(
-                                    [pd.get0xMakerAddress(), 
-                                    pd.get0xTakerAddress(), 
-                                    pd.getInvestmentAssetAddress(maxIACurr), 
-                                    p3.getWETHAddress(), 
-                                    pd.get0xFeeRecipient()], 
-                                    [makerAmt, 
-                                    takerAmt, 
-                                    pd.get0xMakerFee(), 
-                                    pd.get0xTakerFee(), 
-                                    expirationTimeInMilliSec, 
+                                    [pd.get0xMakerAddress(),
+                                    pd.get0xTakerAddress(),
+                                    pd.getInvestmentAssetAddress(maxIACurr),
+                                    p3.getWETHAddress(),
+                                    pd.get0xFeeRecipient()],
+                                    [makerAmt,
+                                    takerAmt,
+                                    pd.get0xMakerFee(),
+                                    pd.get0xTakerFee(),
+                                    expirationTimeInMilliSec,
                                     pd.getOrderSalt()]
                                     );
                                 pd.saveRebalancingOrderHash(orderHash);
                                 pd.pushOrderDetails(orderHash, bytes4(maxIACurr), makerAmt, "ETH", takerAmt, "RBT", expirationTimeInMilliSec);
                                 pd.updateLiquidityOrderStatus(bytes4(maxIACurr), "RBT", 1);
-                                pd.setCurrOrderHash(bytes4(maxIACurr), orderHash);  
+                                pd.setCurrOrderHash(bytes4(maxIACurr), orderHash);
                                 //events
                                 ZeroExOrders(
-                                    "RBT", 
-                                    pd.getInvestmentAssetAddress(maxIACurr), 
-                                    p3.getWETHAddress(), 
-                                    makerAmt, 
-                                    takerAmt, 
-                                    expirationTimeInMilliSec, 
+                                    "RBT",
+                                    pd.getInvestmentAssetAddress(maxIACurr),
+                                    p3.getWETHAddress(),
+                                    makerAmt,
+                                    takerAmt,
+                                    expirationTimeInMilliSec,
                                     orderHash
                                     );
                                 Rebalancing("OrderGen", 1);
                                 return 1; // rebalancing order generated
                             }else {   //events
                                 ZeroExOrders(
-                                    "RBT", 
-                                    pd.getInvestmentAssetAddress(maxIACurr), 
-                                    p3.getWETHAddress(), 
-                                    makerAmt, 
-                                    takerAmt, 
-                                    expirationTimeInMilliSec, 
+                                    "RBT",
+                                    pd.getInvestmentAssetAddress(maxIACurr),
+                                    p3.getWETHAddress(),
+                                    makerAmt,
+                                    takerAmt,
+                                    expirationTimeInMilliSec,
                                     "insufficient"
                                     );
                                 Rebalancing("OrderGen", 2);
-                                return 2; // not enough makerAmt;    
-                            }                      
+                                return 2; // not enough makerAmt;
+                            }
                         }
                     }
                 }
@@ -312,13 +312,13 @@ contract pool2 is Iupgradable {
             }
         }
         Rebalancing("OrderGen", 3);
-        return 4; // when V=0 or no IA is present       
+        return 4; // when V=0 or no IA is present
     }
 
     /// @dev Checks whether trading is required for a given investment asset at a given exchange rate.
     function checkTradeConditions(bytes8 curr, uint64 iaRate) constant returns(int check)
     {
-        if (iaRate > 0) { 
+        if (iaRate > 0) {
             uint investmentAssetDecimals=pd.getInvestmentAssetDecimals(curr);
             uint iaBalance=SafeMaths.div(p1.getBalanceofInvestmentAsset(curr), (10**investmentAssetDecimals));
             uint totalRiskBal=SafeMaths.div(SafeMaths.mul(pd.getTotalRiskPoolBalance(), 100000), (DECIMAL1E18));
@@ -330,8 +330,8 @@ contract pool2 is Iupgradable {
                 (iaMin, iaMax) = pd.getInvestmentAssetHoldingPerc(curr);
                 z = pd.getVariationPercX100();
                 checkNumber = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(iaBalance, 100), 100000)), (SafeMaths.mul(iaRate, totalRiskBal)));
-                if ((checkNumber > SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.add(iaMax, z), totalRiskBal), 100), 100000)) || 
-                    (checkNumber < SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(iaMin, z), totalRiskBal), 100), 100000))) {   
+                if ((checkNumber > SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.add(iaMax, z), totalRiskBal), 100), 100000)) ||
+                    (checkNumber < SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(iaMin, z), totalRiskBal), 100), 100000))) {
                     //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
                     return 1;    //eligibleIA
                 }else {
@@ -360,7 +360,7 @@ contract pool2 is Iupgradable {
                     max = rhs;
                     maxCurr = curr[i];
                     maxRate = rate[i];
-                } else if (rhs == max) {//tie for the highest RHSx  
+                } else if (rhs == max) {//tie for the highest RHSx
                     if (currentIAmaxHolding > pd.getInvestmentAssetMaxHoldingPerc(maxCurr)) {//Highest MaxIA%
                         max = rhs;
                         maxCurr = curr[i];
@@ -378,13 +378,13 @@ contract pool2 is Iupgradable {
                             }
                         }
                     }
-                } else if (rhs == min) { //a tie for the lowest RHSx 
+                } else if (rhs == min) { //a tie for the lowest RHSx
                     if (currentIAmaxHolding > pd.getInvestmentAssetMaxHoldingPerc(minCurr)) { //Highest MaxIA%
                         min = rhs;
                         minCurr = curr[i];
                         minRate = rate[i];
                     } else if (currentIAmaxHolding == pd.getInvestmentAssetMaxHoldingPerc(minCurr)) { //tie
-                        if (currentIAminHolding > pd.getInvestmentAssetMinHoldingPerc(minCurr)) { //   Highest MinIA%  
+                        if (currentIAminHolding > pd.getInvestmentAssetMinHoldingPerc(minCurr)) { //   Highest MinIA%
                             min = rhs;
                             minCurr = curr[i];
                             minRate = rate[i];
@@ -414,12 +414,12 @@ contract pool2 is Iupgradable {
             p3.saveIADetails(curr, rate, date);
     }
 
-    function bytes16ToString(bytes16 x)  internal constant returns (string) 
+    function bytes16ToString(bytes16 x)  internal constant returns (string)
     {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
-            byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));           
+            byte char = byte(bytes16(uint(x) * 2 ** (8 * j)));
             if (char != 0) {
                 bytesString[charCount] = char;
                 charCount++;

@@ -123,8 +123,10 @@ contract Master is Ownable, Upgradeable {
         if(versionLength == 0) {
             govern = new Governed();
             GovernChecker governChecker = GovernChecker(govern.getGovernCheckerAddress());
-            if(getCodeSize(address(governChecker)) > 0 )
-                governChecker.initializeAuthorized(dAppName, _contractAddresses[3]);
+            if(getCodeSize(address(governChecker)) > 0 ) {
+                if(governChecker.authorized(dAppName) != _contractAddresses[3])
+                    governChecker.initializeAuthorized(dAppName, _contractAddresses[3]);
+            }
         }
     
         gbm = GovBlocksMaster(gbmAddress);

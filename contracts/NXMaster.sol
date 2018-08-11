@@ -13,17 +13,17 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
-import "./claims.sol";
-import "./claimsReward.sol";
-import "./nxmToken2.sol";
-import "./pool.sol";
+pragma solidity ^0.4.24;
+import "./Claims.sol";
+import "./ClaimsReward.sol";
+import "./NXMToken2.sol";
+import "./Pool1.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 
 
-contract master is Governed {
+contract NXMaster is Governed {
 
     using SafeMaths
     for uint;
@@ -51,11 +51,11 @@ contract master is Governed {
 
     address masterAddress;
 
-    claims c1;
-    claimsReward cr;
-    pool p1;
+    Claims c1;
+    ClaimsReward cr;
+    Pool1 p1;
     MemberRoles mr;
-    nxmToken2 tc2;
+    NXMToken2 tc2;
 
     address public owner;
     uint pauseTime;
@@ -76,7 +76,7 @@ contract master is Governed {
     }
 
     /// @dev Constructor
-    function master() {
+    function NXMaster() {
         owner = msg.sender;
         contractsActive[address(this)] = true; //1
         masterAddress = address(this);
@@ -107,18 +107,18 @@ contract master is Governed {
     {
         memberRolesAddress = _memberRolesAddress;
         mr = MemberRoles(memberRolesAddress);
-        tc2 = nxmToken2(versionContractAddress[currentVersion]["TOK2"]);
+        tc2 = NXMToken2(versionContractAddress[currentVersion]["TOK2"]);
         tc2.changeMemberRolesAddress(_memberRolesAddress);
         
     }
-    
+
     /// @dev Add Emergency pause
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
     function addEmergencyPause(bool _pause, bytes4 _by) onlyAuthorizedToGovern {
         emergencyPaused.push(emergencyPause(_pause, now, _by));
         if (_pause == false) {
-            c1 = claims(versionContractAddress[currentVersion]["C1"]);
+            c1 = Claims(versionContractAddress[currentVersion]["C1"]);
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
             c1.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
@@ -134,7 +134,7 @@ contract master is Governed {
         return pauseTime;
     }
 
-    /// @dev Updates master address of all associated contracts
+    /// @dev Updates NXMaster address of all associated contracts
     function changeMasterAddress(address _add) onlyOwner {
         Iupgradable contracts;
         for (uint i = 0; i < contractNames.length; i++) {
@@ -153,20 +153,18 @@ contract master is Governed {
         addInContractChangeDate(now, version);
         if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"] 
             && versionContractAddress[currentVersion]["TD"] == versionContractAddress[SafeMaths.sub(currentVersion, 1)]["TD"]) {
-            cr = claimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
+            cr = ClaimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
             cr.upgrade(versionContractAddress[currentVersion]["CR"]);
         }
         addRemoveAddress(version);
         changeMasterAddress(address(this));
         changeOtherAddress();
         if (currentVersion > 0) {
-            p1 = pool(versionContractAddress[currentVersion]["P1"]);
+            p1 = Pool1(versionContractAddress[currentVersion]["P1"]);
             p1.versionOraclise(version);
         }
-        
-            
     }
-        
+
     ///@dev checks whether the address is a latest contract address.
     function isInternal(address _add) constant returns(bool check) {
         check = false; // should be 0
@@ -195,7 +193,7 @@ contract master is Governed {
 
     /// @dev checks whether the address is a member of the mutual or not.
     function isMember(address _add) constant returns(bool) {
-        
+
         return mr.checkRoleIdByAddress(_add, 3);
     }
 
@@ -243,16 +241,16 @@ contract master is Governed {
         }
         
     }
-    
+
     /// @dev Allow AB Members to Start Emergency Pause
     function startEmergencyPause() onlyAuthorizedToGovern {
-        
+
         addEmergencyPause(true, "AB"); //Start Emergency Pause
         p1 = pool(versionContractAddress[currentVersion]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
         c1 = claims(versionContractAddress[currentVersion]["C1"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
-        
+
     }
 
     /// @dev Stores the date when version of contracts get switched.
@@ -280,7 +278,7 @@ contract master is Governed {
     function setVersionLength(uint len) internal {
         versionLength = len;
     }
-    
+
     /// @dev Links internal contracts to one another.
     function changeOtherAddress() internal {
         Iupgradable contracts;

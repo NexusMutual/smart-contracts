@@ -13,19 +13,19 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./master.sol";
+import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract mcrData is Iupgradable {
+contract MCRData is Iupgradable {
 
     using SafeMaths
     for uint;
 
-    master ms;
+    NXMaster ms;
     address masterAddress;
     uint32 public minMCRReq;
     uint32 public sfX100000;
@@ -39,7 +39,7 @@ contract mcrData is Iupgradable {
     struct mcr_Data {
         uint32 mcrPercx100;
         uint32 mcrEtherx100;
-        uint64 vFull; //pool funds
+        uint64 vFull; //Pool1 funds
         uint64 date;
     }
 
@@ -47,7 +47,7 @@ contract mcrData is Iupgradable {
     mapping(bytes8 => uint32) public allCurr3DaysAvg;
     address notariseMCR;
 
-    function mcrData() {
+    function MCRData() {
         growthStep = 1500000;
         sfX100000 = 140;
         mcrTime = SafeMaths.mul64(SafeMaths.mul64(24, 60), 60);
@@ -61,18 +61,18 @@ contract mcrData is Iupgradable {
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
         } else {
-            ms = master(masterAddress);
+            ms = NXMaster(masterAddress);
             require(ms.isInternal(msg.sender) == true);
             masterAddress = _add;
         }
     }
 
     function changeDependentContractAddress() onlyInternal {
-        
+
     }
-    
+
     modifier onlyInternal {
 
         require(ms.isInternal(msg.sender) == true);
@@ -160,8 +160,8 @@ contract mcrData is Iupgradable {
     }
 
     /// @dev Gets minimum  value of MCR required.
-    function getMinMCR() constant returns(uint32 mcr) {
-        mcr = minMCRReq;
+    function getMinMCR() constant returns(uint32 MCR) {
+        MCR = minMCRReq;
     }
 
     /// @dev Stores name of currency accepted in the system.
@@ -188,7 +188,7 @@ contract mcrData is Iupgradable {
 
     /// @dev Adds details of (Minimum Capital Requirement)MCR.
     /// @param mcrp Minimum Capital Requirement percentage (MCR% * 100 ,Ex:for 54.56% ,given 5456)
-    /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
+    /// @param vf Pool1 fund value in Ether used in the last full daily calculation from the Capital model.
     function pushMCRData(uint32 mcrp, uint32 mcre, uint64 vf, uint64 time) onlyInternal {
         allMCRData.push(mcr_Data(mcrp, mcre, vf, time));
     }
@@ -220,12 +220,12 @@ contract mcrData is Iupgradable {
 
     /// @dev Gets the details of last added MCR.
     /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
-    /// @return vFull Total Pool fund value in Ether used in the last full daily calculation.
+    /// @return vFull Total Pool1 fund value in Ether used in the last full daily calculation.
     function getLastMCR() constant returns(uint32 mcrPercx100, uint32 mcrEtherx100, uint64 vFull, uint64 date) {
         return (
-            allMCRData[SafeMaths.sub(allMCRData.length, 1)].mcrPercx100, 
-            allMCRData[SafeMaths.sub(allMCRData.length, 1)].mcrEtherx100, 
-            allMCRData[SafeMaths.sub(allMCRData.length, 1)].vFull, 
+            allMCRData[SafeMaths.sub(allMCRData.length, 1)].mcrPercx100,
+            allMCRData[SafeMaths.sub(allMCRData.length, 1)].mcrEtherx100,
+            allMCRData[SafeMaths.sub(allMCRData.length, 1)].vFull,
             allMCRData[SafeMaths.sub(allMCRData.length, 1)].date
             );
     }
@@ -242,7 +242,7 @@ contract mcrData is Iupgradable {
         val = allMCRData[SafeMaths.sub(allMCRData.length, 1)].mcrEtherx100;
     }
 
-    /// @dev Gets Pool fund value in Ether used in the last full daily calculation from the Capital model.
+    /// @dev Gets Pool1 fund value in Ether used in the last full daily calculation from the Capital model.
     function getLastVfull() constant returns(uint64 vf) {
         vf = allMCRData[SafeMaths.sub(allMCRData.length, 1)].vFull;
     }

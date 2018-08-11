@@ -40,7 +40,7 @@ module.exports = deployer => {
     deployer
     .then(() => NXMaster.deployed())
     .then(function(instance){
-        nms = instance;
+        nxms = instance;
         return NXMaster2.deployed();
     })
     .then(function(instance){

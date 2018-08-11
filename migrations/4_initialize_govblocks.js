@@ -97,6 +97,6 @@ module.exports = deployer => {
         return gbm.changeDappMasterAddress("0x4e455855532d4d555455414c", Master.address);
     })
     .then(function(){
-        console.log("Nexus Mutual Initialization completed!");
+        console.log("Initialization completed!");
     });
 };

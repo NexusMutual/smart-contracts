@@ -458,10 +458,10 @@ contract claimsReward is Iupgradable {
                 lastClaimed = i;
             (, claimId, , claimed) = cd.getVoteDetails(voteid);
 
-            if (perc > 0) {
+            if (perc > 0 && !claimed) {
                 counter++;
                 cd.setRewardClaimed(voteid, true);
-            } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0) {
+            } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0 && !claimed) {
                 counter++;
                 cd.setRewardClaimed(voteid, true);
             }

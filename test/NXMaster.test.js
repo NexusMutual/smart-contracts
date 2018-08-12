@@ -31,6 +31,10 @@ let cd;
 let mcr;
 let mcrd;
 let addr = [];
+const BigNumber = web3.BigNumber;
+require('chai')
+  .use(require('chai-bignumber')(BigNumber))
+  .should();
 
 contract('NXMaster', function () {
 	it('should add a new version', async function () {
@@ -65,8 +69,10 @@ contract('NXMaster', function () {
 		addr.push(nxms2.address);
 		addr.push(mcr.address);
 		addr.push(pl3.address);
+		const ver = new BigNumber(1);
 		const versionLength = await nxms.versionLength();
 		await nxms.addNewVersion(addr);
-		assert.equal(await nxms.versionLength(), versionLength + 1);
+		const newVersionLength = await nxms.versionLength();
+		newVersionLength.should.be.bignumber.equal(versionLength.plus(ver));
   });
 });

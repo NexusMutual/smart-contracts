@@ -31,7 +31,7 @@ contract NXMaster2 is Iupgradable {
     using SafeMaths
     for uint;
 
-    address masterAddress;
+    address public masterAddress;
 
     Claims c1;
     NXMaster ms;

@@ -25,6 +25,7 @@
   "homepage": "https://github.com/somish/NexusMutual#readme",
   "dependencies": {
     "solc": "^0.4.24",
+    "truffle": "^4.1.13",
     "truffle-hdwallet-provider": "^0.0.5"
   },
   "devDependencies": {

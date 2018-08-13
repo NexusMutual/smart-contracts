@@ -52,6 +52,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     event Apiresult(address indexed sender, string msg, bytes32 myid);
 
     constructor () public {
+        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
         dAppName = "NEXUS-MUTUAL";
     }
 

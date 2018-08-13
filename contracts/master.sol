@@ -151,11 +151,13 @@ contract master is Governed {
         uint version = SafeMaths.sub(versionLength, 1);
         currentVersion = version;
         addInContractChangeDate(now, version);
-        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]) {
+        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"] 
+            && versionContractAddress[currentVersion]["TD"] == versionContractAddress[SafeMaths.sub(currentVersion, 1)]["TD"]) {
             cr = claimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
             cr.upgrade(versionContractAddress[currentVersion]["CR"]);
         }
         addRemoveAddress(version);
+        changeMasterAddress(address(this));
         changeOtherAddress();
         if (currentVersion > 0) {
             p1 = pool(versionContractAddress[currentVersion]["P1"]);

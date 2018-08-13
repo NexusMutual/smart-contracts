@@ -16,6 +16,7 @@
 pragma solidity ^0.4.11;
 
 import "./nxmToken.sol";
+import "./nxmToken2.sol";
 import "./poolData.sol";
 import "./quotation2.sol";
 import "./master.sol";
@@ -44,6 +45,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     quotation2 q2;
     nxmToken tc1;
+    nxmToken2 tc2;
     poolData pd;
     pool2 p2;
     mcr m1;
@@ -86,10 +88,17 @@ contract pool is usingOraclize, Iupgradable, Governed {
         _;
     }
 
+    modifier checkPause {
+
+        require(ms.isPause() == false);
+        _;
+    }
+
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
         m1 = mcr(ms.versionContractAddress(currentVersion, "MCR"));
         tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
+        tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
         md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
         q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
@@ -217,7 +226,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
-    function transferEther(uint amount, address _add) onlyAuthorizedToGovern constant returns(bool succ) {
+    function transferEther(uint amount, address _add) onlyAuthorizedToGovern checkPause constant returns(bool succ) {
         succ = _add.send(amount);      
     }
     
@@ -372,7 +381,7 @@ contract pool is usingOraclize, Iupgradable, Governed {
     /// @dev Enables user to sell NXM tokens
     function sellNXMTokens(uint sellTokens) isMemberAndcheckPause {
         require(tc1.balanceOf(msg.sender) >= sellTokens); // Check if the sender has enough
-        require(tc1.tokensLocked(msg.sender, "MV", now) == 0);
+        require(!tc2.voted(msg.sender));
         uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
         uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
         require(sellTokensx10e18 <= getMaxSellTokens());

@@ -441,6 +441,7 @@ contract nxmToken2 is Iupgradable, Governed {
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
         uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premiumNXM, 20), 100);
         uint stakeLength = td.getTotalStakerAgainstScAddress(_scAddress);
+        address claimsRewardAddress = address(ms.versionContractAddress(ms.currentVersion(), "CR"));
         for (uint i = td.scAddressLastCommIndex(_scAddress); i < stakeLength; i++) {
             if (commissionToBePaid > 0) {
                 uint scAddressIndx;
@@ -454,14 +455,14 @@ contract nxmToken2 is Iupgradable, Governed {
                 if (totalCommission > commissionPaid) {
                     if (totalCommission >= SafeMaths.add(commissionPaid, commissionToBePaid)) {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, commissionToBePaid, now);
-                        rewardToken(address(ms.versionContractAddress(ms.currentVersion(), "CR")), commissionToBePaid);
+                        rewardToken(claimsRewardAddress, commissionToBePaid);
                         if (i > 0)
                             td.setSCAddressLastCommIndex(_scAddress, i);
                         commissionToBePaid = 0;
                         break;
                     } else {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, SafeMaths.sub(totalCommission, commissionPaid), now);
-                        rewardToken(address(ms.versionContractAddress(ms.currentVersion(), "CR")), SafeMaths.sub(totalCommission, commissionPaid));
+                        rewardToken(claimsRewardAddress, SafeMaths.sub(totalCommission, commissionPaid));
                         commissionToBePaid = SafeMaths.sub(commissionToBePaid, SafeMaths.sub(totalCommission, commissionPaid));
                     }
                 }

@@ -1,41 +1,31 @@
-var HDWalletProvider = require("truffle-hdwallet-provider");
+const HDWalletProvider = require('truffle-hdwallet-provider');
 
-var mnemonic = "word vocal hazard glory home property canvas duty fetch private wasp ozone";
+var mnemonic = "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory";
 
 module.exports = {
   networks: {
     development: {
-      host: "176.9.155.139",
-      port: 7070,
-      network_id: "5777"
+      host: 'localhost',
+      port: 8545,
+      network_id: '*', // eslint-disable-line camelcase
     },
-    ropsten: {
-      gasPrice : 1,
-      provider: function() {
-        return new HDWalletProvider(mnemonic, "https://ropsten.infura.io/");
-      },      
-      network_id: 3
+    coverage: {
+      host: 'localhost',
+      network_id: '*', // eslint-disable-line camelcase
+      port: 8555,
+      gas: 0xfffffffffff,
+      gasPrice: 0x01,
     },
-    rinkeby: {
-      gasPrice : 1,
-      provider: function() {
-        return new HDWalletProvider(mnemonic, "https://rinkeby.infura.io/");
-      },      
-      network_id: 4
-    },
-    kovan: {
-      gasPrice : 1,
-      provider: function() {
-        return new HDWalletProvider(mnemonic, "https://kovan.infura.io/");
-      },      
-      network_id: 42
+    ganache: {
+      host: 'localhost',
+      port: 8545,
+      network_id: '*', // eslint-disable-line camelcase
     }
   },
-  solc: {
-    optimizer: {
-      enabled: true,
-      runs: 200
+solc: {
+optimizer: {
+enabled: true,
+runs: 200
     }
   },
 };
-

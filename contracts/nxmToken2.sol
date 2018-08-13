@@ -35,6 +35,10 @@ contract MemberRoles {
     function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);
     
     function setValidityOfMember(address _memberAddress, uint32 _roleId, uint _validity) public;
+
+    function getValidity(address _memberAddress, uint32 _roleId) public view returns (uint);
+    
+    
 }
 
 
@@ -365,8 +369,10 @@ contract nxmToken2 is Iupgradable, Governed {
     function lockForMemberVote(address voter, uint time) onlyInternal {
         if (!mr.checkRoleIdByAddress(voter, 4))
             mr.updateMemberRole(voter, 4, true, time);
-        else
-            mr.setValidityOfMember(voter, 4, time);
+        else {
+            if (mr.getValidity(voter, 4) < time)
+                mr.setValidityOfMember(voter, 4, time);
+        }
     }
 
     /// @dev Change the address who can update GovBlocks member role.

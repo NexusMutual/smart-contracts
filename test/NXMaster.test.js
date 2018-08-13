@@ -14,6 +14,7 @@ const Pool3 = artifacts.require("Pool3");
 const PoolData = artifacts.require("PoolData");
 const Quotation = artifacts.require("Quotation");
 const QuotationData = artifacts.require("QuotationData");
+const MemberRoles = artifacts.require("MemberRoles");
 let nxms;
 let nxms2;
 let nxmt1;
@@ -31,6 +32,12 @@ let cd;
 let mcr;
 let mcrd;
 let addr = [];
+let newMaster;
+
+const own = web3.eth.accounts[0];
+const acc1 = web3.eth.accounts[1];
+const acc2 = web3.eth.accounts[2];
+const acc3 = web3.eth.accounts[3];
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -74,5 +81,50 @@ contract('NXMaster', function () {
 		await nxms.addNewVersion(addr);
 		const newVersionLength = await nxms.versionLength();
 		newVersionLength.should.be.bignumber.equal(versionLength.plus(ver));
-  });
+  	});
+	it('should switch to new version', async function () {
+		const currentVersion = await nxms.currentVersion();
+		const newVer = new BigNumber(1);
+		await nxms.switchToRecentVersion();
+		const newCurrentVersion = await nxms.currentVersion();
+		newCurrentVersion.should.be.bignumber.equal(currentVersion.plus(newVer));
+	});
+	it('should change master address', async function () {
+		newMaster = await NXMaster.new();
+		let newMasterAddr = await newMaster.address;
+		await nxms.changeMasterAddress(newMasterAddr);
+		await newMaster.addNewVersion(addr);
+		await newMaster.switchToRecentVersion();
+		let verifyMasterAddress = await nxms2.masterAddress();
+		verifyMasterAddress.should.equal(newMasterAddr);
+	});
+	it('should change MemberRole Address', async function () {
+		let memberRoles = await MemberRoles.deployed();
+		let MRAddress = await memberRoles.address;
+		await newMaster.changeMemberRolesAddress(MRAddress);
+		let verifyMRAddress = await newMaster.memberRolesAddress();
+		verifyMRAddress.should.equal(MRAddress);
+	});
+	it('should reinitialize', async function () {
+		await pl1.takeEthersOnly( {from: own, value: 9000000000000000000});
+		await nxmtd.setWalletAddress(own); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
+		await qd.changeAuthQuoteEngine(acc1);//"0xb24919181daead6635e613576ca11c5aa5a4e133");
+		await nxms2.addCoverStatus();
+		await nxms2.callPoolDataMethods();
+		await nxms2.addStatusInClaims();
+		await nxms2.addMCRCurr();
+		await nxms2.addStatusInClaims();
+		await pd.changeWETHAddress(acc2);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
+		await pd.change0xMakerAddress(own); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
+		await pl2.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+		await pl3.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+		await mcr.changeNotariseAddress(own); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");   
+		var arg1 = 18000;
+		var arg2 = 10000;
+		var arg3 = 2;
+		var arg4 = ["0x455448","0x444149"];
+		var arg5 = [100,65407];
+		var arg6 = 20180807;
+		await mcr.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
+	});	
 });

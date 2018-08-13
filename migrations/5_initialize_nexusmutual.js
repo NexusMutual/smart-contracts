@@ -14,6 +14,7 @@ var Pool3 = artifacts.require("Pool3");
 var PoolData = artifacts.require("PoolData");
 var Quotation = artifacts.require("Quotation");
 var QuotationData = artifacts.require("QuotationData");
+var MemberRoles = artifacts.require("MemberRoles");
 
 const acc1 = web3.eth.accounts[1];
 const acc2 = web3.eth.accounts[2];
@@ -163,7 +164,13 @@ module.exports = deployer => {
 	    return mcr.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
     })
     .then(function(){
-		console.log("NXM initialized");
+		return MemberRoles.deployed();
+    })
+    .then(function(mr){
+        return nxms.changeMemberRolesAddress(mr.address);
+    })
+    .then(function(){
+        console.log("Nexus Mutual initialized !");
     });
 };
 

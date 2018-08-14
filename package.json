@@ -1,0 +1,7 @@
+{
+  "devDependencies": {
+    "solhint": "^1.2.1"
+  },
+  "scripts": {},
+  "dependencies": {}
+}

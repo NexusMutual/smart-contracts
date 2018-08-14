@@ -261,8 +261,7 @@ contract claimsReward is Iupgradable {
 
         
         claimRewardToBeDistributed();
-        if (getTotalStakeCommission(msg.sender) > 0)
-            claimStakeCommission();
+        claimStakeCommission();
 
     }
 

@@ -22,11 +22,10 @@ import "./quotation2.sol";
 import "./master.sol";
 import "./pool2.sol";
 import "./mcr.sol";
-import "./mcrData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
+// import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 import "./imports/oraclize/ethereum-api/oraclizeAPI_0.4.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 
@@ -39,7 +38,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
     address masterAddress;
     address poolAddress;
     address mcrAddress;
-    address mcrDataAddress;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
@@ -49,9 +47,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
     poolData pd;
     pool2 p2;
     mcr m1;
-    mcrData md;
     StandardToken stok;
-    BasicToken btok;
+    // BasicToken stok;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
    
@@ -100,7 +97,6 @@ contract pool is usingOraclize, Iupgradable, Governed {
         tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
         tc2 = nxmToken2(ms.versionContractAddress(currentVersion, "TOK2"));
         pd = poolData(ms.versionContractAddress(currentVersion, "PD"));
-        md = mcrData(ms.versionContractAddress(currentVersion, "MD"));
         q2 = quotation2(ms.versionContractAddress(currentVersion, "Q2"));
         p2 = pool2(ms.versionContractAddress(currentVersion, "P2"));
     }
@@ -257,8 +253,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
     ///@dev Gets pool balance of a given investmentasset.
     function getBalanceofInvestmentAsset(bytes8 _curr) constant returns(uint balance) {
         address currAddress = pd.getInvestmentAssetAddress(_curr);
-        btok = BasicToken(currAddress);
-        return btok.balanceOf(poolAddress);
+        stok = StandardToken(currAddress);
+        return stok.balanceOf(poolAddress);
     }
 
     /// @dev transfers investment assets from old pool to new pool address.
@@ -276,8 +272,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
     ///@dev Gets pool balance of a given investmentasset.
     function getBalanceOfCurrencyAsset(bytes8 _curr) constant returns(uint balance) {
 
-        btok = BasicToken(pd.getCurrencyAssetAddress(_curr));
-        return btok.balanceOf(poolAddress);
+        stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
+        return stok.balanceOf(poolAddress);
     }
 
     ///@dev Transfers currency from current pool address to the new pool address.
@@ -294,24 +290,24 @@ contract pool is usingOraclize, Iupgradable, Governed {
      
     ///@dev Transfers investment asset from current pool address to the new pool address.
     function transferCurrencyFromPool(address _newPoolAddr, address currAddr) onlyInternal {
-        btok = BasicToken(currAddr);
-        if (btok.balanceOf(this) > 0) {
-            btok.transfer(_newPoolAddr, btok.balanceOf(this));
+        stok = StandardToken(currAddr);
+        if (stok.balanceOf(this) > 0) {
+            stok.transfer(_newPoolAddr, stok.balanceOf(this));
         }
     }
 
     /// @dev Transfers Amount to user when claim gets accepted.
     function transferPayout(address _to, bytes8 _curr, uint _value) onlyInternal {
-        btok = BasicToken(pd.getCurrencyAssetAddress(_curr));
-        if (btok.balanceOf(this) > _value)
-            btok.transfer(_to, _value);
+        stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
+        if (stok.balanceOf(this) > _value)
+            stok.transfer(_to, _value);
     }
 
     /// @dev Transfers specific currency asset from current pool address to the new pool address.
     function transferFromPool(address _to, address _currAddr, uint _amount) onlyInternal {
-        btok = BasicToken(_currAddr);
-        if (btok.balanceOf(this) >= _amount)
-            btok.transfer(_to, _amount);
+        stok = StandardToken(_currAddr);
+        if (stok.balanceOf(this) >= _amount)
+            stok.transfer(_to, _amount);
     }
 
     /// @dev Transfers amount to pool from 0x order maker.
@@ -322,8 +318,8 @@ contract pool is usingOraclize, Iupgradable, Governed {
 
     ///@dev Gets 0x wrapped ether pool balance.
     function getWETHPoolBalance() constant returns(uint wETH) {
-        btok = BasicToken(pd.getWETHAddress());
-        return btok.balanceOf(poolAddress);
+        stok = StandardToken(pd.getWETHAddress());
+        return stok.balanceOf(poolAddress);
     }
 
     ///@dev Gets 0x order details by hash.
@@ -384,21 +380,10 @@ contract pool is usingOraclize, Iupgradable, Governed {
         require(!tc2.voted(msg.sender));
         uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
         uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
-        require(sellTokensx10e18 <= getMaxSellTokens());
+        require(sellTokensx10e18 <= m1.getMaxSellTokens());
         tc1.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
         bool succ = msg.sender.send(sellingPrice);
         require(succ != false);
-    }
-
-    /// @dev Gets max numbers of tokens that can be sold at the moment.
-    function getMaxSellTokens() constant returns(uint maxTokens) {
-        uint maxTokensAccPoolBal = SafeMaths.sub(getEtherPoolBalance(), SafeMaths.mul(
-            SafeMaths.div(SafeMaths.mul(50, pd.getCurrencyAssetBaseMin("ETH")), 100), DECIMAL1E18));
-        maxTokensAccPoolBal = SafeMaths.mul(SafeMaths.div(maxTokensAccPoolBal, 
-        SafeMaths.mul(975, SafeMaths.div(m1.calculateTokenPrice("ETH"), 1000))), DECIMAL1E18);
-        maxTokens = SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(), 10000), 2000), 10000), DECIMAL1E18);
-        if (maxTokens > maxTokensAccPoolBal)
-            maxTokens = maxTokensAccPoolBal;
     }
 
     /// @dev Save the details of the Oraclize API.
@@ -424,9 +409,9 @@ contract pool is usingOraclize, Iupgradable, Governed {
     ///@dev Transfers investment asset from current pool address to the new pool address.
     ///      To be automated by version control in master
     function transferIAFromPool(address _newPoolAddr, address currAddr) internal {
-        btok = BasicToken(currAddr);
-        if (btok.balanceOf(this) > 0) {
-            btok.transfer(_newPoolAddr, btok.balanceOf(this));
+        stok = StandardToken(currAddr);
+        if (stok.balanceOf(this) > 0) {
+            stok.transfer(_newPoolAddr, stok.balanceOf(this));
         }
     }
 }

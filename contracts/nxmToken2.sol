@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
 
 import "./nxmTokenData.sol";
 import "./quotationData.sol";
@@ -21,6 +21,7 @@ import "./mcr.sol";
 import "./nxmToken.sol";
 import "./master.sol";
 import "./Iupgradable.sol";
+import "./claimsReward.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
@@ -32,7 +33,12 @@ contract MemberRoles {
     function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
 
     function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);
-         
+    
+    function setValidityOfMember(address _memberAddress, uint32 _roleId, uint _validity) public;
+
+    function getValidity(address _memberAddress, uint32 _roleId) public view returns (uint);
+    
+    
 }
 
 
@@ -46,6 +52,7 @@ contract nxmToken2 is Iupgradable, Governed {
     mcr m1;
     nxmToken tc1;
     MemberRoles mr;
+    claimsReward cr;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
     address masterAddress;
@@ -70,8 +77,19 @@ contract nxmToken2 is Iupgradable, Governed {
         require(ms.isOwner(msg.sender) == true);
         _;
     }
+
+    modifier canWithdraw { 
+        
+        require(getLockedNXMTokenOfStakerByStakerAddress(msg.sender) == 0); // No pending stake.
+        require(totalBalanceCNOfUser(msg.sender) == 0);   // No active covers.
+        require(td.tokensLocked(msg.sender, "CLA", now) == 0); // No locked tokens for CA.
+        require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
+        require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+        _;
+        
+    }
     
-    function nxmToken2 () Governed("NEXUS-MUTUAL") {
+    function nxmToken2 () {
         
     }
     
@@ -94,6 +112,7 @@ contract nxmToken2 is Iupgradable, Governed {
         tc1 = nxmToken(ms.versionContractAddress(currentVersion, "TOK1"));
         qd = quotationData(ms.versionContractAddress(currentVersion, "QD"));
         td = nxmTokenData(ms.versionContractAddress(currentVersion, "TD"));
+        cr = claimsReward(ms.versionContractAddress(currentVersion, "CR"));
     }
 
     function changeMemberRolesAddress(address memberAddress) onlyInternal {
@@ -153,7 +172,8 @@ contract nxmToken2 is Iupgradable, Governed {
         uint vUpto;
         uint lockedCNIndex;
         for (uint i = 0; i < len; i++) {
-            (, vUpto, lockedCNIndex) = td.getUserCoverLockedCN(_to, i);
+
+            (, vUpto, lockedCNIndex) = td.getUserCoverLockedCN(_to, qd.getAllCoversOfUser(_to)[i]);
             if (vUpto == validity && lockedCNIndex == lockedCN) {
                 // Updates the validity of lock to now, thereby ending the lock on tokens
                 td.updateLockedCN(_to, i, now, lockedCNIndex);
@@ -164,24 +184,14 @@ contract nxmToken2 is Iupgradable, Governed {
         td.updateUserCoverLockedCN(_to, coverid, now, lockedCN);
     }
 
-    /// @dev Allocates tokens against a given address
+    /// @dev Allocates tokens against a given address or reward contract  
     /// @param _to User's address.
     /// @param amount Number of tokens rewarded.
     function rewardToken(address _to, uint amount) onlyInternal {
-
-        require(ms.isMember(_to) == true);
-        // Change total supply and individual balance of user
-        td.increaseBalanceOf(_to, amount); // mint new tokens
-        td.increaseTotalSupply(amount); // track the supply
+        require(ms.isMember(_to) || _to == address(ms.versionContractAddress(ms.currentVersion(), "CR")));
+        td.increaseTotalSupply(amount); // increase total supply
+        td.increaseBalanceOf(_to, amount); // increase balance of reward contract
         tc1.callTransferEvent(0, _to, amount);
-    }
-
-    /// @dev Mint tokens to be distributes as reward for claims assessment.
-    /// @param amount amount of tokens to be minted.
-    function mintClaimRewardToken(uint amount) onlyInternal {
-        td.increaseBalanceOf(msg.sender, amount); // mint new tokens
-        td.increaseTotalSupply(amount); // track the supply
-        tc1.callTransferEvent(0, msg.sender, amount);
     }
 
     /// @dev Burns tokens used for fraudulent voting against a claim
@@ -355,11 +365,22 @@ contract nxmToken2 is Iupgradable, Governed {
             mr.updateMemberRole(msg.sender, 3, true, 0);
     }
 
+    /// @dev Adding to Member Role called Voter while Member voting.
+    function lockForMemberVote(address voter, uint time) onlyInternal {
+        if (!mr.checkRoleIdByAddress(voter, 4))
+            mr.updateMemberRole(voter, 4, true, time);
+        else {
+            if (mr.getValidity(voter, 4) < time)
+                mr.setValidityOfMember(voter, 4, time);
+        }
+    }
+
     /// @dev Change the address who can update GovBlocks member role.
     ///      Called when updating to a new version. 
     ///      Need to remove onlyOwner to onlyInternal and update automatically at version change
     function changeCanAddMemberAddress(address _newAdd) onlyOwner {
         mr.changeCanAddMember(3, _newAdd);
+        mr.changeCanAddMember(4, _newAdd);
     }
 
     /// @dev Undeposit, Deposit, Unlock and Push In Locked CN
@@ -420,6 +441,7 @@ contract nxmToken2 is Iupgradable, Governed {
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
         uint commissionToBePaid = SafeMaths.div(SafeMaths.mul(_premiumNXM, 20), 100);
         uint stakeLength = td.getTotalStakerAgainstScAddress(_scAddress);
+        address claimsRewardAddress = address(ms.versionContractAddress(ms.currentVersion(), "CR"));
         for (uint i = td.scAddressLastCommIndex(_scAddress); i < stakeLength; i++) {
             if (commissionToBePaid > 0) {
                 uint scAddressIndx;
@@ -433,14 +455,14 @@ contract nxmToken2 is Iupgradable, Governed {
                 if (totalCommission > commissionPaid) {
                     if (totalCommission >= SafeMaths.add(commissionPaid, commissionToBePaid)) {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, commissionToBePaid, now);
-                        rewardToken(stakerAdd, commissionToBePaid);
+                        rewardToken(claimsRewardAddress, commissionToBePaid);
                         if (i > 0)
                             td.setSCAddressLastCommIndex(_scAddress, i);
                         commissionToBePaid = 0;
                         break;
                     } else {
                         td.pushStakeCommissions(stakerAdd, _scAddress, scAddressIndx, SafeMaths.sub(totalCommission, commissionPaid), now);
-                        rewardToken(stakerAdd, SafeMaths.sub(totalCommission, commissionPaid));
+                        rewardToken(claimsRewardAddress, SafeMaths.sub(totalCommission, commissionPaid));
                         commissionToBePaid = SafeMaths.sub(commissionToBePaid, SafeMaths.sub(totalCommission, commissionPaid));
                     }
                 }
@@ -452,30 +474,29 @@ contract nxmToken2 is Iupgradable, Governed {
             td.setSCAddressLastCommIndex(_scAddress, SafeMaths.sub(stakeLength, 1));
     }
 
-    /// @dev Gets the total NXM tokens locked against Smart contract.
-    /// @param _scAddress smart contract address.
-    /// @return _totalLockedNXM total NXM tokens.
-    function getTotalLockedNXMToken(address _scAddress) public constant returns(uint _totalLockedNXM) {
-        _totalLockedNXM = 0;
-        uint stakeAmt;
-        uint dateAdd;
-        uint burnedAmt;
-        uint nowTime = now;
-        uint totalStaker = td.getTotalStakerAgainstScAddress(_scAddress);
-        for (uint i = 0; i < totalStaker; i++) {
-            uint scAddressIndx;
-            (, scAddressIndx) = td.getScAddressIndexByScAddressAndIndex(_scAddress, i);
-            (, , , stakeAmt, burnedAmt, dateAdd) = td.getStakeDetails(scAddressIndx);
-            uint16 day1 = uint16(SafeMaths.div(SafeMaths.sub(nowTime, dateAdd), 1 days));
-            if (stakeAmt > 0 && td.scValidDays() > day1) {
-                uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(
-                    SafeMaths.sub(td.scValidDays(), day1), 100000), td.scValidDays()), stakeAmt), 100000);
-                if (lockedNXM > burnedAmt)
-                    _totalLockedNXM = SafeMaths.add(_totalLockedNXM, SafeMaths.sub(lockedNXM, burnedAmt));
-            }
-        }
+    /// @dev Called by existed member if if wish to Withdraw membership.
+    function withdrawMembership() canWithdraw isMemberAndcheckPause {
+
+        tc1.burnToken(msg.sender, "Withdraw", 0, td.getBalanceOf(msg.sender));
+        mr.updateMemberRole(msg.sender, 3, false, 0);
     }
 
+    /// @dev It will tell if user has locked tokens in member vote or not.
+    /// @param _add addressof user.
+    function voted(address _add) constant returns(bool) {
+        return mr.checkRoleIdByAddress(_add, 4);
+    }
   
-
+    function totalBalanceCNOfUser(address _add) constant returns(uint total) {
+        uint len = qd.getUserCoverLength(_add);
+        total = 0;
+        for (uint i = 0; i < len; i++) {
+            uint vUpto;
+            uint tokens;
+            (vUpto, tokens) = td.userCoverLockedCN(_add, qd.getAllCoversOfUser(_add)[i]);
+            if (vUpto > now)
+                total = SafeMaths.add(total, tokens);
+        }
+    }
+     
 }

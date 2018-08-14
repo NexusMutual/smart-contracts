@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
 
 import "./nxmToken.sol";
 import "./nxmToken2.sol";
@@ -236,7 +236,7 @@ contract quotation2 is Iupgradable {
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
         if (qd.getProductName(prodId) == "SCC" && scAddress != 0x000) {
             qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
-            if (tc2.getTotalLockedNXMToken(scAddress) > 0)
+            if (tc1.getTotalLockedNXMToken(scAddress) > 0)
                 tc2.updateStakerCommissions(scAddress, coverDetails[2]);
         }
     }

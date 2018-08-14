@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
 import "./claims.sol";
 import "./claimsReward.sol";
 import "./nxmToken2.sol";
@@ -76,7 +76,7 @@ contract master is Governed {
     }
 
     /// @dev Constructor
-    function master() Governed("NEXUS-MUTUAL") {
+    function master() {
         owner = msg.sender;
         contractsActive[address(this)] = true; //1
         masterAddress = address(this);
@@ -119,9 +119,8 @@ contract master is Governed {
         emergencyPaused.push(emergencyPause(_pause, now, _by));
         if (_pause == false) {
             c1 = claims(versionContractAddress[currentVersion]["C1"]);
-            cr = claimsReward(versionContractAddress[currentVersion]["CR"]);
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
-            cr.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
+            c1.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
     }
 
@@ -152,11 +151,13 @@ contract master is Governed {
         uint version = SafeMaths.sub(versionLength, 1);
         currentVersion = version;
         addInContractChangeDate(now, version);
-        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]) {
+        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"] 
+            && versionContractAddress[currentVersion]["TD"] == versionContractAddress[SafeMaths.sub(currentVersion, 1)]["TD"]) {
             cr = claimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
             cr.upgrade(versionContractAddress[currentVersion]["CR"]);
         }
         addRemoveAddress(version);
+        changeMasterAddress(address(this));
         changeOtherAddress();
         if (currentVersion > 0) {
             p1 = pool(versionContractAddress[currentVersion]["P1"]);
@@ -247,7 +248,9 @@ contract master is Governed {
     function startEmergencyPause() onlyAuthorizedToGovern {
         
         addEmergencyPause(true, "AB"); //Start Emergency Pause
+        p1 = pool(versionContractAddress[currentVersion]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
+        c1 = claims(versionContractAddress[currentVersion]["C1"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
         
     }

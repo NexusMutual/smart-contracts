@@ -102,7 +102,7 @@ contract StandardVotingType is Upgradeable{
     function changeGBTSAddress(address _GBTSAddress) onlyMaster {
         GBTS = GBTStandardToken(_GBTSAddress);
     }
-
+    /*
     /// @dev Sets vote value given by member
     /// @param _memberAddress Member address
     /// @param _proposalId Proposal id
@@ -206,5 +206,5 @@ contract StandardVotingType is Upgradeable{
             if (thresHoldValue > GD.quorumPercentage())
                 return true;
         }
-    }
+    }*/
 }

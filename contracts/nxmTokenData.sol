@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
 
 import "./master.sol";
 import "./Iupgradable.sol";
@@ -44,6 +44,7 @@ contract nxmTokenData is Iupgradable {
     struct stakeCommission {
         uint commissionAmt;
         uint commissionDate;
+        bool claimed;
     }
 
     struct stake {
@@ -77,6 +78,7 @@ contract nxmTokenData is Iupgradable {
     mapping(address => uint) public scAddressLastCommIndex;
     mapping(address => uint) public scAddressLastBurnIndex;
     mapping(address => mapping(address => mapping(uint => stakeCommission[]))) stakerSCIndexCommission;
+    mapping(address => mapping (address => mapping(uint => uint))) lastClaimedCommission;
     allocatedTokens[] allocatedFounderTokens;
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(uint => lockToken[])) public userCoverDepositCN;
@@ -603,7 +605,7 @@ contract nxmTokenData is Iupgradable {
     /// @param _commissionAmt amount to be given as commission.
     /// @param _commissionDate date when commission is given.
     function pushStakeCommissions(address _of, address _scAddress, uint _stakerIndx, uint _commissionAmt, uint _commissionDate) onlyInternal {
-        stakerSCIndexCommission[_of][_scAddress][_stakerIndx].push(stakeCommission(_commissionAmt, _commissionDate));
+        stakerSCIndexCommission[_of][_scAddress][_stakerIndx].push(stakeCommission(_commissionAmt, _commissionDate, false));
     }
 
     /// @dev Gets commission details.
@@ -621,12 +623,14 @@ contract nxmTokenData is Iupgradable {
         uint indx, 
         uint stakerIndex, 
         uint commissionAmt, 
-        uint commissionDate
+        uint commissionDate,
+        bool claimed
         ) {
         indx = _index;
         stakerIndex = _stakerIndx;
         commissionAmt = stakerSCIndexCommission[_of][_scAddress][_stakerIndx][_index].commissionAmt;
         commissionDate = stakerSCIndexCommission[_of][_scAddress][_stakerIndx][_index].commissionDate;
+        claimed = stakerSCIndexCommission[_of][_scAddress][_stakerIndx][_index].claimed;
     }
 
     /// @dev Gets length of stake commission.
@@ -711,4 +715,20 @@ contract nxmTokenData is Iupgradable {
     function setSCAddressLastBurnIndex(address _scAddress, uint _index) onlyInternal {
         scAddressLastBurnIndex[_scAddress] = _index;
     }
+
+    function getLastClaimedCommission(address _of, address _sc, uint _index) constant returns(uint) {
+
+        return lastClaimedCommission[_of][_sc][_index];
+    }
+
+    function setLastClaimedCommission(address _of, address _sc, uint _index, uint lastClaimed) onlyInternal {
+
+        lastClaimedCommission[_of][_sc][_index] = lastClaimed;
+    }
+
+    function setClaimedCommision(address _of, address _scAddress, uint _stakerIndx, uint _index) onlyInternal {
+
+        stakerSCIndexCommission[_of][_scAddress][_stakerIndx][_index].claimed = true;
+    }
+
 }

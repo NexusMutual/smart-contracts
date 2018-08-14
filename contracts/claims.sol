@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
 
 import "./quotationData.sol";
 import "./nxmToken.sol";
@@ -297,19 +297,21 @@ contract claims is Iupgradable {
 
         require(checkVoteClosing(claimId) != 1);
         uint stat;
-        uint tokens = tc1.balanceOf(msg.sender);
+        uint tokens = td.getBalanceOf(msg.sender);
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat >= 1 && stat <= 5);
         require(cd.getUserClaimVoteMember(msg.sender, claimId) == 0);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
+        uint time = td.lockMVDays();
+        time = SafeMaths.add(now, time);
+        tc2.lockForMemberVote(msg.sender, time);
         uint voteLength = cd.getAllVoteLength();
         cd.addClaimVotemember(claimId, voteLength);
         cd.setUserClaimVoteMember(msg.sender, claimId, voteLength);
         cd.setClaimTokensMV(claimId, verdict, tokens);
         int close = checkVoteClosing(claimId);
         if (close == 1) {
-
             cr.changeClaimStatus(claimId);
         }
     }
@@ -324,6 +326,29 @@ contract claims is Iupgradable {
                 cd.setPendingClaimDetails(i, SafeMaths.sub((SafeMaths.add(dateUpd, cd.maxVotingTime())), now), false);
             }
         }
+    }
+
+    /// @dev Resume the voting phase of all claims paused due to an emergency pause.
+    function startAllPendingClaimsVoting() onlyInternal {
+
+        uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
+        uint i;
+        uint lengthOfClaimVotingPause = cd.getLengthOfClaimVotingPause();
+        for (i = firstIndx; i < lengthOfClaimVotingPause; i++) {
+            uint pendingTime;
+            uint claimID;
+            (claimID, pendingTime, ) = cd.getPendingClaimDetailsByIndex(i);
+            uint pTime = SafeMaths.add(SafeMaths.sub(now, cd.maxVotingTime()), pendingTime);
+            cd.setClaimdateUpd(claimID, pTime);
+            cd.setPendingClaimVoteStatus(i, true);
+
+            uint coverid;
+            (, coverid) = cd.getClaimCoverId(claimID);
+            address qadd = qd.getCoverMemberAddress(coverid);
+            tc2.depositLockCNEPOff(qadd, coverid, SafeMaths.add(pendingTime, cd.claimDepositTime()));
+            p1.closeClaimsOraclise(claimID, uint64(pTime));
+        }
+        cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
 
     /// @dev Checks if voting of a claim should be closed or not.

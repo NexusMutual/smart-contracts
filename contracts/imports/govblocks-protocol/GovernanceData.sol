@@ -60,13 +60,6 @@ contract GovernanceData is Upgradeable {
     event Reward(address indexed to, uint256 indexed proposalId, string description, uint256 amount);
     
     event Penalty(address indexed to, uint256 indexed proposalId, string description, uint256 amount);
-    
-    event OraclizeCall(
-        address indexed proposalOwner, 
-        uint256 indexed proposalId, 
-        uint256 dateAdd,
-        uint256 closingTime
-    );
 
     event ProposalStatus(uint256 indexed proposalId, uint256 proposalStatus, uint256 dateAdd);
     
@@ -106,7 +99,7 @@ contract GovernanceData is Upgradeable {
         public
         onlyInternal 
     {
-        ProposalWithSolution(proposalOwner, proposalId, proposalDescHash, solutionDescHash, dateAdd, stake);
+        emit ProposalWithSolution(proposalOwner, proposalId, proposalDescHash, solutionDescHash, dateAdd, stake);
     }
 
     /// @dev Calls proposal with stake event
@@ -118,7 +111,7 @@ contract GovernanceData is Upgradeable {
         public
         onlyInternal
     {
-        ProposalStake(_proposalOwner, _proposalId, _dateUp, _proposalStake);
+        emit ProposalStake(_proposalOwner, _proposalId, _dateUp, _proposalStake);
     }
 
     /// @dev Calls proposal version event
@@ -130,7 +123,7 @@ contract GovernanceData is Upgradeable {
         public
         onlyInternal 
     {
-        ProposalVersion(proposalId, vNumber, proposalHash, dateAdd);
+        emit ProposalVersion(proposalId, vNumber, proposalHash, dateAdd);
     }
 
     /// @dev Calls solution event
@@ -150,7 +143,7 @@ contract GovernanceData is Upgradeable {
         public
         onlyInternal 
     {
-        Solution(proposalId, solutionOwner, solutionId, solutionDescHash, dateAdd, solutionStake);
+        emit Solution(proposalId, solutionOwner, solutionId, solutionDescHash, dateAdd, solutionStake);
     }
 
     /// @dev Calls proposal event
@@ -169,7 +162,7 @@ contract GovernanceData is Upgradeable {
         public
         onlyInternal 
     {
-        Proposal(_proposalOwner, _proposalId, _dateAdd, _proposalTitle, _proposalSD, _proposalDescHash);
+        emit Proposal(_proposalOwner, _proposalId, _dateAdd, _proposalTitle, _proposalSD, _proposalDescHash);
     }
 
     /// @dev Calls event to update the reputation of the member
@@ -188,7 +181,7 @@ contract GovernanceData is Upgradeable {
         public
         onlyInternal 
     {
-        Reputation(_from, _proposalId, _description, _reputationPoints, _typeOf);
+        emit Reputation(_from, _proposalId, _description, _reputationPoints, _typeOf);
     }
 
     /// @dev Calls vote event
@@ -201,7 +194,7 @@ contract GovernanceData is Upgradeable {
         public
         onlyInternal 
     {
-        Vote(_from, _proposalId, _dateAdd, _voteStakeGBT, _voteId);
+        emit Vote(_from, _proposalId, _dateAdd, _voteStakeGBT, _voteId);
     }
 
     /// @dev Calls reward event
@@ -213,7 +206,7 @@ contract GovernanceData is Upgradeable {
         public 
         onlyInternal 
     {
-        Reward(_to, _proposalId, _description, _amount);
+        emit Reward(_to, _proposalId, _description, _amount);
     }
 
     /// @dev Calls penalty event
@@ -225,18 +218,7 @@ contract GovernanceData is Upgradeable {
         public 
         onlyInternal 
     {
-        Penalty(_to, _proposalId, _description, _amount);
-    }
-
-    /// @dev Calls Oraclize call event
-    /// @param _proposalId Proposal id
-    /// @param _dateAdd Date proposal was added
-    /// @param _closingTime Closing time of the proposal voting
-    function callOraclizeCallEvent(uint256 _proposalId, uint256 _dateAdd, uint256 _closingTime) 
-        public 
-        onlyInternal 
-    {
-        OraclizeCall(allProposal[_proposalId].owner, _proposalId, _dateAdd, _closingTime);
+        emit Penalty(_to, _proposalId, _description, _amount);
     }
 
     /// @dev Calls proposal status event
@@ -247,7 +229,7 @@ contract GovernanceData is Upgradeable {
         public 
         onlyInternal 
     {
-        ProposalStatus(_proposalId, _proposalStatus, _dateAdd);
+        emit ProposalStatus(_proposalId, _proposalStatus, _dateAdd);
     }
 
     using SafeMath for uint;
@@ -278,8 +260,8 @@ contract GovernanceData is Upgradeable {
     struct ProposalVote {
         address voter;
         uint64[] solutionChosen;
-        uint128 voteValue;
-        uint128 proposalId;
+        uint208 voteValue;
+        uint32 proposalId;
     }
 
     struct LastReward {
@@ -314,6 +296,7 @@ contract GovernanceData is Upgradeable {
     uint public membershipScalingFactor;
     uint public scalingWeight;
     bool public constructorCheck;
+    bool public punishVoters;
     uint public depositPercProposal;
     uint public depositPercSolution;
     uint public depositPercVote;
@@ -325,7 +308,6 @@ contract GovernanceData is Upgradeable {
     uint32 internal subSolutionOwnerPoints;
     uint32 internal subMemberPoints;
 
-    string[] internal status;
     ProposalStruct[] internal allProposal;
     ProposalVote[] internal allVotes;
     VotingTypeDetails[] internal allVotingTypeDetails;
@@ -336,13 +318,11 @@ contract GovernanceData is Upgradeable {
     address internal masterAddress;
 
     modifier onlyInternal {
-        master = Master(masterAddress);
         require(master.isInternal(msg.sender));
         _;
     }
 
     modifier onlyOwner {
-        master = Master(masterAddress);
         require(master.isOwner(msg.sender));
         _;
     }
@@ -361,6 +341,7 @@ contract GovernanceData is Upgradeable {
             master = Master(masterAddress);
             require(master.isInternal(msg.sender));
             masterAddress = _masterContractAddress;
+            master = Master(_masterContractAddress);
         }
     }
 
@@ -393,7 +374,6 @@ contract GovernanceData is Upgradeable {
     function updateDependencyAddresses() public onlyInternal {
         if (!constructorCheck)
             governanceDataInitiate();
-        master = Master(masterAddress);
         gov = Governance(master.getLatestAddress("GV"));
         gbt = GBTStandardToken(master.getLatestAddress("GS"));
         editVotingTypeDetails(0, master.getLatestAddress("SV"));
@@ -537,22 +517,20 @@ contract GovernanceData is Upgradeable {
         address _memberAddress, 
         uint64[] _solutionChosen, 
         uint _voteStake, 
-        uint128 _voteValue, 
-        uint128 _proposalId, 
-        uint _roleId
+        uint _voteValue, 
+        uint32 _proposalId, 
+        uint128 _roleId
     ) 
-        public 
+        external 
         onlyInternal
     {
         proposalRoleVote[_proposalId][_roleId].push(allVotes.length);
         allVotesByMember[_memberAddress].push(allVotes.length);
         addressProposalVote[_memberAddress][_proposalId] = allVotes.length;
-        Vote(_memberAddress, _proposalId, now, _voteStake, allVotes.length);
-        allVotes.push(ProposalVote(_memberAddress, _solutionChosen, _voteValue, _proposalId));
+        emit Vote(_memberAddress, _proposalId, now, _voteStake, allVotes.length);
+        allVotes.push(ProposalVote(_memberAddress, _solutionChosen, uint208(_voteValue), _proposalId));
         allProposalData[_proposalId].totalVoteValue = allProposalData[_proposalId].totalVoteValue 
             + _voteValue;
-
-
     }
 
     function getAllVoteIdsByAddress(address _memberAddress) public view returns(uint[]) {
@@ -577,8 +555,8 @@ contract GovernanceData is Upgradeable {
         returns(
             address voter, 
             uint64[] solutionChosen, 
-            uint128 voteValue,
-            uint128 proposalId
+            uint208 voteValue,
+            uint32 proposalId
         ) 
     {
         return (
@@ -617,7 +595,7 @@ contract GovernanceData is Upgradeable {
     }
 
     /// @dev Gets Total number of votes of specific role against proposal
-    function getAllVoteIdsLengthByProposalRole(uint _proposalId, uint _roleId) public view returns(uint length) {
+    function getAllVoteIdsLengthByProposalRole(uint _proposalId, uint _roleId) external view returns(uint length) {
         return proposalRoleVote[_proposalId][_roleId].length;
     }
 
@@ -716,18 +694,15 @@ contract GovernanceData is Upgradeable {
         quorumPercentage = _quorumPercentage;
     }
 
+    function setPunishVoters(bool _punish) public onlyInternal {
+        punishVoters = _punish;
+    }
+
     /// @dev Gets reputation points to proceed with updating the member reputation level
     function getMemberReputationPoints() 
         public 
         view 
-        returns(
-            uint32 addProposalOwnPoints, 
-            uint32 addSolutionOwnerPoints, 
-            uint32 addMemPoints, 
-            uint32 subProposalOwnPoints, 
-            uint32 subSolutionOwnPoints, 
-            uint32 subMemPoints
-        ) 
+        returns(uint32, uint32, uint32, uint32, uint32, uint32) 
     {
         return (
             addProposalOwnerPoints, 
@@ -784,7 +759,7 @@ contract GovernanceData is Upgradeable {
     /// @dev Changes the status of a given proposal.
     function changeProposalStatus(uint _id, uint8 _status) public onlyInternal {
         require(allProposalData[_id].category != 0);
-        ProposalStatus(_id, _status, now);
+        emit ProposalStatus(_id, _status, now);
         updateProposalStatus(_id, _status);
     }
 
@@ -824,14 +799,14 @@ contract GovernanceData is Upgradeable {
         onlyInternal 
     {
         allMemberReputationByAddress[_memberAddress] = _repPoints;
-        Reputation(_memberAddress, _proposalId, _description, _repPointsEventLog, _typeOf);
+        emit Reputation(_memberAddress, _proposalId, _description, _repPointsEventLog, _typeOf);
     }
 
     /// @dev Stores the information of version number of a given proposal. 
     ///     Maintains the record of all the versions of a proposal.
     function storeProposalVersion(uint _proposalId, string _proposalDescHash) public onlyInternal {
         uint8 versionNo = allProposalData[_proposalId].versionNumber + 1;
-        ProposalVersion(_proposalId, versionNo, _proposalDescHash, now);
+        emit ProposalVersion(_proposalId, versionNo, _proposalDescHash, now);
         setProposalVersion(_proposalId, versionNo);
     }
 
@@ -895,6 +870,21 @@ contract GovernanceData is Upgradeable {
         );
     }
 
+    /// @dev fetches details for simplevoting and also verifies that the voter has not casted a vote already
+    function getProposalDetailsForSV(address _voter, uint _proposalId) 
+        external
+        view
+        returns(uint8, uint8, uint8) 
+    {
+        require(addressProposalVote[_voter][_proposalId] == 0);
+        require(allProposalData[_proposalId].propStatus == 2);
+        return(
+            allProposalData[_proposalId].category,
+            allProposalData[_proposalId].currVotingStatus,
+            allProposalData[_proposalId].currentVerdict
+        );
+    }
+
     /// @dev Fetch details of proposal when giving proposal id
     function getProposalDetailsById4(uint _proposalId) 
         public 
@@ -905,7 +895,7 @@ contract GovernanceData is Upgradeable {
     }
 
     /// @dev Gets proposal details of given proposal id
-    /// @param totalVotes Total number of votes that has been casted so far against proposal
+    /// @param totalVoteValue Total value of votes that has been casted so far against proposal
     /// @param totalSolutions Total number of solutions proposed till now against proposal
     /// @param commonIncentive Incentive that needs to be distributed once the proposal is closed.
     /// @param finalVerdict Final solution index that has won by maximum votes.
@@ -915,7 +905,7 @@ contract GovernanceData is Upgradeable {
         returns(
             uint proposalId,
             uint status, 
-            uint totalVotes, 
+            uint totalVoteValue, 
             uint totalSolutions, 
             uint commonIncentive, 
             uint finalVerdict
@@ -923,7 +913,7 @@ contract GovernanceData is Upgradeable {
     {
         proposalId = _proposalId;
         status = getProposalStatus(_proposalId);
-        totalVotes = getProposalTotalVoteValue(_proposalId);
+        totalVoteValue = getProposalTotalVoteValue(_proposalId);
         totalSolutions = getTotalSolutions(_proposalId);
         commonIncentive = getProposalIncentive(_proposalId);
         finalVerdict = allProposalData[_proposalId].finalVerdict;
@@ -1005,6 +995,16 @@ contract GovernanceData is Upgradeable {
             memberPoints = allMemberReputationByAddress[_memberAddress];
     }
 
+    /// @dev Get member's reputation points and scalind data for sv.
+    function getMemberReputationSV(address _memberAddress) public view returns(uint, uint, uint) {
+        uint memberPoints;
+        if (allMemberReputationByAddress[_memberAddress] == 0)
+            memberPoints = 1;
+        else
+            memberPoints = allMemberReputationByAddress[_memberAddress];
+        return(scalingWeight, membershipScalingFactor, memberPoints);
+    }
+
     /// @dev Gets Total vote value from all the votes that has been casted against of winning solution
     function getProposalTotalVoteValue(uint _proposalId) public view returns(uint voteValue) {
         voteValue = allProposalData[_proposalId].totalVoteValue;
@@ -1079,7 +1079,7 @@ contract GovernanceData is Upgradeable {
     function getDepositTokensByAddressProposal(address _memberAddress, uint _proposalId) 
         public 
         view 
-        returns(uint, uint depositForCreatingProposal, uint depositForProposingSol, uint depositForCastingVote) 
+        returns(uint, uint , uint , uint) 
     {
         return (
             _proposalId, 

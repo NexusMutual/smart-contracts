@@ -155,7 +155,7 @@ contract RankBasedVoting is VotingType, Upgradeable {
         // addVerdictOption(_proposalId,msg.sender,_paramInt,_paramBytes32,_paramAddress, _GBTPayableTokenAmount, _optionHash);
     }
 
-    function proposalVoting(uint _proposalId, uint[] _optionChosen, uint _GBTPayableTokenAmount) {
+    function proposalVoting(uint _proposalId, uint[] _optionChosen, uint _GBTPayableTokenAmount) external {
         //     GD=GovernanceData(GDAddress);
         //     MR=MemberRoles(MRAddress);
         //     PC=ProposalCategory(PCAddress);

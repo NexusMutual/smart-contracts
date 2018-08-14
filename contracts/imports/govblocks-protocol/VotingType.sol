@@ -26,9 +26,9 @@ contract VotingType {
 
     function initiateAddSolution(uint _proposalId, uint _solutionStake, string _solutionHash, uint _validityUpto, uint8 _v, bytes32 _r, bytes32 _s, bytes32 _lockTokenTxHash, bytes _action) public;
 
-    function proposalVoting(uint64 _proposalId, uint64[] _solutionChosen, uint _voteStake, uint _validityUpto, uint8 _v, bytes32 _r, bytes32 _s, bytes32 _lockTokenTxHash) public;
+    function proposalVoting(uint64 _proposalId, uint64[] _solutionChosen, uint _voteStake, uint _validityUpto, uint8 _v, bytes32 _r, bytes32 _s, bytes32 _lockTokenTxHash) external;
 
     function closeProposalVote(uint _proposalId) public;
 
-    function giveRewardAfterFinalDecision(uint _proposalId) public;
+    function giveRewardAfterFinalDecision(uint _proposalId) internal;
 }

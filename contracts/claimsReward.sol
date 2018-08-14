@@ -16,7 +16,8 @@
 //Claims Reward Contract contains the functions for calculating number of tokens  
 // that will get rewarded, unlocked or burned depending upon the status of claim.   
 
-pragma solidity ^0.4.11;
+pragma solidity 0.4.24;
+
 import "./claims.sol";
 import "./claimsData.sol";
 import "./nxmToken.sol";
@@ -75,6 +76,11 @@ contract claimsReward is Iupgradable {
         _;
     }
 
+    modifier isMemberAndcheckPause {
+        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
+        _;
+    }
+
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
         c1 = claims(ms.versionContractAddress(currentVersion, "C1"));
@@ -117,29 +123,6 @@ contract claimsReward is Iupgradable {
         c1.changePendingClaimStart();
     }
     
-    /// @dev Resume the voting phase of all claims paused due to an emergency pause.
-    function startAllPendingClaimsVoting() onlyInternal {
-
-        uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
-        uint i;
-        uint lengthOfClaimVotingPause = cd.getLengthOfClaimVotingPause();
-        for (i = firstIndx; i < lengthOfClaimVotingPause; i++) {
-            uint pendingTime;
-            uint claimID;
-            (claimID, pendingTime, ) = cd.getPendingClaimDetailsByIndex(i);
-            uint pTime = SafeMaths.add(SafeMaths.sub(now, cd.maxVotingTime()), pendingTime);
-            cd.setClaimdateUpd(claimID, pTime);
-            cd.setPendingClaimVoteStatus(i, true);
-
-            uint coverid;
-            (, coverid) = cd.getClaimCoverId(claimID);
-            address qadd = qd.getCoverMemberAddress(coverid);
-            tc2.depositLockCNEPOff(qadd, coverid, SafeMaths.add(pendingTime, cd.claimDepositTime()));
-            p1.closeClaimsOraclise(claimID, uint64(pTime));
-        }
-        cd.setFirstClaimIndexToStartVotingAfterEP(i);
-    }
-
     /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
     /// @param check 1 -> CA vote, else member vote
     /// @param voteid vote id for which reward has to be Calculated
@@ -196,62 +179,6 @@ contract claimsReward is Iupgradable {
         }
 
     }
-
-    /// @dev Allows a user to claim all pending  claims assessment rewards.
-    function claimRewardToBeDistributed() checkPause {
-        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
-        uint lastIndexCA;
-        uint lastIndexMV;
-        uint voteid;
-        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
-        uint total = 0;
-        uint lastClaimed = lengthVote;
-        uint tokenForVoteId = 0;
-        bool lastClaimedCheck;
-        uint _days = td.lockCADays();
-        bool claimed;
-        uint counter = 0;
-        uint claimId;
-        uint perc;
-        uint i;
-        for (i = lastIndexCA; i < lengthVote; i++) {
-            voteid = cd.getVoteAddressCA(msg.sender, i);
-            (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
-            if (lastClaimed == lengthVote && lastClaimedCheck == true)
-                lastClaimed = i;
-            (, claimId, , claimed) = cd.getVoteDetails(voteid);
-
-            if (perc > 0) {
-                counter++;
-                cd.setRewardClaimed(voteid, true);
-            } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0) {
-                counter++;
-                cd.setRewardClaimed(voteid, true);
-            }
-            if (tokenForVoteId > 0)
-                total = SafeMaths.add(tokenForVoteId, total);
-        }
-        cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
-        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
-        lastClaimed = lengthVote;
-        _days = SafeMaths.mul(_days, counter);
-        tc1.reduceLock("CLA", msg.sender, _days);
-        for (i = lastIndexMV; i < lengthVote; i++) {
-            voteid = cd.getVoteAddressMember(msg.sender, i);
-            (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);
-            if (lastClaimed == lengthVote && lastClaimedCheck == true)
-                lastClaimed = i;
-            (, claimId, , claimed) = cd.getVoteDetails(voteid);
-            if (claimed == false && cd.getFinalVerdict(claimId) != 0)
-                cd.setRewardClaimed(voteid, true);
-            if (tokenForVoteId > 0)
-                total = SafeMaths.add(tokenForVoteId, total);
-        }
-        if (total > 0)
-            tc1.transfer(msg.sender, total);
-        cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
-
-    }
     
     /// @dev Transfers all tokens held by contract to a new contract in case of upgrade.
     function upgrade(address _newAdd) onlyInternal {
@@ -262,21 +189,21 @@ contract claimsReward is Iupgradable {
 
     /// @dev Total reward in token due for claim by a user.
     /// @return total total number of tokens
-    function getRewardToBeDistributedByUser() constant returns(uint total) {
-        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
+    function getRewardToBeDistributedByUser(address _add) constant returns(uint total) {
+        uint lengthVote = cd.getVoteAddressCALength(_add);
         uint lastIndexCA;
         uint lastIndexMV;
         uint tokenForVoteId;
         uint voteId;
-        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
+        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(_add);
         for (uint i = lastIndexCA; i < lengthVote; i++) {
-            voteId = cd.getVoteAddressCA(msg.sender, i);
+            voteId = cd.getVoteAddressCA(_add, i);
             (tokenForVoteId, , , ) = getRewardToBeGiven(1, voteId, 0);
             total = SafeMaths.add(total, tokenForVoteId);
         }
-        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
+        lengthVote = cd.getVoteAddressMemberLength(_add);
         for (uint j = lastIndexMV; j < lengthVote; j++) {
-            voteId = cd.getVoteAddressMember(msg.sender, j);
+            voteId = cd.getVoteAddressMember(_add, j);
             (tokenForVoteId, , , ) = getRewardToBeGiven(0, voteId, 0);
             total = SafeMaths.add(total, tokenForVoteId);
         }
@@ -308,6 +235,45 @@ contract claimsReward is Iupgradable {
 
     }
 
+    function getTotalStakeCommission(address _add) constant returns(uint total) {
+        
+        total = 0;
+        uint len = td.getTotalScAddressesAgainstStaker(_add);
+        for (uint i = 0; i < len; i++) {
+            uint stakerIndex;
+            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(_add, i);
+            address scAdd;
+            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
+            uint commissionLen = td.getStakeCommissionLength(_add, scAdd, stakerIndex);
+            uint lastClaimedCommission = td.getLastClaimedCommission(_add, scAdd, stakerIndex);
+            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
+                uint commissionAmt;
+                bool claimed;
+                (, , commissionAmt, , claimed) = td.getStakeCommission(_add, scAdd, stakerIndex, j);
+                if (!claimed) {
+                    total = SafeMaths.add(total, commissionAmt);
+                }
+            }
+            
+        }
+    }
+
+    function claimAllPendingReward() isMemberAndcheckPause {
+
+        
+        claimRewardToBeDistributed();
+        claimStakeCommission();
+
+    }
+
+    function getAllPendingRewardOfUser(address _add) constant returns(uint total) {
+
+        uint caReward = getRewardToBeDistributedByUser(_add);
+        uint stakeCommission = getTotalStakeCommission(_add);
+        total = SafeMaths.add(caReward, stakeCommission);
+
+    }
+
     /// @dev Rewards/Punishes users who  participated in claims assessment. 
     //             Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
@@ -325,7 +291,7 @@ contract claimsReward is Iupgradable {
         (percCA, percMV) = c1.getRewardStatus(status);
         cd.setClaimRewardDetail(claimid, percCA, percMV, distributableTokens);
         if (percCA > 0 || percMV > 0) {
-            tc2.mintClaimRewardToken(distributableTokens);
+            tc2.rewardToken(address(this), distributableTokens);
         }
         if (status == 6) {  // Final-Claim Assessor Vote Denied
             cd.changeFinalVerdict(claimid, -1);
@@ -335,32 +301,27 @@ contract claimsReward is Iupgradable {
                 pd.changeCurrencyAssetVarMin(curr, SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr), sumAssured));
                 p3.checkLiquidityCreateOrder(curr);
             }
-        }
-        if (status == 7) {
+        } else if (status == 7) {
             cd.changeFinalVerdict(claimid, 1);
             // Rewards Claims Assessor only
             tc2.unlockCN(coverid); // Unlocks token locked against cover note
             succ = p2.sendClaimPayout(coverid, claimid); //Initiates payout
-        }
-        if (status == 8) {
+        } else if (status == 8) {
             cd.changeFinalVerdict(claimid, 1);
             tc2.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
-        }
-        if (status == 9) {
+        } else if (status == 9) {
             cd.changeFinalVerdict(claimid, -1);
             tc2.burnCNToken(coverid);
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
                 pd.changeCurrencyAssetVarMin(curr, SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr), sumAssured));
                 p3.checkLiquidityCreateOrder(curr);
             }
-        }
-        if (status == 10) {
+        } else if (status == 10) {
             cd.changeFinalVerdict(claimid, 1);
             tc2.unlockCN(coverid);
             succ = p2.sendClaimPayout(coverid, claimid);
-        }
-        if (status == 11) {
+        } else if (status == 11) {
             cd.changeFinalVerdict(claimid, -1);
             tc2.burnCNToken(coverid);
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
@@ -472,4 +433,87 @@ contract claimsReward is Iupgradable {
             rewardAgainstClaim(claimid, coverid, status);
         }
     }
+
+    /// @dev Allows a user to claim all pending  claims assessment rewards.
+    function claimRewardToBeDistributed() internal {
+        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
+        uint lastIndexCA;
+        uint lastIndexMV;
+        uint voteid;
+        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
+        uint total = 0;
+        uint lastClaimed = lengthVote;
+        uint tokenForVoteId = 0;
+        bool lastClaimedCheck;
+        uint _days = td.lockCADays();
+        bool claimed;
+        uint counter = 0;
+        uint claimId;
+        uint perc;
+        uint i;
+        for (i = lastIndexCA; i < lengthVote; i++) {
+            voteid = cd.getVoteAddressCA(msg.sender, i);
+            (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
+            if (lastClaimed == lengthVote && lastClaimedCheck == true)
+                lastClaimed = i;
+            (, claimId, , claimed) = cd.getVoteDetails(voteid);
+
+            if (perc > 0 && !claimed) {
+                counter++;
+                cd.setRewardClaimed(voteid, true);
+            } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0 && !claimed) {
+                counter++;
+                cd.setRewardClaimed(voteid, true);
+            }
+            if (tokenForVoteId > 0)
+                total = SafeMaths.add(tokenForVoteId, total);
+        }
+        cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
+        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
+        lastClaimed = lengthVote;
+        _days = SafeMaths.mul(_days, counter);
+        tc1.reduceLock("CLA", msg.sender, _days);
+        for (i = lastIndexMV; i < lengthVote; i++) {
+            voteid = cd.getVoteAddressMember(msg.sender, i);
+            (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);
+            if (lastClaimed == lengthVote && lastClaimedCheck == true)
+                lastClaimed = i;
+            (, claimId, , claimed) = cd.getVoteDetails(voteid);
+            if (claimed == false && cd.getFinalVerdict(claimId) != 0)
+                cd.setRewardClaimed(voteid, true);
+            if (tokenForVoteId > 0)
+                total = SafeMaths.add(tokenForVoteId, total);
+        }
+        if (total > 0)
+            tc1.transfer(msg.sender, total);
+        cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
+
+    }
+
+    function claimStakeCommission() internal {
+
+        uint total=0; 
+        uint len = td.getTotalScAddressesAgainstStaker(msg.sender);
+        for (uint i = 0; i < len; i++) {
+            uint stakerIndex;
+            (, stakerIndex) = td.getStakerIndexByStakerAddAndIndex(msg.sender, i);
+            address scAdd;
+            (, , scAdd, , , ) = td.getStakeDetails(stakerIndex);
+            uint commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, stakerIndex);
+            uint lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, stakerIndex);
+            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
+                uint commissionAmt;
+                bool claimed;
+                (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, stakerIndex, j);
+                if (!claimed) {
+                    total = SafeMaths.add(total, commissionAmt);
+                    td.setClaimedCommision(msg.sender, scAdd, stakerIndex, j);
+                }
+            }
+            td.setLastClaimedCommission(msg.sender, scAdd, stakerIndex, commissionLen);   
+        }
+        if (total > 0)
+            tc1.transfer(msg.sender, total);
+    }
+
 }

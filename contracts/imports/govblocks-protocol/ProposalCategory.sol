@@ -19,7 +19,7 @@ import "./MemberRoles.sol";
 import "./Upgradeable.sol";
 
 
-contract ProposalCategory {
+contract ProposalCategory is Upgradeable {
     bool public constructorCheck;
     uint constant INT_MAX = uint256(0) - uint256(1);
     
@@ -46,8 +46,7 @@ contract ProposalCategory {
 
     SubCategory[] public allSubCategory;
     Category[] public allCategory;
-    // mapping(uint8=>uint8) categoryIdBySubId; // Given SubcategoryidThen CategoryId
-    mapping(uint8 => uint[]) internal allSubIdByCategory;
+    mapping(uint => uint[]) internal allSubIdByCategory;
 
     Master internal master;
     MemberRoles internal memberRole;
@@ -55,37 +54,11 @@ contract ProposalCategory {
     address internal masterAddress;
 
     modifier onlyInternal {
-        master = Master(masterAddress);
         require(master.isInternal(msg.sender));
         _;
     }
 
-    modifier onlyOwner {
-        master = Master(masterAddress);
-        require(master.isOwner(msg.sender));
-        _;
-    }
-
-    modifier onlyMaster {
-        require(msg.sender == masterAddress);
-        _;
-    }
-
-    modifier onlyGBM(uint8[] arr1, uint8[] arr2, uint32[] arr3) {
-        master = Master(masterAddress);
-        require(master.isGBM(msg.sender));
-        require(arr1.length == arr2.length && arr1.length == arr3.length);
-        _;
-    }
-
-    modifier onlyGBMSubCategory() {
-        master = Master(masterAddress);
-        require(master.isGBM(msg.sender));
-        _;
-    }
-
     modifier onlySV {   //Owner for debugging only, will be removed before launch 
-        master = Master(masterAddress);
         require(master.getLatestAddress("SV") == msg.sender  
             || master.isOwner(msg.sender)
         );
@@ -95,34 +68,30 @@ contract ProposalCategory {
     /// @dev Changes master's contract address
     /// @param _masterContractAddress New master contract address
     function changeMasterAddress(address _masterContractAddress) public {
-        if (masterAddress == address(0))
+        if (masterAddress == address(0)){
             masterAddress = _masterContractAddress;
-        else {
+            master = Master(masterAddress);
+        } else {
             master = Master(masterAddress);
             require(master.isInternal(msg.sender));
             masterAddress = _masterContractAddress;
+            master = Master(_masterContractAddress);
         }
     }
 
     /// @dev updates all dependency addresses to latest ones from Master
-    function updateDependencyAddresses() public onlyInternal {
-        if (!constructorCheck)
-            proposalCategoryInitiate();
-        master = Master(masterAddress);
+    function updateDependencyAddresses() public {
         governanceDat = GovernanceData(master.getLatestAddress("GD"));
         memberRole = MemberRoles(master.getLatestAddress("MR"));
     }
 
     /// @dev just to adhere to the interface
-    function changeGBTSAddress(address _gbtAddress) public {
+    function changeGBTSAddress(address) public {
     }
 
     /// @dev Initiates Default settings for Proposal Category contract (Adding default categories)
     function proposalCategoryInitiate() public {
         require(!constructorCheck);
-        
-        master = Master(masterAddress);
-        
         uint8[] memory rs = new uint8[](1);
         uint8[] memory mv = new uint8[](1);
         uint32[] memory ct = new uint32[](1);
@@ -132,34 +101,15 @@ contract ProposalCategory {
         ct[0] = 1800;
         
         allCategory.push(Category("Uncategorized", rs, mv, ct, 0, 0, 0, 0, 0, 0));
-        allCategory.push(Category("Change to member role", rs, mv, ct, 0, INT_MAX, 10**19, 40, 40, 20));
-        allCategory.push(Category("Changes to categories", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
-        allCategory.push(Category("Changes in parameters", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
-        allCategory.push(Category("Others not specified", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
-        
-        allSubIdByCategory[0].push(0);
-        allSubCategory.push(SubCategory("Uncategorized", "", 0, address(0), "EX"));
-        allSubIdByCategory[1].push(1);
-        allSubCategory.push(SubCategory(
-                "Add new member role",
-                "QmRnwMshX2L6hTv3SgB6J6uahK7tRgPNfkt91siznLqzQX",
-                1,
-                master.getLatestAddress("MR"),
-                "MR"
-            )
-        );
-        allSubIdByCategory[1].push(2);
-        allSubCategory.push(SubCategory(
-                "Update member role",
-                "QmbsXSZ3rNPd8mDizVBV33GVg1ThveUD5YnM338wisEJyd",
-                1,
-                master.getLatestAddress("MR"),
-                "MR"
-            )
-        );
+        allCategory.push(Category("Member role", rs, mv, ct, 0, INT_MAX, 10**19, 40, 40, 20));
+        allCategory.push(Category("Categories", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
+        allCategory.push(Category("Parameters", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
+        allCategory.push(Category("Transfer Assets", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
+        allCategory.push(Category("New contracts", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
+        allCategory.push(Category("Others", rs, mv, ct, 0, INT_MAX, 0, 40, 40, 20));
 
-        addInitialSubCategories1();
-        
+        addInitialSubCategories();
+
         constructorCheck = true;
     }
 
@@ -175,7 +125,7 @@ contract ProposalCategory {
         uint8[] _memberRoleSequence, 
         uint8[] _memberRoleMajorityVote, 
         uint32[] _closingTime,
-        uint64[] _stakeAndIncentive, 
+        uint[] _stakeAndIncentive, 
         uint8[] _rewardPercentage
     ) 
         public
@@ -470,6 +420,11 @@ contract ProposalCategory {
         return allCategory[_categoryId].memberRoleSequence[_index];
     }
 
+    function getRoleSequencByProposal(uint _proposalId, uint _currVotingId) public view returns(uint32) {
+        uint32 category = allSubCategory[governanceDat.getProposalCategory(_proposalId)].categoryId;
+        return allCategory[category].memberRoleSequence[_currVotingId];
+    }
+
     /// @dev Gets Majority threshold value at particular index from Majority Vote array
     /// @param _categoryId Id of main category
     /// @param _index Current voting status againt proposal act as an index here
@@ -514,6 +469,18 @@ contract ProposalCategory {
         );
     }
 
+    function getMRSequenceBySubCat(uint _subCategoryId, uint _currVotingIndex) external view returns (uint8) {
+        uint category = allSubCategory[_subCategoryId].categoryId;
+        return allCategory[category].memberRoleSequence[_currVotingIndex];
+    }
+
+    function validateStake(uint _proposalId, uint _stake) public view returns (bool result) {
+        uint64 subCat = governanceDat.getProposalCategory(_proposalId);
+        uint64 category = allSubCategory[subCat].categoryId;
+        if(_stake <= allCategory[category].maxStake && _stake >= allCategory[category].minStake)
+            result = true;
+    }
+
     /// @dev Gets Category and SubCategory name from Proposal ID.
     function getCatAndSubNameByPropId(uint _proposalId) 
         public 
@@ -526,28 +493,46 @@ contract ProposalCategory {
 
     /// @dev Gets Category ID from Proposal ID.
     function getCatIdByPropId(uint _proposalId) public view returns(uint8 catId) {
-        catId = getCategoryIdBySubId(governanceDat.getProposalCategory(_proposalId));
+        catId = allSubCategory[governanceDat.getProposalCategory(_proposalId)].categoryId;
     }
 
     /// @dev adds second half of the inital categories
-    function addInitialSubCategories1() internal {
-        master = Master(masterAddress);
-        
+    function addInitialSubCategories() internal {
+        allSubIdByCategory[0].push(0);
+        allSubCategory.push(SubCategory("Uncategorized", "", 0, address(0), "EX"));
+        allSubIdByCategory[1].push(1);
+        allSubCategory.push(SubCategory(
+                "Add new member role",
+                "QmRnwMshX2L6hTv3SgB6J6uahK7tRgPNfkt91siznLqzQX",
+                1,
+                masterAddress,
+                "MR"
+            )
+        );
+        allSubIdByCategory[1].push(2);
+        allSubCategory.push(SubCategory(
+                "Update member role",
+                "QmbsXSZ3rNPd8mDizVBV33GVg1ThveUD5YnM338wisEJyd",
+                1,
+                masterAddress,
+                "MR"
+            )
+        );        
         allSubIdByCategory[2].push(3);
         allSubCategory.push(SubCategory(
                 "Add new category",
-                "QmcCKba6ahSEj1gdVwHVasY8DyWnLXy2pSLufH5kThmo2m",
+                "QmNazQ3hQ5mssf8KAYkjxwVjwZvM9XjZgrJ1kf3QUmprCB",
                 2,
-                master.getLatestAddress("PC"),
+                masterAddress,
                 "PC"
             )
         );
         allSubIdByCategory[2].push(4);
         allSubCategory.push(SubCategory(
                 "Edit category",
-                "QmdKzy9qYsLFq62Pf23raHNz5f6otYWtWZfpwNPQeCnawx",
+                "QmYWSuy3aZFK1Yavpq5Pm89rg6esyZ8rn5CNf6PdgJCpR6",
                 2,
-                master.getLatestAddress("PC"),
+                masterAddress,
                 "PC"
             )
         );
@@ -556,7 +541,7 @@ contract ProposalCategory {
                 "Add new sub category",
                 "QmeyPccQzMTNxSavJp4dL1J88zzb4xNESn5wLTPzqMFFJX",
                 2,
-                master.getLatestAddress("PC"),
+                masterAddress,
                 "PC"
             )
         );
@@ -565,7 +550,7 @@ contract ProposalCategory {
                 "Edit sub category",
                 "QmVeSBUghB71WHhnT8tXajSctnfz1fYx6fWXc9wXHJ8r2p",
                 2,
-                master.getLatestAddress("PC"),
+                masterAddress,
                 "PC"
             )
         );
@@ -579,7 +564,42 @@ contract ProposalCategory {
             )
         );
         allSubIdByCategory[4].push(8);
+        allSubCategory.push(SubCategory(
+                "Transfer Ether",
+                "QmRUmxw4xmqTN6L2bSZEJfmRcU1yvVWoiMqehKtqCMAaTa",
+                4,
+                masterAddress,
+                "PL"
+            )
+        );
+        allSubIdByCategory[4].push(9);
+        allSubCategory.push(SubCategory(
+                "Transfer Token",
+                "QmbvmcW3zcAnng3FWgP5bHL4ba9kMMwV9G8Y8SASqrvHHB",
+                4,
+                masterAddress,
+                "PL"
+            )
+        );
+        allSubIdByCategory[5].push(10);
+        allSubCategory.push(SubCategory(
+                "Add new version",
+                "QmeMBNn9fs5xYVFVsN8HgupMTfgXdyz4vkLPXakWd2BY3w",
+                5,
+                masterAddress,
+                "MS"
+            )
+        );
+        allSubIdByCategory[5].push(11);
+        allSubCategory.push(SubCategory(
+                "Add new contract",
+                "QmaPH84hSyoAz1pvzrbfAXdzVFaDyqmKKmCzcmk8LZHgjr",
+                5,
+                masterAddress,
+                "MS"
+            )
+        );
+        allSubIdByCategory[6].push(12);
         allSubCategory.push(SubCategory("Others, not specified", "", 4, address(0), "EX"));
     }
-
 }

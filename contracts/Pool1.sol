@@ -25,7 +25,6 @@ import "./MCR.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 import "./imports/oraclize/ethereum-api/usingOraclize.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 
@@ -53,7 +52,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
 
     constructor () public {
         OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
-        dAppName = "NEXUS-MUTUAL";
+        dappName = "NEXUS-MUTUAL";
     }
 
     function () public payable {}

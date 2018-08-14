@@ -81,7 +81,7 @@ contract NXMaster is Governed {
         contractsActive[address(this)] = true; //1
         masterAddress = address(this);
         versionLength = 0;
-        dAppName = "NEXUS-MUTUAL";
+        dappName = "NEXUS-MUTUAL";
         pauseTime = SafeMaths.mul(28, 1 days); //4 weeks
         contractNames.push("QD");
         contractNames.push("TD");

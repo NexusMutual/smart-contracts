@@ -1,23 +1,18 @@
+var NXMToken1 = artifacts.require("NXMToken1");
 var MemberRoles = artifacts.require("MemberRoles");
-var GovBlocksMaster = artifacts.require("GovBlocksMaster");
-var Master = artifacts.require("Master");
-var GBTStandardToken = artifacts.require("GBTStandardToken");
-var Governance = artifacts.require("Governance");
-var GovernanceData = artifacts.require("GovernanceData");
-var Pool = artifacts.require("Pool");
-var ProposalCategory = artifacts.require("ProposalCategory");
-var SimpleVoting = artifacts.require("SimpleVoting");
-var EventCaller = artifacts.require("EventCaller");
+const owner =  web3.eth.accounts[0];
 
-module.exports = function(deployer) {
-    deployer.deploy(GBTStandardToken);
-    deployer.deploy(EventCaller);
-    deployer.deploy(GovBlocksMaster);
-    deployer.deploy(GovernanceData);
-    deployer.deploy(Governance);
-    deployer.deploy(Pool);
-    deployer.deploy(ProposalCategory);
-    deployer.deploy(SimpleVoting);
-    deployer.deploy(MemberRoles);
-    deployer.deploy(Master);
+module.exports = deployer => {
+    deployer.deploy(NXMToken1)
+    .then(function(){ 
+        return NXMToken1.deployed();
+    })
+    .then(function(instance){ 
+    	let addr = instance.address;
+    	console.log(addr);
+        return deployer.deploy(MemberRoles, "0x4e455855532d4d555455414c",addr, owner);
+    })
+    .then(function(){ 
+       console.log("MemberRoles deployed");
+    });
 };

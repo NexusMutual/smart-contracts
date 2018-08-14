@@ -5,7 +5,6 @@ var NXMaster = artifacts.require("NXMaster");
 var NXMaster2 = artifacts.require("NXMaster2");
 var MCR = artifacts.require("MCR");
 var MCRData = artifacts.require("MCRData");
-var NXMToken1 = artifacts.require("NXMToken1");
 var NXMToken2 = artifacts.require("NXMToken2");
 var NXMTokenData = artifacts.require("NXMTokenData");
 var Pool1 = artifacts.require("Pool1");
@@ -27,7 +26,6 @@ module.exports = function(deployer) {
     deployer.deploy(PoolData);
     deployer.deploy(MCR);
     deployer.deploy(MCRData);
-    deployer.deploy(NXMToken1);
     deployer.deploy(NXMToken2);
     deployer.deploy(NXMTokenData,"0","NXM","18","NXM");
     deployer.deploy(Quotation);

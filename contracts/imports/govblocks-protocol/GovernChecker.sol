@@ -23,7 +23,7 @@ contract GBM {
 
 contract GovernChecker {
 
-	mapping (bytes32 => address) public authorized;	//Mapping to store authorized address of every dApp
+	mapping (bytes32 => address[]) public authorized;	//Mapping to store authorized address of every dApp
 
 	GBM internal govBlockMaster; //GovBlockMaster instance to prevent registeration of non existant dApps.
 
@@ -36,19 +36,44 @@ contract GovernChecker {
 
 	/// @dev Allows dApp's master to add authorized address for initalization
 	/// @param _dAppName new dApp's name
-	/// @param authorizedAddress authorized address of the new dapp
-	function initializeAuthorized(bytes32 _dAppName, address authorizedAddress) public {
-		require(authorized[_dAppName] == address(0));
-		require(govBlockMaster.getDappMasterAddress(_dAppName) == msg.sender);
-		authorized[_dAppName] = authorizedAddress;
+	/// @param _authorizedAddress authorized address of the new dapp
+	function initializeAuthorized(bytes32 _dAppName, address _authorizedAddress) public {
+		require(authorized[_dAppName].length == 0);
+		if(address(govBlockMaster) != address(0))
+			require(govBlockMaster.getDappMasterAddress(_dAppName) == msg.sender);
+		authorized[_dAppName].push(_authorizedAddress);
 	}
 
 	/// @dev Allows the authorized address to pass on the authorized to someone else
-	/// @param _dAppName dApp's name whose authorizedAddress has to be changed
-	/// @param authorizedAddress new authorized address of the dapp
-	function updateAuthorized(bytes32 _dAppName, address authorizedAddress) public {
-		require(authorized[_dAppName] == msg.sender);
-		authorized[_dAppName] = authorizedAddress;
+	/// @param _dAppName dApp's name whose _authorizedAddress has to be changed
+	/// @param _authorizedAddress new authorized address of the dapp
+	function updateAuthorized(bytes32 _dAppName, address _authorizedAddress) public {
+		uint authNumber = authorizedAddressNumber(_dAppName, msg.sender);
+		require(authNumber > 0);
+		authorized[_dAppName][authNumber - 1] = _authorizedAddress;
+	}
+
+	/// @dev add authorized address (a new voting type)
+	/// @param _dAppName dApp's name whose _authorizedAddress has to be changed
+	/// @param _authorizedAddress new authorized address of the dapp
+	function addAuthorized(bytes32 _dAppName, address _authorizedAddress) public {
+		uint authNumber = authorizedAddressNumber(_dAppName, msg.sender);
+		require(authNumber > 0);
+		authNumber = authorizedAddressNumber(_dAppName, _authorizedAddress);
+		if(authNumber == 0)
+			authorized[_dAppName].push(_authorizedAddress);
+	}
+
+	function authorizedAddressNumber(bytes32 _dAppName, address _authorizedAddress)
+		public 
+		view 
+		returns(uint authorizationNumber) 
+	{
+		for(uint i = 0; i < authorized[_dAppName].length; i++) {
+			if(authorized[_dAppName][i] == _authorizedAddress) {
+				return(i + 1); 
+			}
+		}
 	}
 
 	/// @dev Returns govBlockMaster Address

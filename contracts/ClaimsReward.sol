@@ -358,7 +358,7 @@ contract ClaimsReward is Iupgradable {
                     status = 7;
                     qd.changeCoverStatusNo(coverid, 1);
 
-                    // Call API of Pool1
+                    // Call API of Pool
                     rewardClaim = 1;
                 } else if (SafeMaths.div(SafeMaths.mul(deny, 100), (SafeMaths.add(accept, deny))) > 70 && thresholdUnreached == 0) {
                     status = 6;

@@ -79,6 +79,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
 
         require(ms.isPause() == false);
         _;
+    }    
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {

@@ -177,9 +177,9 @@ contract MCR is Iupgradable {
 
     }
 
-    /// @dev Calculates V(Tp) ,i.e, Pool1 Fund Value in Ether used for the Token Price Calculation
+    /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation
     //                      and MCR%(Tp),i.e, MCR% used in the Token Price Calculation.
-    /// @return vtp  Pool1 Fund Value in Ether used for the Token Price Model
+    /// @return vtp  Pool Fund Value in Ether used for the Token Price Model
     /// @return mcrtp MCR% used in the Token Price Model.
     function calVtpAndMCRtp() constant returns(uint vtp, uint mcrtp) {
         vtp = 0;

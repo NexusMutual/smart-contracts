@@ -120,8 +120,7 @@ module.exports = deployer => {
 		return pl1.takeEthersOnly( {from: nown, value: 9000000000000000000});
     })
     .then(function(){
-    	console.log("gg");
-        return nxmtd.setWalletAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
+    	return nxmtd.setWalletAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
     })
     .then(function(){
         return qd.changeAuthQuoteEngine(acc1);//"0xb24919181daead6635e613576ca11c5aa5a4e133");

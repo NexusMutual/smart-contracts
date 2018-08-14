@@ -23,23 +23,8 @@ import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./ClaimsReward.sol";
 import "./imports/govblocks-protocol/Governed.sol";
+import "./imports/govblocks-protocol/MemberRoles.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
-
-
-contract MemberRoles {
-    
-    function updateMemberRole(address _memberAddress, uint32 _roleId, bool _typeOf, uint _validity) public;
-
-    function changeCanAddMember(uint32 _roleId, address _newCanAddMember) public;
-
-    function checkRoleIdByAddress(address _memberAddress, uint32 _roleId) public view returns(bool);
-
-    function setValidityOfMember(address _memberAddress, uint32 _roleId, uint _validity) public;
-
-    function getValidity(address _memberAddress, uint32 _roleId) public view returns (uint);
-    
-    
-}
 
 
 contract NXMToken2 is Iupgradable, Governed {
@@ -51,7 +36,7 @@ contract NXMToken2 is Iupgradable, Governed {
     NXMTokenData td;
     MCR m1;
     NXMToken1 tc1;
-    MemberRole mr;
+    MemberRoles mr;
     ClaimsReward cr;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;

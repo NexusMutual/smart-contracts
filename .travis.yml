@@ -10,5 +10,6 @@ install:
   - npm install -g solhint
 
 script:
+  - npm install
   - truffle compile
   - solhint contracts/*.sol 

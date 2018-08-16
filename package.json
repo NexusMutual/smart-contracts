@@ -1,7 +1,39 @@
 {
-  "devDependencies": {
-    "solhint": "^1.2.1"
+  "name": "nexusmutual",
+  "version": "1.0.0",
+  "description": "Smart Contract Covers",
+  "files": [
+    "contracts",
+    "test"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/somish/NexusMutual.git"
   },
-  "scripts": {},
-  "dependencies": {}
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart",
+    "contracts",
+    "insurance"
+  ],
+  "author": "nexusmutual.io",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/somish/NexusMutual/issues"
+  },
+  "homepage": "https://github.com/somish/NexusMutual#readme",
+  "dependencies": {
+    "solc": "^0.4.24",
+    "truffle": "^4.1.13"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-bignumber": "^2.0.2",
+    "ethereumjs-abi": "^0.6.5",
+    "ganache-cli": "^6.1.6",
+    "mocha": "^5.2.0",
+    "solidity-coverage": "^0.5.7",
+    "truffle-hdwallet-provider": "0.0.5"
+  }
 }

@@ -30,6 +30,8 @@
   "devDependencies": {
     "chai": "^4.1.2",
     "chai-bignumber": "^2.0.2",
+    "coveralls": "^3.0.2",
+    "ethereum-bridge": "^0.6.1",
     "ethereumjs-abi": "^0.6.5",
     "ganache-cli": "^6.1.6",
     "mocha": "^5.2.0",

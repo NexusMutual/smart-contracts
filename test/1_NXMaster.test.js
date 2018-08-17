@@ -1,6 +1,7 @@
 const Claims = artifacts.require("Claims");
 const ClaimsData = artifacts.require("ClaimsData");
 const ClaimsReward = artifacts.require("ClaimsReward");
+const DAI = artifacts.require("DAI");
 const NXMaster = artifacts.require("NXMaster");
 const NXMaster2 = artifacts.require("NXMaster2");
 const MCR = artifacts.require("MCR");
@@ -115,10 +116,13 @@ contract('NXMaster', function () {
 		await nxms2.addMCRCurr();
 		await nxms2.addStatusInClaims();
 		await pd.changeWETHAddress(acc2);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
+		let dai = await DAI.new();
+		console.log("Dai",dai.address);
+		await pd.changeCurrencyAssetAddress("0x444149",dai.address);
 		await pd.change0xMakerAddress(own); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
 		await pl2.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
 		await pl3.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
-		await mcr.changeNotariseAddress(own); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");   
+		await mcr.changenotariseAddress(own); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");   
 		var arg1 = 18000;
 		var arg2 = 10000;
 		var arg3 = 2;
@@ -126,5 +130,7 @@ contract('NXMaster', function () {
 		var arg5 = [100,65407];
 		var arg6 = 20180807;
 		await mcr.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
+		let tp = await mcr.calculateTokenPrice("0x45544800");
+		console.log("tp:",tp);
 	});	
 });

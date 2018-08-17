@@ -47,6 +47,16 @@ contract QuotationData is Iupgradable {
         uint16 minDays;
     }
 
+    struct HoldCover {
+        uint prodId;
+        address from;
+        address scAddress;
+        bytes4 coverCurr;
+        uint[] coverDetails;
+        uint16 coverPeriod;
+    }
+
+
     address public authQuoteEngine;
     mapping(uint => uint8) coverstatus;
     bytes16[] coverStatus;
@@ -55,6 +65,7 @@ contract QuotationData is Iupgradable {
     Product_Details[] productDetails;
     mapping(address => mapping(bytes4 => uint)) currencyCSAOfSCAdd;
     cover[] allCovers;
+    HoldCover[] allCoverHolded;
     uint public pendingCoverStart;
 
     function QuotationData() {
@@ -341,6 +352,11 @@ contract QuotationData is Iupgradable {
             )
             );
         userCover[_userAddress].push(SafeMaths.sub(allCovers.length, 1));
+    }
+
+    function addHoldCover(uint prodId, address from, address scAddress, bytes4 coverCurr, uint[] coverDetails, uint16 coverPeriod) onlyInternal {
+        allCoverHolded.push(HoldCover(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod));
+    
     }
 
     /// @dev Provides the details of a cover Id

@@ -211,6 +211,29 @@ contract Quotation is Iupgradable {
         return (a == qd.getAuthQuoteEngine());
     }
 
+    function verifyQuote(
+        uint8 prodId,
+        address smartCAdd,
+        bytes4 coverCurr,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+        ) payable checkPause {
+
+        uint joinFee = td.joiningFee();
+        uint totalFee = joinFee + coverDetails[1];
+        require(msg.value == totalFee);
+        require(coverDetails[3] > now);
+        require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
+        td.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
+
+
+
+
+    }
+
     /// @dev Creates cover of the quotation, changes the status of the quotation ,
     //                updates the total sum assured and locks the tokens of the cover against a quote.
     /// @param from Quote member Ethereum address
@@ -258,6 +281,7 @@ contract Quotation is Iupgradable {
         require(coverDetails[3] > now);
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
         makeCover(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod);
+
     }
 
 }

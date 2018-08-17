@@ -1,6 +1,7 @@
 var Claims = artifacts.require("Claims");
 var ClaimsData = artifacts.require("ClaimsData");
 var ClaimsReward = artifacts.require("ClaimsReward");
+var DAI = artifacts.require("DAI");
 var NXMaster = artifacts.require("NXMaster");
 var NXMaster2 = artifacts.require("NXMaster2");
 var MCR = artifacts.require("MCR");
@@ -144,6 +145,12 @@ module.exports = deployer => {
         return pd.changeWETHAddress(acc2);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
     })
     .then(function(){
+        return DAI.deployed();
+    })
+    .then(function(dai){
+        return pd.changeCurrencyAssetAddress("0x444149",dai.address);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
+    })
+    .then(function(){
         return pd.change0xMakerAddress(nown); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
     })
     .then(function(){
@@ -153,7 +160,7 @@ module.exports = deployer => {
         return pl3.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
     })
     .then(function(){
-        return mcr.changeNotariseAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
+        return mcr.changenotariseAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
     })
     .then(function(){
 	    var arg1 = 18000;
@@ -164,15 +171,15 @@ module.exports = deployer => {
         var arg6 = 20180807;
 	    return mcr.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
     })
+  /*  .then(function(){
+        console.log("hel");
+        return pl3.saveIADetails(["0x444744","0x49434e","0x5a5258","0x4d4b52","0x474e54","0x4d4c4e"],[100,200,300,400,500,600],20180807);
+    })*/
     .then(function(){
 		return MemberRoles.deployed();
     })
     .then(function(mr){
         return nxms.changeMemberRolesAddress(mr.address);
-    })
-    .then(function(){
-        console.log("Nexus Mutual initialized !");
     });
 };
-
 

@@ -1,6 +1,7 @@
 var Claims = artifacts.require("Claims");
 var ClaimsData = artifacts.require("ClaimsData");
 var ClaimsReward = artifacts.require("ClaimsReward");
+var DAI = artifacts.require("DAI");
 var NXMaster = artifacts.require("NXMaster");
 var NXMaster2 = artifacts.require("NXMaster2");
 var MCR = artifacts.require("MCR");
@@ -18,6 +19,7 @@ module.exports = function(deployer) {
 	deployer.deploy(Claims);
     deployer.deploy(ClaimsData);
     deployer.deploy(ClaimsReward);
+    deployer.deploy(DAI);
     deployer.deploy(NXMaster);
     deployer.deploy(NXMaster2);
     deployer.deploy(Pool1);

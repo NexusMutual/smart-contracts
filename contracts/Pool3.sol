@@ -124,7 +124,7 @@ contract Pool3 is Iupgradable {
         uint iaBalance;
         //ONLY NOTARZIE ADDRESS CAN POST
         require(md.isnotarise(msg.sender) != false);
-        //(totalRiskPoolBal, iaBalance) = p2.totalRiskPoolBalance(curr, rate);
+        (totalRiskPoolBal, iaBalance) = p2.totalRiskPoolBalance(curr, rate);
         pd.setTotalBalance(totalRiskPoolBal, iaBalance);
         (maxCurr, maxRate, minCurr, minRate) = p2.calculateIARank(curr, rate);
         pd.saveIARankDetails(maxCurr, maxRate, minCurr, minRate, date);
@@ -142,7 +142,6 @@ contract Pool3 is Iupgradable {
                     excessLiquidityTrading(md.getCurrencyByIndex(i), caBalance);
             }
         }
-
     }
 
     /// @dev Checks the 0x order fill status for a given order id of a given currency.

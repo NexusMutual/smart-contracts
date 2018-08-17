@@ -17,9 +17,9 @@ var Quotation = artifacts.require("Quotation");
 var QuotationData = artifacts.require("QuotationData");
 var MemberRoles = artifacts.require("MemberRoles");
 
-const acc1 = web3.eth.accounts[1];
-const acc2 = web3.eth.accounts[2];
-const acc3 = web3.eth.accounts[3];
+const QE = web3.eth.accounts[19];
+const WETH_0x = web3.eth.accounts[18];
+const Exchange_0x = web3.eth.accounts[17];
 
 module.exports = deployer => {
     let nxms;
@@ -124,7 +124,7 @@ module.exports = deployer => {
     	return nxmtd.setWalletAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
     })
     .then(function(){
-        return qd.changeAuthQuoteEngine(acc1);//"0xb24919181daead6635e613576ca11c5aa5a4e133");
+        return qd.changeAuthQuoteEngine(QE);//"0xb24919181daead6635e613576ca11c5aa5a4e133");
     })
     .then(function(){
         return nxms2.addCoverStatus();
@@ -142,7 +142,7 @@ module.exports = deployer => {
         return nxms2.addStatusInClaims();
     })
     .then(function(){
-        return pd.changeWETHAddress(acc2);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
+        return pd.changeWETHAddress(WETH_0x);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
     })
     .then(function(){
         return DAI.deployed();
@@ -154,10 +154,10 @@ module.exports = deployer => {
         return pd.change0xMakerAddress(nown); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
     })
     .then(function(){
-        return pl2.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+        return pl2.changeExchangeContractAddress(Exchange_0x);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
     })
     .then(function(){
-        return pl3.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+        return pl3.changeExchangeContractAddress(Exchange_0x);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
     })
     .then(function(){
         return mcr.changenotariseAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
@@ -179,6 +179,7 @@ module.exports = deployer => {
 		return MemberRoles.deployed();
     })
     .then(function(mr){
+        console.log("mig mr addr:",mr.address);
         return nxms.changeMemberRolesAddress(mr.address);
     });
 };

@@ -35,16 +35,15 @@ let mcrd;
 let addr = [];
 let newMaster;
 
-const own = web3.eth.accounts[0];
-const acc1 = web3.eth.accounts[1];
-const acc2 = web3.eth.accounts[2];
-const acc3 = web3.eth.accounts[3];
+const QE = web3.eth.accounts[19];
+const WETH_0x = web3.eth.accounts[18];
+const Exchange_0x = web3.eth.accounts[17];
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMaster', function () {
+contract('NXMaster', function ([owner]) {
 	it('should add a new version', async function () {
 		nxms = await NXMaster.deployed();
 		qd = await QuotationData.new();
@@ -107,22 +106,21 @@ contract('NXMaster', function () {
 		verifyMRAddress.should.equal(MRAddress);
 	});
 	it('should reinitialize', async function () {
-		await pl1.takeEthersOnly( {from: own, value: 9000000000000000000});
-		await nxmtd.setWalletAddress(own); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
-		await qd.changeAuthQuoteEngine(acc1);//"0xb24919181daead6635e613576ca11c5aa5a4e133");
+		await pl1.takeEthersOnly( {from: owner, value: 9000000000000000000});
+		await nxmtd.setWalletAddress(owner); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
+		await qd.changeAuthQuoteEngine(QE);//"0xb24919181daead6635e613576ca11c5aa5a4e133");
 		await nxms2.addCoverStatus();
 		await nxms2.callPoolDataMethods();
 		await nxms2.addStatusInClaims();
 		await nxms2.addMCRCurr();
 		await nxms2.addStatusInClaims();
-		await pd.changeWETHAddress(acc2);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
+		await pd.changeWETHAddress(WETH_0x);//"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
 		let dai = await DAI.new();
-		console.log("Dai",dai.address);
 		await pd.changeCurrencyAssetAddress("0x444149",dai.address);
-		await pd.change0xMakerAddress(own); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
-		await pl2.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
-		await pl3.changeExchangeContractAddress(acc3);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
-		await mcr.changenotariseAddress(own); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");   
+		await pd.change0xMakerAddress(owner); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
+		await pl2.changeExchangeContractAddress(Exchange_0x);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+		await pl3.changeExchangeContractAddress(Exchange_0x);//"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+		await mcr.changenotariseAddress(owner); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");   
 		var arg1 = 18000;
 		var arg2 = 10000;
 		var arg3 = 2;
@@ -130,7 +128,5 @@ contract('NXMaster', function () {
 		var arg5 = [100,65407];
 		var arg6 = 20180807;
 		await mcr.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
-		let tp = await mcr.calculateTokenPrice("0x45544800");
-		console.log("tp:",tp);
 	});	
 });

@@ -1,7 +1,5 @@
 const MemberRoles = artifacts.require("MemberRoles");
 const NXMToken2 = artifacts.require("NXMToken2");
-const member1 = web3.eth.accounts[4];
-const member2 = web3.eth.accounts[5];
 const fee = web3.toWei(0.002);
 let nxmtk2;
 let mr;
@@ -9,9 +7,10 @@ let mr;
 require('chai')
    .should();
 
-contract('NXMToken2', function () {
+contract('NXMToken2', function ([owner,member1, member2]) {
 	it('should able to join membership', async function () {
 		mr = await MemberRoles.deployed();
+		console.log("Tk2 mr addr:",mr.address);
 		nxmtk2 = await NXMToken2.deployed();
 		await mr.addNewMemberRole("0x4d656d626572","Member of Nexus Mutual", nxmtk2.address, false);
 		await nxmtk2.payJoiningFee({from: member1, value:fee});

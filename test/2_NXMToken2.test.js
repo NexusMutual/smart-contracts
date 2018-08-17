@@ -10,7 +10,6 @@ require('chai')
 contract('NXMToken2', function ([owner,member1, member2]) {
 	it('should able to join membership', async function () {
 		mr = await MemberRoles.deployed();
-		console.log("Tk2 mr addr:",mr.address);
 		nxmtk2 = await NXMToken2.deployed();
 		await mr.addNewMemberRole("0x4d656d626572","Member of Nexus Mutual", nxmtk2.address, false);
 		await nxmtk2.payJoiningFee({from: member1, value:fee});

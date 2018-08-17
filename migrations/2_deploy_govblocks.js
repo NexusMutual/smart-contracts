@@ -13,6 +13,6 @@ module.exports = deployer => {
         return deployer.deploy(MemberRoles, "0x4e455855532d4d555455414c",addr, owner);
     })
     .then(function(mr){ 
-       console.log("MemberRoles deployed at",mr.address);
+       console.log("MemberRoles deployed");
     });
 };

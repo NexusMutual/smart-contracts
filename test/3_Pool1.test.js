@@ -13,7 +13,7 @@ let m1;
 require('chai')
   .should();
 
-describe('Contract: Pool1', function () {
+describe('Contract: 3_Pool1', function () {
 	it('should able to buy tokens', async function () {
 		P1 = await Pool1.deployed();
 		nxmtk1 = await NXMToken1.deployed();

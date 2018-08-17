@@ -1,13 +1,15 @@
 const MemberRoles = artifacts.require("MemberRoles");
 const NXMToken2 = artifacts.require("NXMToken2");
 const fee = web3.toWei(0.002);
+const member1 = web3.eth.accounts[1];
+const member2 = web3.eth.accounts[2];
 let nxmtk2;
 let mr;
 
 require('chai')
    .should();
 
-contract('NXMToken2', function ([owner,member1, member2]) {
+contract("NXMToken2", function () {
 	it('should able to join membership', async function () {
 		mr = await MemberRoles.deployed();
 		nxmtk2 = await NXMToken2.deployed();

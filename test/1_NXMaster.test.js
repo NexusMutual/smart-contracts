@@ -43,7 +43,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMaster', function ([owner]) {
+contract("NXMaster", function ([owner]) {
 	it('should add a new version', async function () {
 		nxms = await NXMaster.deployed();
 		qd = await QuotationData.new();

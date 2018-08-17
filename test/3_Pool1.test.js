@@ -2,7 +2,7 @@ const NXMToken1 = artifacts.require("NXMToken1");
 const Pool1 = artifacts.require("Pool1");
 const MCR = artifacts.require("MCR");
 const tokenAmount = web3.toWei(1);
-const sellTokens = 1; //not in 10^18
+const sellTokens = web3.toWei(0.5);
 const owner = web3.eth.accounts[0];
 const member = web3.eth.accounts[1];
 const receiver = web3.eth.accounts[2];
@@ -53,10 +53,10 @@ describe('Contract: Pool1', function () {
 		let sellPrice = (tokenPrice * 97.5) / 100;
 		let initialPoolBalance = await P1.getEtherPoolBalance();
 		await P1.sellNXMTokens(sellTokens, {from:member});
-		let worthTokens = sellPrice * sellTokens;
+		let worthTokens = (sellPrice * sellTokens)/1e18;
 		let tokens = await nxmtk1.totalBalanceOf(member);
 		let tokens3d = (tokens/1e18).toFixed(3);
-		let tka = (initialTokens/1e18 - sellTokens);
+		let tka = (initialTokens - sellTokens)/1e18;
 		let tokensAvailable = tka.toFixed(3);
 		tokens3d.should.equal(tokensAvailable);
 		let presentPoolBalance = (await P1.getEtherPoolBalance()).toNumber();

@@ -378,10 +378,11 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function sellNXMTokens(uint sellTokens) isMemberAndcheckPause {
         require(tc1.balanceOf(msg.sender) >= sellTokens); // Check if the sender has enough
         require(!tc2.voted(msg.sender));
-        uint sellingPrice = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000);
-        uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
-        require(sellTokensx10e18 <= m1.getMaxSellTokens());
-        tc1.burnToken(msg.sender, "ForTokenSell", 0, sellTokensx10e18);
+        uint sellingPrice = SafeMaths.div(SafeMaths.div(SafeMaths.mul(
+            SafeMaths.mul(m1.calculateTokenPrice("ETH"), sellTokens), 975), 1000), DECIMAL1E18);
+        // uint sellTokensx10e18 = SafeMaths.mul(sellTokens, DECIMAL1E18);
+        require(sellTokens <= m1.getMaxSellTokens());
+        tc1.burnToken(msg.sender, "ForTokenSell", 0, sellTokens);
         bool succ = msg.sender.send(sellingPrice);
         require(succ != false);
     }

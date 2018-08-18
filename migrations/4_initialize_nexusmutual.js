@@ -171,7 +171,7 @@ module.exports = deployer => {
         var arg6 = 20180807;
 	    return mcr.addMCRData(arg1,arg2,arg3,arg4,arg5,arg6);
     })
-  /*  .then(function(){
+  /*.then(function(){
         console.log("hel");
         return pl3.saveIADetails(["0x444744","0x49434e","0x5a5258","0x4d4b52","0x474e54","0x4d4c4e"],[100,200,300,400,500,600],20180807);
     })*/
@@ -179,7 +179,6 @@ module.exports = deployer => {
 		return MemberRoles.deployed();
     })
     .then(function(mr){
-        console.log("mig mr addr:",mr.address);
         return nxms.changeMemberRolesAddress(mr.address);
     });
 };

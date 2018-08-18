@@ -152,7 +152,6 @@ contract NXMToken1 is Iupgradable {
     /// @param _spender Spender's address.
     /// @param _value Amount upto which Spender is allowed to transfer.
     function approve(address _spender, uint256 _value) public checkPause returns(bool success) {
-
         td.setAllowerSpenderAllowance(msg.sender, _spender, _value);
         return true;
     }

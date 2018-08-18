@@ -16,6 +16,15 @@ const PoolData = artifacts.require("PoolData");
 const Quotation = artifacts.require("Quotation");
 const QuotationData = artifacts.require("QuotationData");
 const MemberRoles = artifacts.require("MemberRoles");
+
+const QE = web3.eth.accounts[19];
+const WETH_0x = web3.eth.accounts[18];
+const Exchange_0x = web3.eth.accounts[17];
+const BigNumber = web3.BigNumber;
+require('chai')
+  .use(require('chai-bignumber')(BigNumber))
+  .should();
+
 let nxms;
 let nxms2;
 let nxmt1;
@@ -35,16 +44,9 @@ let mcrd;
 let addr = [];
 let newMaster;
 
-const QE = web3.eth.accounts[19];
-const WETH_0x = web3.eth.accounts[18];
-const Exchange_0x = web3.eth.accounts[17];
-const BigNumber = web3.BigNumber;
-require('chai')
-  .use(require('chai-bignumber')(BigNumber))
-  .should();
-
-contract("NXMaster", function ([owner]) {
+contract("01_NXMaster", function ([owner]) {
 	it('should add a new version', async function () {
+		this.timeout(0);
 		nxms = await NXMaster.deployed();
 		qd = await QuotationData.new();
 		nxmtd = await NXMTokenData.new("0","NXM","18","NXM");
@@ -83,6 +85,7 @@ contract("NXMaster", function ([owner]) {
 		newVersionLength.should.be.bignumber.equal(versionLength.plus(ver));
   	});
 	it('should switch to new version', async function () {
+		this.timeout(0);
 		const currentVersion = await nxms.currentVersion();
 		const newVer = new BigNumber(1);
 		await nxms.switchToRecentVersion();
@@ -90,6 +93,7 @@ contract("NXMaster", function ([owner]) {
 		newCurrentVersion.should.be.bignumber.equal(currentVersion.plus(newVer));
 	});
 	it('should change master address', async function () {
+		this.timeout(0);
 		newMaster = await NXMaster.new();
 		let newMasterAddr = await newMaster.address;
 		await nxms.changeMasterAddress(newMasterAddr);
@@ -99,6 +103,7 @@ contract("NXMaster", function ([owner]) {
 		verifyMasterAddress.should.equal(newMasterAddr);
 	});
 	it('should change MemberRole Address', async function () {
+		this.timeout(0);
 		let memberRoles = await MemberRoles.deployed();
 		let MRAddress = await memberRoles.address;
 		await newMaster.changeMemberRolesAddress(MRAddress);
@@ -106,6 +111,7 @@ contract("NXMaster", function ([owner]) {
 		verifyMRAddress.should.equal(MRAddress);
 	});
 	it('should reinitialize', async function () {
+		this.timeout(0);
 		await pl1.takeEthersOnly( {from: owner, value: 9000000000000000000});
 		await nxmtd.setWalletAddress(owner); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
 		await qd.changeAuthQuoteEngine(QE);//"0xb24919181daead6635e613576ca11c5aa5a4e133");

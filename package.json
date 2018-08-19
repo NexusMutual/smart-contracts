@@ -25,7 +25,7 @@
   "homepage": "https://github.com/somish/NexusMutual#readme",
   "dependencies": {
     "solc": "^0.4.24",
-    "truffle": "^4.1.13"
+    "truffle": "^4.1.14"
   },
   "devDependencies": {
     "chai": "^4.1.2",
@@ -33,7 +33,7 @@
     "coveralls": "^3.0.2",
     "ethereum-bridge": "^0.6.1",
     "ethereumjs-abi": "^0.6.5",
-    "ganache-cli": "^6.1.6",
+    "ganache-cli": "^6.1.8",
     "mocha": "^5.2.0",
     "solidity-coverage": "^0.5.7",
     "truffle-hdwallet-provider": "0.0.5"

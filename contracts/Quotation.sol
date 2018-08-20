@@ -212,7 +212,7 @@ contract Quotation is Iupgradable {
     }
 
     function verifyQuote(
-        uint8 prodId,
+        uint prodId,
         address smartCAdd,
         bytes4 coverCurr,
         uint[] coverDetails,
@@ -226,12 +226,53 @@ contract Quotation is Iupgradable {
         uint totalFee = joinFee + coverDetails[1];
         require(msg.value == totalFee);
         require(coverDetails[3] > now);
-        require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
-        td.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
+        require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
+        qd.setRefundEligible(msg.sender, true);
+        qd.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
+
+    }
+
+    function kycTrigger(bool status, uint holdedCoverID) checkPause {
+
+        address userAdd;
+        uint[]  memory coverDetails = new uint[](4);
+        (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
+        if (qd.refundEligible(userAdd)) {
+            bool succ;
+            uint joinFee = td.joiningFee();
+            if (status) {
+                address scAddress;
+                uint prodId;
+                bytes4 coverCurr;
+                uint16 coverPeriod;
+                (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
+                tc2.payJoiningFee.value(joinFee)(userAdd);
+                if (coverDetails[3] > now) {                   
+                    makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
+
+                }else {
+
+                    succ = userAdd.send(coverDetails[1]);
+                    require(succ);
+                }
 
 
+            }else {
+               
+                uint totalRefund = coverDetails[1] + joinFee;
+                succ = userAdd.send(totalRefund);
+                require(succ);
+            }
+            qd.setRefundEligible(msg.sender, false);
+        }
+        
+    }
+    
+    function fullRefund(uint holdedCoverID) checkPause {
 
-
+        require(qd.getUserHoldedCoverByIndex(msg.sender, qd.getUserHoldedCoverLength(msg.sender) - 1) == holdedCoverID);
+        kycTrigger(false, holdedCoverID);
+        
     }
 
     /// @dev Creates cover of the quotation, changes the status of the quotation ,

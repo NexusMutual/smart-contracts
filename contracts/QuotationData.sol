@@ -48,20 +48,22 @@ contract QuotationData is Iupgradable {
     }
 
     struct HoldCover {
+        uint holdCoverId;
         uint prodId;
-        address from;
+        address userAddress;
         address scAddress;
         bytes4 coverCurr;
         uint[] coverDetails;
         uint16 coverPeriod;
     }
 
-
     address public authQuoteEngine;
     mapping(uint => uint8) coverstatus;
     bytes16[] coverStatus;
     mapping(bytes4 => uint) currencyCSA;
     mapping(address => uint[]) userCover;
+    mapping(address => uint[]) public userHoldedCover;
+    mapping (address => bool) public refundEligible;
     Product_Details[] productDetails;
     mapping(address => mapping(bytes4 => uint)) currencyCSAOfSCAdd;
     cover[] allCovers;
@@ -354,11 +356,20 @@ contract QuotationData is Iupgradable {
         userCover[_userAddress].push(SafeMaths.sub(allCovers.length, 1));
     }
 
-    function addHoldCover(uint prodId, address from, address scAddress, bytes4 coverCurr, uint[] coverDetails, uint16 coverPeriod) onlyInternal {
-        allCoverHolded.push(HoldCover(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod));
+    function addHoldCover(uint prodId, address from, address scAddress, bytes4 coverCurr, 
+        uint[] coverDetails, uint16 coverPeriod) onlyInternal {
+        allCoverHolded.push(HoldCover(allCoverHolded.length, prodId, from, scAddress, 
+            coverCurr, coverDetails, coverPeriod));
+        userHoldedCover[from].push(SafeMaths.sub(allCoverHolded.length, 1));
     
     }
 
+    function setRefundEligible(address _add, bool status) onlyInternal
+    {
+
+        refundEligible[_add] = status;
+    }
+    
     /// @dev Provides the details of a cover Id
     /// @param _cid cover Id
     /// @return productName Insurance Product Name.
@@ -392,6 +403,39 @@ contract QuotationData is Iupgradable {
         uint validUntil
         ) {
         return (_cid, allCovers[_cid].currencyCode, allCovers[_cid].sumAssured, allCovers[_cid].coverPeriod, allCovers[_cid].validUntil);
+    }
+
+    function getHoldedCoverDetailsByID1(uint _hcid)
+    constant
+    returns(
+        uint hcid,
+        uint prodId,
+        address scAddress,
+        bytes4 coverCurr,
+        uint16 coverPeriod
+        ) {
+        return (_hcid, allCoverHolded[_hcid].prodId, allCoverHolded[_hcid].scAddress, allCoverHolded[_hcid].coverCurr, 
+            allCoverHolded[_hcid].coverPeriod);
+    }
+
+    function getUserHoldedCoverLength(address _add) constant returns (uint)
+    {
+        return userHoldedCover[_add].length;
+    }
+
+    function getUserHoldedCoverByIndex(address _add, uint index) constant returns (uint)
+    {
+        return userHoldedCover[_add][index];
+    }
+
+    function getHoldedCoverDetailsByID2(uint _hcid)
+    constant
+    returns(
+        uint hcid,
+        address memberAddress, 
+        uint[] coverDetails
+        ) {
+        return (_hcid, allCoverHolded[_hcid].userAddress, allCoverHolded[_hcid].coverDetails);
     }
 
     /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.

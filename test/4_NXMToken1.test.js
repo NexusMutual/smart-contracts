@@ -1,6 +1,7 @@
 const NXMToken1 = artifacts.require("NXMToken1");
 const NXMToken2 = artifacts.require("NXMToken2");
 const NXMTokenData = artifacts.require("NXMTokenData");
+const Pool1 = artifacts.require("Pool1");
 const member = web3.eth.accounts[1];
 const receiver = web3.eth.accounts[2];
 const nonMember = web3.eth.accounts[3];
@@ -11,8 +12,8 @@ const ExtendLockDays = 10*24*3600;
 const contractAdd = "0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf";
 const { assertRevert } = require('./utils/assertRevert');
 const CLA = "0x434c41";
+let P1;
 let nxmtk1;
-let P1;	
 let nxmtd;
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -27,8 +28,8 @@ describe("Contract: 04_NXMToken1", function () {
 	const Tokens = new BigNumber(1e18);
 
 	it('should able to lock tokens under Claim Assesment', async function () {
-		this.timeout(0);	
-		nxmtk1 = await NXMToken1.deployed();		
+		this.timeout(0);
+		nxmtk1 = await NXMToken1.deployed();
 		let NOW = Math.floor(Date.now()/1000);
 		let initialLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
 		let initialAvailableTokens = await nxmtk1.balanceOf(member);
@@ -49,10 +50,10 @@ describe("Contract: 04_NXMToken1", function () {
 		initialLocked.should.be.bignumber.not.equal(new BigNumber(0));
 		let lockedTokens = await nxmtd.locked(member, CLA);
 		let initialValidity = lockedTokens[0];
-		await nxmtk1.extendLock(CLA, ExtendLockDays, {from:member});	
+		await nxmtk1.extendLock(CLA, ExtendLockDays, {from:member});
 		let lockedTokensAfter = await nxmtd.locked(member, CLA);
 		let newValidity = lockedTokensAfter[0];
-		newValidity.should.be.bignumber.equal(initialValidity.plus(ExtendLockDays));	
+		newValidity.should.be.bignumber.equal(initialValidity.plus(ExtendLockDays));
 	});
 
 	it('should able to extend amount of tokens for Claim Assesment', async function () {
@@ -63,15 +64,15 @@ describe("Contract: 04_NXMToken1", function () {
 		let initialTokenAvailable = await nxmtk1.balanceOf(member);
 		let lockedTokens = await nxmtd.locked(member, CLA);
 		let initialAmount = lockedTokens[1];
-		await nxmtk1.increaseLockAmount(CLA, ExtendLockAmount, {from:member});	
+		await nxmtk1.increaseLockAmount(CLA, ExtendLockAmount, {from:member});
 		let newTokenAvailable = await nxmtk1.balanceOf(member);
 		let lockedTokensAfter = await nxmtd.locked(member, CLA);
 		let newAmount = lockedTokensAfter[1];
 		newAmount.should.be.bignumber.equal(initialAmount.plus(ExtendLockAmount));
-		newTokenAvailable.should.be.bignumber.equal(initialTokenAvailable.minus(ExtendLockAmount));		
+		newTokenAvailable.should.be.bignumber.equal(initialTokenAvailable.minus(ExtendLockAmount));
 	});
 
-	it('should able to transfer tokens to any other member', async function () {	
+	it('should able to transfer tokens to any other member', async function () {
 		this.timeout(0);
 		let initialTokenOfMember = await nxmtk1.balanceOf(member);
 		let initialTokenOfReceiver = await nxmtk1.balanceOf(receiver);
@@ -80,14 +81,7 @@ describe("Contract: 04_NXMToken1", function () {
 		let presentTokenOfReceiver = await nxmtk1.balanceOf(receiver);
 		presentTokenOfMember.should.be.bignumber.equal(initialTokenOfMember.minus(tokensToTransfer));
 		presentTokenOfReceiver.should.be.bignumber.equal(initialTokenOfReceiver.plus(tokensToTransfer));
-	
-	});
 
-	it('should able to allows a given address (Spender) to spend a given amount of the money on behalf of the other user', async function () {
-	
-		let setAllowance = await nxmtk1.approve(receiver, allowanceTokens, {from: member});
-		let verifyAllowance = await nxmtd.getAllowerSpenderAllowance(member, receiver);
-		verifyAllowance.should.be.bignumber.equal(allowanceTokens);
 	});
 
 	it('should able to stake NXMs on Smart Contracts', async function () {
@@ -99,65 +93,80 @@ describe("Contract: 04_NXMToken1", function () {
 		let currentStaked = await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(member, contractAdd);
 		currentTokenAvailable.should.be.bignumber.equal(initialTokenAvailable.minus(stakeTokens));
 		currentStaked.should.be.bignumber.equal(initialStaked.plus(currentStaked));
-		
 	});
-	/*
-	it('should able to transfer on behalf of the other user', async function () {
-	
-		
+
+	it('should able to allows a Member(Spender) to spend a given amount of the money on behalf of another Member', async function () {
+                let setAllowance = await nxmtk1.approve(receiver, allowanceTokens, {from: member});
+                let verifyAllowance = await nxmtd.getAllowerSpenderAllowance(member, receiver);
+                verifyAllowance.should.be.bignumber.equal(allowanceTokens);
+        });
+
+
+	/*it('should able to transfer on behalf of the other user', async function () {
+		let allowanceTokens = await nxmtd.getAllowerSpenderAllowance(member, receiver);
+
+
 
 	});
 
 	it('should not able to exceed transfer on behalf of the other user', async function () {
-	
 
-		
+
+
 
 	});*/
 
-	/*it('should not able to  transfer Tokens to Non-Member', async function () {
-	
+	it('should have zero token balance for Non-Member', async function () {
+                let tokensOfNonMember = await nxmtk1.balanceOf(nonMember);
+                tokensOfNonMember.should.be.bignumber.equal(new BigNumber(0));
+
+        });
+
+	it('should not able to purchase NXM Tokens if not a memberr', async function () {
+		P1 = await Pool1.deployed();
+		await assertRevert(P1.buyTokenBegin({from: nonMember, value: Tokens}));
+		let tokensOfNonMember = await nxmtk1.balanceOf(nonMember);
+                tokensOfNonMember.should.be.bignumber.equal(new BigNumber(0));
+
+        });
+
+	it('should not able to transfer Tokens to Non-Member', async function () {
 		let initialTokenMember = await nxmtk1.balanceOf(member);
-		let initialTokenReceiver = await nxmtk1.balanceOf(nonMember);
-		await assertRevert (nxmtk1.transfer(nonMember, tokensToTransfer));
+		let initialTokenOfNonMember = await nxmtk1.balanceOf(nonMember);
+		await assertRevert(nxmtk1.transfer(nonMember, tokensToTransfer));
 		let presentTokenMember = await nxmtk1.balanceOf(member);
-		let presentTokenReceiver = await nxmtk1.balanceOf(receiver);
-		presentTokenMember.should.equal(initialTokenMember);
-		presentTokenReceiver.should.equal(initialTokenReceiver);
+		let presentTokenOfNonMember = await nxmtk1.balanceOf(nonMember);
+		presentTokenMember.should.be.bignumber.equal(initialTokenMember);
+		presentTokenOfNonMember.should.be.bignumber.equal(initialTokenOfNonMember);
 
 	});
 
-	it('should not able to  lock Tokens under CA more than once', async function () {
-	
+	it('should not able to lock Tokens under CA more than once', async function () {
+
 		let NOW = Math.floor(Date.now()/1000);
 		let initialLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
 		let validity = NOW+(LockDays*24*3600);
 		await assertRevert(nxmtk1.lock(CLA, Tokens, validity));
 		let currentLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
-		currentLocked.should.equal(initialLocked);
-
-
+		currentLocked.should.be.bignumber.equal(initialLocked);
 	});
 
-	it('should not able to  transfer locked Tokens', async function () {
-	
+	it('should not able to transfer locked Tokens', async function () {
+
 		let totalTokens = await nxmtd.getBalanceOf(member);
 		await assertRevert(nxmtk1.transfer(receiver, totalTokens));
 
-
-	});*/
+	});
 
 /*	it('should not able to  transfer staked Tokens', async function () {
-	
-		
+
+
 
 	});
 
-	it('should not able to  call internal functions', async function () {
-	
-		await assertRevert(nxmtk1.changeLock());
+	it('should not able to call internal functions', async function () {
+		await assertRevert(nxmtk1.changeLock({from: member}));
+		await assertRevert(nxmtk1.changeLock({from: nonMember}));
 
-	});
-*/
-
+	});*/
 });

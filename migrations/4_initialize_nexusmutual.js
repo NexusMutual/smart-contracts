@@ -17,7 +17,7 @@ var Quotation = artifacts.require("Quotation");
 var QuotationData = artifacts.require("QuotationData");
 var MemberRoles = artifacts.require("MemberRoles");
 
-const QE = web3.eth.accounts[19];
+const QE = "0xb24919181daead6635e613576ca11c5aa5a4e133"; //web3.eth.accounts[19];
 const WETH_0x = web3.eth.accounts[18];
 const Exchange_0x = web3.eth.accounts[17];
 

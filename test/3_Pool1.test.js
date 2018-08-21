@@ -19,13 +19,19 @@ describe('Contract: 03_Pool1', function () {
 	this.timeout(0)
 	const P_18 = new BigNumber(1e18);
 	const tokenAmount = new BigNumber(5e18);
-    const sellTokens = new BigNumber(35e17);
-
+	const sellTokens = new BigNumber(35e17);
+	before(function() {
+                NXMToken1.deployed().then(function(instance) {
+                        nxmtk1 = instance;
+                        return Pool1.deployed();
+                }).then(function(instance) {
+                        P1 = instance;
+                        return MCR.deployed();
+                }).then(function(instance) {
+                        m1 = instance;
+                });
+        });
 	it('should able to buy tokens', async function () {
-		this.timeout(0);
-		P1 = await Pool1.deployed();
-		nxmtk1 = await NXMToken1.deployed();
-		m1 = await MCR.deployed();
 		let initialTokens = await nxmtk1.totalBalanceOf(member);
 		let initialPoolBalance = await P1.getEtherPoolBalance();
 		await P1.buyTokenBegin({from:member, value:tokenAmount});

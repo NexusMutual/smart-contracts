@@ -2,19 +2,21 @@ const NXMToken1 = artifacts.require("NXMToken1");
 const NXMToken2 = artifacts.require("NXMToken2");
 const NXMTokenData = artifacts.require("NXMTokenData");
 const Pool1 = artifacts.require("Pool1");
+
 const member = web3.eth.accounts[1];
 const receiver = web3.eth.accounts[2];
 const nonMember = web3.eth.accounts[3];
 
 const LockDays = 30;
 const ExtendLockDays = 10*24*3600;
-
 const contractAdd = "0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf";
 const { assertRevert } = require('./utils/assertRevert');
 const CLA = "0x434c41";
+
 let P1;
 let nxmtk1;
 let nxmtd;
+
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -28,9 +30,21 @@ describe("Contract: 04_NXMToken1", function () {
 	const stakeTokens = new BigNumber(1e18);
 	const Tokens = new BigNumber(1e18);
 
+	before(function() {
+                NXMToken1.deployed().then(function(instance) {
+                        nxmtk1 = instance;
+                        return NXMToken2.deployed();
+                }).then(function(instance) {
+                        nxmtk2 = instance;
+                        return NXMTokenData.deployed();
+                }).then(function(instance) {
+                        nxmtd = instance;
+                        return Pool1.deployed();
+                }).then(function(instance) {
+                        P1 = instance;
+		});
+	});
 	it('should able to lock tokens under Claim Assesment', async function () {
-		this.timeout(0);
-		nxmtk1 = await NXMToken1.deployed();
 		let NOW = Math.floor(Date.now()/1000);
 		let initialLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
 		let initialAvailableTokens = await nxmtk1.balanceOf(member);
@@ -44,10 +58,8 @@ describe("Contract: 04_NXMToken1", function () {
 	});
 
 	it('should able to extend validity of tokens for Claim Assesment', async function () {
-	    this.timeout(0);
-	    nxmtd = await NXMTokenData.deployed();
-	    let NOW = Math.floor(Date.now()/1000);
-	    let initialLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
+	    	let NOW = Math.floor(Date.now()/1000);
+	    	let initialLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
 		initialLocked.should.be.bignumber.not.equal(new BigNumber(0));
 		let lockedTokens = await nxmtd.locked(member, CLA);
 		let initialValidity = lockedTokens[0];
@@ -58,7 +70,6 @@ describe("Contract: 04_NXMToken1", function () {
 	});
 
 	it('should able to extend amount of tokens for Claim Assesment', async function () {
-		this.timeout(0);
 		let NOW = Math.floor(Date.now()/1000);
 		let initialLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
 		initialLocked.should.be.bignumber.not.equal(new BigNumber(0));
@@ -74,7 +85,6 @@ describe("Contract: 04_NXMToken1", function () {
 	});
 
 	it('should able to transfer tokens to any other member', async function () {
-		this.timeout(0);
 		let initialTokenOfMember = await nxmtk1.balanceOf(member);
 		let initialTokenOfReceiver = await nxmtk1.balanceOf(receiver);
 		await nxmtk1.transfer(receiver, tokensToTransfer, {from: member});
@@ -87,7 +97,6 @@ describe("Contract: 04_NXMToken1", function () {
 
 	it('should able to stake NXMs on Smart Contracts', async function () {
 		let initialTokenAvailable = await nxmtk1.balanceOf(member);
-		let nxmtk2 = await NXMToken2.deployed();
 		let initialStaked = await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(member, contractAdd);
 		await nxmtk2.addStake(contractAdd, stakeTokens, {from: member});
 		let currentTokenAvailable = await nxmtk1.balanceOf(member);
@@ -137,7 +146,6 @@ describe("Contract: 04_NXMToken1", function () {
         });
 
 	it('should not able to purchase NXM Tokens if not a memberr', async function () {
-		P1 = await Pool1.deployed();
 		await assertRevert(P1.buyTokenBegin({from: nonMember, value: Tokens}));
 		let tokensOfNonMember = await nxmtk1.balanceOf(nonMember);
                 tokensOfNonMember.should.be.bignumber.equal(new BigNumber(0));
@@ -156,7 +164,6 @@ describe("Contract: 04_NXMToken1", function () {
 	});
 
 	it('should not able to lock Tokens under CA more than once', async function () {
-
 		let NOW = Math.floor(Date.now()/1000);
 		let initialLocked = await nxmtk1.tokensLocked(member, CLA, NOW);
 		let validity = NOW+(LockDays*24*3600);
@@ -171,11 +178,4 @@ describe("Contract: 04_NXMToken1", function () {
 		await assertRevert(nxmtk1.transfer(receiver, totalTokens));
 
 	});
-
-/*
-	it('should not able to call internal functions', async function () {
-		await assertRevert(nxmtk1.changeLock({from: member}));
-		await assertRevert(nxmtk1.changeLock({from: nonMember}));
-
-	});*/
 });

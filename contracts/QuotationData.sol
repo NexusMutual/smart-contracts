@@ -140,7 +140,7 @@ contract QuotationData is Iupgradable {
         productDetails[_prodId].minDays = _days;
     }
 
-    /// @dev Changes the existing Minimum cover period (in days)
+    /// @dev Changes the existing Product Hash
     function changeProductHash(uint _prodId, string _productHash) onlyOwner {
         productDetails[_prodId].productHash = _productHash;
     }

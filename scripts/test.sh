@@ -61,5 +61,6 @@ if [ "$SOLIDITY_COVERAGE" = true ]; then
   node_modules/.bin/solidity-coverage
 
 else
+  truffle deploy	
   truffle test "$@"
 fi

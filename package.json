@@ -6,6 +6,9 @@
     "contracts",
     "test"
   ],
+  "scripts": {
+    "test": "scripts/test.sh"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/somish/NexusMutual.git"

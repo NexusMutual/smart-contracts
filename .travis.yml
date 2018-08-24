@@ -7,9 +7,8 @@ node_js:
 
 install:
   - npm install -g truffle
-  - npm install -g solhint
 
 script:
   - npm install
-  - truffle compile
-  - solhint contracts/*.sol 
+  - chmod +x scripts/test.sh
+  - npm run test

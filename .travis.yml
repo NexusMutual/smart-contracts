@@ -9,6 +9,5 @@ install:
   - npm install -g truffle
 
 script:
-  - npm install
-  - chmod +x scripts/test.sh
+  - npm install > install.txt
   - npm run test

@@ -217,7 +217,9 @@ describe('Contract: NXMToken1', function() {
   });
 
   it('should not able to transfer locked Tokens', async function() {
-    let totalTokens = await nxmtd.getBalanceOf(member);
-    await assertRevert(nxmtk1.transfer(receiver, totalTokens));
+    let totalTokens = (await nxmtd.getBalanceOf(member)).toNumber();
+    await assertRevert(
+      nxmtk1.transfer(receiver, totalTokens, { from: member })
+    );
   });
 });

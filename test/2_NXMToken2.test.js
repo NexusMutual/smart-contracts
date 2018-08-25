@@ -14,7 +14,7 @@ require('chai')
   .should();
 
 contract('NXMToken2', function() {
-  const initialFounderTokens = new BigNumber(15e23);
+  const initialFounderTokens = new BigNumber(15e5);
   before(function() {
     NXMToken2.deployed()
       .then(function(instance) {

@@ -25,21 +25,21 @@ contract NXMTokenData is Iupgradable {
     NXMaster ms;
 
     address masterAddress;
+    address public walletAddress;
     string public version = "NXM 0.1";
-    string public name;
-    string public symbol;
-    uint8 public decimals;
+    string public name = "NXM";
+    string public symbol = "NXM";
     uint256 public totalSupply;
-    uint initialTokens;
+    uint initialTokens = 1500000;
     uint public currentFounderTokens;
+    uint public joiningFee;
     uint64 bookTime;
+    uint32 public lockCADays;
+    uint32 public lockMVDays;
+    uint public lockTokenTimeAfterCoverExp;
     uint64 minVoteLockPeriod;
     uint16 public scValidDays;
-    uint32 public lockMVDays;
-    uint32 public lockCADays;
-    uint public joiningFee;
-    address public walletAddress;
-    mapping(address => bytes32[]) public lockReason;
+    uint8 public decimals = 18;
 
     struct stakeCommission {
         uint commissionAmt;
@@ -71,15 +71,17 @@ contract NXMTokenData is Iupgradable {
         uint blockNumber;
     }
 
-    mapping(address => uint[]) scAddressStake;
     stake[] stakeDetails;
+    allocatedTokens[] allocatedFounderTokens;
+
+    mapping(address => uint[]) scAddressStake;
+    mapping(address => bytes32[]) public lockReason;
     mapping(uint => uint) stakerBurnedAmount;
     mapping(address => uint[]) stakerIndex;
     mapping(address => uint) public scAddressLastCommIndex;
     mapping(address => uint) public scAddressLastBurnIndex;
     mapping(address => mapping(address => mapping(uint => stakeCommission[]))) stakerSCIndexCommission;
     mapping(address => mapping (address => mapping(uint => uint))) lastClaimedCommission;
-    allocatedTokens[] allocatedFounderTokens;
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(uint => lockToken[])) public userCoverDepositCN;
     mapping(address => mapping(bytes32 => lockToken)) public locked;
@@ -88,21 +90,10 @@ contract NXMTokenData is Iupgradable {
     mapping(address => mapping(uint => lockToken)) public userCoverLockedCN;
     mapping(address => mapping(address => uint256)) public allowerSpenderAllowance;
     mapping(address => mapping(uint => lockToken[])) public burnCAToken;
-    uint public lockTokenTimeAfterCoverExp;
-
-    function NXMTokenData(
-        uint256 initialSupply,
-        string tokenName,
-        uint8 decimalUnits,
-        string tokenSymbol
-    ) {
-
-        initialTokens = 1500000;
-        balanceOf[msg.sender] = initialSupply; // Give the creator all initial tokens
-        totalSupply = initialSupply; // Update total supply
-        name = tokenName; // Set the name for display purposes
-        symbol = tokenSymbol; // Set the symbol for display purposes
-        decimals = decimalUnits;
+   
+    constructor() public {
+        totalSupply = initialTokens * (10**uint(decimals));
+        balanceOf[msg.sender] = totalSupply; // Give the creator all initial tokens
         bookTime = SafeMaths.mul64(SafeMaths.mul64(12, 60), 60);
         minVoteLockPeriod = SafeMaths.mul64(7, 1 days);
         lockTokenTimeAfterCoverExp = SafeMaths.mul(35, 1 days);
@@ -165,7 +156,6 @@ contract NXMTokenData is Iupgradable {
     function changeIntialTokens(uint initTokens) onlyOwner {
         if (initTokens > currentFounderTokens)
             initialTokens = initTokens;
-
     }
 
     /// @dev Adds the number of tokens received by an address as founder tokens.

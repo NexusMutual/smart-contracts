@@ -1,30 +1,43 @@
 const HDWalletProvider = require('truffle-hdwallet-provider');
-var mnemonic = "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory";
+var mnemonic =
+  'grocery obvious wire insane limit weather parade parrot patrol stock blast ivory';
 
 module.exports = {
   networks: {
     development: {
       host: '127.0.0.1',
       port: 8545,
-      network_id: '5777', 
+      network_id: '5777'
     },
     coverage: {
       host: '127.0.0.1',
-      network_id: '5777', 
+      network_id: '5777',
       port: 8545,
       gas: 0xfffffffffff,
-      gasPrice: 0x01,
+      gasPrice: 0x01
     },
     ganache: {
       host: '127.0.0.1',
       port: 8545,
-      network_id: '5777',
+      network_id: '5777'
     }
   },
   solc: {
     optimizer: {
-  	enabled: true,
-  	runs: 200
-  	}
+      enabled: true,
+      runs: 200
+    }
   },
+  mocha: {
+    reporter: 'eth-gas-reporter',
+    reporterOptions: {
+      currency: 'USD',
+      gasPrice: 21,
+      onlyCalledMethods: true,
+      noColors: false,
+      rst: true,
+      rstTitle: 'Gas Usage',
+      showTimeSpent: true
+    }
+  }
 };

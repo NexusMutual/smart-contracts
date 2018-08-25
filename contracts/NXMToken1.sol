@@ -100,7 +100,7 @@ contract NXMToken1 is Iupgradable {
         if (SafeMaths.add(td.getCurrentFounderTokens(), tokens) <= td.getInitialFounderTokens()) {
             td.changeCurrentFounderTokens(SafeMaths.add(td.currentFounderTokens(), tokens));
             td.addInAllocatedFounderTokens(_to, tokens);
-            tc2.rewardToken(_to, SafeMaths.mul(tokens, DECIMAL1E18));
+            tc2.rewardToken(_to, tokens);
         }
     }
 

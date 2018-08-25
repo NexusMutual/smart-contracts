@@ -7,7 +7,15 @@
     "test"
   ],
   "scripts": {
-    "test": "scripts/test.sh"
+    "test": "scripts/test.sh",
+    "pretty": "prettier --write --single-quote --tab-width 2 \"**/*.js\"",
+    "precommit": "lint-staged"
+  },
+  "lint-staged": {
+    "**/*.{js,json}": [
+      "prettier --single-quote --write --tab-width 2",
+      "git add"
+    ]
   },
   "repository": {
     "type": "git",
@@ -27,6 +35,7 @@
   },
   "homepage": "https://github.com/somish/NexusMutual#readme",
   "dependencies": {
+    "eth-gas-reporter": "^0.1.10",
     "solc": "^0.4.24",
     "truffle": "^4.1.14"
   },
@@ -37,7 +46,9 @@
     "ethereum-bridge": "^0.6.1",
     "ethereumjs-abi": "^0.6.5",
     "ganache-cli": "^6.1.8",
+    "lint-staged": "^7.2.2",
     "mocha": "^5.2.0",
+    "prettier": "^1.14.2",
     "solidity-coverage": "^0.5.7",
     "truffle-hdwallet-provider": "0.0.5"
   }

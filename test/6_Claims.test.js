@@ -5,10 +5,12 @@ const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const QuotationData = artifacts.require('QuotationData');
 const PoolData = artifacts.require('PoolData');
+const MCR = artifacts.require('MCR');
 const member = web3.eth.accounts[1];
 const receiver = web3.eth.accounts[2];
 const nonMember = web3.eth.accounts[3];
 const coverHolder = web3.eth.accounts[4];
+const member3 = web3.eth.accounts[5];
 
 const { assertRevert } = require('./utils/assertRevert');
 const CLA = '0x434c41';
@@ -18,12 +20,13 @@ let nxmtd;
 let qd;
 let cd;
 let pd;
+let m1;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-describe('Contract: Claims', function() {
+describe('Contract: 06_claims', function() {
   before(function() {
     NXMTokenData.deployed()
       .then(function(instance) {
@@ -46,7 +49,6 @@ describe('Contract: Claims', function() {
         pd = instance;
       });
   });
-
   it('should able to submit Claim for his cover', async function() {
     this.timeout(0);
     let coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -83,7 +85,12 @@ describe('Contract: Claims', function() {
 
   it('should not able to submit Claim for cover with status submmited,accepted,5 times denied', async function() {
     let coverID = await qd.getAllCoversOfUser(coverHolder);
-    let coverOwner = await qd.getCoverMemberAddress(coverID[0]);
     await assertRevert(cl.submitClaim(coverID[0]));
+  });
+
+  it('should able to submit vote for claim assesment', async function() {
+    m1 = await MCR.deployed();
+    let bal = await m1.calculateTokenPrice('ETH');
+    console.log('here=====>', bal.toNumber());
   });
 });

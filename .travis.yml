@@ -5,9 +5,9 @@ language: node_js
 node_js:
   - "9"
 
-install:
-  - npm install -g truffle
+cache:
+  directories:
+    - node_modules
 
 script:
-  - npm install > install.txt
   - npm run test

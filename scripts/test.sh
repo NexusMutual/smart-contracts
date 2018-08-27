@@ -40,9 +40,9 @@ start_ganache() {
 
 start_ethereum-bridge() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/ethereum-bridge -H localhost:8555 -a 20 > /dev/null &
+    node_modules/.bin/ethereum-bridge -H localhost:8555 -a 20 &> /dev/null &
   else
-    node_modules/.bin/ethereum-bridge -H localhost:8545 -a 20 > /dev/null &
+    node_modules/.bin/ethereum-bridge -H localhost:8545 -a 20 &> /dev/null &
   fi
 
   bridge_pid=$!
@@ -50,6 +50,7 @@ start_ethereum-bridge() {
 
 if ganache_running; then
   echo "Using existing ganache instance"
+  start_ethereum-bridge
 else
   echo "Starting our own ganache and oraclize instance"
   start_ganache
@@ -61,6 +62,6 @@ if [ "$SOLIDITY_COVERAGE" = true ]; then
   node_modules/.bin/solidity-coverage
 
 else
-  truffle deploy	
-  truffle test "$@"
+   node_modules/.bin/truffle deploy &> /dev/null
+   node_modules/.bin/truffle test "$@"
 fi

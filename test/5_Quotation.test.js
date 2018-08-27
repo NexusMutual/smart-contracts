@@ -17,11 +17,12 @@ const PNAME = '0x5343430000000000';
 const PHASH = 'Smart Contract Cover';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
-const coverDetails = [5, 1176856034679443, 260712457837714, 7972408607];
+const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
 const coverDetailsDai = [5, 16812229066849188, 5694231991898, 7972408607];
-const v = 27;
-const r = '0x30c1449cd8c7e4c25760e3eb31e6f5812efe9622a3db4a525b8f0e53cb749ed9';
-const s = '0x11ec3139bf601c2a31bd5e4af8e05b6f9ced428da9f4654ba5feb9018f828ee4';
+const v = 28;
+const v_dai = 27;
+const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
+const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
 const r_dai =
   '0xdcaa177410672d90890f1c0a42a965b3af9026c04caedbce9731cb43827e8556';
 const s_dai =
@@ -75,35 +76,31 @@ describe('Contract: 5_Quotation', function() {
       })
       .then(function(instance) {
         cad = instance;
+        return NXMTokenData.deployed();
+      })
+      .then(function(instance) {
+        td = instance;
       });
   });
 
   it('should return correct AuthQuoteEngine address', async function() {
-    let authQE = await qd.getAuthQuoteEngine();
-    authQE.should.equal(QE);
-  });
-
-  it('should return correct AuthQuoteEngine address', async function() {
-    let authQE = await qd.getAuthQuoteEngine();
+    const authQE = await qd.getAuthQuoteEngine();
     authQE.should.equal(QE);
   });
 
   it('should return correct product name', async function() {
-    let pname = await qd.getProductName(PID);
+    const pname = await qd.getProductName(PID);
     pname.should.equal(PNAME);
   });
 
   it('should able to Purchase Cover With Ether', async function() {
-    this.timeout(0);
-    td = await NXMTokenData.deployed();
     await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
-    let initialLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
-    let initialAvailableToken = await cr.getTotalStakeCommission(member); // member=staker for smart contract
-    let initialPoolBalance = await P1.getEtherPoolBalance();
-    let initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
-    let initialTokensOfCoverHolder = await td.getBalanceOf(coverHolder);
-    let initialTotalSupply = await td.totalSupply();
-    // let initialUserBal = await web3.eth.getBalance(coverHolder);
+    const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
+    const initialAvailableToken = await cr.getTotalStakeCommission(member);
+    const initialPoolBalance = await P1.getEtherPoolBalance();
+    const initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
+    const initialTokensOfCoverHolder = await td.getBalanceOf(coverHolder);
+    const initialTotalSupply = await td.totalSupply();
     await P1.makeCoverBegin(
       PID,
       smartConAdd,
@@ -115,47 +112,42 @@ describe('Contract: 5_Quotation', function() {
       s,
       { from: coverHolder, value: coverDetails[1] }
     );
-    let presentLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
-    let presentAvailableToken = await cr.getTotalStakeCommission(member); // staker should get 20% of premium.
-    let presentPoolBalance = await P1.getEtherPoolBalance();
-    let presentTotalSA = await qd.getTotalSumAssured(CA_ETH);
-    let presentTokensOfCoverHolder = await td.getBalanceOf(coverHolder);
-    let presentTotalSupply = await td.totalSupply();
-    // let presentUserBal = await web3.eth.getBalance(coverHolder);
-    let newLockedCN = initialLockedCN
+    const newLockedCN = initialLockedCN
       .plus(BN_5.times(new BigNumber(coverDetails[2].toString()).div(BN_100)))
       .toFixed(0);
-    let newAvailableToken = initialAvailableToken
+    const newAvailableToken = initialAvailableToken
       .plus(BN_20.times(new BigNumber(coverDetails[2].toString()).div(BN_100)))
       .toFixed(0);
-    let newPoolBalance = initialPoolBalance
+    const newPoolBalance = initialPoolBalance
       .plus(new BigNumber(coverDetails[1].toString()))
       .toFixed(0);
-    let newTotalCA = initialTotalSA.plus(coverDetails[0]);
-    let newTokensOfCoverHolder = initialTokensOfCoverHolder.plus(
+    const newTotalCA = initialTotalSA.plus(coverDetails[0]);
+    const newTokensOfCoverHolder = initialTokensOfCoverHolder.plus(
       new BigNumber(newLockedCN.toString())
     );
-    let newTotalSupply = initialTotalSupply
+    const newTotalSupply = initialTotalSupply
       .plus(new BigNumber(newLockedCN.toString()))
       .plus(BN_20.times(new BigNumber(coverDetails[2].toString()).div(BN_100)))
       .toFixed(0);
-    // let newUserBal = initialUserBal.minus(new BigNumber(coverDetails[1].toString()));
-    newLockedCN.should.be.bignumber.equal(presentLockedCN);
-    newAvailableToken.should.be.bignumber.equal(presentAvailableToken);
-    newPoolBalance.should.be.bignumber.equal(presentPoolBalance);
-    newTotalCA.should.be.bignumber.equal(presentTotalSA);
-    newTokensOfCoverHolder.should.be.bignumber.equal(
-      presentTokensOfCoverHolder
+    newLockedCN.should.be.bignumber.equal(
+      await nxmtk2.totalBalanceCNOfUser(coverHolder)
     );
-    newTotalSupply.should.be.bignumber.equal(presentTotalSupply);
-    // newUserBal.should.be.bignumber.equal(presentUserBal);//new BigNumber(presentUserBal.toString()));
+    newAvailableToken.should.be.bignumber.equal(
+      await cr.getTotalStakeCommission(member)
+    );
+    newPoolBalance.should.be.bignumber.equal(await P1.getEtherPoolBalance());
+    newTotalCA.should.be.bignumber.equal(await qd.getTotalSumAssured(CA_ETH));
+    newTokensOfCoverHolder.should.be.bignumber.equal(
+      await td.getBalanceOf(coverHolder)
+    );
+    newTotalSupply.should.be.bignumber.equal(await td.totalSupply());
   });
 
   it('should return correct cover details purchased with ether', async function() {
-    let CID = await qd.getAllCoversOfUser(coverHolder);
+    const CID = await qd.getAllCoversOfUser(coverHolder);
     let checkd = false;
-    let cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
-    let cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+    const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
+    const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
     if (
       cdetails2[1] == CA_ETH &&
       cdetails1[1] == PNAME &&
@@ -170,11 +162,10 @@ describe('Contract: 5_Quotation', function() {
   it('should able to purchase cover with NXM', async function() {
     this.timeout(0);
     await P1.buyTokenBegin({ from: coverHolder, value: tk });
-    let initialTokensOfCoverHolder = await nxmtk1.balanceOf(coverHolder);
-    let initialLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
-    let initialAvailableToken = await cr.getTotalStakeCommission(member); // member=staker for smart contract
-    let initialTotalSupply = await td.totalSupply();
-    console.log(initialTotalSupply.toNumber());
+    const initialTokensOfCoverHolder = await nxmtk1.balanceOf(coverHolder);
+    const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
+    const initialAvailableToken = await cr.getTotalStakeCommission(member); // member=staker for smart contract
+    const initialTotalSupply = await td.totalSupply();
     await qt.makeCoverUsingNXMTokens(
       PID,
       coverDetails,
@@ -186,17 +177,17 @@ describe('Contract: 5_Quotation', function() {
       s,
       { from: coverHolder }
     );
-    let presentTokensOfCoverHolder = await nxmtk1.balanceOf(coverHolder);
-    let presentLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
-    let presentAvailableToken = await cr.getTotalStakeCommission(member); // staker should get 20% of premium.
-    let presentTotalSupply = ((await td.totalSupply()) / 1e18).toFixed(10);
-    let newTokensOfCoverHolder = initialTokensOfCoverHolder.minus(
+    const presentTokensOfCoverHolder = await nxmtk1.balanceOf(coverHolder);
+    const presentLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
+    const presentAvailableToken = await cr.getTotalStakeCommission(member); // staker should get 20% of premium.
+    const presentTotalSupply = ((await td.totalSupply()) / 1e18).toFixed(10);
+    const newTokensOfCoverHolder = initialTokensOfCoverHolder.minus(
       new BigNumber(coverDetails[2])
     );
-    let newLockedCN = initialLockedCN
+    const newLockedCN = initialLockedCN
       .plus(BN_5.times(new BigNumber(coverDetails[2].toString()).div(BN_100)))
       .toFixed(0);
-    let newAvailableToken = initialAvailableToken
+    const newAvailableToken = initialAvailableToken
       .plus(BN_20.times(new BigNumber(coverDetails[2].toString()).div(BN_100)))
       .toFixed(0);
     let newTotalSupply = initialTotalSupply.minus(
@@ -210,7 +201,6 @@ describe('Contract: 5_Quotation', function() {
         )
         .toFixed(0) / 1e18
     ).toFixed(10);
-    console.log(newTotalSupply);
     newLockedCN.should.be.bignumber.equal(presentLockedCN);
     newAvailableToken.should.be.bignumber.equal(presentAvailableToken);
     newTokensOfCoverHolder.should.be.bignumber.equal(
@@ -220,10 +210,10 @@ describe('Contract: 5_Quotation', function() {
   });
 
   it('should return correct cover details purchased with NXM', async function() {
-    let CID = await qd.getAllCoversOfUser(coverHolder);
+    const CID = await qd.getAllCoversOfUser(coverHolder);
     let checkd = false;
-    let cdetails1 = await qd.getCoverDetailsByCoverID1(CID[1]);
-    let cdetails2 = await qd.getCoverDetailsByCoverID2(CID[1]);
+    const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[1]);
+    const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[1]);
     if (
       cdetails2[1] == CA_ETH &&
       cdetails1[1] == PNAME &&
@@ -238,12 +228,12 @@ describe('Contract: 5_Quotation', function() {
   it('should able to purchase cover using currency assest i.e. DAI ', async function() {
     this.timeout(0);
     await cad.transfer(coverHolder, tk);
-    let initialLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
-    let initialCAbalance = await cad.balanceOf(coverHolder);
-    let initialAvailableToken = await cr.getTotalStakeCommission(member); // member=staker for smart contract
-    let initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
-    let presentaCAbalance = await cad.balanceOf(coverHolder);
-    let initialTotalSupply = await td.totalSupply();
+    const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
+    const initialCAbalance = await cad.balanceOf(coverHolder);
+    const initialAvailableToken = await cr.getTotalStakeCommission(member); // member=staker for smart contract
+    const initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
+    const presentaCAbalance = await cad.balanceOf(coverHolder);
+    const initialTotalSupply = await td.totalSupply();
     await cad.approve(P1.address, coverDetailsDai[1], { from: coverHolder });
     await P1.makeCoverUsingCA(
       PID,
@@ -251,27 +241,27 @@ describe('Contract: 5_Quotation', function() {
       'DAI',
       coverDetailsDai,
       coverPeriod,
-      v,
+      v_dai,
       r_dai,
       s_dai,
       { from: coverHolder }
     );
-    let presentLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
-    let presentCAbalance = await cad.balanceOf(coverHolder);
-    let presentAvailableToken = await cr.getTotalStakeCommission(member); // staker should get 20% of premium.
-    let presentPoolBalanceOfCA = await cad.balanceOf(P1.address);
-    let presentTotalSupply = await td.totalSupply();
-    let newLockedCN = initialLockedCN
+    const presentLockedCN = await nxmtk2.totalBalanceCNOfUser(coverHolder);
+    const presentCAbalance = await cad.balanceOf(coverHolder);
+    const presentAvailableToken = await cr.getTotalStakeCommission(member); // staker should get 20% of premium.
+    const presentPoolBalanceOfCA = await cad.balanceOf(P1.address);
+    const presentTotalSupply = await td.totalSupply();
+    const newLockedCN = initialLockedCN
       .plus(
         BN_5.times(new BigNumber(coverDetailsDai[2].toString()).div(BN_100))
       )
       .toFixed(0);
-    let newAvailableToken = initialAvailableToken
+    const newAvailableToken = initialAvailableToken
       .plus(
         BN_20.times(new BigNumber(coverDetailsDai[2].toString()).div(BN_100))
       )
       .toFixed(0);
-    let newTotalSupply = initialTotalSupply
+    const newTotalSupply = initialTotalSupply
       .plus(new BigNumber(newLockedCN - initialLockedCN))
       .plus(newAvailableToken - initialAvailableToken)
       .toFixed(0);
@@ -287,10 +277,10 @@ describe('Contract: 5_Quotation', function() {
   });
 
   it('should return correct cover details purchased with DAI', async function() {
-    let CID = await qd.getAllCoversOfUser(coverHolder);
+    const CID = await qd.getAllCoversOfUser(coverHolder);
     let checkd = false;
-    let cdetails1 = await qd.getCoverDetailsByCoverID1(CID[2]);
-    let cdetails2 = await qd.getCoverDetailsByCoverID2(CID[2]);
+    const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[2]);
+    const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[2]);
     if (
       cdetails2[1] == CA_DAI &&
       cdetails1[1] == PNAME &&

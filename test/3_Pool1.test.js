@@ -20,8 +20,8 @@ let td;
 describe('Contract: Pool1', function() {
   this.timeout(0);
   const P_18 = new BigNumber(1e18);
-  const tokenAmount = new BigNumber(5e18);
-  const sellTokens = new BigNumber(3);
+  const tokenAmount = new BigNumber(1e19);
+  const sellTokens = new BigNumber(1.6);
   before(function() {
     NXMToken1.deployed()
       .then(function(instance) {
@@ -47,18 +47,18 @@ describe('Contract: Pool1', function() {
     await P1.buyTokenBegin({ from: member, value: tokenAmount });
     const tokenPrice = await m1.calculateTokenPrice(ETH);
     const tokens = tokenAmount.div(tokenPrice); //in decimals
-    const newTokenBalance = initialTokenBalance.plus(tokens).toFixed(3);
+    const newTokenBalance = initialTokenBalance.plus(tokens).toFixed(1);
     const newPoolBalance = initialPoolBalance
       .plus(tokenAmount.div(P_18))
-      .toFixed(3);
-    const newTotalSupply = initialTotalSupply.plus(tokens).toFixed(3);
+      .toFixed(1);
+    const newTotalSupply = initialTotalSupply.plus(tokens).toFixed(1);
     newPoolBalance.should.be.bignumber.equal(
-      (await P1.getEtherPoolBalance()).div(P_18).toFixed(3)
+      (await P1.getEtherPoolBalance()).div(P_18).toFixed(1)
     );
     newTokenBalance.should.be.bignumber.equal(
-      (await nxmtk1.totalBalanceOf(member)).div(P_18).toFixed(3)
+      (await nxmtk1.totalBalanceOf(member)).div(P_18).toFixed(1)
     );
-    newTotalSupply.should.equal((await td.totalSupply()).div(P_18).toFixed(3));
+    newTotalSupply.should.equal((await td.totalSupply()).div(P_18).toFixed(1));
   });
 
   it('should able to sell tokens', async function() {
@@ -73,21 +73,21 @@ describe('Contract: Pool1', function() {
     );
     await P1.sellNXMTokens(sellTokens.times(P_18), { from: member });
     const sellTokensWorth = sellPrice.div(P_18).times(sellTokens);
-    const newPoolBalance = initialPoolBalance.minus(sellTokensWorth).toFixed(3);
-    const newTokenBalance = initialTokenBalance.minus(sellTokens).toFixed(3);
-    const newTotalSupply = initialTotalSupply.minus(sellTokens).toFixed(3);
+    const newPoolBalance = initialPoolBalance.minus(sellTokensWorth).toFixed(1);
+    const newTokenBalance = initialTokenBalance.minus(sellTokens).toFixed(1);
+    const newTotalSupply = initialTotalSupply.minus(sellTokens).toFixed(1);
     const newMemberETHBalance = initialMemberETHBalance
       .plus(sellTokensWorth)
       .toFixed(0);
     newTokenBalance.should.be.bignumber.equal(
-      (await nxmtk1.totalBalanceOf(member)).div(P_18).toFixed(3)
+      (await nxmtk1.totalBalanceOf(member)).div(P_18).toFixed(1)
     );
-    newTotalSupply.should.equal((await td.totalSupply()).div(P_18).toFixed(3));
+    newTotalSupply.should.equal((await td.totalSupply()).div(P_18).toFixed(1));
     newMemberETHBalance.should.be.bignumber.equal(
       (await web3.eth.getBalance(member)).div(P_18).toFixed(0)
     );
     newPoolBalance.should.be.bignumber.equal(
-      (await P1.getEtherPoolBalance()).div(P_18).toFixed(3)
+      (await P1.getEtherPoolBalance()).div(P_18).toFixed(1)
     );
   });
 });

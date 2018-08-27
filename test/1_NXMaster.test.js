@@ -115,7 +115,7 @@ contract('NXMaster', function([owner]) {
   });
   it('should reinitialize', async function() {
     this.timeout(0);
-    await pl1.takeEthersOnly({ from: owner, value: 9000000000000000000 });
+    await pl1.takeEthersOnly({ from: owner, value: 2000000000000000000 });
     await nxmtd.setWalletAddress(owner); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
     await qd.changeAuthQuoteEngine(QE); //"0xb24919181daead6635e613576ca11c5aa5a4e133");
     await nxms2.addCoverStatus();

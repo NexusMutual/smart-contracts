@@ -12,7 +12,8 @@ const member3 = web3.eth.accounts[3];
 const coverHolder = web3.eth.accounts[4];
 const nonMember = web3.eth.accounts[9];
 const validity = 31 * 3600 * 24;
-
+let blockNumber = web3.eth.blockNumber;
+const timeStamp = web3.eth.getBlock(blockNumber).timestamp;
 const CLA = '0x434c41';
 let P1;
 let nxmtk1;
@@ -27,6 +28,27 @@ const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
+
+const increaseTime = function(duration) {
+  web3.currentProvider.sendAsync(
+    {
+      jsonrpc: '2.0',
+      method: 'evm_increaseTime',
+      params: [duration],
+      id: timeStamp
+    },
+    (err, resp) => {
+      if (!err) {
+        web3.currentProvider.send({
+          jsonrpc: '2.0',
+          method: 'evm_mine',
+          params: [],
+          id: timeStamp + 1
+        });
+      }
+    }
+  );
+};
 
 describe('Contract: 07_claimsAssesment', function() {
   const Amt = new BigNumber(13e18);
@@ -61,15 +83,32 @@ describe('Contract: 07_claimsAssesment', function() {
         nxmtk1 = instance;
       });
   });
+
   it('should able to submit vote for claim assesment', async function() {
+    this.timeout(0);
+    let maxVotingTime = await cd.maxVotingTime();
+    blockNumber = web3.eth.blockNumber;
+    const newLockTimestamp = web3.eth.getBlock(blockNumber).timestamp;
+    let closingTime = newLockTimestamp + maxVotingTime.toNumber();
+    let price = await mcr.calculateTokenPrice('ETH');
+    console.log('tkp=>', price.div(P_18).toNumber());
     await P1.buyTokenBegin({ from: member2, value: Amt });
     await P1.buyTokenBegin({ from: member3, value: Amt });
     const tkp = await mcr.calculateTokenPrice('ETH');
     console.log('tkp=>', tkp.div(P_18).toNumber());
-    const tokens = Amt.div(tkp);
+    const tokens = Amt.div(tkp).times(P_18);
     console.log('tokens:', tokens.toNumber());
     await nxmtk1.lock(CLA, tokens, validity, { from: member2 });
     await nxmtk1.lock(CLA, tokens, validity, { from: member3 });
+    let NOW = new BigNumber(Math.floor(Date.now() / 1000));
+    const LockedTokens = (await nxmtk1.tokensLocked(member2, CLA, NOW)).div(
+      P_18
+    );
+    const LockedTokens1 = (await nxmtk1.tokensLocked(member3, CLA, NOW)).div(
+      P_18
+    );
+    console.log('member3 locked:', LockedTokens1.toNumber());
+    console.log('member2 locked:', LockedTokens.toNumber());
     const initialBookedCaM2 = await td.getBookedCA(member2);
     const initialBookedCaM3 = await td.getBookedCA(member3);
     let checkNotVoted = false;
@@ -80,7 +119,6 @@ describe('Contract: 07_claimsAssesment', function() {
       checkNotVoted = true;
     checkNotVoted.should.equal(true);
     let claimDepositTime = await cd.claimDepositTime();
-    let NOW = new BigNumber(Math.floor(Date.now() / 1000));
     claimDepositTime = claimDepositTime.plus(NOW);
     let closeVoting = await cl.checkVoteClosing(1);
     closeVoting.should.not.equal(1);
@@ -101,15 +139,16 @@ describe('Contract: 07_claimsAssesment', function() {
       claimDepositTime
     );
     const bookedTokensM2 = await td.getBookedCA(member2);
-    tokensForVotingM2 = tokensForVotingM2 - bookedTokensM2;
-    tokensForVotingM2.should.above(0);
+    tokensForVotingM2 = tokensForVotingM2.minus(bookedTokensM2);
+    console.log('tokensForVotingM2', tokensForVotingM2);
+    tokensForVotingM2.should.be.bignumber.above(new BigNumber(0));
     await cl.submitCAVote(1, -1, { from: member2 });
     const presentBookedCaM3 = await td.getBookedCA(member3);
     const presentBookedCaM2 = await td.getBookedCA(member2);
     const presentLockedValidityM3 = await td.locked(member3, CLA);
     const presentLockedValidityM2 = await td.locked(member2, CLA);
-    const newBookedCaM2 = initialBookedCaM2 + tokensForVotingM2;
-    const newBookedCaM3 = initialBookedCaM3 + tokensForVotingM3;
+    const newBookedCaM2 = initialBookedCaM2.plus(tokensForVotingM2);
+    const newBookedCaM3 = initialBookedCaM3.plus(tokensForVotingM3);
     const lockDays = await td.lockCADays();
     const newLockedValidityM3 = initialLockedValidityM3[0].plus(
       new BigNumber(lockDays)
@@ -131,6 +170,10 @@ describe('Contract: 07_claimsAssesment', function() {
     newBookedCaM2.should.be.bignumber.equal(presentBookedCaM2);
     newLockedValidityM3.should.be.bignumber.equal(presentLockedValidityM3[0]);
     newLockedValidityM2.should.be.bignumber.equal(presentLockedValidityM2[0]);
+    await increaseTime(closingTime);
+    closeVoting = await cl.checkVoteClosing(1);
+    console.log('closeVoting:', closeVoting.toNumber());
+    closeVoting.should.be.bignumber.equal(new BigNumber(1));
   });
 
   // it('should return correct vote details',async function(){

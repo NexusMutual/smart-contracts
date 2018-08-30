@@ -46,7 +46,7 @@
     "mocha": "^5.2.0",
     "prettier": "^1.14.2",
     "solc": "^0.4.24",
-    "solidity-coverage": "^0.5.7",
+    "solidity-coverage": "^0.5.10",
     "truffle": "^4.1.14",
     "truffle-hdwallet-provider": "0.0.5"
   }

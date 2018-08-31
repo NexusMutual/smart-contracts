@@ -423,7 +423,7 @@ contract Claims is Iupgradable {
             (, , tokens) = td.getUserCoverLockedCN(add, coverId);
             tokens = SafeMaths.div(SafeMaths.mul(tokens, 20), 100);
         } else
-            (, , , tokens) = td.getUserCoverDepositCNByIndex(add, coverId, 0);
+            (, , , tokens) = td.getUserCoverDepositCNByIndex(add, coverId, coverLength - 1);
 
         uint timeStamp = SafeMaths.add(nowtime, cd.claimDepositTime());
         tc2.depositCN(coverId, tokens, timeStamp, add);

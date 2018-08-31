@@ -1,9 +1,14 @@
 module.exports = {
+  port: 8555,
   norpc: true,
-  testCommand:
-    'node --max-old-space-size=4096 ../node_modules/.bin/truffle test --network coverage',
-  compileCommand:
-    'node --max-old-space-size=4096 ../node_modules/.bin/truffle compile --network coverage',
-  skipFiles: ['imports'],
-  deepSKip: true
+  skipFiles: [
+    'imports',
+    'MCR.sol',
+    'Pool1.sol',
+    'Pool2.sol',
+    'Pool3.sol',
+    'PoolData.sol',
+    'DAI.sol'
+  ],
+  deepSkip: true
 };

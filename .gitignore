@@ -13,5 +13,7 @@ node_modules
 # log files
 *.log
 
-# coverage Env
+# coverage 
 coverageEnv
+coverage
+coverage.json

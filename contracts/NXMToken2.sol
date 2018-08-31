@@ -225,8 +225,8 @@ contract NXMToken2 is Iupgradable, Governed {
 
         uint amount;
         uint depositCN;
-        (, amount) = td.getUserCoverLockedCN(_to, coverid);
-        (, depositCN) = td.getDepositCN(coverid, msg.sender);
+        (, , amount) = td.getUserCoverLockedCN(_to, coverid);
+        (, depositCN) = td.getDepositCN(coverid, _to);
         require(SafeMaths.sub(amount, depositCN) >= _value); // Check if the sender has enough tokens to deposit
         require(_value > 0);
         td.pushInUserCoverDepositCN(_to, coverid, _days, _value);

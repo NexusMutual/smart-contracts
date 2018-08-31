@@ -12,7 +12,7 @@ module.exports = {
     coverage: {
       host: '127.0.0.1',
       network_id: '5777',
-      port: 8545,
+      port: 8555,
       gas: 0xfffffffffff,
       gasPrice: 0x01
     },

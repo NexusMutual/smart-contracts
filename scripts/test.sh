@@ -59,7 +59,7 @@ else
 fi
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  node_modules/.bin/solidity-coverage
+  node_modules/.bin/solidity-coverage && cat coverage/lcov.info | node_modules/.bin/coveralls
 
 else
    node_modules/.bin/truffle deploy &> /dev/null

@@ -29,7 +29,7 @@ contract('NXMToken2', function() {
         nxmtd = instance;
       });
   });
-  it('should able to join membership', async function() {
+  it('should be able to join membership', async function() {
     await mr.addNewMemberRole(
       '0x4d656d626572',
       'Member of Nexus Mutual',
@@ -55,12 +55,12 @@ contract('NXMToken2', function() {
     joinmem2.should.equal(true);
     joinmem3.should.equal(true);
   });
-  it('should able to withdraw membership', async function() {
+  it('should be able to withdraw membership', async function() {
     await nxmtk2.withdrawMembership({ from: member1 });
     const withmem = await mr.checkRoleIdByAddress(member1, 3);
     withmem.should.equal(false);
   });
-  it('should able to rejoin membership', async function() {
+  it('should be able to rejoin membership', async function() {
     const mem = await mr.checkRoleIdByAddress(member1, 3);
     mem.should.equal(false);
     await nxmtk2.payJoiningFee({ from: member1, value: fee });
@@ -70,5 +70,10 @@ contract('NXMToken2', function() {
   it('should return correct amount of initialFounderTokens', async function() {
     const checkFounderTokens = await nxmtd.getInitialFounderTokens();
     initialFounderTokens.should.be.bignumber.equal(checkFounderTokens);
+  });
+  it('should be able to change CanAddMemberAddress', async function() {
+    await nxmtk2.changeCanAddMemberAddress(nxmtk2.address);
+    nxmtk2.address.should.be.equal(await mr.getAuthrizedMemberAgainstRole(3));
+    nxmtk2.address.should.be.equal(await mr.getAuthrizedMemberAgainstRole(4));
   });
 });

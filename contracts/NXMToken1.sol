@@ -156,7 +156,7 @@ contract NXMToken1 is Iupgradable {
         return true;
     }
 
-    /// @dev Allows a given address (Spender) to spend a given amount of the money on behalf of the other user.
+/*  /// @dev Allows a given address (Spender) to spend a given amount of the money on behalf of the other user.
     /// @param _spender Spender's address.
     /// @param _value amount upto which Spender is allowed to transfer.
     /// @param _extraData Extra Data.
@@ -173,7 +173,7 @@ contract NXMToken1 is Iupgradable {
         require(_spender.call(bytes4(bytes32(keccak256("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _value, this, _extraData));
         return true;
     }
-
+ */
     /// @dev Transfer the Tokens from a given sender's Address to a given receiver's address.
     /// If the msg.sender is not allowed to transfer tokens on the behalf of the _from , then transfer will be unsuccessful.
     /// @param _from Sender's address.

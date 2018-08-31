@@ -49,6 +49,42 @@ describe('Contract: 04_NXMToken1', function() {
         P1 = instance;
       });
   });
+  it('should return correct symbol', async function() {
+    const symbol = 'NXM';
+    symbol.should.equal(await nxmtk1.symbol());
+  });
+  it('should return non zero total Supply', async function() {
+    const ts = await nxmtk1.totalSupply();
+    ts.should.be.bignumber.not.equal(new BigNumber(0));
+  });
+  it('should return correct decimals', async function() {
+    const decimals = 18;
+    decimals.should.be.bignumber.equal(await nxmtk1.decimals());
+  });
+  it('should return non-zero AvailableTokens of a member', async function() {
+    const tokens = await nxmtk1.getAvailableTokens(member);
+    tokens.should.be.bignumber.not.equal(new BigNumber(0));
+  });
+  it('should return current Founder tokens', async function() {
+    await nxmtd.getCurrentFounderTokens();
+  });
+  it('should return correct minimun vote lock period', async function() {
+    const minVoteLockPeriod = new BigNumber(604800);
+    minVoteLockPeriod.should.be.bignumber.equal(
+      await nxmtd.getMinVoteLockPeriod()
+    );
+  });
+  it('should be able to change minimun vote lock period', async function() {
+    const newMinVoteLockPeriod = new BigNumber(704800);
+    await nxmtd.changeMinVoteLockPeriod(newMinVoteLockPeriod);
+    newMinVoteLockPeriod.should.be.bignumber.equal(
+      await nxmtd.getMinVoteLockPeriod()
+    );
+    await nxmtd.changeMinVoteLockPeriod(new BigNumber(604800));
+  });
+  it('should be able to change initial Token', async function() {
+    await nxmtd.changeIntialTokens(1500000);
+  });
   it('should able to lock tokens under Claim Assesment', async function() {
     this.timeout(0);
     let NOW = new BigNumber(Math.floor(Date.now() / 1000));

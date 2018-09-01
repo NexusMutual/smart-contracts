@@ -63,7 +63,8 @@ contract QuotationData is Iupgradable {
     mapping(bytes4 => uint) currencyCSA;
     mapping(address => uint[]) userCover;
     mapping(address => uint[]) public userHoldedCover;
-    mapping (address => bool) public refundEligible;
+    mapping(address => bool) public refundEligible;
+    mapping(uint => uint) public holdedCoverIDStatus;
     Product_Details[] productDetails;
     mapping(address => mapping(bytes4 => uint)) currencyCSAOfSCAdd;
     cover[] allCovers;
@@ -358,7 +359,9 @@ contract QuotationData is Iupgradable {
 
     function addHoldCover(uint prodId, address from, address scAddress, bytes4 coverCurr, 
         uint[] coverDetails, uint16 coverPeriod) onlyInternal {
-        allCoverHolded.push(HoldCover(allCoverHolded.length, prodId, from, scAddress, 
+        uint holdedCoverLen = allCoverHolded.length;
+        setHoldedCoverIDStatus(holdedCoverLen, 1);                  
+        allCoverHolded.push(HoldCover(holdedCoverLen, prodId, from, scAddress, 
             coverCurr, coverDetails, coverPeriod));
         userHoldedCover[from].push(SafeMaths.sub(allCoverHolded.length, 1));
     
@@ -368,6 +371,13 @@ contract QuotationData is Iupgradable {
     {
 
         refundEligible[_add] = status;
+    }
+
+    /// @dev to set current status of particular holded coverID (1 for not completed KYC, 2 for KYC passed, 3 for failed KYC or full refunded,
+    /// 4 for KYC completed but cover not processed)
+    function setHoldedCoverIDStatus(uint holdedCoverID, uint status) onlyInternal
+    {
+        holdedCoverIDStatus[holdedCoverID] = status;
     }
     
     /// @dev Provides the details of a cover Id

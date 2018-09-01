@@ -227,6 +227,7 @@ contract Quotation is Iupgradable {
         require(msg.value == totalFee);
         require(coverDetails[3] > now);
         require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
+        require(qd.refundEligible(msg.sender) == false);
         qd.setRefundEligible(msg.sender, true);
         qd.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
 
@@ -237,40 +238,43 @@ contract Quotation is Iupgradable {
         address userAdd;
         uint[]  memory coverDetails = new uint[](4);
         (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
-        if (qd.refundEligible(userAdd)) {
-            bool succ;
-            uint joinFee = td.joiningFee();
-            if (status) {
-                address scAddress;
-                uint prodId;
-                bytes4 coverCurr;
-                uint16 coverPeriod;
-                (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
-                tc2.payJoiningFee.value(joinFee)(userAdd);
-                if (coverDetails[3] > now) {                   
-                    makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
-
-                }else {
-
-                    succ = userAdd.send(coverDetails[1]);
-                    require(succ);
-                }
-
+        require(qd.refundEligible(userAdd));
+        qd.setRefundEligible(userAdd, false);
+        bool succ;
+        uint joinFee = td.joiningFee();
+        if (status) {
+            address scAddress;
+            uint prodId;
+            bytes4 coverCurr;
+            uint16 coverPeriod;
+            (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
+            tc2.payJoiningFee.value(joinFee)(userAdd);
+            if (coverDetails[3] > now) { 
+                qd.setHoldedCoverIDStatus(holdedCoverID, 2);                  
+                makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             }else {
-               
-                uint totalRefund = coverDetails[1] + joinFee;
-                succ = userAdd.send(totalRefund);
+                qd.setHoldedCoverIDStatus(holdedCoverID, 4);
+                succ = userAdd.send(coverDetails[1]);
                 require(succ);
             }
-            qd.setRefundEligible(msg.sender, false);
+
+
+        }else {
+            qd.setHoldedCoverIDStatus(holdedCoverID, 3);
+            uint totalRefund = coverDetails[1] + joinFee;
+            succ = userAdd.send(totalRefund);
+            require(succ);
         }
+            
+    
         
     }
     
     function fullRefund(uint holdedCoverID) checkPause {
 
-        require(qd.getUserHoldedCoverByIndex(msg.sender, qd.getUserHoldedCoverLength(msg.sender) - 1) == holdedCoverID);
+        uint holdedCoverLen = qd.getUserHoldedCoverLength(msg.sender) - 1;
+        require(qd.getUserHoldedCoverByIndex(msg.sender, holdedCoverLen) == holdedCoverID);
         kycTrigger(false, holdedCoverID);
         
     }

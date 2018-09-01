@@ -221,7 +221,7 @@ contract Quotation is Iupgradable {
         bytes32 _r,
         bytes32 _s
         ) payable checkPause {
-
+        require(!ms.isMember(msg.sender));
         uint joinFee = td.joiningFee();
         uint totalFee = joinFee + coverDetails[1];
         require(msg.value == totalFee);
@@ -250,7 +250,11 @@ contract Quotation is Iupgradable {
             (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
             tc2.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
-                qd.setHoldedCoverIDStatus(holdedCoverID, 2);                  
+                qd.setHoldedCoverIDStatus(holdedCoverID, 2);
+                uint currentVersion = ms.currentVersion();
+                address poolAdd = ms.versionContractAddress(currentVersion, "P1");
+                succ = poolAdd.send(coverDetails[1]);
+                require(succ);               
                 makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             }else {
@@ -266,9 +270,7 @@ contract Quotation is Iupgradable {
             succ = userAdd.send(totalRefund);
             require(succ);
         }
-            
-    
-        
+              
     }
     
     function fullRefund(uint holdedCoverID) checkPause {
@@ -277,6 +279,28 @@ contract Quotation is Iupgradable {
         require(qd.getUserHoldedCoverByIndex(msg.sender, holdedCoverLen) == holdedCoverID);
         kycTrigger(false, holdedCoverID);
         
+    }
+
+    /// @dev Transfers back the given amount to the owner.
+    function transferBackEther() onlyOwner  
+    {
+
+        uint amount = this.balance;
+        if (amount > 0) {
+            address walletAdd = td.walletAddress();  
+            bool succ = walletAdd.send(amount);   
+            require(succ);
+        }
+    }
+
+     /// @dev transfering Ethers to newly created quotation contract.
+    function transferEtherToNewContract(address newAdd) onlyInternal
+    {
+        uint amount = this.balance;
+        if (amount > 0) {
+            bool succ = newAdd.send(amount);   
+            require(succ);
+        }
     }
 
     /// @dev Creates cover of the quotation, changes the status of the quotation ,

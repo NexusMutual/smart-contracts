@@ -75,6 +75,8 @@ contract QuotationData is Iupgradable {
         pendingCoverStart = 0;
         productDetails.push(Product_Details("SCC", "Smart Contract Cover", 90, 1000, 12, 0));
         allCovers.push(cover("0x00", 0x000, "0x00", 0, 0, 0, 0x000, 0));
+        uint[] arr;
+        allCoverHolded.push(HoldCover(0, 0, 0x00, 0x00, 0x00, arr, 0));
 
     }
 

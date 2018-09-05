@@ -184,6 +184,7 @@ contract NXMToken1 is Iupgradable {
 
         require(balanceOf(_from) >= _value);
         require(!tc2.voted(msg.sender));
+        require(ms.isMember(_to));
         require(_value <= td.getAllowerSpenderAllowance(_from, msg.sender));
         td.decreaseBalanceOf(_from, _value); // decrease amount from the sender
         td.increaseBalanceOf(_to, _value); // increase same to the recipient

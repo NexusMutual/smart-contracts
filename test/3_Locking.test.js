@@ -85,7 +85,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
     });
     //end of first describe
-    describe('increase validity of Locked Tokens', function() {
+    describe('extend validity of Locked Tokens', function() {
       const extendValidity = duration.days(2);
       let initialLockedTokens;
       it('should have some locked tokens', async function() {
@@ -106,6 +106,41 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
     });
     //end of second describe
+
+    describe('increase amount of locked Tokens', function() {
+      let initialLockedTokens;
+      const extendLockTokens = ether(2);
+      it('should have some locked tokens', async function() {
+        initialLockedTokens = await nxmtk1.tokensLocked(
+          member1,
+          CLA,
+          await latestTime()
+        );
+        initialLockedTokens.should.be.bignumber.not.equal(0);
+      });
+
+      it('should be able to increase amount of lock tokens', async function() {
+        const initialTokenBalance = await nxmtk1.balanceOf(member1);
+        await nxmtk1.increaseLockAmount(CLA, extendLockTokens, {
+          from: member1
+        });
+        const newTokenBalance = initialTokenBalance.minus(extendLockTokens);
+        const newLockedTokens = initialLockedTokens.plus(extendLockTokens);
+        newLockedTokens.should.be.bignumber.equal(
+          await nxmtk1.tokensLocked(member1, CLA, await latestTime())
+        );
+        newTokenBalance.should.be.bignumber.equal(
+          await nxmtk1.balanceOf(member1)
+        );
+      });
+    });
+    //end of increase lock token describe
+
+    describe('Lock Tokens under CA more than once', async function() {
+      it('reverts', async function() {
+        await assertRevert(nxmtk1.lock(CLA, 5000, await latestTime()));
+      });
+    });
   });
   //contract block
 });

@@ -10,7 +10,7 @@ const { assertRevert } = require('./utils/assertRevert');
 const expectEvent = require('./utils/expectEvent');
 
 const ETH = '0x455448';
-const BurnEvent = '0x466f72546f6b656e53656c6c00000000';
+const BurnEvent = '0x4275726e';
 
 let nxmtk2;
 let nxmtk1;
@@ -51,6 +51,17 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       const decimals = 18;
       decimals.should.be.bignumber.equal(await nxmtk1.decimals());
     });
+    it('should return current initial tokens', async function() {
+      (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
+        initialFounderTokens
+      );
+    });
+    it('should be able to change initial token', async function() {
+      await nxmtd.changeIntialTokens(1600000);
+      (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
+        1600000
+      );
+    });
   });
 
   describe('buying tokens', function() {
@@ -69,19 +80,19 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
   });
 
   describe('balanceOf', function() {
-    describe('when the requested account is member and has no tokens', function() {
+    describe('when the requested account is a member and has no tokens', function() {
       it('returns zero', async function() {
         await nxmtk2.payJoiningFee({ from: member2, value: fee });
         (await nxmtk1.balanceOf(member2)).should.be.bignumber.equal(0);
       });
     });
-    describe('when the requested account is member and has some tokens', function() {
+    describe('when the requested account is a member and has some tokens', function() {
       beforeEach(async function() {});
       it('returns the non zero amount of tokens', async function() {
         (await nxmtk1.balanceOf(member1)).should.be.bignumber.not.equal(0);
       });
     });
-    describe('when the requested account is not member', function() {
+    describe('when the requested account is not a member', function() {
       it('returns zero', async function() {
         (await nxmtk1.balanceOf(notMember)).should.be.bignumber.equal(0);
       });
@@ -90,10 +101,10 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
 
   describe('transfer', function() {
     const transferTokens = ether(1);
-    describe('when the recipient is member', function() {
+    describe('when the recipient is a member', function() {
       const to = notMember;
 
-      describe('when the sender is not member', function() {
+      describe('when the sender is not a member', function() {
         const to = member1;
         it('reverts', async function() {
           await assertRevert(
@@ -102,7 +113,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
         });
       });
 
-      describe('when the sender is member', function() {
+      describe('when the sender is a member', function() {
         describe('when the sender does not have enough balance', function() {
           it('reverts', async function() {
             await assertRevert(
@@ -133,7 +144,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
     });
 
-    describe('when the recipient is not member', function() {
+    describe('when the recipient is not a member', function() {
       it('reverts', async function() {
         to = notMember;
         await assertRevert(
@@ -144,7 +155,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
   });
 
   describe('approve', function() {
-    describe('when the sender is member', function() {
+    describe('when the sender is a member', function() {
       const spender = member2;
       describe('when approve amount is less than balance of sender', function() {
         const approveTokens = ether(2);
@@ -170,7 +181,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
     });
 
-    describe('when sender is not member', function() {
+    describe('when sender is not a member', function() {
       const spender = member2;
       const approveTokens = ether(2);
 
@@ -283,19 +294,6 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
         });
       });
     });
-
-    /*   describe('when the recipient is the zero address', function () {
-      const amount = 100;
-      const to = ZERO_ADDRESS;
-
-      beforeEach(async function () {
-        await this.token.approve(spender, amount, { from: owner });
-      });
-
-      it('reverts', async function () {
-        await assertRevert(this.token.transferFrom(owner, to, amount, { from: spender }));
-      });
-    });*/
   });
 
   describe('Sell Tokens', function() {
@@ -347,5 +345,47 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     });
   });
 
-  //end game
+  describe('Burn', function() {
+    describe('Tokens Less than balance', function() {
+      const amount = ether(1);
+      let initialTokenBalance;
+      let initialTotalSupply;
+      before(async function() {
+        initialTokenBalance = await nxmtk1.balanceOf(member1);
+        initialTotalSupply = await nxmtk1.totalSupply();
+        const { logs } = await nxmtk1.burnToken(member1, BurnEvent, 0, amount);
+        this.logs = logs;
+      });
+
+      it('decrements totalSupply', async function() {
+        const expectedSupply = initialTotalSupply.minus(amount);
+        (await nxmtk1.totalSupply()).should.be.bignumber.equal(expectedSupply);
+      });
+
+      it('decrements member balance', async function() {
+        const expectedBalance = initialTokenBalance.minus(amount);
+        (await nxmtk1.balanceOf(member1)).should.be.bignumber.equal(
+          expectedBalance
+        );
+      });
+
+      it('emits Burn event', async function() {
+        const event = expectEvent.inLogs(this.logs, 'Burn', {
+          _of: member1
+        });
+
+        event.args.tokens.should.be.bignumber.equal(amount);
+      });
+    });
+
+    describe('Tokens more than balance', function() {
+      it('reverts', async function() {
+        await assertRevert(
+          nxmtk1.burnToken(member1, BurnEvent, 0, await nxmtk1.totalSupply())
+        );
+      });
+    });
+  });
+
+  //end of contract block
 });

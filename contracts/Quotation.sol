@@ -19,11 +19,13 @@ import "./NXMToken1.sol";
 import "./NXMToken2.sol";
 import "./NXMTokenData.sol";
 import "./Pool1.sol";
+import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./MCR.sol";
 import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
 
 
 contract Quotation is Iupgradable {
@@ -34,11 +36,15 @@ contract Quotation is Iupgradable {
     NXMToken2 tc2;
     NXMTokenData td;
     Pool1 p1;
+    PoolData pd;
     QuotationData qd;
     NXMaster ms;
     MCR m1;
+    StandardToken stok;
 
     address masterAddress;
+
+    event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
@@ -84,6 +90,7 @@ contract Quotation is Iupgradable {
         td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
         qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
         p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
 
     }
 
@@ -221,15 +228,21 @@ contract Quotation is Iupgradable {
         bytes32 _r,
         bytes32 _s
         ) payable checkPause {
-        require(!ms.isMember(msg.sender));
-        uint joinFee = td.joiningFee();
-        uint totalFee = joinFee + coverDetails[1];
-        require(msg.value == totalFee);
         require(coverDetails[3] > now);
-        require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
+        require(!ms.isMember(msg.sender));
         require(qd.refundEligible(msg.sender) == false);
-        qd.setRefundEligible(msg.sender, true);
+        uint joinFee = td.joiningFee();
+        uint totalFee = joinFee;
+        if (coverCurr == "ETH")
+            totalFee = joinFee + coverDetails[1];
+        else {
+            stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+            stok.transferFrom(msg.sender, this, coverDetails[1]);
+        }
+        require(msg.value == totalFee);
+        require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
         qd.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
+        qd.setRefundEligible(msg.sender, true);
 
     }
 
@@ -253,22 +266,41 @@ contract Quotation is Iupgradable {
                 qd.setHoldedCoverIDStatus(holdedCoverID, 2);
                 uint currentVersion = ms.currentVersion();
                 address poolAdd = ms.versionContractAddress(currentVersion, "P1");
-                succ = poolAdd.send(coverDetails[1]);
-                require(succ);               
+                if (coverCurr == "ETH") {
+                    succ = poolAdd.send(coverDetails[1]);
+                    require(succ);
+                }else {
+                    stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+                    stok.transfer(poolAdd, coverDetails[1]);
+                }
+                RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
                 makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             }else {
                 qd.setHoldedCoverIDStatus(holdedCoverID, 4);
-                succ = userAdd.send(coverDetails[1]);
-                require(succ);
+                if (coverCurr == "ETH") {
+                    succ = userAdd.send(coverDetails[1]);
+                    require(succ);
+                }else {
+                    stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+                    stok.transfer(userAdd, coverDetails[1]);
+                }
+                RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
             }
 
 
         }else {
             qd.setHoldedCoverIDStatus(holdedCoverID, 3);
-            uint totalRefund = coverDetails[1] + joinFee;
+            uint totalRefund = joinFee;
+            if (coverCurr == "ETH") {
+                totalRefund = coverDetails[1] + joinFee;
+            }else {
+                stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+                stok.transfer(userAdd, coverDetails[1]);
+            }
             succ = userAdd.send(totalRefund);
             require(succ);
+            RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
         }
               
     }
@@ -282,24 +314,44 @@ contract Quotation is Iupgradable {
     }
 
     /// @dev Transfers back the given amount to the owner.
-    function transferBackEther() onlyOwner  
+    function transferBackAssets() onlyOwner  
     {
 
         uint amount = this.balance;
+        address walletAdd = td.walletAddress();
         if (amount > 0) {
-            address walletAdd = td.walletAddress();  
+              
             bool succ = walletAdd.send(amount);   
             require(succ);
         }
+        uint currAssetLen = pd.getAllCurrenciesLen();
+        for (uint64 i = 1; i < currAssetLen; i++) {
+            bytes8 currName = pd.getAllCurrenciesByIndex(i);
+            address currAddr = pd.getCurrencyAssetAddress(currName);
+            stok = StandardToken(currAddr);
+            if (stok.balanceOf(this) > 0) {
+                stok.transfer(walletAdd, stok.balanceOf(this));
+            }
+        }
+
     }
 
-     /// @dev transfering Ethers to newly created quotation contract.
-    function transferEtherToNewContract(address newAdd) onlyInternal
+    /// @dev transfering Ethers to newly created quotation contract.
+    function transferAssetsToNewContract(address newAdd) onlyInternal
     {
         uint amount = this.balance;
         if (amount > 0) {
             bool succ = newAdd.send(amount);   
             require(succ);
+        }
+        uint currAssetLen = pd.getAllCurrenciesLen();
+        for (uint64 i = 1; i < currAssetLen; i++) {
+            bytes8 currName = pd.getAllCurrenciesByIndex(i);
+            address currAddr = pd.getCurrencyAssetAddress(currName);
+            stok = StandardToken(currAddr);
+            if (stok.balanceOf(this) > 0) {
+                stok.transfer(newAdd, stok.balanceOf(this));
+            }
         }
     }
 

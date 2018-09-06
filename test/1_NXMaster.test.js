@@ -96,7 +96,7 @@ contract('NXMaster', function([
     addr.push(mcr.address);
     addr.push(pl3.address);
   });
-  describe('when caller is Owner', function() {
+  describe('when called by Owner', function() {
     it('should be able to add a new version', async function() {
       this.timeout(0);
       const versionLength = await nxms.versionLength();
@@ -180,7 +180,7 @@ contract('NXMaster', function([
     });
   });
 
-  describe('when caller is not Owner', function() {
+  describe('when not called by Owner', function() {
     it('should not be able to add a new version', async function() {
       await assertRevert(nxms.addNewVersion(addr, { from: anotherAccount }));
     });

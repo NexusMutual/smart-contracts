@@ -1,5 +1,3 @@
-const MCR = artifacts.require('MCR');
-const MemberRoles = artifacts.require('MemberRoles');
 const NXMToken1 = artifacts.require('NXMToken1');
 const NXMToken2 = artifacts.require('NXMToken2');
 const NXMTokenData = artifacts.require('NXMTokenData');
@@ -19,7 +17,6 @@ let nxmtk2;
 let nxmtk1;
 let nxmtd;
 let P1;
-let mcr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -41,10 +38,11 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
   });
   describe('Lock Tokens', function() {
     const lockTokens = ether(1);
+    const validity = duration.days(30);
+    const extendLockTokens = ether(2);
     describe('Lock Tokens under Claim Assesment', function() {
       let initialLockedTokens;
       let initialTokenBalance;
-      const validity = duration.days(30);
       //let eventlogs;
       it('should have zero initialLockedTokens', async function() {
         initialLockedTokens = await nxmtk1.tokensLocked(
@@ -85,53 +83,85 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
     });
     //end of first describe
-    describe('extend validity of Locked Tokens', function() {
+    describe('Extend validity of Locked Tokens', function() {
       const extendValidity = duration.days(2);
       let initialLockedTokens;
-      it('should have some locked tokens', async function() {
-        initialLockedTokens = await nxmtk1.tokensLocked(
-          member1,
-          CLA,
-          await latestTime()
-        );
-        initialLockedTokens.should.be.bignumber.not.equal(0);
+      describe('Before validity expires', function() {
+        it('should have some locked tokens', async function() {
+          initialLockedTokens = await nxmtk1.tokensLocked(
+            member1,
+            CLA,
+            await latestTime()
+          );
+          initialLockedTokens.should.be.bignumber.not.equal(0);
+        });
+        it('should be able to extend locked tokens validity', async function() {
+          const initialValidity = (await nxmtd.locked(member1, CLA))[0];
+          await nxmtk1.extendLock(CLA, extendValidity, { from: member1 });
+          const newValidity = initialValidity.plus(extendValidity);
+          newValidity.should.be.bignumber.equal(
+            (await nxmtd.locked(member1, CLA))[0]
+          );
+        });
       });
-      it('should be able to extend locked tokens validity', async function() {
-        const initialValidity = (await nxmtd.locked(member1, CLA))[0];
-        await nxmtk1.extendLock(CLA, extendValidity, { from: member1 });
-        const newValidity = initialValidity.plus(extendValidity);
-        newValidity.should.be.bignumber.equal(
-          (await nxmtd.locked(member1, CLA))[0]
-        );
+      describe('After validity expires', function() {
+        before(async function() {
+          const validity = (await nxmtd.locked(member1, CLA))[0];
+          await increaseTimeTo(validity.plus(2));
+        });
+        it('reverts', async function() {
+          await assertRevert(
+            nxmtk1.extendLock(CLA, extendValidity, { from: member1 })
+          );
+        });
       });
     });
     //end of second describe
 
-    describe('increase amount of locked Tokens', function() {
-      let initialLockedTokens;
-      const extendLockTokens = ether(2);
-      it('should have some locked tokens', async function() {
-        initialLockedTokens = await nxmtk1.tokensLocked(
-          member1,
-          CLA,
-          await latestTime()
-        );
-        initialLockedTokens.should.be.bignumber.not.equal(0);
+    describe('Increase amount of locked Tokens', function() {
+      describe('Before validity expires', function() {
+        before(async function() {
+          await nxmtk1.lock(CLA, lockTokens, validity, {
+            from: member1
+          });
+        });
+        let initialLockedTokens;
+
+        it('should have some locked tokens', async function() {
+          initialLockedTokens = await nxmtk1.tokensLocked(
+            member1,
+            CLA,
+            await latestTime()
+          );
+          initialLockedTokens.should.be.bignumber.not.equal(0);
+        });
+
+        it('should be able to increase amount of lock tokens', async function() {
+          const initialTokenBalance = await nxmtk1.balanceOf(member1);
+          await nxmtk1.increaseLockAmount(CLA, extendLockTokens, {
+            from: member1
+          });
+          const newTokenBalance = initialTokenBalance.minus(extendLockTokens);
+          const newLockedTokens = initialLockedTokens.plus(extendLockTokens);
+          newLockedTokens.should.be.bignumber.equal(
+            await nxmtk1.tokensLocked(member1, CLA, await latestTime())
+          );
+          newTokenBalance.should.be.bignumber.equal(
+            await nxmtk1.balanceOf(member1)
+          );
+        });
       });
 
-      it('should be able to increase amount of lock tokens', async function() {
-        const initialTokenBalance = await nxmtk1.balanceOf(member1);
-        await nxmtk1.increaseLockAmount(CLA, extendLockTokens, {
-          from: member1
+      describe('After validity expires', function() {
+        before(async function() {
+          const validity = (await nxmtd.locked(member1, CLA))[0];
+          await increaseTimeTo(validity.plus(2));
         });
-        const newTokenBalance = initialTokenBalance.minus(extendLockTokens);
-        const newLockedTokens = initialLockedTokens.plus(extendLockTokens);
-        newLockedTokens.should.be.bignumber.equal(
-          await nxmtk1.tokensLocked(member1, CLA, await latestTime())
-        );
-        newTokenBalance.should.be.bignumber.equal(
-          await nxmtk1.balanceOf(member1)
-        );
+        it('reverts', async function() {
+          await assertRevert(
+            nxmtk1.increaseLockAmount(CLA, extendLockTokens, { from: member1 })
+          );
+        });
       });
     });
     //end of increase lock token describe
@@ -154,8 +184,6 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
           CLA,
           await latestTime()
         );
-        const validity = (await nxmtd.locked(member1, CLA))[0];
-        await increaseTimeTo(validity);
       });
       it('should unlock locked tokens', async function() {
         const lockedTokens = await nxmtk1.tokensLocked(

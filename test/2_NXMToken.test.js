@@ -47,6 +47,9 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       const ts = await nxmtk1.totalSupply();
       ts.should.be.bignumber.equal(15e23);
     });
+    it('should return non zero token price', async function() {
+      (await nxmtk2.getTokenPrice(ETH)).should.be.bignumber.not.equal(0);
+    });
     it('should return correct decimals', async function() {
       const decimals = 18;
       decimals.should.be.bignumber.equal(await nxmtk1.decimals());

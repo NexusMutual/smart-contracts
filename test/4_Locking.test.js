@@ -23,7 +23,13 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
+contract('NXMToken:Locking', function([
+  owner,
+  member1,
+  member2,
+  member3,
+  notMember
+]) {
   const fee = ether(0.002);
   before(async function() {
     await advanceBlock();
@@ -200,5 +206,6 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
     });
   });
+
   //contract block
 });

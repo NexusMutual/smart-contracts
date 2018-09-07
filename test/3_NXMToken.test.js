@@ -54,6 +54,9 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       const decimals = 18;
       decimals.should.be.bignumber.equal(await nxmtk1.decimals());
     });
+    it('should return zero available balance for non member', async function() {
+      (await nxmtk1.getAvailableTokens(notMember)).should.be.bignumber.equal(0);
+    });
     it('should return current initial tokens', async function() {
       (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
         initialFounderTokens

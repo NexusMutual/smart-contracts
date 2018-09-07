@@ -26,7 +26,13 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
+contract('NXMToken:Membership', function([
+  owner,
+  member1,
+  member2,
+  member3,
+  notMember
+]) {
   before(async function() {
     P1 = await Pool1.deployed();
     nxmtk2 = await NXMToken2.deployed();

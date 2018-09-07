@@ -24,7 +24,13 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
+contract('NXMToken:Staking', function([
+  owner,
+  member1,
+  member2,
+  member3,
+  notMember
+]) {
   const fee = ether(0.002);
   const stakeTokens = ether(5);
   before(async function() {

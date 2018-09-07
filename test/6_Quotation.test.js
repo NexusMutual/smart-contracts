@@ -541,4 +541,34 @@ contract('Quotation', function([
       });
     });
   });
+
+  describe('Cover Expire', function() {
+    let initialSumAssured;
+    let initialTokenBalance;
+    before(async function() {
+      initialTokenBalance = await nxmtk1.balanceOf(member3);
+      initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
+      validity = await qd.getValidityOfCover(1);
+      await increaseTimeTo(validity.plus(1));
+    });
+    it('cover should be expired after validity expires', async function() {
+      qt.expireCover(1);
+    });
+
+    it('decrease sum assured', async function() {
+      const newSumAssured = await qd.getTotalSumAssured(CA_ETH);
+      newSumAssured.should.be.bignumber.equal(initialSumAssured.minus(1));
+    });
+    it('should change cover status', async function() {
+      (await qd.getCoverStatusNo(1)).should.be.bignumber.equal(3);
+    });
+    it('should unlock locked cover note tokens', async function() {
+      const unLockedCN = BN_5.times(coverDetails[2])
+        .div(BN_100)
+        .toFixed(0);
+      (await nxmtk1.balanceOf(member3)).should.be.bignumber.equal(
+        initialTokenBalance.plus(unLockedCN)
+      );
+    });
+  });
 });

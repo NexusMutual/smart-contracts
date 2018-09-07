@@ -218,8 +218,8 @@ contract('NXMToken:Locking', function([
     it('Reduce validity of locked tokens', async function() {
       await nxmtk1.reduceLock(CLA, member1, await duration.days(1));
       const newValidity = (await nxmtd.locked(member1, CLA))[0];
-      newValidity.should.be.bignumber.equal(
-        (await latestTime()) + duration.days(29)
+      newValidity.should.be.bignumber.below(
+        await latestTime() + validity
       );
     });
   });

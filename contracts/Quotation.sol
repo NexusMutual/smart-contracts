@@ -46,6 +46,8 @@ contract Quotation is Iupgradable {
 
     event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
 
+    function () public payable {}
+
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
             masterAddress = _add;
@@ -249,18 +251,18 @@ contract Quotation is Iupgradable {
     function kycTrigger(bool status, uint holdedCoverID) checkPause {
 
         address userAdd;
+        address scAddress;
+        uint prodId;
+        bytes4 coverCurr;
+        uint16 coverPeriod;
         uint[]  memory coverDetails = new uint[](4);
         (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
+        (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
         require(qd.refundEligible(userAdd));
         qd.setRefundEligible(userAdd, false);
         bool succ;
         uint joinFee = td.joiningFee();
         if (status) {
-            address scAddress;
-            uint prodId;
-            bytes4 coverCurr;
-            uint16 coverPeriod;
-            (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
             tc2.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
                 qd.setHoldedCoverIDStatus(holdedCoverID, 2);

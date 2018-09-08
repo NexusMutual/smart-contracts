@@ -30,7 +30,7 @@ contract NXMTokenData is Iupgradable {
     string public name = "NXM";
     string public symbol = "NXM";
     uint256 public totalSupply;
-    uint initialTokens = 1500000;
+    uint initialTokens;
     uint public currentFounderTokens;
     uint public joiningFee;
     uint64 bookTime;
@@ -92,7 +92,8 @@ contract NXMTokenData is Iupgradable {
     mapping(address => mapping(uint => lockToken[])) public burnCAToken;
    
     constructor() public {
-        totalSupply = initialTokens * (10**uint(decimals));
+        initialTokens = 1500000 * (10**uint(decimals));
+        totalSupply = initialTokens;
         balanceOf[msg.sender] = totalSupply; // Give the creator all initial tokens
         bookTime = SafeMaths.mul64(SafeMaths.mul64(12, 60), 60);
         minVoteLockPeriod = SafeMaths.mul64(7, 1 days);

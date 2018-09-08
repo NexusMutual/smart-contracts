@@ -207,5 +207,22 @@ contract('NXMToken:Locking', function([
     });
   });
 
+  describe('Change Lock', async function() {
+    const lockTokens = ether(2);
+    const validity = duration.days(30);
+    before(async function() {
+      await nxmtk1.lock(CLA, lockTokens, validity, {
+        from: member1
+      });
+    });
+    it('Reduce validity of locked tokens', async function() {
+      await nxmtk1.reduceLock(CLA, member1, await duration.days(1));
+      const newValidity = (await nxmtd.locked(member1, CLA))[0];
+      newValidity.should.be.bignumber.equal(
+        (await latestTime()) + duration.days(29)
+      );
+    });
+  });
+
   //contract block
 });

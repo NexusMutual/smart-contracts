@@ -72,6 +72,9 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       await P1.buyTokenBegin({ from: member1, value: tokenAmount });
       (await nxmtk1.balanceOf(member1)).should.be.bignumber.not.equal(0);
     });
+    it('should not be able to buy tokens at zero price', async function() {
+      // TODO: write test case :)
+    });
   });
 
   describe("Founder's tokens", function() {
@@ -87,7 +90,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       );
     });
     describe('if owner', function() {
-      it('should be able to allocate tokens using founder token', async function() {
+      it('should be able to allocate tokens using founders token', async function() {
         await nxmtk1.allocateFounderTokens(member1, tokens, {
           from: owner
         });
@@ -99,7 +102,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
     });
     describe('if not owner', function() {
-      it('should not be able to allocate tokens using founder token', async function() {
+      it('should not be able to allocate tokens using founders token', async function() {
         await assertRevert(
           nxmtk1.allocateFounderTokens(member1, tokens, { from: notMember })
         );

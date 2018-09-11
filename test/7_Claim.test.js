@@ -1,5 +1,6 @@
 const Pool1 = artifacts.require('Pool1');
 const Pool3 = artifacts.require('Pool3');
+const PoolData = artifacts.require('PoolData');
 const NXMToken1 = artifacts.require('NXMToken1');
 const NXMToken2 = artifacts.require('NXMToken2');
 const Claims = artifacts.require('Claims');
@@ -64,6 +65,7 @@ contract('Claim', function([
     cd = await ClaimsData.deployed();
     qd = await QuotationData.deployed();
     P1 = await Pool1.deployed();
+    pd = await PoolData.deployed();
     qt = await Quotation.deployed();
     td = await NXMTokenData.deployed();
     P3 = await Pool3.deployed();
@@ -113,9 +115,32 @@ contract('Claim', function([
         describe('if member is cover owner', function() {
           describe('if cover does not expires', function() {
             describe('if claim is not submitted yet', function() {
+              let initialCurrencyAssetVarMin;
+              let coverID;
+              let coverCurr;
               it('should be able to submit claim', async function() {
-                const coverID = await qd.getAllCoversOfUser(coverHolder);
+                coverID = await qd.getAllCoversOfUser(coverHolder);
+                coverCurr = await qd.getCurrencyOfCover(coverID[0]);
+                initialCurrencyAssetVarMin = await pd.getCurrencyAssetVarMin(
+                  coverCurr
+                );
                 await cl.submitClaim(coverID[0], { from: coverHolder });
+              });
+              it('cover status should change', async function() {
+                const claimDetails = await cd.getAllClaimsByIndex(
+                  1
+                );
+                claimDetails[0].should.be.bignumber.equal(coverID[0]);
+                const newCoverStatus = await qd.getCoverStatusNo(coverID[0]);
+                newCoverStatus.should.be.bignumber.equal(4);
+              });
+              it('should increase CurrencyAssetVarMin', async function() {
+                const sumAssured = await qd.getCoverSumAssured(coverID[0]);
+                (await pd.getCurrencyAssetVarMin(
+                  coverCurr
+                )).should.be.bignumber.equal(
+                  initialCurrencyAssetVarMin.plus(sumAssured)
+                );
               });
             });
 

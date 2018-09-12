@@ -127,9 +127,7 @@ contract('Claim', function([
                 await cl.submitClaim(coverID[0], { from: coverHolder });
               });
               it('cover status should change', async function() {
-                const claimDetails = await cd.getAllClaimsByIndex(
-                  1
-                );
+                const claimDetails = await cd.getAllClaimsByIndex(1);
                 claimDetails[0].should.be.bignumber.equal(coverID[0]);
                 const newCoverStatus = await qd.getCoverStatusNo(coverID[0]);
                 newCoverStatus.should.be.bignumber.equal(4);
@@ -151,6 +149,60 @@ contract('Claim', function([
                   cl.submitClaim(coverID[0], { from: coverHolder })
                 );
               });
+            });
+          });
+
+          /*
+          describe('if claim rejected 5 times', function() {
+            const newCoverHolder = member5;
+            let coverID;
+            before(async function() {
+              await P1.makeCoverBegin(
+                PID,
+                smartConAdd,
+                'ETH',
+                coverDetails,
+                coverPeriod,
+                v,
+                r,
+                s,
+                { from: newCoverHolder, value: coverDetails[1] }
+              );
+              coverID = await qd.getAllCoversOfUser(newCoverHolder);
+              await td.updateUserCoverLockedCN(coverHolder, coverID[0], 0, 0);
+            });
+            it('reverts', async function() {
+              coverID = await qd.getAllCoversOfUser(newCoverHolder);
+              await assertRevert(
+                cl.submitClaim(coverID[0], { from: newCoverHolder })
+              );
+            });
+          });*/
+
+          describe('if claim is already accepted', function() {
+            const newCoverHolder = member5;
+            before(async function() {
+              await P1.makeCoverBegin(
+                PID,
+                smartConAdd,
+                'ETH',
+                coverDetails,
+                coverPeriod,
+                v,
+                r,
+                s,
+                { from: newCoverHolder, value: coverDetails[1] }
+              );
+              const coverID = await qd.getAllCoversOfUser(newCoverHolder);
+              await cl.submitClaim(coverID[0], { from: newCoverHolder });
+              const claimId = (await cd.actualClaimLength()) - 1;
+              await cl.setClaimStatus(claimId, 1);
+            });
+            it('should not be able to submit claim', async function() {
+              const coverID = await qd.getAllCoversOfUser(newCoverHolder);
+              await assertRevert(
+                cl.submitClaim(coverID[0], { from: newCoverHolder })
+              );
             });
           });
 

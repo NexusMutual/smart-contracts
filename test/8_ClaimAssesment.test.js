@@ -51,8 +51,8 @@ contract('Claim: Assessment', function([
   member1,
   member2,
   member3,
+  member4,
   coverHolder,
-  notCoverHolder,
   notMember
 ]) {
   const P_18 = new BigNumber(1e18);
@@ -92,89 +92,66 @@ contract('Claim: Assessment', function([
     describe('Member locked Tokens for Claim Assessment', function() {
       describe('Voting is not closed yet', function() {
         describe('Members not voted yet', function() {
-          before(async function() {
-            await nxmtk1.lock(CLA, tokens.plus(P_18), validity, {
-              from: member1
+          describe('All CAs rejects claim', function() {
+            before(async function() {
+              await nxmtk1.lock(CLA, tokens.plus(P_18), validity, {
+                from: member1
+              });
+              await nxmtk1.lock(CLA, tokens, validity, { from: member2 });
+              await nxmtk1.lock(CLA, tokens, validity, { from: member3 });
+              await P1.makeCoverBegin(
+                PID,
+                smartConAdd,
+                'ETH',
+                coverDetails,
+                coverPeriod,
+                v,
+                r,
+                s,
+                { from: coverHolder, value: coverDetails[1] }
+              );
+              coverID = await qd.getAllCoversOfUser(coverHolder);
+              await cl.submitClaim(coverID[0], { from: coverHolder });
+              const maxVotingTime = await cd.maxVotingTime();
+              const now = await latestTime();
+              closingTime = maxVotingTime.plus(now);
+              await cl.getClaimFromNewStart(0 ,{from: coverHolder});
+              await cl.getUserClaimByIndex(0 ,{from: coverHolder});
+              await cl.getClaimbyIndex(1, {from: coverHolder});
+              await cl.getCATokensLockedAgainstClaim(member1, 1, {from: owner});
             });
-            await nxmtk1.lock(CLA, tokens, validity, { from: member2 });
-            await nxmtk1.lock(CLA, tokens, validity, { from: member3 });
-            await P1.makeCoverBegin(
-              PID,
-              smartConAdd,
-              'ETH',
-              coverDetails,
-              coverPeriod,
-              v,
-              r,
-              s,
-              { from: coverHolder, value: coverDetails[1] }
-            );
-            coverID = await qd.getAllCoversOfUser(coverHolder);
-            await cl.submitClaim(coverID[0], { from: coverHolder });
-            const maxVotingTime = await cd.maxVotingTime();
-            const now = await latestTime();
-            closingTime = maxVotingTime.plus(now);
-          });
-          it('members should have locked tokens', async function() {
-            const NOW = await latestTime();
-            (await nxmtk1.tokensLocked(
-              member1,
-              CLA,
-              NOW
-            )).should.be.bignumber.not.equal(0);
-            (await nxmtk1.tokensLocked(
-              member2,
-              CLA,
-              NOW
-            )).should.be.bignumber.not.equal(0);
-            (await nxmtk1.tokensLocked(
-              member3,
-              CLA,
-              NOW
-            )).should.be.bignumber.not.equal(0);
-          });
-          it('should return zero booked tokens ', async function() {
-            (await td.getBookedCA(member1)).should.be.bignumber.equal(0);
-            (await td.getBookedCA(member2)).should.be.bignumber.equal(0);
-            (await td.getBookedCA(member3)).should.be.bignumber.equal(0);
-          });
-          it('members not voted yet', async function() {
-            (await cd.getUserClaimVoteCA(
-              member1,
-              coverID[0]
-            )).should.be.bignumber.equal(0);
-            (await cd.getUserClaimVoteCA(
-              member2,
-              coverID[0]
-            )).should.be.bignumber.equal(0);
-            (await cd.getUserClaimVoteCA(
-              member3,
-              coverID[0]
-            )).should.be.bignumber.equal(0);
-          });
+            it('should let members to vote for claim assessment', async function() {
+              await cl.submitCAVote(1, -1, { from: member1 });
+              await cl.submitCAVote(1, -1, { from: member2 });
+              await cl.submitCAVote(1, -1, { from: member3 });
+            });
+            it('should close voting after closing time', async function() {
+              await increaseTimeTo(closingTime);
+              (await cl.checkVoteClosing(1)).should.be.bignumber.equal(1);
+            });
 
-          it('should let members to vote for claim assessment', async function() {
-            await cl.submitCAVote(1, -1, { from: member1 });
-            await cl.submitCAVote(1, -1, { from: member2 });
-            await cl.submitCAVote(1, -1, { from: member3 });
-          });
-          it('should close voting after closing time', async function() {
-            await increaseTimeTo(closingTime);
-            (await cl.checkVoteClosing(1)).should.be.bignumber.equal(1);
-          });
-
-          it('should be able change claim status', async function() {
-            await cr.changeClaimStatus(1);
-            const newCStatus = await cd.getClaimStatusNumber(1);
-            newCStatus[1].should.be.bignumber.equal(6);
+            it('should be able change claim status', async function() {
+              await cr.changeClaimStatus(1);
+              const newCStatus = await cd.getClaimStatusNumber(1);
+              newCStatus[1].should.be.bignumber.equal(6);
+            });
           });
         });
       });
+      /*      describe('Voting is not closed yet', function() {
+        before(async function() {});
+      });*/
     });
 
     describe('Member not have locked tokens for Claim Assessment', function() {
+      before(async function() {
+        await nxmtk2.payJoiningFee({ from: member4, value: fee });
+        await P1.buyTokenBegin({ from: member4, value: ether(2) });
+        await cl.submitClaim(coverID[0], { from: coverHolder });
+      });
       it('reverts', async function() {
-        //todo revert
+        const claimId = (await cd.actualClaimLength()) - 1;
+        await assertRevert(cl.submitCAVote(2, -1, { from: member1 }));
       });
     });
   });

@@ -138,7 +138,7 @@ contract('Claim: Assessment', function([
           });
         });
       });
-      /*      describe('Voting is not closed yet', function() {
+      /* describe('Voting is not closed yet', function() {
         before(async function() {});
       });*/
     });

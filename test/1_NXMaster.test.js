@@ -49,6 +49,7 @@ let addr = [];
 let dai;
 let newMaster;
 let memberRoles;
+let IA1, IA2, IA3, IA4, IA5, IA6;
 
 contract('NXMaster', function([
   owner,
@@ -80,6 +81,12 @@ contract('NXMaster', function([
     nxms2 = await NXMaster2.new();
     pl3 = await Pool3.new();
     dai = await DAI.new();
+    IA1 = await DAI.new();
+    IA2 = await DAI.new();
+    IA3 = await DAI.new();
+    IA4 = await DAI.new();
+    IA5 = await DAI.new();
+    IA6 = await DAI.new();
     addr.push(qd.address);
     addr.push(nxmtd.address);
     addr.push(cd.address);
@@ -157,6 +164,24 @@ contract('NXMaster', function([
         2,
         ['0x455448', '0x444149'],
         [100, 65407],
+        20180807
+      );
+      await pd.changeInvestmentAssetAddress(0x444744, IA1.address);
+      await pd.changeInvestmentAssetAddress(0x49434e, IA2.address);
+      await pd.changeInvestmentAssetAddress(0x5a5258, IA3.address);
+      await pd.changeInvestmentAssetAddress(0x474e54, IA4.address);
+      await pd.changeInvestmentAssetAddress(0x4d4c4e, IA5.address);
+      await pd.changeInvestmentAssetAddress(0x4d4b52, IA6.address);
+      await pl3.saveIADetails(
+        [
+          '0x444744',
+          '0x49434e',
+          '0x5a5258',
+          '0x4d4b52',
+          '0x474e54',
+          '0x4d4c4e'
+        ],
+        [100, 200, 300, 400, 500, 600],
         20180807
       );
     });

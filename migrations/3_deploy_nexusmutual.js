@@ -14,6 +14,11 @@ var Pool3 = artifacts.require('Pool3');
 var PoolData = artifacts.require('PoolData');
 var Quotation = artifacts.require('Quotation');
 var QuotationData = artifacts.require('QuotationData');
+var Exchange = artifacts.require('Exchange');
+var Token = artifacts.require('Token');
+var TokenTransferProxy = artifacts.require('TokenTransferProxy');
+let ttpa;
+let zxta;
 
 module.exports = function(deployer) {
   deployer.deploy(Claims);
@@ -32,4 +37,14 @@ module.exports = function(deployer) {
   deployer.deploy(NXMTokenData);
   deployer.deploy(Quotation);
   deployer.deploy(QuotationData);
+  deployer
+    .deploy(TokenTransferProxy)
+    .then(function(instance) {
+      ttpa = instance;
+      return deployer.deploy(Token);
+    })
+    .then(function(instance) {
+      zxta = instance;
+      return deployer.deploy(Exchange, zxta.address, ttpa.address);
+    });
 };

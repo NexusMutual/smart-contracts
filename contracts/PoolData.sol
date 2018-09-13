@@ -549,6 +549,11 @@ contract PoolData is Iupgradable {
         allInvestmentAssets[_curr].maxHoldingPercX100 = _maxPercX100;
     }
 
+    /// @dev Changes Investment asset token address.
+    function changeInvestmentAssetAddress(bytes8 _curr, address _currAdd) onlyInternal {
+        allInvestmentAssets[_curr].currAddress = _currAdd;
+    }
+
     /// @dev Gets investment asset details of a given currency;
     function getInvestmentAssetDetails(bytes8 _curr)
         constant

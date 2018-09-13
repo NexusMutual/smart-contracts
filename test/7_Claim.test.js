@@ -16,7 +16,8 @@ const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 
-const CA_ETH = '0x45544800';
+const CLA = '0x434c41';
+const CA_ETH = '0x455448';
 const fee = ether(0.002);
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const PID = 0;
@@ -55,6 +56,8 @@ contract('Claim', function([
 ]) {
   const P_18 = new BigNumber(1e18);
   const stakeTokens = ether(3);
+  const tokens = ether(4.5);
+  const validity = duration.days(30);
 
   before(async function() {
     await advanceBlock();
@@ -152,7 +155,6 @@ contract('Claim', function([
             });
           });
 
-          /*
           describe('if claim rejected 5 times', function() {
             const newCoverHolder = member5;
             let coverID;
@@ -168,16 +170,59 @@ contract('Claim', function([
                 s,
                 { from: newCoverHolder, value: coverDetails[1] }
               );
+
               coverID = await qd.getAllCoversOfUser(newCoverHolder);
-              await td.updateUserCoverLockedCN(coverHolder, coverID[0], 0, 0);
+              let i;
+              let newCStatus;
+              let claimId;
+              let closingTime;
+              let now;
+              let accept;
+              let deny;
+              let lol;
+              const maxVotingTime = await cd.maxVotingTime();
+              await nxmtk1.lock(CLA, tokens, validity, {
+                from: member1
+              });
+              await nxmtk1.lock(CLA, tokens, validity, { from: member2 });
+              await nxmtk1.lock(CLA, tokens, validity, { from: member3 });
+              await cl.submitClaim(coverID[0], { from: newCoverHolder });
+
+              for (i = 0; i < 5; i++) {
+                await P1.buyTokenBegin({ from: member1, value: ether(1) });
+                await P1.buyTokenBegin({ from: member2, value: ether(1) });
+                await P1.buyTokenBegin({ from: member3, value: ether(1) });
+
+                if (i > 0) {
+                  await nxmtk1.increaseLockAmount(CLA, tokens, {
+                    from: member1
+                  });
+                  await nxmtk1.increaseLockAmount(CLA, tokens, {
+                    from: member2
+                  });
+                  await nxmtk1.increaseLockAmount(CLA, tokens, {
+                    from: member3
+                  });
+                  await cl.submitClaim(coverID[0], { from: newCoverHolder });
+                }
+
+                claimId = (await cd.actualClaimLength()) - 1;
+                await cl.submitCAVote(claimId, -1, { from: member1 });
+                await cl.submitCAVote(claimId, -1, { from: member2 });
+                await cl.submitCAVote(claimId, -1, { from: member3 });
+                now = await latestTime();
+                closingTime = maxVotingTime.plus(now);
+                await increaseTimeTo(closingTime);
+                newCStatus = await cd.getClaimStatusNumber(claimId);
+                await cr.changeClaimStatus(claimId, { from: owner });
+              }
             });
             it('reverts', async function() {
-              coverID = await qd.getAllCoversOfUser(newCoverHolder);
               await assertRevert(
                 cl.submitClaim(coverID[0], { from: newCoverHolder })
               );
             });
-          });*/
+          });
 
           describe('if claim is already accepted', function() {
             const newCoverHolder = member5;
@@ -194,14 +239,14 @@ contract('Claim', function([
                 { from: newCoverHolder, value: coverDetails[1] }
               );
               const coverID = await qd.getAllCoversOfUser(newCoverHolder);
-              await cl.submitClaim(coverID[0], { from: newCoverHolder });
+              await cl.submitClaim(coverID[1], { from: newCoverHolder });
               const claimId = (await cd.actualClaimLength()) - 1;
               await cl.setClaimStatus(claimId, 1);
             });
             it('should not be able to submit claim', async function() {
               const coverID = await qd.getAllCoversOfUser(newCoverHolder);
               await assertRevert(
-                cl.submitClaim(coverID[0], { from: newCoverHolder })
+                cl.submitClaim(coverID[1], { from: newCoverHolder })
               );
             });
           });

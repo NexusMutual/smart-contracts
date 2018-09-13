@@ -115,10 +115,12 @@ contract('Claim: Assessment', function([
               const maxVotingTime = await cd.maxVotingTime();
               const now = await latestTime();
               closingTime = maxVotingTime.plus(now);
-              await cl.getClaimFromNewStart(0 ,{from: coverHolder});
-              await cl.getUserClaimByIndex(0 ,{from: coverHolder});
-              await cl.getClaimbyIndex(1, {from: coverHolder});
-              await cl.getCATokensLockedAgainstClaim(member1, 1, {from: owner});
+              await cl.getClaimFromNewStart(0, { from: coverHolder });
+              await cl.getUserClaimByIndex(0, { from: coverHolder });
+              await cl.getClaimbyIndex(1, { from: coverHolder });
+              await cl.getCATokensLockedAgainstClaim(member1, 1, {
+                from: owner
+              });
             });
             it('should let members to vote for claim assessment', async function() {
               await cl.submitCAVote(1, -1, { from: member1 });

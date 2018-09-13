@@ -17,8 +17,5 @@ module.exports = deployer => {
         addr,
         owner
       );
-    })
-    .then(function(mr) {
-      console.log('MemberRoles deployed');
     });
 };

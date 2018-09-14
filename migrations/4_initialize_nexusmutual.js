@@ -16,10 +16,11 @@ var PoolData = artifacts.require('PoolData');
 var Quotation = artifacts.require('Quotation');
 var QuotationData = artifacts.require('QuotationData');
 var MemberRoles = artifacts.require('MemberRoles');
+var Exchange = artifacts.require('Exchange');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const WETH_0x = web3.eth.accounts[18];
-const Exchange_0x = web3.eth.accounts[17];
+//const Exchange_0x = web3.eth.accounts[17];
 
 module.exports = deployer => {
   let nxms;
@@ -39,6 +40,8 @@ module.exports = deployer => {
   let mcr;
   let mcrd;
   let nown;
+  let exchange;
+  let IA1, IA2, IA3, IA4, IA5, IA6;
   deployer
     .then(() => NXMaster.deployed())
     .then(function(instance) {
@@ -99,6 +102,34 @@ module.exports = deployer => {
     })
     .then(function(instance) {
       qt = instance;
+      return Exchange.deployed();
+    })
+    .then(function(instance) {
+      exchange = instance;
+      return DAI.new();
+    })
+    .then(function(instance) {
+      IA1 = instance;
+      return DAI.new();
+    })
+    .then(function(instance) {
+      IA2 = instance;
+      return DAI.new();
+    })
+    .then(function(instance) {
+      IA3 = instance;
+      return DAI.new();
+    })
+    .then(function(instance) {
+      IA4 = instance;
+      return DAI.new();
+    })
+    .then(function(instance) {
+      IA5 = instance;
+      return DAI.new();
+    })
+    .then(function(instance) {
+      IA6 = instance;
       return QuotationData.deployed();
     })
     .then(function(instance) {
@@ -134,7 +165,7 @@ module.exports = deployer => {
     .then(function(owner) {
       nown = owner;
       console.log(nown);
-      return pl1.takeEthersOnly({ from: nown, value: 2000000000000000000 });
+      return pl1.takeEthersOnly({ from: nown, value: 4000000000000000000 });
     })
     .then(function() {
       return nxmtd.setWalletAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
@@ -170,13 +201,31 @@ module.exports = deployer => {
       return pd.change0xMakerAddress(nown); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
     })
     .then(function() {
-      return pl2.changeExchangeContractAddress(Exchange_0x); //"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+      return pl2.changeExchangeContractAddress(exchange.address); //"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
     })
     .then(function() {
-      return pl3.changeExchangeContractAddress(Exchange_0x); //"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
+      return pl3.changeExchangeContractAddress(exchange.address); //"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
     })
     .then(function() {
       return mcr.changenotariseAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
+    })
+    .then(function() {
+      pd.changeInvestmentAssetAddress(0x444744, IA1.address);
+    })
+    .then(function() {
+      pd.changeInvestmentAssetAddress(0x49434e, IA2.address);
+    })
+    .then(function() {
+      pd.changeInvestmentAssetAddress(0x5a5258, IA3.address);
+    })
+    .then(function() {
+      pd.changeInvestmentAssetAddress(0x474e54, IA4.address);
+    })
+    .then(function() {
+      pd.changeInvestmentAssetAddress(0x4d4c4e, IA5.address);
+    })
+    .then(function() {
+      pd.changeInvestmentAssetAddress(0x4d4b52, IA6.address);
     })
     .then(function() {
       var arg1 = 18000;
@@ -187,10 +236,20 @@ module.exports = deployer => {
       var arg6 = 20180807;
       return mcr.addMCRData(arg1, arg2, arg3, arg4, arg5, arg6);
     })
-    /*.then(function(){
-        console.log("hel");
-        return pl3.saveIADetails(["0x444744","0x49434e","0x5a5258","0x4d4b52","0x474e54","0x4d4c4e"],[100,200,300,400,500,600],20180807);
-    })*/
+    .then(function() {
+      return pl3.saveIADetails(
+        [
+          '0x444744',
+          '0x49434e',
+          '0x5a5258',
+          '0x4d4b52',
+          '0x474e54',
+          '0x4d4c4e'
+        ],
+        [100, 200, 300, 400, 500, 600],
+        20180807
+      );
+    })
     .then(function() {
       return MemberRoles.deployed();
     })

@@ -28,7 +28,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
   const tokenAmount = ether(2);
   const tokens = ether(1);
   const P_18 = new BigNumber(1e18);
-  const initialFounderTokens = new BigNumber(15e5);
+  const initialFounderTokens = new BigNumber(15e23);
 
   before(async function() {
     nxmtk1 = await NXMToken1.deployed();
@@ -45,7 +45,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     });
     it('should return correct total Supply', async function() {
       const ts = await nxmtk1.totalSupply();
-      ts.should.be.bignumber.equal(15e23);
+      ts.should.be.bignumber.equal(initialFounderTokens);
     });
     it('should return non zero token price', async function() {
       (await nxmtk2.getTokenPrice(ETH)).should.be.bignumber.not.equal(0);
@@ -56,17 +56,6 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     });
     it('should return zero available balance for non member', async function() {
       (await nxmtk1.getAvailableTokens(notMember)).should.be.bignumber.equal(0);
-    });
-    it('should return current initial tokens', async function() {
-      (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
-        initialFounderTokens
-      );
-    });
-    it('should be able to change initial token', async function() {
-      await nxmtd.changeIntialTokens(1600000);
-      (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
-        1600000
-      );
     });
   });
 
@@ -82,6 +71,42 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     it('should be able to buy tokens if member', async function() {
       await P1.buyTokenBegin({ from: member1, value: tokenAmount });
       (await nxmtk1.balanceOf(member1)).should.be.bignumber.not.equal(0);
+    });
+    it('should not be able to buy tokens at zero price', async function() {
+      // TODO: write test case :)
+    });
+  });
+
+  describe("Founder's tokens", function() {
+    it('should return current initial tokens', async function() {
+      (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
+        initialFounderTokens
+      );
+    });
+    it('should be able to change initial token', async function() {
+      await nxmtd.changeIntialTokens(initialFounderTokens.plus(tokens));
+      (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
+        initialFounderTokens.plus(tokens)
+      );
+    });
+    describe('if owner', function() {
+      it('should be able to allocate tokens using founders token', async function() {
+        await nxmtk1.allocateFounderTokens(member1, tokens, {
+          from: owner
+        });
+      });
+      it('should add allocated tokens', async function() {
+        (await nxmtd.getCurrentFounderTokens()).should.be.bignumber.equal(
+          tokens
+        );
+      });
+    });
+    describe('if not owner', function() {
+      it('should not be able to allocate tokens using founders token', async function() {
+        await assertRevert(
+          nxmtk1.allocateFounderTokens(member1, tokens, { from: notMember })
+        );
+      });
     });
   });
 

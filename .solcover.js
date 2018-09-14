@@ -3,9 +3,6 @@ module.exports = {
   norpc: true,
   skipFiles: [
     'imports',
-    'Claims.sol',
-    'ClaimsData.sol',
-    'ClaimsReward.sol',
     'Iupgradable.sol',
     'MCR.sol',
     'MCRData.sol',
@@ -13,7 +10,8 @@ module.exports = {
     'Pool2.sol',
     'Pool3.sol',
     'PoolData.sol',
-    'DAI.sol'
+    'DAI.sol',
+    'ClaimsReward.sol'
   ],
   deepSkip: true
 };

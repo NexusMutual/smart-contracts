@@ -56,7 +56,7 @@ contract('Claim: Assessment', function([
   notMember
 ]) {
   const P_18 = new BigNumber(1e18);
-  const stakeTokens = ether(1);
+  const stakeTokens = ether(3);
   const tokens = ether(6);
   const validity = duration.days(30);
   let coverID;
@@ -175,6 +175,16 @@ contract('Claim: Assessment', function([
               const newCStatus = await cd.getClaimStatusNumber(claimId);
               newCStatus[1].should.be.bignumber.equal(7);
             });
+            it('should burn stakers staked tokens', async function() {
+              (await nxmtk2.getLockedNXMTokenOfStaker(
+                smartConAdd,
+                0
+              )).should.be.bignumber.equal(0);
+              (await nxmtk2.getLockedNXMTokenOfStaker(
+                smartConAdd,
+                1
+              )).should.be.bignumber.below(stakeTokens);
+            });
           });
         });
         describe('CA not voted', function() {
@@ -220,6 +230,30 @@ contract('Claim: Assessment', function([
                 const newCStatus = await cd.getClaimStatusNumber(claimId);
                 newCStatus[1].should.be.bignumber.equal(11);
               });
+            });
+          });
+
+          describe('Member rejects claim', function() {
+            before(async function() {
+              await cl.submitClaim(coverID[1], { from: coverHolder });
+              claimId = (await cd.actualClaimLength()) - 1;
+              const now = await latestTime();
+              closingTime = maxVotingTime.plus(now);
+              await increaseTimeTo(closingTime.plus(2));
+              await cr.changeClaimStatus(claimId);
+            });
+            it('member should be able to cast vote', async function() {
+              await cl.submitMemberVote(claimId, -1, { from: member1 });
+              await cl.submitMemberVote(claimId, -1, { from: member2 });
+              await cl.submitMemberVote(claimId, -1, { from: member3 });
+            });
+            it('should change claim status', async function() {
+              const now = await latestTime();
+              closingTime = maxVotingTime.plus(now);
+              await increaseTimeTo(closingTime.plus(2));
+              await cr.changeClaimStatus(claimId);
+              const newCStatus = await cd.getClaimStatusNumber(claimId);
+              newCStatus[1].should.be.bignumber.equal(9);
             });
           });
         });

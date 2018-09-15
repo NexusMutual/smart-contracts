@@ -164,10 +164,13 @@ contract NXMaster2 is Iupgradable {
 
     /// @dev Initializes asset data required by Pool1 module.
     function callPoolDataMethods() onlyOwner {
-        addCurrencyAssetsVarBase();
-        addInvestmentAssetsDetails();
-        addInvestmentCurrencies();
+        
         addAllCurrencies();
+        addCurrencyAssetsDetails();
+        addCurrencyAssetsVarBase();
+        addInvestmentCurrencies();
+        addInvestmentAssetsDetails();
+        
     }
 
     /// @dev Adds investment asset details to Pool1.

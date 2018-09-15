@@ -219,8 +219,16 @@ contract('NXMaster', function([
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
       );
+      await assertRevert(
+        nxms2.changeMasterAddress(newMaster.address, { from: anotherAccount })
+      );
     });
-
+    it('should not be able to change changeDependentContractAddress', async function() {
+      await assertRevert(nxms2.addMCRCurr({ from: anotherAccount }));
+      await assertRevert(
+        nxms2.changeDependentContractAddress({ from: anotherAccount })
+      );
+    });
     it('should not be able to change MemberRole Address', async function() {
       memberRoles = await MemberRoles.deployed();
       const MRAddress = await memberRoles.address;

@@ -247,6 +247,17 @@ contract('Claim: Assessment', function([
               await cl.submitMemberVote(claimId, -1, { from: member2 });
               await cl.submitMemberVote(claimId, -1, { from: member3 });
             });
+            it('member should not be able to transfer any tokens', async function() {
+              await assertRevert(
+                nxmtk1.transfer(member2, tokens, { from: member1 })
+              );
+              await nxmtk1.approve(member2, tokens, { from: coverHolder });
+              await assertRevert(
+                nxmtk1.transferFrom(coverHolder, member3, tokens, {
+                  from: member2
+                })
+              );
+            });
             it('should change claim status', async function() {
               const now = await latestTime();
               closingTime = maxVotingTime.plus(now);

@@ -59,7 +59,13 @@ contract('NXMToken:Locking', function([
         initialTokenBalance = await nxmtk1.balanceOf(member1);
         initialLockedTokens.should.be.bignumber.equal(0);
       });
-
+      it('should not be able to lock tokens more than balance', async function() {
+        await assertRevert(
+          nxmtk1.lock(CLA, initialTokenBalance.plus(1e18), validity, {
+            from: member1
+          })
+        );
+      });
       it('should be able to lock tokens', async function() {
         await nxmtk1.lock(CLA, lockTokens, validity, {
           from: member1
@@ -85,6 +91,13 @@ contract('NXMToken:Locking', function([
         event.args._amount.should.be.bignumber.equal(lockTokens);
         event.args._validity.should.be.bignumber.equal(
           (await latestTime()) + validity
+        );
+      });
+    });
+    describe('Lock Tokens under CA more than once', function() {
+      it('reverts', async function() {
+        await assertRevert(
+          nxmtk1.lock(CLA, 5000, await latestTime(), { from: member1 })
         );
       });
     });
@@ -171,16 +184,10 @@ contract('NXMToken:Locking', function([
       });
     });
     //end of increase lock token describe
-
-    describe('Lock Tokens under CA more than once', async function() {
-      it('reverts', async function() {
-        await assertRevert(nxmtk1.lock(CLA, 5000, await latestTime()));
-      });
-    });
   });
 
-  describe('Unlock Tokens', async function() {
-    describe('After validity expires', async function() {
+  describe('Unlock Tokens', function() {
+    describe('After validity expires', function() {
       let initialTokenBalance;
       let initialLockedTokens;
       before(async function() {
@@ -207,18 +214,28 @@ contract('NXMToken:Locking', function([
     });
   });
 
-  describe('Change Lock', async function() {
+  describe('Change Lock', function() {
     const lockTokens = ether(2);
     const validity = duration.days(30);
-    before(async function() {
-      await nxmtk1.lock(CLA, lockTokens, validity, {
-        from: member1
+    describe('Zero locked tokens', function() {
+      it('reverts', async function() {
+        await assertRevert(
+          nxmtk1.reduceLock(CLA, member1, await duration.days(1))
+        );
       });
     });
-    it('Reduce validity of locked tokens', async function() {
-      await nxmtk1.reduceLock(CLA, member1, await duration.days(1));
-      const newValidity = (await nxmtd.locked(member1, CLA))[0];
-      newValidity.should.be.bignumber.below((await latestTime()) + validity);
+    describe('Non zero locked Tokens', function() {
+      before(async function() {
+        await nxmtk1.lock(CLA, lockTokens, validity, {
+          from: member1
+        });
+      });
+
+      it('Reduce validity of locked tokens', async function() {
+        await nxmtk1.reduceLock(CLA, member1, await duration.days(1));
+        const newValidity = (await nxmtd.locked(member1, CLA))[0];
+        newValidity.should.be.bignumber.below((await latestTime()) + validity);
+      });
     });
   });
 

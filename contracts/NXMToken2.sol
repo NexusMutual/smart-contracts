@@ -283,7 +283,7 @@ contract NXMToken2 is Iupgradable, Governed {
                         break;
                     } else {
                         td.addBurnedAmount(scAddressIndex, stakerLockedNXM);
-                        tc1.burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
+                        tc1.burnToken(_of, "BurnSLT", coverid, stakerLockedNXM);
                         burnNXMAmount = SafeMaths.sub(burnNXMAmount, stakerLockedNXM);
                     }
                 }

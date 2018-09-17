@@ -46,7 +46,6 @@ contract('NXMToken:Staking', function([
   });
   describe('Stake Tokens', function() {
     const lockTokens = ether(1);
-    const validity = duration.days(30);
     const extendLockTokens = ether(2);
     describe('Staker is not member', function() {
       it('reverts', async function() {
@@ -77,6 +76,7 @@ contract('NXMToken:Staking', function([
           );
           initialStakedTokens.should.be.bignumber.equal(0);
         });
+
         it('should be able to add stake on Smart Contracts', async function() {
           await nxmtk2.addStake(stakedContract, stakeTokens, { from: member1 });
 
@@ -94,6 +94,19 @@ contract('NXMToken:Staking', function([
           newTokenBalance.should.be.bignumber.equal(
             await nxmtk1.balanceOf(member1)
           );
+        });
+        describe('after 200 days', function() {
+          before(async function() {
+            let time = await latestTime();
+            time = time + (await duration.days(201));
+            await increaseTimeTo(time);
+          });
+          it('staker should have zero total locked nxm tokens against smart contract', async function() {
+            const lockedTokens = await nxmtk1.getTotalLockedNXMToken(
+              stakedContract
+            );
+            lockedTokens.should.be.bignumber.equal(0);
+          });
         });
       });
     });

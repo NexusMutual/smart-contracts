@@ -79,19 +79,14 @@ contract('Claim: Assessment', function([
     td = await NXMTokenData.deployed();
     P3 = await Pool3.deployed();
     mcr = await MCR.deployed();
-    await nxmtk2.payJoiningFee({ from: member1, value: fee });
-    console.log('NXMTKP:', (await mcr.calculateTokenPrice(CA_ETH)).toString());
+    await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
     await P1.buyTokenBegin({ from: member1, value: ether(1) });
-    console.log('NXMTKP:', (await mcr.calculateTokenPrice(CA_ETH)).toString());
-    await nxmtk2.payJoiningFee({ from: member2, value: fee });
+    await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
     await P1.buyTokenBegin({ from: member2, value: ether(2) });
-    console.log('NXMTKP:', (await mcr.calculateTokenPrice(CA_ETH)).toString());
-    await nxmtk2.payJoiningFee({ from: member3, value: fee });
+    await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
     await P1.buyTokenBegin({ from: member3, value: ether(2) });
-    console.log('NXMTKP:', (await mcr.calculateTokenPrice(CA_ETH)).toString());
-    await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
+    await nxmtk2.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
     await P1.buyTokenBegin({ from: coverHolder, value: ether(3) });
-    console.log('NXMTKP:', (await mcr.calculateTokenPrice(CA_ETH)).toString());
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });
     maxVotingTime = await cd.maxVotingTime();
@@ -102,20 +97,8 @@ contract('Claim: Assessment', function([
       describe('CA not voted yet', function() {
         describe('All CAs rejects claim', function() {
           before(async function() {
-            console.log(
-              'NXMTKP:',
-              (await mcr.calculateTokenPrice(CA_ETH)).toString()
-            );
             await P1.buyTokenBegin({ from: member1, value: ether(1) });
-            console.log(
-              'NXMTKP:',
-              (await mcr.calculateTokenPrice(CA_ETH)).toString()
-            );
             await P1.buyTokenBegin({ from: member2, value: ether(1) });
-            console.log(
-              'NXMTKP:',
-              (await mcr.calculateTokenPrice(CA_ETH)).toString()
-            );
             await P1.buyTokenBegin({ from: member3, value: ether(3) });
             await nxmtk1.lock(CLA, tokens.plus(4e18), validity, {
               from: member1
@@ -163,10 +146,6 @@ contract('Claim: Assessment', function([
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(1);
           });
           it('should be able change claim status', async function() {
-            console.log(
-              'NXMTKP:',
-              (await mcr.calculateTokenPrice(CA_ETH)).toString()
-            );
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(6);
@@ -203,14 +182,6 @@ contract('Claim: Assessment', function([
           it('should close voting after closing time', async function() {
             await increaseTimeTo(closingTime.plus(2));
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(1);
-            console.log(
-              'nxmstkn1:',
-              await nxmtk2.getLockedNXMTokenOfStaker(smartConAdd, 0)
-            );
-            console.log(
-              'nxmstkn2:',
-              await nxmtk2.getLockedNXMTokenOfStaker(smartConAdd, 1)
-            );
           });
           it('should be able change claim status', async function() {
             await cr.changeClaimStatus(claimId);
@@ -218,18 +189,6 @@ contract('Claim: Assessment', function([
             newCStatus[1].should.be.bignumber.equal(7);
           });
           it('should burn stakers staked tokens', async function() {
-            console.log(
-              'NXMTKP:',
-              (await mcr.calculateTokenPrice(CA_ETH)).toString()
-            );
-            console.log(
-              'nxmstkn1:',
-              await nxmtk2.getLockedNXMTokenOfStaker(smartConAdd, 0)
-            );
-            console.log(
-              'nxmstkn2:',
-              await nxmtk2.getLockedNXMTokenOfStaker(smartConAdd, 1)
-            );
             (await nxmtk2.getLockedNXMTokenOfStaker(
               smartConAdd,
               0
@@ -325,7 +284,7 @@ contract('Claim: Assessment', function([
 
   describe('Member not locked tokens for Claim Assessment', function() {
     before(async function() {
-      await nxmtk2.payJoiningFee({ from: member4, value: fee });
+      await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
       await P1.buyTokenBegin({ from: member4, value: ether(2) });
       await P1.makeCoverBegin(
         PID,

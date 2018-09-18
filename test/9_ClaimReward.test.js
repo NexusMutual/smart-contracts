@@ -71,13 +71,13 @@ contract('Claim: Assessment', function([
     P1 = await Pool1.deployed();
     qt = await Quotation.deployed();
     td = await NXMTokenData.deployed();
-    await nxmtk2.payJoiningFee({ from: member1, value: fee });
+    await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
     await P1.buyTokenBegin({ from: member1, value: ether(1) });
-    await nxmtk2.payJoiningFee({ from: member2, value: fee });
+    await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
     await P1.buyTokenBegin({ from: member2, value: ether(2) });
-    await nxmtk2.payJoiningFee({ from: member3, value: fee });
+    await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
     await P1.buyTokenBegin({ from: member3, value: ether(2) });
-    await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
+    await nxmtk2.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
     await P1.buyTokenBegin({ from: coverHolder, value: ether(3) });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });

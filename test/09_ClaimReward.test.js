@@ -42,7 +42,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Claim: Assessment', function([
+contract('ClaimsReward', function([
   owner,
   member1,
   member2,

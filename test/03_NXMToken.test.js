@@ -486,6 +486,9 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       it('should not be to call paused functions', async function() {
         await assertRevert(nxmtk1.approve(member2, tokens, { from: member1 }));
       });
+      after(async function() {
+        await nxms.addEmergencyPause(false, '0x4142');
+      });
     });
   });
 

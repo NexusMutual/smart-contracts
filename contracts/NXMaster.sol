@@ -70,10 +70,10 @@ contract NXMaster is Governed {
         _;
     }
 
-    modifier checkPause {
+/*     modifier checkPause {
         require(isPause() == false);
         _;
-    }
+    } */
 
     /// @dev Constructor
     function NXMaster() {

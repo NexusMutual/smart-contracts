@@ -66,7 +66,7 @@ contract('NXMaster', function([
   before(async function() {
     nxms = await NXMaster.deployed();
     qd = await QuotationData.new();
-    nxmtd = await NXMTokenData.new();
+    nxmtd = await NXMTokenData.deployed();
     cd = await ClaimsData.new();
     pd = await PoolData.new();
     mcrd = await MCRData.new();

@@ -75,17 +75,17 @@ contract('Claim', function([
   });
   describe('Submit Claim', function() {
     before(async function() {
-      await nxmtk2.payJoiningFee({ from: member1, value: fee });
+      await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
       await P1.buyTokenBegin({ from: member1, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member2, value: fee });
+      await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
       await P1.buyTokenBegin({ from: member2, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member3, value: fee });
+      await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
       await P1.buyTokenBegin({ from: member3, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member4, value: fee });
+      await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
       await P1.buyTokenBegin({ from: member4, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member4, value: fee });
+      await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
       await P1.buyTokenBegin({ from: member4, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member5, value: fee });
+      await nxmtk2.payJoiningFee(member5, { from: member5, value: fee });
       await P1.buyTokenBegin({ from: member5, value: ether(1) });
       await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
       await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });

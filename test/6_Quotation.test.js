@@ -137,7 +137,7 @@ contract('Quotation', function([
 
     describe('If user is a member', function() {
       before(async function() {
-        await nxmtk2.payJoiningFee({ from: member1, value: fee });
+        await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
       });
 
       describe('If user does not have sufficient funds', function() {
@@ -189,7 +189,7 @@ contract('Quotation', function([
           describe('Purchase Cover With Ether', function() {
             const coverHolder = member3;
             before(async function() {
-              await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
+              await nxmtk2.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
               await P1.buyTokenBegin({ from: coverHolder, value: tokenAmount });
             });
             it('should not have locked Cover Note initially', async function() {
@@ -270,7 +270,7 @@ contract('Quotation', function([
             const coverHolder = member4;
             let initialTotalSA;
             before(async function() {
-              await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
+              await nxmtk2.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
               await P1.buyTokenBegin({ from: coverHolder, value: tokenAmount });
             });
             it('should not have locked Cover Note initially', async function() {
@@ -346,7 +346,7 @@ contract('Quotation', function([
             let initialTotalSA;
             let presentPoolBalanceOfCA;
             before(async function() {
-              await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
+              await nxmtk2.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
               await P1.buyTokenBegin({ from: coverHolder, value: tokenAmount });
               await cad.transfer(coverHolder, tokenDai);
             });
@@ -427,9 +427,9 @@ contract('Quotation', function([
           const staker1 = member1;
           const staker2 = member2;
           before(async function() {
-            await nxmtk2.payJoiningFee({ from: staker1, value: fee });
+            await nxmtk2.payJoiningFee(staker1, { from: staker1, value: fee });
             await P1.buyTokenBegin({ from: staker1, value: tokenAmount });
-            await nxmtk2.payJoiningFee({ from: staker2, value: fee });
+            await nxmtk2.payJoiningFee(staker2, { from: staker2, value: fee });
             await P1.buyTokenBegin({ from: staker2, value: tokenAmount });
             await nxmtk2.addStake(smartConAdd, stakeTokens, { from: staker1 });
             await nxmtk2.addStake(smartConAdd, stakeTokens, { from: staker2 });

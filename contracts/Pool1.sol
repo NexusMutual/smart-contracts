@@ -370,7 +370,8 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         bytes32 _s
         ) isMemberAndcheckPause {
         stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
-        stok.transferFrom(msg.sender, this, coverDetails[1]);
+        bool succ = stok.transferFrom(msg.sender, this, coverDetails[1]);
+        require(succ);
         q2.verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 

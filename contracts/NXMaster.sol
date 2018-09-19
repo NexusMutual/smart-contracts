@@ -201,8 +201,7 @@ contract NXMaster is Governed {
     ///@dev Changes owner of the contract.
     ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
     function changeOwner(address to) onlyOwner {
-        if (owner == msg.sender)
-            owner = to;
+        owner = to;
     }
 
     ///@dev Gets emergency pause details by index.

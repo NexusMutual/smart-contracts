@@ -84,13 +84,12 @@ contract('ClaimsReward', function([
     maxVotingTime = await cd.maxVotingTime();
   });
 
-  describe('Claim Reward', function() {
+  describe('Claim Assesor get rewards after Claim Assessment', function() {
+    let rewardToGet;
     let initialBalance;
     let initialTotalSupply;
     before(async function() {
-      await nxmtk1.lock(CLA, tokens, validity, {
-        from: member1
-      });
+      await nxmtk1.lock(CLA, tokens, validity, { from: member1 });
       await nxmtk1.lock(CLA, tokens, validity, { from: member2 });
       await nxmtk1.lock(CLA, tokens, validity, { from: member3 });
       await P1.makeCoverBegin(
@@ -117,27 +116,33 @@ contract('ClaimsReward', function([
       await increaseTimeTo(closingTime.plus(2));
       await cr.changeClaimStatus(claimId);
     });
-
-    describe('Claim Assesor get rewards after CLaim Assessment', function() {
-      let rewardToGet;
-      it('should be able to claim reward', async function() {
-        initialBalance = await nxmtk1.balanceOf(member1);
-        rewardToGet = await cr.getAllPendingRewardOfUser(member1);
-        await cr.claimAllPendingReward({ from: member1 });
-        (await cr.getAllPendingRewardOfUser(member1)).should.be.bignumber.equal(
-          0
-        );
-      });
-      it('should increase balance of member', async function() {
-        (await nxmtk1.balanceOf(member1)).should.be.bignumber.equal(
-          initialBalance.plus(rewardToGet)
-        );
-      });
-      it('should increase total supply', async function() {
-        (await nxmtk1.totalSupply()).should.be.bignumber.above(
-          initialTotalSupply
-        );
-      });
+    it('should be able to claim reward', async function() {
+      initialBalance = await nxmtk1.balanceOf(member1);
+      rewardToGet = await cr.getAllPendingRewardOfUser(member1);
+      await cr.claimAllPendingReward({ from: member1 });
+      (await cr.getAllPendingRewardOfUser(member1)).should.be.bignumber.equal(
+        0
+      );
     });
+    it('should increase balance of member', async function() {
+      (await nxmtk1.balanceOf(member1)).should.be.bignumber.equal(
+        initialBalance.plus(rewardToGet)
+      );
+    });
+    it('should increase total supply', async function() {
+      (await nxmtk1.totalSupply()).should.be.bignumber.above(
+        initialTotalSupply
+      );
+    });
+
+    /*    describe('Payout to cover holder', function() {
+      describe('Enough balance in Pool', function() {
+        
+      });
+
+      describe('Enough balance in Pool', function() {
+        
+      });
+    });*/
   });
 });

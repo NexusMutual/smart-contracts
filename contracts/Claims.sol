@@ -183,7 +183,7 @@ contract Claims is Iupgradable {
         if (status == 12 && SafeMaths.add(dateUpd, cd.payoutRetryTime()) < now)
             if (cd.getClaimState12Count(claimId) < 60)
                 close = 1;
-        if (status > 4)
+        if (status > 5)
             close = -1;
         else if (SafeMaths.add(dateUpd, cd.maxVotingTime()) <= now) {
             close = 1;

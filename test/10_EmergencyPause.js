@@ -55,12 +55,12 @@ contract('NXMaster: Emergency Pause', function([
   member2,
   member3,
   member4,
-  coverHolder,
-  notMember
+  coverHolder1,
+  coverHolder2
 ]) {
   const P_18 = new BigNumber(1e18);
   const stakeTokens = ether(1);
-  const tokens = ether(6);
+  const tokens = ether(1);
   const validity = duration.days(30);
   let coverID;
   let closingTime;
@@ -89,16 +89,63 @@ contract('NXMaster: Emergency Pause', function([
     await P1.buyTokenBegin({ from: member2, value: ether(2) });
     await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
     await P1.buyTokenBegin({ from: member3, value: ether(2) });
-    await nxmtk2.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
-    await P1.buyTokenBegin({ from: coverHolder, value: ether(3) });
+    await nxmtk2.payJoiningFee(coverHolder1, {
+      from: coverHolder1,
+      value: fee
+    });
+    await P1.buyTokenBegin({ from: coverHolder1, value: ether(3) });
+    await nxmtk2.payJoiningFee(coverHolder2, {
+      from: coverHolder2,
+      value: fee
+    });
+    await P1.buyTokenBegin({ from: coverHolder2, value: ether(3) });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });
     maxVotingTime = await cd.maxVotingTime();
   });
 
   describe('Before Emergency Pause', function() {
+    before(async function() {
+      await P1.makeCoverBegin(
+        PID,
+        smartConAdd,
+        'ETH',
+        coverDetails,
+        coverPeriod,
+        v,
+        r,
+        s,
+        { from: coverHolder1, value: coverDetails[1] }
+      );
+
+      await P1.makeCoverBegin(
+        PID,
+        smartConAdd,
+        'ETH',
+        coverDetails,
+        coverPeriod,
+        v,
+        r,
+        s,
+        { from: coverHolder2, value: coverDetails[1] }
+      );
+
+      await nxmtk1.lock(CLA, tokens, validity, {
+        from: member1
+      });
+      await nxmtk1.lock(CLA, tokens, validity, {
+        from: member2
+      });
+    });
     it('should return false for isPause', async function() {
       (await nxms.isPause()).should.equal(false);
+    });
+    it('should let submit claim', async function() {
+      const coverID = await qd.getAllCoversOfUser(coverHolder1);
+      await cl.submitClaim(coverID[0], { from: coverHolder1 });
+      const claimId = (await cd.actualClaimLength()) - 1;
+      claimId.should.be.bignumber.equal(1);
+      (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
     });
   });
 
@@ -118,6 +165,15 @@ contract('NXMaster: Emergency Pause', function([
       epd[1].should.be.bignumber.equal(startTime);
       epd[2].should.equal(AdvisoryBoard);
     });
+    it('add claim to queue', async function() {
+      const coverID = await qd.getAllCoversOfUser(coverHolder2);
+      await cl.submitClaim(coverID[0], { from: coverHolder2 });
+      (await qd.getCoverStatusNo(coverID[0])).should.be.bignumber.equal(5);
+    });
+    it('should not let member vote for claim assessment', async function() {
+      const claimId = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
+    });
   });
 
   describe('Emergency Pause: Inactive', function() {
@@ -127,6 +183,12 @@ contract('NXMaster: Emergency Pause', function([
     describe('Resume Everything', function() {
       it('should return false for isPause', async function() {
         (await nxms.isPause()).should.equal(false);
+      });
+      it('should submit queued claims', async function() {
+        (await nxms.isPause()).should.equal(false);
+        const claimId = (await cd.actualClaimLength()) - 1;
+        claimId.should.be.bignumber.equal(2);
+        (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
       });
     });
   });

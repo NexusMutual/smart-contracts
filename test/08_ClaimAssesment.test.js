@@ -150,6 +150,9 @@ contract('Claim: Assessment', function([
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(6);
           });
+          it('voting should be closed', async function() {
+            (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(-1);
+          });
         });
 
         describe('All CAs accept claim', function() {
@@ -179,14 +182,14 @@ contract('Claim: Assessment', function([
             await cl.submitCAVote(claimId, 1, { from: member2 });
             await cl.submitCAVote(claimId, 1, { from: member3 });
           });
-          it('should close voting after closing time', async function() {
-            await increaseTimeTo(closingTime.plus(2));
-            (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(1);
-          });
           it('should be able change claim status', async function() {
+            await increaseTimeTo(closingTime.plus(2));
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(7);
+          });
+          it('voting should be closed', async function() {
+            (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(-1);
           });
           it('should burn stakers staked tokens', async function() {
             (await nxmtk2.getLockedNXMTokenOfStaker(
@@ -240,6 +243,11 @@ contract('Claim: Assessment', function([
               await cr.changeClaimStatus(claimId);
               const newCStatus = await cd.getClaimStatusNumber(claimId);
               newCStatus[1].should.be.bignumber.equal(11);
+            });
+            it('voting should be closed', async function() {
+              (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(
+                -1
+              );
             });
           });
         });

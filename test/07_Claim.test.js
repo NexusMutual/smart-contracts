@@ -303,4 +303,19 @@ contract('Claim', function([
       });
     });
   });
+
+  describe('Misc', function() {
+    describe('Not internal contract address', function() {
+      it('should not able to changeDependentContractAddress', async function() {
+        await assertRevert(
+          cl.changeDependentContractAddress({ from: notMember })
+        );
+      });
+      it('should not able to changeMasterAddress', async function() {
+        await assertRevert(
+          cl.changeMasterAddress(nxmtk1.address, { from: notMember })
+        );
+      });
+    });
+  });
 });

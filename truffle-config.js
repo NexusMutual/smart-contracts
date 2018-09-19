@@ -1,6 +1,6 @@
-const HDWalletProvider = require('truffle-hdwallet-provider');
-var mnemonic =
-  'grocery obvious wire insane limit weather parade parrot patrol stock blast ivory';
+// const HDWalletProvider = require('truffle-hdwallet-provider');
+// var mnemonic =
+//   'grocery obvious wire insane limit weather parade parrot patrol stock blast ivory';
 
 module.exports = {
   networks: {

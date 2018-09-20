@@ -106,6 +106,7 @@ contract('Quotation', function([
             { from: notMember, value: coverDetails[1] }
           )
         );
+
         await assertRevert(
           qt.makeCoverUsingNXMTokens(
             PID,
@@ -132,6 +133,20 @@ contract('Quotation', function([
             { from: notMember }
           )
         );
+        const totalFee = fee.plus(coverDetails[1].toString());
+        await qt.verifyQuote(
+          PID,
+          smartConAdd,
+          'ETH',
+          coverDetails,
+          coverPeriod,
+          v,
+          r,
+          s,
+          { from: notMember, value: totalFee }
+        );
+        const hcl = await qd.getUserHoldedCoverLength(notMember);
+        await qt.kycTrigger(false, hcl);
       });
     });
 

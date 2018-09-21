@@ -192,6 +192,16 @@ contract Token is IERC20 {
   }
 
   /**
+   * @dev function that mints an amount of the token and assigns it to
+   * an account.
+   * @param account The account that will receive the created tokens.
+   * @param amount The amount that will be created.
+   */
+  function mint(address account, uint256 amount) public onlyOperator {
+    _mint(account, amount);
+  }
+
+  /**
   * @dev Transfer token for a specified address
   * @param to The address to transfer to.
   * @param value The amount to be transferred.

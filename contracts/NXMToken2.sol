@@ -283,7 +283,7 @@ contract NXMToken2 is Iupgradable, Governed {
                         break;
                     } else {
                         td.addBurnedAmount(scAddressIndex, stakerLockedNXM);
-                        tc1.burnToken(_of, "BurnSLT", coverid, burnNXMAmount);
+                        tc1.burnToken(_of, "BurnSLT", coverid, stakerLockedNXM);
                         burnNXMAmount = SafeMaths.sub(burnNXMAmount, stakerLockedNXM);
                     }
                 }
@@ -341,13 +341,13 @@ contract NXMToken2 is Iupgradable, Governed {
     }
 
     /// @dev Called by user to pay joining membership fee
-    function payJoiningFee() public payable checkPause {
+    function payJoiningFee(address userAdd) public payable checkPause {
         require(msg.value == td.joiningFee());
         address _add = td.walletAddress();
         require(_add != 0x0000);
         bool succ = _add.send(msg.value);
         if (succ == true)
-            mr.updateMemberRole(msg.sender, 3, true, 0);
+            mr.updateMemberRole(userAdd, 3, true, 0);
     }
 
     /// @dev Adding to Member Role called Voter while Member voting.

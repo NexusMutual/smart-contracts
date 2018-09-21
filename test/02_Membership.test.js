@@ -43,14 +43,14 @@ contract('NXMToken:Membership', function([
     const fee = ether(0.002);
     describe('if paid joining fee', function() {
       it('should be able to join as member', async function() {
-        await nxmtk2.payJoiningFee({ from: member1, value: fee });
+        await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
         (await mr.checkRoleIdByAddress(member1, 3)).should.equal(true);
       });
     });
     describe('if not paid joining fee', function() {
       it('reverts', async function() {
         await assertRevert(
-          nxmtk2.payJoiningFee({ from: member2, value: fee - 1e15 })
+          nxmtk2.payJoiningFee(member2, { from: member2, value: fee - 1e15 })
         );
         (await mr.checkRoleIdByAddress(member2, 3)).should.equal(false);
       });

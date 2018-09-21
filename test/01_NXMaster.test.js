@@ -66,7 +66,7 @@ contract('NXMaster', function([
   before(async function() {
     nxms = await NXMaster.deployed();
     qd = await QuotationData.new();
-    nxmtd = await NXMTokenData.new();
+    nxmtd = await NXMTokenData.deployed();
     cd = await ClaimsData.new();
     pd = await PoolData.new();
     mcrd = await MCRData.new();
@@ -219,8 +219,16 @@ contract('NXMaster', function([
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
       );
+      await assertRevert(
+        nxms2.changeMasterAddress(newMaster.address, { from: anotherAccount })
+      );
     });
-
+    it('should not be able to change changeDependentContractAddress', async function() {
+      await assertRevert(nxms2.addMCRCurr({ from: anotherAccount }));
+      await assertRevert(
+        nxms2.changeDependentContractAddress({ from: anotherAccount })
+      );
+    });
     it('should not be able to change MemberRole Address', async function() {
       memberRoles = await MemberRoles.deployed();
       const MRAddress = await memberRoles.address;
@@ -253,7 +261,7 @@ contract('NXMaster', function([
       isInternal.should.equal(false);
     });
     it('should return true if member', async function() {
-      await nxmt2.payJoiningFee({ from: member, value: fee });
+      await nxmt2.payJoiningFee(member, { from: member, value: fee });
       const isMember = await nxms.isMember(member);
       isMember.should.equal(true);
     });

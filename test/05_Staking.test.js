@@ -39,14 +39,13 @@ contract('NXMToken:Staking', function([
     nxmtk1 = await NXMToken1.deployed();
     nxmtk2 = await NXMToken2.deployed();
     nxmtd = await NXMTokenData.deployed();
-    await nxmtk2.payJoiningFee({ from: member1, value: fee });
+    await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
     await P1.buyTokenBegin({ from: member1, value: ether(1) });
-    await nxmtk2.payJoiningFee({ from: member2, value: fee });
+    await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
     await P1.buyTokenBegin({ from: member2, value: ether(1) });
   });
   describe('Stake Tokens', function() {
     const lockTokens = ether(1);
-    const validity = duration.days(30);
     const extendLockTokens = ether(2);
     describe('Staker is not member', function() {
       it('reverts', async function() {
@@ -77,6 +76,7 @@ contract('NXMToken:Staking', function([
           );
           initialStakedTokens.should.be.bignumber.equal(0);
         });
+
         it('should be able to add stake on Smart Contracts', async function() {
           await nxmtk2.addStake(stakedContract, stakeTokens, { from: member1 });
 
@@ -94,6 +94,19 @@ contract('NXMToken:Staking', function([
           newTokenBalance.should.be.bignumber.equal(
             await nxmtk1.balanceOf(member1)
           );
+        });
+        describe('after 200 days', function() {
+          before(async function() {
+            let time = await latestTime();
+            time = time + (await duration.days(201));
+            await increaseTimeTo(time);
+          });
+          it('staker should have zero total locked nxm tokens against smart contract', async function() {
+            const lockedTokens = await nxmtk1.getTotalLockedNXMToken(
+              stakedContract
+            );
+            lockedTokens.should.be.bignumber.equal(0);
+          });
         });
       });
     });

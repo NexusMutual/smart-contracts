@@ -75,17 +75,17 @@ contract('Claim', function([
   });
   describe('Submit Claim', function() {
     before(async function() {
-      await nxmtk2.payJoiningFee({ from: member1, value: fee });
+      await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
       await P1.buyTokenBegin({ from: member1, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member2, value: fee });
+      await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
       await P1.buyTokenBegin({ from: member2, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member3, value: fee });
+      await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
       await P1.buyTokenBegin({ from: member3, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member4, value: fee });
+      await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
       await P1.buyTokenBegin({ from: member4, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member4, value: fee });
+      await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
       await P1.buyTokenBegin({ from: member4, value: ether(1) });
-      await nxmtk2.payJoiningFee({ from: member5, value: fee });
+      await nxmtk2.payJoiningFee(member5, { from: member5, value: fee });
       await P1.buyTokenBegin({ from: member5, value: ether(1) });
       await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
       await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });
@@ -300,6 +300,60 @@ contract('Claim', function([
             );
           });
         });
+      });
+    });
+  });
+
+  describe('Misc', function() {
+    describe('Not internal contract address', function() {
+      it('should not able to changeDependentContractAddress', async function() {
+        await assertRevert(
+          cl.changeDependentContractAddress({ from: notMember })
+        );
+      });
+      it('should not able to changeMasterAddress', async function() {
+        await assertRevert(
+          cl.changeMasterAddress(nxmtk1.address, { from: notMember })
+        );
+      });
+      it('should not be able to set minTime voting', async function() {
+        await assertRevert(cd.setMinVotingTime(0, { from: notMember }));
+      });
+      it('should not be able to set max voting Time', async function() {
+        await assertRevert(cd.setMaxVotingTime(1, { from: notMember }));
+      });
+      it('should not be able to set Payout retry time', async function() {
+        await assertRevert(cd.setPayoutRetryTime(1, { from: notMember }));
+      });
+      it('should not be able to start pending claims', async function() {
+        await assertRevert(cd.setpendingClaimStart(1, { from: notMember }));
+      });
+      it('should not be able update claims date', async function() {
+        await assertRevert(cd.setClaimDateUpd(0, 1, { from: notMember }));
+      });
+      it('should not be able to set claim deposit time', async function() {
+        await assertRevert(cd.setClaimDepositTime(1, { from: notMember }));
+      });
+    });
+
+    describe('internal contract address', function() {
+      it('should be able to set minTime voting', async function() {
+        await cd.setMinVotingTime(0, { from: owner });
+      });
+      it('should be able to set max voting Time', async function() {
+        await cd.setMaxVotingTime(1, { from: owner });
+      });
+      it('should be able to set Payout retry time', async function() {
+        await cd.setPayoutRetryTime(1, { from: owner });
+      });
+      it('should be able to start pending claims', async function() {
+        await cd.setpendingClaimStart(1, { from: owner });
+      });
+      it('should be able update claims date', async function() {
+        await cd.setClaimDateUpd(0, 1, { from: owner });
+      });
+      it('should be able to set claim deposit time', async function() {
+        await cd.setClaimDepositTime(1, { from: owner });
       });
     });
   });

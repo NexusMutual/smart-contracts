@@ -19,11 +19,13 @@ import "./NXMToken1.sol";
 import "./NXMToken2.sol";
 import "./NXMTokenData.sol";
 import "./Pool1.sol";
+import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./MCR.sol";
 import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
 
 
 contract Quotation is Iupgradable {
@@ -34,11 +36,17 @@ contract Quotation is Iupgradable {
     NXMToken2 tc2;
     NXMTokenData td;
     Pool1 p1;
+    PoolData pd;
     QuotationData qd;
     NXMaster ms;
     MCR m1;
+    StandardToken stok;
 
     address masterAddress;
+
+    event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
+
+    function () public payable {}
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
@@ -84,6 +92,7 @@ contract Quotation is Iupgradable {
         td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
         qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
         p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
 
     }
 
@@ -211,6 +220,145 @@ contract Quotation is Iupgradable {
         return (a == qd.getAuthQuoteEngine());
     }
 
+    function verifyQuote(
+        uint prodId,
+        address smartCAdd,
+        bytes4 coverCurr,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+        ) payable checkPause {
+        require(coverDetails[3] > now);
+        require(!ms.isMember(msg.sender));
+        require(qd.refundEligible(msg.sender) == false);
+        uint joinFee = td.joiningFee();
+        uint totalFee = joinFee;
+        if (coverCurr == "ETH")
+            totalFee = joinFee + coverDetails[1];
+        else {
+            stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+            bool succ = stok.transferFrom(msg.sender, this, coverDetails[1]);
+            require(succ);
+            
+        }
+        require(msg.value == totalFee);
+        require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
+        qd.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
+        qd.setRefundEligible(msg.sender, true);
+
+    }
+
+    function kycTrigger(bool status, uint holdedCoverID) checkPause {
+
+        address userAdd;
+        address scAddress;
+        uint prodId;
+        bytes4 coverCurr;
+        uint16 coverPeriod;
+        uint[]  memory coverDetails = new uint[](4);
+        (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
+        (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
+        require(qd.refundEligible(userAdd));
+        qd.setRefundEligible(userAdd, false);
+        bool succ;
+        uint joinFee = td.joiningFee();
+        if (status) {
+            tc2.payJoiningFee.value(joinFee)(userAdd);
+            if (coverDetails[3] > now) { 
+                qd.setHoldedCoverIDStatus(holdedCoverID, 2);
+                uint currentVersion = ms.currentVersion();
+                address poolAdd = ms.versionContractAddress(currentVersion, "P1");
+                if (coverCurr == "ETH") {
+                    succ = poolAdd.send(coverDetails[1]);
+                    require(succ);
+                }else {
+                    stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+                    stok.transfer(poolAdd, coverDetails[1]);
+                }
+                RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
+                makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
+
+            }else {
+                qd.setHoldedCoverIDStatus(holdedCoverID, 4);
+                if (coverCurr == "ETH") {
+                    succ = userAdd.send(coverDetails[1]);
+                    require(succ);
+                }else {
+                    stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+                    stok.transfer(userAdd, coverDetails[1]);
+                }
+                RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
+            }
+
+
+        }else {
+            qd.setHoldedCoverIDStatus(holdedCoverID, 3);
+            uint totalRefund = joinFee;
+            if (coverCurr == "ETH") {
+                totalRefund = coverDetails[1] + joinFee;
+            }else {
+                stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
+                stok.transfer(userAdd, coverDetails[1]);
+            }
+            succ = userAdd.send(totalRefund);
+            require(succ);
+            RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
+        }
+              
+    }
+    
+    function fullRefund(uint holdedCoverID) checkPause {
+
+        uint holdedCoverLen = qd.getUserHoldedCoverLength(msg.sender) - 1;
+        require(qd.getUserHoldedCoverByIndex(msg.sender, holdedCoverLen) == holdedCoverID);
+        kycTrigger(false, holdedCoverID);
+        
+    }
+
+    /// @dev Transfers back the given amount to the owner.
+    function transferBackAssets() onlyOwner  
+    {
+
+        uint amount = this.balance;
+        address walletAdd = td.walletAddress();
+        if (amount > 0) {
+              
+            bool succ = walletAdd.send(amount);   
+            require(succ);
+        }
+        uint currAssetLen = pd.getAllCurrenciesLen();
+        for (uint64 i = 1; i < currAssetLen; i++) {
+            bytes8 currName = pd.getAllCurrenciesByIndex(i);
+            address currAddr = pd.getCurrencyAssetAddress(currName);
+            stok = StandardToken(currAddr);
+            if (stok.balanceOf(this) > 0) {
+                stok.transfer(walletAdd, stok.balanceOf(this));
+            }
+        }
+
+    }
+
+    /// @dev transfering Ethers to newly created quotation contract.
+    function transferAssetsToNewContract(address newAdd) onlyInternal
+    {
+        uint amount = this.balance;
+        if (amount > 0) {
+            bool succ = newAdd.send(amount);   
+            require(succ);
+        }
+        uint currAssetLen = pd.getAllCurrenciesLen();
+        for (uint64 i = 1; i < currAssetLen; i++) {
+            bytes8 currName = pd.getAllCurrenciesByIndex(i);
+            address currAddr = pd.getCurrencyAssetAddress(currName);
+            stok = StandardToken(currAddr);
+            if (stok.balanceOf(this) > 0) {
+                stok.transfer(newAdd, stok.balanceOf(this));
+            }
+        }
+    }
+
     /// @dev Creates cover of the quotation, changes the status of the quotation ,
     //                updates the total sum assured and locks the tokens of the cover against a quote.
     /// @param from Quote member Ethereum address
@@ -258,6 +406,7 @@ contract Quotation is Iupgradable {
         require(coverDetails[3] > now);
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
         makeCover(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod);
+
     }
 
 }

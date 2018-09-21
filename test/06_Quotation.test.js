@@ -55,7 +55,10 @@ contract('Quotation', function([
   member3,
   member4,
   member5,
-  notMember
+  notMember,
+  newMember1,
+  newMember2,
+  newMember3
 ]) {
   const BN_100 = new BigNumber(100);
   const BN_5 = new BigNumber(5);
@@ -91,53 +94,9 @@ contract('Quotation', function([
       });
     });
 
-    describe('If user is not a member', function() {
-      it('reverts', async function() {
-        await assertRevert(
-          P1.makeCoverBegin(
-            PID,
-            smartConAdd,
-            'ETH',
-            coverDetails,
-            coverPeriod,
-            v,
-            r,
-            s,
-            { from: notMember, value: coverDetails[1] }
-          )
-        );
-        await assertRevert(
-          qt.makeCoverUsingNXMTokens(
-            PID,
-            coverDetails,
-            coverPeriod,
-            'ETH',
-            smartConAdd,
-            v,
-            r,
-            s,
-            { from: notMember }
-          )
-        );
-        await assertRevert(
-          P1.makeCoverUsingCA(
-            PID,
-            smartConAdd,
-            'DAI',
-            coverDetailsDai,
-            coverPeriod,
-            v_dai,
-            r_dai,
-            s_dai,
-            { from: notMember }
-          )
-        );
-      });
-    });
-
     describe('If user is a member', function() {
       before(async function() {
-        await nxmtk2.payJoiningFee({ from: member1, value: fee });
+        await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
       });
 
       describe('If user does not have sufficient funds', function() {
@@ -189,8 +148,14 @@ contract('Quotation', function([
           describe('Purchase Cover With Ether', function() {
             const coverHolder = member3;
             before(async function() {
-              await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
-              await P1.buyTokenBegin({ from: coverHolder, value: tokenAmount });
+              await nxmtk2.payJoiningFee(coverHolder, {
+                from: coverHolder,
+                value: fee
+              });
+              await P1.buyTokenBegin({
+                from: coverHolder,
+                value: tokenAmount
+              });
             });
             it('should not have locked Cover Note initially', async function() {
               const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(
@@ -270,8 +235,14 @@ contract('Quotation', function([
             const coverHolder = member4;
             let initialTotalSA;
             before(async function() {
-              await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
-              await P1.buyTokenBegin({ from: coverHolder, value: tokenAmount });
+              await nxmtk2.payJoiningFee(coverHolder, {
+                from: coverHolder,
+                value: fee
+              });
+              await P1.buyTokenBegin({
+                from: coverHolder,
+                value: tokenAmount
+              });
             });
             it('should not have locked Cover Note initially', async function() {
               const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(
@@ -346,8 +317,14 @@ contract('Quotation', function([
             let initialTotalSA;
             let presentPoolBalanceOfCA;
             before(async function() {
-              await nxmtk2.payJoiningFee({ from: coverHolder, value: fee });
-              await P1.buyTokenBegin({ from: coverHolder, value: tokenAmount });
+              await nxmtk2.payJoiningFee(coverHolder, {
+                from: coverHolder,
+                value: fee
+              });
+              await P1.buyTokenBegin({
+                from: coverHolder,
+                value: tokenAmount
+              });
               await cad.transfer(coverHolder, tokenDai);
             });
             it('should not have locked Cover Note initially', async function() {
@@ -427,12 +404,22 @@ contract('Quotation', function([
           const staker1 = member1;
           const staker2 = member2;
           before(async function() {
-            await nxmtk2.payJoiningFee({ from: staker1, value: fee });
+            await nxmtk2.payJoiningFee(staker1, {
+              from: staker1,
+              value: fee
+            });
             await P1.buyTokenBegin({ from: staker1, value: tokenAmount });
-            await nxmtk2.payJoiningFee({ from: staker2, value: fee });
+            await nxmtk2.payJoiningFee(staker2, {
+              from: staker2,
+              value: fee
+            });
             await P1.buyTokenBegin({ from: staker2, value: tokenAmount });
-            await nxmtk2.addStake(smartConAdd, stakeTokens, { from: staker1 });
-            await nxmtk2.addStake(smartConAdd, stakeTokens, { from: staker2 });
+            await nxmtk2.addStake(smartConAdd, stakeTokens, {
+              from: staker1
+            });
+            await nxmtk2.addStake(smartConAdd, stakeTokens, {
+              from: staker2
+            });
           });
 
           describe('Purchase Cover With Ether', function() {
@@ -540,6 +527,155 @@ contract('Quotation', function([
         });
       });
     });
+
+    describe('If user is not a member', function() {
+      it('should revert if member', async function() {
+        const totalFee = fee.plus(coverDetails[1].toString());
+        await assertRevert(
+          qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            v,
+            r,
+            s,
+            { from: member1, value: totalFee }
+          )
+        );
+      });
+      describe('if do not want to join membership', function() {
+        it('reverts', async function() {
+          await assertRevert(
+            P1.makeCoverBegin(
+              PID,
+              smartConAdd,
+              'ETH',
+              coverDetails,
+              coverPeriod,
+              v,
+              r,
+              s,
+              { from: notMember, value: coverDetails[1] }
+            )
+          );
+
+          await assertRevert(
+            qt.makeCoverUsingNXMTokens(
+              PID,
+              coverDetails,
+              coverPeriod,
+              'ETH',
+              smartConAdd,
+              v,
+              r,
+              s,
+              { from: notMember }
+            )
+          );
+          await assertRevert(
+            P1.makeCoverUsingCA(
+              PID,
+              smartConAdd,
+              'DAI',
+              coverDetailsDai,
+              coverPeriod,
+              v_dai,
+              r_dai,
+              s_dai,
+              { from: notMember }
+            )
+          );
+          const totalFee = fee.plus(coverDetails[1].toString());
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            v,
+            r,
+            s,
+            { from: notMember, value: totalFee }
+          );
+          let hcl = await qd.getUserHoldedCoverLength(notMember);
+          await qt.kycTrigger(false, hcl);
+        });
+      });
+      describe('if want to join membership', function() {
+        it('should be able to join membership and purchase cover with ETH', async function() {
+          const totalFee = fee.plus(coverDetails[1].toString());
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            v,
+            r,
+            s,
+            { from: newMember1, value: totalFee }
+          );
+          await qt.kycTrigger(true, 2);
+        });
+        it('should be able to join membership and purchase cover with DAI', async function() {
+          await cad.transfer(newMember2, tokenDai);
+          await cad.approve(qt.address, coverDetailsDai[1], {
+            from: newMember2
+          });
+          //const totalFee = fee.plus(coverDetailsDai[1].toString());
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'DAI',
+            coverDetailsDai,
+            coverPeriod,
+            v_dai,
+            r_dai,
+            s_dai,
+            { from: newMember2, value: fee }
+          );
+          await qt.kycTrigger(true, 3);
+        });
+        it('should refund full amount to new member', async function() {
+          const totalFee = fee.plus(coverDetails[1].toString());
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            v,
+            r,
+            s,
+            { from: newMember3, value: totalFee }
+          );
+          const hcid = await qd.getUserHoldedCoverByIndex(newMember3, 0);
+          await assertRevert(qt.fullRefund(hcid, { from: owner }));
+          await qt.fullRefund(hcid, { from: newMember3 });
+        });
+        it('should revert if quote validity expires', async function() {
+          let newCoverDetails = coverDetails;
+          const validity = await latestTime();
+          newCoverDetails[3] = validity - 2;
+          const totalFee = fee.plus(newCoverDetails[1].toString());
+          await assertRevert(
+            qt.verifyQuote(
+              PID,
+              smartConAdd,
+              'ETH',
+              newCoverDetails,
+              coverPeriod,
+              v,
+              r,
+              s,
+              { from: notMember, value: totalFee }
+            )
+          );
+        });
+      });
+    });
   });
 
   describe('Cover Expire', function() {
@@ -569,6 +705,31 @@ contract('Quotation', function([
       (await nxmtk1.balanceOf(member3)).should.be.bignumber.equal(
         initialTokenBalance.plus(unLockedCN)
       );
+    });
+  });
+
+  describe('Transfer Assest', function() {
+    describe('if authorized', function() {
+      it('should be able to transfer assest back', async function() {
+        await qt.transferBackAssets({ from: owner });
+        await qt.sendTransaction({ from: owner, value: 1 });
+        await qt.transferBackAssets({ from: owner });
+      });
+      it('should be able to transfer assest to new contract', async function() {
+        const newqt = await Quotation.new();
+        await qt.transferAssetsToNewContract(newqt.address, { from: owner });
+        await qt.sendTransaction({ from: owner, value: 1 });
+        await qt.transferAssetsToNewContract(newqt.address, { from: owner });
+      });
+    });
+    describe('if not authorized', function() {
+      it('reverts', async function() {
+        await assertRevert(qt.transferBackAssets({ from: notMember }));
+        const newqt = await Quotation.new();
+        await assertRevert(
+          qt.transferAssetsToNewContract(newqt.address, { from: notMember })
+        );
+      });
     });
   });
 });

@@ -1,8 +1,10 @@
 const MCR = artifacts.require('MCR');
+const MCRData = artifacts.require('MCRData');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMToken1 = artifacts.require('NXMToken1');
 const NXMToken2 = artifacts.require('NXMToken2');
 const NXMTokenData = artifacts.require('NXMTokenData');
+const NXMaster = artifacts.require('NXMaster');
 const Pool1 = artifacts.require('Pool1');
 
 const { ether } = require('./utils/ether');
@@ -16,7 +18,9 @@ let nxmtk2;
 let nxmtk1;
 let nxmtd;
 let P1;
+let nxms;
 let mcr;
+let mcrd;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -36,6 +40,8 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     nxmtd = await NXMTokenData.deployed();
     P1 = await Pool1.deployed();
     mcr = await MCR.deployed();
+    mcrd = await MCRData.deployed();
+    nxms = await NXMaster.deployed();
   });
 
   describe('token details', function() {
@@ -61,7 +67,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
 
   describe('buying tokens', function() {
     beforeEach(async function() {
-      await nxmtk2.payJoiningFee({ from: member1, value: fee });
+      await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
     });
     it('should not able to buy tokens if not member', async function() {
       await assertRevert(
@@ -100,6 +106,19 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
           tokens
         );
       });
+      it('should not be able to allocate FounderTokens more than current tokens', async function() {
+        const initialCurrentFT = await nxmtd.getCurrentFounderTokens();
+        await nxmtk1.allocateFounderTokens(
+          member1,
+          initialFounderTokens.plus(1e18),
+          {
+            from: owner
+          }
+        );
+        (await nxmtd.getCurrentFounderTokens()).should.be.bignumber.equal(
+          initialCurrentFT
+        );
+      });
     });
     describe('if not owner', function() {
       it('should not be able to allocate tokens using founders token', async function() {
@@ -113,7 +132,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
   describe('balanceOf', function() {
     describe('when the requested account is a member and has no tokens', function() {
       it('returns zero', async function() {
-        await nxmtk2.payJoiningFee({ from: member2, value: fee });
+        await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
         (await nxmtk1.balanceOf(member2)).should.be.bignumber.equal(0);
       });
     });
@@ -145,16 +164,21 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
 
       describe('when the sender is a member', function() {
+        const to = member2;
         describe('when the sender does not have enough balance', function() {
           it('reverts', async function() {
             await assertRevert(
-              nxmtk1.transfer(to, transferTokens, { from: member2 })
+              nxmtk1.transfer(to, await nxmtk1.totalSupply(), { from: member1 })
             );
           });
         });
 
+        describe('when transfer amount is zero', function() {
+          it('reverts', async function() {
+            await assertRevert(nxmtk1.transfer(to, 0, { from: member1 }));
+          });
+        });
         describe('when the sender does have enough balance', function() {
-          const to = member2;
           it('transfers the requested amount', async function() {
             await nxmtk1.transfer(to, transferTokens, { from: member1 });
             (await nxmtk1.balanceOf(member2)).should.be.bignumber.not.equal(0);
@@ -232,7 +256,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     const to = member3;
 
     before(async function() {
-      await nxmtk2.payJoiningFee({ from: member3, value: fee });
+      await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
     });
 
     describe('when the spender is not a member', function() {
@@ -414,6 +438,56 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
         await assertRevert(
           nxmtk1.burnToken(member1, BurnEvent, 0, await nxmtk1.totalSupply())
         );
+      });
+    });
+  });
+
+  describe('Misc', function() {
+    it('should not be able to change master address', async function() {
+      await assertRevert(
+        nxmtk1.changeMasterAddress(member1, { from: member1 })
+      );
+      await assertRevert(
+        nxmtk2.changeMasterAddress(member1, { from: member1 })
+      );
+      await assertRevert(nxmtd.changeMasterAddress(member1, { from: member1 }));
+    });
+
+    it('should not able to call onlyInternal functions', async function() {
+      await assertRevert(
+        nxmtk1.changeDependentContractAddress({ from: member1 })
+      );
+      await assertRevert(
+        nxmtk2.changeDependentContractAddress({ from: member1 })
+      );
+      await assertRevert(
+        nxmtd.changeDependentContractAddress({ from: member1 })
+      );
+    });
+
+    describe('Buy Tokens at zero price', function() {
+      before(async function() {
+        await mcrd.changeSF(0, { from: owner });
+        //await mcrd.changeGrowthStep(0, { from: owner });
+      });
+      it('reverts', async function() {
+        const initialTokenBalance = await nxmtk1.balanceOf(member1);
+        await P1.buyTokenBegin({ from: member1, value: tokenAmount });
+        (await nxmtk1.balanceOf(member1)).should.be.bignumber.equal(
+          initialTokenBalance
+        );
+      });
+    });
+
+    describe('Emergency Pause', function() {
+      before(async function() {
+        await nxms.addEmergencyPause(true, '0x4142');
+      });
+      it('should not be to call paused functions', async function() {
+        await assertRevert(nxmtk1.approve(member2, tokens, { from: member1 }));
+      });
+      after(async function() {
+        await nxms.addEmergencyPause(false, '0x4142');
       });
     });
   });

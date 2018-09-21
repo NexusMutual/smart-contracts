@@ -316,6 +316,45 @@ contract('Claim', function([
           cl.changeMasterAddress(nxmtk1.address, { from: notMember })
         );
       });
+      it('should not be able to set minTime voting', async function() {
+        await assertRevert(cd.setMinVotingTime(0, { from: notMember }));
+      });
+      it('should not be able to set max voting Time', async function() {
+        await assertRevert(cd.setMaxVotingTime(1, { from: notMember }));
+      });
+      it('should not be able to set Payout retry time', async function() {
+        await assertRevert(cd.setPayoutRetryTime(1, { from: notMember }));
+      });
+      it('should not be able to start pending claims', async function() {
+        await assertRevert(cd.setpendingClaimStart(1, { from: notMember }));
+      });
+      it('should not be able update claims date', async function() {
+        await assertRevert(cd.setClaimDateUpd(0, 1, { from: notMember }));
+      });
+      it('should not be able to set claim deposit time', async function() {
+        await assertRevert(cd.setClaimDepositTime(1, { from: notMember }));
+      });
+    });
+
+    describe('internal contract address', function() {
+      it('should be able to set minTime voting', async function() {
+        await cd.setMinVotingTime(0, { from: owner });
+      });
+      it('should be able to set max voting Time', async function() {
+        await cd.setMaxVotingTime(1, { from: owner });
+      });
+      it('should be able to set Payout retry time', async function() {
+        await cd.setPayoutRetryTime(1, { from: owner });
+      });
+      it('should be able to start pending claims', async function() {
+        await cd.setpendingClaimStart(1, { from: owner });
+      });
+      it('should be able update claims date', async function() {
+        await cd.setClaimDateUpd(0, 1, { from: owner });
+      });
+      it('should be able to set claim deposit time', async function() {
+        await cd.setClaimDepositTime(1, { from: owner });
+      });
     });
   });
 });

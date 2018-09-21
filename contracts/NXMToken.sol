@@ -19,7 +19,7 @@ import "./imports/openzeppelin-solidity/token/ERC20/IERC20.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
-contract Token is IERC20 {
+contract NXMToken is IERC20 {
   using SafeMaths for uint256;
 
   event WhiteListed(address indexed member);
@@ -186,7 +186,7 @@ contract Token is IERC20 {
    * account.
    * @param amount The amount that will be burnt.
    */
-  function burn(uint256 amount) internal returns (bool) {
+  function burn(uint256 amount) public returns (bool) {
     _burn(msg.sender, amount);
     return true;
   }

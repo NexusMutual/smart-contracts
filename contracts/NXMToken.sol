@@ -51,9 +51,9 @@ contract NXMToken is IERC20 {
     _;
   }
 
-  constructor(address _operator, uint initialSupply) public {
+  constructor(address _operator, address _founderAddress, uint _initialSupply) public {
     operator = _operator;
-    _mint(_operator, initialSupply);
+    _mint(_founderAddress, initialSupply);
   }
 
   /**

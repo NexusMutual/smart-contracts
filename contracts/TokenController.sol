@@ -26,7 +26,7 @@ import "./NXMaster.sol";
 contract TokenController is IERC1132, Governed, Iupgradable {
   using SafeMaths for uint256;
 
-  event Burned(address indexed member, uint256 amount, bytes32 lockedUnder);
+  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
   NXMToken public token;
   NXMaster public ms;
@@ -36,10 +36,10 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     _;
   }
 
-  constructor(address _token) {
-    token = NXMToken(_token);
-  }
-
+  /**
+   * @dev Used to set and update master address
+   * @param _add address of master contract
+   */
   function changeMasterAddress(address _add) {
     if (address(ms) != address(0)) {
       require(ms.isInternal(msg.sender) == true);
@@ -47,12 +47,23 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     ms = NXMaster(_add);
   }
 
+  /**
+   * @dev Just for interface
+   */
   function changeDependentContractAddress() public {
-    //Just for interface
+
   }
 
   /**
-   * @dev Locks a specified amount of tokens against an address,
+   * @dev used to set the address of token to control
+   * @param _token address of the token
+   */
+  function setTokenAddress(address _token) public onlyInternal {
+    token = NXMToken(_token);
+  }
+
+  /**
+   * @dev Locks a specified amount of tokens,
    *    for a specified reason and time
    * @param _reason The reason to lock tokens
    * @param _amount Number of tokens to be locked
@@ -64,29 +75,27 @@ contract TokenController is IERC1132, Governed, Iupgradable {
   {
     // If tokens are already locked, then functions extendLock or
     // increaseLockAmount should be used to make any changes
-    require(_tokensLocked(msg.sender, _reason) == 0);
-    require(_amount != 0);
-
-    if (locked[msg.sender][_reason].amount == 0)
-      lockReason[msg.sender].push(_reason);
-
     _lock(msg.sender, _reason, _amount, _time);
     return true;
   }
-  
+
   /**
-   * @dev Returns tokens locked for a specified address for a
-   *    specified reason
-   *
-   * @param _of The address whose tokens are locked
-   * @param _reason The reason to query the lock tokens for
+   * @dev Locks a specified amount of tokens against an address,
+   *    for a specified reason and time
+   * @param _reason The reason to lock tokens
+   * @param _amount Number of tokens to be locked
+   * @param _time Lock time in seconds
+   * @param _of address whose tokens are to be locked
    */
-  function tokensLocked(address _of, bytes32 _reason)
+  function lock(address _of, bytes32 _reason, uint256 _amount, uint256 _time)
     public
-    view
-    returns (uint256 amount)
+    onlyInternal
+    returns (bool)
   {
-    return _tokensLocked(_of, _reason);
+    // If tokens are already locked, then functions extendLock or
+    // increaseLockAmount should be used to make any changes
+    _lock(_of, _reason, _amount, _time);
+    return true;
   }
   
   /**
@@ -144,6 +153,64 @@ contract TokenController is IERC1132, Governed, Iupgradable {
   }
 
   /**
+   * @dev Burns locked tokens of a user 
+   * @param _of address whose tokens are to be burned
+   * @param _reason lock reason for which tokens are to be burned
+   * @param _amount amount of tokens to burn
+   */
+  function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) public onlyInternal {
+    _burnLockedTokens(_of, _reason, _amount);
+  }
+
+  /**
+   * @dev reduce lock duration for a specified reason and time
+   * @param _of The address whose tokens are locked
+   * @param _reason The reason to lock tokens
+   * @param _time Lock reduction time in seconds
+   */
+  function reduceLockDuration(address _of, bytes32 _reason, uint256 _time) public onlyInternal {
+    _reduceLockDuration(_of, _reason, _time);
+  } 
+
+  /**
+   * @dev Released locked tokens of an address locked for a specific reason
+   * @param _of address whose tokens are to be released from lock
+   * @param _reason reason of the lock
+   * @param _amount amount of tokens to release
+   */
+  function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) 
+    public 
+    onlyInternal 
+  {
+    _releaseLockedTokens(_of, _reason, _amount);
+  }
+
+  /**
+   * @dev Adds an address to whitelist maintained in the contract
+   * @param _member address to add to whitelist
+   */
+  function addToWhitelist(address _member) public onlyInternal {
+    token.addToWhiteList(_member);
+  }
+
+  /**
+   * @dev Removes an address from the whitelist in the token
+   * @param _member address to remove
+   */
+  function removeFromWhitelist(address _member) public onlyInternal {
+    token.removeFromWhiteList(_member);
+  }
+
+  /**
+   * @dev Mints new token for an address
+   * @param _member address to reward the minted tokens
+   * @param _amount number of tokens to mint
+   */
+  function mint(address _member, uint _amount) public onlyInternal {
+    token.mint(_member, _amount);
+  }
+
+  /**
    * @dev Unlocks the unlockable tokens of a specified address
    * @param _of Address of user, claiming back unlockable tokens
    */
@@ -166,10 +233,6 @@ contract TokenController is IERC1132, Governed, Iupgradable {
       token.transfer(_of, unlockableTokens);
   }
 
-  function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) public onlyInternal {
-    _burnLockedTokens(_of, _reason, _amount);
-  }
-
   /**
    * @dev Gets the unlockable tokens of a specified address
    * @param _of The address to query the the unlockable token count of
@@ -182,6 +245,21 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
       unlockableTokens = unlockableTokens.add(_tokensUnlockable(_of, lockReason[_of][i]));
     }  
+  }
+
+  /**
+   * @dev Returns tokens locked for a specified address for a
+   *    specified reason
+   *
+   * @param _of The address whose tokens are locked
+   * @param _reason The reason to query the lock tokens for
+   */
+  function tokensLocked(address _of, bytes32 _reason)
+    public
+    view
+    returns (uint256 amount)
+  {
+    return _tokensLocked(_of, _reason);
   }
 
   /**
@@ -238,6 +316,12 @@ contract TokenController is IERC1132, Governed, Iupgradable {
    * @param _time Lock time in seconds
    */
   function _lock(address _of, bytes32 _reason, uint256 _amount, uint256 _time) internal {
+    require(_tokensLocked(_of, _reason) == 0);
+    require(_amount != 0);
+
+    if (locked[_of][_reason].amount == 0)
+      lockReason[_of].push(_reason);
+
     require(token.operatorTransfer(_of, _amount));
 
     uint256 validUntil = now.add(_time); //solhint-disable-line
@@ -323,17 +407,45 @@ contract TokenController is IERC1132, Governed, Iupgradable {
    * @param _of The address to query the the unlockable token count of
    * @param _reason The reason to query the unlockable tokens for
    */
-  function _tokensUnlockable(address _of, bytes32 _reason) internal returns (uint256 amount)
+  function _tokensUnlockable(address _of, bytes32 _reason) internal view returns (uint256 amount)
   {
     if (locked[_of][_reason].validity <= now && !locked[_of][_reason].claimed) //solhint-disable-line
       amount = locked[_of][_reason].amount;
   }
 
+  /**
+   * @dev Burns locked tokens of a user 
+   * @param _of address whose tokens are to be burned
+   * @param _reason lock reason for which tokens are to be burned
+   * @param _amount amount of tokens to burn
+   */
   function _burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal {
-    require(_tokensLocked(_of, _reason) >= _amount);
-
-    locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
+    uint256 amount = _tokensLocked(_of, _reason);
+    require(amount > _amount);
+    if (amount == _amount)
+      locked[_of][_reason].claimed = true;
+    else
+      locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
     require(token.burn(_amount));
-    emit Burned(_of, _amount, _reason);
+    emit Burned(_of, _reason, _amount);
+  }
+
+  /**
+   * @dev Released locked tokens of an address locked for a specific reason
+   * @param _of address whose tokens are to be released from lock
+   * @param _reason reason of the lock
+   * @param _amount amount of tokens to release
+   */
+  function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) 
+    internal 
+  {
+    uint256 amount = _tokensLocked(_of, _reason);
+    require(amount > _amount);
+    if (amount == _amount)
+      locked[_of][_reason].claimed = true;
+    else
+      locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
+    require(token.transfer(_of, _amount));
+    emit Unlocked(_of, _reason, _amount);
   }
 }

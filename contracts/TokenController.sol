@@ -303,8 +303,17 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     amount = token.balanceOf(_of);
 
     for (uint256 i = 0; i < lockReason[_of].length; i++) {
-      amount = amount.add(tokensLocked(_of, lockReason[_of][i]));
+      amount = amount.add(_tokensLocked(_of, lockReason[_of][i]));
     }   
+  }
+
+  /**
+   * @dev Returns the total locked tokens at time
+   * @param _of member whose locked tokens are to be calculate
+   * @param _time timestamp when the tokens should be locked
+   */
+  function totalLockedBalance(address _of, uint256 _time) public view returns (uint256 amount) {
+    _totalLockedBalance(_of, _time);
   }  
 
   /**
@@ -344,6 +353,17 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     if (!locked[_of][_reason].claimed)
       amount = locked[_of][_reason].amount;
   }
+
+  /**
+   * @dev Returns the total locked tokens at time
+   * @param _of member whose locked tokens are to be calculate
+   * @param _time timestamp when the tokens should be locked
+   */
+  function _totalLockedBalance(address _of, uint256 _time) public view returns (uint256 amount) {
+    for (uint256 i = 0; i < lockReason[_of].length; i++) {
+      amount = amount.add(_tokensLockedAtTime(_of, lockReason[_of][i], _time));
+    }
+  }  
   
   /**
    * @dev Returns tokens locked for a specified address for a

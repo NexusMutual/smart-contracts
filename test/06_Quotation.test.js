@@ -21,6 +21,8 @@ const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const PID = 0;
 const PNAME = '0x5343430000000000';
 const PHASH = 'Smart Contract Cover';
+const NPNAME = '0x5443000000000000';
+const NPHASH = 'Test Cover';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
 const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
@@ -217,6 +219,12 @@ contract('Quotation', function([
             it('should return correct cover details', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
+              await qd.getCoverPeriod(CID[0]);
+              await qd.getCoverPremium(CID[0]);
+              await qd.getTotalSumAssuredSC(smartConAdd, CA_ETH);
+              await qd.getCoverStatusLen();
+              await qd.getAllCoverStatus();
+              await qd.getCoverStatus(CID[0]);
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
               if (
@@ -728,6 +736,67 @@ contract('Quotation', function([
         const newqt = await Quotation.new();
         await assertRevert(
           qt.transferAssetsToNewContract(newqt.address, { from: notMember })
+        );
+      });
+    });
+  });
+
+  describe('Misc', function() {
+    let productCount;
+    describe('Add new insured product details', function() {
+      it('should not be able to add if not owner', async function() {
+        await assertRevert(
+          qd.addProductDetails(NPNAME, NPHASH, 90, 1000, 12, 0, {
+            from: notMember
+          })
+        );
+      });
+      it('should be able to add if owner', async function() {
+        productCount = await qd.getAllProductCount();
+        await qd.addProductDetails(NPNAME, NPHASH, 90, 1000, 12, 0, {
+          from: owner
+        });
+        const productDetails = await qd.getProductDetails(productCount);
+        await qd.getProductHash(productCount);
+        productDetails[1].should.equal(NPNAME);
+        productDetails[2].should.equal(NPHASH);
+      });
+      it('should increase product count', async function() {
+        (await qd.getAllProductCount()).should.be.bignumber.equal(
+          productCount.plus(1)
+        );
+      });
+    });
+
+    describe('Change product params if owner', function() {
+      const productID = productCount - 1;
+      it('should be able to change Product Hash', async function() {
+        await qd.changeProductHash(productID, 'New Test Cover');
+        (await qd.getProductHash(productID)).should.equal('New Test Cover');
+      });
+      it('should be able to change Profit Margin', async function() {
+        await qd.changePM(productID, 4);
+      });
+      it('should be able to change STLP', async function() {
+        await qd.changeSTLP(productID, 5);
+      });
+      it('should be able to change STL', async function() {
+        await qd.changeSTL(productID, 1);
+      });
+      it('should be able to change minimum cover period', async function() {
+        await qd.changeMinDays(productID, 31);
+      });
+    });
+    describe('if not internal contract address', function() {
+      it('should not be able to change master address', async function() {
+        await assertRevert(
+          qd.changeMasterAddress(qd.address, { from: notMember })
+        );
+      });
+      it('should not be able to change cover status number', async function() {
+        const CID = await qd.getAllCoversOfUser(member3);
+        await assertRevert(
+          qd.changeCoverStatusNo(CID[1], 1, { from: notMember })
         );
       });
     });

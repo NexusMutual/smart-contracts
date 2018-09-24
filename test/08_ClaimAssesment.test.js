@@ -201,6 +201,17 @@ contract('Claim: Assessment', function([
               1
             )).should.be.bignumber.below(stakeTokens);
           });
+          it('should burns tokens used for fraudulent voting against a claim', async function() {
+            const initialTB = await td.getBalanceOf(member1);
+            const initialTS = await nxmtk1.totalSupply();
+            await nxmtk2.burnCAToken(claimId, ether(1), member1);
+            (await td.getBalanceOf(member1)).should.be.bignumber.equal(
+              initialTB.minus(ether(1))
+            );
+            (await nxmtk1.totalSupply()).should.be.bignumber.equal(
+              initialTS.minus(ether(1))
+            );
+          });
         });
       });
       describe('CA not voted', function() {

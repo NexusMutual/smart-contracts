@@ -411,6 +411,7 @@ contract('Quotation', function([
         describe('If staker staked tokens on Smart Contract', function() {
           const staker1 = member1;
           const staker2 = member2;
+          const stca = new BigNumber(500000000000);
           before(async function() {
             await nxmtk2.payJoiningFee(staker1, {
               from: staker1,
@@ -422,7 +423,7 @@ contract('Quotation', function([
               value: fee
             });
             await P1.buyTokenBegin({ from: staker2, value: tokenAmount });
-            await nxmtk2.addStake(smartConAdd, stakeTokens, {
+            await nxmtk2.addStake(smartConAdd, ether(0.000001), {
               from: staker1
             });
             await nxmtk2.addStake(smartConAdd, stakeTokens, {
@@ -432,10 +433,14 @@ contract('Quotation', function([
 
           describe('Purchase Cover With Ether', function() {
             const coverHolder = member3;
-            let initialStakeCommission;
+            let initialStakeCommissionOfS1;
+            let initialStakeCommissionOfS2;
             it('should be able to purchase cover ', async function() {
-              initialStakeCommission = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
                 staker1
+              );
+              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+                staker2
               );
               await P1.makeCoverBegin(
                 PID,
@@ -450,25 +455,35 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              const newStakeCommission = initialStakeCommission
+              (await cr.getTotalStakeCommission(
+                staker1
+              )).should.be.bignumber.equal(
+                initialStakeCommissionOfS1.plus(stca)
+              );
+              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
                 .plus(
                   BN_20.times(
                     new BigNumber(coverDetails[2].toString()).div(BN_100)
                   )
                 )
+                .minus(stca)
                 .toFixed(0);
-              newStakeCommission.should.be.bignumber.equal(
-                await cr.getTotalStakeCommission(staker1)
-              );
+              (await cr.getTotalStakeCommission(
+                staker2
+              )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
           });
 
           describe('Purchase Cover With NXM', function() {
             const coverHolder = member4;
-            let initialStakeCommission;
+            let initialStakeCommissionOfS1;
+            let initialStakeCommissionOfS2;
             it('should be able to purchase cover', async function() {
-              initialStakeCommission = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
                 staker1
+              );
+              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+                staker2
               );
               await qt.makeCoverUsingNXMTokens(
                 PID,
@@ -483,26 +498,33 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              const newStakeCommission = initialStakeCommission
+              (await cr.getTotalStakeCommission(
+                staker1
+              )).should.be.bignumber.equal(initialStakeCommissionOfS1);
+              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
                 .plus(
                   BN_20.times(
                     new BigNumber(coverDetails[2].toString()).div(BN_100)
                   )
                 )
                 .toFixed(0);
-              newStakeCommission.should.be.bignumber.equal(
-                await cr.getTotalStakeCommission(staker1)
-              );
+              (await cr.getTotalStakeCommission(
+                staker2
+              )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
           });
 
           describe('Purchase Cover With DAI', function() {
             const coverHolder = member5;
             let initialPoolBalanceOfCA;
-            let initialStakeCommission;
+            let initialStakeCommissionOfS1;
+            let initialStakeCommissionOfS2;
             it('should able to purchase cover using currency assest i.e. DAI ', async function() {
-              initialStakeCommission = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
                 staker1
+              );
+              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+                staker2
               );
               await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
@@ -520,16 +542,19 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              const newStakeCommission = initialStakeCommission
+              (await cr.getTotalStakeCommission(
+                staker1
+              )).should.be.bignumber.equal(initialStakeCommissionOfS1);
+              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
                 .plus(
                   BN_20.times(
                     new BigNumber(coverDetailsDai[2].toString()).div(BN_100)
                   )
                 )
                 .toFixed(0);
-              newStakeCommission.should.be.bignumber.equal(
-                await cr.getTotalStakeCommission(staker1)
-              );
+              (await cr.getTotalStakeCommission(
+                staker2
+              )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
           });
         });

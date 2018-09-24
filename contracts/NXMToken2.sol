@@ -342,12 +342,40 @@ contract NXMToken2 is Iupgradable, Governed {
 
     /// @dev Called by user to pay joining membership fee
     function payJoiningFee(address userAdd) public payable checkPause {
+
+
+        require(!qd.refundEligible(userAdd));
+        require(!ms.isMember(userAdd));
         require(msg.value == td.joiningFee());
+        qd.setRefundEligible(userAdd, true);
+        // address _add = td.walletAddress();
+        // require(_add != 0x0000);
+        // bool succ = _add.send(msg.value);
+        // require(succ);
+        
+        // if (succ == true)
+        //     mr.updateMemberRole(userAdd, 3, true, 0);
+    }
+
+    function kycVerdict(address userAdd, bool verdict) checkPause {
+        require(!ms.isMember(userAdd));
+        require(qd.refundEligible(userAdd));
+        uint joinFee = td.joiningFee();
         address _add = td.walletAddress();
-        require(_add != 0x0000);
-        bool succ = _add.send(msg.value);
-        if (succ == true)
-            mr.updateMemberRole(userAdd, 3, true, 0);
+        bool succ;
+        if (verdict) {
+            qd.setRefundEligible(userAdd, false);
+            require(_add != 0x0000);
+            succ = _add.send(joinFee);
+            require(succ);
+            if (succ == true)
+                mr.updateMemberRole(userAdd, 3, true, 0);
+
+        } else {
+            qd.setRefundEligible(userAdd, false);
+            succ = userAdd.send(joinFee);
+            require(succ);   
+        }
     }
 
     /// @dev Adding to Member Role called Voter while Member voting.

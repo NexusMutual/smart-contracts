@@ -332,6 +332,7 @@ contract NXMToken1 is Iupgradable {
      */
     function increaseLockAmount(bytes32 _reason, uint256 _amount) public isMemberAndcheckPause {
         require(tokensLocked(msg.sender, _reason, block.timestamp) != 0);
+        require(_amount <= balanceOf(msg.sender));
         td.changeLockAmount(_reason, msg.sender, _amount, true);
         uint amount;
         uint validity;

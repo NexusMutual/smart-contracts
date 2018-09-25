@@ -140,6 +140,8 @@ contract('Claim: Assessment', function([
             await cl.submitCAVote(claimId, -1, { from: member1 });
             await cl.submitCAVote(claimId, -1, { from: member2 });
             await cl.submitCAVote(claimId, -1, { from: member3 });
+            await cd.getClaimFromNewStart(1, coverHolder);
+            await cd.getAllVotesForClaim(claimId);
           });
           it('should close voting after min time', async function() {
             await increaseTimeTo(minTime.plus(2));
@@ -177,12 +179,16 @@ contract('Claim: Assessment', function([
             closingTime = maxVotingTime.plus(now);
             claimId = (await cd.actualClaimLength()) - 1;
           });
-          it('should let members to vote for claim assessment', async function() {
+          it('should let claim assessor to vote for claim assessment', async function() {
             await cl.submitCAVote(claimId, 1, { from: member1 });
             await cl.submitCAVote(claimId, 1, { from: member2 });
             await cl.submitCAVote(claimId, 1, { from: member3 });
+            await cd.getVoteToken(claimId, 0, 1);
+            await cd.getVoteVoter(claimId,1,1);
           });
           it('should be able change claim status', async function() {
+            await cd.getCaClaimVotesToken(claimId);
+            await cd.getVoteVerdict(claimId,1,1);
             await increaseTimeTo(closingTime.plus(2));
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
@@ -271,13 +277,27 @@ contract('Claim: Assessment', function([
             closingTime = maxVotingTime.plus(now);
             await increaseTimeTo(closingTime.plus(2));
             await cr.changeClaimStatus(claimId);
+            await cd.getAllClaimsByAddress(coverHolder);
           });
           it('member should be able to cast vote', async function() {
             await cl.submitMemberVote(claimId, -1, { from: member1 });
             await cl.submitMemberVote(claimId, -1, { from: member2 });
             await cl.submitMemberVote(claimId, -1, { from: member3 });
+            await cd.getClaimFromNewStart(1, coverHolder);
+            await cd.getVoteToken(claimId, 0, 0);
+            await cd.getVoteVoter(claimId,0,0);
+            await cd.getMemberClaimVotesToken(claimId);
+            await cd.getVoterVote(1);
+            await cd.getClaimState12Count(claimId);
+            await cd.getVoteAddressMember(member1,0);
+            console.log("zzzz");
           });
           it('member should not be able to transfer any tokens', async function() {
+            await cd.getClaimVoteLength(claimId,1);
+            await cd.getClaimLength();
+            await cd.getClaimVoteLength(claimId,0);
+            await cd.getVoteVerdict(claimId,1,0);
+            await cd.getUserClaimCount(coverHolder);
             await assertRevert(
               nxmtk1.transfer(member2, tokens, { from: member1 })
             );
@@ -295,6 +315,7 @@ contract('Claim: Assessment', function([
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(9);
+            cd.updateState12Count(claimId,1);
           });
         });
       });

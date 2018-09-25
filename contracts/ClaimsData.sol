@@ -135,20 +135,20 @@ contract ClaimsData is Iupgradable {
 
     }
 
-    modifier onlyOwner {
+/*     modifier onlyOwner {
         require(ms.isOwner(msg.sender) == true);
         _;
-    }
+    } */
 
     modifier onlyInternal {
         require(ms.isInternal(msg.sender) == true);
         _;
     }
 
-    /// @dev Sets the escalation time.
+/*     /// @dev Sets the escalation time.
     function setEscalationTime(uint32 _time) onlyInternal {
         escalationTime = _time;
-    }
+    } */
 
     /// @dev Sets Maximum time(in seconds) for which claim assessment voting is open
     function setMaxVotingTime(uint32 _time) onlyInternal {
@@ -506,7 +506,7 @@ contract ClaimsData is Iupgradable {
     function changeFinalVerdict(uint _claimId, int8 _verdict) onlyInternal {
         claimVote[_claimId] = _verdict;
     }
-
+/* 
     /// @dev Changes the verdict of Member vote.
     function changeVerdictOfMV(uint _claimId, uint _index, int8 _verdict) onlyInternal {
         allvotes[claimVoteMember[_claimId][_index]].verdict = _verdict;
@@ -515,7 +515,7 @@ contract ClaimsData is Iupgradable {
     /// @dev Changes the verdict of Claim Assessors vote.
     function changeVerdictOfCAV(uint _claimId, uint _index, int8 _verdict) onlyInternal {
         allvotes[claimVoteCA[_claimId][_index]].verdict = _verdict;
-    }
+    } */
 
     /// @dev Gets the Final result of voting of a claim.
     /// @param _claimId Claim id.
@@ -531,12 +531,12 @@ contract ClaimsData is Iupgradable {
 
     }
 
-    /// @dev Stores a given claim id in a given address. Maintains the record of all the Claims created/submitted by a given user.
+/*     /// @dev Stores a given claim id in a given address. Maintains the record of all the Claims created/submitted by a given user.
     /// @param _from address of a user.
     /// @param _claimId Claim id which will be stored.
     function addClaimSender(address _from, uint _claimId) onlyInternal {
         allClaimsByAddress[_from].push(_claimId);
-    }
+    } */
 
     /// @dev Add Vote's details of a given claim.
     function addVote(address _voter, uint _tokens, uint claimId, int8 _verdict) onlyInternal {
@@ -699,7 +699,7 @@ contract ClaimsData is Iupgradable {
         Claim(_coverId, _userAddress, _claimId, _datesubmit);
     }
 
-    /// @dev Sets the minimum, maximum Claims assessment voting, escalation and payout retry times
+/*  TODO     /// @dev Sets the minimum, maximum Claims assessment voting, escalation and payout retry times
     /// @param _minVoteTime Minimum time(in seconds) for which claim assessment voting is open
     /// @param _maxVoteTime Maximum time(in seconds) for which claim assessment voting is open
     /// @param escaltime Time(in seconds) in which, after a denial by Claims assessor, a person can escalate claim for member voting
@@ -710,5 +710,5 @@ contract ClaimsData is Iupgradable {
         setPayoutRetryTime(payouttime);
         setMaxVotingTime(_maxVoteTime);
         setMinVotingTime(_minVoteTime);
-    }
+    } */
 }

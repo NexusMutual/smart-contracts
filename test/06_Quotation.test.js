@@ -163,6 +163,7 @@ contract('Quotation', function([
               const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(
                 coverHolder
               );
+              await td.getBalanceCN(coverHolder);
               initialLockedCN.should.be.bignumber.equal(0);
             });
             it('total sum assured should be 0 ETH initially', async function() {
@@ -219,6 +220,7 @@ contract('Quotation', function([
             it('should return correct cover details', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
+              await td.getBalanceLockedTokens(CID[0], coverHolder);
               await qd.getCoverPeriod(CID[0]);
               await qd.getCoverPremium(CID[0]);
               await qd.getTotalSumAssuredSC(smartConAdd, CA_ETH);
@@ -721,7 +723,7 @@ contract('Quotation', function([
       await increaseTimeTo(validity.plus(1));
     });
     it('cover should be expired after validity expires', async function() {
-      qt.expireCover(1);
+      await qt.expireCover(1);
     });
 
     it('decrease sum assured', async function() {
@@ -735,6 +737,8 @@ contract('Quotation', function([
       const unLockedCN = BN_5.times(coverDetails[2])
         .div(BN_100)
         .toFixed(0);
+      await td.getBalanceCN(member3);
+      await td.getBalanceLockedTokens(1, member3);
       (await nxmtk1.balanceOf(member3)).should.be.bignumber.equal(
         initialTokenBalance.plus(unLockedCN)
       );

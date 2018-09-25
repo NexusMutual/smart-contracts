@@ -93,6 +93,9 @@ contract('NXMToken:Locking', function([
           (await latestTime()) + validity
         );
       });
+      it('should not have locked tokens for other reason', async function() {
+        (await nxmtd.hasBeenLockedBefore(member1, 'YOLO')).should.equal(false);
+      });
     });
     describe('Lock Tokens under CA more than once', function() {
       it('reverts', async function() {
@@ -236,6 +239,8 @@ contract('NXMToken:Locking', function([
         const newValidity = (await nxmtd.locked(member1, CLA))[0];
         newValidity.should.be.bignumber.below((await latestTime()) + validity);
       });
+
+
     });
   });
 

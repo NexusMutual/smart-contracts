@@ -29,7 +29,8 @@ contract('NXMToken:Staking', function([
   member1,
   member2,
   member3,
-  notMember
+  notMember,
+  other
 ]) {
   const fee = ether(0.002);
   const stakeTokens = ether(5);
@@ -94,6 +95,17 @@ contract('NXMToken:Staking', function([
           newTokenBalance.should.be.bignumber.equal(
             await nxmtk1.balanceOf(member1)
           );
+        });
+        it('should return zero stake amt for non staker', async function() {
+          const initialStakedTokens = await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
+            member1,
+            stakedContract
+          );
+          await nxmtk2.addStake(member2, stakeTokens, { from: member1 });
+         (await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
+            member1,
+            stakedContract
+          )).should.be.bignumber.equal(initialStakedTokens);
         });
         describe('after 200 days', function() {
           before(async function() {

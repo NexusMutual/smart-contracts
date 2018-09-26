@@ -507,7 +507,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       it('should be able to change BookTime', async function() {
         await nxmtd.changeBookTime(1, { from: owner });
         await nxmtd.pushBookedCA(member3, 2);
-        await increaseTimeTo(await latestTime() + 3)
+        await increaseTimeTo((await latestTime()) + 3);
         await nxmtd.getBookedCA(member3);
         (await nxmtd.getBookTime()).should.be.bignumber.equal(1);
       });

@@ -102,7 +102,7 @@ contract('NXMToken:Staking', function([
             stakedContract
           );
           await nxmtk2.addStake(member2, stakeTokens, { from: member1 });
-         (await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
+          (await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
             member1,
             stakedContract
           )).should.be.bignumber.equal(initialStakedTokens);

@@ -239,8 +239,6 @@ contract('NXMToken:Locking', function([
         const newValidity = (await nxmtd.locked(member1, CLA))[0];
         newValidity.should.be.bignumber.below((await latestTime()) + validity);
       });
-
-
     });
   });
 

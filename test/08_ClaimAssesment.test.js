@@ -79,6 +79,9 @@ contract('Claim: Assessment', function([
     td = await NXMTokenData.deployed();
     P3 = await Pool3.deployed();
     mcr = await MCR.deployed();
+    await assertRevert(
+      cd.changeMasterAddress(mcr.address, { from: notMember })
+    );
     await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
     await P1.buyTokenBegin({ from: member1, value: ether(1) });
     await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
@@ -125,7 +128,7 @@ contract('Claim: Assessment', function([
             const minVotingTime = await cd.minVotingTime();
             const now = await latestTime();
             minTime = minVotingTime.plus(now);
-            await cl.getClaimFromNewStart(0, { from: coverHolder });
+            await cl.getClaimFromNewStart(0, { from: member1 });
             await cl.getUserClaimByIndex(0, { from: coverHolder });
             await cl.getClaimbyIndex(1, { from: coverHolder });
             await cl.getCATokensLockedAgainstClaim(member1, 1, {
@@ -140,7 +143,7 @@ contract('Claim: Assessment', function([
             await cl.submitCAVote(claimId, -1, { from: member1 });
             await cl.submitCAVote(claimId, -1, { from: member2 });
             await cl.submitCAVote(claimId, -1, { from: member3 });
-            await cd.getClaimFromNewStart(1, coverHolder);
+            //console.log(await cd.getClaimFromNewStart(0, member1));
             await cd.getAllVotesForClaim(claimId);
           });
           it('should close voting after min time', async function() {
@@ -183,12 +186,16 @@ contract('Claim: Assessment', function([
             await cl.submitCAVote(claimId, 1, { from: member1 });
             await cl.submitCAVote(claimId, 1, { from: member2 });
             await cl.submitCAVote(claimId, 1, { from: member3 });
+            await cl.getClaimFromNewStart(0, { from: member1 });
+            await cl.getClaimFromNewStart(1, { from: member1 });
             await cd.getVoteToken(claimId, 0, 1);
-            await cd.getVoteVoter(claimId,1,1);
+            await cd.getVoteVoter(claimId, 1, 1);
+            await cd.setpendingClaimStart(1);
+            await assertRevert(cd.setpendingClaimStart(0));
           });
           it('should be able change claim status', async function() {
             await cd.getCaClaimVotesToken(claimId);
-            await cd.getVoteVerdict(claimId,1,1);
+            await cd.getVoteVerdict(claimId, 1, 1);
             await increaseTimeTo(closingTime.plus(2));
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
@@ -283,20 +290,20 @@ contract('Claim: Assessment', function([
             await cl.submitMemberVote(claimId, -1, { from: member1 });
             await cl.submitMemberVote(claimId, -1, { from: member2 });
             await cl.submitMemberVote(claimId, -1, { from: member3 });
-            await cd.getClaimFromNewStart(1, coverHolder);
+            await cl.getClaimFromNewStart(0, { from: member1 });
+            await cl.getClaimFromNewStart(1, { from: member1 });
             await cd.getVoteToken(claimId, 0, 0);
-            await cd.getVoteVoter(claimId,0,0);
+            await cd.getVoteVoter(claimId, 0, 0);
             await cd.getMemberClaimVotesToken(claimId);
             await cd.getVoterVote(1);
             await cd.getClaimState12Count(claimId);
-            await cd.getVoteAddressMember(member1,0);
-            console.log("zzzz");
+            await cd.getVoteAddressMember(member1, 0);
           });
           it('member should not be able to transfer any tokens', async function() {
-            await cd.getClaimVoteLength(claimId,1);
+            await cd.getClaimVoteLength(claimId, 1);
             await cd.getClaimLength();
-            await cd.getClaimVoteLength(claimId,0);
-            await cd.getVoteVerdict(claimId,1,0);
+            await cd.getClaimVoteLength(claimId, 0);
+            await cd.getVoteVerdict(claimId, 1, 0);
             await cd.getUserClaimCount(coverHolder);
             await assertRevert(
               nxmtk1.transfer(member2, tokens, { from: member1 })
@@ -315,7 +322,7 @@ contract('Claim: Assessment', function([
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(9);
-            cd.updateState12Count(claimId,1);
+            cd.updateState12Count(claimId, 1);
           });
         });
       });
@@ -343,6 +350,8 @@ contract('Claim: Assessment', function([
     it('reverts', async function() {
       claimId = (await cd.actualClaimLength()) - 1;
       await assertRevert(cl.submitCAVote(claimId, -1, { from: member4 }));
+      await cd.setClaimTokensMV(coverID[2], 1, 1);
+      await cd.setClaimTokensMV(coverID[2], -1, 1);
     });
   });
 });

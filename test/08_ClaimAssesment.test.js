@@ -216,6 +216,7 @@ contract('Claim: Assessment', function([
           it('should burns tokens used for fraudulent voting against a claim', async function() {
             const initialTB = await td.getBalanceOf(member1);
             const initialTS = await nxmtk1.totalSupply();
+            await assertRevert(nxmtk2.burnCAToken(claimId, ether(1), notMember));
             await nxmtk2.burnCAToken(claimId, ether(1), member1);
             (await td.getBalanceOf(member1)).should.be.bignumber.equal(
               initialTB.minus(ether(1))

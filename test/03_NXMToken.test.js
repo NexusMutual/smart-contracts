@@ -523,6 +523,10 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
         await nxmtd.setLockTokenTimeAfterCoverExp(1);
         (await nxmtd.lockTokenTimeAfterCoverExp()).should.be.bignumber.equal(1);
       });
+      it('should be able to change CanAddMemberAddress', async function() {
+        await assertRevert(nxmtk2.changeCanAddMemberAddress(member1, {from: member1}));
+        await nxmtk2.changeCanAddMemberAddress(member1, {from: owner});
+      });
     });
   });
 

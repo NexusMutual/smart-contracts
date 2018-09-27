@@ -143,7 +143,6 @@ contract('Claim: Assessment', function([
             await cl.submitCAVote(claimId, -1, { from: member1 });
             await cl.submitCAVote(claimId, -1, { from: member2 });
             await cl.submitCAVote(claimId, -1, { from: member3 });
-            //console.log(await cd.getClaimFromNewStart(0, member1));
             await cd.getAllVotesForClaim(claimId);
           });
           it('should close voting after min time', async function() {
@@ -298,6 +297,8 @@ contract('Claim: Assessment', function([
             await cd.getVoterVote(1);
             await cd.getClaimState12Count(claimId);
             await cd.getVoteAddressMember(member1, 0);
+            await cr.claimAllPendingReward({ from: member1 });
+            await cd.getVoteAddressMemberLength(member1);
           });
           it('member should not be able to transfer any tokens', async function() {
             await cd.getClaimVoteLength(claimId, 1);
@@ -322,7 +323,9 @@ contract('Claim: Assessment', function([
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(9);
-            cd.updateState12Count(claimId, 1);
+            await cd.updateState12Count(claimId, 1);
+            await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
+            await cr.getRewardToBeDistributedByUser(member1);
           });
         });
       });

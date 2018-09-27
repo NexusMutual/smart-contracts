@@ -720,10 +720,14 @@ contract('Quotation', function([
       initialTokenBalance = await nxmtk1.balanceOf(member3);
       initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
       validity = await qd.getValidityOfCover(1);
+    });
+    it('cover should not expired before validity', async function() {
+      (await qt.checkCoverExpired(1)).should.be.bignumber.equal(0);
       await increaseTimeTo(validity.plus(1));
     });
     it('cover should be expired after validity expires', async function() {
       await qt.expireCover(1);
+      (await qt.checkCoverExpired(1)).should.be.bignumber.equal(1);
     });
 
     it('decrease sum assured', async function() {

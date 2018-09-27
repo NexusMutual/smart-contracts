@@ -133,6 +133,11 @@ contract('ClaimsReward', function([
       (await nxmtk1.totalSupply()).should.be.bignumber.above(
         initialTotalSupply
       );
+      await cr.getRewardAndClaimedStatus(1, claimId, { from: member1 });
+      await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
+      await cr.getRewardToBeDistributedByUser(member1);
+      await cr.claimAllPendingReward({ from: member1 });
+      await cd.getVoteAddressMemberLength(member1);
     });
 
     /*    describe('Payout to cover holder', function() {

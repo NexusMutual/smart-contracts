@@ -114,6 +114,8 @@ contract('ClaimsReward', function([
       await cl.submitCAVote(claimId, -1, { from: member2 });
       await cl.submitCAVote(claimId, -1, { from: member3 });
       await increaseTimeTo(closingTime.plus(2));
+      const bal = await web3.eth.getBalance(P1.address);
+      await P1.transferEtherForPayout(bal, member1);
       await cr.changeClaimStatus(claimId);
     });
     it('should be able to claim reward', async function() {
@@ -134,10 +136,13 @@ contract('ClaimsReward', function([
         initialTotalSupply
       );
       await cr.getRewardAndClaimedStatus(1, claimId, { from: member1 });
+      await cr.getRewardAndClaimedStatus(1, 2, { from: member1 });
       await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
+      await cr.getRewardAndClaimedStatus(0, 2, { from: member1 });
       await cr.getRewardToBeDistributedByUser(member1);
       await cr.claimAllPendingReward({ from: member1 });
       await cd.getVoteAddressMemberLength(member1);
+      await cr.getTotalStakeCommission(member1);
     });
 
     /*    describe('Payout to cover holder', function() {

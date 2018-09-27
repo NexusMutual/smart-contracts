@@ -96,7 +96,7 @@ contract NXMaster2 is Iupgradable {
         c1.pushStatus("Claim Accepted Payout Done", 0, 0); //14
     }
 /* 
-    TODO: make this fucntion compatibile 
+    TODO: make this function compatible if needed 
     /// @dev Changes the  minimum,maximum Claims assessment voting,escalation,payout retry times
     /// @param _mintime Minimum time(in seconds) for which claim assessment voting is open
     /// @param _maxtime Maximum time(in seconds) for which claim assessment voting is open

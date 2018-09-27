@@ -299,6 +299,7 @@ contract('Claim: Assessment', function([
             await cd.getVoteAddressMember(member1, 0);
             await cr.claimAllPendingReward({ from: member1 });
             await cd.getVoteAddressMemberLength(member1);
+            await cr.getRewardToBeDistributedByUser(member1);
           });
           it('member should not be able to transfer any tokens', async function() {
             await cd.getClaimVoteLength(claimId, 1);
@@ -323,6 +324,52 @@ contract('Claim: Assessment', function([
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(9);
+            await cd.updateState12Count(claimId, 1);
+            await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
+            await cr.getRewardToBeDistributedByUser(member1);
+          });
+        });
+
+        describe('Member accept claims', function() {
+          before(async function() {
+            await cl.submitClaim(coverID[1], { from: coverHolder });
+            claimId = (await cd.actualClaimLength()) - 1;
+            const now = await latestTime();
+            closingTime = maxVotingTime.plus(now);
+            await increaseTimeTo(closingTime.plus(2));
+            await cr.changeClaimStatus(claimId);
+            await cd.getAllClaimsByAddress(coverHolder);
+          });
+          it('member should be able to cast vote', async function() {
+            await cl.submitMemberVote(claimId, 1, { from: member1 });
+            await cl.submitMemberVote(claimId, 1, { from: member2 });
+            await cl.submitMemberVote(claimId, 1, { from: member3 });
+            await cl.getClaimFromNewStart(0, { from: member1 });
+            await cl.getClaimFromNewStart(1, { from: member1 });
+            await cd.getVoteToken(claimId, 0, 0);
+            await cd.getVoteVoter(claimId, 0, 0);
+            await cd.getMemberClaimVotesToken(claimId);
+            await cd.getVoterVote(1);
+            await cd.getClaimState12Count(claimId);
+            await cd.getVoteAddressMember(member1, 0);
+            await cr.claimAllPendingReward({ from: member1 });
+            await cd.getVoteAddressMemberLength(member1);
+            await cr.getRewardToBeDistributedByUser(member1);
+          });
+          it('member should not be able to transfer any tokens', async function() {
+            await cd.getClaimVoteLength(claimId, 1);
+            await cd.getClaimLength();
+            await cd.getClaimVoteLength(claimId, 0);
+            await cd.getVoteVerdict(claimId, 1, 0);
+            await cd.getUserClaimCount(coverHolder);
+          });
+          it('should change claim status', async function() {
+            const now = await latestTime();
+            closingTime = maxVotingTime.plus(now);
+            await increaseTimeTo(closingTime.plus(2));
+            await cr.changeClaimStatus(claimId);
+            const newCStatus = await cd.getClaimStatusNumber(claimId);
+            newCStatus[1].should.be.bignumber.equal(8);
             await cd.updateState12Count(claimId, 1);
             await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
             await cr.getRewardToBeDistributedByUser(member1);

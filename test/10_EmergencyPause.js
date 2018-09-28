@@ -7,7 +7,7 @@ const NXMToken2 = artifacts.require('NXMToken2');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const NXMTokenData = artifacts.require('NXMTokenData');
 const MCR = artifacts.require('MCR');
@@ -76,7 +76,7 @@ contract('NXMaster: Emergency Pause', function([
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
-    qd = await QuotationData.deployed();
+    qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
@@ -173,6 +173,10 @@ contract('NXMaster: Emergency Pause', function([
     it('should not let member vote for claim assessment', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
       await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
+    });
+    it('should not be able to change claim status', async function() {
+      const claimId = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
     });
   });
 

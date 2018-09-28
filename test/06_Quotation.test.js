@@ -2,7 +2,7 @@ const Pool1 = artifacts.require('Pool1');
 const NXMToken1 = artifacts.require('NXMToken1');
 const NXMToken2 = artifacts.require('NXMToken2');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('DAI');
 const NXMTokenData = artifacts.require('NXMTokenData');
@@ -60,7 +60,9 @@ contract('Quotation', function([
   notMember,
   newMember1,
   newMember2,
-  newMember3
+  newMember3,
+  newMember4,
+  newMember5
 ]) {
   const BN_100 = new BigNumber(100);
   const BN_5 = new BigNumber(5);
@@ -76,7 +78,7 @@ contract('Quotation', function([
     nxmtk1 = await NXMToken1.deployed();
     nxmtk2 = await NXMToken2.deployed();
     cr = await ClaimsReward.deployed();
-    qd = await QuotationData.deployed();
+    qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
@@ -652,6 +654,7 @@ contract('Quotation', function([
             s,
             { from: newMember1, value: totalFee }
           );
+
           await qt.kycTrigger(true, 2);
         });
         it('should be able to join membership and purchase cover with DAI', async function() {
@@ -671,7 +674,8 @@ contract('Quotation', function([
             s_dai,
             { from: newMember2, value: fee }
           );
-          await qt.kycTrigger(true, 3);
+          const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
+          await qt.kycTrigger(true, hcid);
         });
         it('should refund full amount to new member', async function() {
           const totalFee = fee.plus(coverDetails[1].toString());
@@ -690,6 +694,26 @@ contract('Quotation', function([
           await assertRevert(qt.fullRefund(hcid, { from: owner }));
           await qt.fullRefund(hcid, { from: newMember3 });
         });
+        it('should get membership but not cover if quote expires for ETH', async function() {
+          const totalFee = fee.plus(coverDetails[1].toString());
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            v,
+            r,
+            s,
+            { from: newMember4, value: totalFee }
+          );
+          const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
+          const newCoverDetails = coverDetails;
+          newCoverDetails[3] = (await latestTime()) - 3;
+          await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
+          await qt.kycTrigger(true, hcid);
+        });
+
         it('should revert if quote validity expires', async function() {
           let newCoverDetails = coverDetails;
           const validity = await latestTime();
@@ -708,6 +732,29 @@ contract('Quotation', function([
               { from: notMember, value: totalFee }
             )
           );
+        });
+
+        it('should get membership but not cover if quote expires for DAI', async function() {
+          await cad.transfer(notMember, tokenDai);
+          await cad.approve(qt.address, coverDetailsDai[1], {
+            from: notMember
+          });
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'DAI',
+            coverDetailsDai,
+            coverPeriod,
+            v_dai,
+            r_dai,
+            s_dai,
+            { from: notMember, value: fee }
+          );
+          const hcid = await qd.getUserHoldedCoverByIndex(notMember, 1);
+          const newCoverDetails = coverDetailsDai;
+          newCoverDetails[3] = (await latestTime()) - 3;
+          await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
+          await qt.kycTrigger(true, hcid);
         });
       });
     });

@@ -6,7 +6,7 @@ const NXMToken2 = artifacts.require('NXMToken2');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const NXMTokenData = artifacts.require('NXMTokenData');
 const MCR = artifacts.require('MCR');
@@ -72,7 +72,7 @@ contract('Claim: Assessment', function([
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
-    qd = await QuotationData.deployed();
+    qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
@@ -216,7 +216,9 @@ contract('Claim: Assessment', function([
           it('should burns tokens used for fraudulent voting against a claim', async function() {
             const initialTB = await td.getBalanceOf(member1);
             const initialTS = await nxmtk1.totalSupply();
-            await assertRevert(nxmtk2.burnCAToken(claimId, ether(1), notMember));
+            await assertRevert(
+              nxmtk2.burnCAToken(claimId, ether(1), notMember)
+            );
             await nxmtk2.burnCAToken(claimId, ether(1), member1);
             (await td.getBalanceOf(member1)).should.be.bignumber.equal(
               initialTB.minus(ether(1))

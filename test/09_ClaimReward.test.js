@@ -5,7 +5,7 @@ const NXMToken2 = artifacts.require('NXMToken2');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const NXMTokenData = artifacts.require('NXMTokenData');
 
@@ -67,7 +67,7 @@ contract('ClaimsReward', function([
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
-    qd = await QuotationData.deployed();
+    qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     qt = await Quotation.deployed();
     td = await NXMTokenData.deployed();
@@ -121,6 +121,7 @@ contract('ClaimsReward', function([
     it('should be able to claim reward', async function() {
       initialBalance = await nxmtk1.balanceOf(member1);
       rewardToGet = await cr.getAllPendingRewardOfUser(member1);
+      await assertRevert(cr.claimAllPendingReward({ from: notMember }));
       await cr.claimAllPendingReward({ from: member1 });
       (await cr.getAllPendingRewardOfUser(member1)).should.be.bignumber.equal(
         0
@@ -145,14 +146,26 @@ contract('ClaimsReward', function([
       await cr.getTotalStakeCommission(member1);
     });
 
-    /*    describe('Payout to cover holder', function() {
-      describe('Enough balance in Pool', function() {
-        
+    describe('Misc', function() {
+      it('should not be able change master address for this contract', async function() {
+        await assertRevert(
+          cr.changeMasterAddress(member1, { from: notMember })
+        );
       });
 
-      describe('Enough balance in Pool', function() {
-        
+      it('should not be able change claim status', async function() {
+        await assertRevert(cr.changeClaimStatus(claimId, { from: notMember }));
       });
-    });*/
+
+      it('should not be able call upgrade function of this contract', async function() {
+        await assertRevert(cr.upgrade(member1, { from: notMember }));
+      });
+
+      it('should be able call upgrade function of this contract', async function() {
+        await P1.buyTokenBegin({ from: member1, value: ether(1) });
+        await nxmtk1.transfer(cr.address, tokens);
+        await cr.upgrade(member1, { from: owner });
+      });
+    });
   });
 });

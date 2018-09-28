@@ -14,7 +14,7 @@ var Pool2 = artifacts.require('Pool2');
 var Pool3 = artifacts.require('Pool3');
 var PoolData = artifacts.require('PoolData');
 var Quotation = artifacts.require('Quotation');
-var QuotationData = artifacts.require('QuotationData');
+var QuotationDataMock = artifacts.require('QuotationDataMock');
 var MemberRoles = artifacts.require('MemberRoles');
 var Exchange = artifacts.require('Exchange');
 
@@ -130,7 +130,7 @@ module.exports = deployer => {
     })
     .then(function(instance) {
       IA6 = instance;
-      return QuotationData.deployed();
+      return QuotationDataMock.deployed();
     })
     .then(function(instance) {
       qd = instance;

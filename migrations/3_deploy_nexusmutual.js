@@ -13,7 +13,7 @@ var Pool2 = artifacts.require('Pool2');
 var Pool3 = artifacts.require('Pool3');
 var PoolData = artifacts.require('PoolData');
 var Quotation = artifacts.require('Quotation');
-var QuotationData = artifacts.require('QuotationData');
+var QuotationDataMock = artifacts.require('QuotationDataMock');
 var Exchange = artifacts.require('Exchange');
 var Token = artifacts.require('Token');
 var TokenTransferProxy = artifacts.require('TokenTransferProxy');
@@ -36,7 +36,7 @@ module.exports = function(deployer) {
   deployer.deploy(NXMToken2);
   deployer.deploy(NXMTokenData);
   deployer.deploy(Quotation);
-  deployer.deploy(QuotationData);
+  deployer.deploy(QuotationDataMock);
   deployer
     .deploy(TokenTransferProxy)
     .then(function(instance) {

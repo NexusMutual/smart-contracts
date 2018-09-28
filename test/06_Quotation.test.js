@@ -2,7 +2,7 @@ const Pool1 = artifacts.require('Pool1');
 const NXMToken1 = artifacts.require('NXMToken1');
 const NXMToken2 = artifacts.require('NXMToken2');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('DAI');
 const NXMTokenData = artifacts.require('NXMTokenData');
@@ -21,6 +21,8 @@ const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const PID = 0;
 const PNAME = '0x5343430000000000';
 const PHASH = 'Smart Contract Cover';
+const NPNAME = '0x5443000000000000';
+const NPHASH = 'Test Cover';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
 const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
@@ -58,7 +60,9 @@ contract('Quotation', function([
   notMember,
   newMember1,
   newMember2,
-  newMember3
+  newMember3,
+  newMember4,
+  newMember5
 ]) {
   const BN_100 = new BigNumber(100);
   const BN_5 = new BigNumber(5);
@@ -74,7 +78,7 @@ contract('Quotation', function([
     nxmtk1 = await NXMToken1.deployed();
     nxmtk2 = await NXMToken2.deployed();
     cr = await ClaimsReward.deployed();
-    qd = await QuotationData.deployed();
+    qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
@@ -161,6 +165,7 @@ contract('Quotation', function([
               const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(
                 coverHolder
               );
+              await td.getBalanceCN(coverHolder);
               initialLockedCN.should.be.bignumber.equal(0);
             });
             it('total sum assured should be 0 ETH initially', async function() {
@@ -217,6 +222,13 @@ contract('Quotation', function([
             it('should return correct cover details', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
+              await td.getBalanceLockedTokens(CID[0], coverHolder);
+              await qd.getCoverPeriod(CID[0]);
+              await qd.getCoverPremium(CID[0]);
+              await qd.getTotalSumAssuredSC(smartConAdd, CA_ETH);
+              await qd.getCoverStatusLen();
+              await qd.getAllCoverStatus();
+              await qd.getCoverStatus(CID[0]);
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
               if (
@@ -403,6 +415,7 @@ contract('Quotation', function([
         describe('If staker staked tokens on Smart Contract', function() {
           const staker1 = member1;
           const staker2 = member2;
+          const stca = new BigNumber(500000000000);
           before(async function() {
             await nxmtk2.payJoiningFee(staker1, {
               from: staker1,
@@ -414,7 +427,7 @@ contract('Quotation', function([
               value: fee
             });
             await P1.buyTokenBegin({ from: staker2, value: tokenAmount });
-            await nxmtk2.addStake(smartConAdd, stakeTokens, {
+            await nxmtk2.addStake(smartConAdd, ether(0.000001), {
               from: staker1
             });
             await nxmtk2.addStake(smartConAdd, stakeTokens, {
@@ -424,10 +437,14 @@ contract('Quotation', function([
 
           describe('Purchase Cover With Ether', function() {
             const coverHolder = member3;
-            let initialStakeCommission;
+            let initialStakeCommissionOfS1;
+            let initialStakeCommissionOfS2;
             it('should be able to purchase cover ', async function() {
-              initialStakeCommission = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
                 staker1
+              );
+              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+                staker2
               );
               await P1.makeCoverBegin(
                 PID,
@@ -442,25 +459,35 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              const newStakeCommission = initialStakeCommission
+              (await cr.getTotalStakeCommission(
+                staker1
+              )).should.be.bignumber.equal(
+                initialStakeCommissionOfS1.plus(stca)
+              );
+              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
                 .plus(
                   BN_20.times(
                     new BigNumber(coverDetails[2].toString()).div(BN_100)
                   )
                 )
+                .minus(stca)
                 .toFixed(0);
-              newStakeCommission.should.be.bignumber.equal(
-                await cr.getTotalStakeCommission(staker1)
-              );
+              (await cr.getTotalStakeCommission(
+                staker2
+              )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
           });
 
           describe('Purchase Cover With NXM', function() {
             const coverHolder = member4;
-            let initialStakeCommission;
+            let initialStakeCommissionOfS1;
+            let initialStakeCommissionOfS2;
             it('should be able to purchase cover', async function() {
-              initialStakeCommission = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
                 staker1
+              );
+              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+                staker2
               );
               await qt.makeCoverUsingNXMTokens(
                 PID,
@@ -475,26 +502,33 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              const newStakeCommission = initialStakeCommission
+              (await cr.getTotalStakeCommission(
+                staker1
+              )).should.be.bignumber.equal(initialStakeCommissionOfS1);
+              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
                 .plus(
                   BN_20.times(
                     new BigNumber(coverDetails[2].toString()).div(BN_100)
                   )
                 )
                 .toFixed(0);
-              newStakeCommission.should.be.bignumber.equal(
-                await cr.getTotalStakeCommission(staker1)
-              );
+              (await cr.getTotalStakeCommission(
+                staker2
+              )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
           });
 
           describe('Purchase Cover With DAI', function() {
             const coverHolder = member5;
             let initialPoolBalanceOfCA;
-            let initialStakeCommission;
+            let initialStakeCommissionOfS1;
+            let initialStakeCommissionOfS2;
             it('should able to purchase cover using currency assest i.e. DAI ', async function() {
-              initialStakeCommission = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
                 staker1
+              );
+              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+                staker2
               );
               await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
@@ -512,16 +546,19 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              const newStakeCommission = initialStakeCommission
+              (await cr.getTotalStakeCommission(
+                staker1
+              )).should.be.bignumber.equal(initialStakeCommissionOfS1);
+              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
                 .plus(
                   BN_20.times(
                     new BigNumber(coverDetailsDai[2].toString()).div(BN_100)
                   )
                 )
                 .toFixed(0);
-              newStakeCommission.should.be.bignumber.equal(
-                await cr.getTotalStakeCommission(staker1)
-              );
+              (await cr.getTotalStakeCommission(
+                staker2
+              )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
           });
         });
@@ -617,6 +654,7 @@ contract('Quotation', function([
             s,
             { from: newMember1, value: totalFee }
           );
+
           await qt.kycTrigger(true, 2);
         });
         it('should be able to join membership and purchase cover with DAI', async function() {
@@ -636,7 +674,8 @@ contract('Quotation', function([
             s_dai,
             { from: newMember2, value: fee }
           );
-          await qt.kycTrigger(true, 3);
+          const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
+          await qt.kycTrigger(true, hcid);
         });
         it('should refund full amount to new member', async function() {
           const totalFee = fee.plus(coverDetails[1].toString());
@@ -655,6 +694,26 @@ contract('Quotation', function([
           await assertRevert(qt.fullRefund(hcid, { from: owner }));
           await qt.fullRefund(hcid, { from: newMember3 });
         });
+        it('should get membership but not cover if quote expires for ETH', async function() {
+          const totalFee = fee.plus(coverDetails[1].toString());
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            v,
+            r,
+            s,
+            { from: newMember4, value: totalFee }
+          );
+          const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
+          const newCoverDetails = coverDetails;
+          newCoverDetails[3] = (await latestTime()) - 3;
+          await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
+          await qt.kycTrigger(true, hcid);
+        });
+
         it('should revert if quote validity expires', async function() {
           let newCoverDetails = coverDetails;
           const validity = await latestTime();
@@ -674,6 +733,29 @@ contract('Quotation', function([
             )
           );
         });
+
+        it('should get membership but not cover if quote expires for DAI', async function() {
+          await cad.transfer(notMember, tokenDai);
+          await cad.approve(qt.address, coverDetailsDai[1], {
+            from: notMember
+          });
+          await qt.verifyQuote(
+            PID,
+            smartConAdd,
+            'DAI',
+            coverDetailsDai,
+            coverPeriod,
+            v_dai,
+            r_dai,
+            s_dai,
+            { from: notMember, value: fee }
+          );
+          const hcid = await qd.getUserHoldedCoverByIndex(notMember, 1);
+          const newCoverDetails = coverDetailsDai;
+          newCoverDetails[3] = (await latestTime()) - 3;
+          await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
+          await qt.kycTrigger(true, hcid);
+        });
       });
     });
   });
@@ -685,10 +767,14 @@ contract('Quotation', function([
       initialTokenBalance = await nxmtk1.balanceOf(member3);
       initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
       validity = await qd.getValidityOfCover(1);
+    });
+    it('cover should not expired before validity', async function() {
+      (await qt.checkCoverExpired(1)).should.be.bignumber.equal(0);
       await increaseTimeTo(validity.plus(1));
     });
     it('cover should be expired after validity expires', async function() {
-      qt.expireCover(1);
+      await qt.expireCover(1);
+      (await qt.checkCoverExpired(1)).should.be.bignumber.equal(1);
     });
 
     it('decrease sum assured', async function() {
@@ -702,6 +788,8 @@ contract('Quotation', function([
       const unLockedCN = BN_5.times(coverDetails[2])
         .div(BN_100)
         .toFixed(0);
+      await td.getBalanceCN(member3);
+      await td.getBalanceLockedTokens(1, member3);
       (await nxmtk1.balanceOf(member3)).should.be.bignumber.equal(
         initialTokenBalance.plus(unLockedCN)
       );
@@ -728,6 +816,67 @@ contract('Quotation', function([
         const newqt = await Quotation.new();
         await assertRevert(
           qt.transferAssetsToNewContract(newqt.address, { from: notMember })
+        );
+      });
+    });
+  });
+
+  describe('Misc', function() {
+    let productCount;
+    describe('Add new insured product details', function() {
+      it('should not be able to add if not owner', async function() {
+        await assertRevert(
+          qd.addProductDetails(NPNAME, NPHASH, 90, 1000, 12, 0, {
+            from: notMember
+          })
+        );
+      });
+      it('should be able to add if owner', async function() {
+        productCount = await qd.getAllProductCount();
+        await qd.addProductDetails(NPNAME, NPHASH, 90, 1000, 12, 0, {
+          from: owner
+        });
+        const productDetails = await qd.getProductDetails(productCount);
+        await qd.getProductHash(productCount);
+        productDetails[1].should.equal(NPNAME);
+        productDetails[2].should.equal(NPHASH);
+      });
+      it('should increase product count', async function() {
+        (await qd.getAllProductCount()).should.be.bignumber.equal(
+          productCount.plus(1)
+        );
+      });
+    });
+
+    describe('Change product params if owner', function() {
+      const productID = productCount - 1;
+      it('should be able to change Product Hash', async function() {
+        await qd.changeProductHash(productID, 'New Test Cover');
+        (await qd.getProductHash(productID)).should.equal('New Test Cover');
+      });
+      it('should be able to change Profit Margin', async function() {
+        await qd.changePM(productID, 4);
+      });
+      it('should be able to change STLP', async function() {
+        await qd.changeSTLP(productID, 5);
+      });
+      it('should be able to change STL', async function() {
+        await qd.changeSTL(productID, 1);
+      });
+      it('should be able to change minimum cover period', async function() {
+        await qd.changeMinDays(productID, 31);
+      });
+    });
+    describe('if not internal contract address', function() {
+      it('should not be able to change master address', async function() {
+        await assertRevert(
+          qd.changeMasterAddress(qd.address, { from: notMember })
+        );
+      });
+      it('should not be able to change cover status number', async function() {
+        const CID = await qd.getAllCoversOfUser(member3);
+        await assertRevert(
+          qd.changeCoverStatusNo(CID[1], 1, { from: notMember })
         );
       });
     });

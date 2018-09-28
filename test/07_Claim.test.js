@@ -6,7 +6,7 @@ const NXMToken2 = artifacts.require('NXMToken2');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const NXMTokenData = artifacts.require('NXMTokenData');
 
@@ -66,7 +66,7 @@ contract('Claim', function([
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
-    qd = await QuotationData.deployed();
+    qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();

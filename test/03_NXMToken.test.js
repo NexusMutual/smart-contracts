@@ -9,6 +9,8 @@ const Pool1 = artifacts.require('Pool1');
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
+const { increaseTimeTo, duration } = require('./utils/increaseTime');
+const { latestTime } = require('./utils/latestTime');
 const expectEvent = require('./utils/expectEvent');
 
 const ETH = '0x455448';
@@ -78,9 +80,6 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       await P1.buyTokenBegin({ from: member1, value: tokenAmount });
       (await nxmtk1.balanceOf(member1)).should.be.bignumber.not.equal(0);
     });
-    it('should not be able to buy tokens at zero price', async function() {
-      // TODO: write test case :)
-    });
   });
 
   describe("Founder's tokens", function() {
@@ -90,6 +89,12 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       );
     });
     it('should be able to change initial token', async function() {
+      await assertRevert(
+        nxmtd.changeIntialTokens(initialFounderTokens.plus(tokens), {
+          from: notMember
+        })
+      );
+      await nxmtd.changeIntialTokens(0, { from: owner });
       await nxmtd.changeIntialTokens(initialFounderTokens.plus(tokens));
       (await nxmtd.getInitialFounderTokens()).should.be.bignumber.equal(
         initialFounderTokens.plus(tokens)
@@ -468,7 +473,6 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     describe('Buy Tokens at zero price', function() {
       before(async function() {
         await mcrd.changeSF(0, { from: owner });
-        //await mcrd.changeGrowthStep(0, { from: owner });
       });
       it('reverts', async function() {
         const initialTokenBalance = await nxmtk1.balanceOf(member1);
@@ -488,6 +492,42 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       });
       after(async function() {
         await nxms.addEmergencyPause(false, '0x4142');
+      });
+    });
+
+    describe('Misc', function() {
+      it('should be able to change joining fee', async function() {
+        await nxmtd.setJoiningfee(1);
+        (await nxmtd.joiningFee()).should.be.bignumber.equal(1);
+      });
+      it('should be able to change MinVoteLockPeriod ', async function() {
+        await nxmtd.changeMinVoteLockPeriod(1, { from: owner });
+        (await nxmtd.getMinVoteLockPeriod()).should.be.bignumber.equal(1);
+      });
+      it('should be able to change BookTime', async function() {
+        await nxmtd.changeBookTime(1, { from: owner });
+        await nxmtd.pushBookedCA(member3, 2);
+        await increaseTimeTo((await latestTime()) + 3);
+        await nxmtd.getBookedCA(member3);
+        (await nxmtd.getBookTime()).should.be.bignumber.equal(1);
+      });
+      it('should be able to change lockCADays', async function() {
+        await nxmtd.setlockCADays(1);
+        (await nxmtd.lockCADays()).should.be.bignumber.equal(1);
+      });
+      it('should be able to change SCValidDays', async function() {
+        await nxmtd.changeSCValidDays(1);
+        (await nxmtd.scValidDays()).should.be.bignumber.equal(1);
+      });
+      it('should be able to change LockTokenTimeAfterCoverExp', async function() {
+        await nxmtd.setLockTokenTimeAfterCoverExp(1);
+        (await nxmtd.lockTokenTimeAfterCoverExp()).should.be.bignumber.equal(1);
+      });
+      it('should be able to change CanAddMemberAddress', async function() {
+        await assertRevert(
+          nxmtk2.changeCanAddMemberAddress(member1, { from: member1 })
+        );
+        await nxmtk2.changeCanAddMemberAddress(member1, { from: owner });
       });
     });
   });

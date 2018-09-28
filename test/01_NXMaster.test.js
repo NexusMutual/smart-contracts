@@ -14,7 +14,7 @@ const Pool2 = artifacts.require('Pool2');
 const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
-const QuotationData = artifacts.require('QuotationData');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
@@ -65,7 +65,7 @@ contract('NXMaster', function([
 
   before(async function() {
     nxms = await NXMaster.deployed();
-    qd = await QuotationData.new();
+    qd = await QuotationDataMock.new();
     nxmtd = await NXMTokenData.deployed();
     cd = await ClaimsData.new();
     pd = await PoolData.new();

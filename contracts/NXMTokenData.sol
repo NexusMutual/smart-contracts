@@ -230,13 +230,13 @@ contract NXMTokenData is Iupgradable {
         bookedCA[_of].push(lockToken(SafeMaths.add(now, bookTime), value));
     }
 
-    /// @dev Gets number of times a user's tokens have been booked for participation in Claims assessment.
+/*     /// @dev Gets number of times a user's tokens have been booked for participation in Claims assessment.
     /// @param _of User's address.
     /// @return len number to times
     function getBookedCALength(address _of) constant returns(uint timesBooked) {
         timesBooked = bookedCA[_of].length;
     }
-
+ */
     /// @dev Changes the time period up to which tokens will be locked.
     ///               Used to generate the validity period of tokens booked by a user for participating in claim's assessment/claim's voting.
     function changeBookTime(uint64 _time) onlyOwner {
@@ -248,12 +248,12 @@ contract NXMTokenData is Iupgradable {
         _time = bookTime;
     }
 
-    /// @dev Gets the validity date and number of tokens booked for participation in Claims assessment, at a given mapping index.
+/*     /// @dev Gets the validity date and number of tokens booked for participation in Claims assessment, at a given mapping index.
     function getBookedCAByindex(address _of, uint _index) constant returns(uint index, uint valid, uint val) {
         index = _index;
         valid = bookedCA[_of][_index].validUpto;
         val = bookedCA[_of][_index].amount;
-    }
+    } */
 
     /// @dev Calculates the sum of tokens booked by a user for Claims Assessment.
     function getBookedCA(address _to) constant returns(uint tokensBookedCA) {
@@ -264,13 +264,13 @@ contract NXMTokenData is Iupgradable {
         }
     }
 
-    /// @dev Adds details of tokens that are Booked for Claim Assessment by a user.
+/*     /// @dev Adds details of tokens that are Booked for Claim Assessment by a user.
     /// @param _of User's address.
     /// @param _timestamp Validity of tokens.
     /// @param value number of tokens booked.
     function pushInBookedCA(address _of, uint _timestamp, uint value) onlyInternal {
         bookedCA[_of].push(lockToken(_timestamp, value));
-    }
+    } */
 
     /// @dev Gets the maximum number of tokens that can be allocated as Founder Tokens
     function getInitialFounderTokens() constant returns(uint tokens) {
@@ -535,7 +535,7 @@ contract NXMTokenData is Iupgradable {
         }
     }
 
-    /// @dev changes the amount of underwritten stake at a particular index.
+/*     /// @dev changes the amount of underwritten stake at a particular index.
     /// @param _index index at which amount is to be changed.
     /// @param _amount amount of NXM.
     function updateStake(uint _index, uint _amount) onlyInternal {
@@ -555,7 +555,7 @@ contract NXMTokenData is Iupgradable {
     function updateBurnedAmount(uint _index, uint _burnedAmount) onlyInternal {
         stakerBurnedAmount[_index] = _burnedAmount;
     }
-
+ */
     /// @dev Adds the burned amount in existed burned amount of staking at particular index.
     /// @param _index index at which burned amount is to be added.
     /// @param _burnedAmount amount to be added.

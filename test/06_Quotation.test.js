@@ -769,8 +769,14 @@ contract('Quotation', function([
       validity = await qd.getValidityOfCover(1);
     });
     it('cover should not expired before validity', async function() {
+      await qt.expireCover(1);
       (await qt.checkCoverExpired(1)).should.be.bignumber.equal(0);
       await increaseTimeTo(validity.plus(1));
+    });
+    it('should not be able to expire cover for different product than Smart contract cover', async function() {
+      await qd.changeProductNameOfCover(1, 'PCC');
+      await qt.expireCover(1);
+      await qd.changeProductNameOfCover(1, 'SCC');
     });
     it('cover should be expired after validity expires', async function() {
       await qt.expireCover(1);
@@ -841,6 +847,7 @@ contract('Quotation', function([
         productDetails[1].should.equal(NPNAME);
         productDetails[2].should.equal(NPHASH);
       });
+
       it('should increase product count', async function() {
         (await qd.getAllProductCount()).should.be.bignumber.equal(
           productCount.plus(1)
@@ -871,6 +878,9 @@ contract('Quotation', function([
       it('should not be able to change master address', async function() {
         await assertRevert(
           qd.changeMasterAddress(qd.address, { from: notMember })
+        );
+        await assertRevert(
+          qt.changeMasterAddress(qd.address, { from: notMember })
         );
       });
       it('should not be able to change cover status number', async function() {

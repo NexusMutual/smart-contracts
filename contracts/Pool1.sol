@@ -50,11 +50,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
 
-    constructor () public {
-        
-        dappName = "NEXUS-MUTUAL";
-    }
-
+   
     function () public payable {}
 
     modifier onlyInternal {
@@ -322,42 +318,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         return stok.balanceOf(poolAddress);
     }
 
-    ///@dev Gets 0x order details by hash.
-    function getOrderDetailsByHash(bytes16 orderType, bytes8 makerCurr, bytes8 takerCurr)
-    constant
-    returns(
-        address makerCurrAddr,
-        address takerCurrAddr,
-        uint salt,
-        address feeRecipient,
-        address takerAddress,
-        uint makerFee,
-        uint takerFee
-        ) {
-
-        if (orderType == "ELT") {
-            if (makerCurr == "ETH")
-                makerCurrAddr = pd.getWETHAddress();
-            else
-                makerCurrAddr = pd.getCurrencyAssetAddress(makerCurr);
-            takerCurrAddr = pd.getInvestmentAssetAddress(takerCurr);
-        } else if (orderType == "ILT") {
-            makerCurrAddr = pd.getInvestmentAssetAddress(makerCurr);
-            if (takerCurr == "ETH")
-                takerCurrAddr = pd.getWETHAddress();
-            else
-                takerCurrAddr = pd.getCurrencyAssetAddress(takerCurr);
-        } else if (orderType == "RBT") {
-            makerCurrAddr = pd.getInvestmentAssetAddress(makerCurr);
-            takerCurrAddr = pd.getWETHAddress();
-        }
-        salt = pd.getOrderSalt();
-        feeRecipient = pd.get0xFeeRecipient();
-        takerAddress = pd.get0xTakerAddress();
-        makerFee = pd.get0xMakerFee();
-        takerFee = pd.get0xTakerFee();
-    }
-
+   
     /// @dev Enables user to purchase cover via currency asset eg DAI
     function makeCoverUsingCA(
         uint8 prodId,

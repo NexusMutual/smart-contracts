@@ -413,6 +413,42 @@ contract Pool2 is Iupgradable {
         if (success == true)
             p3.saveIADetails(curr, rate, date);
     }
+    
+     ///@dev Gets 0x order details by hash.
+    function getOrderDetailsByHash(bytes16 orderType, bytes8 makerCurr, bytes8 takerCurr)
+    constant
+    returns(
+        address makerCurrAddr,
+        address takerCurrAddr,
+        uint salt,
+        address feeRecipient,
+        address takerAddress,
+        uint makerFee,
+        uint takerFee
+        ) {
+
+        if (orderType == "ELT") {
+            if (makerCurr == "ETH")
+                makerCurrAddr = pd.getWETHAddress();
+            else
+                makerCurrAddr = pd.getCurrencyAssetAddress(makerCurr);
+            takerCurrAddr = pd.getInvestmentAssetAddress(takerCurr);
+        } else if (orderType == "ILT") {
+            makerCurrAddr = pd.getInvestmentAssetAddress(makerCurr);
+            if (takerCurr == "ETH")
+                takerCurrAddr = pd.getWETHAddress();
+            else
+                takerCurrAddr = pd.getCurrencyAssetAddress(takerCurr);
+        } else if (orderType == "RBT") {
+            makerCurrAddr = pd.getInvestmentAssetAddress(makerCurr);
+            takerCurrAddr = pd.getWETHAddress();
+        }
+        salt = pd.getOrderSalt();
+        feeRecipient = pd.get0xFeeRecipient();
+        takerAddress = pd.get0xTakerAddress();
+        makerFee = pd.get0xMakerFee();
+        takerFee = pd.get0xTakerFee();
+    }
 
     function bytes16ToString(bytes16 x)  internal constant returns (string)
     {
@@ -451,5 +487,7 @@ contract Pool2 is Iupgradable {
             return 0;
         }
     }
+    
+    
 
 }

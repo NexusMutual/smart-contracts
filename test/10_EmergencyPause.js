@@ -56,7 +56,8 @@ contract('NXMaster: Emergency Pause', function([
   member3,
   member4,
   coverHolder1,
-  coverHolder2
+  coverHolder2,
+  newMember
 ]) {
   const P_18 = new BigNumber(1e18);
   const stakeTokens = ether(1);
@@ -152,6 +153,19 @@ contract('NXMaster: Emergency Pause', function([
   describe('Emergency Pause: Active', function() {
     let startTime;
     before(async function() {
+      const totalFee = fee.plus(coverDetails[1].toString());
+      await qt.verifyQuote(
+        PID,
+        smartConAdd,
+        'ETH',
+        coverDetails,
+        coverPeriod,
+        v,
+        r,
+        s,
+        { from: newMember, value: totalFee }
+      );
+
       await nxms.startEmergencyPause();
       startTime = await latestTime();
     });
@@ -164,6 +178,9 @@ contract('NXMaster: Emergency Pause', function([
       epd[0].should.equal(true);
       epd[1].should.be.bignumber.equal(startTime);
       epd[2].should.equal(AdvisoryBoard);
+    });
+    it('should not be able to trigger kyc', async function() {
+      await assertRevert(qt.kycTrigger(true, 1));
     });
     it('add claim to queue', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder2);

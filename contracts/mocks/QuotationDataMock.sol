@@ -21,4 +21,9 @@ contract QuotationDataMock is QuotationData {
 		allCoverHolded[index].coverCurr = newCurr;
 	}
 
+	/// @dev Change the Product Name of a given cover.
+	function changeProductNameOfCover(uint _cid, bytes8 newProductName) public {
+        allCovers[_cid].productName = newProductName;
+    }
+
 }

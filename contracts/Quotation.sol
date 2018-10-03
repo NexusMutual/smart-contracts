@@ -239,9 +239,8 @@ contract Quotation is Iupgradable {
             totalFee = joinFee + coverDetails[1];
         else {
             stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
-            bool succ = stok.transferFrom(msg.sender, this, coverDetails[1]);
-            require(succ);
-            
+            require(stok.transferFrom(msg.sender, address(this), coverDetails[1]));
+           
         }
         require(msg.value == totalFee);
         require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));

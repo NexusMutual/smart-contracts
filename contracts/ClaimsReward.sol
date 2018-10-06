@@ -472,7 +472,7 @@ contract ClaimsReward is Iupgradable {
         lengthVote = cd.getVoteAddressMemberLength(msg.sender);
         lastClaimed = lengthVote;
         _days = SafeMaths.mul(_days, counter);
-        if(tc1.tokensLocked(msg.sender, "CLA", block.timestamp)>0)
+        if (tc1.tokensLocked(msg.sender, "CLA", block.timestamp) > 0)
             tc1.reduceLock("CLA", msg.sender, _days);
         for (i = lastIndexMV; i < lengthVote; i++) {
             voteid = cd.getVoteAddressMember(msg.sender, i);

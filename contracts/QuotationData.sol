@@ -22,7 +22,7 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 contract QuotationData is Iupgradable {
     NXMaster ms;
-    address masterAddress;
+    address public masterAddress;
 
     using SafeMaths
     for uint;
@@ -70,6 +70,8 @@ contract QuotationData is Iupgradable {
     cover[] allCovers;
     HoldCover[] allCoverHolded;
     uint public pendingCoverStart;
+    event CoverDetailsEvent(uint indexed cid, address scAdd, uint sumAssured, uint expiry, uint premium, bytes4 curr);
+    event CoverStatusEvent(uint indexed cid, uint8 statusNum);
 
     function QuotationData() {
         pendingCoverStart = 0;
@@ -275,6 +277,7 @@ contract QuotationData is Iupgradable {
     /// @param _stat New status.
     function changeCoverStatusNo(uint _cid, uint8 _stat) onlyInternal {
         coverstatus[_cid] = _stat;
+        CoverStatusEvent(_cid, _stat);
     }
 
     /// @dev Gets the Cover Period (in days) of a given cover.
@@ -344,6 +347,7 @@ contract QuotationData is Iupgradable {
         address _scAddress,
         uint premium
         ) onlyInternal {
+        uint expiryDate = SafeMaths.add(now, SafeMaths.mul(_coverPeriod, 1 days));
         allCovers.push(
             cover(
             _productName,
@@ -351,12 +355,14 @@ contract QuotationData is Iupgradable {
             _currencyCode,
             _sumAssured,
             _coverPeriod,
-            SafeMaths.add(now, SafeMaths.mul(_coverPeriod, 1 days)),
+            expiryDate,
             _scAddress,
             premium
             )
             );
-        userCover[_userAddress].push(SafeMaths.sub(allCovers.length, 1));
+        uint cid = SafeMaths.sub(allCovers.length, 1);
+        userCover[_userAddress].push(cid);
+        CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, _currencyCode);
     }
 
     function addHoldCover(uint prodId, address from, address scAddress, bytes4 coverCurr, 

@@ -37,8 +37,8 @@ contract MCR is Iupgradable {
     NXMaster ms;
     QuotationData qd;
     BasicToken btok;
-    address poolAddress;
-    address masterAddress;
+    address public poolAddress;
+    address public masterAddress;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
     uint64 private constant DECIMAL1E08 = 100000000;
@@ -76,7 +76,8 @@ contract MCR is Iupgradable {
         uint currentVersion = ms.currentVersion();
         md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
         qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        poolAddress = ms.versionContractAddress(currentVersion, "P1");
+        p1 = Pool1(poolAddress);
         pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
         tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
 

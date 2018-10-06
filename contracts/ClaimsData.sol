@@ -23,7 +23,7 @@ contract ClaimsData is Iupgradable {
 
     using SafeMaths for uint;
     NXMaster ms;
-    address masterAddress;
+    address public masterAddress;
 
     struct claim {
         uint coverId;

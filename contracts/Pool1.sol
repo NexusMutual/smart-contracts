@@ -34,8 +34,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     for uint;
 
     NXMaster ms;
-    address masterAddress;
-    address poolAddress;
+    address public masterAddress;
     address mcrAddress;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
@@ -96,11 +95,6 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
         q2 = Quotation(ms.versionContractAddress(currentVersion, "Q2"));
         p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
-    }
-
-    /// @dev Changes Pool1 address.
-    function changePoolAddress(address _add) onlyInternal {
-        poolAddress = _add;
     }
 
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
@@ -250,7 +244,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function getBalanceofInvestmentAsset(bytes8 _curr) constant returns(uint balance) {
         address currAddress = pd.getInvestmentAssetAddress(_curr);
         stok = StandardToken(currAddress);
-        return stok.balanceOf(poolAddress);
+        return stok.balanceOf(address(this));
     }
 
     /// @dev transfers investment assets from old Pool1 to new Pool1 address.
@@ -269,7 +263,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function getBalanceOfCurrencyAsset(bytes8 _curr) constant returns(uint balance) {
 
         stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
-        return stok.balanceOf(poolAddress);
+        return stok.balanceOf(address(this));
     }
 
     ///@dev Transfers currency from current Pool1 address to the new Pool1 address.
@@ -309,16 +303,15 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     /// @dev Transfers amount to Pool1 from 0x order maker.
     function transferToPool(address currAddr, uint amount) onlyInternal returns(bool success) {
         stok = StandardToken(currAddr);
-        success = stok.transferFrom(pd.get0xMakerAddress(), poolAddress, amount);
+        success = stok.transferFrom(pd.get0xMakerAddress(), address(this), amount);
     }
 
     ///@dev Gets 0x wrapped ether Pool1 balance.
     function getWETHPoolBalance() constant returns(uint wETH) {
         stok = StandardToken(pd.getWETHAddress());
-        return stok.balanceOf(poolAddress);
+        return stok.balanceOf(address(this));
     }
 
-   
     /// @dev Enables user to purchase cover via currency asset eg DAI
     function makeCoverUsingCA(
         uint8 prodId,

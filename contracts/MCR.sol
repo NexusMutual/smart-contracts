@@ -206,7 +206,6 @@ contract MCR is Iupgradable {
     /// @param curr Currency name.
     /// @return tokenPrice Token price.
     function calculateTokenPrice(bytes4 curr) constant returns(uint tokenPrice) {
-
         uint mcrtp;
         (, mcrtp) = calVtpAndMCRtp();
         uint to = SafeMaths.div(tc1.totalSupply(), DECIMAL1E18);
@@ -215,13 +214,14 @@ contract MCR is Iupgradable {
         uint getCurr3DaysAvg;
         (getSFx100000, getGrowthStep, getCurr3DaysAvg) = md.getTokenPriceDetails(curr);
         if (SafeMaths.div((SafeMaths.mul(mcrtp, mcrtp)), DECIMAL1E08) >= 1) {
-            tokenPrice = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(
-            SafeMaths.mul(SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to))), mcrtp), mcrtp), 100000)), getGrowthStep);
-        } else {
-            tokenPrice = SafeMaths.div((SafeMaths.mul(SafeMaths.mul
-            (SafeMaths.mul(SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to))), 10000), 10000), 100000)), getGrowthStep);
+            uint SFGrowthTo = SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to)));
+            uint SFGrowthToxmcrtpx2 =  SafeMaths.mul((SafeMaths.mul(SafeMaths.mul(SFGrowthTo, mcrtp), mcrtp)), 100000);
+            tokenPrice =  SafeMaths.div(SFGrowthToxmcrtpx2, getGrowthStep);
+         } else {
+            uint SGxGSTo =  SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to)));
+            uint SGxGSTox = SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(SGxGSTo, 10000), 10000), 100000);
+            tokenPrice = SafeMaths.div(SGxGSTox, getGrowthStep);
         }
-
         tokenPrice = (SafeMaths.div(SafeMaths.mul((tokenPrice), getCurr3DaysAvg), 100));
     }
     

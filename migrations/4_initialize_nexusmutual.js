@@ -151,20 +151,16 @@ module.exports = deployer => {
         mcr.address,
         pl3.address
       ];
-      console.log('address initialized');
       return nxms.addNewVersion(addr);
     })
     .then(function() {
-      console.log('Add new version');
       return nxms.switchToRecentVersion();
     })
     .then(function() {
-      console.log('switchToRecentVersion');
       return nxms.owner();
     })
     .then(function(owner) {
       nown = owner;
-      console.log(nown);
       return pl1.takeEthersOnly({ from: nown, value: 4000000000000000000 });
     })
     .then(function() {

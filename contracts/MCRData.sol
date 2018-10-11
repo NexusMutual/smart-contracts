@@ -52,7 +52,7 @@ contract MCRData is Iupgradable {
         sfX100000 = 140;
         mcrTime = SafeMaths.mul64(SafeMaths.mul64(24, 60), 60);
         mcrFailTime = SafeMaths.mul64(6, 3600);
-        minMCRReq = 0;
+        minMCRReq = 0; //value in percentage e.g 60% = 60*100 
         allMCRData.push(mcr_Data(0, 0, 0, 0));
         minCap = 1;
         shockParameter = 50;
@@ -155,6 +155,7 @@ contract MCRData is Iupgradable {
     }
 
     /// @dev Changes minimum value of MCR required for the system to be working.
+    /// @param minMCR in percentage. e.g 76% = 76*100
     function changeMinReqMCR(uint32 minMCR) onlyInternal {
         minMCRReq = minMCR;
     }

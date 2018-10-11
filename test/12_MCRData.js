@@ -104,7 +104,7 @@ contract('MCRData', function([owner, notOwner]) {
       });
       it('should not be able to add Currency', async function() {
         await assertRevert(mcrd.addCurrency('0x4c4f4c', { from: notOwner }));
-        await mcrd.getAllCurrencies();
+        console.log(await mcrd.getAllCurrencies());
         await mcrd.getSFx100000();
         await mcrd.getLastMCREther();
         await mcrd.getLastVfull();

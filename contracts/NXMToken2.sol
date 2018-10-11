@@ -65,7 +65,7 @@ contract NXMToken2 is Iupgradable, Governed {
 
     modifier canWithdraw {
 
-        require(getLockedNXMTokenOfStakerByStakerAddress(msg.sender) == 0); // No pending stake.
+        require(tc1.getLockedNXMTokenOfStakerByStakerAddress(msg.sender) == 0); // No pending stake.
         require(totalBalanceCNOfUser(msg.sender) == 0);   // No active covers.
         require(td.tokensLocked(msg.sender, "CLA", now) == 0); // No locked tokens for CA.
         require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
@@ -294,30 +294,6 @@ contract NXMToken2 is Iupgradable, Governed {
             td.setSCAddressLastBurnIndex(_scAddress, SafeMaths.sub(totalStaker, 1));
     }
 
-    /// @dev Gets total locked NXM tokens for staker in all the smart contracts.
-    /// @param _of staker address.
-    /// @return _stakerLockedNXM total locked NXM tokens.
-    function getLockedNXMTokenOfStakerByStakerAddress(address _of) public constant returns(uint _stakerLockedNXM) {
-        _stakerLockedNXM = 0;
-        uint stakeAmt;
-        uint dateAdd;
-        uint burnedAmt;
-        uint nowTime = now;
-        uint totalStaker = td.getTotalScAddressesAgainstStaker(_of);
-        for (uint i = 0; i < totalStaker; i++) {
-            uint stakerIndx;
-            (, stakerIndx) = td.getStakerIndexByStakerAddAndIndex(_of, i);
-            (, , , stakeAmt, burnedAmt, dateAdd) = td.getStakeDetails(stakerIndx);
-            uint16 dayStaked = uint16(SafeMaths.div(SafeMaths.sub(nowTime, dateAdd), 1 days));
-            if (stakeAmt > 0 && td.scValidDays() > dayStaked) {
-                uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(
-                    SafeMaths.sub(td.scValidDays(), dayStaked), 100000), td.scValidDays()), stakeAmt), 100000);
-                if (lockedNXM > burnedAmt)
-                    _stakerLockedNXM = SafeMaths.add(_stakerLockedNXM, SafeMaths.sub(lockedNXM, burnedAmt));
-            }
-        }
-    }
-
     /// @dev NXM tokens locked against particular smart contract at particular index.
     /// @param _scAddress smart contract address.
     /// @param _scAddressIndex index.
@@ -344,10 +320,22 @@ contract NXMToken2 is Iupgradable, Governed {
     function payJoiningFee(address userAdd) public payable checkPause {
 
 
-        require(!qd.refundEligible(userAdd));
-        require(!ms.isMember(userAdd));
-        require(msg.value == td.joiningFee());
-        qd.setRefundEligible(userAdd, true);
+        uint currentVersion = ms.currentVersion();
+        if (msg.sender == address(ms.versionContractAddress(currentVersion, "Q2"))) {
+            address _add = td.walletAddress();
+            require(_add != 0x0000);
+            bool succ = _add.send(msg.value);
+            require(succ);
+            if (succ == true)
+                mr.updateMemberRole(userAdd, 3, true, 0);
+
+        }else {
+
+            require(!qd.refundEligible(userAdd));
+            require(!ms.isMember(userAdd));
+            require(msg.value == td.joiningFee());
+            qd.setRefundEligible(userAdd, true);
+        }
         // address _add = td.walletAddress();
         // require(_add != 0x0000);
         // bool succ = _add.send(msg.value);

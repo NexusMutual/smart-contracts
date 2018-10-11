@@ -233,7 +233,7 @@ contract NXMToken1 is Iupgradable {
         }   
         uint balance = td.getBalanceOf(_owner);
         uint256 amount = (((balance.sub(lockedAmount)).sub(tc2.totalBalanceCNOfUser(_owner))).sub(
-            tc2.getLockedNXMTokenOfStakerByStakerAddress(_owner)));
+            getLockedNXMTokenOfStakerByStakerAddress(_owner)));
 
         return amount;
     }
@@ -359,6 +359,30 @@ contract NXMToken1 is Iupgradable {
         td.decreaseBalanceOf(_of, tokens);
         td.decreaseTotalSupply(tokens);
         callBurnEvent(_of, eventName, id, tokens);
+    }
+
+    /// @dev Gets total locked NXM tokens for staker in all the smart contracts.
+    /// @param _of staker address.
+    /// @return _stakerLockedNXM total locked NXM tokens.
+    function getLockedNXMTokenOfStakerByStakerAddress(address _of) public constant returns(uint _stakerLockedNXM) {
+        _stakerLockedNXM = 0;
+        uint stakeAmt;
+        uint dateAdd;
+        uint burnedAmt;
+        uint nowTime = now;
+        uint totalStaker = td.getTotalScAddressesAgainstStaker(_of);
+        for (uint i = 0; i < totalStaker; i++) {
+            uint stakerIndx;
+            (, stakerIndx) = td.getStakerIndexByStakerAddAndIndex(_of, i);
+            (, , , stakeAmt, burnedAmt, dateAdd) = td.getStakeDetails(stakerIndx);
+            uint16 dayStaked = uint16(SafeMaths.div(SafeMaths.sub(nowTime, dateAdd), 1 days));
+            if (stakeAmt > 0 && td.scValidDays() > dayStaked) {
+                uint lockedNXM = SafeMaths.div(SafeMaths.mul(SafeMaths.div(SafeMaths.mul(
+                    SafeMaths.sub(td.scValidDays(), dayStaked), 100000), td.scValidDays()), stakeAmt), 100000);
+                if (lockedNXM > burnedAmt)
+                    _stakerLockedNXM = SafeMaths.add(_stakerLockedNXM, SafeMaths.sub(lockedNXM, burnedAmt));
+            }
+        }
     }
 }
 

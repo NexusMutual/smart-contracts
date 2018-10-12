@@ -195,6 +195,9 @@ contract('NXMaster: Emergency Pause', function([
       const claimId = (await cd.actualClaimLength()) - 1;
       await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
     });
+    it('should not be able to add currency', async function() {
+      await assertRevert(mcr.addCurrency('0x4c4f4c', { from: owner }));
+    });
   });
 
   describe('Emergency Pause: Inactive', function() {

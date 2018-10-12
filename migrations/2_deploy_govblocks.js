@@ -10,7 +10,6 @@ module.exports = deployer => {
     })
     .then(function(instance) {
       let addr = instance.address;
-      console.log(addr);
       return deployer.deploy(
         MemberRoles,
         '0x4e455855532d4d555455414c',

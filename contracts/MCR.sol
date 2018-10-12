@@ -44,7 +44,7 @@ contract MCR is Iupgradable {
     uint64 private constant DECIMAL1E08 = 100000000;
 
     event Apiresult(address indexed sender, string msg);
-    event MCR(uint indexed date, uint blockNumber, bytes4[] allCurr, uint32[] allCurrRates, uint mcrEtherx100, uint32 mcrPercx100, uint64 vFull);
+    event MCR(uint indexed date, uint blockNumber, bytes4[] allCurr, uint32[] allCurrRates, uint mcrEtherx100, uint32 mcrPercx100, uint vFull);
 
     function changeMasterAddress(address _add) {
         if (masterAddress == 0x000) {
@@ -130,9 +130,9 @@ contract MCR is Iupgradable {
     /// @param mcrP  Minimum Capital Requirement in percentage.
     /// @param vF Pool1 fund value in Ether used in the last full daily calculation of the Capital model.
     /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
-    function addMCRData(uint32 mcrP, uint32 mcrE, uint64 vF, bytes4[] curr, uint32[] _threeDayAvg, uint64 onlyDate) checkPause {
+    function addMCRData(uint32 mcrP, uint32 mcrE, uint vF, bytes4[] curr, uint32[] _threeDayAvg, uint64 onlyDate) checkPause {
         require(md.isnotarise(msg.sender) != false);
-        vF = SafeMaths.mul64(vF, DECIMAL1E18);
+        vF = SafeMaths.mul(vF, DECIMAL1E18);
         uint len = md.getMCRDataLength();
         addMCRDataExtended(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
     }
@@ -144,7 +144,7 @@ contract MCR is Iupgradable {
         if (failedDate >= lastdate) {
             uint32 mcrP;
             uint32 mcrE;
-            uint64 vF;
+            uint vF;
             (mcrP, mcrE, vF, ) = md.getLastMCR();
             uint16 len = md.getCurrLength();
             md.pushMCRData(mcrP, mcrE, vF, date);
@@ -206,7 +206,6 @@ contract MCR is Iupgradable {
     /// @param curr Currency name.
     /// @return tokenPrice Token price.
     function calculateTokenPrice(bytes4 curr) constant returns(uint tokenPrice) {
-
         uint mcrtp;
         (, mcrtp) = calVtpAndMCRtp();
         uint to = SafeMaths.div(tc1.totalSupply(), DECIMAL1E18);
@@ -215,13 +214,14 @@ contract MCR is Iupgradable {
         uint getCurr3DaysAvg;
         (getSFx100000, getGrowthStep, getCurr3DaysAvg) = md.getTokenPriceDetails(curr);
         if (SafeMaths.div((SafeMaths.mul(mcrtp, mcrtp)), DECIMAL1E08) >= 1) {
-            tokenPrice = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(
-            SafeMaths.mul(SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to))), mcrtp), mcrtp), 100000)), getGrowthStep);
-        } else {
-            tokenPrice = SafeMaths.div((SafeMaths.mul(SafeMaths.mul
-            (SafeMaths.mul(SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to))), 10000), 10000), 100000)), getGrowthStep);
+            uint SFGrowthTo = SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to)));
+            uint SFGrowthToxmcrtpx2 =  SafeMaths.mul((SafeMaths.mul(SafeMaths.mul(SFGrowthTo, mcrtp), mcrtp)), 100000);
+            tokenPrice =  SafeMaths.div(SFGrowthToxmcrtpx2, getGrowthStep);
+         } else {
+            uint SGxGSTo =  SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to)));
+            uint SGxGSTox = SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(SGxGSTo, 10000), 10000), 100000);
+            tokenPrice = SafeMaths.div(SGxGSTox, getGrowthStep);
         }
-
         tokenPrice = (SafeMaths.div(SafeMaths.mul((tokenPrice), getCurr3DaysAvg), 100));
     }
     
@@ -238,7 +238,7 @@ contract MCR is Iupgradable {
 
     /// @dev Adds MCR Data.
     ///      Checks if MCR is within valid thresholds in order to rule out any incorrect calculations
-    function addMCRDataExtended(uint len, uint64 newMCRDate, bytes4[] curr, uint32 mcrE, uint32 mcrP, uint64 vF, uint32[] _threeDayAvg) internal {
+    function addMCRDataExtended(uint len, uint64 newMCRDate, bytes4[] curr, uint32 mcrE, uint32 mcrP, uint vF, uint32[] _threeDayAvg) internal {
         uint vtp = 0;
         uint lower = 0;
         uint lowerThreshold = 0;

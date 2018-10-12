@@ -5,7 +5,7 @@ var DAI = artifacts.require('DAI');
 var NXMaster = artifacts.require('NXMaster');
 var NXMaster2 = artifacts.require('NXMaster2');
 var MCR = artifacts.require('MCR');
-var MCRData = artifacts.require('MCRData');
+var MCRDataMock = artifacts.require('MCRDataMock');
 var NXMToken1 = artifacts.require('NXMToken1');
 var NXMToken2 = artifacts.require('NXMToken2');
 var NXMTokenData = artifacts.require('NXMTokenData');
@@ -66,7 +66,7 @@ module.exports = deployer => {
     })
     .then(function(instance) {
       mcr = instance;
-      return MCRData.deployed();
+      return MCRDataMock.deployed();
     })
     .then(function(instance) {
       mcrd = instance;
@@ -151,20 +151,16 @@ module.exports = deployer => {
         mcr.address,
         pl3.address
       ];
-      console.log('address initialized');
       return nxms.addNewVersion(addr);
     })
     .then(function() {
-      console.log('Add new version');
       return nxms.switchToRecentVersion();
     })
     .then(function() {
-      console.log('switchToRecentVersion');
       return nxms.owner();
     })
     .then(function(owner) {
       nown = owner;
-      console.log(nown);
       return pl1.takeEthersOnly({ from: nown, value: 4000000000000000000 });
     })
     .then(function() {

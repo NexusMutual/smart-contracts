@@ -1,5 +1,5 @@
 const MCR = artifacts.require('MCR');
-const MCRData = artifacts.require('MCRData');
+const MCRDataMock = artifacts.require('MCRDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMToken1 = artifacts.require('NXMToken1');
 const NXMToken2 = artifacts.require('NXMToken2');
@@ -42,7 +42,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     nxmtd = await NXMTokenData.deployed();
     P1 = await Pool1.deployed();
     mcr = await MCR.deployed();
-    mcrd = await MCRData.deployed();
+    mcrd = await MCRDataMock.deployed();
     nxms = await NXMaster.deployed();
   });
 

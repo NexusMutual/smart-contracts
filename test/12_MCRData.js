@@ -1,5 +1,5 @@
 const MCR = artifacts.require('MCR');
-const MCRData = artifacts.require('MCRData');
+const MCRDataMock = artifacts.require('MCRDataMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -14,10 +14,10 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('MCRData', function([owner, notOwner]) {
+contract('MCRDataMock', function([owner, notOwner]) {
   before(async function() {
     await advanceBlock();
-    mcrd = await MCRData.deployed();
+    mcrd = await MCRDataMock.deployed();
   });
   describe('if owner', function() {
     describe('Change Minimum Cap', function() {

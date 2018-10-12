@@ -1,5 +1,5 @@
 const MCR = artifacts.require('MCR');
-const MCRData = artifacts.require('MCRData');
+const MCRDataMock = artifacts.require('MCRDataMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -19,7 +19,7 @@ contract('MCR', function([owner, notOwner]) {
   before(async function() {
     await advanceBlock();
     mcr = await MCR.deployed();
-    mcrd = await MCRData.deployed();
+    mcrd = await MCRDataMock.deployed();
   });
 
   describe('if owner/internal contract address', function() {
@@ -58,9 +58,9 @@ contract('MCR', function([owner, notOwner]) {
       it('should be able to add MCR data', async function() {
         await mcr.addLastMCRData(20181009, { from: owner });
         await mcr.addLastMCRData(20181011, { from: owner });
-        console.log(await mcrd.getLastMCRDate());
+        //console.log(await mcrd.getLastMCRDate());
         await mcr.addLastMCRData(20181012, { from: owner });
-        console.log(await mcrd.getLastMCRDate());
+        //console.log(await mcrd.getLastMCRDate());
       });
     });
   });
@@ -104,7 +104,28 @@ contract('MCR', function([owner, notOwner]) {
         ether(4),
         ['0x455448', '0x444149'],
         [100, 65407],
-        20181013,
+        20181014,
+        { from: owner }
+      );
+      await mcrd.removeAllCurrencies();
+      console.log((await mcr.calVtpAndMCRtp())[0].toString());
+      await mcr.addMCRData(
+        18000,
+        10000,
+        ether(4),
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181015,
+        { from: owner }
+      );
+      await mcrd.removeAllMCRData();
+      await mcr.addMCRData(
+        18000,
+        10000,
+        ether(4),
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181016,
         { from: owner }
       );
       await assertRevert(

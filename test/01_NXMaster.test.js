@@ -5,7 +5,7 @@ const DAI = artifacts.require('DAI');
 const NXMaster = artifacts.require('NXMaster');
 const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
-const MCRData = artifacts.require('MCRData');
+const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMToken1 = artifacts.require('NXMToken1');
 const NXMToken2 = artifacts.require('NXMToken2');
 const NXMTokenData = artifacts.require('NXMTokenData');
@@ -69,7 +69,7 @@ contract('NXMaster', function([
     nxmtd = await NXMTokenData.deployed();
     cd = await ClaimsData.new();
     pd = await PoolData.new();
-    mcrd = await MCRData.new();
+    mcrd = await MCRDataMock.new();
     qt = await Quotation.new();
     nxmt1 = await NXMToken1.new();
     nxmt2 = await NXMToken2.new();

@@ -5,7 +5,7 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('DAI');
-const MCRData = artifacts.require('MCRData');
+const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMTokenData = artifacts.require('NXMTokenData');
 
 const { assertRevert } = require('./utils/assertRevert');
@@ -86,7 +86,7 @@ contract('Quotation', function([
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
     td = await NXMTokenData.deployed();
-    mcrd = await MCRData.deployed();
+    mcrd = await MCRDataMock.deployed();
   });
 
   describe('Cover Purchase', function() {

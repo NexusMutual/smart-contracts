@@ -5,7 +5,7 @@ var DAI = artifacts.require('DAI');
 var NXMaster = artifacts.require('NXMaster');
 var NXMaster2 = artifacts.require('NXMaster2');
 var MCR = artifacts.require('MCR');
-var MCRData = artifacts.require('MCRData');
+var MCRDataMock = artifacts.require('MCRDataMock');
 var NXMToken2 = artifacts.require('NXMToken2');
 var NXMTokenData = artifacts.require('NXMTokenData');
 var Pool1 = artifacts.require('Pool1');
@@ -32,7 +32,7 @@ module.exports = function(deployer) {
   deployer.deploy(Pool3);
   deployer.deploy(PoolData);
   deployer.deploy(MCR);
-  deployer.deploy(MCRData);
+  deployer.deploy(MCRDataMock);
   deployer.deploy(NXMToken2);
   deployer.deploy(NXMTokenData);
   deployer.deploy(Quotation);

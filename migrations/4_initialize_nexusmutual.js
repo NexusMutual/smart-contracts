@@ -5,7 +5,7 @@ var DAI = artifacts.require('DAI');
 var NXMaster = artifacts.require('NXMaster');
 var NXMaster2 = artifacts.require('NXMaster2');
 var MCR = artifacts.require('MCR');
-var MCRData = artifacts.require('MCRData');
+var MCRDataMock = artifacts.require('MCRDataMock');
 var NXMToken1 = artifacts.require('NXMToken1');
 var NXMToken2 = artifacts.require('NXMToken2');
 var NXMTokenData = artifacts.require('NXMTokenData');
@@ -66,7 +66,7 @@ module.exports = deployer => {
     })
     .then(function(instance) {
       mcr = instance;
-      return MCRData.deployed();
+      return MCRDataMock.deployed();
     })
     .then(function(instance) {
       mcrd = instance;

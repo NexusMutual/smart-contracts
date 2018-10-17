@@ -97,7 +97,6 @@ contract('MCR', function([owner, notOwner]) {
       await mcrd.pushMCRData(10000, 0, 0, 0, { from: owner });
       await mcr.getMaxSellTokens();
       await mcr.calculateTokenPrice(CA_ETH);
-      console.log((await mcr.calVtpAndMCRtp())[0].toString());
       await mcr.addMCRData(
         18000,
         10000,
@@ -108,7 +107,6 @@ contract('MCR', function([owner, notOwner]) {
         { from: owner }
       );
       await mcrd.removeAllCurrencies();
-      console.log((await mcr.calVtpAndMCRtp())[0].toString());
       await mcr.addMCRData(
         18000,
         10000,

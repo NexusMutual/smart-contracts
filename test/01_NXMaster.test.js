@@ -262,6 +262,7 @@ contract('NXMaster', function([
     });
     it('should return true if member', async function() {
       await nxmt2.payJoiningFee(member, { from: member, value: fee });
+      await nxmt2.kycVerdict(member, true);
       const isMember = await nxms.isMember(member);
       isMember.should.equal(true);
     });

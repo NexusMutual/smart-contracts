@@ -44,6 +44,7 @@ contract('NXMToken:Membership', function([
     describe('if paid joining fee', function() {
       it('should be able to join as member', async function() {
         await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
+        await nxmtk2.kycVerdict(member1, true);
         (await mr.checkRoleIdByAddress(member1, 3)).should.equal(true);
       });
     });

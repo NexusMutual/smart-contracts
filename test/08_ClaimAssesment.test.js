@@ -83,12 +83,16 @@ contract('Claim: Assessment', function([
       cd.changeMasterAddress(mcr.address, { from: notMember })
     );
     await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
+    await nxmtk2.kycVerdict(member1, true);
     await P1.buyTokenBegin({ from: member1, value: ether(1) });
     await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
+    await nxmtk2.kycVerdict(member2, true);
     await P1.buyTokenBegin({ from: member2, value: ether(2) });
     await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
+    await nxmtk2.kycVerdict(member3, true);
     await P1.buyTokenBegin({ from: member3, value: ether(2) });
     await nxmtk2.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
+    await nxmtk2.kycVerdict(coverHolder, true);
     await P1.buyTokenBegin({ from: coverHolder, value: ether(3) });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });
@@ -385,6 +389,7 @@ contract('Claim: Assessment', function([
   describe('Member not locked tokens for Claim Assessment', function() {
     before(async function() {
       await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
+      await nxmtk2.kycVerdict(member4, true);
       await P1.buyTokenBegin({ from: member4, value: ether(2) });
       await P1.makeCoverBegin(
         PID,

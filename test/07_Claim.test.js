@@ -50,13 +50,12 @@ contract('Claim', function([
   member2,
   member3,
   member4,
-  member5,
   notCoverHolder,
   notMember
 ]) {
   const P_18 = new BigNumber(1e18);
-  const stakeTokens = ether(3);
-  const tokens = ether(4.5);
+  const stakeTokens = ether(2);
+  const tokens = ether(6.5);
   const validity = duration.days(30);
 
   before(async function() {
@@ -76,27 +75,30 @@ contract('Claim', function([
   describe('Submit Claim', function() {
     before(async function() {
       await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
-      await P1.buyTokenBegin({ from: member1, value: ether(1) });
+      await nxmtk2.kycVerdict(member1, true);
+      await P1.buyTokenBegin({ from: member1, value: ether(0.8) });
       await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
+      await nxmtk2.kycVerdict(member2, true);
       await P1.buyTokenBegin({ from: member2, value: ether(1) });
       await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
-      await P1.buyTokenBegin({ from: member3, value: ether(1) });
+      await nxmtk2.kycVerdict(member3, true);
+      await P1.buyTokenBegin({ from: member3, value: ether(1.6) });
+      await nxmtk1.allocateFounderTokens(member1, ether(500), { from: owner });
+      await nxmtk1.allocateFounderTokens(member2, ether(500), { from: owner });
+      await nxmtk1.allocateFounderTokens(member3, ether(500), { from: owner });
       await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
+      await nxmtk2.kycVerdict(member4, true);
       await P1.buyTokenBegin({ from: member4, value: ether(1) });
-      await nxmtk2.payJoiningFee(member4, { from: member4, value: fee });
-      await P1.buyTokenBegin({ from: member4, value: ether(1) });
-      await nxmtk2.payJoiningFee(member5, { from: member5, value: fee });
-      await P1.buyTokenBegin({ from: member5, value: ether(1) });
       await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
       await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });
       await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member3 });
     });
 
     describe('if member', function() {
-      let coverHolder = member4;
+      let coverHolder = member1;
       describe('if does not purchased cover', function() {
         it('reverts', async function() {
-          await assertRevert(cl.submitClaim(0, { from: member4 }));
+          await assertRevert(cl.submitClaim(0, { from: member1 }));
         });
       });
 
@@ -156,7 +158,7 @@ contract('Claim', function([
           });
 
           describe('if claim rejected 5 times', function() {
-            const newCoverHolder = member5;
+            const newCoverHolder = member4;
             let coverID;
             before(async function() {
               await P1.makeCoverBegin(
@@ -170,29 +172,24 @@ contract('Claim', function([
                 s,
                 { from: newCoverHolder, value: coverDetails[1] }
               );
-
               coverID = await qd.getAllCoversOfUser(newCoverHolder);
               let i;
               let newCStatus;
               let claimId;
               let closingTime;
               let now;
-              let accept;
-              let deny;
-              let lol;
+
               const maxVotingTime = await cd.maxVotingTime();
-              await nxmtk1.lock(CLA, tokens, validity, {
-                from: member1
-              });
+              await nxmtk1.lock(CLA, tokens, validity, { from: member1 });
               await nxmtk1.lock(CLA, tokens, validity, { from: member2 });
               await nxmtk1.lock(CLA, tokens, validity, { from: member3 });
+
               await cl.submitClaim(coverID[0], { from: newCoverHolder });
 
               for (i = 0; i < 5; i++) {
-                await P1.buyTokenBegin({ from: member1, value: ether(1) });
-                await P1.buyTokenBegin({ from: member2, value: ether(1) });
-                await P1.buyTokenBegin({ from: member3, value: ether(1) });
-
+                await P1.buyTokenBegin({ from: member1, value: ether(0.7) });
+                await P1.buyTokenBegin({ from: member2, value: ether(0.8) });
+                await P1.buyTokenBegin({ from: member3, value: ether(0.9) });
                 if (i > 0) {
                   await nxmtk1.increaseLockAmount(CLA, tokens, {
                     from: member1
@@ -203,16 +200,16 @@ contract('Claim', function([
                   await nxmtk1.increaseLockAmount(CLA, tokens, {
                     from: member3
                   });
+
                   await cl.submitClaim(coverID[0], { from: newCoverHolder });
                 }
-
                 claimId = (await cd.actualClaimLength()) - 1;
                 await cl.submitCAVote(claimId, -1, { from: member1 });
                 await cl.submitCAVote(claimId, -1, { from: member2 });
                 await cl.submitCAVote(claimId, -1, { from: member3 });
                 now = await latestTime();
                 closingTime = maxVotingTime.plus(now);
-                await increaseTimeTo(closingTime);
+                await increaseTimeTo(closingTime.plus(1));
                 newCStatus = await cd.getClaimStatusNumber(claimId);
                 await cr.changeClaimStatus(claimId, { from: owner });
               }
@@ -225,7 +222,7 @@ contract('Claim', function([
           });
 
           describe('if claim is already accepted', function() {
-            const newCoverHolder = member5;
+            const newCoverHolder = member4;
             before(async function() {
               await P1.makeCoverBegin(
                 PID,

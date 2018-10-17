@@ -68,8 +68,9 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
   });
 
   describe('buying tokens', function() {
-    beforeEach(async function() {
+    before(async function() {
       await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
+      await nxmtk2.kycVerdict(member1, true);
     });
     it('should not able to buy tokens if not member', async function() {
       await assertRevert(
@@ -138,6 +139,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
     describe('when the requested account is a member and has no tokens', function() {
       it('returns zero', async function() {
         await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
+        await nxmtk2.kycVerdict(member2, true);
         (await nxmtk1.balanceOf(member2)).should.be.bignumber.equal(0);
       });
     });
@@ -262,6 +264,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
 
     before(async function() {
       await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
+      await nxmtk2.kycVerdict(member3, true);
     });
 
     describe('when the spender is not a member', function() {

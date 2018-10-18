@@ -1,14 +1,21 @@
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
+// const StandardToken = artifacts.require('StandardToken');
+const Pool1 = artifacts.require('Pool1');
+const PoolData = artifacts.require('PoolData');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+
 const CA_ETH = '0x45544800';
+const CA_DAI = '0x44414900';
+
 let mcr;
 let mcrd;
+let p1;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -20,6 +27,19 @@ contract('MCR', function([owner, notOwner]) {
     await advanceBlock();
     mcr = await MCR.deployed();
     mcrd = await MCRDataMock.deployed();
+    p1 = await Pool1.deployed();
+    pd = await PoolData.deployed();
+  });
+
+  describe('Calculation of V(tp) and MCR(tp)', function() {
+    before(async function() {
+      pool_CA = StandardToken(await pd.getCurrencyAssetAddress(CA_DAI));
+    });
+    it('log stuff', async function() {
+      console.log(await pd.getCurrencyAssetAddress(CA_DAI));
+      console.log(await mcrd.getCurrLength());
+      console.log(pool_CA.address);
+    });
   });
 
   describe('if owner/internal contract address', function() {

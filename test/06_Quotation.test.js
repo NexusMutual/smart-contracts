@@ -4,7 +4,7 @@ const NXMToken2 = artifacts.require('NXMToken2');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
-const DAI = artifacts.require('DAI');
+const DAI = artifacts.require('MockDAI');
 const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMTokenData = artifacts.require('NXMTokenData');
 

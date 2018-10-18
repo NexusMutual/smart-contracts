@@ -7,7 +7,6 @@ module.exports = {
     'Pool2.sol',
     'Pool3.sol',
     'PoolData.sol',
-    'DAI.sol',
     'mocks'
   ],
   deepSkip: true

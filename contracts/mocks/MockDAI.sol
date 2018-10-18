@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
  
-import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
-import "./imports/openzeppelin-solidity/ownership/Ownable.sol";
+import "../imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
+import "../imports/openzeppelin-solidity/ownership/Ownable.sol";
 
 
-contract DAI is StandardToken, Ownable {
+contract MockDAI is StandardToken, Ownable {
     string public name = "DAI";
     string public symbol = "DAI";
     uint8 public decimals = 18;

@@ -15,11 +15,11 @@
 
 pragma solidity 0.4.24;
 
+import "./NXMaster.sol";
 import "./NXMToken.sol";
 import "./TokenController.sol";
 import "./PoolData.sol";
 import "./Quotation.sol";
-import "./NXMaster.sol";
 import "./Pool2.sol";
 import "./MCR.sol";
 import "./Iupgradable.sol";
@@ -54,23 +54,25 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
 
     function () public payable {} //solhint-disable-line
 
-    modifier onlyOwner {
-
-        require(ms.isOwner(msg.sender) == true);
+    modifier checkPause {
+        require(ms.isPause() == false);
         _;
     }
 
     modifier isMemberAndcheckPause {
-
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
 
-    modifier checkPause {
-
-        require(ms.isPause() == false);
+    modifier onlyInternal {
+        require(ms.isInternal(msg.sender) == true);
         _;
-    }    
+    }
+
+    modifier onlyOwner {
+        require(ms.isOwner(msg.sender) == true);
+        _;
+    }
 
     ///@dev Oraclize call to close 0x order for a given currency.
     function close0xOrders(bytes4 curr, uint id, uint time) external onlyInternal {
@@ -124,7 +126,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     /**
      * @dev Transfers all assest (i.e ETH balance, Currency Assest and Investment Assest) from
      * old Pool to new Pool
-     * @param _newPoolAddress Address of the operator that can mint new tokens
+     * @param newPoolAddress Address of the operator that can mint new tokens
      */
     function transferAllAssestFromPool(address newPoolAddress) external onlyInternal returns(bool sucess) {
         for (uint i = 0; i < pd.getAllCurrenciesLen(); i++) {
@@ -159,7 +161,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
             stok.transfer(_to, _value);
     }
 
-    /// @dev Transfers specific currency asset from current Pool address to the new Pool1 address.
+    /// @dev Transfers specific currency asset from current Pool address to the new Pool address.
     function transferFromPool(address _to, address _currAddr, uint _amount) external onlyInternal {
         stok = StandardToken(_currAddr);
         if (stok.balanceOf(this) >= _amount)
@@ -189,6 +191,17 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         return stok.balanceOf(address(this));
     }
 
+    /**
+     * @dev Used to set and update master address
+     * @param _add address of master contract
+     */
+    function changeMasterAddress(address _add) public {
+        if (address(ms) != address(0)) {
+            require(ms.isInternal(msg.sender) == true);
+        }
+        ms = NXMaster(_add);
+    }
+    
     function changeDependentContractAddress() public {
         uint currentVersion = ms.currentVersion();
         m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
@@ -333,13 +346,13 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
      * @dev Allows selling of NXM for ether.
      * Seller first needs to give this contract allowance to
      * transfer/burn tokens in the NXMToken contract
-     * @param _amount Amount of NXM to sell
+     * @param  _amount Amount of NXM to sell
      * @return success returns true on successfull sale
      */
-    function sellNXMTokens(uint sellTokens) public isMemberAndcheckPause returns(bool success) {
-        require(tk.balanceOf(msg.sender) >= sellTokens); // Check if the sender has enough
+    function sellNXMTokens(uint _amount) public isMemberAndcheckPause returns(bool success) {
+        require(tk.balanceOf(msg.sender) >= _amount); // Check if the sender has enough
         require(!tc2.voted(msg.sender));
-        require(sellTokens <= m1.getMaxSellTokens());
+        require(_amount <= m1.getMaxSellTokens());
         uint sellingPrice = _getWei(sellTokens, tk.totalSupply());
         require(tk.burnFrom(msg.sender, _amount));
         require(msg.sender.transfer(sellingPrice));
@@ -358,7 +371,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     /**
      * @dev Returns the amount of wei a seller will get for selling NXM
      * @param _amount Amount of NXM to sell
-     * @param _poolBalance Balance of pool in wei
+     * @param _totalSupply total supply of tokens
      * @return weiToPay Amount of wei the seller will get
      */
     function _getWei(uint _amount, uint _totalSupply)

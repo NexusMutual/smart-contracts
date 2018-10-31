@@ -14,7 +14,7 @@ contract IERC1132 {
     /**
      * @dev locked token structure
      */
-    struct lockToken {
+    struct LockToken {
         uint256 amount;
         uint256 validity;
         bool claimed;
@@ -24,7 +24,7 @@ contract IERC1132 {
      * @dev Holds number & validity of tokens locked for a given reason for
      *      a specified address
      */
-    mapping(address => mapping(bytes32 => lockToken)) public locked;
+    mapping(address => mapping(bytes32 => LockToken)) public locked;
 
     /**
      * @dev Records data of all the tokens Locked

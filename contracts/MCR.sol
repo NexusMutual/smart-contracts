@@ -15,11 +15,11 @@
 
 pragma solidity ^0.4.24;
 
+import "./NXMaster.sol";
+import "./NXMToken.sol";
 import "./Pool1.sol";
 import "./PoolData.sol";
 import "./MCRData.sol";
-import "./NXMaster.sol";
-import "./NXMToken1.sol";
 import "./QuotationData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
@@ -32,7 +32,7 @@ contract MCR is Iupgradable {
 
     Pool1 p1;
     PoolData pd;
-    NXMToken1 tc1;
+    NXMToken tk;
     MCRData md;
     NXMaster ms;
     QuotationData qd;
@@ -40,21 +40,26 @@ contract MCR is Iupgradable {
     address public poolAddress;
     address public masterAddress;
 
-    uint64 private constant DECIMAL1E18 = 1000000000000000000;
-    uint64 private constant DECIMAL1E08 = 100000000;
+    uint private constant DECIMAL1E18 = uint(10) ** 18;
+    uint private constant DECIMAL1E08 = uint(10) ** 8;
 
     event Apiresult(address indexed sender, string msg);
-    event MCR(uint indexed date, uint blockNumber, bytes4[] allCurr, uint32[] allCurrRates, uint mcrEtherx100, uint32 mcrPercx100, uint vFull);
+
+    event MCR(
+        uint indexed date,
+        uint blockNumber,
+        bytes4[] allCurr,
+        uint32[] allCurrRates,
+        uint mcrEtherx100,
+        uint32 mcrPercx100,
+        uint vFull
+    );
 
     function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
+        if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
         }
+        ms = NXMaster(_add);
     }
 
     modifier onlyInternal {
@@ -76,10 +81,8 @@ contract MCR is Iupgradable {
         uint currentVersion = ms.currentVersion();
         md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
         qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
-        poolAddress = ms.versionContractAddress(currentVersion, "P1");
-        p1 = Pool1(poolAddress);
+        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
         pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
 
     }
 
@@ -131,7 +134,17 @@ contract MCR is Iupgradable {
     /// @param mcrP  Minimum Capital Requirement in percentage.
     /// @param vF Pool1 fund value in Ether used in the last full daily calculation of the Capital model.
     /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
-    function addMCRData(uint32 mcrP, uint32 mcrE, uint vF, bytes4[] curr, uint32[] _threeDayAvg, uint64 onlyDate) checkPause {
+    function addMCRData(
+        uint32 mcrP,
+        uint32 mcrE,
+        uint vF,
+        bytes4[] curr,
+        uint32[] _threeDayAvg,
+        uint64 onlyDate
+    )
+        public
+        checkPause
+    {
         require(md.isnotarise(msg.sender) != false);
         vF = SafeMaths.mul(vF, DECIMAL1E18);
         uint len = md.getMCRDataLength();
@@ -162,9 +175,7 @@ contract MCR is Iupgradable {
 
     /// @dev Gets total sum assured(in ETH).
     function getAllSumAssurance() constant returns(uint amount) {
-
         uint len = md.getCurrLength();
-
         for (uint16 i = 0; i < len; i++) {
             bytes4 currName = md.getCurrencyByIndex(i);
             if (currName == "ETH") {
@@ -175,7 +186,6 @@ contract MCR is Iupgradable {
                     SafeMaths.mul(qd.getTotalSumAssured(currName), 100)), md.getCurr3DaysAvg(currName)));
             }
         }
-
     }
 
     /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation
@@ -191,7 +201,8 @@ contract MCR is Iupgradable {
                 btok = BasicToken(pd.getCurrencyAssetAddress(currency));
                 uint currTokens = btok.balanceOf(poolAddress);
                 if (md.getCurr3DaysAvg(currency) > 0)
-                    vtp = SafeMaths.add(vtp, SafeMaths.div(SafeMaths.mul(currTokens, 100), md.getCurr3DaysAvg(currency)));
+                    vtp = SafeMaths.add(vtp, SafeMaths.div(SafeMaths.mul(currTokens, 100),
+                        md.getCurr3DaysAvg(currency)));
             } else
                 vtp = SafeMaths.add(vtp, p1.getEtherPoolBalance());
         }
@@ -206,24 +217,17 @@ contract MCR is Iupgradable {
     /// @dev Calculates the Token Price of NXM in a given currency.
     /// @param curr Currency name.
     /// @return tokenPrice Token price.
-    function calculateTokenPrice(bytes4 curr) constant returns(uint tokenPrice) {
-        uint mcrtp;
-        (, mcrtp) = calVtpAndMCRtp();
-        uint to = SafeMaths.div(tc1.totalSupply(), DECIMAL1E18);
-        uint getSFx100000;
-        uint getGrowthStep;
-        uint getCurr3DaysAvg;
-        (getSFx100000, getGrowthStep, getCurr3DaysAvg) = md.getTokenPriceDetails(curr);
-        if (SafeMaths.div((SafeMaths.mul(mcrtp, mcrtp)), DECIMAL1E08) >= 1) {
-            uint SFGrowthTo = SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to)));
-            uint SFGrowthToxmcrtpx2 =  SafeMaths.mul((SafeMaths.mul(SafeMaths.mul(SFGrowthTo, mcrtp), mcrtp)), 100000);
-            tokenPrice =  SafeMaths.div(SFGrowthToxmcrtpx2, getGrowthStep);
-         } else {
-            uint SGxGSTo =  SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, to)));
-            uint SGxGSTox = SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(SGxGSTo, 10000), 10000), 100000);
-            tokenPrice = SafeMaths.div(SGxGSTox, getGrowthStep);
-        }
-        tokenPrice = (SafeMaths.div(SafeMaths.mul((tokenPrice), getCurr3DaysAvg), 100));
+    function calculateTokenPrice (bytes4 curr, uint totalSupply) public view returns(uint tokenPrice) {
+        _calculateTokenPrice(curr, tk.totalSupply());
+    }
+
+    /// @dev Calculates the Token Price of NXM in a given currency with provided
+    ///       token supply for dynamic token price calculation
+    /// @param curr Currency name.
+    /// @param totalSupply token supply
+    /// @return tokenPrice Token price.
+    function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
+        _calculateTokenPrice(curr, tk.totalSupply());
     }
     
     /// @dev Gets max numbers of tokens that can be sold at the moment.
@@ -232,21 +236,31 @@ contract MCR is Iupgradable {
             SafeMaths.div(SafeMaths.mul(50, pd.getCurrencyAssetBaseMin("ETH")), 100), DECIMAL1E18));
         maxTokensAccPoolBal = SafeMaths.mul(SafeMaths.div(maxTokensAccPoolBal, 
         SafeMaths.mul(975, SafeMaths.div(calculateTokenPrice("ETH"), 1000))), DECIMAL1E18);
-        maxTokens = SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(md.getLastMCRPerc(), 10000), 2000), 10000), DECIMAL1E18);
+        maxTokens = SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(
+            md.getLastMCRPerc(), 10000), 2000), 10000), DECIMAL1E18);
         if (maxTokens > maxTokensAccPoolBal)
             maxTokens = maxTokensAccPoolBal;
     }
 
     /// @dev Adds MCR Data.
     ///      Checks if MCR is within valid thresholds in order to rule out any incorrect calculations
-    function addMCRDataExtended(uint len, uint64 newMCRDate, bytes4[] curr, uint32 mcrE, uint32 mcrP, uint vF, uint32[] _threeDayAvg) internal {
+    function addMCRDataExtended(
+        uint len,
+        uint64 newMCRDate,
+        bytes4[] curr,
+        uint32 mcrE,
+        uint32 mcrP,
+        uint vF,
+        uint32[] _threeDayAvg
+    ) 
+        internal
+    {
         uint vtp = 0;
         uint lower = 0;
         uint lowerThreshold = 0;
         uint upperThreshold = 0;
         if (len > 1) {
             (vtp, ) = calVtpAndMCRtp();
-
             if (vtp >= vF) {
                 upperThreshold = SafeMaths.div(vtp, (SafeMaths.mul(md.getMinCap(), DECIMAL1E18)));
                 upperThreshold = SafeMaths.mul(upperThreshold, 100);
@@ -262,21 +276,45 @@ contract MCR is Iupgradable {
                 lowerThreshold = SafeMaths.div(vtp, lower);
             }
         }
-        if (len == 1 || ((SafeMaths.div(mcrP, 100)) >= lowerThreshold && (SafeMaths.div(mcrP, 100)) <= upperThreshold)) {
+        if (len == 1 || ((SafeMaths.div(mcrP, 100)) >= lowerThreshold &&
+            (SafeMaths.div(mcrP, 100)) <= upperThreshold)) {
             md.pushMCRData(mcrP, mcrE, vF, newMCRDate);
             for (uint i = 0; i < curr.length; i++) {
                 md.updateCurr3DaysAvg(curr[i], _threeDayAvg[i]);
             }
-
             MCR(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
             // Oraclize call for next MCR calculation
             if (md.getLastMCRDate() < newMCRDate) {
                 callOracliseForMCR();
             }
         } else {
-
             p1.mcrOracliseFail(newMCRDate, md.getMCRFailTime());
         }
+    }
+    
+    /// @dev Calculates the Token Price of NXM in a given currency with provided
+    ///       token supply for dynamic token price calculation
+    /// @param curr Currency name.
+    /// @param totalSupply token supply
+    /// @return tokenPrice Token price.
+    function _calculateTokenPrice(bytes4 _curr, uint _totalSupply) internal view returns(uint tokenPrice) {
+        uint mcrtp;
+        (, mcrtp) = calVtpAndMCRtp();
+        uint ts = SafeMaths.div(_totalSupply, DECIMAL1E18);
+        uint getSFx100000;
+        uint getGrowthStep;
+        uint getCurr3DaysAvg;
+        (getSFx100000, getGrowthStep, getCurr3DaysAvg) = md.getTokenPriceDetails(_curr);
+        if (SafeMaths.div((SafeMaths.mul(mcrtp, mcrtp)), DECIMAL1E08) >= 1) {
+            uint sFGrowthTo = SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, ts)));
+            uint sFGrowthToxmcrtpx2 =  SafeMaths.mul((SafeMaths.mul(SafeMaths.mul(sFGrowthTo, mcrtp), mcrtp)), 100000);
+            tokenPrice = SafeMaths.div(sFGrowthToxmcrtpx2, getGrowthStep);
+        } else {
+            uint sGxGSTo = SafeMaths.mul(getSFx100000, (SafeMaths.add(getGrowthStep, ts)));
+            uint sGxGSToX = SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(sGxGSTo, 10000), 10000), 100000);
+            tokenPrice = SafeMaths.div(sGxGSToX, getGrowthStep);
+        }
+        tokenPrice = (SafeMaths.div(SafeMaths.mul((tokenPrice), getCurr3DaysAvg), 100));
     }
 
     /// @dev Calls oraclize query to calculate MCR details after 24 hours.

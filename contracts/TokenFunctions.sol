@@ -322,6 +322,47 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev Burns tokens staked against a Smart Contract Cover.
+    *      Called when a claim submitted against this cover is accepted.
+    * @param coverid Cover Id.
+    */
+    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sa) public onlyInternal {
+        address scAddress;
+        bytes32 reason;
+        uint tokenPrice = m1.calculateTokenPrice(curr);
+        uint totalStaker = td.getStakerStakedContractLength(scAddress);
+        uint scIndex;
+        sa = sa.mul(DECIMAL1E18);
+        uint burnNXMAmount = sa.mul(DECIMAL1E18).div(tokenPrice);
+        address stakerAddress;
+        (, scAddress) = qd.getscAddressOfCover(coverid);
+        for (uint i = td.scAddressCurrentBurnIndex(scAddress); i < totalStaker; i++) {
+            if (burnNXMAmount > 0) {
+                stakerAddress = td.getStakerStakedContractByIndex(scAddress, i);
+                scIndex = td.getStakerStakedContractIndexByIndex(scAddress, i);
+                uint stakerStakedNXM = _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, scIndex);
+                if (stakerStakedNXM > 0) {
+                    if (stakerStakedNXM >= burnNXMAmount) {
+                        reason = keccak256(abi.encodePacked("UW", stakerAddress, scAddress, scIndex));
+                        tc.burnLockedTokens(stakerAddress, reason, burnNXMAmount);
+                        if (i > 0)
+                            _burnStakerTokenLockedAgainstSmartContract(stakerAddress,
+                                scAddress, scIndex, burnNXMAmount);
+                        burnNXMAmount = 0;
+                        break;
+                    } else {
+                        _burnStakerTokenLockedAgainstSmartContract(stakerAddress, scAddress, scIndex, stakerStakedNXM);
+                        burnNXMAmount = burnNXMAmount.sub(stakerStakedNXM);
+                    }
+                }
+            } else
+                break;
+        }
+        if (burnNXMAmount > 0 && totalStaker > 0)
+            td.setscAddressCurrentBurnIndex(scAddress, SafeMaths.sub(totalStaker, 1));
+    }
+
+    /**
     * @dev Gets the total staked NXM tokens against Smart contract 
     *       by all stakers
     * @param _scAddress smart contract address.

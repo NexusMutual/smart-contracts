@@ -430,6 +430,23 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev releases unlockable staked tokens to staker 
+    */
+    function unlockStakerUnlockableTokens(address _of) public {
+        uint unlockableAmount;
+        address scAddress;
+        bytes32 reason;
+        uint scIndex;
+        for (uint i = 0; i < td.getStakerStakedContractLength(_of); i++) {
+            scAddress = td.getSmartContractStakerByIndex(_of, i);
+            scIndex = td.getStakerStakedContractIndexByIndex(scAddress, i);
+            unlockableAmount = _getStakerUnlockableTokensOnSmartContract(_of, scAddress, scIndex);
+            reason = keccak256(abi.encodePacked("UW", _of, scAddress, scIndex));
+            tc.releaseLockedTokens(_of, reason, unlockableAmount);
+        }
+    }
+    
+    /**
     * @dev Books the user's tokens for maintaining Assessor Velocity
     *      i.e., these tokens cannot be used to cast another vote for a specified period of time.
     * @param _to Claims assessor address.
@@ -439,6 +456,34 @@ contract TokenFunctions is Iupgradable, Governed {
         td.pushBookedCA(_to, value);
     }
     
+    /**
+    * @dev Internal function to gets unlockable amount of locked NXM tokens,
+    *      staked against smartcontract by index
+    * @param _of address of user
+    * @param _scAddress staked contract address
+    * @param _index index of staking
+    */
+    function _getStakerUnlockableTokensOnSmartContract (
+        address _of,
+        address _scAddress,
+        uint _index
+    ) 
+        internal
+        view
+        returns
+        (uint amount)
+    {   
+        uint currentStakedTokens = _getStakerStakedTokensOnSmartContract(_of, _scAddress, _index);
+        uint unlockable = currentStakedTokens.sub(_getStakerStakedTokensOnSmartContract(_of, _scAddress, _index));
+        uint alreadyUnlocked;
+        (, , , alreadyUnlocked) = td.stakerStakedContracts(_of, _index);
+        if (alreadyUnlocked >= unlockable) {
+            amount = 0;
+        } else {
+            amount = unlockable.sub(alreadyUnlocked);
+        }
+    }
+
     //Returns 50% of locked CoverNote amount to use as deposit for Claim
     function _getDepositCNAmount(uint _coverId) internal view returns(uint amount) {
         amount = (_getLockedCNAgainstCover(_coverId).mul(50)).div(100);

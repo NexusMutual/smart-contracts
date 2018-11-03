@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
 import "./NXMaster.sol";
 import "./Iupgradable.sol";
@@ -36,37 +36,34 @@ contract MCRData is Iupgradable {
     uint64 mcrTime;
     bytes4[] allCurrencies;
 
-    struct mcr_Data {
+    struct McrData {
         uint32 mcrPercx100;
         uint32 mcrEtherx100;
         uint vFull; //Pool funds
         uint64 date;
     }
 
-    mcr_Data[] public allMCRData;
+    McrData[] public allMCRData;
     mapping(bytes8 => uint32) public allCurr3DaysAvg;
     address notariseMCR;
 
-    function MCRData() {
+    constructor() public {
         growthStep = 1500000;
         sfX100000 = 140;
         mcrTime = SafeMaths.mul64(SafeMaths.mul64(24, 60), 60);
         mcrFailTime = SafeMaths.mul64(6, 3600);
         minMCRReq = 0; //value in percentage e.g 60% = 60*100 
-        allMCRData.push(mcr_Data(0, 0, 0, 0));
+        allMCRData.push(McrData(0, 0, 0, 0));
         minCap = 1;
         shockParameter = 50;
     }
 
     function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
+        if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
         }
+        ms = NXMaster(_add);
+
     }
 
     function changeDependentContractAddress() onlyInternal {
@@ -191,7 +188,7 @@ contract MCRData is Iupgradable {
     /// @param mcrp Minimum Capital Requirement percentage (MCR% * 100 ,Ex:for 54.56% ,given 5456)
     /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
     function pushMCRData(uint32 mcrp, uint32 mcre, uint vf, uint64 time) onlyInternal {
-        allMCRData.push(mcr_Data(mcrp, mcre, vf, time));
+        allMCRData.push(McrData(mcrp, mcre, vf, time));
     }
 
     /// @dev Gets number of currencies that the system accepts.

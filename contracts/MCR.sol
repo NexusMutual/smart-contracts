@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
 import "./NXMaster.sol";
 import "./NXMToken.sol";
@@ -214,18 +214,20 @@ contract MCR is Iupgradable {
         }
     }
 
-    /// @dev Calculates the Token Price of NXM in a given currency.
-    /// @param curr Currency name.
-    /// @return tokenPrice Token price.
-    function calculateTokenPrice (bytes4 curr, uint totalSupply) public view returns(uint tokenPrice) {
-        _calculateTokenPrice(curr, tk.totalSupply());
+   /**
+    * @dev Calculates the Token Price of NXM in a given currency.
+    * @param curr Currency name.
+    * @param totalSupply Tokens in circulation
+    */
+    function calculateTokenPrice (bytes4 curr, uint totalSupply) public view onlyInternal returns(uint tokenPrice) {
+        _calculateTokenPrice(curr, totalSupply);
     }
 
-    /// @dev Calculates the Token Price of NXM in a given currency with provided
-    ///       token supply for dynamic token price calculation
-    /// @param curr Currency name.
-    /// @param totalSupply token supply
-    /// @return tokenPrice Token price.
+    /**
+    * @dev Calculates the Token Price of NXM in a given currency with provided
+    *       token supply for dynamic token price calculation
+    * @param curr Currency name.
+    */ 
     function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
         _calculateTokenPrice(curr, tk.totalSupply());
     }
@@ -294,8 +296,8 @@ contract MCR is Iupgradable {
     
     /// @dev Calculates the Token Price of NXM in a given currency with provided
     ///       token supply for dynamic token price calculation
-    /// @param curr Currency name.
-    /// @param totalSupply token supply
+    /// @param _curr Currency name.
+    /// @param _totalSupply token supply
     /// @return tokenPrice Token price.
     function _calculateTokenPrice(bytes4 _curr, uint _totalSupply) internal view returns(uint tokenPrice) {
         uint mcrtp;

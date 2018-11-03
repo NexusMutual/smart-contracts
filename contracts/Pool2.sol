@@ -13,15 +13,14 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
-import "./NXMToken1.sol";
-import "./NXMToken2.sol";
+import "./NXMaster.sol";
+import "./TokenFunctions.sol";
 import "./ClaimsReward.sol";
 import "./PoolData.sol";
 import "./Quotation.sol";
 import "./QuotationData.sol";
-import "./NXMaster.sol";
 import "./Pool1.sol";
 import "./Claims.sol";
 import "./MCRData.sol";
@@ -39,9 +38,7 @@ contract Pool2 is Iupgradable {
     for uint;
 
     NXMaster ms;
-    address masterAddress;
-    NXMToken1 tc1;
-    NXMToken2 tc2;
+    TokenFunctions tf;
     Pool1 p1;
     Claims c1;
     Exchange exchange1;
@@ -75,14 +72,10 @@ contract Pool2 is Iupgradable {
     event Rebalancing(bytes16 name, uint16 param);
 
     function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
+        if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
         }
+        ms = NXMaster(_add); 
     }
 
     modifier onlyInternal {
@@ -103,8 +96,7 @@ contract Pool2 is Iupgradable {
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
         m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
-        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
-        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
+        tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));
         pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
         md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
         q2 = Quotation(ms.versionContractAddress(currentVersion, "Q2"));
@@ -211,7 +203,7 @@ contract Pool2 is Iupgradable {
             }
         }
         if (qd.getProductNameOfCover(coverid) == "SCC")
-            tc2.burnStakerLockedToken(coverid, curr, sumAssured);
+            tf.burnStakerLockedToken(coverid, curr, sumAssured);
     }
 
     /// @dev Gets the investment asset rank.

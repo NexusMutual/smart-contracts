@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
 import "./NXMaster.sol";
 import "./Iupgradable.sol";
@@ -62,7 +62,7 @@ contract PoolData is Iupgradable {
         uint64 minRate;
     }
 
-    function PoolData() {
+    constructor() public {
         variationPercX100 = 100; //1%
         orderSalt = 99033804502856343259430181946001007533635816863503102978577997033734866165564;
         nullAddress = 0x0000000000000000000000000000000000000000;

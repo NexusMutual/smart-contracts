@@ -17,6 +17,7 @@ pragma solidity 0.4.24;
 
 import "./NXMaster.sol";
 import "./NXMToken.sol";
+import "./TokenFunctions.sol";
 import "./TokenController.sol";
 import "./PoolData.sol";
 import "./Quotation.sol";
@@ -36,6 +37,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     Quotation public q2;
     NXMToken public tk;
     TokenController public tc;
+    TokenFunctions public tf;
     PoolData public pd;
     Pool2 public p2;
     MCR public m1;
@@ -129,19 +131,19 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
      * @param newPoolAddress Address of the operator that can mint new tokens
      */
     function transferAllAssestFromPool(address newPoolAddress) external onlyInternal returns(bool sucess) {
-        for (uint i = 0; i < pd.getAllCurrenciesLen(); i++) {
+        for (uint64 i = 0; i < pd.getAllCurrenciesLen(); i++) {
             bytes8 caName = pd.getAllCurrenciesByIndex(i);
             address caAddress = pd.getCurrencyAssetAddress(caName);
-            require(transferCurrencyAssetFromPool(newPoolAddress, caAddress));
+            require(_transferCurrencyAssetFromPool(newPoolAddress, caAddress));
         }
 
-        for (uint j = 0; i < pd.getInvestmentCurrencyLen(); j++) {
+        for (uint64 j = 0; i < pd.getInvestmentCurrencyLen(); j++) {
             bytes8 iaName = pd.getInvestmentCurrencyByIndex(j);
             address iaAddress = pd.getInvestmentAssetAddress(iaName);
-            require(transferInvestmentAssetFromPool(newPoolAddress, iaAddress));
+            require(_transferInvestmentAssetFromPool(newPoolAddress, iaAddress));
         }
 
-        require(newPoolAddress.send(this.balance)); //solhint-disable-line
+        require(newPoolAddress.send(address(this).balance)); //solhint-disable-line
         sucess = true;
     }
 
@@ -273,13 +275,13 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function buyToken() public payable isMemberAndcheckPause returns(bool success) {
         require(msg.value > 0);
         uint tokenPrice;
-        uint superWeiLeft = (msg.value).mul(e18);
+        uint superWeiLeft = (msg.value).mul(DECIMAL1E18);
         uint tempTokens;
         uint superWeiSpent;
         uint tokenPurchased;
-
+        uint tokenSupply = tk.totalSupply();
         while (superWeiLeft > 0) {
-            tokenPrice = m1.calculateTokenPrice("ETH", tk.totalSupply());
+            tokenPrice = m1.calculateTokenPrice("ETH", tokenSupply);
             tempTokens = superWeiLeft.div(tokenPrice);
             if (tempTokens <= PRICE_STEP) {
                 tokenPurchased = tokenPurchased.add(tempTokens);
@@ -291,7 +293,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
                 superWeiLeft = superWeiLeft.sub(superWeiSpent);
             }
         }
-        require(tc.mint(msg.sender, tokenPurchased));
+        tc.mint(msg.sender, tokenPurchased);
         success = true;
     }
 
@@ -344,18 +346,18 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
 
     /**
      * @dev Allows selling of NXM for ether.
-     * Seller first needs to give this contract allowance to
-     * transfer/burn tokens in the NXMToken contract
+     *      Seller first needs to give this contract allowance to
+     *      transfer/burn tokens in the NXMToken contract
      * @param  _amount Amount of NXM to sell
      * @return success returns true on successfull sale
      */
     function sellNXMTokens(uint _amount) public isMemberAndcheckPause returns(bool success) {
         require(tk.balanceOf(msg.sender) >= _amount); // Check if the sender has enough
-        require(!tc2.voted(msg.sender));
+        require(!tf.voted(msg.sender));
         require(_amount <= m1.getMaxSellTokens());
-        uint sellingPrice = _getWei(sellTokens, tk.totalSupply());
-        require(tk.burnFrom(msg.sender, _amount));
-        require(msg.sender.transfer(sellingPrice));
+        uint sellingPrice = _getWei(_amount, tk.totalSupply());
+        tk.burnFrom(msg.sender, _amount);
+        require(msg.sender.send(sellingPrice)); //solhint-disable-line
         success = true;
     }
 
@@ -384,12 +386,12 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
             tokenPrice = m1.calculateTokenPrice("ETH", tokenSupply);
             tokenPrice = (tokenPrice.mul(975)).div(1000); //97.5%
             if (_amount <= PRICE_STEP) {
-                weiToPay = weiToPay.add((tokenPrice.mul(_amount)).div(e18));
+                weiToPay = weiToPay.add((tokenPrice.mul(_amount)).div(DECIMAL1E18));
                 break;
             } else {
                 _amount = _amount.sub(PRICE_STEP);
                 tokenSupply = tokenSupply.sub(PRICE_STEP);
-                weiPaid = (tokenPrice.mul(PRICE_STEP)).div(e18);
+                weiPaid = (tokenPrice.mul(PRICE_STEP)).div(DECIMAL1E18);
                 weiToPay = weiToPay.add(weiPaid);
             }
         }
@@ -402,7 +404,6 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function saveApiDetails(bytes32 myid, bytes8 _typeof, uint id) internal {
         pd.saveApiDetails(myid, _typeof, id);
         pd.addInAllApiCall(myid);
-
     }
 
     /// @dev Save the details of the Oraclize API.
@@ -416,20 +417,33 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     }
 
     ///@dev Transfers investment asset from current Pool address to the new Pool address.
-    function transferInvestmentAssetFromPool(address _newPoolAddress, address _iaAddress) internal {
+    function _transferInvestmentAssetFromPool(
+        address _newPoolAddress,
+        address _iaAddress
+    ) 
+        internal
+        returns (bool success)
+    {
         // TODO: To be automated by version control in NXMaster
         stok = StandardToken(_iaAddress);
         if (stok.balanceOf(this) > 0) {
             stok.transfer(_newPoolAddress, stok.balanceOf(this));
         }
+        success = true;
     }
 
     ///@dev Transfers investment asset from current Pool address to the new Pool address.
-    function transferCurrencyAssetFromPool(address _newPoolAddress, address _caAddress) internal {
+    function _transferCurrencyAssetFromPool(
+        address _newPoolAddress,
+        address _caAddress
+    )  
+        internal
+        returns (bool success)
+    {
         stok = StandardToken(_caAddress);
         if (stok.balanceOf(this) > 0) {
             stok.transfer(_newPoolAddress, stok.balanceOf(this));
         }
+        success = true;
     }
-
 }

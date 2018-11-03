@@ -131,6 +131,35 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev Set the flag to check if cover note is deposited against the cover id
+    * @param coverId Cover Id.
+    */ 
+    function depositCN(uint coverId) public onlyInternal returns (bool success) {
+        uint toBurn;
+        (, toBurn) = td.getDepositCNDetails(coverId);
+        uint availableCNToken = _getLockedCNAgainstCover(coverId).sub(toBurn);
+        require(availableCNToken > 0);
+        td.setDepositCN(coverId, true, toBurn);
+        success = true;    
+    }
+
+    /**
+    * @dev Unlocks tokens deposited against a cover.
+    * @param coverId Cover Id.
+    * @param burn if set true, 50 % amount of locked cover note to burn. 
+    */
+    function undepositCN(uint coverId, bool burn) public onlyInternal returns (bool success) {
+        uint toBurn;
+        (, toBurn) = td.getDepositCNDetails(coverId);
+        if (burn == true) {
+            td.setDepositCN(coverId, true, toBurn.add(_getDepositCNAmount(coverId)));
+        } else {
+            td.setDepositCN(coverId, true, toBurn);
+        }
+        success = true;  
+    }
+
+    /**
     * @dev Change the address who can update GovBlocks member role.
     *      Called when updating to a new version.
     *      Need to remove onlyOwner to onlyInternal and update automatically at version change

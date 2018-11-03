@@ -582,4 +582,24 @@ contract TokenFunctions is Iupgradable, Governed {
         uint rf = ((_validDays.sub(_stakeDays)).mul(100000)).div(_validDays);
         amount = (rf.mul(_stakeAmount)).div(100000);
     }
+
+    /**
+    * @dev Gets the total staked NXM tokens against Smart contract 
+    *       by all stakers
+    * @param _scAddress smart contract address.
+    * @return amount total staked NXM tokens.
+    */
+    function _burnStakerTokenLockedAgainstSmartContract(
+        address _of,
+        address _scAddress,
+        uint _index,
+        uint _amount
+    ) 
+        internal
+    {
+        require(td.getSmartContractStakerByIndex(_of, _index) == _scAddress);
+        bytes32 reason = keccak256(abi.encodePacked("UW", _of, _scAddress, _index));
+        tc.burnLockedTokens(_of, reason, _amount);
+    }
+
 }

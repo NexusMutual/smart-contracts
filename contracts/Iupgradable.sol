@@ -1,8 +1,8 @@
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
 
 contract Iupgradable {
-    function changeMasterAddress(address _add);
+    function changeMasterAddress(address _add) public;
 
-    function  changeDependentContractAddress();
+    function  changeDependentContractAddress() public;
 }

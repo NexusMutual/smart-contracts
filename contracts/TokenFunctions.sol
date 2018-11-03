@@ -282,6 +282,46 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev Sends commission to underwriter on purchase of staked smart contract.
+    * @param _scAddress staker address.
+    * @param _premiumNXM premium of cover in NXM.
+    */
+    function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
+        uint commissionToBePaid = (_premiumNXM.mul(20)).div(100);
+        uint stakeLength = td.getStakerStakedContractLength(_scAddress);
+        address claimsRewardAddress = address(ms.versionContractAddress(ms.currentVersion(), "CR"));
+        for (uint i = td.scAddressCurrentCommissionIndex(_scAddress); i < stakeLength; i++) {
+            if (commissionToBePaid > 0) {
+                address stakerAddress;
+                uint stakeAmt;
+                stakerAddress = td.smartContractStakers(_scAddress, i);
+                stakeAmt = td.getStakerInitialStakedAmountOnContract(stakerAddress, i);
+                uint totalCommission = (stakeAmt.mul(50)).div(100);
+                uint commissionPaid;
+                (, commissionPaid) = td.getTotalStakeCommission(stakerAddress, _scAddress, i);
+                if (totalCommission > commissionPaid) {
+                    if (totalCommission >= commissionPaid.add(commissionToBePaid)) {
+                        td.pushStakeCommissions(stakerAddress, _scAddress, i, commissionToBePaid, now);
+                        tc.mint(claimsRewardAddress, commissionToBePaid);
+                        if (i > 0)
+                            td.setscAddressCurrentCommissionIndex(_scAddress, i);
+                        commissionToBePaid = 0;
+                        break;
+                    } else {
+                        td.pushStakeCommissions(stakerAddress, _scAddress, i,
+                            totalCommission.sub(commissionPaid), now);
+                        tc.mint(claimsRewardAddress, totalCommission.sub(commissionPaid));
+                        commissionToBePaid = commissionToBePaid.sub(totalCommission.sub(commissionPaid));
+                    }
+                }
+            } else
+                break;
+        }
+        if (commissionToBePaid > 0 && stakeLength > 0)
+            td.setscAddressCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
+    }
+
+    /**
     * @dev Gets the total staked NXM tokens against Smart contract 
     *       by all stakers
     * @param _scAddress smart contract address.

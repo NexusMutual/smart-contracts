@@ -175,6 +175,31 @@ contract TokenData is Iupgradable {
     }
 
     /**
+    * @dev Gets total stake commission given to an underwriter.
+    * @param _of address of staker.
+    * @param _scAddress smart contract address.
+    * @param _stakerIndx index of the staker commission.
+    * @return stakerIndex index of the staker commission.
+    * @return commissionAmt total amount given to staker.
+    */ 
+    function getTotalStakeCommission(
+        address _of,
+        address _scAddress,
+        uint _stakerIndx
+    )
+        public 
+        view
+        returns(uint stakerIndex, uint commissionAmt) 
+    {
+        commissionAmt = 0;
+        stakerIndex = _stakerIndx;
+        for (uint i = 0; i < stakerSCIndexCommission[_of][_scAddress][_stakerIndx].length; i++) {
+            commissionAmt = commissionAmt.add(
+                stakerSCIndexCommission[_of][_scAddress][_stakerIndx][i].commissionAmt);
+        }
+    }
+
+    /**
     * @dev set flag for deposited covernote against a coverId
     *      Adds amount of covernote to burn
     * @param coverId coverId of Cover
@@ -188,6 +213,40 @@ contract TokenData is Iupgradable {
 
     function getDepositCNDetails(uint coverId) public view onlyInternal returns (bool, uint) {
         return (depositedCN[coverId].isDeposited, depositedCN[coverId].toBurn);
+    }
+
+    /**
+    * @dev Gets commission details.
+    * @param _of address of staker.
+    * @param _scAddress smart contract address.
+    * @param _stakerIndx index of the staker to distribute commission.
+    * @param _index index of commission.
+    * @return index index of commission.
+    * @return stakerIndex index of the staker to distribute commission.
+    * @return commissionAmt amount of commission.
+    * @return commissionDate date when commission was given.
+    */ 
+    function getStakeCommission(
+        address _of,
+        address _scAddress,
+        uint _stakerIndx,
+        uint _index
+    )
+        public
+        view
+        returns(
+            uint index,
+            uint stakerIndex,
+            uint commissionAmt,
+            uint commissionDate,
+            bool claimed
+        )
+    {
+        index = _index;
+        stakerIndex = _stakerIndx;
+        commissionAmt = stakerSCIndexCommission[_of][_scAddress][_stakerIndx][_index].commissionAmt;
+        commissionDate = stakerSCIndexCommission[_of][_scAddress][_stakerIndx][_index].commissionDate;
+        claimed = stakerSCIndexCommission[_of][_scAddress][_stakerIndx][_index].claimed;
     }
 
     function getSmartContractStakerByIndex(address _address, uint _index) public onlyInternal returns (address) {

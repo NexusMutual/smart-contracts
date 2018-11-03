@@ -13,17 +13,17 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
+
 import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract ClaimsData is Iupgradable {
-
     using SafeMaths for uint;
+
     NXMaster ms;
-    address public masterAddress;
 
     struct claim {
         uint coverId;
@@ -87,7 +87,15 @@ contract ClaimsData is Iupgradable {
     uint claimStartVotingFirstIndex;
 
     event Claim(uint indexed coverId, address indexed userAddress, uint claimId, uint dateSubmit);
-    event Votes(address indexed userAddress, uint indexed claimId, bytes4 indexed typeOf, uint tokens, uint submitDate, int8 verdict);
+
+    event Votes(
+        address indexed userAddress,
+        uint indexed claimId,
+        bytes4 indexed typeOf,
+        uint tokens,
+        uint submitDate,
+        int8 verdict
+    );
 
     mapping(uint => uint[]) claimVoteCA;
     mapping(uint => uint[]) claimVoteMember;
@@ -108,7 +116,7 @@ contract ClaimsData is Iupgradable {
     uint32 public escalationTime;
     uint public claimDepositTime;
 
-    function ClaimsData() {
+    constructor() public {
         escalationTime = 3600;
         pendingClaimStart = 0;
         maxVotingTime = 1800;
@@ -119,26 +127,9 @@ contract ClaimsData is Iupgradable {
         claimDepositTime = SafeMaths.mul(1, 7 days);
     }
 
-    function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
-            require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
-
-        }
-    }
-
-    function changeDependentContractAddress() onlyInternal {
+    function changeDependentContractAddress() public onlyInternal {
 
     }
-
-/*     modifier onlyOwner {
-        require(ms.isOwner(msg.sender) == true);
-        _;
-    } */
 
     modifier onlyInternal {
         require(ms.isInternal(msg.sender) == true);

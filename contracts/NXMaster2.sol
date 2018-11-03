@@ -13,10 +13,10 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
-import "./Claims.sol";
 import "./NXMaster.sol";
+import "./Claims.sol";
 import "./Pool1.sol";
 import "./ClaimsReward.sol";
 import "./ClaimsData.sol";
@@ -33,8 +33,8 @@ contract NXMaster2 is Iupgradable {
 
     address public masterAddress;
 
-    Claims c1;
     NXMaster ms;
+    Claims c1;
     Pool1 p1;
     ClaimsData cd;
     ClaimsReward cr;
@@ -43,15 +43,11 @@ contract NXMaster2 is Iupgradable {
     MCR m1;
 
     function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
+        if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
-
         }
+        ms = NXMaster(_add);
+
     }
 
     modifier onlyInternal {

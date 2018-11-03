@@ -13,10 +13,10 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
+import "./TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsReward.sol";
-import "./NXMToken2.sol";
 import "./Pool1.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
@@ -55,7 +55,7 @@ contract NXMaster is Governed {
     ClaimsReward cr;
     Pool1 p1;
     MemberRoles mr;
-    NXMToken2 tc2;
+    TokenFunctions tf;
 
     address public owner;
     uint pauseTime;
@@ -74,23 +74,22 @@ contract NXMaster is Governed {
         require(isPause() == false);
         _;
     } */
-
     /// @dev Constructor
-    function NXMaster() {
+    constructor() public {
         owner = msg.sender;
         contractsActive[address(this)] = true; //1
-        masterAddress = address(this);
         versionLength = 0;
         dappName = "NEXUS-MUTUAL";
-        pauseTime = SafeMaths.mul(28, 1 days); //4 weeks
+        pauseTime = 28 days; //4 weeks
         contractNames.push("QD");
         contractNames.push("TD");
         contractNames.push("CD");
         contractNames.push("PD");
         contractNames.push("MD");
         contractNames.push("Q2");
-        contractNames.push("TOK1");
-        contractNames.push("TOK2");
+        contractNames.push("TK");
+        contractNames.push("TF");
+        contractNames.push("TC");
         contractNames.push("C1");
         contractNames.push("CR");
         contractNames.push("P1");
@@ -104,19 +103,17 @@ contract NXMaster is Governed {
     /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
     /// and can be found in the imports folder
     /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
-    function changeMemberRolesAddress(address _memberRolesAddress) onlyInternal
-    {
+    function changeMemberRolesAddress(address _memberRolesAddress) public onlyInternal {
         memberRolesAddress = _memberRolesAddress;
         mr = MemberRoles(memberRolesAddress);
-        tc2 = NXMToken2(versionContractAddress[currentVersion]["TOK2"]);
-        tc2.changeMemberRolesAddress(_memberRolesAddress);
-        
+        tf = TokenFunctions(versionContractAddress[currentVersion]["TF"]);
+        tf.changeMemberRolesAddress(_memberRolesAddress);
     }
 
     /// @dev Add Emergency pause
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
-    function addEmergencyPause(bool _pause, bytes4 _by) onlyAuthorizedToGovern {
+    function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
         emergencyPaused.push(emergencyPause(_pause, now, _by));
         if (_pause == false) {
             c1 = Claims(versionContractAddress[currentVersion]["C1"]);
@@ -136,7 +133,7 @@ contract NXMaster is Governed {
     }
 
     /// @dev Updates NXMaster address of all associated contracts
-    function changeMasterAddress(address _add) onlyOwner {
+    function changeMasterAddress(address _add) public onlyOwner {
         Iupgradable contracts;
         for (uint i = 0; i < contractNames.length; i++) {
             contracts = Iupgradable(versionContractAddress[currentVersion][contractNames[i]]);

@@ -269,6 +269,19 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev Staking on contract.
+    * @param _scAddress smart contract address.
+    * @param _amount amount of NXM.
+    */ 
+    function addStake(address _scAddress, uint _amount) public isMemberAndcheckPause {
+        require(tk.balanceOf(msg.sender) >= _amount);
+        uint index = td.addStake(msg.sender, _scAddress, _amount);
+        bytes32 reason = keccak256(abi.encodePacked("UW", msg.sender, _scAddress, index));
+        uint validity = (td.scValidDays()).mul(1 days);
+        tc.lock(msg.sender, reason, _amount, validity);
+    }
+
+    /**
     * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
     * @param _of address of the coverHolder.
     * @param _coverId coverId of the cover.

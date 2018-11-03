@@ -484,6 +484,60 @@ contract TokenFunctions is Iupgradable, Governed {
         }
     }
 
+    /**
+    * @dev Internal function to gets amount of staked NXM tokens,
+    *      against smartcontract by index
+    * @param _of address of user
+    * @param _scAddress staked contract address
+    * @param _index index of staking
+    */
+    function _getStakerStakedTokensOnSmartContract (
+        address _of,
+        address _scAddress,
+        uint _index
+    )
+        internal
+        view
+        returns
+        (uint amount)
+    {   
+        require(td.getSmartContractStakerByIndex(_of, _index) == _scAddress);
+        uint dateAdd;
+        (, , , dateAdd, ) = td.stakerStakedContracts(_of, _index);
+        uint validDays = td.scValidDays();
+        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(_of, _scAddress, _index);
+        uint dayStaked = (now.sub(dateAdd)).div(1 days);
+        uint stakedTokens;
+        
+        if (currentLockedTokens == 0) {
+            amount = 0;
+        } else if (validDays > dayStaked) {
+            stakedTokens = _calculateStakedTokens(currentLockedTokens, dayStaked, validDays);
+        } 
+    }
+
+    /**
+    * @dev Internal function to gets amount of locked NXM tokens,
+    *      staked against smartcontract by index
+    * @param _of address of user
+    * @param _scAddress staked contract address
+    * @param _index index of staking
+    */
+    function _getStakerLockedTokensOnSmartContract (
+        address _of,
+        address _scAddress,
+        uint _index
+    )
+        internal
+        view
+        returns
+        (uint amount)
+    {   
+        require(td.getSmartContractStakerByIndex(_of, _index) == _scAddress);
+        bytes32 reason = keccak256(abi.encodePacked("UW", _of, _scAddress, _index));
+        amount = tc.tokensLockedAtTime(_of, reason, now);
+    }
+
     //Returns 50% of locked CoverNote amount to use as deposit for Claim
     function _getDepositCNAmount(uint _coverId) internal view returns(uint amount) {
         amount = (_getLockedCNAgainstCover(_coverId).mul(50)).div(100);

@@ -199,6 +199,17 @@ contract TokenData is Iupgradable {
     } 
 
     /**
+    * @dev Adds a new stake record.
+    * @param _of staker address.
+    * @param _scAddress smart contract address.
+    * @param _amount amountof NXM to be staked.
+    */
+    function addStake(address _of, address _scAddress, uint _amount) public onlyInternal returns(uint index) {
+        index = (smartContractStakers[_scAddress].push(_of)).sub(1);
+        stakerStakedContracts[_of].push(Stake(_scAddress, index, _amount, now, 0));
+    }
+
+    /**
     * @dev books the user's tokens for maintaining Assessor Velocity, i.e.
     *      once a token is used to cast a vote as a Claims assessor,
     *      the same token cannot be used to cast another vote before a fixed period of time(in milliseconds)

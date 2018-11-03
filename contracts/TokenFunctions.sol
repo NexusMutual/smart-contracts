@@ -267,4 +267,55 @@ contract TokenFunctions is Iupgradable, Governed {
         } 
         depositCN(_coverId);
     }
+
+    /**
+    * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
+    * @param _of address of the coverHolder.
+    * @param _coverId coverId of the cover.
+     */
+    function getUserLockedCNTokens(address _of, uint _coverId) public returns(uint) {
+        _getUserLockedCNTokens(_of, _coverId);
+    } 
+
+    function getUserAllLockedCNTokens(address _of) public returns(uint) {
+        uint amount = 0;
+        for (uint i = 0; i < qd.getUserCoverLength(_of); i++) {
+            amount = amount.add(_getUserLockedCNTokens(_of, qd.getAllCoversOfUser(_of)[i]));
+        }
+        return amount;
+    }
+
+    /**
+    * @dev Returns amount of NXM Tokens locked as Cover Note against given coverId.
+    * @param _coverId coverId of the cover.
+    */
+    function getLockedCNAgainstCover(uint _coverId) public returns(uint) {
+        return _getLockedCNAgainstCover(_coverId);
+    }
+
+    //Returns 50% of locked CoverNote amount to use as deposit for Claim
+    function _getDepositCNAmount(uint _coverId) internal view returns(uint amount) {
+        amount = (_getLockedCNAgainstCover(_coverId).mul(50)).div(100);
+    }
+
+    /**
+    * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
+    * @param _coverId coverId of the cover.
+    */
+    function _getLockedCNAgainstCover(uint _coverId) internal view returns(uint) {
+        address coverHolder = qd.getCoverMemberAddress(_coverId);
+        bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, _coverId));
+        return tc.tokensLockedAtTime(coverHolder, reason, now); 
+    }
+
+    /**
+    * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
+    * @param _of address of the coverHolder.
+    * @param _coverId coverId of the cover.
+    */
+    function _getUserLockedCNTokens(address _of, uint _coverId) internal view returns(uint) {
+        bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
+        return tc.tokensLockedAtTime(_of, reason, now); 
+    }
+
 }

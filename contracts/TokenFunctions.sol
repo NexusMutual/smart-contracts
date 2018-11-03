@@ -160,6 +160,29 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev Unlocks covernote locked against a given cover 
+    * @param coverId id of cover
+    */ 
+    function unlockCN(uint coverId) public onlyInternal {
+        address _of = qd.getCoverMemberAddress(coverId);
+        uint lockedCN = _getLockedCNAgainstCover(coverId);
+        require(lockedCN > 0);
+        require(undepositCN(coverId, false));
+        uint burnAmount;
+        (, burnAmount) = td.getDepositCNDetails(coverId);
+        uint availableCNToken = lockedCN.sub(burnAmount);
+        bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
+        if (burnAmount == 0) {
+            tc.releaseLockedTokens(_of, reason, availableCNToken);
+        } else if (availableCNToken == 0) {
+            tc.burnLockedTokens(_of, reason, burnAmount);
+        } else {
+            tc.releaseLockedTokens(_of, reason, availableCNToken);
+            tc.burnLockedTokens(_of, reason, burnAmount);
+        }
+    }
+
+    /**
     * @dev Change the address who can update GovBlocks member role.
     *      Called when updating to a new version.
     *      Need to remove onlyOwner to onlyInternal and update automatically at version change

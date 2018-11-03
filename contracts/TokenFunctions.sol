@@ -305,7 +305,17 @@ contract TokenFunctions is Iupgradable, Governed {
     function getLockedCNAgainstCover(uint _coverId) public returns(uint) {
         return _getLockedCNAgainstCover(_coverId);
     }
-
+    
+    /**
+    * @dev Books the user's tokens for maintaining Assessor Velocity
+    *      i.e., these tokens cannot be used to cast another vote for a specified period of time.
+    * @param _to Claims assessor address.
+    * @param value number of tokens that will be booked for a period of time.
+    */
+    function bookCATokens(address _to, uint value) public onlyInternal {
+        td.pushBookedCA(_to, value);
+    }
+    
     //Returns 50% of locked CoverNote amount to use as deposit for Claim
     function _getDepositCNAmount(uint _coverId) internal view returns(uint amount) {
         amount = (_getLockedCNAgainstCover(_coverId).mul(50)).div(100);
@@ -330,5 +340,4 @@ contract TokenFunctions is Iupgradable, Governed {
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
         return tc.tokensLockedAtTime(_of, reason, now); 
     }
-
 }

@@ -253,4 +253,18 @@ contract TokenFunctions is Iupgradable, Governed {
         tc.lock(_of, reason, amount, validity);
     }
 
+    /**
+    * @param _of address of Member
+    * @param _coverId Cover Id
+    * @param _lockTime Pending Time + Cover Period 7*1 days
+    */ 
+    function depositCNEPOff(address _of, uint _coverId, uint _lockTime) public onlyInternal {
+        uint timeStamp = now.add(_lockTime);
+        uint coverValidUntil = qd.getValidityOfCover(_coverId);
+        if (timeStamp >= coverValidUntil) {
+            bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
+            tc.extendLock(_of, reason, timeStamp);
+        } 
+        depositCN(_coverId);
+    }
 }

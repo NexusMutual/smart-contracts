@@ -237,4 +237,20 @@ contract TokenFunctions is Iupgradable, Governed {
         tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
     }
 
+    function lockCN(
+        uint premiumNxm,
+        uint coverPeriod,
+        uint coverId,
+        address _of
+    )
+        public
+        onlyInternal
+        returns (uint amount)
+    {
+        amount = (premiumNxm.mul(5)).div(100);
+        uint validity = now.add(td.lockTokenTimeAfterCoverExp()).add(coverPeriod);
+        bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
+        tc.lock(_of, reason, amount, validity);
+    }
+
 }

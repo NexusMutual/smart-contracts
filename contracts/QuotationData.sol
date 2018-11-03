@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
 import "./NXMaster.sol";
 import "./Iupgradable.sol";
@@ -73,7 +73,7 @@ contract QuotationData is Iupgradable {
     event CoverDetailsEvent(uint indexed cid, address scAdd, uint sumAssured, uint expiry, uint premium, bytes4 curr);
     event CoverStatusEvent(uint indexed cid, uint8 statusNum);
 
-    function QuotationData() {
+    constructor() public{
         pendingCoverStart = 0;
         productDetails.push(Product_Details("SCC", "Smart Contract Cover", 90, 1000, 12, 0));
         allCovers.push(cover("0x00", 0x000, "0x00", 0, 0, 0, 0x000, 0));

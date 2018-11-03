@@ -402,6 +402,34 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev Returns total amount of staked NXM Tokens on all smart contract .
+    * @param _of address of the Staker.
+    */ 
+    function getStakerAllLockedTokens (address _of) public returns (uint amount) {
+        uint stakedAmount = 0;
+        address scAddress;
+        for (uint i = 0; i < td.getStakerStakedContractLength(_of); i++) {
+            scAddress = td.getSmartContractStakerByIndex(_of, i);
+            stakedAmount = stakedAmount.add(_getStakerLockedTokensOnSmartContract(_of, scAddress, i));
+        }
+        amount = stakedAmount;
+    }
+
+    /**
+    * @dev Returns total unlockable amount of staked NXM Tokens on all smart contract .
+    * @param _of address of the Staker.
+    */ 
+    function getStakerAllUnlockableStakedTokens (address _of) public view returns (uint amount) {
+        uint unlockableAmount = 0;
+        address scAddress;
+        for (uint i = 0; i < td.getStakerStakedContractLength(_of); i++) {
+            scAddress = td.getSmartContractStakerByIndex(_of, i);
+            unlockableAmount = unlockableAmount.add(_getStakerUnlockableTokensOnSmartContract(_of, scAddress, i));
+        }
+        amount = unlockableAmount;
+    }
+
+    /**
     * @dev Books the user's tokens for maintaining Assessor Velocity
     *      i.e., these tokens cannot be used to cast another vote for a specified period of time.
     * @param _to Claims assessor address.

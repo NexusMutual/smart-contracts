@@ -282,6 +282,20 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+    * @dev Gets the total staked NXM tokens against Smart contract 
+    *       by all stakers
+    * @param _scAddress smart contract address.
+    * @return amount total staked NXM tokens.
+    */
+    function getTotalStakedTokensOnSmartContract(address _scAddress) public view returns(uint amount) {
+        uint stakedAmount = 0;
+        for (uint i = 0; i < td.getStakerStakedContractLength(_scAddress); i++) {
+            stakedAmount = stakedAmount.add(_getStakerStakedTokensOnSmartContract(
+                td.getSmartContractStakerByIndex(_scAddress, i), _scAddress, i));
+        }
+    }
+
+    /**
     * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
     * @param _of address of the coverHolder.
     * @param _coverId coverId of the cover.
@@ -305,7 +319,7 @@ contract TokenFunctions is Iupgradable, Governed {
     function getLockedCNAgainstCover(uint _coverId) public returns(uint) {
         return _getLockedCNAgainstCover(_coverId);
     }
-    
+
     /**
     * @dev Books the user's tokens for maintaining Assessor Velocity
     *      i.e., these tokens cannot be used to cast another vote for a specified period of time.
@@ -339,5 +353,25 @@ contract TokenFunctions is Iupgradable, Governed {
     function _getUserLockedCNTokens(address _of, uint _coverId) internal view returns(uint) {
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
         return tc.tokensLockedAtTime(_of, reason, now); 
+    }
+
+    /**
+    * @dev Internal function to gets remaining amount of staked NXM tokens,
+    *      against smartcontract by index
+    * @param _stakeAmount address of user
+    * @param _stakeDays staked contract address
+    * @param _validDays index of staking
+    */
+    function _calculateStakedTokens(
+        uint _stakeAmount,
+        uint _stakeDays,
+        uint _validDays
+    ) 
+        internal
+        view 
+        returns (uint amount)
+    {
+        uint rf = ((_validDays.sub(_stakeDays)).mul(100000)).div(_validDays);
+        amount = (rf.mul(_stakeAmount)).div(100000);
     }
 }

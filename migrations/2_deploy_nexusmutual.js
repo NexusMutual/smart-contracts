@@ -6,8 +6,10 @@ var NXMaster = artifacts.require('NXMaster');
 var NXMaster2 = artifacts.require('NXMaster2');
 var MCR = artifacts.require('MCR');
 var MCRDataMock = artifacts.require('MCRDataMock');
-var NXMToken2 = artifacts.require('NXMToken2');
-var NXMTokenData = artifacts.require('NXMTokenData');
+var NXMToken = artifacts.require('NXMToken');
+var TokenData = artifacts.require('TokenData');
+var TokenFunctions = artifacts.require('TokenFunctions');
+var TokenController = artifacts.require('TokenController');
 var Pool1 = artifacts.require('Pool1');
 var Pool2 = artifacts.require('Pool2');
 var Pool3 = artifacts.require('Pool3');
@@ -17,8 +19,13 @@ var QuotationDataMock = artifacts.require('QuotationDataMock');
 var Exchange = artifacts.require('Exchange');
 var Token = artifacts.require('Token');
 var TokenTransferProxy = artifacts.require('TokenTransferProxy');
-let ttpa;
-let zxta;
+
+var ttpa;
+var zxta;
+var tcAddress;
+
+const founderAddress = web3.eth.accounts[19];
+const INITIAL_SUPPLY = 1500000 * 1e18;
 
 module.exports = function(deployer) {
   deployer.deploy(Claims);
@@ -33,8 +40,12 @@ module.exports = function(deployer) {
   deployer.deploy(PoolData);
   deployer.deploy(MCR);
   deployer.deploy(MCRDataMock);
-  deployer.deploy(NXMToken2);
-  deployer.deploy(NXMTokenData);
+  deployer.deploy(TokenController).then(function(instance) {
+    tcAddress = instance.address;
+    return deployer.deploy(NXMToken, tcAddress, founderAddress, INITIAL_SUPPLY);
+  });
+  deployer.deploy(TokenData);
+  deployer.deploy(TokenFunctions);
   deployer.deploy(Quotation);
   deployer.deploy(QuotationDataMock);
   deployer

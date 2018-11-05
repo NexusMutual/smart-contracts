@@ -67,13 +67,6 @@ contract TokenFunctions is Iupgradable, Governed {
     }
      
     /**
-    * @dev Gets current number of NXM Tokens of founders.
-    */ 
-    function getCurrentFounderTokens() external view returns(uint tokens) {
-        tokens = tk.balanceOf(tk.founderAddress());
-    }
- 
-    /**
     * @dev Used to set and update master address
     * @param _add address of master contract
     */
@@ -144,7 +137,7 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Unlocks tokens deposited against a cover.
+    * @dev Undeposit tokens deposited against a cover.
     * @param coverId Cover Id.
     * @param burn if set true, 50 % amount of locked cover note to burn. 
     */
@@ -152,9 +145,9 @@ contract TokenFunctions is Iupgradable, Governed {
         uint toBurn;
         (, toBurn) = td.getDepositCNDetails(coverId);
         if (burn == true) {
-            td.setDepositCN(coverId, true, toBurn.add(_getDepositCNAmount(coverId)));
+            td.setDepositCN(coverId, false, toBurn.add(_getDepositCNAmount(coverId)));
         } else {
-            td.setDepositCN(coverId, true, toBurn);
+            td.setDepositCN(coverId, false, toBurn);
         }
         success = true;  
     }

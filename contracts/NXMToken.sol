@@ -40,7 +40,6 @@ contract NXMToken is IERC20 {
     string public symbol = "NXM";
     uint8 public decimals = 18;
     address public operator;
-    address public founderAddress;
 
     modifier canTransfer(address _to) {
         require(whiteListed[_to]);
@@ -54,7 +53,6 @@ contract NXMToken is IERC20 {
 
     constructor(address _operator, address _founderAddress, uint _initialSupply) public {
         operator = _operator;
-        founderAddress = _founderAddress;
         _mint(_founderAddress, _initialSupply);
     }
 

@@ -182,6 +182,17 @@ contract TokenFunctions is Iupgradable, Governed {
         }
     }
 
+    /** 
+    * @dev Burns tokens used for fraudulent voting against a claim
+    * @param claimid Claim Id.
+    * @param _value number of tokens to be burned
+    * @param _of Claim Assessor's address.
+    */     
+    function burnCAToken(uint claimid, uint _value, address _of) public onlyAuthorizedToGovern {
+        require(tc.tokensLockedAtTime(_of, "CLA", now) >= _value);
+        tc.burnLockedTokens(_of, "CLA", _value);
+    }
+
     /**
     * @dev Change the address who can update GovBlocks member role.
     *      Called when updating to a new version.

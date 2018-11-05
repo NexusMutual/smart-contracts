@@ -32,13 +32,13 @@ contract TokenFunctions is Iupgradable, Governed {
     using SafeMaths for uint;
 
     NXMaster public ms;
-    MCR public m1;
+    MCR internal m1;
     MemberRoles public mr;
     NXMToken public tk;
-    TokenController public tc;
-    TokenData public td;
-    QuotationData public qd;
-    ClaimsReward public cr;
+    TokenController internal tc;
+    TokenData internal td;
+    QuotationData internal qd;
+    ClaimsReward internal cr;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
 

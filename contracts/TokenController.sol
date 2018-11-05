@@ -60,14 +60,6 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     }
 
     /**
-    * @dev used to set the address of token to control
-    * @param _token address of the token
-    */
-    function setTokenAddress(address _token) public onlyInternal {
-        token = NXMToken(_token);
-    }
-
-    /**
     * @dev Locks a specified amount of tokens,
     *    for a specified reason and time
     * @param _reason The reason to lock tokens
@@ -171,8 +163,8 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     * @param _reason The reason to lock tokens
     * @param _time Lock reduction time in seconds
     */
-    function reduceLockDuration(address _of, bytes32 _reason, uint256 _time) public onlyInternal {
-        _reduceLockDuration(_of, _reason, _time);
+    function reduceLock(address _of, bytes32 _reason, uint256 _time) public onlyInternal {
+        _reduceLock(_of, _reason, _time);
     } 
 
     /**
@@ -404,7 +396,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     * @param _reason The reason to lock tokens
     * @param _time Lock reduction time in seconds
     */
-    function _reduceLockDuration(address _of, bytes32 _reason, uint256 _time) internal {
+    function _reduceLock(address _of, bytes32 _reason, uint256 _time) internal {
         require(_tokensLocked(_of, _reason) > 0);
         locked[_of][_reason].validity = locked[_of][_reason].validity.sub(_time);
         emit Unlocked(_of, _reason, locked[_of][_reason].amount);

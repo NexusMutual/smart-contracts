@@ -511,12 +511,11 @@ contract TokenFunctions is Iupgradable, Governed {
         uint validDays = td.scValidDays();
         uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(_of, _scAddress, _index);
         uint dayStaked = (now.sub(dateAdd)).div(1 days);
-        uint stakedTokens;
         
         if (currentLockedTokens == 0) {
             amount = 0;
         } else if (validDays > dayStaked) {
-            stakedTokens = _calculateStakedTokens(currentLockedTokens, dayStaked, validDays);
+            amount = _calculateStakedTokens(currentLockedTokens, dayStaked, validDays);
         } 
     }
 

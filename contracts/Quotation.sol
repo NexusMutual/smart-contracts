@@ -48,7 +48,7 @@ contract Quotation is Iupgradable {
 
     function () public payable {} //solhint-disable-line
 
-    function changeMasterAddress(address _add) {
+    function changeMasterAddress(address _add) public {
         if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
         }

@@ -71,11 +71,11 @@ contract Pool2 is Iupgradable {
 
     event Rebalancing(bytes16 name, uint16 param);
 
-    function changeMasterAddress(address _add) {
+    function changeMasterAddress(address _add) public {
         if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
         }
-        ms = NXMaster(_add); 
+        ms = NXMaster(_add);
     }
 
     modifier onlyInternal {

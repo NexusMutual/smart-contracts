@@ -55,7 +55,7 @@ contract MCR is Iupgradable {
         uint vFull
     );
 
-    function changeMasterAddress(address _add) {
+    function changeMasterAddress(address _add) public {
         if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
         }

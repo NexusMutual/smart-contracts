@@ -98,6 +98,19 @@ contract TokenData is Iupgradable {
         lockMVDays = 2 days;
     }
     
+    function changeMasterAddress(address _add) public {
+        if (address(ms) != address(0)) {
+            require(ms.isInternal(msg.sender) == true);
+        }
+        ms = NXMaster(_add);
+    }
+
+    /**
+    * @dev Just for interface
+    */
+    function changeDependentContractAddress() public {
+    }
+    
     function getStakerStakedContractByIndex(address _stakerAddress, uint _index) 
         public
         view

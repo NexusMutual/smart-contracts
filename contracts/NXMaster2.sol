@@ -42,12 +42,11 @@ contract NXMaster2 is Iupgradable {
     PoolData pd;
     MCR m1;
 
-    function changeMasterAddress(address _add) {
+    function changeMasterAddress(address _add) public {
         if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
         }
         ms = NXMaster(_add);
-
     }
 
     modifier onlyInternal {

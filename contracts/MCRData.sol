@@ -58,12 +58,11 @@ contract MCRData is Iupgradable {
         shockParameter = 50;
     }
 
-    function changeMasterAddress(address _add) {
+    function changeMasterAddress(address _add) public {
         if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
         }
         ms = NXMaster(_add);
-
     }
 
     function changeDependentContractAddress() onlyInternal {

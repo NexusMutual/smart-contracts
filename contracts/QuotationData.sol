@@ -82,16 +82,11 @@ contract QuotationData is Iupgradable {
 
     }
 
-    function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
+    function changeMasterAddress(address _add) public {
+        if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
-
         }
+        ms = NXMaster(_add);
     }
 
     function changeDependentContractAddress() onlyInternal {

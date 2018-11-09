@@ -262,15 +262,16 @@ contract MCR is Iupgradable {
                 lowerThreshold = SafeMaths.div(vtp, lower);
             }
         }
-        if (len == 1 || ((SafeMaths.div(mcrP, 100)) >= lowerThreshold &&
-            (SafeMaths.div(mcrP, 100)) <= upperThreshold)) {
+        if (len == 1 || ((SafeMaths.div(mcrP, 100)) >= lowerThreshold 
+            && (SafeMaths.div(mcrP, 100)) <= upperThreshold)) {
+            vtp = md.getLastMCRDate(); // due to stack to deep error,we are reusing already declared variable
             md.pushMCRData(mcrP, mcrE, vF, newMCRDate);
             for (uint i = 0; i < curr.length; i++) {
                 md.updateCurr3DaysAvg(curr[i], _threeDayAvg[i]);
             }
             MCR(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
             // Oraclize call for next MCR calculation
-            if (md.getLastMCRDate() < newMCRDate) {
+            if (vtp < newMCRDate) {
                 callOracliseForMCR();
             }
         } else {

@@ -86,9 +86,9 @@ contract NXMaster is Governed {
         contractNames.push("CR");
         contractNames.push("P1");
         contractNames.push("P2");
-        contractNames.push("MAS2");
-        contractNames.push("MCR");
         contractNames.push("P3");
+        contractNames.push("MCR");
+        contractNames.push("MAS2");
     }
 
     /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
@@ -133,6 +133,13 @@ contract NXMaster is Governed {
 
     }
 
+    /// @dev Changes the NXMToken address.
+    /// and can be found in the imports folder
+    /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
+    function changeTokenAddress(address _newTokenAddress) public onlyOwner {
+        TokenAddress = _newTokenAddress;
+    }
+
     /// @dev Updates the version of contracts, provides required addresses to all associated contracts
     /// calls the oraclize query to update UI.
     /// modifier to be changed to onlyAuthorizedToGovern in future.
@@ -140,9 +147,9 @@ contract NXMaster is Governed {
         uint version = SafeMaths.sub(versionLength, 1);
         currentVersion = version;
         addInContractChangeDate(now, version);
-        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"] 
-            && versionContractAddress[currentVersion]["TD"] == versionContractAddress[SafeMaths.sub(currentVersion, 1)]["TD"]) {
-            cr = ClaimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
+        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[currentVersion.sub(1)]["CR"] 
+            && versionContractAddress[currentVersion]["TD"] == versionContractAddress[currentVersion.sub(1)]["TD"]) {
+            cr = ClaimsReward(versionContractAddress[currentVersion.sub(1)]["CR"]);
             cr.upgrade(versionContractAddress[currentVersion]["CR"]);
         }
         addRemoveAddress(version);
@@ -170,14 +177,11 @@ contract NXMaster is Governed {
 
     /// @dev Checks whether emergency pause id on/not.
     function isPause() constant returns(bool check) {
-
+        check = false;
         if (emergencyPaused.length > 0) {
-            if (emergencyPaused[SafeMaths.sub(emergencyPaused.length, 1)].pause == true)
-                return true;
-            else
-                return false;
-        } else
-            return false; //in emergency pause state
+            if (emergencyPaused[emergencyPaused.length.sub(1)].pause == true)
+                check = true;
+        } 
     }
 
     /// @dev checks whether the address is a member of the mutual or not.
@@ -193,11 +197,11 @@ contract NXMaster is Governed {
     }
 
     ///@dev Gets emergency pause details by index.
-    function getEmergencyPauseByIndex(uint indx) constant returns(uint _indx, bool _pause, uint _time, bytes4 _by) {
-        _pause = emergencyPaused[indx].pause;
-        _time = emergencyPaused[indx].time;
-        _by = emergencyPaused[indx].by;
-        _indx = indx;
+    function getEmergencyPauseByIndex(uint index) constant returns(uint _index, bool _pause, uint _time, bytes4 _by) {
+        _pause = emergencyPaused[index].pause;
+        _time = emergencyPaused[index].time;
+        _by = emergencyPaused[index].by;
+        _index = index;
     }
 
     ///@dev Gets the number of emergency pause has been toggled.
@@ -212,9 +216,10 @@ contract NXMaster is Governed {
         _by = "";
         uint len = getEmergencyPausedLength();
         if (len > 0) {
-            _pause = emergencyPaused[SafeMaths.sub(len, 1)].pause;
-            _time = emergencyPaused[SafeMaths.sub(len, 1)].time;
-            _by = emergencyPaused[SafeMaths.sub(len, 1)].by;
+            len = len.sub(1);
+            _pause = emergencyPaused[len].pause;
+            _time = emergencyPaused[len].time;
+            _by = emergencyPaused[len].by;
         }
     }
 
@@ -223,7 +228,7 @@ contract NXMaster is Governed {
     /// Adding a new version doesn't activate it. One needs to call switchToRecentVersion.
     function addNewVersion(Iupgradable[] arr) onlyOwner {
         uint versionNo = versionLength;
-        setVersionLength(SafeMaths.add(versionNo, 1));
+        setVersionLength(versionNo.add(1));
         for (uint i = 0; i < contractNames.length; i++) {
             versionContractAddress[versionNo][contractNames[i]] = arr[i];
         }
@@ -254,7 +259,7 @@ contract NXMaster is Governed {
         for (uint i = 0; i < contractNames.length; i++) {
             uint versionOld = 0;
             if (version > 0)
-                versionOld = SafeMaths.sub(version, 1);
+                versionOld = version.sub(1);
             contractsActive[versionContractAddress[versionOld][contractNames[i]]] = false;
             contractsActive[versionContractAddress[version][contractNames[i]]] = true;
         }

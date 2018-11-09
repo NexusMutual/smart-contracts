@@ -173,6 +173,15 @@ contract NXMToken is IERC20 {
     }
 
     /**
+    * @dev change operator address 
+    * @param _newOperator address of new operator
+    */
+    function changeOperator(address _newOperator) public onlyOperator returns (bool) {
+        operator = _newOperator;
+        return true;
+    }
+
+    /**
     * @dev burns an amount of the tokens of the message sender
     * account.
     * @param amount The amount that will be burnt.

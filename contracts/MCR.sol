@@ -83,7 +83,7 @@ contract MCR is Iupgradable {
         qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
         p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
         pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-
+        tk = NXMToken(ms.TokenAddress());
     }
 
     /// @dev Changes minimum Capital Requirement for system to sustain.

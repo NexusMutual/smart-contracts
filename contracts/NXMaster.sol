@@ -24,9 +24,7 @@ import "./imports/govblocks-protocol/Governed.sol";
 
 
 contract NXMaster is Governed {
-
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     struct changeVersion {
         uint dateImplement;
@@ -48,8 +46,7 @@ contract NXMaster is Governed {
     mapping(address => bool) public contractsActive;
     uint public currentVersion;
     address public memberRolesAddress;
-
-    address masterAddress;
+    address public TokenAddress;
 
     Claims c1;
     ClaimsReward cr;
@@ -70,10 +67,6 @@ contract NXMaster is Governed {
         _;
     }
 
-/*     modifier checkPause {
-        require(isPause() == false);
-        _;
-    } */
     /// @dev Constructor
     constructor() public {
         owner = msg.sender;
@@ -87,7 +80,6 @@ contract NXMaster is Governed {
         contractNames.push("PD");
         contractNames.push("MD");
         contractNames.push("Q2");
-        contractNames.push("TK");
         contractNames.push("TF");
         contractNames.push("TC");
         contractNames.push("C1");
@@ -97,7 +89,6 @@ contract NXMaster is Governed {
         contractNames.push("MAS2");
         contractNames.push("MCR");
         contractNames.push("P3");
-
     }
 
     /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks

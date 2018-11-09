@@ -19,7 +19,7 @@ import "./NXMaster.sol";
 import "./NXMToken.sol";
 import "./TokenData.sol";
 import "./TokenFunctions.sol";
-// import "./TokenController.sol";
+import "./TokenController.sol";
 import "./Pool1.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
@@ -33,9 +33,8 @@ contract Quotation is Iupgradable {
     using SafeMaths
     for uint;
 
-    NXMToken tk;
     TokenFunctions tf;
-    // TokenController tc;
+    TokenController tc;
     TokenData td;
     Pool1 p1;
     PoolData pd;
@@ -83,12 +82,11 @@ contract Quotation is Iupgradable {
         uint currentVersion = ms.currentVersion();
         m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
         tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));
-        // tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
+        tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
         td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
         qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
         p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
         pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-
     }
 
     /**
@@ -150,10 +148,10 @@ contract Quotation is Iupgradable {
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-        ) isMemberAndcheckPause {
+        ) public isMemberAndcheckPause {
 
         require(m1.checkForMinMCR() != 1);
-        tk.burnFrom(msg.sender,coverDetails[2]); //need burn allowance
+        tc.burnFrom(msg.sender,coverDetails[2]); //need burn allowance
         verifyCoverDetailsIntrnl(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 

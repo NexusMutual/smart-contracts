@@ -72,7 +72,7 @@ contract Claims is Iupgradable {
 
     function changeDependentContractAddress() onlyInternal {
         uint currentVersion = ms.currentVersion();
-        tk = NXMToken(ms.versionContractAddress(currentVersion, "TK"));
+        tk = NXMToken(ms.TokenAddress());
         td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
         tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));
         p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));

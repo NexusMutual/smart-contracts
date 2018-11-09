@@ -56,7 +56,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     */
     function changeDependentContractAddress() public {
         uint currentVersion = ms.currentVersion();
-        token = NXMToken(ms.versionContractAddress(currentVersion, "TOK"));
+        token = NXMToken(ms.TokenAddress());
     }
 
     /**
@@ -147,6 +147,10 @@ contract TokenController is IERC1132, Governed, Iupgradable {
         return true;
     }
 
+    function burnFrom (address _of , uint amount) public onlyInternal {
+        token.burnFrom(_of, amount);
+    }
+    
     /**
     * @dev Burns locked tokens of a user 
     * @param _of address whose tokens are to be burned

@@ -33,7 +33,7 @@ contract TokenFunctions is Iupgradable, Governed {
 
     NXMaster public ms;
     MCR internal m1;
-    MemberRoles public mr;
+    MemberRoles internal mr;
     NXMToken public tk;
     TokenController internal tc;
     TokenData internal td;
@@ -77,21 +77,21 @@ contract TokenFunctions is Iupgradable, Governed {
         ms = NXMaster(_add);
     }
 
-    function changeMemberRolesAddress(address memberAddress) public onlyInternal {
-        mr = MemberRoles(memberAddress);
-    }
-
     /**
     * @dev Just for interface
     */
     function changeDependentContractAddress() public {
         uint currentVersion = ms.currentVersion();
-        tk = NXMToken(ms.versionContractAddress(currentVersion, "TK"));
+        tk = NXMToken(ms.TokenAddress());
         td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
         tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
         cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
         qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
         m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+    }
+
+     function changeMemberRolesAddress(address memberAddress) public onlyInternal {
+        mr = MemberRoles(memberAddress);
     }
 
     /**
@@ -236,7 +236,7 @@ contract TokenFunctions is Iupgradable, Governed {
         require(tc.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
         require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
         require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
-        tk.burnFrom(msg.sender, tk.balanceOf(msg.sender));
+        tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
         mr.updateMemberRole(msg.sender, 3, false, 0);
         tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
     }

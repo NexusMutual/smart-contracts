@@ -1,255 +1,107 @@
-var Claims = artifacts.require('Claims');
-var ClaimsData = artifacts.require('ClaimsData');
-var ClaimsReward = artifacts.require('ClaimsReward');
-var DAI = artifacts.require('MockDAI');
-var NXMaster = artifacts.require('NXMaster');
-var NXMaster2 = artifacts.require('NXMaster2');
-var MCR = artifacts.require('MCR');
-var MCRDataMock = artifacts.require('MCRDataMock');
-var NXMToken1 = artifacts.require('NXMToken1');
-var NXMToken2 = artifacts.require('NXMToken2');
-var NXMTokenData = artifacts.require('NXMTokenData');
-var Pool1 = artifacts.require('Pool1');
-var Pool2 = artifacts.require('Pool2');
-var Pool3 = artifacts.require('Pool3');
-var PoolData = artifacts.require('PoolData');
-var Quotation = artifacts.require('Quotation');
-var QuotationDataMock = artifacts.require('QuotationDataMock');
-var MemberRoles = artifacts.require('MemberRoles');
-var Exchange = artifacts.require('Exchange');
+const Claims = artifacts.require('Claims');
+const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsReward = artifacts.require('ClaimsReward');
+const DAI = artifacts.require('MockDAI');
+const NXMaster = artifacts.require('NXMaster');
+const NXMaster2 = artifacts.require('NXMaster2');
+const MCR = artifacts.require('MCR');
+const MCRDataMock = artifacts.require('MCRDataMock');
+// const NXMToken = artifacts.require('NXMToken');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenController = artifacts.require('TokenController');
+const TokenData = artifacts.require('TokenData');
+const Pool1 = artifacts.require('Pool1');
+const Pool2 = artifacts.require('Pool2');
+const Pool3 = artifacts.require('Pool3');
+const PoolData = artifacts.require('PoolData');
+const Quotation = artifacts.require('Quotation');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
+const MemberRoles = artifacts.require('MemberRoles');
+const Exchange = artifacts.require('Exchange');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const WETH_0x = web3.eth.accounts[18];
-//const Exchange_0x = web3.eth.accounts[17];
+const Owner = web3.eth.accounts[0];
+const POOL_ETHER = 4 * 1e18;
 
-module.exports = deployer => {
-  let nxms;
-  let nxms2;
-  let nxmt1;
-  let nxmt2;
-  let nxmtd;
-  let pl1;
-  let pl2;
-  let pl3;
-  let pd;
-  let qt;
-  let qd;
-  let cl;
-  let cr;
-  let cd;
-  let mcr;
-  let mcrd;
-  let nown;
-  let exchange;
-  let IA1, IA2, IA3, IA4, IA5, IA6;
-  deployer
-    .then(() => NXMaster.deployed())
-    .then(function(instance) {
-      nxms = instance;
-      return NXMaster2.deployed();
-    })
-    .then(function(instance) {
-      nxms2 = instance;
-      return NXMToken1.deployed();
-    })
-    .then(function(instance) {
-      nxmt1 = instance;
-      return NXMToken2.deployed();
-    })
-    .then(function(instance) {
-      nxmt2 = instance;
-      return NXMTokenData.deployed();
-    })
-    .then(function(instance) {
-      nxmtd = instance;
-      return MCR.deployed();
-    })
-    .then(function(instance) {
-      mcr = instance;
-      return MCRDataMock.deployed();
-    })
-    .then(function(instance) {
-      mcrd = instance;
-      return Pool1.deployed();
-    })
-    .then(function(instance) {
-      pl1 = instance;
-      return Pool2.deployed();
-    })
-    .then(function(instance) {
-      pl2 = instance;
-      return Pool3.deployed();
-    })
-    .then(function(instance) {
-      pl3 = instance;
-      return PoolData.deployed();
-    })
-    .then(function(instance) {
-      pd = instance;
-      return Claims.deployed();
-    })
-    .then(function(instance) {
-      cl = instance;
-      return ClaimsReward.deployed();
-    })
-    .then(function(instance) {
-      cr = instance;
-      return ClaimsData.deployed();
-    })
-    .then(function(instance) {
-      cd = instance;
-      return Quotation.deployed();
-    })
-    .then(function(instance) {
-      qt = instance;
-      return Exchange.deployed();
-    })
-    .then(function(instance) {
-      exchange = instance;
-      return DAI.new();
-    })
-    .then(function(instance) {
-      IA1 = instance;
-      return DAI.new();
-    })
-    .then(function(instance) {
-      IA2 = instance;
-      return DAI.new();
-    })
-    .then(function(instance) {
-      IA3 = instance;
-      return DAI.new();
-    })
-    .then(function(instance) {
-      IA4 = instance;
-      return DAI.new();
-    })
-    .then(function(instance) {
-      IA5 = instance;
-      return DAI.new();
-    })
-    .then(function(instance) {
-      IA6 = instance;
-      return QuotationDataMock.deployed();
-    })
-    .then(function(instance) {
-      qd = instance;
-      var addr = [
-        qd.address,
-        nxmtd.address,
-        cd.address,
-        pd.address,
-        mcrd.address,
-        qt.address,
-        nxmt1.address,
-        nxmt2.address,
-        cl.address,
-        cr.address,
-        pl1.address,
-        pl2.address,
-        nxms2.address,
-        mcr.address,
-        pl3.address
-      ];
-      return nxms.addNewVersion(addr);
-    })
-    .then(function() {
-      return nxms.switchToRecentVersion();
-    })
-    .then(function() {
-      return nxms.owner();
-    })
-    .then(function(owner) {
-      nown = owner;
-      return pl1.takeEthersOnly({ from: nown, value: 4000000000000000000 });
-    })
-    .then(function() {
-      return nxmtd.setWalletAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
-    })
-    .then(function() {
-      return qd.changeAuthQuoteEngine(QE); //"0xb24919181daead6635e613576ca11c5aa5a4e133");
-    })
-    .then(function() {
-      return nxms2.addCoverStatus();
-    })
-    .then(function() {
-      return nxms2.callPoolDataMethods();
-    })
-    .then(function() {
-      return nxms2.addStatusInClaims();
-    })
-    .then(function() {
-      return nxms2.addMCRCurr();
-    })
-    .then(function() {
-      return nxms2.addStatusInClaims();
-    })
-    .then(function() {
-      return pd.changeWETHAddress(WETH_0x); //"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
-    })
-    .then(function() {
-      return DAI.deployed();
-    })
-    .then(function(dai) {
-      return pd.changeCurrencyAssetAddress('0x444149', dai.address); //"0xd0a1e359811322d97991e03f863a0c30c2cf029c");
-    })
-    .then(function() {
-      return pd.change0xMakerAddress(nown); //"0x7266C50F1f461d2748e675B907eF22987F6B5358");
-    })
-    .then(function() {
-      return pl2.changeExchangeContractAddress(exchange.address); //"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
-    })
-    .then(function() {
-      return pl3.changeExchangeContractAddress(exchange.address); //"0x90fe2af704b34e0224bf2299c838e04d4dcf1364");
-    })
-    .then(function() {
-      return mcr.changenotariseAddress(nown); //"0x7266c50f1f461d2748e675b907ef22987f6b5358");
-    })
-    .then(function() {
-      pd.changeInvestmentAssetAddress(0x444744, IA1.address);
-    })
-    .then(function() {
-      pd.changeInvestmentAssetAddress(0x49434e, IA2.address);
-    })
-    .then(function() {
-      pd.changeInvestmentAssetAddress(0x5a5258, IA3.address);
-    })
-    .then(function() {
-      pd.changeInvestmentAssetAddress(0x474e54, IA4.address);
-    })
-    .then(function() {
-      pd.changeInvestmentAssetAddress(0x4d4c4e, IA5.address);
-    })
-    .then(function() {
-      pd.changeInvestmentAssetAddress(0x4d4b52, IA6.address);
-    })
-    .then(function() {
-      var arg1 = 18000;
-      var arg2 = 10000;
-      var arg3 = 2;
-      var arg4 = ['0x455448', '0x444149'];
-      var arg5 = [100, 65407];
-      var arg6 = 20180807;
-      return mcr.addMCRData(arg1, arg2, arg3, arg4, arg5, arg6);
-    })
-    .then(function() {
-      return pl3.saveIADetails(
-        [
-          '0x444744',
-          '0x49434e',
-          '0x5a5258',
-          '0x4d4b52',
-          '0x474e54',
-          '0x4d4c4e'
-        ],
-        [100, 200, 300, 400, 500, 600],
-        20180807
-      );
-    })
-    .then(function() {
-      return MemberRoles.deployed();
-    })
-    .then(function(mr) {
-      return nxms.changeMemberRolesAddress(mr.address);
-    });
+module.exports = function(deployer) {
+  deployer.then(async () => {
+    const nxms = await NXMaster.deployed();
+    const nxms2 = await NXMaster2.deployed();
+    const td = await TokenData.deployed();
+    const tf = await TokenFunctions.deployed();
+    const tc = await TokenController.deployed();
+    const pl1 = await Pool1.deployed();
+    const pl2 = await Pool2.deployed();
+    const pl3 = await Pool3.deployed();
+    const pd = await PoolData.deployed();
+    const qt = await Quotation.deployed();
+    const qd = await QuotationDataMock.deployed();
+    const cl = await Claims.deployed();
+    const cr = await ClaimsReward.deployed();
+    const cd = await ClaimsData.deployed();
+    const mcr = await MCR.deployed();
+    const mcrd = await MCRDataMock.deployed();
+    const exchange = await NXMaster.deployed();
+    const IA1 = await DAI.new();
+    const IA2 = await DAI.new();
+    const IA3 = await DAI.new();
+    const IA4 = await DAI.new();
+    const IA5 = await DAI.new();
+    const IA6 = await DAI.new();
+    let addr = [
+      qd.address,
+      td.address,
+      cd.address,
+      pd.address,
+      mcrd.address,
+      qt.address,
+      tf.address,
+      tc.address,
+      cl.address,
+      cr.address,
+      pl1.address,
+      pl2.address,
+      nxms2.address,
+      mcr.address,
+      pl3.address
+    ];
+    await nxms.addNewVersion(addr);
+    await nxms.switchToRecentVersion();
+    await pl1.sendTransaction({ from: Owner, value: 4000000000000000000 });
+    await td.changeWalletAddress(Owner);
+    await qd.changeAuthQuoteEngine(QE);
+    await nxms2.addCoverStatus();
+    await nxms2.callPoolDataMethods();
+    await nxms2.addStatusInClaims();
+    await nxms2.addMCRCurr();
+    await pd.changeWETHAddress(WETH_0x);
+    const dai = await DAI.deployed();
+    await pd.changeCurrencyAssetAddress('0x444149', dai.address);
+    await pd.change0xMakerAddress(Owner);
+    await pl2.changeExchangeContractAddress(exchange.address);
+    await pl3.changeExchangeContractAddress(exchange.address);
+    await mcr.changenotariseAddress(Owner);
+    await pd.changeInvestmentAssetAddress(0x444744, IA1.address);
+    await pd.changeInvestmentAssetAddress(0x49434e, IA2.address);
+    await pd.changeInvestmentAssetAddress(0x5a5258, IA3.address);
+    await pd.changeInvestmentAssetAddress(0x474e54, IA4.address);
+    await pd.changeInvestmentAssetAddress(0x4d4c4e, IA5.address);
+    await pd.changeInvestmentAssetAddress(0x4d4b52, IA6.address);
+    await mcr.addMCRData(
+      18000,
+      10000,
+      2,
+      ['0x455448', '0x444149'],
+      [100, 65407],
+      20180807
+    );
+    await pl3.saveIADetails(
+      ['0x444744', '0x49434e', '0x5a5258', '0x4d4b52', '0x474e54', '0x4d4c4e'],
+      [100, 200, 300, 400, 500, 600],
+      20180807
+    );
+    const mr = await MemberRoles.deployed();
+    await nxms.changeMemberRolesAddress(mr.address);
+  });
 };

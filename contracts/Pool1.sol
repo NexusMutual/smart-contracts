@@ -207,7 +207,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function changeDependentContractAddress() public {
         uint currentVersion = ms.currentVersion();
         m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
-        tk = NXMToken(ms.versionContractAddress(currentVersion, "TOK"));
+        tk = NXMToken(ms.TokenAddress());
         tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
         pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
         q2 = Quotation(ms.versionContractAddress(currentVersion, "Q2"));
@@ -356,7 +356,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         require(!tf.voted(msg.sender));
         require(_amount <= m1.getMaxSellTokens());
         uint sellingPrice = _getWei(_amount, tk.totalSupply());
-        tk.burnFrom(msg.sender, _amount);
+        tc.burnFrom(msg.sender, _amount);
         require(msg.sender.send(sellingPrice)); //solhint-disable-line
         success = true;
     }

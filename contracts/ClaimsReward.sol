@@ -78,7 +78,7 @@ contract ClaimsReward is Iupgradable {
         uint currentVersion = ms.currentVersion();
         c1 = Claims(ms.versionContractAddress(currentVersion, "C1"));
         cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
-        tk = NXMToken(ms.versionContractAddress(currentVersion, "TK"));
+        tk = NXMToken(ms.TokenAddress());
         tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
         td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
         tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));

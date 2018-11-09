@@ -30,8 +30,6 @@ contract NXMToken is IERC20 {
 
     mapping (address => mapping (address => uint256)) private _allowed;
 
-    mapping (address => bool) private canNotOperate;
-
     mapping (address => bool) public whiteListed;
 
     uint256 private _totalSupply;
@@ -61,13 +59,6 @@ contract NXMToken is IERC20 {
     */
     function totalSupply() public view returns (uint256) {
         return _totalSupply;
-    }
-
-    /**
-    * @dev checks if the operator is allowed to operate on an address
-    */
-    function canOperate(address _on) public view returns (bool) {
-        return !canNotOperate[_on];
     }
 
     /**
@@ -228,7 +219,6 @@ contract NXMToken is IERC20 {
     * @param value The amount to be transferred.
     */
     function operatorTransfer(address from, uint256 value) public onlyOperator returns (bool) {
-        require(!canNotOperate[from]);
         require(value <= _balances[from]);
         _transferFrom(from, operator, value);
         return true;

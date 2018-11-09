@@ -62,9 +62,9 @@ module.exports = function(deployer) {
       cr.address,
       pl1.address,
       pl2.address,
-      nxms2.address,
+      pl3.address,
       mcr.address,
-      pl3.address
+      nxms2.address
     ];
     await nxms.addNewVersion(addr);
     await nxms.switchToRecentVersion();

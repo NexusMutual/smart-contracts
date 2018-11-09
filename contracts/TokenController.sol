@@ -59,6 +59,10 @@ contract TokenController is IERC1132, Governed, Iupgradable {
         token = NXMToken(ms.TokenAddress());
     }
 
+    function changeOperator(address _newOperator) public onlyInternal {
+        require(token.changeOperator(_newOperator));
+    }
+    
     /**
     * @dev Locks a specified amount of tokens,
     *    for a specified reason and time

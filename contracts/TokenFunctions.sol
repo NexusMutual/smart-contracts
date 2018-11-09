@@ -220,7 +220,8 @@ contract TokenFunctions is Iupgradable, Governed {
         require(td.walletAddress() != address(0));
         if (verdict) {
             qd.setRefundEligible(_userAddress, false);
-            require(td.walletAddress().send(td.joiningFee())); //solhint-disable-line
+            uint fee = td.joiningFee();
+            require(td.walletAddress().send(fee)); //solhint-disable-line
             tc.addToWhitelist(_userAddress);
             mr.updateMemberRole(_userAddress, 3, true, 0);
         } else {

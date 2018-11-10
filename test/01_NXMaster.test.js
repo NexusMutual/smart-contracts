@@ -6,9 +6,10 @@ const NXMaster = artifacts.require('NXMaster');
 const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
-const NXMToken1 = artifacts.require('NXMToken1');
-const NXMToken2 = artifacts.require('NXMToken2');
-const NXMTokenData = artifacts.require('NXMTokenData');
+const NXMToken = artifacts.require('NXMToken');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenController = artifacts.require('TokenController');
+const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1');
 const Pool2 = artifacts.require('Pool2');
 const Pool3 = artifacts.require('Pool3');
@@ -31,9 +32,10 @@ require('chai')
 
 let nxms;
 let nxms2;
-let nxmt1;
-let nxmt2;
-let nxmtd;
+let nxmtk;
+let tf;
+let tc;
+let td;
 let pl1;
 let pl2;
 let pl3;
@@ -60,19 +62,22 @@ contract('NXMaster', function([
 ]) {
   const fee = ether(0.002);
   const poolEther = ether(2);
+  const founderAddress = web3.eth.accounts[19];
+  const INITIAL_SUPPLY = ether(1500000);
   const ver = new BigNumber(1);
   const pauseTime = new BigNumber(2419200);
 
   before(async function() {
     nxms = await NXMaster.deployed();
     qd = await QuotationDataMock.new();
-    nxmtd = await NXMTokenData.deployed();
+    td = await TokenData.deployed();
+    tf = await TokenFunctions.deployed();
+    tc = await TokenController.deployed();
     cd = await ClaimsData.new();
     pd = await PoolData.new();
     mcrd = await MCRDataMock.new();
     qt = await Quotation.new();
-    nxmt1 = await NXMToken1.new();
-    nxmt2 = await NXMToken2.new();
+    nxmtk = await NXMToken.new(tc.address, founderAddress, INITIAL_SUPPLY);
     cl = await Claims.new();
     cr = await ClaimsReward.new();
     pl1 = await Pool1.new();
@@ -88,20 +93,20 @@ contract('NXMaster', function([
     IA5 = await DAI.new();
     IA6 = await DAI.new();
     addr.push(qd.address);
-    addr.push(nxmtd.address);
+    addr.push(td.address);
     addr.push(cd.address);
     addr.push(pd.address);
     addr.push(mcrd.address);
     addr.push(qt.address);
-    addr.push(nxmt1.address);
-    addr.push(nxmt2.address);
+    addr.push(tf.address);
+    addr.push(tc.address);
     addr.push(cl.address);
     addr.push(cr.address);
     addr.push(pl1.address);
     addr.push(pl2.address);
-    addr.push(nxms2.address);
-    addr.push(mcr.address);
     addr.push(pl3.address);
+    addr.push(mcr.address);
+    addr.push(nxms2.address);
   });
   describe('when called by Owner', function() {
     it('should be able to add a new version', async function() {
@@ -116,6 +121,7 @@ contract('NXMaster', function([
       this.timeout(0);
       const currentVersion = await nxms.currentVersion();
       const newVer = new BigNumber(1);
+      await nxms.changeTokenAddress(nxmtk.address);
       await nxms.switchToRecentVersion();
       const newCurrentVersion = await nxms.currentVersion();
       newCurrentVersion.should.be.bignumber.equal(currentVersion.plus(newVer));
@@ -127,8 +133,9 @@ contract('NXMaster', function([
       let newMasterAddr = await newMaster.address;
       await nxms.changeMasterAddress(newMasterAddr);
       await newMaster.addNewVersion(addr);
+      await newMaster.changeTokenAddress(nxmtk.address);
       await newMaster.switchToRecentVersion();
-      const verifyMasterAddress = await nxms2.masterAddress();
+      const verifyMasterAddress = await nxms2.ms();
       verifyMasterAddress.should.equal(newMasterAddr);
       nxms = newMaster;
     });
@@ -144,8 +151,8 @@ contract('NXMaster', function([
 
     it('should be able to reinitialize', async function() {
       this.timeout(0);
-      await pl1.takeEthersOnly({ from: owner, value: poolEther });
-      await nxmtd.setWalletAddress(owner);
+      await pl1.sendTransaction({ from: owner, value: poolEther });
+      await td.changeWalletAddress(owner);
       await qd.changeAuthQuoteEngine(QE);
       await nxms2.addCoverStatus();
       await nxms2.callPoolDataMethods();
@@ -190,7 +197,7 @@ contract('NXMaster', function([
       await memberRoles.addNewMemberRole(
         '0x4d656d626572',
         'Member of Nexus Mutual',
-        nxmt2.address,
+        tf.address,
         false
       );
     });
@@ -261,8 +268,8 @@ contract('NXMaster', function([
       isInternal.should.equal(false);
     });
     it('should return true if member', async function() {
-      await nxmt2.payJoiningFee(member, { from: member, value: fee });
-      await nxmt2.kycVerdict(member, true);
+      await tf.payJoiningFee(member, { from: member, value: fee });
+      await tf.kycVerdict(member, true);
       const isMember = await nxms.isMember(member);
       isMember.should.equal(true);
     });

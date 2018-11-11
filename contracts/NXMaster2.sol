@@ -31,7 +31,6 @@ contract NXMaster2 is Iupgradable {
     using SafeMaths
     for uint;
 
-    NXMaster public ms;
     Claims c1;
     Pool1 p1;
     ClaimsData cd;
@@ -40,38 +39,33 @@ contract NXMaster2 is Iupgradable {
     PoolData pd;
     MCR m1;
 
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
-
     modifier onlyOwner {
         require(ms.isOwner(msg.sender) == true);
         _;
     }
 
-    function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-        cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
-        c1 = Claims(ms.versionContractAddress(currentVersion, "C1"));
-        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
-        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+    function changeDependentContractAddress() public onlyInternal {
+        cd = ClaimsData(ms.getLatestAddress("CD"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        c1 = Claims(ms.getLatestAddress("CL"));
+        m1 = MCR(ms.getLatestAddress("MC"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
+        pd = PoolData(ms.getLatestAddress("PD"));
 
     }
 
-    /// @dev Adds all the claim status names into array.
-    function addStatusInClaims() onlyOwner {
+    /// @dev Initializes asset data required by Pool1 module.
+    function callPoolDataMethods() public onlyOwner {
+        addAllCurrencies();
+        addCurrencyAssetsDetails();
+        addCurrencyAssetsVarBase();
+        addInvestmentCurrencies();
+        addInvestmentAssetsDetails();
+    }
 
+    /// @dev Adds all the claim status names into array.
+    function addStatusInClaims() public onlyOwner {
         c1.pushStatus("Pending-Claim Assessor Vote", 0, 0); //0
         c1.pushStatus("Pending-Claim Assessor Vote Denied, Pending Member Vote", 0, 0); //1
         c1.pushStatus("Pending-CA Vote Threshold not Reached Accept, Pending Member Vote", 0, 0); //2
@@ -88,64 +82,16 @@ contract NXMaster2 is Iupgradable {
         c1.pushStatus("Claim Accepted No Payout ", 0, 0); //13
         c1.pushStatus("Claim Accepted Payout Done", 0, 0); //14
     }
-/* 
-    TODO: make this function compatible if needed 
-    /// @dev Changes the  minimum,maximum Claims assessment voting,escalation,payout retry times
-    /// @param _mintime Minimum time(in seconds) for which claim assessment voting is open
-    /// @param _maxtime Maximum time(in seconds) for which claim assessment voting is open
-    /// @param escaltime Time(in seconds) in which, after a denial by Claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
-    function changeTimes(uint32 _mintime, uint32 _maxtime, uint32 escaltime, uint32 payouttime) onlyOwner {
-        uint64 timeLeft;
-
-        cd.setTimes(_mintime, _maxtime, escaltime, payouttime);
-
-        uint nowTime = now;
-        uint pendingClaimStart = cd.pendingClaimStart();
-        uint actualClaimLength = cd.actualClaimLength();
-        for (uint i = pendingClaimStart; i < actualClaimLength; i++) {
-            uint stat;
-            (, stat) = cd.getClaimStatusNumber(i);
-            uint dateUpd = cd.getClaimDateUpd(i);
-            if (stat == 1 && (SafeMaths.add(dateUpd, escaltime) <= nowTime)) {
-                cr.changeClaimStatus(i);
-            } else if (stat == 1 && (SafeMaths.add(dateUpd, escaltime) > nowTime)) {
-                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(dateUpd, escaltime), nowTime));
-                p1.closeClaimsOraclise(i, timeLeft);
-            }
-
-            if ((stat == 0 || (stat >= 2 && stat <= 6)) && (SafeMaths.add(dateUpd, _mintime) <= nowTime)) {
-                cr.changeClaimStatus(i);
-            } else if ((stat == 0 || (stat >= 2 && stat <= 6)) && (SafeMaths.add(dateUpd, _mintime) > nowTime)) {
-                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(dateUpd, _mintime), nowTime));
-                p1.closeClaimsOraclise(i, timeLeft);
-            }
-
-            if ((stat == 0 || (stat >= 2 && stat <= 6)) && (SafeMaths.add(dateUpd, _maxtime) <= nowTime)) {
-                cr.changeClaimStatus(i);
-            } else if ((stat == 0 || (stat >= 2 && stat <= 6)) && (SafeMaths.add(dateUpd, _maxtime) > nowTime)) {
-                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(dateUpd, _maxtime), nowTime));
-                p1.closeClaimsOraclise(i, timeLeft);
-            }
-
-            if (stat == 16 && (SafeMaths.add(dateUpd, payouttime) <= nowTime)) {
-                cr.changeClaimStatus(i);
-            } else if (stat == 16 && (SafeMaths.add(dateUpd, payouttime) > nowTime)) {
-                timeLeft = uint64(SafeMaths.sub(SafeMaths.add(dateUpd, payouttime), nowTime));
-                p1.closeClaimsOraclise(i, timeLeft);
-            }
-        }
-    } */
 
     /// @dev Adds currency NXMaster
-    function addMCRCurr() onlyOwner {
+    function addMCRCurr() public onlyOwner {
         m1.addCurrency("ETH");
         m1.addCurrency("DAI");
 
     }
 
     /// @dev Adds quotation status.
-    function addCoverStatus() onlyOwner {
+    function addCoverStatus() public onlyOwner {
 
         qd.pushCoverStatus("Active");
         qd.pushCoverStatus("Claim Accepted");
@@ -155,16 +101,7 @@ contract NXMaster2 is Iupgradable {
         qd.pushCoverStatus("Requested");
     }
 
-    /// @dev Initializes asset data required by Pool1 module.
-    function callPoolDataMethods() onlyOwner {
-        
-        addAllCurrencies();
-        addCurrencyAssetsDetails();
-        addCurrencyAssetsVarBase();
-        addInvestmentCurrencies();
-        addInvestmentAssetsDetails();
-        
-    }
+
 
     /// @dev Adds investment asset details to Pool1.
     function addCurrencyAssetsDetails() internal {

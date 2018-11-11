@@ -39,26 +39,12 @@ contract Quotation is Iupgradable {
     Pool1 p1;
     PoolData pd;
     QuotationData qd;
-    NXMaster ms;
     MCR m1;
     StandardToken stok;
 
     event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
 
     function () public payable {} //solhint-disable-line
-
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
-    modifier onlyInternal {
-
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
 
     modifier onlyOwner {
 
@@ -79,14 +65,13 @@ contract Quotation is Iupgradable {
     }
 
     function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
-        tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));
-        tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
-        td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
+        m1 = MCR(ms.getLatestAddress("MC"));
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tc = TokenController(ms.getLatestAddress("TC"));
+        td = TokenData(ms.getLatestAddress("TD"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        pd = PoolData(ms.getLatestAddress("PD"));
     }
 
     /**
@@ -273,8 +258,7 @@ contract Quotation is Iupgradable {
             tf.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
                 qd.setHoldedCoverIDStatus(holdedCoverID, 2);
-                uint currentVersion = ms.currentVersion();
-                address poolAdd = ms.versionContractAddress(currentVersion, "P1");
+                address poolAdd = ms.getLatestAddress("P1");
                 if (coverCurr == "ETH") {
                     require(poolAdd.send(coverDetails[1]));
                 } else {

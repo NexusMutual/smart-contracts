@@ -30,7 +30,6 @@ contract Pool3 is Iupgradable {
     for uint;
 
     PoolData pd;
-    NXMaster ms;
     Pool1 p1;
     Pool2 p2;
     Exchange exchange;
@@ -55,20 +54,11 @@ contract Pool3 is Iupgradable {
         bytes32 orderHash
         );
 
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
     function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
-        p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        md = MCRData(ms.getLatestAddress("MD"));
+        p2 = Pool2(ms.getLatestAddress("P2"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
     }
 
     function changeExchangeContractAddress(address _add) onlyInternal {

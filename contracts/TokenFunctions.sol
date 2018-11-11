@@ -31,7 +31,6 @@ import "./Iupgradable.sol";
 contract TokenFunctions is Iupgradable, Governed {
     using SafeMaths for uint;
 
-    NXMaster public ms;
     MCR internal m1;
     MemberRoles internal mr;
     NXMToken public tk;
@@ -41,11 +40,6 @@ contract TokenFunctions is Iupgradable, Governed {
     ClaimsReward internal cr;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
 
     modifier onlyOwner {
         require(ms.isOwner(msg.sender) == true);
@@ -67,30 +61,18 @@ contract TokenFunctions is Iupgradable, Governed {
     }
      
     /**
-    * @dev Used to set and update master address
-    * @param _add address of master contract
-    */
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
-    /**
     * @dev Just for interface
     */
     function changeDependentContractAddress() public {
-        uint currentVersion = ms.currentVersion();
-        tk = NXMToken(ms.TokenAddress());
-        td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
-        tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
-        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
-        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
+        tk = NXMToken(ms.tokenAddress());
+        td = TokenData(ms.getLatestAddress("TD"));
+        tc = TokenController(ms.getLatestAddress("TC"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
+        m1 = MCR(ms.getLatestAddress("MC"));
     }
 
-     function changeMemberRolesAddress(address memberAddress) public onlyInternal {
+    function changeMemberRolesAddress(address memberAddress) public onlyInternal {
         mr = MemberRoles(memberAddress);
     }
 
@@ -200,8 +182,7 @@ contract TokenFunctions is Iupgradable, Governed {
     * @dev Called by user to pay joining membership fee
     */ 
     function payJoiningFee(address _userAddress) public payable checkPause {
-        uint currentVersion = ms.currentVersion();
-        if (msg.sender == address(ms.versionContractAddress(currentVersion, "Q2"))) {
+        if (msg.sender == address(ms.getLatestAddress("Q2"))) {
             require(td.walletAddress() != address(0));
             require(td.walletAddress().send(msg.value)); //solhint-disable-line
             tc.addToWhitelist(_userAddress);
@@ -294,7 +275,7 @@ contract TokenFunctions is Iupgradable, Governed {
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
         uint commissionToBePaid = (_premiumNXM.mul(20)).div(100);
         uint stakeLength = td.getStakerStakedContractLength(_scAddress);
-        address claimsRewardAddress = address(ms.versionContractAddress(ms.currentVersion(), "CR"));
+        address claimsRewardAddress = ms.getLatestAddress("CR");
         for (uint i = td.scAddressCurrentCommissionIndex(_scAddress); i < stakeLength; i++) {
             if (commissionToBePaid > 0) {
                 address stakerAddress;

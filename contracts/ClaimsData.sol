@@ -15,15 +15,11 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
-
 contract ClaimsData is Iupgradable {
     using SafeMaths for uint;
-
-    NXMaster ms;
 
     struct claim {
         uint coverId;
@@ -127,20 +123,8 @@ contract ClaimsData is Iupgradable {
         claimDepositTime = SafeMaths.mul(1, 7 days);
     }
 
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-    
     function changeDependentContractAddress() public onlyInternal {
 
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
     }
 
 /*     /// @dev Sets the escalation time.

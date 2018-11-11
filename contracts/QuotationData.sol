@@ -21,7 +21,6 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract QuotationData is Iupgradable {
-    NXMaster ms;
     address public masterAddress;
 
     using SafeMaths
@@ -82,20 +81,8 @@ contract QuotationData is Iupgradable {
 
     }
 
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
+    function changeDependentContractAddress() public onlyInternal {
 
-    function changeDependentContractAddress() onlyInternal {
-
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
     }
 
     modifier onlyOwner {

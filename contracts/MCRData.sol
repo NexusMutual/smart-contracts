@@ -25,7 +25,6 @@ contract MCRData is Iupgradable {
     using SafeMaths
     for uint;
 
-    NXMaster ms;
     address masterAddress;
     uint32 public minMCRReq;
     uint32 public sfX100000;
@@ -58,25 +57,11 @@ contract MCRData is Iupgradable {
         shockParameter = 50;
     }
 
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
     function changeDependentContractAddress() onlyInternal {
 
     }
 
-    modifier onlyInternal {
-
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
-
     modifier onlyOwner {
-
         require(ms.isOwner(msg.sender) == true);
         _;
     }

@@ -24,7 +24,6 @@ contract PoolData is Iupgradable {
     using SafeMaths
     for uint;
 
-    NXMaster ms;
     address masterAddress;
 
     mapping(bytes4 => string) apiCurr;
@@ -110,13 +109,6 @@ contract PoolData is Iupgradable {
         bytes16 orderHashType;
         uint orderExpireTime;
         bytes32 cancelOrderHash;
-    }
-
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
     }
 
     function changeDependentContractAddress() onlyInternal {

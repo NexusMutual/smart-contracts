@@ -33,7 +33,6 @@ import "./imports/govblocks-protocol/Governed.sol";
 contract Pool1 is usingOraclize, Iupgradable, Governed {
     using SafeMaths for uint;
 
-    NXMaster public ms;
     Quotation public q2;
     NXMToken public tk;
     TokenController public tc;
@@ -63,11 +62,6 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
 
     modifier isMemberAndcheckPause {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
-        _;
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
         _;
     }
 
@@ -193,25 +187,13 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         return stok.balanceOf(address(this));
     }
 
-    /**
-     * @dev Used to set and update master address
-     * @param _add address of master contract
-     */
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-    
     function changeDependentContractAddress() public {
-        uint currentVersion = ms.currentVersion();
-        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
-        tk = NXMToken(ms.TokenAddress());
-        tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        q2 = Quotation(ms.versionContractAddress(currentVersion, "Q2"));
-        p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
+        m1 = MCR(ms.getLatestAddress("MC"));
+        tk = NXMToken(ms.tokenAddress());
+        tc = TokenController(ms.getLatestAddress("TC"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        q2 = Quotation(ms.getLatestAddress("Q2"));
+        p2 = Pool2(ms.getLatestAddress("P2"));
     }
 
     /// @dev Sets a given investment asset as active or inactive for trading.

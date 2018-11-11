@@ -23,7 +23,6 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 contract TokenData is Iupgradable {
     using SafeMaths for uint;
 
-    NXMaster public ms; 
     uint public lockTokenTimeAfterCoverExp;
     uint public bookTime;
     uint public lockCADays;
@@ -54,11 +53,6 @@ contract TokenData is Iupgradable {
     struct LockToken {
         uint validUpto;
         uint amount;
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
     }
 
     modifier onlyOwner {
@@ -96,13 +90,6 @@ contract TokenData is Iupgradable {
         scValidDays = 250;
         lockCADays = 7 days;
         lockMVDays = 2 days;
-    }
-    
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
     }
 
     /**

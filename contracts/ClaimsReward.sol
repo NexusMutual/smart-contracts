@@ -18,7 +18,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./NXMToken.sol";
 import "./TokenFunctions.sol";
 import "./TokenController.sol";
@@ -37,7 +36,6 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 contract ClaimsReward is Iupgradable {
     using SafeMaths for uint;
 
-    NXMaster ms;
     NXMToken tk;
     TokenController tc;
     TokenFunctions tf;
@@ -52,11 +50,6 @@ contract ClaimsReward is Iupgradable {
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
-
     modifier checkPause {
         require(ms.isPause() == false);
         _;
@@ -66,27 +59,19 @@ contract ClaimsReward is Iupgradable {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
-
-    function changeMasterAddress(address _add) {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-    
+  
     function changeDependentContractAddress() public onlyInternal {
-        uint currentVersion = ms.currentVersion();
-        c1 = Claims(ms.versionContractAddress(currentVersion, "C1"));
-        cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
-        tk = NXMToken(ms.TokenAddress());
-        tc = TokenController(ms.versionContractAddress(currentVersion, "TC"));
-        td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
-        tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
-        p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
-        p3 = Pool3(ms.versionContractAddress(currentVersion, "P3"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        c1 = Claims(ms.getLatestAddress("CL"));
+        cd = ClaimsData(ms.getLatestAddress("CD"));
+        tk = NXMToken(ms.tokenAddress());
+        tc = TokenController(ms.getLatestAddress("TC"));
+        td = TokenData(ms.getLatestAddress("TD"));
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        p2 = Pool2(ms.getLatestAddress("P2"));
+        p3 = Pool3(ms.getLatestAddress("P3"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
     /// @dev Decides the next course of action for a given claim.

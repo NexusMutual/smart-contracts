@@ -34,7 +34,6 @@ contract MCR is Iupgradable {
     PoolData pd;
     NXMToken tk;
     MCRData md;
-    NXMaster ms;
     QuotationData qd;
     BasicToken btok;
     address public poolAddress;
@@ -55,18 +54,6 @@ contract MCR is Iupgradable {
         uint vFull
     );
 
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
-
     modifier onlyOwner {
         require(ms.isOwner(msg.sender) == true);
         _;
@@ -78,12 +65,11 @@ contract MCR is Iupgradable {
     }
 
     function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-        md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        tk = NXMToken(ms.TokenAddress());
+        md = MCRData(ms.getLatestAddress("MD"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        tk = NXMToken(ms.tokenAddress());
     }
 
     /// @dev Changes minimum Capital Requirement for system to sustain.

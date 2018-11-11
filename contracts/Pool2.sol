@@ -37,7 +37,6 @@ contract Pool2 is Iupgradable {
     using SafeMaths
     for uint;
 
-    NXMaster ms;
     TokenFunctions tf;
     Pool1 p1;
     Claims c1;
@@ -71,18 +70,6 @@ contract Pool2 is Iupgradable {
 
     event Rebalancing(bytes16 name, uint16 param);
 
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
-
     modifier onlyOwner {
         require(ms.isOwner(msg.sender) == true);
         _;
@@ -94,17 +81,16 @@ contract Pool2 is Iupgradable {
     }
 
     function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-        m1 = MCR(ms.versionContractAddress(currentVersion, "MCR"));
-        tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
-        q2 = Quotation(ms.versionContractAddress(currentVersion, "Q2"));
-        p3 = Pool3(ms.versionContractAddress(currentVersion, "P3"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
-        c1 = Claims(ms.versionContractAddress(currentVersion, "C1"));
-        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        m1 = MCR(ms.getLatestAddress("MC"));
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        md = MCRData(ms.getLatestAddress("MD"));
+        q2 = Quotation(ms.getLatestAddress("Q2"));
+        p3 = Pool3(ms.getLatestAddress("P3"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        c1 = Claims(ms.getLatestAddress("CL"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
     function changeExchangeContractAddress(address _add) onlyOwner {

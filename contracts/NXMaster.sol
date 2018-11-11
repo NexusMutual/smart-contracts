@@ -21,6 +21,7 @@ import "./Pool1.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/govblocks-protocol/Governed.sol";
+import "./imports/govblocks-protocol/MemberRoles.sol";
 
 
 contract NXMaster is Governed {
@@ -76,7 +77,7 @@ contract NXMaster is Governed {
     /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
     function changeMemberRolesAddress(address _memberRolesAddress) public onlyInternal {
         mr = MemberRoles(_memberRolesAddress);
-        tf = TokenFunctions(versionContractAddress[currentVersion]["TF"]);
+        tf = TokenFunctions(getLatestAddress("TF"));
         tf.changeMemberRolesAddress(_memberRolesAddress);
     }
 
@@ -86,7 +87,7 @@ contract NXMaster is Governed {
     function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
         emergencyPaused.push(EmergencyPause(_pause, now, _by));
         if (_pause == false) {
-            c1 = Claims(versionContractAddress[currentVersion]["C1"]);
+            c1 = Claims(getLatestAddress("C1"));
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
             c1.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
@@ -116,27 +117,27 @@ contract NXMaster is Governed {
         changeAllAddress();
 }
 
-    /// @dev Updates the version of contracts, provides required addresses to all associated contracts
-    /// calls the oraclize query to update UI.
-    /// modifier to be changed to onlyAuthorizedToGovern in future.
-    function switchToRecentVersion() onlyInternal {
-        uint version = versionLength.sub(1);
-        uint currentVersion = version;
-        addInContractChangeDate(now, version);
-        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != 
-            versionContractAddress[currentVersion.sub(1)]["CR"] 
-            && versionContractAddress[currentVersion]["TD"] == versionContractAddress[currentVersion.sub(1)]["TD"]) {
-            cr = ClaimsReward(versionContractAddress[currentVersion.sub(1)]["CR"]);
-            cr.upgrade(versionContractAddress[currentVersion]["CR"]);
-        }
-        addRemoveAddress(version);
-        changeMasterAddress(address(this));
-        changeOtherAddress();
-        if (currentVersion > 0) {
-            p1 = Pool1(versionContractAddress[currentVersion]["P1"]);
-            p1.versionOraclise(version);
-        }
-    }
+    // /// @dev Updates the version of contracts, provides required addresses to all associated contracts
+    // /// calls the oraclize query to update UI.
+    // /// modifier to be changed to onlyAuthorizedToGovern in future.
+    // function switchToRecentVersion() onlyInternal {
+    //     uint version = versionLength.sub(1);
+    //     uint currentVersion = version;
+    //     addInContractChangeDate(now, version);
+    //     if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != 
+    //         versionContractAddress[currentVersion.sub(1)]["CR"] 
+    //         && versionContractAddress[currentVersion]["TD"] == versionContractAddress[currentVersion.sub(1)]["TD"]) {
+    //         cr = ClaimsReward(versionContractAddress[currentVersion.sub(1)]["CR"]);
+    //         cr.upgrade(versionContractAddress[currentVersion]["CR"]);
+    //     }
+    //     addRemoveAddress(version);
+    //     changeMasterAddress(address(this));
+    //     changeOtherAddress();
+    //     if (currentVersion > 0) {
+    //         p1 = Pool1(getLatestAddress("P1"));
+    //         p1.versionOraclise(version);
+    //     }
+    // }
 
     ///@dev checks whether the address is a latest contract address.
     function isInternal(address _add) constant returns(bool check) {

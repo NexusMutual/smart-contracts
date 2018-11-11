@@ -29,34 +29,16 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
     NXMToken public token;
-    NXMaster public ms;
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
 
     constructor () public {
         dappName = "NEXUS-MUTUAL";
     }
     
     /**
-    * @dev Used to set and update master address
-    * @param _add address of master contract
-    */
-    function changeMasterAddress(address _add) public {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
-    /**
     * @dev Just for interface
     */
     function changeDependentContractAddress() public {
-        uint currentVersion = ms.currentVersion();
-        token = NXMToken(ms.TokenAddress());
+        token = NXMToken(ms.tokenAddress());
     }
 
     function changeOperator(address _newOperator) public onlyInternal {

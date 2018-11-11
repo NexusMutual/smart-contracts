@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./TokenFunctions.sol";
 import "./QuotationData.sol";
 import "./Pool1.sol";
@@ -47,22 +46,9 @@ contract Claims is Iupgradable {
     TokenData td;
     PoolData pd;
     Pool3 p3;
-    NXMaster ms;
     QuotationData qd;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
-
-    function changeMasterAddress(address _add) {
-        if (address(ms) != address(0)) {
-            require(ms.isInternal(msg.sender) == true);
-        }
-        ms = NXMaster(_add);
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
 
     modifier isMemberAndcheckPause {
 
@@ -71,16 +57,15 @@ contract Claims is Iupgradable {
     }
 
     function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-        tk = NXMToken(ms.TokenAddress());
-        td = TokenData(ms.versionContractAddress(currentVersion, "TD"));
-        tf = TokenFunctions(ms.versionContractAddress(currentVersion, "TF"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
-        p3 = Pool3(ms.versionContractAddress(currentVersion, "P3"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
-        cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
+        tk = NXMToken(ms.tokenAddress());
+        td = TokenData(ms.getLatestAddress("TD"));
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        p3 = Pool3(ms.getLatestAddress("P3"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        cd = ClaimsData(ms.getLatestAddress("CD"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
     /// @dev Adds status under which a claim can lie.

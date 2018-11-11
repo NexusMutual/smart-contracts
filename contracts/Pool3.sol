@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./PoolData.sol";
 import "./Pool1.sol";
 import "./Pool2.sol";
@@ -26,8 +25,7 @@ import "./imports/0xProject/Exchange.sol";
 
 
 contract Pool3 is Iupgradable {
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     PoolData pd;
     Pool1 p1;
@@ -36,8 +34,6 @@ contract Pool3 is Iupgradable {
     MCRData md;
 
     address poolAddress;
-
-    address masterAddress;
     address exchangeContractAddress;
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 

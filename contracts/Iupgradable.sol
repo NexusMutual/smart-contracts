@@ -14,11 +14,11 @@ contract Iupgradable {
 
     function  changeDependentContractAddress() public;
 
-    function changeMasterAddress() public {
-        if (address(ms) == address(0))
-            ms = NXMaster(msg.sender);
-        else
-            ms = NXMaster(ms.getLatestAddress("MS"));
+    function changeMasterAddress(address _masterAddress) public {
+        if (address(ms) != address(0)) {
+            require(ms.isInternal(msg.sender));
+        }
+        ms = NXMaster(_masterAddress);
     }
 
 }

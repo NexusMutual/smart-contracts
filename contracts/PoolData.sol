@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
@@ -23,8 +22,6 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 contract PoolData is Iupgradable {
     using SafeMaths
     for uint;
-
-    address masterAddress;
 
     mapping(bytes4 => string) apiCurr;
 

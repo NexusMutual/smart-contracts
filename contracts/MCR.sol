@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./NXMToken.sol";
 import "./Pool1.sol";
 import "./PoolData.sol";
@@ -27,8 +26,7 @@ import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
 contract MCR is Iupgradable {
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     Pool1 p1;
     PoolData pd;
@@ -132,7 +130,7 @@ contract MCR is Iupgradable {
         checkPause
     {
         require(md.isnotarise(msg.sender) != false);
-        vF = SafeMaths.mul(vF, DECIMAL1E18);
+        vF = vF.mul(DECIMAL1E18);
         uint len = md.getMCRDataLength();
         addMCRDataExtended(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
     }

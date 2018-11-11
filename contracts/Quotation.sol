@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./NXMToken.sol";
 import "./TokenData.sol";
 import "./TokenFunctions.sol";

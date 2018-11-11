@@ -14,6 +14,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity 0.4.24;
+
 import "./TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsReward.sol";
@@ -46,7 +47,7 @@ contract NXMaster is Governed {
     Claims internal c1;
     ClaimsReward internal cr;
     Pool1 internal p1;
-    MemberRoles internal mr;
+    MemberRoles public mr;
     TokenFunctions internal tf;
     Iupgradable internal up;
 
@@ -69,7 +70,9 @@ contract NXMaster is Governed {
         contractsActive[address(this)] = true; //1
         dappName = "NEXUS-MUTUAL";
         pauseTime = 28 days; //4 weeks
-
+        contractsActive[address(this)] = true;
+        versionDates.push(now);
+        addContractNames();
     }
 
     /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
@@ -87,7 +90,7 @@ contract NXMaster is Governed {
     function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
         emergencyPaused.push(EmergencyPause(_pause, now, _by));
         if (_pause == false) {
-            c1 = Claims(getLatestAddress("C1"));
+            c1 = Claims(getLatestAddress("CL"));
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
             c1.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
@@ -115,46 +118,22 @@ contract NXMaster is Governed {
         allContractVersions[versionDates.length - 1][_contractsName] = _contractsAddress;
         changeMasterAddress(address(this));
         changeAllAddress();
-}
+    }
 
-    // /// @dev Updates the version of contracts, provides required addresses to all associated contracts
-    // /// calls the oraclize query to update UI.
-    // /// modifier to be changed to onlyAuthorizedToGovern in future.
-    // function switchToRecentVersion() onlyInternal {
-    //     uint version = versionLength.sub(1);
-    //     uint currentVersion = version;
-    //     addInContractChangeDate(now, version);
-    //     if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != 
-    //         versionContractAddress[currentVersion.sub(1)]["CR"] 
-    //         && versionContractAddress[currentVersion]["TD"] == versionContractAddress[currentVersion.sub(1)]["TD"]) {
-    //         cr = ClaimsReward(versionContractAddress[currentVersion.sub(1)]["CR"]);
-    //         cr.upgrade(versionContractAddress[currentVersion]["CR"]);
-    //     }
-    //     addRemoveAddress(version);
-    //     changeMasterAddress(address(this));
-    //     changeOtherAddress();
-    //     if (currentVersion > 0) {
-    //         p1 = Pool1(getLatestAddress("P1"));
-    //         p1.versionOraclise(version);
-    //     }
-    // }
-
-    ///@dev checks whether the address is a latest contract address.
-    function isInternal(address _add) constant returns(bool check) {
+    /// @dev checks whether the address is a latest contract address.
+    function isInternal(address _add) view returns(bool check) {
         check = false; // should be 0
         if ((contractsActive[_add] == true || owner == _add)) //remove owner for production release
             check = true;
     }
 
     /// @dev checks whether the address is the Owner or not.
-    function isOwner(address _add) constant returns(bool check) {
-        check = false;
-        if (owner == _add)
-            check = true;
+    function isOwner(address _add) view returns(bool check) {
+        return check = owner == _add;
     }
 
     /// @dev Checks whether emergency pause id on/not.
-    function isPause() constant returns(bool check) {
+    function isPause() view returns(bool check) {
         check = false;
         if (emergencyPaused.length > 0) {
             if (emergencyPaused[emergencyPaused.length.sub(1)].pause == true)
@@ -163,8 +142,7 @@ contract NXMaster is Governed {
     }
 
     /// @dev checks whether the address is a member of the mutual or not.
-    function isMember(address _add) constant returns(bool) {
-
+    function isMember(address _add) view returns(bool) {
         return mr.checkRoleIdByAddress(_add, 3);
     }
 
@@ -183,12 +161,12 @@ contract NXMaster is Governed {
     }
 
     ///@dev Gets the number of emergency pause has been toggled.
-    function getEmergencyPausedLength() constant returns(uint len) {
+    function getEmergencyPausedLength() public view returns(uint len) {
         len = emergencyPaused.length;
     }
 
     ///@dev Gets last emergency pause details.
-    function getLastEmergencyPause() constant returns(bool _pause, uint _time, bytes4 _by) {
+    function getLastEmergencyPause() public view returns(bool _pause, uint _time, bytes4 _by) {
         _pause = false;
         _time = 0;
         _by = "";
@@ -204,14 +182,16 @@ contract NXMaster is Governed {
     /// @dev Changes Master contract address
     function changeMasterAddress(address _masterAddress) public {
         if (_masterAddress != address(this)) {
+            require(msg.sender == owner);
         }
-        allContractVersions[versionDates.length - 1]["MS"] = _masterAddress;
-        for (uint i = 2; i < allContractNames.length; i++) {
+        
+        for (uint i = 0; i < allContractNames.length; i++) {
             up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
-            up.changeMasterAddress();
+            up.changeMasterAddress(address(this));
         }
         contractsActive[address(this)] = false;
         contractsActive[_masterAddress] = true;
+       
     }
 
     /// @dev Gets current version amd its master address
@@ -290,19 +270,29 @@ contract NXMaster is Governed {
     /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.
     function changeAllAddress() internal {
         uint i;
+        uint currentVersion = versionDates.length - 1;
         if (versionDates.length < 3) {
             for (i = 0; i < allContractNames.length; i++) {
-                contractsActive[allContractVersions[versionDates.length - 1][allContractNames[i]]] = true;
-                up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
+                contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
+                up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
                 up.changeDependentContractAddress();
             }
         } else {
             for (i = 0; i < allContractNames.length; i++) {
-                contractsActive[allContractVersions[versionDates.length - 2][allContractNames[i]]] = false;
-                contractsActive[allContractVersions[versionDates.length - 1][allContractNames[i]]] = true;
-                up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
+                contractsActive[allContractVersions[currentVersion - 1][allContractNames[i]]] = false;
+                contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
+                up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
                 up.changeDependentContractAddress();
             }
+
+            if (allContractVersions[currentVersion]["CR"] != allContractVersions[currentVersion - 1]["CR"] 
+                && allContractVersions[currentVersion]["TD"] == allContractVersions[currentVersion - 1]["TD"]) {
+                cr = ClaimsReward(allContractVersions[currentVersion - 1]["CR"]);
+                cr.upgrade(allContractVersions[currentVersion]["CR"]);
+            }
+            
+            p1 = Pool1(allContractVersions[currentVersion]["P1"]);
+            p1.versionOraclise(currentVersion);
         }
     }
 }

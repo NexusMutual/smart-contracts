@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/ERC1132/IERC1132.sol";
 import "./NXMToken.sol";

@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./Claims.sol";
 import "./Pool1.sol";
 import "./ClaimsReward.sol";
@@ -28,8 +27,7 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract NXMaster2 is Iupgradable {
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     Claims c1;
     Pool1 p1;
@@ -101,14 +99,10 @@ contract NXMaster2 is Iupgradable {
         qd.pushCoverStatus("Requested");
     }
 
-
-
     /// @dev Adds investment asset details to Pool1.
     function addCurrencyAssetsDetails() internal {
-
         pd.pushCurrencyAssetsDetails("ETH", 0x00, 1, 50, 400, 18);
         pd.pushCurrencyAssetsDetails("DAI", 0xf7c3e9e4a7bb8ca2c1c640f03d76d1ac12887bce, 1, 50, 300, 18);
-
     }
 
     /// @dev Adds investment asset names to Pool1 module.
@@ -119,7 +113,6 @@ contract NXMaster2 is Iupgradable {
 
     /// @dev Adds investment assets names to Pool1 module.
     function addInvestmentCurrencies() internal {
-
         pd.addInvestmentCurrency("DGD");
         pd.addInvestmentCurrency("ICN");
         pd.addInvestmentCurrency("ZRX");
@@ -130,15 +123,12 @@ contract NXMaster2 is Iupgradable {
 
     /// @dev Adds currency asset data to Pool1 module.
     function addCurrencyAssetsVarBase() internal {
-
         pd.pushCurrencyAssetsVarBase("ETH", 6); //original 64 baseMin
         pd.pushCurrencyAssetsVarBase("DAI", 7);
-
     }
 
     /// @dev Adds investment asset details to Pool1.
     function addInvestmentAssetsDetails() internal {
-
         //DGD
         // tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
         // decimals=tok.decimals();
@@ -164,5 +154,4 @@ contract NXMaster2 is Iupgradable {
         // decimals=tok.decimals();
         pd.pushInvestmentAssetsDetails("MLN", 0x323b5d4c32345ced77393b3530b1eed0f346429d, 1, 500, 2000, 18);
     }
-
 }

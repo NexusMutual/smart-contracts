@@ -42,7 +42,7 @@ module.exports = function(deployer) {
     const cd = await ClaimsData.deployed();
     const mcr = await MCR.deployed();
     const mcrd = await MCRDataMock.deployed();
-    const exchange = await NXMaster.deployed();
+    const exchange = await Exchange.deployed();
     const IA1 = await DAI.new();
     const IA2 = await DAI.new();
     const IA3 = await DAI.new();
@@ -67,8 +67,7 @@ module.exports = function(deployer) {
       nxms2.address
     ];
     await nxms.addNewVersion(addr);
-    await nxms.switchToRecentVersion();
-    await pl1.sendTransaction({ from: Owner, value: 4000000000000000000 });
+    await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);
     await qd.changeAuthQuoteEngine(QE);
     await nxms2.addCoverStatus();

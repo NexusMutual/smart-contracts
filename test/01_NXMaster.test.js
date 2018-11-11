@@ -70,9 +70,9 @@ contract('NXMaster', function([
   before(async function() {
     nxms = await NXMaster.deployed();
     qd = await QuotationDataMock.new();
-    td = await TokenData.deployed();
-    tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
+    td = await TokenData.new();
+    tf = await TokenFunctions.new();
+    tc = await TokenController.new();
     cd = await ClaimsData.new();
     pd = await PoolData.new();
     mcrd = await MCRDataMock.new();
@@ -111,42 +111,28 @@ contract('NXMaster', function([
   describe('when called by Owner', function() {
     it('should be able to add a new version', async function() {
       this.timeout(0);
-      const versionLength = await nxms.versionLength();
-      await nxms.addNewVersion(addr);
-      const newVersionLength = await nxms.versionLength();
-      newVersionLength.should.be.bignumber.equal(versionLength.plus(ver));
-    });
-
-    it('should be able to switch to new version', async function() {
-      this.timeout(0);
-      const currentVersion = await nxms.currentVersion();
-      const newVer = new BigNumber(1);
-      await nxms.changeTokenAddress(nxmtk.address);
-      await nxms.switchToRecentVersion();
-      const newCurrentVersion = await nxms.currentVersion();
-      newCurrentVersion.should.be.bignumber.equal(currentVersion.plus(newVer));
+      const version = await nxms.getCurrentVersion();
+      await nxms.addNewVersion(addr, { from: owner });
+      (await nxms.getCurrentVersion()).should.be.bignumber.equal(
+        version.plus(1)
+      );
     });
 
     it('should be able to change master address', async function() {
       this.timeout(0);
       newMaster = await NXMaster.new();
-      let newMasterAddr = await newMaster.address;
-      await nxms.changeMasterAddress(newMasterAddr);
-      await newMaster.addNewVersion(addr);
+      await nxms.changeMasterAddress(newMaster.address, { from: owner });
       await newMaster.changeTokenAddress(nxmtk.address);
-      await newMaster.switchToRecentVersion();
-      const verifyMasterAddress = await nxms2.ms();
-      verifyMasterAddress.should.equal(newMasterAddr);
+      await newMaster.addNewVersion(addr);
+      (await nxms2.ms()).should.equal(newMaster.address);
       nxms = newMaster;
     });
 
     it('should be able to change MemberRole Address', async function() {
       this.timeout(0);
       memberRoles = await MemberRoles.deployed();
-      const MRAddress = await memberRoles.address;
-      await newMaster.changeMemberRolesAddress(MRAddress);
-      const verifyMRAddress = await newMaster.memberRolesAddress();
-      verifyMRAddress.should.equal(MRAddress);
+      await nxms.changeMemberRolesAddress(memberRoles.address);
+      (await nxms.mr()).should.equal(memberRoles.address);
     });
 
     it('should be able to reinitialize', async function() {
@@ -201,6 +187,11 @@ contract('NXMaster', function([
         false
       );
     });
+
+    it('should be able to change token controller address', async function() {
+      await tc.changeOperator(tc.address);
+    });
+
     it('owner should be able to change owner address', async function() {
       await nxms.changeOwner(newOwner, { from: owner });
       newOwner.should.equal(await nxms.owner());
@@ -215,10 +206,6 @@ contract('NXMaster', function([
   describe('when not called by Owner', function() {
     it('should not be able to add a new version', async function() {
       await assertRevert(nxms.addNewVersion(addr, { from: anotherAccount }));
-    });
-
-    it('should not be able to switch to new version', async function() {
-      await assertRevert(nxms.switchToRecentVersion({ from: anotherAccount }));
     });
 
     it('should not be able to change master address', async function() {

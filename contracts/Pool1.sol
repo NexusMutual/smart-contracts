@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./NXMToken.sol";
 import "./TokenFunctions.sol";
 import "./TokenController.sol";
@@ -41,8 +40,6 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     Pool2 public p2;
     MCR public m1;
     StandardToken public stok;
-
-    address public masterAddress;
 
     uint public constant DECIMAL1E18 = uint(10) ** 18;
     uint public constant PRICE_STEP = 1000 * DECIMAL1E18;

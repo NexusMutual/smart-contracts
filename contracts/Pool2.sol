@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./TokenFunctions.sol";
 import "./ClaimsReward.sol";
 import "./PoolData.sol";
@@ -33,9 +32,7 @@ import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 
 
 contract Pool2 is Iupgradable {
-
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     TokenFunctions tf;
     Pool1 p1;

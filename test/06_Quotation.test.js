@@ -4,7 +4,7 @@ const NXMToken2 = artifacts.require('NXMToken2');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
-const DAI = artifacts.require('DAI');
+const DAI = artifacts.require('MockDAI');
 const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMTokenData = artifacts.require('NXMTokenData');
 
@@ -105,6 +105,7 @@ contract('Quotation', function([
     describe('If user is a member', function() {
       before(async function() {
         await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
+        await nxmtk2.kycVerdict(member1, true);
       });
 
       describe('If user does not have sufficient funds', function() {
@@ -160,6 +161,7 @@ contract('Quotation', function([
                 from: coverHolder,
                 value: fee
               });
+              await nxmtk2.kycVerdict(coverHolder, true);
               await P1.buyTokenBegin({
                 from: coverHolder,
                 value: tokenAmount
@@ -255,6 +257,7 @@ contract('Quotation', function([
                 from: coverHolder,
                 value: fee
               });
+              await nxmtk2.kycVerdict(coverHolder, true);
               await P1.buyTokenBegin({
                 from: coverHolder,
                 value: tokenAmount
@@ -337,6 +340,7 @@ contract('Quotation', function([
                 from: coverHolder,
                 value: fee
               });
+              await nxmtk2.kycVerdict(coverHolder, true);
               await P1.buyTokenBegin({
                 from: coverHolder,
                 value: tokenAmount
@@ -421,15 +425,12 @@ contract('Quotation', function([
           const staker2 = member2;
           const stca = new BigNumber(500000000000);
           before(async function() {
-            await nxmtk2.payJoiningFee(staker1, {
-              from: staker1,
-              value: fee
-            });
             await P1.buyTokenBegin({ from: staker1, value: tokenAmount });
             await nxmtk2.payJoiningFee(staker2, {
               from: staker2,
               value: fee
             });
+            await nxmtk2.kycVerdict(staker2, true);
             await P1.buyTokenBegin({ from: staker2, value: tokenAmount });
             await nxmtk2.addStake(smartConAdd, ether(0.000001), {
               from: staker1

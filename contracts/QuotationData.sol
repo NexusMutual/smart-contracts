@@ -13,16 +13,14 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract QuotationData is Iupgradable {
-    NXMaster ms;
-    address masterAddress;
+    address public masterAddress;
 
     using SafeMaths
     for uint;
@@ -70,8 +68,10 @@ contract QuotationData is Iupgradable {
     cover[] allCovers;
     HoldCover[] allCoverHolded;
     uint public pendingCoverStart;
+    event CoverDetailsEvent(uint indexed cid, address scAdd, uint sumAssured, uint expiry, uint premium, bytes4 curr);
+    event CoverStatusEvent(uint indexed cid, uint8 statusNum);
 
-    function QuotationData() {
+    constructor() public{
         pendingCoverStart = 0;
         productDetails.push(Product_Details("SCC", "Smart Contract Cover", 90, 1000, 12, 0));
         allCovers.push(cover("0x00", 0x000, "0x00", 0, 0, 0, 0x000, 0));
@@ -80,25 +80,8 @@ contract QuotationData is Iupgradable {
 
     }
 
-    function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
-            require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
+    function changeDependentContractAddress() public onlyInternal {
 
-        }
-    }
-
-    function changeDependentContractAddress() onlyInternal {
-
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
     }
 
     modifier onlyOwner {
@@ -275,6 +258,7 @@ contract QuotationData is Iupgradable {
     /// @param _stat New status.
     function changeCoverStatusNo(uint _cid, uint8 _stat) onlyInternal {
         coverstatus[_cid] = _stat;
+        CoverStatusEvent(_cid, _stat);
     }
 
     /// @dev Gets the Cover Period (in days) of a given cover.
@@ -344,6 +328,7 @@ contract QuotationData is Iupgradable {
         address _scAddress,
         uint premium
         ) onlyInternal {
+        uint expiryDate = SafeMaths.add(now, SafeMaths.mul(_coverPeriod, 1 days));
         allCovers.push(
             cover(
             _productName,
@@ -351,12 +336,14 @@ contract QuotationData is Iupgradable {
             _currencyCode,
             _sumAssured,
             _coverPeriod,
-            SafeMaths.add(now, SafeMaths.mul(_coverPeriod, 1 days)),
+            expiryDate,
             _scAddress,
             premium
             )
             );
-        userCover[_userAddress].push(SafeMaths.sub(allCovers.length, 1));
+        uint cid = SafeMaths.sub(allCovers.length, 1);
+        userCover[_userAddress].push(cid);
+        CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, _currencyCode);
     }
 
     function addHoldCover(uint prodId, address from, address scAddress, bytes4 coverCurr, 

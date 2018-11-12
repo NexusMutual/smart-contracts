@@ -85,20 +85,25 @@ contract('NXMaster: Emergency Pause', function([
     P3 = await Pool3.deployed();
     mcr = await MCR.deployed();
     await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
+    await nxmtk2.kycVerdict(member1, true);
     await P1.buyTokenBegin({ from: member1, value: ether(1) });
     await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
+    await nxmtk2.kycVerdict(member2, true);
     await P1.buyTokenBegin({ from: member2, value: ether(2) });
     await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
+    await nxmtk2.kycVerdict(member3, true);
     await P1.buyTokenBegin({ from: member3, value: ether(2) });
     await nxmtk2.payJoiningFee(coverHolder1, {
       from: coverHolder1,
       value: fee
     });
+    await nxmtk2.kycVerdict(coverHolder1, true);
     await P1.buyTokenBegin({ from: coverHolder1, value: ether(3) });
     await nxmtk2.payJoiningFee(coverHolder2, {
       from: coverHolder2,
       value: fee
     });
+    await nxmtk2.kycVerdict(coverHolder2, true);
     await P1.buyTokenBegin({ from: coverHolder2, value: ether(3) });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
     await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });

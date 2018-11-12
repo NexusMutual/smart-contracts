@@ -1,14 +1,25 @@
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
+const Pool1 = artifacts.require('Pool1');
+const PoolData = artifacts.require('PoolData');
+const DAI = artifacts.require('MockDAI');
+const NXMToken1 = artifacts.require('NXMToken1');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+
 const CA_ETH = '0x45544800';
+const CA_DAI = '0x44414900';
+
 let mcr;
 let mcrd;
+let nxmtk1;
+let p1;
+let balance_DAI;
+let balance_ETH;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -19,9 +30,78 @@ contract('MCR', function([owner, notOwner]) {
   before(async function() {
     await advanceBlock();
     mcr = await MCR.deployed();
+    nxmtk1 = await NXMToken1.deployed();
     mcrd = await MCRDataMock.deployed();
+    p1 = await Pool1.deployed();
+    pd = await PoolData.deployed();
+    cad = await DAI.deployed();
   });
 
+  describe('Calculation of V(tp) and MCR(tp)', function() {
+    let cal_vtp;
+    let cal_mcrtp;
+
+    before(async function() {
+      await cad.transfer(p1.address, ether(600));
+      balance_DAI = await p1.getBalanceOfCurrencyAsset(CA_DAI);
+      balance_ETH = await p1.getEtherPoolBalance();
+    });
+
+    it('should return correct V(tp) price', async function() {
+      const price_dai = await mcrd.getCurr3DaysAvg(CA_DAI);
+      cal_vtp = balance_DAI
+        .mul(100)
+        .div(price_dai)
+        .plus(balance_ETH);
+      cal_vtp
+        .toFixed(0)
+        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[0]);
+    });
+
+    it('should return correct MCR(tp) price', async function() {
+      const lastMCR = await mcrd.getLastMCR();
+      cal_mcrtp = cal_vtp.mul(lastMCR[0]).div(lastMCR[2]);
+      cal_mcrtp
+        .toFixed(0)
+        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[1]);
+    });
+  });
+
+  describe('Token Price Calculation', function() {
+    let tp_eth;
+    let tp_dai;
+
+    before(async function() {
+      const tpd = await mcrd.getTokenPriceDetails(CA_ETH);
+      const tc = (await nxmtk1.totalSupply()).div(1e18);
+      const sf = tpd[0].div(1e5);
+      const growthStep = tpd[1];
+      const Curr3DaysAvg = tpd[2];
+      const mcrtp = (await mcr.calVtpAndMCRtp())[1];
+      const mcrtpSquare = mcrtp.times(mcrtp).div(1e8);
+      let Max = 1;
+      if (mcrtpSquare >= 1) {
+        Max = mcrtpSquare;
+      }
+      const tp = tc
+        .div(growthStep)
+        .plus(1)
+        .times(Max)
+        .times(sf);
+      tp_eth = tp.times(Curr3DaysAvg.div(100));
+      tp_dai = tp.times((await mcrd.getCurr3DaysAvg(CA_DAI)).div(100));
+    });
+    it('should return correct Token price in ETH', async function() {
+      tp_eth.should.be.bignumber.equal(
+        (await mcr.calculateTokenPrice(CA_ETH)).div(1e18)
+      );
+    });
+    it('should return correct Token price in DAI', async function() {
+      tp_dai.should.be.bignumber.equal(
+        (await mcr.calculateTokenPrice(CA_DAI)).div(1e18)
+      );
+    });
+  });
   describe('if owner/internal contract address', function() {
     describe('Change MCRTime', function() {
       it('should be able to change MCRTime', async function() {
@@ -58,9 +138,7 @@ contract('MCR', function([owner, notOwner]) {
       it('should be able to add MCR data', async function() {
         await mcr.addLastMCRData(20181009, { from: owner });
         await mcr.addLastMCRData(20181011, { from: owner });
-        //console.log(await mcrd.getLastMCRDate());
         await mcr.addLastMCRData(20181012, { from: owner });
-        //console.log(await mcrd.getLastMCRDate());
       });
     });
   });
@@ -97,7 +175,6 @@ contract('MCR', function([owner, notOwner]) {
       await mcrd.pushMCRData(10000, 0, 0, 0, { from: owner });
       await mcr.getMaxSellTokens();
       await mcr.calculateTokenPrice(CA_ETH);
-      console.log((await mcr.calVtpAndMCRtp())[0].toString());
       await mcr.addMCRData(
         18000,
         10000,
@@ -108,7 +185,6 @@ contract('MCR', function([owner, notOwner]) {
         { from: owner }
       );
       await mcrd.removeAllCurrencies();
-      console.log((await mcr.calVtpAndMCRtp())[0].toString());
       await mcr.addMCRData(
         18000,
         10000,

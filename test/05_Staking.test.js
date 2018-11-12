@@ -41,8 +41,10 @@ contract('NXMToken:Staking', function([
     nxmtk2 = await NXMToken2.deployed();
     nxmtd = await NXMTokenData.deployed();
     await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
+    await nxmtk2.kycVerdict(member1, true);
     await P1.buyTokenBegin({ from: member1, value: ether(1) });
     await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
+    await nxmtk2.kycVerdict(member2, true);
     await P1.buyTokenBegin({ from: member2, value: ether(1) });
   });
   describe('Stake Tokens', function() {

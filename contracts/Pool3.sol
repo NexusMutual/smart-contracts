@@ -13,10 +13,9 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
 import "./PoolData.sol";
-import "./NXMaster.sol";
 import "./Pool1.sol";
 import "./Pool2.sol";
 import "./MCRData.sol";
@@ -26,19 +25,15 @@ import "./imports/0xProject/Exchange.sol";
 
 
 contract Pool3 is Iupgradable {
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     PoolData pd;
-    NXMaster ms;
     Pool1 p1;
     Pool2 p2;
     Exchange exchange;
     MCRData md;
 
     address poolAddress;
-
-    address masterAddress;
     address exchangeContractAddress;
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
@@ -55,24 +50,11 @@ contract Pool3 is Iupgradable {
         bytes32 orderHash
         );
 
-    function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
-            require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
-        }
-    }
-
     function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        md = MCRData(ms.versionContractAddress(currentVersion, "MD"));
-        p2 = Pool2(ms.versionContractAddress(currentVersion, "P2"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        md = MCRData(ms.getLatestAddress("MD"));
+        p2 = Pool2(ms.getLatestAddress("P2"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
     }
 
     function changeExchangeContractAddress(address _add) onlyInternal {

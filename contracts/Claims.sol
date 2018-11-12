@@ -13,18 +13,15 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
 
+import "./TokenFunctions.sol";
 import "./QuotationData.sol";
-import "./NXMToken1.sol";
-import "./NXMToken2.sol";
-import "./NXMTokenData.sol";
 import "./Pool1.sol";
 import "./Pool3.sol";
 import "./PoolData.sol";
 import "./ClaimsReward.sol";
 import "./ClaimsData.sol";
-import "./NXMaster.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
@@ -33,42 +30,25 @@ contract Claims is Iupgradable {
     using SafeMaths
     for uint;
 
-    struct claimRewardStatus {
+    struct ClaimRewardStatus {
         string claimStatusDesc;
         uint percCA;
         uint percMV;
     }
 
-    claimRewardStatus[] rewardStatus;
-    NXMToken2 tc2;
-    NXMToken1 tc1;
+    ClaimRewardStatus[] rewardStatus;
+    TokenFunctions tf;
+    NXMToken tk;
+    TokenController tc;
     ClaimsReward cr;
     Pool1 p1;
     ClaimsData cd;
-    NXMTokenData td;
+    TokenData td;
     PoolData pd;
     Pool3 p3;
-    address public masterAddress;
-    NXMaster ms;
     QuotationData qd;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
-
-    function changeMasterAddress(address _add) {
-        if (masterAddress == 0x000) {
-            masterAddress = _add;
-            ms = NXMaster(masterAddress);
-        } else {
-            ms = NXMaster(masterAddress);
-            require(ms.isInternal(msg.sender) == true);
-            masterAddress = _add;
-        }
-    }
-
-    modifier onlyInternal {
-        require(ms.isInternal(msg.sender) == true);
-        _;
-    }
 
     modifier isMemberAndcheckPause {
 
@@ -77,16 +57,15 @@ contract Claims is Iupgradable {
     }
 
     function changeDependentContractAddress() onlyInternal {
-        uint currentVersion = ms.currentVersion();
-        td = NXMTokenData(ms.versionContractAddress(currentVersion, "TD"));
-        tc2 = NXMToken2(ms.versionContractAddress(currentVersion, "TOK2"));
-        p1 = Pool1(ms.versionContractAddress(currentVersion, "P1"));
-        cd = ClaimsData(ms.versionContractAddress(currentVersion, "CD"));
-        tc1 = NXMToken1(ms.versionContractAddress(currentVersion, "TOK1"));
-        qd = QuotationData(ms.versionContractAddress(currentVersion, "QD"));
-        pd = PoolData(ms.versionContractAddress(currentVersion, "PD"));
-        p3 = Pool3(ms.versionContractAddress(currentVersion, "P3"));
-        cr = ClaimsReward(ms.versionContractAddress(currentVersion, "CR"));
+        tk = NXMToken(ms.tokenAddress());
+        td = TokenData(ms.getLatestAddress("TD"));
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        p3 = Pool3(ms.getLatestAddress("P3"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        cd = ClaimsData(ms.getLatestAddress("CD"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
     /// @dev Adds status under which a claim can lie.
@@ -94,7 +73,7 @@ contract Claims is Iupgradable {
     /// @param percCA reward percentage for claim assessor
     /// @param percMV reward percentage for members
     function pushStatus(string stat, uint percCA, uint percMV) onlyInternal {
-        rewardStatus.push(claimRewardStatus(stat, percCA, percMV));
+        rewardStatus.push(ClaimRewardStatus(stat, percCA, percMV));
     }
 
     /// @dev Gets the reward percentage to be distributed for a given status id
@@ -126,7 +105,15 @@ contract Claims is Iupgradable {
     /// @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
     /// @return claimOwner Address through which claim is submitted
     /// @return coverId Coverid associated with the claim id
-    function getClaimbyIndex(uint _claimId) constant returns(uint claimId, string status, int8 finalVerdict, address claimOwner, uint coverId) {
+    function getClaimbyIndex(uint _claimId) constant returns (
+        uint claimId,
+        string status,
+        int8 finalVerdict,
+        address claimOwner,
+        uint coverId
+    )
+
+    {
         uint stat;
         claimId = _claimId;
         (, coverId, finalVerdict, stat, , ) = cd.getClaim(_claimId);
@@ -141,7 +128,7 @@ contract Claims is Iupgradable {
     function getCATokensLockedAgainstClaim(address _of, uint claimId) constant returns(uint value) {
 
         (, value) = cd.getTokensClaim(_of, claimId);
-        uint totalLockedCA = td.tokensLocked(_of, "CLA", now);
+        uint totalLockedCA = tc.tokensLockedAtTime(_of, "CLA", now);
         if (totalLockedCA < value)
             value = totalLockedCA;
     }
@@ -153,20 +140,18 @@ contract Claims is Iupgradable {
     /// @param member Member type 0 -> Claim Assessors, else members.
     /// @return tokens Total Amount used in Claims assessment.
     function getCATokens(uint claimId, uint member) constant returns(uint tokens) {
-
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
-        uint tokenx1e18 = tc2.getTokenPrice(curr);
+        uint tokenx1e18 = tf.getTokenPrice(curr);
         uint accept;
         uint deny;
         if (member == 0) {
             (, accept, deny) = cd.getClaimsTokenCA(claimId);
-            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18); // amount (not in tokens)
         } else {
             (, accept, deny) = cd.getClaimsTokenMV(claimId);
-            tokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
         }
+        tokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18); // amount (not in tokens)
     }
 
     /// @dev Checks if voting of a claim should be closed or not.
@@ -174,22 +159,20 @@ contract Claims is Iupgradable {
     /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
     /// -1 -> voting has already been closed.
     function checkVoteClosing(uint claimId) constant returns(int8 close) {
-
         close = 0;
-
         uint8 status;
         (, status) = cd.getClaimStatusNumber(claimId);
         uint dateUpd = cd.getClaimDateUpd(claimId);
-        if (status == 12 && SafeMaths.add(dateUpd, cd.payoutRetryTime()) < now)
+        if (status == 12 && dateUpd.add(cd.payoutRetryTime()) < now)
             if (cd.getClaimState12Count(claimId) < 60)
                 close = 1;
-        if (status > 5)
+        if (status > 5) {
             close = -1;
-        else if (SafeMaths.add(dateUpd, cd.maxVotingTime()) <= now) {
+        }  else if (dateUpd.add(cd.maxVotingTime()) <= now) {
             close = 1;
-        }else if (SafeMaths.add(dateUpd, cd.minVotingTime()) >= now) {
+        } else if (dateUpd.add(cd.minVotingTime()) >= now) {
             close = 0;
-        }else if (status == 0 || (status >= 1 && status <= 5)) {
+        } else if (status == 0 || (status >= 1 && status <= 5)) {
             close = checkVoteClosingFinal(claimId, status);
         }
     }
@@ -237,20 +220,21 @@ contract Claims is Iupgradable {
     }
 
     ///@dev Submits the Claims queued once the emergency pause is switched off.
-    function submitClaimAfterEPOff() onlyInternal {
+    function submitClaimAfterEPOff() public onlyInternal {
 
         uint lengthOfClaimSubmittedAtEP = cd.getLengthOfClaimSubmittedAtEP();
         uint firstClaimIndexToSubmitAfterEP = cd.getFirstClaimIndexToSubmitAfterEP();
         uint coverId;
         uint dateUpd;
         bool submit;
+        address qadd;
         for (uint i = firstClaimIndexToSubmitAfterEP; i < lengthOfClaimSubmittedAtEP; i++) {
             (coverId, dateUpd, submit) = cd.getClaimOfEmergencyPauseByIndex(i);
-            if (submit == false) {
-                address qadd = qd.getCoverMemberAddress(coverId);
-                addClaim(coverId, dateUpd, qadd);
-                cd.setClaimSubmittedAtEPTrue(i, true);
-            }
+            require(submit == false);
+            qadd = qd.getCoverMemberAddress(coverId);
+            addClaim(coverId, dateUpd, qadd);
+            cd.setClaimSubmittedAtEPTrue(i, true);
+            
         }
         cd.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
     }
@@ -258,19 +242,19 @@ contract Claims is Iupgradable {
     /// @dev Castes vote for members who have tokens locked under Claims Assessment
     /// @param claimId  claim id.
     /// @param verdict 1 for Accept,-1 for Deny.
-    function submitCAVote(uint claimId, int8 verdict) isMemberAndcheckPause {
+    function submitCAVote(uint claimId, int8 verdict) public isMemberAndcheckPause {
 
         require(checkVoteClosing(claimId) != 1);
         uint time = cd.claimDepositTime();
         time = SafeMaths.add(now, time);
-        uint tokens = td.tokensLocked(msg.sender, "CLA", time);
-        tokens = SafeMaths.sub(tokens, td.getBookedCA(msg.sender));
+        uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", time);
+        tokens = tokens.sub(td.getBookedCA(msg.sender));
         require(tokens > 0);
         uint8 stat;
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat == 0);
         require(cd.getUserClaimVoteCA(msg.sender, claimId) == 0);
-        tc2.bookCATokens(msg.sender, tokens);
+        tf.bookCATokens(msg.sender, tokens);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "CAV", tokens, now, verdict);
         uint voteLength = cd.getAllVoteLength();
@@ -278,11 +262,9 @@ contract Claims is Iupgradable {
         cd.setUserClaimVoteCA(msg.sender, claimId, voteLength);
         cd.setClaimTokensCA(claimId, verdict, tokens);
         time = td.lockCADays();
-        tc1.changeLock("CLA", msg.sender, time, true);
-
+        tc.extendLock(msg.sender, "CLA", time);
         int close = checkVoteClosing(claimId);
         if (close == 1) {
-
             cr.changeClaimStatus(claimId);
         }
     }
@@ -293,10 +275,9 @@ contract Claims is Iupgradable {
     /// @param claimId Selected claim id.
     /// @param verdict 1 for Accept,-1 for Deny.
     function submitMemberVote(uint claimId, int8 verdict) isMemberAndcheckPause {
-
         require(checkVoteClosing(claimId) != 1);
         uint stat;
-        uint tokens = td.getBalanceOf(msg.sender);
+        uint tokens = tc.totalBalanceOf(msg.sender);
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat >= 1 && stat <= 5);
         require(cd.getUserClaimVoteMember(msg.sender, claimId) == 0);
@@ -304,7 +285,7 @@ contract Claims is Iupgradable {
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
         uint time = td.lockMVDays();
         time = SafeMaths.add(now, time);
-        tc2.lockForMemberVote(msg.sender, time);
+        tf.lockForMemberVote(msg.sender, time);
         uint voteLength = cd.getAllVoteLength();
         cd.addClaimVotemember(claimId, voteLength);
         cd.setUserClaimVoteMember(msg.sender, claimId, voteLength);
@@ -327,9 +308,10 @@ contract Claims is Iupgradable {
         }
     }
 
-    /// @dev Resume the voting phase of all Claims paused due to an emergency pause.
+    /**
+    * @dev Resume the voting phase of all Claims paused due to an emergency pause.
+    */
     function startAllPendingClaimsVoting() onlyInternal {
-
         uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
         uint i;
         uint lengthOfClaimVotingPause = cd.getLengthOfClaimVotingPause();
@@ -340,29 +322,30 @@ contract Claims is Iupgradable {
             uint pTime = SafeMaths.add(SafeMaths.sub(now, cd.maxVotingTime()), pendingTime);
             cd.setClaimdateUpd(claimID, pTime);
             cd.setPendingClaimVoteStatus(i, true);
-
             uint coverid;
             (, coverid) = cd.getClaimCoverId(claimID);
             address qadd = qd.getCoverMemberAddress(coverid);
-            tc2.depositLockCNEPOff(qadd, coverid, SafeMaths.add(pendingTime, cd.claimDepositTime()));
+            tf.depositCNEPOff(qadd, coverid, pendingTime.add(cd.claimDepositTime()));
             p1.closeClaimsOraclise(claimID, uint64(pTime));
         }
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
 
-    /// @dev Checks if voting of a claim should be closed or not.
-    //             Internally called by checkVoteClosing method
-    //             for Claims whose status number is 0 or status number lie between 2 and 6.
-    /// @param claimId Claim Id.
-    /// @param status Current status of claim.
-    /// @return close 1 if voting should be closed,0 in case voting should not be closed,-1 if voting has already been closed.
-    function checkVoteClosingFinal(uint claimId, uint8 status) internal constant returns(int8 close) {
+    /**
+    * @dev Checks if voting of a claim should be closed or not.
+    *             Internally called by checkVoteClosing method
+    *             for Claims whose status number is 0 or status number lie between 2 and 6.
+    * @param claimId Claim Id.
+    * @param status Current status of claim.
+    * @return close 1 if voting should be closed,0 in case voting should not be closed,
+    *         -1 if voting has already been closed.
+    */
+    function checkVoteClosingFinal(uint claimId, uint8 status) internal view returns(int8 close) {
         close = 0;
-
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
-        uint tokenx1e18 = tc2.getTokenPrice(curr);
+        uint tokenx1e18 = tf.getTokenPrice(curr);
         uint accept;
         uint deny;
         (, accept, deny) = cd.getClaimsTokenCA(claimId);
@@ -412,23 +395,14 @@ contract Claims is Iupgradable {
     }
 
     ///@dev Submits a claim for a given cover note.
-    ///     Deposits 20% of the tokens locked against cover.
+    ///     Set deposits flag against cover.
     function addClaim(uint coverId, uint time, address add) internal {
-
-        uint nowtime = now;
-        uint tokens;
-        uint coverLength;
-        (, coverLength) = td.getUserCoverDepositCNLength(add, coverId);
-        if (coverLength == 0) {
-            (, , tokens) = td.getUserCoverLockedCN(add, coverId);
-            tokens = SafeMaths.div(SafeMaths.mul(tokens, 20), 100);
-        } else
-            (, , , tokens) = td.getUserCoverDepositCNByIndex(add, coverId, coverLength - 1);
-
-        uint timeStamp = SafeMaths.add(nowtime, cd.claimDepositTime());
-        tc2.depositCN(coverId, tokens, timeStamp, add);
+        bool isDeposited;
+        (isDeposited, ) = td.getDepositCNDetails(coverId);
+        require(!isDeposited);
+        require(tf.depositCN(coverId));
         uint len = cd.actualClaimLength();
-        cd.addClaim(len, coverId, add, nowtime);
+        cd.addClaim(len, coverId, add, now);
         cd.callClaimEvent(coverId, add, len, time);
         qd.changeCoverStatusNo(coverId, 4);
         bytes4 curr = qd.getCurrencyOfCover(coverId);

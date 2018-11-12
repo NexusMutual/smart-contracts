@@ -13,52 +13,46 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
+
+import "./TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsReward.sol";
-import "./NXMToken2.sol";
 import "./Pool1.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/govblocks-protocol/Governed.sol";
+import "./imports/govblocks-protocol/MemberRoles.sol";
 
 
 contract NXMaster is Governed {
+    using SafeMaths for uint;
 
-    using SafeMaths
-    for uint;
-
-    struct changeVersion {
-        uint dateImplement;
-        uint versionNo;
-    }
-
-    struct emergencyPause {
+    struct EmergencyPause {
         bool pause;
         uint time;
         bytes4 by;
     }
 
-    emergencyPause[] emergencyPaused;
+    EmergencyPause[] public emergencyPaused;
 
-    uint public versionLength;
-    bytes4[] contractNames;
-    mapping(uint => mapping(bytes4 => Iupgradable)) public versionContractAddress;
-    changeVersion[] public contractChangeDate;
+    uint[] public versionDates;
+    bytes32 public dAppName;
+    bytes2[] internal allContractNames;
     mapping(address => bool) public contractsActive;
-    uint public currentVersion;
-    address public memberRolesAddress;
+    mapping(uint => mapping(bytes2 => address)) internal allContractVersions;
 
-    address masterAddress;
+    address public tokenAddress;
 
-    Claims c1;
-    ClaimsReward cr;
-    Pool1 p1;
-    MemberRoles mr;
-    NXMToken2 tc2;
+    Claims internal c1;
+    ClaimsReward internal cr;
+    Pool1 internal p1;
+    MemberRoles internal mr;
+    TokenFunctions internal tf;
+    Iupgradable internal up;
 
     address public owner;
-    uint pauseTime;
+    uint public pauseTime;
 
     modifier onlyOwner {
         require(isOwner(msg.sender) == true);
@@ -66,60 +60,37 @@ contract NXMaster is Governed {
     }
 
     modifier onlyInternal {
-        require((contractsActive[msg.sender] == true || owner == msg.sender)); //&& emergencyPaused==0
+        require((contractsActive[msg.sender] == true || owner == msg.sender));
         _;
     }
 
-/*     modifier checkPause {
-        require(isPause() == false);
-        _;
-    } */
-
     /// @dev Constructor
-    function NXMaster() {
+    constructor() public {
         owner = msg.sender;
         contractsActive[address(this)] = true; //1
-        masterAddress = address(this);
-        versionLength = 0;
         dappName = "NEXUS-MUTUAL";
-        pauseTime = SafeMaths.mul(28, 1 days); //4 weeks
-        contractNames.push("QD");
-        contractNames.push("TD");
-        contractNames.push("CD");
-        contractNames.push("PD");
-        contractNames.push("MD");
-        contractNames.push("Q2");
-        contractNames.push("TOK1");
-        contractNames.push("TOK2");
-        contractNames.push("C1");
-        contractNames.push("CR");
-        contractNames.push("P1");
-        contractNames.push("P2");
-        contractNames.push("MAS2");
-        contractNames.push("MCR");
-        contractNames.push("P3");
-
+        pauseTime = 28 days; //4 weeks
+        contractsActive[address(this)] = true;
+        versionDates.push(now); //solhint-disable-line
+        addContractNames();
     }
 
     /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
     /// and can be found in the imports folder
     /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
-    function changeMemberRolesAddress(address _memberRolesAddress) onlyInternal
-    {
-        memberRolesAddress = _memberRolesAddress;
-        mr = MemberRoles(memberRolesAddress);
-        tc2 = NXMToken2(versionContractAddress[currentVersion]["TOK2"]);
-        tc2.changeMemberRolesAddress(_memberRolesAddress);
-        
+    function changeMemberRolesAddress(address _memberRolesAddress) public onlyInternal {
+        mr = MemberRoles(_memberRolesAddress);
+        tf = TokenFunctions(allContractVersions[versionDates.length - 1]["TF"]);
+        tf.changeMemberRolesAddress(_memberRolesAddress);
     }
 
     /// @dev Add Emergency pause
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
-    function addEmergencyPause(bool _pause, bytes4 _by) onlyAuthorizedToGovern {
-        emergencyPaused.push(emergencyPause(_pause, now, _by));
+    function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
+        emergencyPaused.push(EmergencyPause(_pause, now, _by));
         if (_pause == false) {
-            c1 = Claims(versionContractAddress[currentVersion]["C1"]);
+            c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
             c1.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
@@ -135,66 +106,43 @@ contract NXMaster is Governed {
         return pauseTime;
     }
 
-    /// @dev Updates NXMaster address of all associated contracts
-    function changeMasterAddress(address _add) onlyOwner {
-        Iupgradable contracts;
-        for (uint i = 0; i < contractNames.length; i++) {
-            contracts = Iupgradable(versionContractAddress[currentVersion][contractNames[i]]);
-            contracts.changeMasterAddress(_add);
-        }
-
+    /// @dev Changes the NXMToken address.
+    /// and can be found in the imports folder
+    /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
+    function changeTokenAddress(address _newTokenAddress) public onlyOwner {
+        tokenAddress = _newTokenAddress;
     }
 
-    /// @dev Updates the version of contracts, provides required addresses to all associated contracts
-    /// calls the oraclize query to update UI.
-    /// modifier to be changed to onlyAuthorizedToGovern in future.
-    function switchToRecentVersion() onlyInternal {
-        uint version = SafeMaths.sub(versionLength, 1);
-        currentVersion = version;
-        addInContractChangeDate(now, version);
-        if (currentVersion > 0 && versionContractAddress[currentVersion]["CR"] != versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"] 
-            && versionContractAddress[currentVersion]["TD"] == versionContractAddress[SafeMaths.sub(currentVersion, 1)]["TD"]) {
-            cr = ClaimsReward(versionContractAddress[SafeMaths.sub(currentVersion, 1)]["CR"]);
-            cr.upgrade(versionContractAddress[currentVersion]["CR"]);
-        }
-        addRemoveAddress(version);
+    /// @dev upgrades a single contract
+    function upgradeContract(bytes2 _contractsName, address _contractsAddress) public onlyOwner {
+        allContractVersions[versionDates.length - 1][_contractsName] = _contractsAddress;
         changeMasterAddress(address(this));
-        changeOtherAddress();
-        if (currentVersion > 0) {
-            p1 = Pool1(versionContractAddress[currentVersion]["P1"]);
-            p1.versionOraclise(version);
-        }
+        changeAllAddress();
     }
 
-    ///@dev checks whether the address is a latest contract address.
-    function isInternal(address _add) constant returns(bool check) {
+    /// @dev checks whether the address is a latest contract address.
+    function isInternal(address _add) view returns(bool check) {
         check = false; // should be 0
         if ((contractsActive[_add] == true || owner == _add)) //remove owner for production release
             check = true;
     }
 
     /// @dev checks whether the address is the Owner or not.
-    function isOwner(address _add) constant returns(bool check) {
-        check = false;
-        if (owner == _add)
-            check = true;
+    function isOwner(address _add) view returns(bool check) {
+        return check = owner == _add;
     }
 
     /// @dev Checks whether emergency pause id on/not.
-    function isPause() constant returns(bool check) {
-
+    function isPause() view returns(bool check) {
+        check = false;
         if (emergencyPaused.length > 0) {
-            if (emergencyPaused[SafeMaths.sub(emergencyPaused.length, 1)].pause == true)
-                return true;
-            else
-                return false;
-        } else
-            return false; //in emergency pause state
+            if (emergencyPaused[emergencyPaused.length.sub(1)].pause == true)
+                check = true;
+        } 
     }
 
     /// @dev checks whether the address is a member of the mutual or not.
-    function isMember(address _add) constant returns(bool) {
-
+    function isMember(address _add) view returns(bool) {
         return mr.checkRoleIdByAddress(_add, 3);
     }
 
@@ -205,86 +153,146 @@ contract NXMaster is Governed {
     }
 
     ///@dev Gets emergency pause details by index.
-    function getEmergencyPauseByIndex(uint indx) constant returns(uint _indx, bool _pause, uint _time, bytes4 _by) {
-        _pause = emergencyPaused[indx].pause;
-        _time = emergencyPaused[indx].time;
-        _by = emergencyPaused[indx].by;
-        _indx = indx;
+    function getEmergencyPauseByIndex(uint index) constant returns(uint _index, bool _pause, uint _time, bytes4 _by) {
+        _pause = emergencyPaused[index].pause;
+        _time = emergencyPaused[index].time;
+        _by = emergencyPaused[index].by;
+        _index = index;
     }
 
     ///@dev Gets the number of emergency pause has been toggled.
-    function getEmergencyPausedLength() constant returns(uint len) {
+    function getEmergencyPausedLength() public view returns(uint len) {
         len = emergencyPaused.length;
     }
 
     ///@dev Gets last emergency pause details.
-    function getLastEmergencyPause() constant returns(bool _pause, uint _time, bytes4 _by) {
+    function getLastEmergencyPause() public view returns(bool _pause, uint _time, bytes4 _by) {
         _pause = false;
         _time = 0;
         _by = "";
         uint len = getEmergencyPausedLength();
         if (len > 0) {
-            _pause = emergencyPaused[SafeMaths.sub(len, 1)].pause;
-            _time = emergencyPaused[SafeMaths.sub(len, 1)].time;
-            _by = emergencyPaused[SafeMaths.sub(len, 1)].by;
+            len = len.sub(1);
+            _pause = emergencyPaused[len].pause;
+            _time = emergencyPaused[len].time;
+            _by = emergencyPaused[len].by;
         }
     }
 
-    /// @dev Creates a new version of contract addresses
-    /// @param arr Array of addresses of compiled contracts.
-    /// Adding a new version doesn't activate it. One needs to call switchToRecentVersion.
-    function addNewVersion(Iupgradable[] arr) onlyOwner {
-        uint versionNo = versionLength;
-        setVersionLength(SafeMaths.add(versionNo, 1));
-        for (uint i = 0; i < contractNames.length; i++) {
-            versionContractAddress[versionNo][contractNames[i]] = arr[i];
+    /// @dev Changes Master contract address
+    function changeMasterAddress(address _masterAddress) public {
+        if (_masterAddress != address(this)) {
+            require(msg.sender == owner);
         }
         
+        for (uint i = 0; i < allContractNames.length; i++) {
+            up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
+            up.changeMasterAddress(address(this));
+        }
+        contractsActive[address(this)] = false;
+        contractsActive[_masterAddress] = true;
+       
+    }
+
+    /// @dev Gets current version amd its master address
+    /// @return versionNo Current version number that is active
+    function getCurrentVersion() public view returns(uint versionNo) {
+        return versionDates.length - 1;
+    }
+
+    /// @dev Gets latest version name and address
+    /// @param _versionNo Version number that data we want to fetch
+    /// @return versionNo Version number
+    /// @return contractsName Latest version's contract names
+    /// @return contractsAddress Latest version's contract addresses
+    function getVersionData(uint _versionNo) 
+        public 
+        view 
+        returns(uint versionNo, bytes2[] contractsName, address[] contractsAddress) 
+    {
+        versionNo = _versionNo;
+        contractsName = new bytes2[](allContractNames.length);
+        contractsAddress = new address[](allContractNames.length);
+
+        for (uint i = 0; i < allContractNames.length; i++) {
+            contractsName[i] = allContractNames[i];
+            contractsAddress[i] = allContractVersions[versionNo][allContractNames[i]];
+        }
+    }
+
+    /// @dev Gets latest contract address
+    /// @param _contractName Contract name to fetch
+    function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress) {
+        contractAddress =
+            allContractVersions[versionDates.length - 1][_contractName];
+    }
+
+    /// @dev Creates a new version of contract addresses
+    /// @param _contractAddresses Array of contract addresses which will be generated
+    function addNewVersion(address[] _contractAddresses) public onlyOwner {
+        for (uint i = 0; i < allContractNames.length; i++) {
+            allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
+        }
+        versionDates.push(now); //solhint-disable-line
+
+        changeMasterAddress(address(this));
+        changeAllAddress();
     }
 
     /// @dev Allow AB Members to Start Emergency Pause
     function startEmergencyPause() onlyAuthorizedToGovern {
         addEmergencyPause(true, "AB"); //Start Emergency Pause
-        p1 = Pool1(versionContractAddress[currentVersion]["P1"]);
+        p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
-        c1 = Claims(versionContractAddress[currentVersion]["C1"]);
+        c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
     }
 
-    /// @dev Stores the date when version of contracts get switched.
-    /// @param _date Current date stamp.
-    /// @param vno Active version number to which contracts have been switched.
-    function addInContractChangeDate(uint _date, uint vno) internal {
-        contractChangeDate.push(changeVersion(_date, vno));
+    /// @dev Save the initials of all the contracts
+    function addContractNames() internal {
+        allContractNames.push("QD");
+        allContractNames.push("TD");
+        allContractNames.push("CD");
+        allContractNames.push("PD");
+        allContractNames.push("MD");
+        allContractNames.push("QT");
+        allContractNames.push("TF");
+        allContractNames.push("TC");
+        allContractNames.push("CL");
+        allContractNames.push("CR");
+        allContractNames.push("P1");
+        allContractNames.push("P2");
+        allContractNames.push("P3");
+        allContractNames.push("MC");
+        allContractNames.push("M2");
     }
 
-    /// @dev Deactivates address of a contract from last version.
-    // Sets value 0 for last version of contract address signifying that contract of last version is no longer active.
-    // Sets value 1 signifying that contract of recent version is active.
-    /// @param version Recent version number.
-    function addRemoveAddress(uint version) internal {
-        for (uint i = 0; i < contractNames.length; i++) {
-            uint versionOld = 0;
-            if (version > 0)
-                versionOld = SafeMaths.sub(version, 1);
-            contractsActive[versionContractAddress[versionOld][contractNames[i]]] = false;
-            contractsActive[versionContractAddress[version][contractNames[i]]] = true;
+    /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.
+    function changeAllAddress() internal {
+        uint i;
+        uint currentVersion = versionDates.length - 1;
+        if (versionDates.length < 3) {
+            for (i = 0; i < allContractNames.length; i++) {
+                contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
+                up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
+                up.changeDependentContractAddress();
+            }
+        } else {
+            for (i = 0; i < allContractNames.length; i++) {
+                contractsActive[allContractVersions[currentVersion - 1][allContractNames[i]]] = false;
+                contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
+                up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
+                up.changeDependentContractAddress();
+            }
+
+            if (allContractVersions[currentVersion]["CR"] != allContractVersions[currentVersion - 1]["CR"] 
+                && allContractVersions[currentVersion]["TD"] == allContractVersions[currentVersion - 1]["TD"]) {
+                cr = ClaimsReward(allContractVersions[currentVersion - 1]["CR"]);
+                cr.upgrade(allContractVersions[currentVersion]["CR"]);
+            }
+            
+            p1 = Pool1(allContractVersions[currentVersion]["P1"]);
+            p1.versionOraclise(currentVersion);
         }
     }
-
-    /// @dev Sets the length of version.
-    function setVersionLength(uint len) internal {
-        versionLength = len;
-    }
-
-    /// @dev Links internal contracts to one another.
-    function changeOtherAddress() internal {
-        Iupgradable contracts;
-        for (uint i = 0; i < contractNames.length; i++) {
-            contracts = Iupgradable(versionContractAddress[currentVersion][contractNames[i]]);
-            contracts.changeDependentContractAddress();
-        }
-
-    }
-
 }

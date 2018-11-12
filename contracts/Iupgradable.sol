@@ -1,8 +1,24 @@
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
+
+import "./NXMaster.sol";
 
 
 contract Iupgradable {
-    function changeMasterAddress(address _add);
 
-    function  changeDependentContractAddress();
+    NXMaster public ms;
+
+    modifier onlyInternal {
+        require(ms.isInternal(msg.sender));
+        _;
+    }
+
+    function  changeDependentContractAddress() public;
+
+    function changeMasterAddress(address _masterAddress) public {
+        if (address(ms) != address(0)) {
+            require(ms.isInternal(msg.sender));
+        }
+        ms = NXMaster(_masterAddress);
+    }
+
 }

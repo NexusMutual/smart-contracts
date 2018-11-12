@@ -6,7 +6,7 @@ const NXMaster = artifacts.require('NXMaster');
 const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
-// const NXMToken = artifacts.require('NXMToken');
+const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
@@ -28,6 +28,7 @@ module.exports = function(deployer) {
   deployer.then(async () => {
     const nxms = await NXMaster.deployed();
     const nxms2 = await NXMaster2.deployed();
+    const tk = await NXMToken.deployed();
     const td = await TokenData.deployed();
     const tf = await TokenFunctions.deployed();
     const tc = await TokenController.deployed();
@@ -66,6 +67,7 @@ module.exports = function(deployer) {
       mcr.address,
       nxms2.address
     ];
+    await nxms.changeTokenAddress(tk.address);
     await nxms.addNewVersion(addr);
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);

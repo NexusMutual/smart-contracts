@@ -47,7 +47,7 @@ contract NXMaster is Governed {
     Claims internal c1;
     ClaimsReward internal cr;
     Pool1 internal p1;
-    MemberRoles public mr;
+    MemberRoles internal mr;
     TokenFunctions internal tf;
     Iupgradable internal up;
 
@@ -60,7 +60,7 @@ contract NXMaster is Governed {
     }
 
     modifier onlyInternal {
-        require((contractsActive[msg.sender] == true || owner == msg.sender)); //&& emergencyPaused==0
+        require((contractsActive[msg.sender] == true || owner == msg.sender));
         _;
     }
 
@@ -71,7 +71,7 @@ contract NXMaster is Governed {
         dappName = "NEXUS-MUTUAL";
         pauseTime = 28 days; //4 weeks
         contractsActive[address(this)] = true;
-        versionDates.push(now);
+        versionDates.push(now); //solhint-disable-line
         addContractNames();
     }
 
@@ -80,7 +80,7 @@ contract NXMaster is Governed {
     /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
     function changeMemberRolesAddress(address _memberRolesAddress) public onlyInternal {
         mr = MemberRoles(_memberRolesAddress);
-        tf = TokenFunctions(getLatestAddress("TF"));
+        tf = TokenFunctions(allContractVersions[versionDates.length - 1]["TF"]);
         tf.changeMemberRolesAddress(_memberRolesAddress);
     }
 
@@ -90,7 +90,7 @@ contract NXMaster is Governed {
     function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
         emergencyPaused.push(EmergencyPause(_pause, now, _by));
         if (_pause == false) {
-            c1 = Claims(getLatestAddress("CL"));
+            c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
             c1.submitClaimAfterEPOff(); //Submitting Requested Claims.
             c1.startAllPendingClaimsVoting(); //Start Voting of pending Claims again.
         }
@@ -242,9 +242,9 @@ contract NXMaster is Governed {
     /// @dev Allow AB Members to Start Emergency Pause
     function startEmergencyPause() onlyAuthorizedToGovern {
         addEmergencyPause(true, "AB"); //Start Emergency Pause
-        p1 = Pool1(getLatestAddress("P1"));
+        p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
-        c1 = Claims(getLatestAddress("CL"));
+        c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
     }
 

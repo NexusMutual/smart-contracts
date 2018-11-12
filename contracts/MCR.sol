@@ -204,7 +204,7 @@ contract MCR is Iupgradable {
     * @param totalSupply Tokens in circulation
     */
     function calculateTokenPrice (bytes4 curr, uint totalSupply) public view onlyInternal returns(uint tokenPrice) {
-        _calculateTokenPrice(curr, totalSupply);
+        return _calculateTokenPrice(curr, totalSupply);
     }
 
     /**
@@ -213,7 +213,7 @@ contract MCR is Iupgradable {
     * @param curr Currency name.
     */ 
     function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
-        _calculateTokenPrice(curr, tk.totalSupply());
+        return _calculateTokenPrice(curr, tk.totalSupply());
     }
     
     /// @dev Gets max numbers of tokens that can be sold at the moment.

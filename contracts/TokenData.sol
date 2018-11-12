@@ -302,6 +302,13 @@ contract TokenData is Iupgradable {
     * @dev Changes lock CA days - number of days for which tokens are locked while submitting a vote.
     */ 
     function changelockCADays(uint _val) public onlyInternal {
+        lockCADays = _val;
+    }
+    
+    /**
+    * @dev Changes lock MV days - number of days for which tokens are locked while submitting a vote.
+    */ 
+    function changelockMVDays(uint _val) public onlyInternal {
         lockMVDays = _val;
     }
 

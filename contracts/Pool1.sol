@@ -187,6 +187,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function changeDependentContractAddress() public {
         m1 = MCR(ms.getLatestAddress("MC"));
         tk = NXMToken(ms.tokenAddress());
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
         tc = TokenController(ms.getLatestAddress("TC"));
         pd = PoolData(ms.getLatestAddress("PD"));
         q2 = Quotation(ms.getLatestAddress("Q2"));
@@ -259,6 +260,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         uint superWeiSpent;
         uint tokenPurchased;
         uint tokenSupply = tk.totalSupply();
+        require(m1.calculateTokenPrice("ETH", tokenSupply) > 0);
         while (superWeiLeft > 0) {
             tokenPrice = m1.calculateTokenPrice("ETH", tokenSupply);
             tempTokens = superWeiLeft.div(tokenPrice);
@@ -335,8 +337,8 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         require(!tf.voted(msg.sender));
         require(_amount <= m1.getMaxSellTokens());
         uint sellingPrice = _getWei(_amount, tk.totalSupply());
-        tc.burnFrom(msg.sender, _amount);
-        require(msg.sender.send(sellingPrice)); //solhint-disable-line
+        require(tc.burnFrom(msg.sender, _amount));
+        require((msg.sender).send(sellingPrice)); //solhint-disable-line
         success = true;
     }
 

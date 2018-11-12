@@ -32,7 +32,7 @@ contract TokenFunctions is Iupgradable, Governed {
     using SafeMaths for uint;
 
     MCR internal m1;
-    MemberRoles internal mr;
+    MemberRoles public mr;
     NXMToken public tk;
     TokenController internal tc;
     TokenData internal td;

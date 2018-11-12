@@ -132,8 +132,8 @@ contract TokenController is IERC1132, Governed, Iupgradable {
         return true;
     }
 
-    function burnFrom (address _of , uint amount) public onlyInternal {
-        token.burnFrom(_of, amount);
+    function burnFrom (address _of, uint amount) public onlyInternal returns (bool) {
+        return token.burnFrom(_of, amount);
     }
     
     /**

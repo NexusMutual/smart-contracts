@@ -196,8 +196,9 @@ contract NXMToken is IERC20 {
     * @param from address The address which you want to send tokens from
     * @param value uint256 The amount of token to be burned
     */
-    function burnFrom(address from, uint256 value) public {
+    function burnFrom(address from, uint256 value) public returns (bool) {
         _burnFrom(from, value);
+        return true;
     }
 
     /**

@@ -262,7 +262,7 @@ contract Claims is Iupgradable {
         cd.setUserClaimVoteCA(msg.sender, claimId, voteLength);
         cd.setClaimTokensCA(claimId, verdict, tokens);
         time = td.lockCADays();
-        tc.extendLock(msg.sender, "CLA", time);
+        tc.extendLockOf(msg.sender, "CLA", time);
         int close = checkVoteClosing(claimId);
         if (close == 1) {
             cr.changeClaimStatus(claimId);

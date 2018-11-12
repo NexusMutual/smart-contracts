@@ -175,7 +175,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
 
     /// @dev Gets the Balance of the Pool in wei.
     function getEtherPoolBalance() external view returns (uint bal) {
-        bal = this.balance;
+        bal = address(this).balance;
     }
 
     ///@dev Gets 0x wrapped ether Pool balance.

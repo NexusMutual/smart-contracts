@@ -236,7 +236,7 @@ contract TokenFunctions is Iupgradable, Governed {
         amount = (premiumNxm.mul(5)).div(100);
         uint validity = now.add(td.lockTokenTimeAfterCoverExp()).add(coverPeriod);
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-        tc.lock(_of, reason, amount, validity);
+        tc.lockOf(_of, reason, amount, validity);
     }
 
     /**
@@ -249,7 +249,7 @@ contract TokenFunctions is Iupgradable, Governed {
         uint coverValidUntil = qd.getValidityOfCover(_coverId);
         if (timeStamp >= coverValidUntil) {
             bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
-            tc.extendLock(_of, reason, timeStamp);
+            tc.extendLockOf(_of, reason, timeStamp);
         } 
         depositCN(_coverId);
     }
@@ -264,7 +264,7 @@ contract TokenFunctions is Iupgradable, Governed {
         uint index = td.addStake(msg.sender, _scAddress, _amount);
         bytes32 reason = keccak256(abi.encodePacked("UW", msg.sender, _scAddress, index));
         uint validity = (td.scValidDays()).mul(1 days);
-        tc.lock(msg.sender, reason, _amount, validity);
+        tc.lockOf(msg.sender, reason, _amount, validity);
     }
 
     /**
@@ -462,7 +462,7 @@ contract TokenFunctions is Iupgradable, Governed {
         uint currentStakedTokens = _getStakerStakedTokensOnSmartContract(_of, _scAddress, _index);
         uint unlockable = currentStakedTokens.sub(_getStakerStakedTokensOnSmartContract(_of, _scAddress, _index));
         uint alreadyUnlocked;
-        (, , , alreadyUnlocked) = td.stakerStakedContracts(_of, _index);
+        (, , , , alreadyUnlocked) = td.stakerStakedContracts(_of, _index);
         if (alreadyUnlocked >= unlockable) {
             amount = 0;
         } else {

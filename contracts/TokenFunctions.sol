@@ -182,7 +182,7 @@ contract TokenFunctions is Iupgradable, Governed {
     * @dev Called by user to pay joining membership fee
     */ 
     function payJoiningFee(address _userAddress) public payable checkPause {
-        if (msg.sender == address(ms.getLatestAddress("Q2"))) {
+        if (msg.sender == address(ms.getLatestAddress("QT"))) {
             require(td.walletAddress() != address(0));
             require(td.walletAddress().send(msg.value)); //solhint-disable-line
             tc.addToWhitelist(_userAddress);
@@ -325,7 +325,7 @@ contract TokenFunctions is Iupgradable, Governed {
         for (uint i = td.scAddressCurrentBurnIndex(scAddress); i < totalStaker; i++) {
             if (burnNXMAmount > 0) {
                 stakerAddress = td.getStakerStakedContractByIndex(scAddress, i);
-                scIndex = td.getStakerStakedContractIndexByIndex(scAddress, i);
+                scIndex = td.getStakerStakedContractIndexByIndex(stakerAddress, i);
                 uint stakerStakedNXM = _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, scIndex);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
@@ -391,12 +391,14 @@ contract TokenFunctions is Iupgradable, Governed {
     * @dev Returns total amount of staked NXM Tokens on all smart contract .
     * @param _of address of the Staker.
     */ 
-    function getStakerAllLockedTokens (address _of) public returns (uint amount) {
+    function getStakerAllLockedTokens(address _of) public returns (uint amount) {
         uint stakedAmount = 0;
         address scAddress;
+        uint scIndex;
         for (uint i = 0; i < td.getStakerStakedContractLength(_of); i++) {
-            scAddress = td.getSmartContractStakerByIndex(_of, i);
-            stakedAmount = stakedAmount.add(_getStakerLockedTokensOnSmartContract(_of, scAddress, i));
+            scAddress = td.getStakerStakedContractByIndex(_of, i);
+            scIndex = td.getStakerStakedContractIndexByIndex(_of, i);
+            stakedAmount = stakedAmount.add(_getStakerLockedTokensOnSmartContract(_of, scAddress, scIndex));
         }
         amount = stakedAmount;
     }
@@ -409,7 +411,7 @@ contract TokenFunctions is Iupgradable, Governed {
         uint unlockableAmount = 0;
         address scAddress;
         for (uint i = 0; i < td.getStakerStakedContractLength(_of); i++) {
-            scAddress = td.getSmartContractStakerByIndex(_of, i);
+            scAddress = td.getStakerStakedContractByIndex(_of, i);
             unlockableAmount = unlockableAmount.add(_getStakerUnlockableTokensOnSmartContract(_of, scAddress, i));
         }
         amount = unlockableAmount;
@@ -424,8 +426,8 @@ contract TokenFunctions is Iupgradable, Governed {
         bytes32 reason;
         uint scIndex;
         for (uint i = 0; i < td.getStakerStakedContractLength(_of); i++) {
-            scAddress = td.getSmartContractStakerByIndex(_of, i);
-            scIndex = td.getStakerStakedContractIndexByIndex(scAddress, i);
+            scAddress = td.getStakerStakedContractByIndex(_of, i);
+            scIndex = td.getStakerStakedContractIndexByIndex(_of, i);
             unlockableAmount = _getStakerUnlockableTokensOnSmartContract(_of, scAddress, scIndex);
             reason = keccak256(abi.encodePacked("UW", _of, scAddress, scIndex));
             tc.releaseLockedTokens(_of, reason, unlockableAmount);
@@ -487,7 +489,7 @@ contract TokenFunctions is Iupgradable, Governed {
         returns
         (uint amount)
     {   
-        require(td.getSmartContractStakerByIndex(_of, _index) == _scAddress);
+        // require(td.getSmartContractStakerByIndex(_of, _index) == _scAddress);
         uint dateAdd;
         (, , , dateAdd, ) = td.stakerStakedContracts(_of, _index);
         uint validDays = td.scValidDays();
@@ -518,7 +520,7 @@ contract TokenFunctions is Iupgradable, Governed {
         returns
         (uint amount)
     {   
-        require(td.getSmartContractStakerByIndex(_of, _index) == _scAddress);
+        // require(td.getSmartContractStakerByIndex(_of, _index) == _scAddress);
         bytes32 reason = keccak256(abi.encodePacked("UW", _of, _scAddress, _index));
         amount = tc.tokensLockedAtTime(_of, reason, now);
     }

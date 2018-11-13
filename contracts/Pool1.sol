@@ -190,7 +190,7 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         tc = TokenController(ms.getLatestAddress("TC"));
         pd = PoolData(ms.getLatestAddress("PD"));
-        q2 = Quotation(ms.getLatestAddress("Q2"));
+        q2 = Quotation(ms.getLatestAddress("QT"));
         p2 = Pool2(ms.getLatestAddress("P2"));
     }
 

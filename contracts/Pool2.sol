@@ -82,7 +82,7 @@ contract Pool2 is Iupgradable {
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         pd = PoolData(ms.getLatestAddress("PD"));
         md = MCRData(ms.getLatestAddress("MD"));
-        q2 = Quotation(ms.getLatestAddress("Q2"));
+        q2 = Quotation(ms.getLatestAddress("QT"));
         p3 = Pool3(ms.getLatestAddress("P3"));
         p1 = Pool1(ms.getLatestAddress("P1"));
         c1 = Claims(ms.getLatestAddress("CL"));

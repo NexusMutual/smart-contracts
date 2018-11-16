@@ -438,7 +438,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     */
     function _burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal {
         uint256 amount = _tokensLocked(_of, _reason);
-        require(amount > _amount);
+        require(amount >= _amount);
         if (amount == _amount)
             locked[_of][_reason].claimed = true;
         else
@@ -457,7 +457,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
         internal 
     {
         uint256 amount = _tokensLocked(_of, _reason);
-        require(amount > _amount);
+        require(amount >= _amount);
         if (amount == _amount)
             locked[_of][_reason].claimed = true;
         else

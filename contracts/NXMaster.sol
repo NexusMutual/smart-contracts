@@ -47,7 +47,7 @@ contract NXMaster is Governed {
     Claims internal c1;
     ClaimsReward internal cr;
     Pool1 internal p1;
-    MemberRoles internal mr;
+    MemberRoles public mr;
     TokenFunctions internal tf;
     Iupgradable internal up;
 
@@ -97,12 +97,12 @@ contract NXMaster is Governed {
     }
 
     ///@dev update time in seconds for which emergency pause is applied.
-    function updatePauseTime(uint _time) onlyInternal {
+    function updatePauseTime(uint _time) public onlyInternal {
         pauseTime = _time;
     }
 
     ///@dev get time in seconds for which emergency pause is applied.
-    function getPauseTime() constant returns(uint _time) {
+    function getPauseTime() public view returns(uint _time) {
         return pauseTime;
     }
 
@@ -121,19 +121,19 @@ contract NXMaster is Governed {
     }
 
     /// @dev checks whether the address is a latest contract address.
-    function isInternal(address _add) view returns(bool check) {
+    function isInternal(address _add) public view returns(bool check) {
         check = false; // should be 0
         if ((contractsActive[_add] == true || owner == _add)) //remove owner for production release
             check = true;
     }
 
     /// @dev checks whether the address is the Owner or not.
-    function isOwner(address _add) view returns(bool check) {
+    function isOwner(address _add) public view returns(bool check) {
         return check = owner == _add;
     }
 
     /// @dev Checks whether emergency pause id on/not.
-    function isPause() view returns(bool check) {
+    function isPause() public view returns(bool check) {
         check = false;
         if (emergencyPaused.length > 0) {
             if (emergencyPaused[emergencyPaused.length.sub(1)].pause == true)
@@ -142,18 +142,18 @@ contract NXMaster is Governed {
     }
 
     /// @dev checks whether the address is a member of the mutual or not.
-    function isMember(address _add) view returns(bool) {
+    function isMember(address _add) public view returns(bool) {
         return mr.checkRoleIdByAddress(_add, 3);
     }
 
     ///@dev Changes owner of the contract.
     ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
-    function changeOwner(address to) onlyOwner {
+    function changeOwner(address to) public onlyOwner {
         owner = to;
     }
 
     ///@dev Gets emergency pause details by index.
-    function getEmergencyPauseByIndex(uint index) constant returns(uint _index, bool _pause, uint _time, bytes4 _by) {
+    function getEmergencyPauseByIndex(uint index) public view returns(uint _index, bool _pause, uint _time, bytes4 _by) {
         _pause = emergencyPaused[index].pause;
         _time = emergencyPaused[index].time;
         _by = emergencyPaused[index].by;
@@ -205,10 +205,16 @@ contract NXMaster is Governed {
     /// @return versionNo Version number
     /// @return contractsName Latest version's contract names
     /// @return contractsAddress Latest version's contract addresses
-    function getVersionData(uint _versionNo) 
+    function getVersionData(
+        uint _versionNo
+    ) 
         public 
         view 
-        returns(uint versionNo, bytes2[] contractsName, address[] contractsAddress) 
+        returns (
+            uint versionNo,
+            bytes2[] contractsName,
+            address[] contractsAddress
+        ) 
     {
         versionNo = _versionNo;
         contractsName = new bytes2[](allContractNames.length);
@@ -240,7 +246,7 @@ contract NXMaster is Governed {
     }
 
     /// @dev Allow AB Members to Start Emergency Pause
-    function startEmergencyPause() onlyAuthorizedToGovern {
+    function startEmergencyPause() public onlyAuthorizedToGovern {
         addEmergencyPause(true, "AB"); //Start Emergency Pause
         p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks

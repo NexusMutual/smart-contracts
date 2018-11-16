@@ -81,17 +81,15 @@ contract Quotation is Iupgradable {
     * @param _cid Cover Id.
     */ 
     function expireCover(uint _cid) public onlyInternal {
-
-        if (checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid) != 3) {
-            qd.changeCoverStatusNo(_cid, 3);
-            tf.unlockCN(_cid);
-            bytes4 curr = qd.getCurrencyOfCover(_cid);
-            qd.subFromTotalSumAssured(curr, qd.getCoverSumAssured(_cid));
-            if (qd.getProductNameOfCover(_cid) == "SCC") {
-                address scAddress;
-                (, scAddress) = qd.getscAddressOfCover(_cid);
-                qd.subFromTotalSumAssuredSC(scAddress, curr, qd.getCoverSumAssured(_cid));
-            }
+        require(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid) != 3);
+        qd.changeCoverStatusNo(_cid, 3);
+        tf.unlockCN(_cid);
+        bytes4 curr = qd.getCurrencyOfCover(_cid);
+        qd.subFromTotalSumAssured(curr, qd.getCoverSumAssured(_cid));
+        if (qd.getProductNameOfCover(_cid) == "SCC") {
+            address scAddress;
+            (, scAddress) = qd.getscAddressOfCover(_cid);
+            qd.subFromTotalSumAssuredSC(scAddress, curr, qd.getCoverSumAssured(_cid));
         }
     }
 
@@ -132,10 +130,12 @@ contract Quotation is Iupgradable {
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-        ) public isMemberAndcheckPause {
-
+    )
+        public
+        isMemberAndcheckPause
+    {
         require(m1.checkForMinMCR() != 1);
-        tc.burnFrom(msg.sender,coverDetails[2]); //need burn allowance
+        tc.burnFrom(msg.sender, coverDetails[2]); //need burn allowance
         verifyCoverDetailsIntrnl(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
@@ -292,11 +292,10 @@ contract Quotation is Iupgradable {
               
     }
     
-    function fullRefund(uint holdedCoverID) public checkPause onlyInternal {
+    function fullRefund(uint holdedCoverID) public checkPause {
         uint holdedCoverLen = qd.getUserHoldedCoverLength(msg.sender) - 1;
         require(qd.getUserHoldedCoverByIndex(msg.sender, holdedCoverLen) == holdedCoverID);
         kycTrigger(false, holdedCoverID);
-        
     }
 
     /// @dev Transfers back the given amount to the owner.
@@ -353,7 +352,7 @@ contract Quotation is Iupgradable {
         qd.addCover(coverPeriod, coverDetails[0], qd.getProductName(prodId),
             from, coverCurr, scAddress, coverDetails[1]);
         uint coverLengthNew = qd.getCoverLength();
-        if (SafeMaths.sub(coverLengthNew, cid) > 1) {
+        if (coverLengthNew.sub(cid) > 1) {
             for (uint i = cid; i < coverLengthNew; i++) {
                 if (qd.getCoverMemberAddress(i) == from) {
                     cid = i;
@@ -365,7 +364,9 @@ contract Quotation is Iupgradable {
         if (coverPeriod <= 60) {
             p1.closeCoverOraclise(cid, uint64(SafeMaths.mul(coverPeriod, 1 days)));
         }
-        tf.lockCN(coverDetails[2], coverPeriod, cid, from);
+        uint coverNoteAmount = (coverDetails[2].mul(5)).div(100);
+        tc.mint(from, coverNoteAmount);
+        tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
         if (qd.getProductName(prodId) == "SCC" && scAddress != 0x000) {
             qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);

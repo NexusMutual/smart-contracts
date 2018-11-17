@@ -16,20 +16,25 @@
 pragma solidity 0.4.24;
 
 import "./NXMToken.sol";
+import "./Claims.sol";
+import "./ClaimsReward.sol";
 import "./TokenFunctions.sol";
 import "./TokenController.sol";
 import "./PoolData.sol";
 import "./Quotation.sol";
 import "./Pool2.sol";
+import "./Pool3.sol";
 import "./MCR.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
 import "./imports/oraclize/ethereum-api/usingOraclize.sol";
-import "./imports/govblocks-protocol/Governed.sol";
+import "./QuotationData.sol";
+// import "./imports/govblocks-protocol/Governed.sol";
 
 
-contract Pool1 is usingOraclize, Iupgradable, Governed {
+contract Pool1 is usingOraclize, Iupgradable {
     using SafeMaths for uint;
 
     Quotation public q2;
@@ -38,17 +43,19 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     TokenFunctions public tf;
     PoolData public pd;
     Pool2 public p2;
+    Pool3 public p3;
     MCR public m1;
     StandardToken public stok;
+    Claims public c1;
+    ClaimsReward public cr;
+    QuotationData public qd;
+    BasicToken btok;
 
     uint public constant DECIMAL1E18 = uint(10) ** 18;
     uint public constant PRICE_STEP = 1000 * DECIMAL1E18;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
-    
-    constructor () public {
-        dappName = "NEXUS-MUTUAL";
-    }
+    event Payout(address indexed to, bytes16 eventName, uint coverId, uint tokens);
 
     function () public payable {} //solhint-disable-line
 
@@ -65,12 +72,6 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     modifier onlyOwner {
         require(ms.isOwner(msg.sender) == true);
         _;
-    }
-
-    ///@dev Oraclize call to close 0x order for a given currency.
-    function close0xOrders(bytes4 curr, uint id, uint time) external onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "http://a3.nexusmutual.io", 300000);
-        saveApiDetailsCurr(myid, "Close0x", curr, id);
     }
 
     ///@dev Oraclize call to close emergency pause.
@@ -121,21 +122,16 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
      * old Pool to new Pool
      * @param newPoolAddress Address of the operator that can mint new tokens
      */
-    function transferAllAssestFromPool(address newPoolAddress) external onlyInternal returns(bool sucess) {
-        for (uint64 i = 0; i < pd.getAllCurrenciesLen(); i++) {
+    function transferALLCurrencyAssestFromPool(address newPoolAddress) external onlyInternal returns(bool success) {
+        
+        for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes8 caName = pd.getAllCurrenciesByIndex(i);
             address caAddress = pd.getCurrencyAssetAddress(caName);
             require(_transferCurrencyAssetFromPool(newPoolAddress, caAddress));
         }
-
-        for (uint64 j = 0; i < pd.getInvestmentCurrencyLen(); j++) {
-            bytes8 iaName = pd.getInvestmentCurrencyByIndex(j);
-            address iaAddress = pd.getInvestmentAssetAddress(iaName);
-            require(_transferInvestmentAssetFromPool(newPoolAddress, iaAddress));
-        }
-
-        require(newPoolAddress.send(address(this).balance)); //solhint-disable-line
-        sucess = true;
+        if (address(this).balance > 0)
+            require(newPoolAddress.send(address(this).balance)); //solhint-disable-line
+        success = true;
     }
 
     /// @dev Sends a given Ether amount to a given address for Claims payout.
@@ -159,12 +155,6 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         stok = StandardToken(_currAddr);
         if (stok.balanceOf(this) >= _amount)
             stok.transfer(_to, _amount);
-    }
-
-    /// @dev Transfers amount to Pool from 0x order maker.
-    function transferToPool(address currAddr, uint amount) external onlyInternal returns(bool success) {
-        stok = StandardToken(currAddr);
-        success = stok.transferFrom(pd.get0xMakerAddress(), address(this), amount);
     }
 
     /// @dev Calls the Oraclize Query to update the version of the contracts.
@@ -192,43 +182,16 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         pd = PoolData(ms.getLatestAddress("PD"));
         q2 = Quotation(ms.getLatestAddress("Q2"));
         p2 = Pool2(ms.getLatestAddress("P2"));
-    }
-
-    /// @dev Sets a given investment asset as active or inactive for trading.
-    function changeInvestmentAssetStatus(bytes8 curr, uint8 status) public onlyAuthorizedToGovern {
-        pd.changeInvestmentAssetStatus(curr, status);
-    }
-
-    // add new investment asset currency.
-    function addInvestmentAssetsDetails(
-        bytes8 currName,
-        address curr,
-        uint64 _minHoldingPercX100,
-        uint64 _maxHoldingPercX100
-    )   
-        public
-        onlyAuthorizedToGovern
-    {
-        pd.addInvestmentCurrency(currName);
-        pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
-    }
-
-    // @dev Updates investment asset min and max holding percentages.
-    function updateInvestmentAssetHoldingPerc(
-        bytes8 _curr,
-        uint64 _minPercX100,
-        uint64 _maxPercX100
-    ) 
-        public
-        onlyAuthorizedToGovern
-    {
-        pd.changeInvestmentAssetHoldingPerc(_curr, _minPercX100, _maxPercX100);
+        p3 = Pool3(ms.getLatestAddress("P3"));
+        c1 = Claims(ms.getLatestAddress("CL"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
     /// @dev Handles callback of external oracle query.
     function __callback(bytes32 myid, string result) public { //solhint-disable-line
         require(msg.sender == oraclize_cbAddress() || ms.isOwner(msg.sender) == true);
-        p2.delegateCallBack(myid);
+        delegateCallBack(myid);
     }
 
     /// @dev Enables user to purchase cover with funding in ETH.
@@ -282,21 +245,12 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
-    function transferEther(uint amount, address _add) public checkPause onlyAuthorizedToGovern returns(bool succ) {
+    function transferEther(uint amount, address _add) public checkPause returns(bool succ) {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        
         succ = _add.send(amount); //solhint-disable-line
 
-    }
-
-    /// @dev Changes the 0x Relayer address
-    function change0xFeeRecipient(address _feeRecipient) public onlyAuthorizedToGovern {
-        pd.change0xFeeRecipient(_feeRecipient);
-    }
-
-    ///@dev Gets Pool balance of a given Investment Asset.
-    function getBalanceofInvestmentAsset(bytes8 _curr) public view returns(uint balance) {
-        address currAddress = pd.getInvestmentAssetAddress(_curr);
-        stok = StandardToken(currAddress);
-        return stok.balanceOf(address(this));
     }
 
     ///@dev Gets Pool1 balance of a given investmentasset.
@@ -351,6 +305,116 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
         return _getWei(_amount, tk.totalSupply());
     }
 
+    /// @dev Handles the Callback of the Oraclize Query.
+    /// @param myid Oraclize Query ID identifying the query for which the result is being received
+    function delegateCallBack(bytes32 myid) onlyInternal {
+
+        if (ms.isPause() == false) { // system is not in emergency pause
+
+            // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
+            if (pd.getApiIdTypeOf(myid) == "COV") {
+                pd.updateDateUpdOfAPI(myid);
+                q2.expireCover(pd.getIdOfApiId(myid));
+            }else if (pd.getApiIdTypeOf(myid) == "CLA") {
+                // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
+                pd.updateDateUpdOfAPI(myid);
+                cr.changeClaimStatus(pd.getIdOfApiId(myid));
+            } else if (pd.getApiIdTypeOf(myid) == "MCR") {
+                pd.updateDateUpdOfAPI(myid);
+            } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
+                pd.updateDateUpdOfAPI(myid);
+                m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
+            } else if (pd.getApiIdTypeOf(myid) == "SUB") {
+                pd.updateDateUpdOfAPI(myid);
+            } else if (pd.getApiIdTypeOf(myid) == "0X") {
+                pd.updateDateUpdOfAPI(myid);
+            } else if (pd.getApiIdTypeOf(myid) == "Close0x") {
+                pd.updateDateUpdOfAPI(myid);
+                // p3.check0xOrderStatus(pd.getCurrOfApiId(myid), pd.getIdOfApiId(myid));
+            }
+        }
+        if (pd.getApiIdTypeOf(myid) == "Pause") {
+            pd.updateDateUpdOfAPI(myid);
+            bytes4 by;
+            (, , by) = ms.getLastEmergencyPause();
+            if (by == "AB")
+                ms.addEmergencyPause(false, "AUT"); //set pause to false
+        }
+    }
+
+    /// @dev Calls the payout event in case of Claims payout.
+    function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
+        Payout(_add, type1, id, sa);
+    }
+
+    /// @dev Pays out the sum assured in case a claim is accepted
+    /// @param coverid Cover Id.
+    /// @param claimid Claim Id.
+    /// @return succ true if payout is successful, false otherwise.
+    function sendClaimPayout(uint coverid, uint claimid) onlyInternal returns(bool succ) {
+
+        address _to = qd.getCoverMemberAddress(coverid);
+        uint sumAssured = qd.getCoverSumAssured(coverid);
+        uint sumAssured1e18 = SafeMaths.mul(sumAssured, DECIMAL1E18);
+        bytes4 curr = qd.getCurrencyOfCover(coverid);
+        uint balance;
+
+        //Payout in Ethers in case currency of quotation is ETH
+        if (curr == "ETH") {
+            balance = this.getEtherPoolBalance();
+            //Check if Pool1 has enough ETH balance
+            if (balance >= sumAssured1e18) {
+                succ = this.transferEtherForPayout(sumAssured1e18, _to);
+                if (succ == true) {
+                    q2.removeSAFromCSA(coverid, sumAssured);
+                    pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));
+                    p3.checkLiquidityCreateOrder(curr);
+                    callPayoutEvent(_to, "Payout", coverid, sumAssured1e18);
+                } else {
+                    c1.setClaimStatus(claimid, 12);
+                }
+            } else {
+                c1.setClaimStatus(claimid, 12);
+                succ = false;
+            }
+        }else {
+          //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
+            btok = BasicToken(pd.getCurrencyAssetAddress(curr));
+            balance = btok.balanceOf(address(this));
+            //Check if Pool1 has enough fiat crypto balance
+            if (balance >= sumAssured1e18) {
+                this.transferPayout(_to, curr, sumAssured1e18);
+                q2.removeSAFromCSA(coverid, sumAssured);
+                pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));
+                p3.checkLiquidityCreateOrder(curr);
+                callPayoutEvent(_to, "Payout", coverid, sumAssured1e18);
+                succ = true;
+            } else {
+                c1.setClaimStatus(claimid, 12);
+                succ = false;
+            }
+        }
+        if (qd.getProductNameOfCover(coverid) == "SCC")
+            tf.burnStakerLockedToken(coverid, curr, sumAssured);
+    }
+
+    // update currency asset base min and var min
+    function updateCurrencyAssetDetails(bytes8 _curr, uint64 _baseMin) onlyInternal {
+
+        pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
+    }
+
+    function transferAssetToPool2(bytes8 curr, uint amount) onlyInternal {
+        address pool2Add = ms.getLatestAddress("P2");
+        if (curr == "ETH") {
+            pool2Add.send(amount);
+        } else {
+            address caAddress = pd.getCurrencyAssetAddress(curr);
+            stok = StandardToken(caAddress);
+            stok.transfer(pool2Add, amount);
+        }
+    }
+
     /**
      * @dev Returns the amount of wei a seller will get for selling NXM
      * @param _amount Amount of NXM to sell
@@ -395,22 +459,6 @@ contract Pool1 is usingOraclize, Iupgradable, Governed {
     function saveApiDetailsCurr(bytes32 myid, bytes8 _typeof, bytes4 curr, uint id) internal {
         pd.saveApiDetailsCurr(myid, _typeof, curr, id);
         pd.addInAllApiCall(myid);
-    }
-
-    ///@dev Transfers investment asset from current Pool address to the new Pool address.
-    function _transferInvestmentAssetFromPool(
-        address _newPoolAddress,
-        address _iaAddress
-    ) 
-        internal
-        returns (bool success)
-    {
-        // TODO: To be automated by version control in NXMaster
-        stok = StandardToken(_iaAddress);
-        if (stok.balanceOf(this) > 0) {
-            stok.transfer(_newPoolAddress, stok.balanceOf(this));
-        }
-        success = true;
     }
 
     ///@dev Transfers investment asset from current Pool address to the new Pool address.

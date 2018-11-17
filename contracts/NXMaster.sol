@@ -239,6 +239,11 @@ contract NXMaster is Governed {
         changeAllAddress();
     }
 
+    function checkIsAuthToGoverned(address _add) view returns(bool)
+    {
+        return isAuthorizedToGovern(_add);
+    }
+
     /// @dev Allow AB Members to Start Emergency Pause
     function startEmergencyPause() onlyAuthorizedToGovern {
         addEmergencyPause(true, "AB"); //Start Emergency Pause

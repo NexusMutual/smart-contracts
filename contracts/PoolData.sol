@@ -95,7 +95,7 @@ contract PoolData is Iupgradable {
     mapping(bytes16 => uint64) public ordersExpirationTime;
     mapping(bytes32 => Order) allOrders;
     mapping(bytes8 => mapping(bytes16 => uint8)) liquidityOrderStatus;
-    mapping(bytes32 => uint8) zeroExOrderStatus;
+    // mapping(bytes32 => uint8) zeroExOrderStatus;
     address wETHAddress;
 
     struct Order {
@@ -128,22 +128,6 @@ contract PoolData is Iupgradable {
 
     function getWETHAddress() constant returns(address wETHAddr) {
         return wETHAddress;
-    }
-
-    // @dev updates 0x order status.
-    // 0: unsigned order
-    // 1:signed order and amount is transferred
-    // 2: expired successfully
-    function updateZeroExOrderStatus(bytes32 orderHash, uint8 status) onlyInternal {
-        zeroExOrderStatus[orderHash] = status;
-    }
-
-    // @dev Gets 0x order status.
-    // 0: unsigned order
-    // 1:signed order and amount is transferred
-    // 2: expired successfully
-    function getZeroExOrderStatus(bytes32 orderHash) constant returns(uint8 status) {
-        return zeroExOrderStatus[orderHash];
     }
 
     /// @dev updates liquidity order status.
@@ -213,56 +197,6 @@ contract PoolData is Iupgradable {
     /// @dev Gets time after which investment asset rates need to be fed .
     function getIARatesTime() constant returns(uint64 time) {
         return iaRatesTime;
-    }
-
-    /// @dev Changes address of maker of 0x order.
-    function change0xMakerAddress(address _maker) onlyInternal {
-        maker = _maker;
-    }
-
-    /// @dev Gets address of maker of 0x order.
-    function get0xMakerAddress() constant returns(address _maker) {
-        return maker;
-    }
-
-    /// @dev Changes address of taker of 0x order.
-    function change0xTakerAddress(address _taker) onlyInternal {
-        taker = _taker;
-    }
-
-    /// @dev Gets address of taker of 0x order.
-    function get0xTakerAddress() constant returns(address _taker) {
-        return taker;
-    }
-
-    /// @dev Changes address of relayer of 0x order.
-    function change0xFeeRecipient(address _feeRecipient) onlyInternal {
-        feeRecipient = _feeRecipient;
-    }
-
-    /// @dev Gets address of relayer of 0x order.
-    function get0xFeeRecipient() constant returns(address _feeRecipient) {
-        return feeRecipient;
-    }
-
-    /// @dev Changes Fee of maker of 0x order.
-    function change0xMakerFee(uint _makerFee) onlyOwner {
-        makerFee = _makerFee;
-    }
-
-    /// @dev Gets Fee of maker of 0x order.
-    function get0xMakerFee() constant returns(uint _makerFee) {
-        return makerFee;
-    }
-
-    /// @dev Changes Fee of taker of 0x order.
-    function change0xTakerFee(uint _takerFee) onlyOwner {
-        takerFee = _takerFee;
-    }
-
-    /// @dev Gets Fee of taker of 0x order.
-    function get0xTakerFee() constant returns(uint _takerFee) {
-        return takerFee;
     }
 
     /// @dev Sets total risk balance and total investment asset balance to Pool1.
@@ -763,4 +697,71 @@ contract PoolData is Iupgradable {
     function getApiCallDetails(bytes32 myid) constant returns(bytes8 _typeof, bytes4 curr, uint id, uint64 dateAdd, uint64 dateUpd) {
         return (allAPIid[myid].typeOf, allAPIid[myid].currency, allAPIid[myid].id, allAPIid[myid].dateAdd, allAPIid[myid].dateUpd);
     }
+
+
+    /// @dev Changes address of maker of 0x order.
+    // function change0xMakerAddress(address _maker) onlyInternal {
+    //     maker = _maker;
+    // }
+
+    /// @dev Gets address of maker of 0x order.
+    // function get0xMakerAddress() constant returns(address _maker) {
+    //     return maker;
+    // }
+
+    /// @dev Changes address of taker of 0x order.
+    // function change0xTakerAddress(address _taker) onlyInternal {
+    //     taker = _taker;
+    // }
+
+    /// @dev Gets address of taker of 0x order.
+    // function get0xTakerAddress() constant returns(address _taker) {
+    //     return taker;
+    // }
+
+    /// @dev Changes address of relayer of 0x order.
+    // function change0xFeeRecipient(address _feeRecipient) onlyInternal {
+    //     feeRecipient = _feeRecipient;
+    // }
+
+    /// @dev Gets address of relayer of 0x order.
+    // function get0xFeeRecipient() constant returns(address _feeRecipient) {
+    //     return feeRecipient;
+    // }
+
+    /// @dev Changes Fee of maker of 0x order.
+    // function change0xMakerFee(uint _makerFee) onlyOwner {
+    //     makerFee = _makerFee;
+    // }
+
+    /// @dev Gets Fee of maker of 0x order.
+    // function get0xMakerFee() constant returns(uint _makerFee) {
+    //     return makerFee;
+    // }
+
+    /// @dev Changes Fee of taker of 0x order.
+    // function change0xTakerFee(uint _takerFee) onlyOwner {
+    //     takerFee = _takerFee;
+    // }
+
+    /// @dev Gets Fee of taker of 0x order.
+    // function get0xTakerFee() constant returns(uint _takerFee) {
+    //     return takerFee;
+    // }
+
+    // @dev updates 0x order status.
+    // 0: unsigned order
+    // 1:signed order and amount is transferred
+    // 2: expired successfully
+    // function updateZeroExOrderStatus(bytes32 orderHash, uint8 status) onlyInternal {
+    //     zeroExOrderStatus[orderHash] = status;
+    // }
+
+    // @dev Gets 0x order status.
+    // 0: unsigned order
+    // 1:signed order and amount is transferred
+    // 2: expired successfully
+    // function getZeroExOrderStatus(bytes32 orderHash) constant returns(uint8 status) {
+    //     return zeroExOrderStatus[orderHash];
+    // }
 }

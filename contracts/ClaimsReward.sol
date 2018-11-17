@@ -91,7 +91,7 @@ contract ClaimsReward is Iupgradable {
         } else if (status >= 1 && status <= 5) { 
             changeClaimStatusMV(claimid, coverid, status);
         } else if (status == 12) { // when current status is "Claim Accepted Payout Pending"
-            bool succ = p2.sendClaimPayout(coverid, claimid);
+            bool succ = p1.sendClaimPayout(coverid, claimid);
             if (succ) {
 
                 c1.setClaimStatus(claimid, 14);
@@ -283,7 +283,7 @@ contract ClaimsReward is Iupgradable {
         } else if (status == 7 || status == 8 || status == 10) {
             cd.changeFinalVerdict(claimid, 1);
             tf.undepositCN(coverid, false); // Unset flag and does not add covernote to burns
-            require(p2.sendClaimPayout(coverid, claimid)); //send payout
+            require(p1.sendClaimPayout(coverid, claimid)); //send payout
         } 
     }
 

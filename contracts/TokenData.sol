@@ -37,9 +37,15 @@ contract TokenData is Iupgradable {
 
     struct Stake {
         address stakedContractAddress;
+        uint stakedContractIndex;
         uint dateAdd;
         uint stakeAmount;
         uint unlockedAmount;
+    }
+
+    struct Staker {
+        address stakerAddress;
+        uint stakerIndex;
     }
 
     struct CoverNote {
@@ -58,20 +64,12 @@ contract TokenData is Iupgradable {
     }
 
     // mapping of uw address to array of sc address to fetch all staked contract address of underwriter
-    // pushing data into this mapped array returns stakerIndex which is stored 
-    // in another mapping smartContractStakerIndex
+    // pushing data into this mapped array returns stakerIndex 
     mapping(address => Stake[]) public stakerStakedContracts; 
 
     //mapping of sc address to array of UW address to fetch all underwritters of the staked smart contract
-    // pushing data into this mapped array returns scIndex which is stored in Stake struct 
-    // i.e pushed in stakerStakedContracts mapping
-    mapping(address => address[]) public stakedContractStakers;
-
-    //mapping of staker Address to staked contract address to array that holds stakerIndex 
-    mapping(address => mapping(address => uint[])) public stakerIndex;
-
-    //mapping of staked contract address to staker Address to array that holds stakedContractIndex 
-    mapping(address => mapping(address => uint[])) public stakedContractIndex;
+    // pushing data into this mapped array returns scIndex 
+    mapping(address => Staker[]) public stakedContractStakers;
 
     // mapping of staked contract Address to the array of StakeCommission
     // here index of this array is stakedContractIndex
@@ -127,7 +125,6 @@ contract TokenData is Iupgradable {
 
     function getStakerStakedContractIndex(
         address _stakerAddress,
-        address _stakedContractAddress,
         uint _stakerIndex
     ) 
         public
@@ -135,12 +132,11 @@ contract TokenData is Iupgradable {
         onlyInternal         
         returns (uint scIndex) 
     {
-        scIndex = stakedContractIndex[_stakedContractAddress][_stakerAddress][_stakerIndex];
+        scIndex = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractIndex;
     }
 
     function getStakedContractStakerIndex(
         address _stakedContractAddress,
-        address _stakerAddress,
         uint _stakedContractIndex
     ) 
         public
@@ -148,7 +144,7 @@ contract TokenData is Iupgradable {
         onlyInternal         
         returns (uint sIndex) 
     {
-        sIndex = stakerIndex[_stakerAddress][_stakedContractAddress][_stakedContractIndex];
+        sIndex = stakedContractStakers[_stakedContractAddress][_stakedContractIndex].stakerIndex;
     }
 
     function getStakerInitialStakedAmountOnContract(
@@ -191,7 +187,6 @@ contract TokenData is Iupgradable {
         onlyInternal
     {
         stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].commissionEarned = _commissionAmount;
-            // commissionEarned = _commissionAmount;
         emit Commission(
             _stakerAddress,
             _stakedContractAddress,
@@ -244,6 +239,7 @@ contract TokenData is Iupgradable {
         address _stakerAddress
     )
         public 
+        view
         returns (uint totalCommissionEarned) 
     {
         totalCommissionEarned = 0;
@@ -289,20 +285,22 @@ contract TokenData is Iupgradable {
     }
 
     function getStakedContractStakerByIndex(
-        address _address,
-        uint _index
+        address _stakedContractAddress,
+        uint _stakedContractIndex
     )
         public
+        view
         onlyInternal
-        returns (address)
+        returns (address stakerAddress)
     {
-        return stakedContractStakers[_address][_index];
+        stakerAddress = stakedContractStakers[_stakedContractAddress][_stakedContractIndex].stakerAddress;
     }
     
     function getStakedContractStakersLength(
         address _stakedContractAddress
     ) 
         public
+        view
         onlyInternal
         returns (uint length)
     {
@@ -324,11 +322,11 @@ contract TokenData is Iupgradable {
         onlyInternal
         returns(uint scIndex) 
     {
-        scIndex = (stakedContractStakers[_stakedContractAddress].push(_stakerAddress)).sub(1);
-        stakedContractIndex[_stakedContractAddress][_stakerAddress].push(scIndex);
-        uint sIndex = (stakerStakedContracts[_stakerAddress].push(
-            Stake(_stakedContractAddress, now, _amount, 0))).sub(1);
-        stakerIndex[_stakerAddress][_stakedContractAddress].push(sIndex);
+        
+        scIndex = (stakedContractStakers[_stakedContractAddress].push(
+            Staker(_stakerAddress, getStakerStakedContractLength(_stakerAddress)))).sub(1);
+        stakerStakedContracts[_stakerAddress].push(
+            Stake(_stakedContractAddress, scIndex, now, _amount, 0));
     }
 
     /**
@@ -432,13 +430,14 @@ contract TokenData is Iupgradable {
         address _stakerAddress,
         uint _stakerIndex
     )
-        internal 
+        internal
+        view 
         returns (uint amount) 
     {
         uint _stakedContractIndex;
         address _stakedContractAddress;
         _stakedContractAddress = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractAddress;
-        _stakedContractIndex = stakedContractIndex[_stakedContractAddress][_stakerAddress][_stakerIndex];
+        _stakedContractIndex = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractIndex;
         amount = stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].commissionEarned;
     }
 
@@ -452,13 +451,14 @@ contract TokenData is Iupgradable {
         address _stakerAddress,
         uint _stakerIndex
     )
-        internal 
+        internal
+        view 
         returns (uint amount) 
     {
         uint _stakedContractIndex;
         address _stakedContractAddress;
         _stakedContractAddress = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractAddress;
-        _stakedContractIndex = stakedContractIndex[_stakedContractAddress][_stakerAddress][_stakerIndex];
+        _stakedContractIndex = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractIndex;
         amount = stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].commissionRedeemed;
     }
 }

@@ -119,7 +119,7 @@ contract MCRData is Iupgradable {
     }
 
     /// @dev Sets MCR Fail time.
-    function changeMCRFailTime(uint64 _time) public view onlyInternal {
+    function changeMCRFailTime(uint64 _time) external onlyInternal {
         mcrFailTime = _time;
     }
 

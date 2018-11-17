@@ -219,39 +219,16 @@ contract ClaimsReward is Iupgradable {
 
     }
 
-    function getTotalStakeCommission(address _add) public returns(uint total) {
-        total = 0;
-        address scAdd;
-        uint len = td.getStakerStakedContractLength(_add);
-        uint commissionLen;
-        uint lastClaimedCommission;
-        uint commissionAmt;
-        bool claimed;
-
-        for (uint i = 0; i < len; i++) {
-
-            scAdd = td.getStakerStakedContractByIndex(_add, i);
-            commissionLen = td.getStakeCommissionLength(_add, scAdd, i);
-            lastClaimedCommission = td.getLastClaimedCommission(_add, scAdd, i);
-
-            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
-                (, , commissionAmt, , claimed) = td.getStakeCommission(_add, scAdd, i, j);
-                if (!claimed) {
-                    total = total.add(commissionAmt);
-                }
-            }
-        }
-    }
-
     function claimAllPendingReward() public isMemberAndcheckPause {
         claimRewardToBeDistributed();
-        claimStakeCommission();
+        // claimStakeCommission(); TODO: fix stake redemption
     }
 
-    function getAllPendingRewardOfUser(address _add) constant returns(uint total) {
+    function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
         uint caReward = getRewardToBeDistributedByUser(_add);
-        uint stakeCommission = getTotalStakeCommission(_add);
-        total = SafeMaths.add(caReward, stakeCommission);
+        uint commissionEarned = td.getStakerTotalEarnedStakeCommission(_add);
+        uint commissionReedmed = td.getStakerTotalReedmedStakeCommission(_add);
+        total = caReward.add(commissionEarned).sub(commissionReedmed);
     }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.
@@ -289,7 +266,6 @@ contract ClaimsReward is Iupgradable {
 
     /// @dev Computes the result of Claim Assessors Voting for a given claim id.
     function changeClaimStatusCA(uint claimid, uint coverid, uint8 status) internal {
-
         // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
             uint caTokens = c1.getCATokens(claimid, 0);
@@ -299,7 +275,8 @@ contract ClaimsReward is Iupgradable {
             } else {
                 uint sumassured = qd.getCoverSumAssured(coverid);
                 uint thresholdUnreached = 0;
-                // Minimum threshold for CA voting is reached only when value of tokens used for voting > 5* sum assured of claim id
+                // Minimum threshold for CA voting is reached only when value of tokens 
+                // used for voting > 5* sum assured of claim id
                 if (caTokens < SafeMaths.mul(SafeMaths.mul(5, sumassured), DECIMAL1E18))
                     thresholdUnreached = 1;
 
@@ -444,29 +421,29 @@ contract ClaimsReward is Iupgradable {
         cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
 
-    function claimStakeCommission() internal {
-        uint total=0;
-        address scAdd;
-        uint len = td.getStakerStakedContractLength(msg.sender);
-        uint commissionLen;
-        uint lastClaimedCommission;
-        uint commissionAmt;
-        bool claimed;
-        for (uint i = 0; i < len; i++) {
-            scAdd = td.getStakerStakedContractByIndex(msg.sender, i);
-            commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, i);
-            lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, i);
-            for (uint j = lastClaimedCommission; j < commissionLen; j++) {
-                (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, i, j);
-                if (!claimed) {
-                    total = total.add(commissionAmt);
-                    td.setClaimedCommision(msg.sender, scAdd, i, j);
-                }
-            }
-            td.setLastClaimedCommission(msg.sender, scAdd, i, commissionLen);
-        }
+    // function claimStakeCommission() internal {
+    //     uint total=0;
+    //     address scAdd;
+    //     uint len = td.getStakerStakedContractLength(msg.sender);
+    //     uint commissionLen;
+    //     uint lastClaimedCommission;
+    //     uint commissionAmt;
+    //     bool claimed;
+    //     for (uint i = 0; i < len; i++) {
+    //         scAdd = td.getStakerStakedContractByIndex(msg.sender, i);
+    //         commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, i);
+    //         lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, i);
+    //         for (uint j = lastClaimedCommission; j < commissionLen; j++) {
+    //             (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, i, j);
+    //             if (!claimed) {
+    //                 total = total.add(commissionAmt);
+    //                 td.setClaimedCommision(msg.sender, scAdd, i, j);
+    //             }
+    //         }
+    //         td.setLastClaimedCommission(msg.sender, scAdd, i, commissionLen);
+    //     }
 
-        if (total > 0)
-            require(msg.sender.send(total)); //solhint-disable-line
-    }
+    //     if (total > 0)
+    //         require(msg.sender.send(total)); //solhint-disable-line
+    // }
 }

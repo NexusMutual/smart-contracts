@@ -165,7 +165,7 @@ contract Pool1 is usingOraclize, Iupgradable {
 
     /// @dev Gets the Balance of the Pool in wei.
     function getEtherPoolBalance() external view returns (uint bal) {
-        bal = this.balance;
+        bal = address(this).balance;
     }
 
     ///@dev Gets 0x wrapped ether Pool balance.
@@ -180,7 +180,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         tc = TokenController(ms.getLatestAddress("TC"));
         pd = PoolData(ms.getLatestAddress("PD"));
-        q2 = Quotation(ms.getLatestAddress("Q2"));
+        q2 = Quotation(ms.getLatestAddress("QT"));
         p2 = Pool2(ms.getLatestAddress("P2"));
         p3 = Pool3(ms.getLatestAddress("P3"));
         c1 = Claims(ms.getLatestAddress("CL"));

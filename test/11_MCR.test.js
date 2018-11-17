@@ -3,20 +3,18 @@ const MCRDataMock = artifacts.require('MCRDataMock');
 const Pool1 = artifacts.require('Pool1');
 const PoolData = artifacts.require('PoolData');
 const DAI = artifacts.require('MockDAI');
-const NXMToken1 = artifacts.require('NXMToken1');
+const NXMToken = artifacts.require('NXMToken');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
 
 let mcr;
 let mcrd;
-let nxmtk1;
+let tk;
 let p1;
 let balance_DAI;
 let balance_ETH;
@@ -30,7 +28,7 @@ contract('MCR', function([owner, notOwner]) {
   before(async function() {
     await advanceBlock();
     mcr = await MCR.deployed();
-    nxmtk1 = await NXMToken1.deployed();
+    tk = await NXMToken.deployed();
     mcrd = await MCRDataMock.deployed();
     p1 = await Pool1.deployed();
     pd = await PoolData.deployed();
@@ -49,10 +47,8 @@ contract('MCR', function([owner, notOwner]) {
 
     it('should return correct V(tp) price', async function() {
       const price_dai = await mcrd.getCurr3DaysAvg(CA_DAI);
-      cal_vtp = balance_DAI
-        .mul(100)
-        .div(price_dai)
-        .plus(balance_ETH);
+      cal_vtp = balance_DAI.mul(100).div(price_dai);
+      cal_vtp = cal_vtp.plus(balance_ETH);
       cal_vtp
         .toFixed(0)
         .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[0]);
@@ -73,7 +69,7 @@ contract('MCR', function([owner, notOwner]) {
 
     before(async function() {
       const tpd = await mcrd.getTokenPriceDetails(CA_ETH);
-      const tc = (await nxmtk1.totalSupply()).div(1e18);
+      const tc = (await tk.totalSupply()).div(1e18);
       const sf = tpd[0].div(1e5);
       const growthStep = tpd[1];
       const Curr3DaysAvg = tpd[2];

@@ -1,27 +1,25 @@
 const Pool1 = artifacts.require('Pool1');
-const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const NXMaster = artifacts.require('NXMaster');
-const NXMToken1 = artifacts.require('NXMToken1');
-const NXMToken2 = artifacts.require('NXMToken2');
+const NXMToken = artifacts.require('NXMToken');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenController = artifacts.require('TokenController');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
-const NXMTokenData = artifacts.require('NXMTokenData');
+const TokenData = artifacts.require('TokenData');
 const MCR = artifacts.require('MCR');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
+const { duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 
-const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
 const fee = ether(0.002);
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
@@ -32,16 +30,11 @@ const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
 const AdvisoryBoard = '0x41420000';
 
 let P1;
-let P3;
 let nxms;
-let nxmtk1;
-let nxmtk2;
 let cr;
 let cl;
 let qd;
 let qt;
-let cad;
-let td;
 let mcr;
 
 const BigNumber = web3.BigNumber;
@@ -54,25 +47,20 @@ contract('NXMaster: Emergency Pause', function([
   member1,
   member2,
   member3,
-  member4,
   coverHolder1,
   coverHolder2,
   newMember
 ]) {
-  const P_18 = new BigNumber(1e18);
   const stakeTokens = ether(1);
   const tokens = ether(1);
   const validity = duration.days(30);
-  let coverID;
-  let closingTime;
-  let minTime;
-  let maxVotingTime;
-  let claimId;
+  const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
 
   before(async function() {
     await advanceBlock();
-    nxmtk1 = await NXMToken1.deployed();
-    nxmtk2 = await NXMToken2.deployed();
+    tk = await NXMToken.deployed();
+    tf = await TokenFunctions.deployed();
+    tc = await TokenController.deployed();
     nxms = await NXMaster.deployed();
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
@@ -81,32 +69,35 @@ contract('NXMaster: Emergency Pause', function([
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
-    td = await NXMTokenData.deployed();
-    P3 = await Pool3.deployed();
+    td = await TokenData.deployed();
     mcr = await MCR.deployed();
-    await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
-    await nxmtk2.kycVerdict(member1, true);
-    await P1.buyTokenBegin({ from: member1, value: ether(1) });
-    await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
-    await nxmtk2.kycVerdict(member2, true);
-    await P1.buyTokenBegin({ from: member2, value: ether(2) });
-    await nxmtk2.payJoiningFee(member3, { from: member3, value: fee });
-    await nxmtk2.kycVerdict(member3, true);
-    await P1.buyTokenBegin({ from: member3, value: ether(2) });
-    await nxmtk2.payJoiningFee(coverHolder1, {
+    await tf.payJoiningFee(member1, { from: member1, value: fee });
+    await tf.kycVerdict(member1, true);
+    await P1.buyToken({ from: member1, value: ether(1) });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+    await tf.payJoiningFee(member2, { from: member2, value: fee });
+    await tf.kycVerdict(member2, true);
+    await P1.buyToken({ from: member2, value: ether(2) });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tf.payJoiningFee(member3, { from: member3, value: fee });
+    await tf.kycVerdict(member3, true);
+    await P1.buyToken({ from: member3, value: ether(2) });
+    await tf.payJoiningFee(coverHolder1, {
       from: coverHolder1,
       value: fee
     });
-    await nxmtk2.kycVerdict(coverHolder1, true);
-    await P1.buyTokenBegin({ from: coverHolder1, value: ether(3) });
-    await nxmtk2.payJoiningFee(coverHolder2, {
+    await tf.kycVerdict(coverHolder1, true);
+    await P1.buyToken({ from: coverHolder1, value: ether(3) });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder1 });
+    await tf.payJoiningFee(coverHolder2, {
       from: coverHolder2,
       value: fee
     });
-    await nxmtk2.kycVerdict(coverHolder2, true);
-    await P1.buyTokenBegin({ from: coverHolder2, value: ether(3) });
-    await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member1 });
-    await nxmtk2.addStake(smartConAdd, stakeTokens, { from: member2 });
+    await tf.kycVerdict(coverHolder2, true);
+    await P1.buyToken({ from: coverHolder2, value: ether(3) });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder2 });
+    await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
+    await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -136,10 +127,10 @@ contract('NXMaster: Emergency Pause', function([
         { from: coverHolder2, value: coverDetails[1] }
       );
 
-      await nxmtk1.lock(CLA, tokens, validity, {
+      await tc.lock(CLA, tokens, validity, {
         from: member1
       });
-      await nxmtk1.lock(CLA, tokens, validity, {
+      await tc.lock(CLA, tokens, validity, {
         from: member2
       });
     });

@@ -67,7 +67,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     * @param _time Lock time in seconds
     * @param _of address whose tokens are to be locked
     */
-    function lock(address _of, bytes32 _reason, uint256 _amount, uint256 _time)
+    function lockOf(address _of, bytes32 _reason, uint256 _amount, uint256 _time)
         public
         onlyInternal
         returns (bool)
@@ -96,7 +96,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     * @param _reason The reason to lock tokens
     * @param _time Lock extension time in seconds
     */
-    function extendLock(address _of, bytes32 _reason, uint256 _time)
+    function extendLockOf(address _of, bytes32 _reason, uint256 _time)
         public
         onlyInternal
         returns (bool)
@@ -123,7 +123,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     * @param _reason The reason to lock tokens
     * @param _amount Number of tokens to be increased
     */
-    function increaseLockAmount(address _of, bytes32 _reason, uint256 _amount)
+    function increaseLockAmountOf(address _of, bytes32 _reason, uint256 _amount)
         public
         onlyInternal
         returns (bool)
@@ -215,6 +215,19 @@ contract TokenController is IERC1132, Governed, Iupgradable {
 
         if (unlockableTokens > 0)
             token.transfer(_of, unlockableTokens);
+    }
+
+    /**
+    * @dev Gets the validity of locked tokens of a specified address
+    * @param _of The address to query the validity
+    * @param reason reason for which tokens were locked 
+    */
+    function getLockedTokensValidity(address _of, bytes32 reason)
+        public
+        view
+        returns (uint256 validity)
+    {
+        validity = locked[_of][reason].validity;
     }
 
     /**
@@ -374,8 +387,8 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     */
     function _extendLock(address _of, bytes32 _reason, uint256 _time) internal {
         require(_tokensLocked(_of, _reason) > 0);
-        locked[_of][_reason].validity = locked[_of][_reason].validity.add(_time);
         emit Unlocked(_of, _reason, locked[_of][_reason].amount);
+        locked[_of][_reason].validity = locked[_of][_reason].validity.add(_time);
         emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
     }
 
@@ -387,8 +400,8 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     */
     function _reduceLock(address _of, bytes32 _reason, uint256 _time) internal {
         require(_tokensLocked(_of, _reason) > 0);
-        locked[_of][_reason].validity = locked[_of][_reason].validity.sub(_time);
         emit Unlocked(_of, _reason, locked[_of][_reason].amount);
+        locked[_of][_reason].validity = locked[_of][_reason].validity.sub(_time);
         emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
     }
     
@@ -425,7 +438,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     */
     function _burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal {
         uint256 amount = _tokensLocked(_of, _reason);
-        require(amount > _amount);
+        require(amount >= _amount);
         if (amount == _amount)
             locked[_of][_reason].claimed = true;
         else
@@ -444,7 +457,7 @@ contract TokenController is IERC1132, Governed, Iupgradable {
         internal 
     {
         uint256 amount = _tokensLocked(_of, _reason);
-        require(amount > _amount);
+        require(amount >= _amount);
         if (amount == _amount)
             locked[_of][_reason].claimed = true;
         else

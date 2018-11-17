@@ -34,8 +34,6 @@ contract MCR is Iupgradable {
     MCRData md;
     QuotationData qd;
     BasicToken btok;
-    address public poolAddress;
-    address public masterAddress;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint private constant DECIMAL1E08 = uint(10) ** 8;
@@ -158,16 +156,15 @@ contract MCR is Iupgradable {
     }
 
     /// @dev Gets total sum assured(in ETH).
-    function getAllSumAssurance() constant returns(uint amount) {
+    function getAllSumAssurance() public view returns(uint amount) {
         uint len = md.getCurrLength();
         for (uint16 i = 0; i < len; i++) {
             bytes4 currName = md.getCurrencyByIndex(i);
             if (currName == "ETH") {
-                amount = SafeMaths.add(amount, qd.getTotalSumAssured(currName));
+                amount = amount.add(qd.getTotalSumAssured(currName));
             } else {
                 if (md.getCurr3DaysAvg(currName) > 0)
-                    amount = SafeMaths.add(amount, SafeMaths.div((
-                    SafeMaths.mul(qd.getTotalSumAssured(currName), 100)), md.getCurr3DaysAvg(currName)));
+                    amount = amount.add((qd.getTotalSumAssured(currName).mul(100)).div(md.getCurr3DaysAvg(currName)));
             }
         }
     }
@@ -176,25 +173,21 @@ contract MCR is Iupgradable {
     //                      and MCR%(Tp),i.e, MCR% used in the Token Price Calculation.
     /// @return vtp  Pool Fund Value in Ether used for the Token Price Model
     /// @return mcrtp MCR% used in the Token Price Model.
-    function calVtpAndMCRtp() constant returns(uint vtp, uint mcrtp) {
+    function calVtpAndMCRtp() public view returns(uint vtp, uint mcrtp) {
         vtp = 0;
-        uint len = md.getCurrLength();
-        for (uint16 i = 0; i < len; i++) {
-            bytes4 currency = md.getCurrencyByIndex(i);
-            if (currency != "ETH") {
-                btok = BasicToken(pd.getCurrencyAssetAddress(currency));
-                uint currTokens = btok.balanceOf(poolAddress);
-                if (md.getCurr3DaysAvg(currency) > 0)
-                    vtp = SafeMaths.add(vtp, SafeMaths.div(SafeMaths.mul(currTokens, 100),
-                        md.getCurr3DaysAvg(currency)));
-            } else
-                vtp = SafeMaths.add(vtp, p1.getEtherPoolBalance());
+        for (uint i = 1; i < md.getCurrLength(); i++) {
+            bytes4 currency = md.getCurrencyByIndex(uint16(i));
+            btok = BasicToken(pd.getCurrencyAssetAddress(currency));
+            uint currTokens = btok.balanceOf(ms.getLatestAddress("P1"));
+            if (md.getCurr3DaysAvg(currency) > 0)
+                vtp = vtp.add((currTokens.mul(100)).div(md.getCurr3DaysAvg(currency)));
         }
+        vtp = vtp.add(p1.getEtherPoolBalance());
         uint mcrFullperc;
         uint vFull;
         (mcrFullperc, , vFull, ) = md.getLastMCR();
         if (vFull > 0) {
-            mcrtp = SafeMaths.div((SafeMaths.mul(mcrFullperc, vtp)), (vFull));
+            mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
         }
     }
 
@@ -217,7 +210,7 @@ contract MCR is Iupgradable {
     }
     
     /// @dev Gets max numbers of tokens that can be sold at the moment.
-    function getMaxSellTokens() constant returns(uint maxTokens) {
+    function getMaxSellTokens() public view returns(uint maxTokens) {
         uint maxTokensAccPoolBal = SafeMaths.sub(p1.getEtherPoolBalance(), SafeMaths.mul(
             SafeMaths.div(SafeMaths.mul(50, pd.getCurrencyAssetBaseMin("ETH")), 100), DECIMAL1E18));
         maxTokensAccPoolBal = SafeMaths.mul(SafeMaths.div(maxTokensAccPoolBal, 

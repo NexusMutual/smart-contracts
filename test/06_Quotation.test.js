@@ -1,18 +1,18 @@
 const Pool1 = artifacts.require('Pool1');
-const NXMToken1 = artifacts.require('NXMToken1');
-const NXMToken2 = artifacts.require('NXMToken2');
+const NXMToken = artifacts.require('NXMToken');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenController = artifacts.require('TokenController');
+const TokenData = artifacts.require('TokenData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
 const MCRDataMock = artifacts.require('MCRDataMock');
-const NXMTokenData = artifacts.require('NXMTokenData');
-
+const MCR = artifacts.require('MCR');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
-const expectEvent = require('./utils/expectEvent');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
+const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 
 const CA_ETH = '0x45544800';
@@ -39,13 +39,15 @@ const vrs_dai = [
   '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
 ];
 let P1;
-let nxmtk1;
-let nxmtk2;
 let cr;
+let tk;
+let tf;
+let tc;
+let td;
 let qd;
 let qt;
 let cad;
-let td;
+let mcr;
 let mcrd;
 
 const BigNumber = web3.BigNumber;
@@ -64,28 +66,29 @@ contract('Quotation', function([
   newMember1,
   newMember2,
   newMember3,
-  newMember4,
-  newMember5
+  newMember4
 ]) {
   const BN_100 = new BigNumber(100);
   const BN_5 = new BigNumber(5);
   const BN_20 = new BigNumber(20);
-  const BN_95 = new BigNumber(95);
   const P_18 = new BigNumber(1e18);
   const tokenAmount = ether(1);
   const tokenDai = ether(4);
   const stakeTokens = ether(3);
+  const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
 
   before(async function() {
     await advanceBlock();
-    nxmtk1 = await NXMToken1.deployed();
-    nxmtk2 = await NXMToken2.deployed();
+    tk = await NXMToken.deployed();
+    tf = await TokenFunctions.deployed();
+    tc = await TokenController.deployed();
+    td = await TokenData.deployed();
     cr = await ClaimsReward.deployed();
     qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
-    td = await NXMTokenData.deployed();
+    mcr = await MCR.deployed();
     mcrd = await MCRDataMock.deployed();
   });
 
@@ -104,8 +107,9 @@ contract('Quotation', function([
 
     describe('If user is a member', function() {
       before(async function() {
-        await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
-        await nxmtk2.kycVerdict(member1, true);
+        await tf.payJoiningFee(member1, { from: member1, value: fee });
+        await tf.kycVerdict(member1, true);
+        await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
       });
 
       describe('If user does not have sufficient funds', function() {
@@ -157,21 +161,23 @@ contract('Quotation', function([
           describe('Purchase Cover With Ether', function() {
             const coverHolder = member3;
             before(async function() {
-              await nxmtk2.payJoiningFee(coverHolder, {
+              await tf.payJoiningFee(coverHolder, {
                 from: coverHolder,
                 value: fee
               });
-              await nxmtk2.kycVerdict(coverHolder, true);
-              await P1.buyTokenBegin({
+              await tf.kycVerdict(coverHolder, true);
+              await P1.buyToken({
                 from: coverHolder,
                 value: tokenAmount
               });
+              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+                from: coverHolder
+              });
             });
             it('should not have locked Cover Note initially', async function() {
-              const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(
+              const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
-              await td.getBalanceCN(coverHolder);
               initialLockedCN.should.be.bignumber.equal(0);
             });
             it('total sum assured should be 0 ETH initially', async function() {
@@ -180,10 +186,10 @@ contract('Quotation', function([
             });
             it('should be able to purchase cover', async function() {
               const initialPoolBalance = await P1.getEtherPoolBalance();
-              const initialTokensOfCoverHolder = await td.getBalanceOf(
+              const initialTokensOfCoverHolder = await tk.balanceOf(
                 coverHolder
               );
-              initialTotalSupply = (await td.totalSupply()).div(P_18);
+              initialTotalSupply = (await tk.totalSupply()).div(P_18);
               await P1.makeCoverBegin(
                 PID,
                 smartConAdd,
@@ -200,35 +206,31 @@ contract('Quotation', function([
                 new BigNumber(coverDetails[1].toString())
               );
               const newTotalSA = new BigNumber(coverDetails[0]);
-              const newTokensOfCoverHolder = initialTokensOfCoverHolder.plus(
-                newLockedCN
-              );
               const newTotalSupply = initialTotalSupply
                 .plus(newLockedCN.div(P_18))
                 .toFixed(0);
               newLockedCN
                 .toFixed(0)
                 .should.be.bignumber.equal(
-                  await nxmtk2.totalBalanceCNOfUser(coverHolder)
+                  await tf.getUserLockedCNTokens.call(coverHolder, 1)
                 );
-
               newPoolBalance.should.be.bignumber.equal(
                 await P1.getEtherPoolBalance()
               );
               newTotalSA.should.be.bignumber.equal(
                 await qd.getTotalSumAssured(CA_ETH)
               );
-              newTokensOfCoverHolder
-                .toFixed(0)
-                .should.be.bignumber.equal(await td.getBalanceOf(coverHolder));
+              (await tk.balanceOf(coverHolder)).should.be.bignumber.equal(
+                initialTokensOfCoverHolder
+              );
               newTotalSupply.should.be.bignumber.equal(
-                (await td.totalSupply()).div(P_18).toFixed(0)
+                (await tk.totalSupply()).div(P_18).toFixed(0)
               );
             });
             it('should return correct cover details', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
-              await td.getBalanceLockedTokens(CID[0], coverHolder);
+              await tf.getUserLockedCNTokens(coverHolder, CID[0]);
               await qd.getCoverPeriod(CID[0]);
               await qd.getCoverPremium(CID[0]);
               await qd.getTotalSumAssuredSC(smartConAdd, CA_ETH);
@@ -253,18 +255,21 @@ contract('Quotation', function([
             const coverHolder = member4;
             let initialTotalSA;
             before(async function() {
-              await nxmtk2.payJoiningFee(coverHolder, {
+              await tf.payJoiningFee(coverHolder, {
                 from: coverHolder,
                 value: fee
               });
-              await nxmtk2.kycVerdict(coverHolder, true);
-              await P1.buyTokenBegin({
+              await tf.kycVerdict(coverHolder, true);
+              await P1.buyToken({
                 from: coverHolder,
                 value: tokenAmount
               });
+              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+                from: coverHolder
+              });
             });
             it('should not have locked Cover Note initially', async function() {
-              const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(
+              const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
               initialLockedCN.should.be.bignumber.equal(0);
@@ -274,10 +279,10 @@ contract('Quotation', function([
               initialTotalSA.should.be.bignumber.equal(1);
             });
             it('should be able to purchase cover', async function() {
-              const initialTokensOfCoverHolder = await td.getBalanceOf(
+              const initialTokensOfCoverHolder = await tk.balanceOf(
                 coverHolder
               );
-              initialTotalSupply = (await td.totalSupply()).div(P_18);
+              initialTotalSupply = (await tk.totalSupply()).div(P_18);
               await qt.makeCoverUsingNXMTokens(
                 PID,
                 coverDetails,
@@ -293,25 +298,25 @@ contract('Quotation', function([
               const newTotalSA = initialTotalSA.plus(
                 new BigNumber(coverDetails[0])
               );
-              const newTokensOfCoverHolder = initialTokensOfCoverHolder
-                .plus(newLockedCN)
-                .minus(coverDetails[2]);
+              const newTokensOfCoverHolder = initialTokensOfCoverHolder.minus(
+                coverDetails[2]
+              );
               const newTotalSupply = initialTotalSupply
                 .plus(newLockedCN.div(P_18))
                 .toFixed(0);
               newLockedCN
                 .toFixed(0)
                 .should.be.bignumber.equal(
-                  await nxmtk2.totalBalanceCNOfUser(coverHolder)
+                  await tf.getUserAllLockedCNTokens.call(coverHolder)
                 );
               newTotalSA.should.be.bignumber.equal(
                 await qd.getTotalSumAssured(CA_ETH)
               );
               newTokensOfCoverHolder
                 .toFixed(0)
-                .should.be.bignumber.equal(await td.getBalanceOf(coverHolder));
+                .should.be.bignumber.equal(await tk.balanceOf(coverHolder));
               newTotalSupply.should.be.bignumber.equal(
-                (await td.totalSupply()).div(P_18).toFixed(0)
+                (await tk.totalSupply()).div(P_18).toFixed(0)
               );
             });
             it('should return correct cover details', async function() {
@@ -336,19 +341,22 @@ contract('Quotation', function([
             let initialTotalSA;
             let presentPoolBalanceOfCA;
             before(async function() {
-              await nxmtk2.payJoiningFee(coverHolder, {
+              await tf.payJoiningFee(coverHolder, {
                 from: coverHolder,
                 value: fee
               });
-              await nxmtk2.kycVerdict(coverHolder, true);
-              await P1.buyTokenBegin({
+              await tf.kycVerdict(coverHolder, true);
+              await P1.buyToken({
                 from: coverHolder,
                 value: tokenAmount
+              });
+              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+                from: coverHolder
               });
               await cad.transfer(coverHolder, tokenDai);
             });
             it('should not have locked Cover Note initially', async function() {
-              const initialLockedCN = await nxmtk2.totalBalanceCNOfUser(
+              const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
               initialLockedCN.should.be.bignumber.equal(0);
@@ -360,7 +368,7 @@ contract('Quotation', function([
             it('should able to purchase cover using currency assest i.e. DAI ', async function() {
               const initialCAbalance = await cad.balanceOf(coverHolder);
               const initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
-              const initialTotalSupply = await td.totalSupply();
+              const initialTotalSupply = await tk.totalSupply();
               await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
               });
@@ -375,11 +383,11 @@ contract('Quotation', function([
                 vrs_dai[2],
                 { from: coverHolder }
               );
-              const presentLockedCN = await nxmtk2.totalBalanceCNOfUser(
+              const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
               const presentCAbalance = await cad.balanceOf(coverHolder);
-              const presentTotalSupply = await td.totalSupply();
+              const presentTotalSupply = await tk.totalSupply();
               const newLockedCN = BN_5.times(
                 new BigNumber(coverDetailsDai[2].toString()).div(BN_100)
               ).toFixed(0);
@@ -425,17 +433,20 @@ contract('Quotation', function([
           const staker2 = member2;
           const stca = new BigNumber(500000000000);
           before(async function() {
-            await P1.buyTokenBegin({ from: staker1, value: tokenAmount });
-            await nxmtk2.payJoiningFee(staker2, {
+            await P1.buyToken({ from: staker1, value: tokenAmount });
+            await tf.payJoiningFee(staker2, {
               from: staker2,
               value: fee
             });
-            await nxmtk2.kycVerdict(staker2, true);
-            await P1.buyTokenBegin({ from: staker2, value: tokenAmount });
-            await nxmtk2.addStake(smartConAdd, ether(0.000001), {
+            await tf.kycVerdict(staker2, true);
+            await P1.buyToken({ from: staker2, value: tokenAmount });
+            await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+              from: staker2
+            });
+            await tf.addStake(smartConAdd, ether(0.000001), {
               from: staker1
             });
-            await nxmtk2.addStake(smartConAdd, stakeTokens, {
+            await tf.addStake(smartConAdd, stakeTokens, {
               from: staker2
             });
           });
@@ -445,10 +456,10 @@ contract('Quotation', function([
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
             it('should be able to purchase cover ', async function() {
-              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               );
-              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               );
               await P1.makeCoverBegin(
@@ -464,7 +475,7 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              (await cr.getTotalStakeCommission(
+              (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               )).should.be.bignumber.equal(
                 initialStakeCommissionOfS1.plus(stca)
@@ -477,7 +488,7 @@ contract('Quotation', function([
                 )
                 .minus(stca)
                 .toFixed(0);
-              (await cr.getTotalStakeCommission(
+              (await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
@@ -488,10 +499,10 @@ contract('Quotation', function([
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
             it('should be able to purchase cover', async function() {
-              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               );
-              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               );
               let newCDetails = coverDetails.slice();
@@ -553,7 +564,7 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              (await cr.getTotalStakeCommission(
+              (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               )).should.be.bignumber.equal(initialStakeCommissionOfS1);
               const newStakeCommissionOfS2 = initialStakeCommissionOfS2
@@ -563,7 +574,7 @@ contract('Quotation', function([
                   )
                 )
                 .toFixed(0);
-              (await cr.getTotalStakeCommission(
+              (await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
@@ -575,10 +586,10 @@ contract('Quotation', function([
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
             it('should able to purchase cover using currency assest i.e. DAI ', async function() {
-              initialStakeCommissionOfS1 = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               );
-              initialStakeCommissionOfS2 = await cr.getTotalStakeCommission(
+              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               );
               await cad.approve(P1.address, coverDetailsDai[1], {
@@ -597,7 +608,7 @@ contract('Quotation', function([
               );
             });
             it('staker gets 20% commission', async function() {
-              (await cr.getTotalStakeCommission(
+              (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               )).should.be.bignumber.equal(initialStakeCommissionOfS1);
               const newStakeCommissionOfS2 = initialStakeCommissionOfS2
@@ -607,7 +618,7 @@ contract('Quotation', function([
                   )
                 )
                 .toFixed(0);
-              (await cr.getTotalStakeCommission(
+              (await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               )).should.be.bignumber.equal(newStakeCommissionOfS2);
             });
@@ -732,6 +743,9 @@ contract('Quotation', function([
       });
       describe('if want to join membership', function() {
         it('should be able to join membership and purchase cover with ETH', async function() {
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+            from: newMember1
+          });
           const totalFee = fee.plus(coverDetails[1].toString());
           await qt.verifyQuote(
             PID,
@@ -744,10 +758,12 @@ contract('Quotation', function([
             vrs[2],
             { from: newMember1, value: totalFee }
           );
-
           await qt.kycTrigger(true, 2);
         });
         it('should be able to join membership and purchase cover with DAI', async function() {
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+            from: newMember2
+          });
           await cad.transfer(newMember2, tokenDai);
           await cad.approve(qt.address, coverDetailsDai[1], {
             from: newMember2
@@ -767,6 +783,9 @@ contract('Quotation', function([
           await qt.kycTrigger(true, hcid);
         });
         it('should refund full amount to new member', async function() {
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+            from: newMember3
+          });
           const totalFee = fee.plus(coverDetails[1].toString());
           await qt.verifyQuote(
             PID,
@@ -785,6 +804,9 @@ contract('Quotation', function([
           await assertRevert(qt.kycTrigger(true, hcid));
         });
         it('should get membership but not cover if quote expires for ETH', async function() {
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+            from: newMember4
+          });
           const totalFee = fee.plus(coverDetails[1].toString());
           await qt.verifyQuote(
             PID,
@@ -871,31 +893,29 @@ contract('Quotation', function([
   describe('Cover Expire', function() {
     let initialSumAssured;
     let initialTokenBalance;
+    let validityofCover;
     before(async function() {
-      initialTokenBalance = await nxmtk1.balanceOf(member3);
-      validity = await qd.getValidityOfCover(1);
+      initialTokenBalance = await tk.balanceOf(member3);
+      validityofCover = await qd.getValidityOfCover(1);
     });
     it('cover should not expired before validity', async function() {
-      await qt.expireCover(1);
       (await qt.checkCoverExpired(1)).should.be.bignumber.equal(0);
-      await increaseTimeTo(validity.plus(1));
+      await increaseTimeTo(validityofCover.plus(1));
     });
     it('should not be able to expire cover for different product than Smart contract cover', async function() {
       await qd.changeProductNameOfCover(1, 'PCC');
-      await qt.expireCover(1);
       await assertRevert(qt.removeSAFromCSA(1, 1, { from: notMember }));
-      await qt.removeSAFromCSA(1, 1, { from: owner });
       await qd.changeProductNameOfCover(1, 'SCC');
     });
     it('cover should be expired after validity expires', async function() {
-      await qt.expireCover(1);
       initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
+      await qt.expireCover(1);
       (await qt.checkCoverExpired(1)).should.be.bignumber.equal(1);
     });
 
     it('decrease sum assured', async function() {
       const newSumAssured = await qd.getTotalSumAssured(CA_ETH);
-      newSumAssured.should.be.bignumber.equal(initialSumAssured);
+      newSumAssured.should.be.bignumber.equal(initialSumAssured.minus(1));
     });
     it('should change cover status', async function() {
       (await qd.getCoverStatusNo(1)).should.be.bignumber.equal(3);
@@ -904,9 +924,7 @@ contract('Quotation', function([
       const unLockedCN = BN_5.times(coverDetails[2])
         .div(BN_100)
         .toFixed(0);
-      await td.getBalanceCN(member3);
-      await td.getBalanceLockedTokens(1, member3);
-      (await nxmtk1.balanceOf(member3)).should.be.bignumber.equal(
+      (await tk.balanceOf(member3)).should.be.bignumber.equal(
         initialTokenBalance.plus(unLockedCN)
       );
     });
@@ -999,7 +1017,7 @@ contract('Quotation', function([
       it('should not be able to change cover status number', async function() {
         const CID = await qd.getAllCoversOfUser(member3);
         await assertRevert(
-          qd.changeCoverStatusNo(CID[1], 1, { from: notMember })
+          qd.changeCoverStatusNo(CID[0], 1, { from: notMember })
         );
       });
     });

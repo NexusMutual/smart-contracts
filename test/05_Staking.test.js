@@ -1,22 +1,21 @@
-const NXMToken1 = artifacts.require('NXMToken1');
-const NXMToken2 = artifacts.require('NXMToken2');
-const NXMTokenData = artifacts.require('NXMTokenData');
+const NXMToken = artifacts.require('NXMToken');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenController = artifacts.require('TokenController');
+const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
-const expectEvent = require('./utils/expectEvent');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 
-const ETH = '0x455448';
-const CLA = '0x434c41';
 const stakedContract = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 
-let nxmtk2;
-let nxmtk1;
-let nxmtd;
+let tk;
+let tf;
+let tc;
+let td;
 let P1;
 
 const BigNumber = web3.BigNumber;
@@ -24,36 +23,31 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMToken:Staking', function([
-  owner,
-  member1,
-  member2,
-  member3,
-  notMember,
-  other
-]) {
+contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
   const fee = ether(0.002);
   const stakeTokens = ether(5);
+  const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
   before(async function() {
     await advanceBlock();
     P1 = await Pool1.deployed();
-    nxmtk1 = await NXMToken1.deployed();
-    nxmtk2 = await NXMToken2.deployed();
-    nxmtd = await NXMTokenData.deployed();
-    await nxmtk2.payJoiningFee(member1, { from: member1, value: fee });
-    await nxmtk2.kycVerdict(member1, true);
-    await P1.buyTokenBegin({ from: member1, value: ether(1) });
-    await nxmtk2.payJoiningFee(member2, { from: member2, value: fee });
-    await nxmtk2.kycVerdict(member2, true);
-    await P1.buyTokenBegin({ from: member2, value: ether(1) });
+    tk = await NXMToken.deployed();
+    tf = await TokenFunctions.deployed();
+    tc = await TokenController.deployed();
+    td = await TokenData.deployed();
+    await tf.payJoiningFee(member1, { from: member1, value: fee });
+    await tf.kycVerdict(member1, true);
+    await P1.buyToken({ from: member1, value: ether(1) });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+    await tf.payJoiningFee(member2, { from: member2, value: fee });
+    await tf.kycVerdict(member2, true);
+    await P1.buyToken({ from: member2, value: ether(1) });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
   });
   describe('Stake Tokens', function() {
-    const lockTokens = ether(1);
-    const extendLockTokens = ether(2);
     describe('Staker is not member', function() {
       it('reverts', async function() {
         await assertRevert(
-          nxmtk2.addStake(stakedContract, stakeTokens, { from: notMember })
+          tf.addStake(stakedContract, stakeTokens, { from: notMember })
         );
       });
     });
@@ -61,7 +55,7 @@ contract('NXMToken:Staking', function([
       describe('Staker does not have enough tokens', function() {
         it('reverts', async function() {
           await assertRevert(
-            nxmtk2.addStake(stakedContract, stakeTokens.plus(9e20), {
+            tf.addStake(stakedContract, stakeTokens.plus(9e20), {
               from: member1
             })
           );
@@ -72,52 +66,41 @@ contract('NXMToken:Staking', function([
         let initialTokenBalance;
         let initialStakedTokens;
         it('should have zero staked tokens before', async function() {
-          initialTokenBalance = await nxmtk1.balanceOf(member1);
-          initialStakedTokens = await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
-            member1,
-            stakedContract
-          );
+          initialTokenBalance = await tk.balanceOf(member1);
+          initialStakedTokens = await tf.getStakerAllLockedTokens.call(member1);
           initialStakedTokens.should.be.bignumber.equal(0);
         });
 
         it('should be able to add stake on Smart Contracts', async function() {
-          await nxmtk2.addStake(stakedContract, stakeTokens, { from: member1 });
-
+          await tf.addStake(stakedContract, stakeTokens, { from: member1 });
           const newStakedTokens = initialStakedTokens.plus(stakeTokens);
-
           newStakedTokens.should.be.bignumber.equal(
-            await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
-              member1,
-              stakedContract
-            )
+            await tf.getStakerAllLockedTokens.call(member1)
           );
         });
         it('should decrease balance of member', async function() {
           const newTokenBalance = initialTokenBalance.minus(stakeTokens);
           newTokenBalance.should.be.bignumber.equal(
-            await nxmtk1.balanceOf(member1)
+            await tk.balanceOf(member1)
           );
         });
         it('should return zero stake amt for non staker', async function() {
-          const initialStakedTokens = await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
-            member1,
-            stakedContract
-          );
-          await nxmtk2.addStake(member2, stakeTokens, { from: member1 });
-          (await nxmtd.getTotalStakedAmtByStakerAgainstScAddress(
-            member1,
-            stakedContract
+          initialStakedTokens = await tf.getStakerAllLockedTokens.call(member2);
+          (await tf.getStakerAllLockedTokens.call(
+            member2
           )).should.be.bignumber.equal(initialStakedTokens);
         });
-        describe('after 200 days', function() {
+        describe('after 250 days', function() {
           before(async function() {
+            await tf.addStake(member2, stakeTokens, { from: member2 });
             let time = await latestTime();
-            time = time + (await duration.days(201));
+            time = time + (await duration.days(251));
             await increaseTimeTo(time);
+            await tf.unlockStakerUnlockableTokens(member2);
           });
           it('staker should have zero total locked nxm tokens against smart contract', async function() {
-            const lockedTokens = await nxmtk1.getTotalLockedNXMToken(
-              stakedContract
+            const lockedTokens = await tf.getStakerAllLockedTokens.call(
+              member2
             );
             lockedTokens.should.be.bignumber.equal(0);
           });

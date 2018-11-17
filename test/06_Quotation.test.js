@@ -14,6 +14,7 @@ const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const expectEvent = require('./utils/expectEvent');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
@@ -74,7 +75,7 @@ contract('Quotation', function([
   const P_18 = new BigNumber(1e18);
   const tokenAmount = ether(1);
   const tokenDai = ether(4);
-  const stakeTokens = ether(3);
+  const stakeTokens = ether(2);
   const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
 
   before(async function() {
@@ -431,7 +432,7 @@ contract('Quotation', function([
         describe('If staker staked tokens on Smart Contract', function() {
           const staker1 = member1;
           const staker2 = member2;
-          const stca = new BigNumber(500000000000);
+          let event;
           before(async function() {
             await P1.buyToken({ from: staker1, value: tokenAmount });
             await tf.payJoiningFee(staker2, {
@@ -443,9 +444,10 @@ contract('Quotation', function([
             await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
               from: staker2
             });
-            await tf.addStake(smartConAdd, ether(0.000001), {
+            await tf.addStake(smartConAdd, stakeTokens, {
               from: staker1
             });
+
             await tf.addStake(smartConAdd, stakeTokens, {
               from: staker2
             });
@@ -455,6 +457,7 @@ contract('Quotation', function([
             const coverHolder = member3;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
+            const commission = coverDetails[2] * 0.2 - 1;
             it('should be able to purchase cover ', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
@@ -474,23 +477,17 @@ contract('Quotation', function([
                 { from: coverHolder, value: coverDetails[1] }
               );
             });
+
             it('staker gets 20% commission', async function() {
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               )).should.be.bignumber.equal(
-                initialStakeCommissionOfS1.plus(stca)
+                initialStakeCommissionOfS1.plus(commission.toFixed(0))
               );
-              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
-                .plus(
-                  BN_20.times(
-                    new BigNumber(coverDetails[2].toString()).div(BN_100)
-                  )
-                )
-                .minus(stca)
-                .toFixed(0);
+
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
-              )).should.be.bignumber.equal(newStakeCommissionOfS2);
+              )).should.be.bignumber.equal(initialStakeCommissionOfS2);
             });
           });
 
@@ -498,6 +495,7 @@ contract('Quotation', function([
             const coverHolder = member4;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
+            const commission = coverDetails[2] * 0.2 - 1;
             it('should be able to purchase cover', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
@@ -566,17 +564,13 @@ contract('Quotation', function([
             it('staker gets 20% commission', async function() {
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
-              )).should.be.bignumber.equal(initialStakeCommissionOfS1);
-              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
-                .plus(
-                  BN_20.times(
-                    new BigNumber(coverDetails[2].toString()).div(BN_100)
-                  )
-                )
-                .toFixed(0);
+              )).should.be.bignumber.equal(
+                initialStakeCommissionOfS1.plus(commission.toFixed(0))
+              );
+
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
-              )).should.be.bignumber.equal(newStakeCommissionOfS2);
+              )).should.be.bignumber.equal(initialStakeCommissionOfS2);
             });
           });
 
@@ -585,6 +579,7 @@ contract('Quotation', function([
             let initialPoolBalanceOfCA;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
+            const commission = coverDetailsDai[2] * 0.2 - 1;
             it('should able to purchase cover using currency assest i.e. DAI ', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
@@ -610,17 +605,12 @@ contract('Quotation', function([
             it('staker gets 20% commission', async function() {
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
-              )).should.be.bignumber.equal(initialStakeCommissionOfS1);
-              const newStakeCommissionOfS2 = initialStakeCommissionOfS2
-                .plus(
-                  BN_20.times(
-                    new BigNumber(coverDetailsDai[2].toString()).div(BN_100)
-                  )
-                )
-                .toFixed(0);
+              )).should.be.bignumber.equal(
+                initialStakeCommissionOfS1.plus(commission.toFixed(0))
+              );
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
-              )).should.be.bignumber.equal(newStakeCommissionOfS2);
+              )).should.be.bignumber.equal(initialStakeCommissionOfS2);
             });
           });
         });

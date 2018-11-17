@@ -32,14 +32,14 @@ contract Quotation is Iupgradable {
     using SafeMaths
     for uint;
 
-    TokenFunctions tf;
-    TokenController tc;
-    TokenData td;
-    Pool1 p1;
-    PoolData pd;
-    QuotationData qd;
-    MCR m1;
-    StandardToken stok;
+    TokenFunctions internal tf;
+    TokenController internal tc;
+    TokenData internal td;
+    Pool1 internal p1;
+    PoolData internal pd;
+    QuotationData internal qd;
+    MCR internal m1;
+    StandardToken internal stok;
 
     event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
 
@@ -152,8 +152,21 @@ contract Quotation is Iupgradable {
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-        ) onlyInternal {
-        verifyCoverDetailsIntrnl(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+    )
+        public
+        onlyInternal
+    {
+        verifyCoverDetailsIntrnl(
+            prodId,
+            from,
+            scAddress,
+            coverCurr,
+            coverDetails,
+            coverPeriod,
+            _v,
+            _r,
+            _s
+        );
     }
 
     /// @dev Verifies signature.
@@ -171,7 +184,11 @@ contract Quotation is Iupgradable {
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-        ) constant returns(bool) {
+    ) 
+        public
+        view
+        returns(bool)
+    {
         bytes32 hash = getOrderHash(coverDetails, coverPeriod, curr, smaratCA);
         return isValidSignature(hash, _v, _r, _s);
     }
@@ -204,7 +221,7 @@ contract Quotation is Iupgradable {
     /// @param v argument from vrs hash.
     /// @param r argument from vrs hash.
     /// @param s argument from vrs hash.
-    function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) constant returns(bool) {
+    function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public view returns(bool) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = keccak256(prefix, hash);
         address a = ecrecover(prefixedHash, v, r, s);
@@ -220,27 +237,29 @@ contract Quotation is Iupgradable {
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-        ) payable checkPause {
+    ) 
+        public
+        payable
+        checkPause
+    {
         require(coverDetails[3] > now);
         require(!ms.isMember(msg.sender));
         require(qd.refundEligible(msg.sender) == false);
         uint joinFee = td.joiningFee();
         uint totalFee = joinFee;
-        if (coverCurr == "ETH")
+        if (coverCurr == "ETH") {
             totalFee = joinFee + coverDetails[1];
-        else {
+        } else {
             stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
             require(stok.transferFrom(msg.sender, address(this), coverDetails[1]));
-           
         }
         require(msg.value == totalFee);
         require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
         qd.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
         qd.setRefundEligible(msg.sender, true);
-
     }
 
-    function kycTrigger(bool status, uint holdedCoverID) checkPause {
+    function kycTrigger(bool status, uint holdedCoverID) public checkPause {
         address userAdd;
         address scAddress;
         uint prodId;
@@ -368,7 +387,7 @@ contract Quotation is Iupgradable {
         tc.mint(from, coverNoteAmount);
         tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
-        if (qd.getProductName(prodId) == "SCC" && scAddress != 0x000) {
+        if (qd.getProductName(prodId) == "SCC" && scAddress != address(0)) {
             qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
             if (tf.getTotalStakedTokensOnSmartContract(scAddress) > 0)
                 tf.updateStakerCommissions(scAddress, coverDetails[2]);
@@ -388,11 +407,12 @@ contract Quotation is Iupgradable {
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-        ) internal {
+    )
+        internal
+    {
         require(coverDetails[3] > now);
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
         makeCover(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod);
 
     }
-
 }

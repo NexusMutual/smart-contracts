@@ -28,12 +28,12 @@ import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 contract MCR is Iupgradable {
     using SafeMaths for uint;
 
-    Pool1 p1;
-    PoolData pd;
-    NXMToken tk;
-    MCRData md;
-    QuotationData qd;
-    BasicToken btok;
+    Pool1 internal p1;
+    PoolData internal pd;
+    NXMToken internal tk;
+    MCRData internal md;
+    QuotationData internal qd;
+    BasicToken internal btok;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint private constant DECIMAL1E08 = uint(10) ** 8;
@@ -60,7 +60,7 @@ contract MCR is Iupgradable {
         _;
     }
 
-    function changeDependentContractAddress() onlyInternal {
+    function changeDependentContractAddress() public onlyInternal {
         md = MCRData(ms.getLatestAddress("MD"));
         qd = QuotationData(ms.getLatestAddress("QD"));
         p1 = Pool1(ms.getLatestAddress("P1"));
@@ -69,13 +69,13 @@ contract MCR is Iupgradable {
     }
 
     /// @dev Changes minimum Capital Requirement for system to sustain.
-    function changeMinReqMCR(uint32 minMCR) onlyInternal {
+    function changeMinReqMCR(uint32 minMCR) external onlyInternal {
         md.changeMinReqMCR(minMCR);
     }
 
     /// @dev Checks if last notarised Minimum Capital Requirement(MCR) percentage < minimum capital required or not.
     /// @return check 1 if last added MCR% < Minimum MCR value
-    function checkForMinMCR() constant returns(uint8 check) {
+    function checkForMinMCR() external view returns(uint8 check) {
 
         check = 0;
         if (md.getLastMCRPerc() < md.getMinMCR())
@@ -83,32 +83,32 @@ contract MCR is Iupgradable {
     }
 
     /// @dev Changes time period for obtaining new MCR data from external oracle query.
-    function changeMCRTime(uint64 _time) onlyOwner {
+    function changeMCRTime(uint64 _time) external onlyOwner {
 
         md.changeMCRTime(_time);
     }
 
     /// @dev Stores name of currencies accepted by the system.
     /// @param curr Currency Name.
-    function addCurrency(bytes4 curr) checkPause {
+    function addCurrency(bytes4 curr) external checkPause {
 
         require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
         md.addCurrency(curr);
     }
 
-    /// @dev Gets name of currency at a given index.
-    function getCurrencyByIndex(uint16 index) constant returns(uint16 id, bytes4 curr) {
-        curr = md.getCurrencyByIndex(index);
-        id = index;
-    }
+    // /// @dev Gets name of currency at a given index.
+    // function getCurrencyByIndex(uint16 index) external view returns(uint16 id, bytes4 curr) {
+    //     curr = md.getCurrencyByIndex(index);
+    //     id = index;
+    // }
 
     /// @dev Changes scaling factor which determines token price.
-    function changeSF(uint32 val) onlyOwner {
+    function changeSF(uint32 val) external onlyOwner {
         md.changeSF(val);
     }
 
     /// @dev Changes address which can notise MCR
-    function changenotariseAddress(address add) onlyOwner {
+    function changenotariseAddress(address add) external onlyOwner {
         md.changeNotariseAdd(add);
     }
 
@@ -124,17 +124,16 @@ contract MCR is Iupgradable {
         uint32[] _threeDayAvg,
         uint64 onlyDate
     )
-        public
+        external
         checkPause
     {
-        require(md.isnotarise(msg.sender) != false);
-        vF = vF.mul(DECIMAL1E18);
+        require(md.isnotarise(msg.sender));
         uint len = md.getMCRDataLength();
-        addMCRDataExtended(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
+        addMCRDataExtended(len, onlyDate, curr, mcrE, mcrP, vF.mul(DECIMAL1E18), _threeDayAvg);
     }
 
     /// @dev Adds MCR Data for last failed attempt.
-    function addLastMCRData(uint64 date) checkPause {
+    function addLastMCRData(uint64 date) external checkPause {
         uint64 lastdate = md.getLastMCRDate();
         uint64 failedDate = uint64(date);
         if (failedDate >= lastdate) {

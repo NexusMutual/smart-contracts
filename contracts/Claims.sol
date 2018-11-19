@@ -27,8 +27,7 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract Claims is Iupgradable {
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     struct ClaimRewardStatus {
         string claimStatusDesc;
@@ -36,17 +35,17 @@ contract Claims is Iupgradable {
         uint percMV;
     }
 
-    ClaimRewardStatus[] rewardStatus;
-    TokenFunctions tf;
-    NXMToken tk;
-    TokenController tc;
-    ClaimsReward cr;
-    Pool1 p1;
-    ClaimsData cd;
-    TokenData td;
-    PoolData pd;
-    Pool3 p3;
-    QuotationData qd;
+    ClaimRewardStatus[] internal rewardStatus;
+    TokenFunctions internal tf;
+    NXMToken internal tk;
+    TokenController internal tc;
+    ClaimsReward internal cr;
+    Pool1 internal p1;
+    ClaimsData internal cd;
+    TokenData internal td;
+    PoolData internal pd;
+    Pool3 internal p3;
+    QuotationData internal qd;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
@@ -56,7 +55,7 @@ contract Claims is Iupgradable {
         _;
     }
 
-    function changeDependentContractAddress() onlyInternal {
+    function changeDependentContractAddress() public onlyInternal {
         tk = NXMToken(ms.tokenAddress());
         td = TokenData(ms.getLatestAddress("TD"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
@@ -72,7 +71,7 @@ contract Claims is Iupgradable {
     /// @param stat description for claim status
     /// @param percCA reward percentage for claim assessor
     /// @param percMV reward percentage for members
-    function pushStatus(string stat, uint percCA, uint percMV) onlyInternal {
+    function pushStatus(string stat, uint percCA, uint percMV) external onlyInternal {
         rewardStatus.push(ClaimRewardStatus(stat, percCA, percMV));
     }
 
@@ -80,20 +79,31 @@ contract Claims is Iupgradable {
     /// @param statusNumber the number of type of status
     /// @return percCA reward Percentage for claim assessor
     /// @return percMV reward Percentage for members
-    function getRewardStatus(uint statusNumber) constant returns(uint percCA, uint percMV) {
+    function getRewardStatus(uint statusNumber) external view returns(uint percCA, uint percMV) {
         return (rewardStatus[statusNumber].percCA, rewardStatus[statusNumber].percMV);
     }
 
     /// @dev Gets claim details of claim id = pending claim start + given index
-    function getClaimFromNewStart(uint index)
-    constant
-    returns(string status, uint coverId, uint claimId, int8 voteCA, int8 voteMV, uint8 statusnumber) {
+    function getClaimFromNewStart(
+        uint index
+    )
+        external 
+        view 
+        returns (
+            string status,
+            uint coverId,
+            uint claimId,
+            int8 voteCA,
+            int8 voteMV,
+            uint8 statusnumber
+        ) 
+    {
         (coverId, claimId, voteCA, voteMV, statusnumber) = cd.getClaimFromNewStart(index, msg.sender);
         status = rewardStatus[statusnumber].claimStatusDesc;
     }
 
     /// @dev Gets details of a claim submitted by the calling user, at a given index
-    function getUserClaimByIndex(uint index) constant returns(string status, uint coverId, uint claimId) {
+    function getUserClaimByIndex(uint index) external view returns(string status, uint coverId, uint claimId) {
         uint statusno;
         (statusno, coverId, claimId) = cd.getUserClaimByIndex(index, msg.sender);
         status = rewardStatus[statusno].claimStatusDesc;
@@ -105,7 +115,7 @@ contract Claims is Iupgradable {
     /// @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
     /// @return claimOwner Address through which claim is submitted
     /// @return coverId Coverid associated with the claim id
-    function getClaimbyIndex(uint _claimId) constant returns (
+    function getClaimbyIndex(uint _claimId) external view returns (
         uint claimId,
         string status,
         int8 finalVerdict,
@@ -125,7 +135,7 @@ contract Claims is Iupgradable {
     /// @param _of User's address.
     /// @param claimId Claim Id.
     /// @return value Number of tokens.
-    function getCATokensLockedAgainstClaim(address _of, uint claimId) constant returns(uint value) {
+    function getCATokensLockedAgainstClaim(address _of, uint claimId) external view returns(uint value) {
 
         (, value) = cd.getTokensClaim(_of, claimId);
         uint totalLockedCA = tc.tokensLockedAtTime(_of, "CLA", now);
@@ -139,7 +149,7 @@ contract Claims is Iupgradable {
     /// @param claimId Claim Id.
     /// @param member Member type 0 -> Claim Assessors, else members.
     /// @return tokens Total Amount used in Claims assessment.
-    function getCATokens(uint claimId, uint member) constant returns(uint tokens) {
+    function getCATokens(uint claimId, uint member) external view returns(uint tokens) {
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
@@ -158,7 +168,7 @@ contract Claims is Iupgradable {
     /// @param claimId Claim Id.
     /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
     /// -1 -> voting has already been closed.
-    function checkVoteClosing(uint claimId) constant returns(int8 close) {
+    function checkVoteClosing(uint claimId) public view returns(int8 close) {
         close = 0;
         uint8 status;
         (, status) = cd.getClaimStatusNumber(claimId);
@@ -180,12 +190,12 @@ contract Claims is Iupgradable {
     /// @dev Sets the status of claim using claim id.
     /// @param claimId claim id.
     /// @param stat status to be set.
-    function setClaimStatus(uint claimId, uint8 stat) onlyInternal {
+    function setClaimStatus(uint claimId, uint8 stat) external onlyInternal {
         setClaimStatusInternal(claimId, stat);
     }
 
     /// @dev Updates the pending claim start variable, the lowest claim id with a pending decision/payout.
-    function changePendingClaimStart() onlyInternal {
+    function changePendingClaimStart() public onlyInternal {
 
         uint8 origstat;
         uint8 state12Count;
@@ -204,7 +214,7 @@ contract Claims is Iupgradable {
     /// @dev Submits a claim for a given cover note.
     ///      Adds claim to queue incase of emergency pause else directly submits the claim.
     /// @param coverId Cover Id.
-    function submitClaim(uint coverId) {
+    function submitClaim(uint coverId) public {
 
         address qadd = qd.getCoverMemberAddress(coverId);
         require(qadd == msg.sender);
@@ -246,7 +256,7 @@ contract Claims is Iupgradable {
 
         require(checkVoteClosing(claimId) != 1);
         uint time = cd.claimDepositTime();
-        time = SafeMaths.add(now, time);
+        time = now.add(time);
         uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", time);
         tokens = tokens.sub(td.getBookedCA(msg.sender));
         require(tokens > 0);
@@ -274,7 +284,7 @@ contract Claims is Iupgradable {
     //      Assessment can be used to cast a vote for a given claim id.
     /// @param claimId Selected claim id.
     /// @param verdict 1 for Accept,-1 for Deny.
-    function submitMemberVote(uint claimId, int8 verdict) isMemberAndcheckPause {
+    function submitMemberVote(uint claimId, int8 verdict) public isMemberAndcheckPause {
         require(checkVoteClosing(claimId) != 1);
         uint stat;
         uint tokens = tc.totalBalanceOf(msg.sender);
@@ -284,7 +294,7 @@ contract Claims is Iupgradable {
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
         uint time = td.lockMVDays();
-        time = SafeMaths.add(now, time);
+        time = now.add(time);
         tf.lockForMemberVote(msg.sender, time);
         uint voteLength = cd.getAllVoteLength();
         cd.addClaimVotemember(claimId, voteLength);
@@ -297,13 +307,13 @@ contract Claims is Iupgradable {
     }
 
     /// @dev Pause Voting of All Pending Claims when Emergency Pause Start.
-    function pauseAllPendingClaimsVoting() onlyInternal {
+    function pauseAllPendingClaimsVoting() public onlyInternal {
         uint firstIndex = cd.pendingClaimStart();
         uint actualClaimLength = cd.actualClaimLength();
         for (uint i = firstIndex; i < actualClaimLength; i++) {
             if (checkVoteClosing(i) == 0) {
                 uint dateUpd = cd.getClaimDateUpd(i);
-                cd.setPendingClaimDetails(i, SafeMaths.sub((SafeMaths.add(dateUpd, cd.maxVotingTime())), now), false);
+                cd.setPendingClaimDetails(i, (dateUpd.add(cd.maxVotingTime())).sub(now), false);
             }
         }
     }
@@ -311,7 +321,7 @@ contract Claims is Iupgradable {
     /**
     * @dev Resume the voting phase of all Claims paused due to an emergency pause.
     */
-    function startAllPendingClaimsVoting() onlyInternal {
+    function startAllPendingClaimsVoting() public onlyInternal {
         uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
         uint i;
         uint lengthOfClaimVotingPause = cd.getLengthOfClaimVotingPause();
@@ -319,7 +329,7 @@ contract Claims is Iupgradable {
             uint pendingTime;
             uint claimID;
             (claimID, pendingTime, ) = cd.getPendingClaimDetailsByIndex(i);
-            uint pTime = SafeMaths.add(SafeMaths.sub(now, cd.maxVotingTime()), pendingTime);
+            uint pTime = (now.sub(cd.maxVotingTime())).add(pendingTime);
             cd.setClaimdateUpd(claimID, pTime);
             cd.setPendingClaimVoteStatus(i, true);
             uint coverid;
@@ -349,14 +359,14 @@ contract Claims is Iupgradable {
         uint accept;
         uint deny;
         (, accept, deny) = cd.getClaimsTokenCA(claimId);
-        uint caTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
+        uint caTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
         (, accept, deny) = cd.getClaimsTokenMV(claimId);
-        uint mvTokens = SafeMaths.div(SafeMaths.mul((SafeMaths.add(accept, deny)), tokenx1e18), DECIMAL1E18);
-        uint sumassured = SafeMaths.mul(qd.getCoverSumAssured(coverId), DECIMAL1E18);
-        if (status == 0 && caTokens >= SafeMaths.mul(10, sumassured))
+        uint mvTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
+        uint sumassured = qd.getCoverSumAssured(coverId).mul(DECIMAL1E18);
+        if (status == 0 && caTokens >= sumassured.mul(10))
             close = 1;
 
-        if (status >= 1 && status <= 5 && mvTokens >= SafeMaths.mul(10, sumassured))
+        if (status >= 1 && status <= 5 && mvTokens >= sumassured.mul(10))
             close = 1;
     }
 
@@ -386,10 +396,10 @@ contract Claims is Iupgradable {
             p1.closeClaimsOraclise(claimId, cd.maxVotingTime());
         }
 
-        if (stat == 12 && (SafeMaths.add(dateUpd, cd.payoutRetryTime()) <= now) && (state12Count < 60)) {
+        if (stat == 12 && (dateUpd.add(cd.payoutRetryTime()) <= now) && (state12Count < 60)) {
             cr.changeClaimStatus(claimId);
-        } else if (stat == 12 && (SafeMaths.add(dateUpd, cd.payoutRetryTime()) > now) && (state12Count < 60)) {
-            uint64 timeLeft = uint64(SafeMaths.sub(SafeMaths.add(dateUpd, cd.payoutRetryTime()), now));
+        } else if (stat == 12 && (dateUpd.add(cd.payoutRetryTime()) > now) && (state12Count < 60)) {
+            uint64 timeLeft = uint64((dateUpd.add(cd.payoutRetryTime())).sub(now));
             p1.closeClaimsOraclise(claimId, timeLeft);
         }
     }

@@ -635,7 +635,7 @@ contract ClaimsData is Iupgradable {
     }
 
     /// @dev Sets the pending vote duration for a claim in case of emergency pause.
-    function setPendingClaimDetails(uint _claimId, uint _pendingTime, bool _voting) external view onlyInternal {
+    function setPendingClaimDetails(uint _claimId, uint _pendingTime, bool _voting) external onlyInternal {
         claimPauseVotingEP.push(claimPauseVoting(_claimId, _pendingTime, _voting));
     }
 

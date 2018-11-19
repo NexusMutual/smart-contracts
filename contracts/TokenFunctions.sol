@@ -145,7 +145,7 @@ contract TokenFunctions is Iupgradable, Governed {
         uint burnAmount;
         bool isDeposited;
         (isDeposited, burnAmount) = td.getDepositCNDetails(coverId);
-        if(isDeposited)
+        if (isDeposited)
             require(undepositCN(coverId, false));
         uint availableCNToken = lockedCN.sub(burnAmount);
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
@@ -290,7 +290,8 @@ contract TokenFunctions is Iupgradable, Governed {
                 commissionEarned = td.getStakerEarnedStakeCommission(stakerAddress, stakerIndex);
                 if (totalCommission > commissionEarned) {
                     if (totalCommission >= commissionEarned.add(commissionToBePaid)) {
-                        td.pushStakeCommissions(stakerAddress, _scAddress, i, commissionEarned.add(commissionToBePaid));
+                        td.pushStakeCommissions(stakerAddress, _scAddress, i, 
+                            commissionEarned.add(commissionToBePaid));
                         tc.mint(claimsRewardAddress, commissionToBePaid);
                         if (i > 0)
                             td.setStakedContractCurrentCommissionIndex(_scAddress, i);
@@ -331,8 +332,8 @@ contract TokenFunctions is Iupgradable, Governed {
                 uint stakerStakedNXM = _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, i);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
-                           _burnStakerTokenLockedAgainstSmartContract(stakerAddress,
-                                scAddress, i, burnNXMAmount);
+                        _burnStakerTokenLockedAgainstSmartContract(stakerAddress,
+                            scAddress, i, burnNXMAmount);
                         if (i > 0)
                             td.setStakedContractCurrentBurnIndex(scAddress, i);
                         burnNXMAmount = 0;
@@ -418,7 +419,8 @@ contract TokenFunctions is Iupgradable, Governed {
         address scAddress;
         for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
-            unlockableAmount = unlockableAmount.add(_getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress, i));
+            unlockableAmount = unlockableAmount.add(
+                _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress, i));
         }
         amount = unlockableAmount;
     }
@@ -468,8 +470,10 @@ contract TokenFunctions is Iupgradable, Governed {
         (uint amount)
     {   
         uint stakedContractIndex = td.getStakerStakedContractIndex(_stakerAddress, _stakerIndex);
-        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(_stakerAddress, _stakedContractAddress, stakedContractIndex);
-        uint unlockable = currentLockedTokens.sub(_getStakerStakedTokensOnSmartContract(_stakerAddress, _stakedContractAddress, _stakerIndex));
+        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
+            _stakerAddress, _stakedContractAddress, stakedContractIndex);
+        uint unlockable = currentLockedTokens.sub(
+            _getStakerStakedTokensOnSmartContract(_stakerAddress, _stakedContractAddress, _stakerIndex));
         uint alreadyUnlocked;
         (, , , , alreadyUnlocked) = td.stakerStakedContracts(_stakerAddress, _stakerIndex);
         if (alreadyUnlocked >= unlockable) {
@@ -500,7 +504,8 @@ contract TokenFunctions is Iupgradable, Governed {
         uint stakerIndex = td.getStakedContractStakerIndex(_stakedContractAddress, _stakedContractIndex);
         (, , dateAdd, ,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
         uint validDays = td.scValidDays();
-        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(_stakerAddress, _stakedContractAddress, _stakedContractIndex);
+        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
+            _stakerAddress, _stakedContractAddress, _stakedContractIndex);
         uint dayStaked = (now.sub(dateAdd)).div(1 days);
         if (currentLockedTokens == 0) {
             amount = 0;

@@ -36,17 +36,17 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 contract ClaimsReward is Iupgradable {
     using SafeMaths for uint;
 
-    NXMToken tk;
-    TokenController tc;
-    TokenFunctions tf;
-    TokenData td;
-    QuotationData qd;
-    Claims c1;
-    ClaimsData cd;
-    Pool1 p1;
-    Pool2 p2;
-    Pool3 p3;
-    PoolData pd;
+    NXMToken internal tk;
+    TokenController internal tc;
+    TokenFunctions internal tf;
+    TokenData internal td;
+    QuotationData internal qd;
+    Claims internal c1;
+    ClaimsData internal cd;
+    Pool1 internal p1;
+    Pool2 internal p2;
+    Pool3 internal p3;
+    PoolData internal pd;
 
     uint64 private constant DECIMAL1E18 = 1000000000000000000;
 
@@ -75,7 +75,7 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Decides the next course of action for a given claim.
-    function changeClaimStatus(uint claimid) checkPause {
+    function changeClaimStatus(uint claimid) public checkPause {
 
         require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
 
@@ -113,14 +113,14 @@ contract ClaimsReward is Iupgradable {
         uint voteid,
         uint flag
     ) 
-        constant
-        returns
-    (
-        uint tokenCalculated,
-        bool lastClaimedCheck,
-        uint tokens,
-        uint perc
-    )
+        public
+        view
+        returns (
+            uint tokenCalculated,
+            bool lastClaimedCheck,
+            uint tokens,
+            uint perc
+        )
 
     {
         uint claimId;

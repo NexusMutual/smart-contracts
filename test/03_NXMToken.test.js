@@ -19,7 +19,10 @@ let P1;
 let nxms;
 let mcr;
 let mcrd;
+let tk;
+let tf;
 let tc;
+let td;
 
 const BigNumber = web3.BigNumber;
 require('chai')

@@ -17,7 +17,6 @@ pragma solidity 0.4.24;
 
 import "./NXMToken.sol";
 import "./Claims.sol";
-import "./ClaimsReward.sol";
 import "./TokenFunctions.sol";
 import "./TokenController.sol";
 import "./PoolData.sol";
@@ -27,7 +26,7 @@ import "./Pool3.sol";
 import "./MCR.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
+// import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
 import "./imports/oraclize/ethereum-api/usingOraclize.sol";
 import "./QuotationData.sol";
@@ -37,22 +36,21 @@ import "./QuotationData.sol";
 contract Pool1 is usingOraclize, Iupgradable {
     using SafeMaths for uint;
 
-    Quotation public q2;
-    NXMToken public tk;
-    TokenController public tc;
-    TokenFunctions public tf;
-    PoolData public pd;
-    Pool2 public p2;
-    Pool3 public p3;
-    MCR public m1;
-    StandardToken public stok;
+    Quotation internal q2;
+    NXMToken internal tk;
+    TokenController internal tc;
+    TokenFunctions internal tf;
+    PoolData internal pd;
+    Pool2 internal p2;
+    Pool3 internal p3;
+    MCR internal m1;
+    StandardToken internal stok;
     Claims public c1;
-    ClaimsReward public cr;
-    QuotationData public qd;
-    BasicToken btok;
+    // ClaimsReward public cr;
+    QuotationData internal qd;
 
-    uint public constant DECIMAL1E18 = uint(10) ** 18;
-    uint public constant PRICE_STEP = 1000 * DECIMAL1E18;
+    uint internal constant DECIMAL1E18 = uint(10) ** 18;
+    uint internal constant PRICE_STEP = 1000 * DECIMAL1E18;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
     event Payout(address indexed to, bytes16 eventName, uint coverId, uint tokens);
@@ -169,7 +167,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     ///@dev Gets 0x wrapped ether Pool balance.
-    function getWETHPoolBalance() external view returns(uint wETH) {
+    function getWETHPoolBalance() external returns(uint wETH) {
         stok = StandardToken(pd.getWETHAddress());
         return stok.balanceOf(address(this));
     }
@@ -184,14 +182,14 @@ contract Pool1 is usingOraclize, Iupgradable {
         p2 = Pool2(ms.getLatestAddress("P2"));
         p3 = Pool3(ms.getLatestAddress("P3"));
         c1 = Claims(ms.getLatestAddress("CL"));
-        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        // cr = ClaimsReward(ms.getLatestAddress("CR"));
         qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
     /// @dev Handles callback of external oracle query.
     function __callback(bytes32 myid, string result) public { //solhint-disable-line
         require(msg.sender == oraclize_cbAddress() || ms.isOwner(msg.sender) == true);
-        delegateCallBack(myid);
+        p3.delegateCallBack(myid);
     }
 
     /// @dev Enables user to purchase cover with funding in ETH.
@@ -254,7 +252,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     ///@dev Gets Pool1 balance of a given investmentasset.
-    function getBalanceOfCurrencyAsset(bytes8 _curr) public view returns(uint balance) {
+    function getBalanceOfCurrencyAsset(bytes8 _curr) public returns(uint balance) {
         stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
         return stok.balanceOf(address(this));
     }
@@ -305,43 +303,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         return _getWei(_amount, tk.totalSupply());
     }
 
-    /// @dev Handles the Callback of the Oraclize Query.
-    /// @param myid Oraclize Query ID identifying the query for which the result is being received
-    function delegateCallBack(bytes32 myid) onlyInternal {
-
-        if (ms.isPause() == false) { // system is not in emergency pause
-
-            // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
-            if (pd.getApiIdTypeOf(myid) == "COV") {
-                pd.updateDateUpdOfAPI(myid);
-                q2.expireCover(pd.getIdOfApiId(myid));
-            }else if (pd.getApiIdTypeOf(myid) == "CLA") {
-                // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
-                pd.updateDateUpdOfAPI(myid);
-                cr.changeClaimStatus(pd.getIdOfApiId(myid));
-            } else if (pd.getApiIdTypeOf(myid) == "MCR") {
-                pd.updateDateUpdOfAPI(myid);
-            } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
-                pd.updateDateUpdOfAPI(myid);
-                m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
-            } else if (pd.getApiIdTypeOf(myid) == "SUB") {
-                pd.updateDateUpdOfAPI(myid);
-            } else if (pd.getApiIdTypeOf(myid) == "0X") {
-                pd.updateDateUpdOfAPI(myid);
-            } else if (pd.getApiIdTypeOf(myid) == "Close0x") {
-                pd.updateDateUpdOfAPI(myid);
-                // p3.check0xOrderStatus(pd.getCurrOfApiId(myid), pd.getIdOfApiId(myid));
-            }
-        }
-        if (pd.getApiIdTypeOf(myid) == "Pause") {
-            pd.updateDateUpdOfAPI(myid);
-            bytes4 by;
-            (, , by) = ms.getLastEmergencyPause();
-            if (by == "AB")
-                ms.addEmergencyPause(false, "AUT"); //set pause to false
-        }
-    }
-
+   
     /// @dev Calls the payout event in case of Claims payout.
     function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
         Payout(_add, type1, id, sa);
@@ -379,8 +341,8 @@ contract Pool1 is usingOraclize, Iupgradable {
             }
         }else {
           //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
-            btok = BasicToken(pd.getCurrencyAssetAddress(curr));
-            balance = btok.balanceOf(address(this));
+            stok = StandardToken(pd.getCurrencyAssetAddress(curr));
+            balance = stok.balanceOf(address(this));
             //Check if Pool1 has enough fiat crypto balance
             if (balance >= sumAssured1e18) {
                 this.transferPayout(_to, curr, sumAssured1e18);

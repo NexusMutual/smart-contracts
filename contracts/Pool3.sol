@@ -18,7 +18,10 @@ pragma solidity 0.4.24;
 import "./PoolData.sol";
 import "./Pool1.sol";
 import "./Pool2.sol";
+import "./ClaimsReward.sol";
+import "./Quotation.sol";
 import "./MCRData.sol";
+import "./MCR.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 import "./imports/0xProject/Exchange.sol";
@@ -27,11 +30,14 @@ import "./imports/0xProject/Exchange.sol";
 contract Pool3 is Iupgradable {
     using SafeMaths for uint;
 
-    PoolData pd;
-    Pool1 p1;
-    Pool2 p2;
-    Exchange exchange;
-    MCRData md;
+    PoolData internal pd;
+    Pool1 internal p1;
+    Pool2 internal p2;
+    ClaimsReward public cr;
+    Exchange internal exchange;
+    Quotation internal q2;
+    MCR internal m1;
+    MCRData internal md;
 
     address poolAddress;
     address exchangeContractAddress;
@@ -43,8 +49,11 @@ contract Pool3 is Iupgradable {
     function changeDependentContractAddress() onlyInternal {
         pd = PoolData(ms.getLatestAddress("PD"));
         md = MCRData(ms.getLatestAddress("MD"));
+        m1 = MCR(ms.getLatestAddress("MC"));
         p2 = Pool2(ms.getLatestAddress("P2"));
         p1 = Pool1(ms.getLatestAddress("P1"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        q2 = Quotation(ms.getLatestAddress("QT")); 
     }
 
     function changeExchangeContractAddress(address _add) onlyInternal {
@@ -53,15 +62,6 @@ contract Pool3 is Iupgradable {
 
     function getExchangeContractAddress() constant returns(address _add) {
         return exchangeContractAddress;
-    }
-
-    function changeWETHAddress(address _add) onlyOwner {
-        pd.changeWETHAddress(_add);
-    }
-
-    function getWETHAddress() constant returns(address wETHAddr) {
-
-        return pd.getWETHAddress();
     }
 
     modifier onlyInternal {
@@ -159,8 +159,7 @@ contract Pool3 is Iupgradable {
                             uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(minIACurr);
                             takerAmt = SafeMaths.div((SafeMaths.mul(SafeMaths.mul(minIARate, makerAmt),
                             10**investmentAssetDecimals)), (md.getCurr3DaysAvg(curr)));
-                       
-                        // zeroExOrders(curr, makerAmt, takerAmt, "ELT", 0);
+                            // zeroExOrders(curr, makerAmt, takerAmt, "ELT", 0);
                             p2.createOrder(curr, makerAmt, takerAmt, "ELT", 0);
                             Liquidity("ELT", "0x");
                         }
@@ -209,7 +208,6 @@ contract Pool3 is Iupgradable {
     }
 
     function rebalancingLiquidityTrading(bytes8 curr, uint caBalance, uint8 cancel) onlyInternal returns(uint16) {
-
         uint64 baseMin;
         uint64 varMin;
         bytes8 maxIACurr;
@@ -223,8 +221,7 @@ contract Pool3 is Iupgradable {
                                 totalRiskBal), maxIARate)), (SafeMaths.mul(SafeMaths.mul(100, 100), 100000))));
 
         if (pd.getLiquidityOrderStatus(curr, "RBT") == 0) {
-            
-            
+
             uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(maxIACurr);
             takerAmt = ((SafeMaths.mul(md.getCurr3DaysAvg("ETH"), makerAmt))/maxIARate);
             makerAmt = SafeMaths.div((SafeMaths.mul(makerAmt, 10**investmentAssetDecimals)), 100);
@@ -321,39 +318,80 @@ contract Pool3 is Iupgradable {
                     (checkNumber < SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(iaMin, z), totalRiskBal), 100), 100000))) {
                     //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
                     return 1;    //eligibleIA
-                }else {
+                } else {
                     return -1; //not eligibleIA
                 }
             }
             return 0; // balance of IA is 0
-        }else {
+        } else {
             return -2;
         }
     }
 
     /// @dev Gets the investment asset rank.
-    function getIARank(bytes8 curr, uint64 rateX100, uint totalRiskPoolBalance) constant returns(int rhsh, int rhsl) //internal function
+    function getIARank(
+        bytes8 curr,
+        uint64 rateX100,
+        uint totalRiskPoolBalance
+    ) 
+        public
+        returns (int rhsh, int rhsl) //internal function
     {
         uint currentIAmaxHolding;
         uint currentIAminHolding;
 
-        uint iaBalance = SafeMaths.div(p2.getBalanceofInvestmentAsset(curr), (DECIMAL1E18));
+        uint iaBalance = p2.getBalanceofInvestmentAsset(curr).div(DECIMAL1E18);
         (currentIAminHolding, currentIAmaxHolding) = pd.getInvestmentAssetHoldingPerc(curr);
         // uint holdingPercDiff = (SafeMaths.sub(SafeMaths.div(currentIAmaxHolding, 100), SafeMaths.div(currentIAminHolding, 100)));
         
         if (rateX100 > 0) {
-            uint _rhsh;
-            uint _rhsl;
-            _rhsh = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(iaBalance, 100), 100000), (rateX100));
-            rhsh = int(SafeMaths.sub(SafeMaths.div(_rhsh, totalRiskPoolBalance), currentIAmaxHolding));
-            _rhsl = SafeMaths.div(SafeMaths.mul(SafeMaths.mul(iaBalance, 100), 100000), (rateX100));
-            rhsl = int(SafeMaths.sub(SafeMaths.div(_rhsl, totalRiskPoolBalance), currentIAminHolding));
-
+            uint rhsf;
+            rhsf = ((iaBalance.mul(10000000)).div(rateX100)).div(totalRiskPoolBalance);
+            rhsh = int(rhsf - currentIAmaxHolding);
+            rhsl = int(rhsf - currentIAminHolding);
         }
     }
 
+     /// @dev Handles the Callback of the Oraclize Query.
+    /// @param myid Oraclize Query ID identifying the query for which the result is being received
+    function delegateCallBack(bytes32 myid) onlyInternal {
+
+        if (ms.isPause() == false) { // system is not in emergency pause
+
+            // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
+            if (pd.getApiIdTypeOf(myid) == "COV") {
+                pd.updateDateUpdOfAPI(myid);
+                q2.expireCover(pd.getIdOfApiId(myid));
+            }else if (pd.getApiIdTypeOf(myid) == "CLA") {
+                // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
+                pd.updateDateUpdOfAPI(myid);
+                cr.changeClaimStatus(pd.getIdOfApiId(myid));
+            } else if (pd.getApiIdTypeOf(myid) == "MCR") {
+                pd.updateDateUpdOfAPI(myid);
+            } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
+                pd.updateDateUpdOfAPI(myid);
+                m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
+            } else if (pd.getApiIdTypeOf(myid) == "SUB") {
+                pd.updateDateUpdOfAPI(myid);
+            } else if (pd.getApiIdTypeOf(myid) == "0X") {
+                pd.updateDateUpdOfAPI(myid);
+            } else if (pd.getApiIdTypeOf(myid) == "Close0x") {
+                pd.updateDateUpdOfAPI(myid);
+                // p3.check0xOrderStatus(pd.getCurrOfApiId(myid), pd.getIdOfApiId(myid));
+            }
+        }
+        if (pd.getApiIdTypeOf(myid) == "Pause") {
+            pd.updateDateUpdOfAPI(myid);
+            bytes4 by;
+            (, , by) = ms.getLastEmergencyPause();
+            if (by == "AB")
+                ms.addEmergencyPause(false, "AUT"); //set pause to false
+        }
+    }
+
+
     /// @dev Calculates the investment asset rank.
-    function calculateIARank(bytes8[] curr, uint64[] rate) constant returns(bytes8 maxCurr, uint64 maxRate, bytes8 minCurr, uint64 minRate) {
+    function calculateIARank(bytes8[] curr, uint64[] rate) public view returns(bytes8 maxCurr, uint64 maxRate, bytes8 minCurr, uint64 minRate) {
         uint currentIAmaxHolding;
         uint currentIAminHolding;
         int max = 0;

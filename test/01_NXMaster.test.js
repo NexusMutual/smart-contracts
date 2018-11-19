@@ -147,7 +147,6 @@ contract('NXMaster', function([
       await nxms2.addStatusInClaims();
       await pd.changeWETHAddress(WETH_0x);
       await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-      await pd.change0xMakerAddress(owner);
       await pl2.changeExchangeContractAddress(Exchange_0x);
       await pl3.changeExchangeContractAddress(Exchange_0x);
       await mcr.changenotariseAddress(owner);

@@ -79,7 +79,6 @@ module.exports = function(deployer) {
     await pd.changeWETHAddress(WETH_0x);
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-    await pd.change0xMakerAddress(Owner);
     await pl2.changeExchangeContractAddress(exchange.address);
     await pl3.changeExchangeContractAddress(exchange.address);
     await mcr.changenotariseAddress(Owner);

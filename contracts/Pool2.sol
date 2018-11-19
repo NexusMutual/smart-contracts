@@ -93,31 +93,21 @@ contract Pool2 is Iupgradable {
 
     function changeExchangeContractAddress(address _add) onlyOwner {
         exchangeContractAddress = _add; //0x
-
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
 
-    /// @dev Gets the equivalent investment asset Pool1  balance in ether.
+    /// @dev Gets the equivalent investment asset Pool2 balance in ether.
     /// @param iaCurr array of Investment asset name.
     /// @param iaRate array of investment asset exchange rate.
-    function totalRiskPoolBalance(bytes8[] iaCurr, uint64[] iaRate) constant returns(uint balance, uint iaBalance) {
+    function totalRiskPoolBalance(bytes8[] iaCurr, uint64[] iaRate) public view returns(uint balance, uint iaBalance) {
         uint currBalance;
         (currBalance, ) = m1.calVtpAndMCRtp();
 
         for (uint i = 0; i < iaCurr.length; i++) {
             if (iaRate[i] > 0)
-                iaBalance = SafeMaths.add(iaBalance, SafeMaths.div(SafeMaths.mul(getBalanceofInvestmentAsset(iaCurr[i]), 100), iaRate[i]));
+                iaBalance = iaBalance.add((getBalanceofInvestmentAsset(iaCurr[i]).mul(100)).div(iaRate[i]));
         }
-        balance = SafeMaths.add(currBalance, iaBalance);
-    }
-
-    /// @dev Unwraps ether.
-    function convertWETHintoETH(bytes8[] curr, uint64[] rate, uint64 date) checkPause payable {
-
-        btok = BasicToken(pd.getWETHAddress());
-        bool success = btok.transfer(msg.sender, msg.value);
-        if (success == true)
-            p3.saveIADetails(curr, rate, date);
+        balance = currBalance.add(iaBalance);
     }
 
     function createOrder(bytes8 curr, uint makerAmt, uint takerAmt, bytes16 _type, uint8 cancel) onlyInternal
@@ -127,17 +117,20 @@ contract Pool2 is Iupgradable {
     }
 
     /// @dev Get Investment asset balance and active status for a given asset name.
-    function getInvestmentAssetBalAndStatus(bytes8 currName)
-    constant
-    returns(
-        bytes16 curr,
-        uint balance,
-        uint8 status,
-        uint64 _minHoldingPercX100,
-        uint64 _maxHoldingPercX100,
-        uint64 decimals
-        ) {
-
+    function getInvestmentAssetBalAndStatus(
+        bytes8 currName
+    )
+        public
+        view
+        returns (
+            bytes16 curr,
+            uint balance,
+            uint8 status,
+            uint64 _minHoldingPercX100,
+            uint64 _maxHoldingPercX100,
+            uint64 decimals
+        )
+    {
         balance = getBalanceofInvestmentAsset(currName);
         (curr, , status, _minHoldingPercX100, _maxHoldingPercX100, decimals) = pd.getInvestmentAssetDetails(currName);
     }
@@ -155,8 +148,7 @@ contract Pool2 is Iupgradable {
         return stok.balanceOf(address(this));
     }
 
-    function _transferALLInvestmentAssetFromPool(address _newPoolAddress)
-    {
+    function _transferALLInvestmentAssetFromPool(address _newPoolAddress) {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes8 caName = pd.getAllCurrenciesByIndex(i);
             address caAddress = pd.getCurrencyAssetAddress(caName);
@@ -168,7 +160,6 @@ contract Pool2 is Iupgradable {
 
     /// @dev Sets a given investment asset as active or inactive for trading.
     function changeInvestmentAssetStatus(bytes8 curr, uint8 status) public {
-
         require(ms.checkIsAuthToGoverned(msg.sender));
         pd.changeInvestmentAssetStatus(curr, status);
     }
@@ -239,123 +230,5 @@ contract Pool2 is Iupgradable {
             stok.transfer(_newPoolAddress, stok.balanceOf(this));
         }
         success = true;
-    }
-
-
-
-    /// @dev Triggers Pool1 rebalancing trading orders.
-    // function rebalancingTrading0xOrders(bytes8[] iaCurr, uint64[] iaRate, uint64 date)checkPause returns(uint16 result)
-    // {
-    //     bytes8 maxIACurr;
-    //     uint64 maxRate;
-    //     (maxIACurr, maxRate, , ) = pd.getIARankDetailsByDate(date);
-    //     if (pd.getLiquidityOrderStatus(maxIACurr, "RBT") == 0) {
-    //         uint totalRiskBal=SafeMaths.div((SafeMaths.mul(pd.getTotalRiskPoolBalance(), 100000)), (DECIMAL1E18));
-    //         if (totalRiskBal > 0 && iaRate.length > 0) { //if v=0 OR there is no IA, don't trade
-    //             for (uint i=0; i < iaRate.length; i++) {
-    //                 if (pd.getInvestmentAssetStatus(iaCurr[i]) == 1) {  // if IA is active
-    //                     if (p3.checkTradeConditions(iaCurr[i], iaRate[i]) == 1) {  // ORDER 1 (max RHS IA to ETH)   // amount of asset to sell
-    //                         uint makerAmt=(SafeMaths.div((SafeMaths.mul(SafeMaths.mul(SafeMaths.mul(2, pd.getVariationPercX100()),
-    //                             totalRiskBal), maxRate)), (SafeMaths.mul(SafeMaths.mul(100, 100), 100000)))); //MULTIPLY WITH DECIMALS
-    //                         uint investmentAssetDecimals=pd.getInvestmentAssetDecimals(maxIACurr); // amount of ETH to buy
-    //                         uint takerAmt=((SafeMaths.mul(md.getCurr3DaysAvg("ETH"), makerAmt))/maxRate);
-    //                         uint expirationTimeInMilliSec=SafeMaths.add(now, pd.getOrderExpirationTime("RBT"));
-    //                         makerAmt = SafeMaths.div((SafeMaths.mul(makerAmt, 10**investmentAssetDecimals)), 100);
-    //                         takerAmt = SafeMaths.div(SafeMaths.mul(takerAmt, DECIMAL1E18), (100));
-    //                         if (makerAmt <= p1.getBalanceofInvestmentAsset(maxIACurr)) {
-    //                             exchange1 = Exchange(exchangeContractAddress);
-    //                             bytes32 orderHash=exchange1.getOrderHash(
-    //                                 [pd.get0xMakerAddress(),
-    //                                 pd.get0xTakerAddress(),
-    //                                 pd.getInvestmentAssetAddress(maxIACurr),
-    //                                 p3.getWETHAddress(),
-    //                                 pd.get0xFeeRecipient()],
-    //                                 [makerAmt,
-    //                                 takerAmt,
-    //                                 pd.get0xMakerFee(),
-    //                                 pd.get0xTakerFee(),
-    //                                 expirationTimeInMilliSec,
-    //                                 pd.getOrderSalt()]
-    //                                 );
-    //                             pd.saveRebalancingOrderHash(orderHash);
-    //                             pd.pushOrderDetails(orderHash, bytes4(maxIACurr), makerAmt, "ETH", takerAmt, "RBT", expirationTimeInMilliSec);
-    //                             pd.updateLiquidityOrderStatus(bytes4(maxIACurr), "RBT", 1);
-    //                             pd.setCurrOrderHash(bytes4(maxIACurr), orderHash);
-    //                             //events
-    //                             // ZeroExOrders(
-    //                             //     "RBT",
-    //                             //     pd.getInvestmentAssetAddress(maxIACurr),
-    //                             //     p3.getWETHAddress(),
-    //                             //     makerAmt,
-    //                             //     takerAmt,
-    //                             //     expirationTimeInMilliSec,
-    //                             //     orderHash
-    //                             //     );
-    //                             Rebalancing("OrderGen", 1);
-    //                             return 1; // rebalancing order generated
-    //                         }else {   //events
-    //                             // ZeroExOrders(
-    //                             //     "RBT",
-    //                             //     pd.getInvestmentAssetAddress(maxIACurr),
-    //                             //     p3.getWETHAddress(),
-    //                             //     makerAmt,
-    //                             //     takerAmt,
-    //                             //     expirationTimeInMilliSec,
-    //                             //     "insufficient"
-    //                             //     );
-    //                             Rebalancing("OrderGen", 2);
-    //                             return 2; // not enough makerAmt;
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //             Rebalancing("OrderGen", 0);
-    //             return 0; // when V!=0 but rebalancing is not required
-    //         }
-    //     }
-    //     Rebalancing("OrderGen", 3);
-    //     return 4; // when V=0 or no IA is present
-    // }
-
-    ///@dev Gets 0x order details by hash.
-    // function getOrderDetailsByHash(bytes16 orderType, bytes8 makerCurr, bytes8 takerCurr)
-    // constant
-    // returns(
-    //     address makerCurrAddr,
-    //     address takerCurrAddr,
-    //     uint salt,
-    //     address feeRecipient,
-    //     address takerAddress,
-    //     uint makerFee,
-    //     uint takerFee
-    //     ) {
-
-    //     if (orderType == "ELT") {
-    //         if (makerCurr == "ETH")
-    //             makerCurrAddr = pd.getWETHAddress();
-    //         else
-    //             makerCurrAddr = pd.getCurrencyAssetAddress(makerCurr);
-    //         takerCurrAddr = pd.getInvestmentAssetAddress(takerCurr);
-    //     } else if (orderType == "ILT") {
-    //         makerCurrAddr = pd.getInvestmentAssetAddress(makerCurr);
-    //         if (takerCurr == "ETH")
-    //             takerCurrAddr = pd.getWETHAddress();
-    //         else
-    //             takerCurrAddr = pd.getCurrencyAssetAddress(takerCurr);
-    //     } else if (orderType == "RBT") {
-    //         makerCurrAddr = pd.getInvestmentAssetAddress(makerCurr);
-    //         takerCurrAddr = pd.getWETHAddress();
-    //     }
-    //     salt = pd.getOrderSalt();
-    //     feeRecipient = pd.get0xFeeRecipient();
-    //     takerAddress = pd.get0xTakerAddress();
-    //     makerFee = pd.get0xMakerFee();
-    //     takerFee = pd.get0xTakerFee();
-    // }
-
-
-    
-    
-    
-
+    } 
 }

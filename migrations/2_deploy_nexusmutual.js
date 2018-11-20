@@ -19,7 +19,7 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Exchange = artifacts.require('Exchange');
 const Token = artifacts.require('Token');
 const TokenTransferProxy = artifacts.require('TokenTransferProxy');
-const founderAddress = web3.eth.accounts[19];
+const founderAddress = web3.eth.accounts[0];
 const INITIAL_SUPPLY = 1500000 * 1e18;
 
 module.exports = function(deployer) {

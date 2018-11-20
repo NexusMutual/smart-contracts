@@ -22,7 +22,7 @@ const Exchange = artifacts.require('Exchange');
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const WETH_0x = web3.eth.accounts[18];
 const Owner = web3.eth.accounts[0];
-const POOL_ETHER = 4 * 1e18;
+const POOL_ETHER = 25 * 1e18;
 
 module.exports = function(deployer) {
   deployer.then(async () => {
@@ -76,7 +76,7 @@ module.exports = function(deployer) {
     await nxms2.callPoolDataMethods();
     await nxms2.addStatusInClaims();
     await nxms2.addMCRCurr();
-    await pd.changeWETHAddress(WETH_0x);
+    // await pd.changeWETHAddress(WETH_0x);
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
     await pl2.changeExchangeContractAddress(exchange.address);

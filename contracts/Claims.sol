@@ -47,10 +47,9 @@ contract Claims is Iupgradable {
     Pool3 internal p3;
     QuotationData internal qd;
 
-    uint64 private constant DECIMAL1E18 = 1000000000000000000;
+    uint private constant DECIMAL1E18 = uint(10) ** 18;
 
     modifier isMemberAndcheckPause {
-
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
@@ -59,6 +58,7 @@ contract Claims is Iupgradable {
         tk = NXMToken(ms.tokenAddress());
         td = TokenData(ms.getLatestAddress("TD"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tc = TokenController(ms.getLatestAddress("TC"));
         p1 = Pool1(ms.getLatestAddress("P1"));
         p3 = Pool3(ms.getLatestAddress("P3"));
         pd = PoolData(ms.getLatestAddress("PD"));
@@ -136,7 +136,6 @@ contract Claims is Iupgradable {
     /// @param claimId Claim Id.
     /// @return value Number of tokens.
     function getCATokensLockedAgainstClaim(address _of, uint claimId) external view returns(uint value) {
-
         (, value) = cd.getTokensClaim(_of, claimId);
         uint totalLockedCA = tc.tokensLockedAtTime(_of, "CLA", now);
         if (totalLockedCA < value)
@@ -253,12 +252,9 @@ contract Claims is Iupgradable {
     /// @param claimId  claim id.
     /// @param verdict 1 for Accept,-1 for Deny.
     function submitCAVote(uint claimId, int8 verdict) public isMemberAndcheckPause {
-
-        require(checkVoteClosing(claimId) != 1);
-        uint time = cd.claimDepositTime();
-        time = now.add(time);
-        uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", time);
-        tokens = tokens.sub(td.getBookedCA(msg.sender));
+        require(td.isTokenBooked(msg.sender) == false);
+        require(checkVoteClosing(claimId) != 1);   
+        uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", now.add(cd.claimDepositTime()));
         require(tokens > 0);
         uint8 stat;
         (, stat) = cd.getClaimStatusNumber(claimId);
@@ -271,8 +267,7 @@ contract Claims is Iupgradable {
         cd.addClaimVoteCA(claimId, voteLength);
         cd.setUserClaimVoteCA(msg.sender, claimId, voteLength);
         cd.setClaimTokensCA(claimId, verdict, tokens);
-        time = td.lockCADays();
-        tc.extendLockOf(msg.sender, "CLA", time);
+        tc.extendLockOf(msg.sender, "CLA", td.lockCADays());
         int close = checkVoteClosing(claimId);
         if (close == 1) {
             cr.changeClaimStatus(claimId);

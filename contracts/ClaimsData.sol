@@ -21,7 +21,7 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 contract ClaimsData is Iupgradable {
     using SafeMaths for uint;
 
-    struct claim {
+    struct Claim {
         uint coverId;
         uint dateUpd;
     }
@@ -30,7 +30,7 @@ contract ClaimsData is Iupgradable {
     mapping(uint => uint8) claimsStatus;
     mapping(uint => uint8) claimState12Count;
 
-    struct vote {
+    struct Vote {
         address voter;
         uint tokens;
         uint claimId;
@@ -38,26 +38,21 @@ contract ClaimsData is Iupgradable {
         bool rewardClaimed;
     }
 
-    struct claimStatus {
-        uint8 status;
-        uint dateUpd;
-    }
-
-    struct claimTotalTokens {
+    struct ClaimTotalTokens {
         uint accept;
         uint deny;
     }
 
-    claim[] allClaims;
-    vote[] allvotes;
+    Claim[] allClaims;
+    Vote[] allvotes;
 
-    struct claimsPause {
+    struct ClaimsPause {
         uint coverid;
         uint dateUpd;
         bool submit;
     }
 
-    claimsPause[] claimPause;
+    ClaimsPause[] claimPause;
     uint claimPauseLastsubmit;
 
     struct claimPauseVoting {
@@ -82,9 +77,9 @@ contract ClaimsData is Iupgradable {
     claimPauseVoting[] claimPauseVotingEP;
     uint claimStartVotingFirstIndex;
 
-    event Claim(uint indexed coverId, address indexed userAddress, uint claimId, uint dateSubmit);
+    event ClaimRaise(uint indexed coverId, address indexed userAddress, uint claimId, uint dateSubmit);
 
-    event Votes(
+    event VoteCast(
         address indexed userAddress,
         uint indexed claimId,
         bytes4 indexed typeOf,
@@ -102,8 +97,8 @@ contract ClaimsData is Iupgradable {
     mapping(address => uint[]) voteAddressCA;
     mapping(address => uint[]) voteAddressMember;
     mapping(address => uint[]) allClaimsByAddress;
-    mapping(uint => claimTotalTokens) claimTokensCA;
-    mapping(uint => claimTotalTokens) claimTokensMV;
+    mapping(uint => ClaimTotalTokens) claimTokensCA;
+    mapping(uint => ClaimTotalTokens) claimTokensMV;
 
     uint32 public maxVotingTime;
     uint32 public minVotingTime;
@@ -118,19 +113,14 @@ contract ClaimsData is Iupgradable {
         maxVotingTime = 1800;
         minVotingTime = 1200;
         payoutRetryTime = SafeMaths.mul32(SafeMaths.mul32(24, 60), 60);
-        allvotes.push(vote(0, 0, 0, 0, false));
-        allClaims.push(claim(0, 0));
+        allvotes.push(Vote(0, 0, 0, 0, false));
+        allClaims.push(Claim(0, 0));
         claimDepositTime = SafeMaths.mul(1, 7 days);
     }
 
     function changeDependentContractAddress() public onlyInternal {
 
     }
-
-/*     /// @dev Sets the escalation time.
-    function setEscalationTime(uint32 _time) onlyInternal {
-        escalationTime = _time;
-    } */
 
     /// @dev Sets Maximum time(in seconds) for which claim assessment voting is open
     function setMaxVotingTime(uint32 _time) external onlyInternal {
@@ -508,7 +498,7 @@ contract ClaimsData is Iupgradable {
 
     /// @dev Creates a new claim.
     function addClaim(uint _claimId, uint _coverId, address _from, uint _nowtime) external onlyInternal {
-        allClaims.push(claim(_coverId, _nowtime));
+        allClaims.push(Claim(_coverId, _nowtime));
         allClaimsByAddress[_from].push(_claimId);
 
     }
@@ -522,7 +512,7 @@ contract ClaimsData is Iupgradable {
 
     /// @dev Add Vote's details of a given claim.
     function addVote(address _voter, uint _tokens, uint claimId, int8 _verdict) external onlyInternal {
-        allvotes.push(vote(_voter, _tokens, claimId, _verdict, false));
+        allvotes.push(Vote(_voter, _tokens, claimId, _verdict, false));
     }
 
     /// @dev Stores the id of the claim assessor vote given to a claim.
@@ -603,7 +593,7 @@ contract ClaimsData is Iupgradable {
 
     /// @dev Ques Claims during Emergency Pause.
     function setClaimAtEmergencyPause(uint _coverId, uint _dateUpd, bool _submit) external onlyInternal {
-        claimPause.push(claimsPause(_coverId, _dateUpd, _submit));
+        claimPause.push(ClaimsPause(_coverId, _dateUpd, _submit));
     }
 
     /// @dev Get claim queued during emergency pause by index.
@@ -672,25 +662,31 @@ contract ClaimsData is Iupgradable {
     }
 
     /// @dev Calls Vote Event.
-    function callVoteEvent(address _userAddress, uint _claimId, bytes4 _typeOf, uint _tokens, uint _submitDate, int8 _verdict) external onlyInternal {
-        emit Votes(_userAddress, _claimId, _typeOf, _tokens, _submitDate, _verdict);
+    function callVoteEvent(
+        address _userAddress,
+        uint _claimId,
+        bytes4 _typeOf,
+        uint _tokens,
+        uint _submitDate,
+        int8 _verdict
+    )
+        external
+        onlyInternal
+    {
+        emit VoteCast(_userAddress, _claimId, _typeOf, _tokens, _submitDate, _verdict);
     }
 
     /// @dev Calls Claim Event.
-    function callClaimEvent(uint _coverId, address _userAddress, uint _claimId, uint _datesubmit) external onlyInternal {
-        emit Claim(_coverId, _userAddress, _claimId, _datesubmit);
+    function callClaimEvent(
+        uint _coverId,
+        address _userAddress,
+        uint _claimId,
+        uint _datesubmit
+    ) 
+        external
+        onlyInternal
+    {
+        emit ClaimRaise(_coverId, _userAddress, _claimId, _datesubmit);
     }
 
-/*  TODO     /// @dev Sets the minimum, maximum Claims assessment voting, escalation and payout retry times
-    /// @param _minVoteTime Minimum time(in seconds) for which claim assessment voting is open
-    /// @param _maxVoteTime Maximum time(in seconds) for which claim assessment voting is open
-    /// @param escaltime Time(in seconds) in which, after a denial by Claims assessor, a person can escalate claim for member voting
-    /// @param payouttime Time(in seconds) after which a payout is retried(in case a claim is accepted and payout fails)
-    function setTimes(uint32 _minVoteTime, uint32 _maxVoteTime, uint32 escaltime, uint32 payouttime) onlyInternal {
-        // Escalation time to be removed in future
-        setEscalationTime(escaltime);
-        setPayoutRetryTime(payouttime);
-        setMaxVotingTime(_maxVoteTime);
-        setMinVotingTime(_minVoteTime);
-    } */
 }

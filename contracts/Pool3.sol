@@ -264,7 +264,7 @@ contract Pool3 is Iupgradable {
     }
 
     /// @dev Gets currency asset balance for a given currency name.
-    function getCurrencyAssetsBalance(bytes8 curr) constant returns(uint caBalance) {
+    function getCurrencyAssetsBalance(bytes8 curr) public view returns(uint caBalance) {
 
         if (curr == "ETH") {
             caBalance = p1.getEtherPoolBalance();
@@ -279,7 +279,7 @@ contract Pool3 is Iupgradable {
     /// @return caRateX100 currency asset balance*100.
     /// @return baseMin minimum base amount required in Pool1.
     /// @return varMin  minimum variable amount required in Pool1.
-    function getCurrencyAssetDetails(bytes8 curr) constant returns(uint caBalance, uint caRateX100, uint baseMin, uint varMin) {
+    function getCurrencyAssetDetails(bytes8 curr) public view returns(uint caBalance, uint caRateX100, uint baseMin, uint varMin) {
         caBalance = getCurrencyAssetsBalance(curr);
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
 
@@ -391,7 +391,7 @@ contract Pool3 is Iupgradable {
 
 
     /// @dev Calculates the investment asset rank.
-    function calculateIARank(bytes8[] curr, uint64[] rate) public view returns(bytes8 maxCurr, uint64 maxRate, bytes8 minCurr, uint64 minRate) {
+    function calculateIARank(bytes8[] curr, uint64[] rate) public returns(bytes8 maxCurr, uint64 maxRate, bytes8 minCurr, uint64 minRate) {
         uint currentIAmaxHolding;
         uint currentIAminHolding;
         int max = 0;

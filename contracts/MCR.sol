@@ -33,7 +33,6 @@ contract MCR is Iupgradable {
     NXMToken internal tk;
     MCRData internal md;
     QuotationData internal qd;
-    BasicToken internal btok;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint private constant DECIMAL1E08 = uint(10) ** 8;
@@ -176,7 +175,7 @@ contract MCR is Iupgradable {
         vtp = 0;
         for (uint i = 1; i < md.getCurrLength(); i++) {
             bytes4 currency = md.getCurrencyByIndex(uint16(i));
-            btok = BasicToken(pd.getCurrencyAssetAddress(currency));
+            BasicToken btok = BasicToken(pd.getCurrencyAssetAddress(currency));
             uint currTokens = btok.balanceOf(ms.getLatestAddress("P1"));
             if (md.getCurr3DaysAvg(currency) > 0)
                 vtp = vtp.add((currTokens.mul(100)).div(md.getCurr3DaysAvg(currency)));
@@ -195,7 +194,7 @@ contract MCR is Iupgradable {
     * @param curr Currency name.
     * @param totalSupply Tokens in circulation
     */
-    function calculateTokenPrice (bytes4 curr, uint totalSupply) public view onlyInternal returns(uint tokenPrice) {
+    function calculateTokenPriceWithSupply (bytes4 curr, uint totalSupply) public view onlyInternal returns(uint tokenPrice) {
         return _calculateTokenPrice(curr, totalSupply);
     }
 
@@ -204,7 +203,7 @@ contract MCR is Iupgradable {
     *       token supply for dynamic token price calculation
     * @param curr Currency name.
     */ 
-    function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
+    function calculateTokenPrice (bytes4 curr) public view onlyInternal returns(uint tokenPrice) {
         return _calculateTokenPrice(curr, tk.totalSupply());
     }
     

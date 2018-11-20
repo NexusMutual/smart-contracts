@@ -221,9 +221,9 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint superWeiSpent;
         uint tokenPurchased;
         uint tokenSupply = tk.totalSupply();
-        require(m1.calculateTokenPrice("ETH", tokenSupply) > 0);
+        require(m1.calculateTokenPriceWithSupply("ETH", tokenSupply) > 0);
         while (superWeiLeft > 0) {
-            tokenPrice = m1.calculateTokenPrice("ETH", tokenSupply);
+            tokenPrice = m1.calculateTokenPriceWithSupply("ETH", tokenSupply);
             tempTokens = superWeiLeft.div(tokenPrice);
             if (tempTokens <= PRICE_STEP) {
                 tokenPurchased = tokenPurchased.add(tempTokens);
@@ -303,35 +303,34 @@ contract Pool1 is usingOraclize, Iupgradable {
         return _getWei(_amount, tk.totalSupply());
     }
 
-   
-    /// @dev Calls the payout event in case of Claims payout.
-    function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
-        Payout(_add, type1, id, sa);
-    }
+    // /// @dev Calls the payout event in case of Claims payout.
+    // function callPayoutEvent(address _add, bytes16 type1, uint id, uint sa) onlyInternal {
+    //     Payout(_add, type1, id, sa);
+    // }
 
     /// @dev Pays out the sum assured in case a claim is accepted
     /// @param coverid Cover Id.
     /// @param claimid Claim Id.
     /// @return succ true if payout is successful, false otherwise.
-    function sendClaimPayout(uint coverid, uint claimid) onlyInternal returns(bool succ) {
+    function sendClaimPayout(uint coverid, uint claimid) public onlyInternal returns(bool succ) {
 
         address _to = qd.getCoverMemberAddress(coverid);
         uint sumAssured = qd.getCoverSumAssured(coverid);
-        uint sumAssured1e18 = SafeMaths.mul(sumAssured, DECIMAL1E18);
+        uint sumAssured1e18 = sumAssured.mul(DECIMAL1E18);
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint balance;
 
         //Payout in Ethers in case currency of quotation is ETH
         if (curr == "ETH") {
-            balance = this.getEtherPoolBalance();
+            balance = address(this).balance;
             //Check if Pool1 has enough ETH balance
             if (balance >= sumAssured1e18) {
-                succ = this.transferEtherForPayout(sumAssured1e18, _to);
+                succ = _to.send(sumAssured1e18);
                 if (succ == true) {
                     q2.removeSAFromCSA(coverid, sumAssured);
                     pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));
                     p3.checkLiquidityCreateOrder(curr);
-                    callPayoutEvent(_to, "Payout", coverid, sumAssured1e18);
+                    emit Payout(_to, "Payout", coverid, sumAssured1e18);
                 } else {
                     c1.setClaimStatus(claimid, 12);
                 }
@@ -339,7 +338,7 @@ contract Pool1 is usingOraclize, Iupgradable {
                 c1.setClaimStatus(claimid, 12);
                 succ = false;
             }
-        }else {
+        } else {
           //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
             stok = StandardToken(pd.getCurrencyAssetAddress(curr));
             balance = stok.balanceOf(address(this));
@@ -349,7 +348,7 @@ contract Pool1 is usingOraclize, Iupgradable {
                 q2.removeSAFromCSA(coverid, sumAssured);
                 pd.changeCurrencyAssetVarMin(curr, uint64(SafeMaths.sub(pd.getCurrencyAssetVarMin(curr), sumAssured)));
                 p3.checkLiquidityCreateOrder(curr);
-                callPayoutEvent(_to, "Payout", coverid, sumAssured1e18);
+                emit Payout(_to, "Payout", coverid, sumAssured1e18);
                 succ = true;
             } else {
                 c1.setClaimStatus(claimid, 12);
@@ -390,7 +389,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint weiPaid;
         uint tokenSupply = _totalSupply;
         while (_amount > 0) {
-            tokenPrice = m1.calculateTokenPrice("ETH", tokenSupply);
+            tokenPrice = m1.calculateTokenPriceWithSupply("ETH", tokenSupply);
             tokenPrice = (tokenPrice.mul(975)).div(1000); //97.5%
             if (_amount <= PRICE_STEP) {
                 weiToPay = weiToPay.add((tokenPrice.mul(_amount)).div(DECIMAL1E18));

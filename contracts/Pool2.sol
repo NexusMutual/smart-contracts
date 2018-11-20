@@ -47,7 +47,7 @@ contract Pool2 is Iupgradable {
     BasicToken btok;
     Pool3 p3;
     QuotationData qd;
-    StandardToken public stok;
+    // StandardToken internal stok;
 
     address poolAddress;
     address exchangeContractAddress;
@@ -136,15 +136,15 @@ contract Pool2 is Iupgradable {
     }
 
     ///@dev Gets Pool balance of a given Investment Asset.
-    function getBalanceofInvestmentAsset(bytes8 _curr) public view returns(uint balance) {
+    function getBalanceofInvestmentAsset(bytes8 _curr) public returns(uint balance) {
         address currAddress = pd.getInvestmentAssetAddress(_curr);
-        stok = StandardToken(currAddress);
+        StandardToken stok = StandardToken(currAddress);
         return stok.balanceOf(address(this));
     }
 
     ///@dev Gets Pool1 balance of a given investmentasset.
-    function getBalanceOfCurrencyAsset(bytes8 _curr) public view returns(uint balance) {
-        stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
+    function getBalanceOfCurrencyAsset(bytes8 _curr) public returns(uint balance) {
+        StandardToken stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
         return stok.balanceOf(address(this));
     }
 
@@ -196,7 +196,7 @@ contract Pool2 is Iupgradable {
             pool1Add.send(amount);
         } else {
             address caAddress = pd.getCurrencyAssetAddress(curr);
-            stok = StandardToken(caAddress);
+            StandardToken stok = StandardToken(caAddress);
             stok.transfer(pool1Add, amount);
         }
     }
@@ -210,7 +210,7 @@ contract Pool2 is Iupgradable {
         returns (bool success)
     {
         // TODO: To be automated by version control in NXMaster
-        stok = StandardToken(_iaAddress);
+        StandardToken stok = StandardToken(_iaAddress);
         if (stok.balanceOf(this) > 0) {
             stok.transfer(_newPoolAddress, stok.balanceOf(this));
         }
@@ -225,7 +225,7 @@ contract Pool2 is Iupgradable {
         internal
         returns (bool success)
     {
-        stok = StandardToken(_caAddress);
+        StandardToken stok = StandardToken(_caAddress);
         if (stok.balanceOf(this) > 0) {
             stok.transfer(_newPoolAddress, stok.balanceOf(this));
         }

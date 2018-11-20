@@ -20,8 +20,7 @@ import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
 
 
 contract PoolData is Iupgradable {
-    using SafeMaths
-    for uint;
+    using SafeMaths for uint;
 
     mapping(bytes4 => string) apiCurr;
 

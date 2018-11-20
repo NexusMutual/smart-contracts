@@ -318,7 +318,6 @@ contract TokenFunctions is Iupgradable, Governed {
     */
     function burnStakerLockedToken(uint coverid, bytes4 curr, uint sa) public onlyInternal {
         address scAddress;
-        bytes32 reason;
         (, scAddress) = qd.getscAddressOfCover(coverid);
         uint tokenPrice = m1.calculateTokenPrice(curr);
         uint totalStaker = td.getStakedContractStakersLength(scAddress);
@@ -328,7 +327,7 @@ contract TokenFunctions is Iupgradable, Governed {
         
         for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
             if (burnNXMAmount > 0) {
-                stakerAddress = td.getStakerStakedContractByIndex(scAddress, i);
+                stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
                 uint stakerStakedNXM = _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, i);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
@@ -521,12 +520,32 @@ contract TokenFunctions is Iupgradable, Governed {
     * @param _stakedContractAddress staked contract address
     * @param _stakedContractIndex index of staking
     */
-    function _getStakerLockedTokensOnSmartContract (
+    function getStakerLockedTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
         uint _stakedContractIndex
     )
         public
+        view
+        returns
+        (uint amount)
+    {   
+        amount = _getStakerLockedTokensOnSmartContract(_stakerAddress, _stakedContractAddress, _stakedContractIndex);
+    }
+
+    /**
+    * @dev Internal function to gets amount of locked NXM tokens,
+    *      staked against smartcontract by index
+    * @param _stakerAddress address of user
+    * @param _stakedContractAddress staked contract address
+    * @param _stakedContractIndex index of staking
+    */
+    function _getStakerLockedTokensOnSmartContract (
+        address _stakerAddress,
+        address _stakedContractAddress,
+        uint _stakedContractIndex
+    )
+        internal
         view
         returns
         (uint amount)

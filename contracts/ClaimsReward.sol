@@ -48,7 +48,7 @@ contract ClaimsReward is Iupgradable {
     Pool3 internal p3;
     PoolData internal pd;
 
-    uint64 private constant DECIMAL1E18 = 1000000000000000000;
+    uint private constant DECIMAL1E18 = uint(10) ** 18;
 
     modifier checkPause {
         require(ms.isPause() == false);
@@ -75,9 +75,7 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Decides the next course of action for a given claim.
-    function changeClaimStatus(uint claimid) public checkPause {
-
-        require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
+    function changeClaimStatus(uint claimid) public checkPause onlyInternal {
 
         uint coverid;
         (, coverid) = cd.getClaimCoverId(claimid);
@@ -92,10 +90,8 @@ contract ClaimsReward is Iupgradable {
             changeClaimStatusMV(claimid, coverid, status);
         } else if (status == 12) { // when current status is "Claim Accepted Payout Pending"
             bool succ = p1.sendClaimPayout(coverid, claimid);
-            if (succ) {
-
+            if (succ) 
                 c1.setClaimStatus(claimid, 14);
-            }
         }
         c1.changePendingClaimStart();
     }
@@ -221,7 +217,7 @@ contract ClaimsReward is Iupgradable {
 
     function claimAllPendingReward() public isMemberAndcheckPause {
         claimRewardToBeDistributed();
-        // claimStakeCommission(); TODO: fix stake redemption
+        // claimStakeCommission(); TODO: fix stake redemption 
     }
 
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
@@ -238,12 +234,12 @@ contract ClaimsReward is Iupgradable {
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint64 sumAssured = uint64(qd.getCoverSumAssured(coverid));
         uint currPrice = tf.getTokenPrice(curr);
-        uint distributableTokens = SafeMaths.div(
-            SafeMaths.mul(
-                SafeMaths.mul(sumAssured, DECIMAL1E18), DECIMAL1E18),
-            SafeMaths.mul(currPrice, 100)); //  1% of sum assured
+        uint distributableTokens = (DECIMAL1E18.mul(DECIMAL1E18).mul(sumAssured)).
+            div(currPrice.mul(100));            //  1% of sum assured
+            
         uint percCA;
         uint percMV;
+
         (percCA, percMV) = c1.getRewardStatus(status);
         cd.setClaimRewardDetail(claimid, percCA, percMV, distributableTokens);
         if (percCA > 0 || percMV > 0) {
@@ -269,52 +265,50 @@ contract ClaimsReward is Iupgradable {
         // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
             uint caTokens = c1.getCATokens(claimid, 0);
-            uint rewardClaim = 0;
+            uint accept;
+            uint deny;
+            uint acceptAndDeny;
+            bool rewardOrPunish;
+            (, accept) = cd.getClaimVote(claimid, 1);
+            (, deny) = cd.getClaimVote(claimid, -1);
+            acceptAndDeny = accept.add(deny);
+            accept = accept.mul(100);
+            deny = deny.mul(100);
+
             if (caTokens == 0) {
                 status = 3;
             } else {
                 uint sumassured = qd.getCoverSumAssured(coverid);
-                uint thresholdUnreached = 0;
-                // Minimum threshold for CA voting is reached only when value of tokens 
-                // used for voting > 5* sum assured of claim id
-                if (caTokens < SafeMaths.mul(SafeMaths.mul(5, sumassured), DECIMAL1E18))
-                    thresholdUnreached = 1;
+                // Min threshold reached tokens used for voting > 5* sum assured 
+                if (caTokens > sumassured.mul(DECIMAL1E18).mul(5)) {
 
-                uint accept;
-                (, accept) = cd.getClaimVote(claimid, 1);
-                uint deny;
-                (, deny) = cd.getClaimVote(claimid, -1);
+                    if (accept.div(acceptAndDeny) > 70) {
+                        status = 7;
+                        qd.changeCoverStatusNo(coverid, 1);
+                        rewardOrPunish = true;
+                    } else if (deny.div(acceptAndDeny) > 70) {
+                        status = 6;
+                        qd.changeCoverStatusNo(coverid, 2);
+                        rewardOrPunish = true;
+                    } else if (accept.div(acceptAndDeny) > deny.div(acceptAndDeny)) {
+                        status = 4;
+                    } else {
+                        status = 5;
+                    }
 
-                if (SafeMaths.div(SafeMaths.mul(accept, 100), (SafeMaths.add(accept, deny))) > 70 && thresholdUnreached == 0) {
-                    status = 7;
-                    qd.changeCoverStatusNo(coverid, 1);
-                    // Call API of Pool
-                    rewardClaim = 1;
-                } else if (SafeMaths.div(SafeMaths.mul(deny, 100), (SafeMaths.add(accept, deny))) > 70 && thresholdUnreached == 0) {
-                    status = 6;
-                    rewardClaim = 1;
-                    qd.changeCoverStatusNo(coverid, 2);
+                } else {
 
-                } else if (SafeMaths.div(SafeMaths.mul(deny, 100),
-                            (SafeMaths.add(accept, deny))) > SafeMaths.div(SafeMaths.mul(accept, 100),
-                            (SafeMaths.add(accept, deny))) && thresholdUnreached == 0) {
-                    status = 5;
-                } else if (SafeMaths.div(SafeMaths.mul(deny, 100),
-                            (SafeMaths.add(accept, deny))) <= SafeMaths.div(SafeMaths.mul(accept, 100),
-                            (SafeMaths.add(accept, deny))) && thresholdUnreached == 0) {
-                    status = 4;
-                } else if (SafeMaths.div(SafeMaths.mul(deny, 100),
-                            (SafeMaths.add(accept, deny))) > SafeMaths.div(SafeMaths.mul(accept, 100),
-                            (SafeMaths.add(accept, deny))) && thresholdUnreached == 1) {
-                    status = 3;
-                } else if (SafeMaths.div(SafeMaths.mul(deny, 100),
-                            (SafeMaths.add(accept, deny))) <= SafeMaths.div(SafeMaths.mul(accept, 100),
-                            (SafeMaths.add(accept, deny))) && thresholdUnreached == 1) {
-                    status = 2;
+                    if (accept.div(acceptAndDeny) > deny.div(acceptAndDeny)) {
+                        status = 2;
+                    } else {
+                        status = 3;
+                    }
                 }
             }
+
             c1.setClaimStatus(claimid, status);
-            if (rewardClaim == 1)
+
+            if (rewardOrPunish)
                 rewardAgainstClaim(claimid, coverid, status);
         }
     }
@@ -425,22 +419,13 @@ contract ClaimsReward is Iupgradable {
     //     uint total=0;
     //     address scAdd;
     //     uint len = td.getStakerStakedContractLength(msg.sender);
-    //     uint commissionLen;
-    //     uint lastClaimedCommission;
+    //     uint lastCompletedStakeCommission;
     //     uint commissionAmt;
     //     bool claimed;
-    //     for (uint i = 0; i < len; i++) {
+    //     lastCompletedStakeCommission = td.lastCompletedStakeCommission(msg.sender);
+    //     for (uint i = lastCompletedStakeCommission; i < len; i++) {
     //         scAdd = td.getStakerStakedContractByIndex(msg.sender, i);
-    //         commissionLen = td.getStakeCommissionLength(msg.sender, scAdd, i);
-    //         lastClaimedCommission = td.getLastClaimedCommission(msg.sender, scAdd, i);
-    //         for (uint j = lastClaimedCommission; j < commissionLen; j++) {
-    //             (, , commissionAmt, , claimed) = td.getStakeCommission(msg.sender, scAdd, i, j);
-    //             if (!claimed) {
-    //                 total = total.add(commissionAmt);
-    //                 td.setClaimedCommision(msg.sender, scAdd, i, j);
-    //             }
-    //         }
-    //         td.setLastClaimedCommission(msg.sender, scAdd, i, commissionLen);
+            
     //     }
 
     //     if (total > 0)

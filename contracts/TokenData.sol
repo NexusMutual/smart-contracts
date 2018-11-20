@@ -87,7 +87,7 @@ contract TokenData is Iupgradable {
     // holds amount of covernote to be burned 
     mapping(uint => CoverNote) internal depositedCN;
 
-    mapping(address => BookedTokens[]) internal bookedCA;
+    mapping(address => BookedTokens) internal bookedCA;
 
     event Commission(
         address indexed stakedContractAddress,
@@ -337,18 +337,21 @@ contract TokenData is Iupgradable {
     * @param value number of tokens that will be locked for a period of time.
     */
     function pushBookedCA(address _of, uint value) public onlyInternal {
-        bookedCA[_of].push(BookedTokens(value, now.add(bookTime)));
+        require(isTokenBooked(_of) == false);
+        bookedCA[_of].amount = value;
+        bookedCA[_of].validUntil = now.add(bookTime);
     }
 
     /**
     * @dev Calculates the sum of tokens booked by a user for Claims Assessment.
     */ 
-    function getBookedCA(address _to) public view onlyInternal returns(uint tokensBookedCA) {
-        tokensBookedCA = 0;
-        for (uint i = 0; i < bookedCA[_to].length; i++) {
-            if (now < bookedCA[_to][i].validUntil)
-                tokensBookedCA = tokensBookedCA.add(bookedCA[_to][i].amount);
-        }
+    function getBookedCA(address _of) public view onlyInternal returns(uint tokensBookedCA) {
+        tokensBookedCA = bookedCA[_of].amount;
+    }
+
+    function isTokenBooked(address _of) public view returns(bool res) {
+        if(now < bookedCA[_of].validUntil)
+            res = true;
     }
 
     /**

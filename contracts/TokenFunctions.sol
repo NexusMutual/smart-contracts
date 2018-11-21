@@ -285,23 +285,23 @@ contract TokenFunctions is Iupgradable, Governed {
                 (stakerAddress, ) = td.stakedContractStakers(_scAddress, i);
                 stakerIndex = td.getStakedContractStakerIndex(_scAddress, i);
                 stakeAmt = td.getStakerInitialStakedAmountOnContract(stakerAddress, stakerIndex);
-                uint totalCommission = (stakeAmt.mul(50)).div(100);
+                uint maxCommission = (stakeAmt.mul(50)).div(100);
                 uint commissionEarned;
                 commissionEarned = td.getStakerEarnedStakeCommission(stakerAddress, stakerIndex);
-                if (totalCommission > commissionEarned) {
-                    if (totalCommission >= commissionEarned.add(commissionToBePaid)) {
-                        td.pushStakeCommissions(stakerAddress, _scAddress, i, 
-                            commissionEarned.add(commissionToBePaid));
+                if (maxCommission > commissionEarned) {
+                    if (maxCommission >= commissionEarned.add(commissionToBePaid)) {
+                        td.pushEarnedStakeCommissions(stakerAddress, _scAddress, 
+                            i, commissionToBePaid);
                         tc.mint(claimsRewardAddress, commissionToBePaid);
                         if (i > 0)
                             td.setStakedContractCurrentCommissionIndex(_scAddress, i);
                         commissionToBePaid = 0;
                         break;
                     } else {
-                        td.pushStakeCommissions(stakerAddress, _scAddress, i,
-                            totalCommission);
-                        tc.mint(claimsRewardAddress, totalCommission.sub(commissionEarned));
-                        commissionToBePaid = commissionToBePaid.sub(totalCommission.sub(commissionEarned));
+                        td.pushEarnedStakeCommissions(stakerAddress, _scAddress, i,
+                            maxCommission.sub(commissionEarned));
+                        tc.mint(claimsRewardAddress, maxCommission.sub(commissionEarned));
+                        commissionToBePaid = commissionToBePaid.sub(maxCommission.sub(commissionEarned));
                     }
                 }
             } else
@@ -450,7 +450,28 @@ contract TokenFunctions is Iupgradable, Governed {
     function bookCATokens(address _to, uint value) public onlyInternal {
         td.pushBookedCA(_to, value);
     }
-    
+
+    /**
+    * @dev Internal function to gets amount of locked NXM tokens,
+    *      staked against smartcontract by index
+    * @param _stakerAddress address of user
+    * @param _stakedContractAddress staked contract address
+    * @param _stakedContractIndex index of staking
+    */
+    function getStakerLockedTokensOnSmartContract (
+        address _stakerAddress,
+        address _stakedContractAddress,
+        uint _stakedContractIndex
+    )
+        public
+        view
+        returns
+        (uint amount)
+    {   
+        amount = _getStakerLockedTokensOnSmartContract(_stakerAddress,
+             _stakedContractAddress, _stakedContractIndex);
+    }
+
     /**
     * @dev Internal function to gets unlockable amount of locked NXM tokens,
     *      staked against smartcontract by index
@@ -513,25 +534,6 @@ contract TokenFunctions is Iupgradable, Governed {
         } 
     }
 
-    /**
-    * @dev Internal function to gets amount of locked NXM tokens,
-    *      staked against smartcontract by index
-    * @param _stakerAddress address of user
-    * @param _stakedContractAddress staked contract address
-    * @param _stakedContractIndex index of staking
-    */
-    function getStakerLockedTokensOnSmartContract (
-        address _stakerAddress,
-        address _stakedContractAddress,
-        uint _stakedContractIndex
-    )
-        public
-        view
-        returns
-        (uint amount)
-    {   
-        amount = _getStakerLockedTokensOnSmartContract(_stakerAddress, _stakedContractAddress, _stakedContractIndex);
-    }
 
     /**
     * @dev Internal function to gets amount of locked NXM tokens,
@@ -550,7 +552,8 @@ contract TokenFunctions is Iupgradable, Governed {
         returns
         (uint amount)
     {   
-        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress, _stakedContractAddress, _stakedContractIndex));
+        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress,
+            _stakedContractAddress, _stakedContractIndex));
         amount = tc.tokensLockedAtTime(_stakerAddress, reason, now);
     }
 
@@ -591,7 +594,7 @@ contract TokenFunctions is Iupgradable, Governed {
         uint _stakeDays,
         uint _validDays
     ) 
-        public
+        internal
         view 
         returns (uint amount)
     {
@@ -613,7 +616,8 @@ contract TokenFunctions is Iupgradable, Governed {
     ) 
         internal
     {
-        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress, _stakedContractAddress, _stakedContractIndex));
+        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress,
+            _stakedContractAddress, _stakedContractIndex));
         tc.burnLockedTokens(_stakerAddress, reason, _amount);
     }
 

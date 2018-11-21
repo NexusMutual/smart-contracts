@@ -171,13 +171,13 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev pushes the commission earned by a staker.
+    * @dev pushes the earned commission earned by a staker.
     * @param _stakerAddress address of staker.
     * @param _stakedContractAddress address of smart contract.
     * @param _stakedContractIndex index of the staker to distribute commission.
     * @param _commissionAmount amount to be given as commission.
     */ 
-    function pushStakeCommissions(
+    function pushEarnedStakeCommissions(
         address _stakerAddress,
         address _stakedContractAddress,
         uint _stakedContractIndex,
@@ -186,13 +186,36 @@ contract TokenData is Iupgradable {
         public
         onlyInternal
     {
-        stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].commissionEarned = _commissionAmount;
+        stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].
+            commissionEarned = stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].
+                commissionEarned.add(_commissionAmount);
         emit Commission(
             _stakerAddress,
             _stakedContractAddress,
             _stakedContractIndex,
             _commissionAmount
         );
+    }
+
+    /**
+    * @dev pushes the redeemed commission redeemed by a staker.
+    * @param _stakerAddress address of staker.
+    * @param _stakerIndex index of the staker to distribute commission.
+    * @param _amount amount to be given as commission.
+    */ 
+    function pushRedeemedStakeCommissions(
+        address _stakerAddress,
+        uint _stakerIndex,
+        uint _amount
+    )   
+        public
+        onlyInternal
+    {   
+        uint stakedContractIndex = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractIndex;
+        address stakedContractAddress = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractAddress;
+        stakedContractStakeCommission[stakedContractAddress][stakedContractIndex].
+            commissionRedeemed = stakedContractStakeCommission[stakedContractAddress][stakedContractIndex].
+                commissionRedeemed.add(_amount);
     }
 
     /**
@@ -295,7 +318,7 @@ contract TokenData is Iupgradable {
     {
         stakerAddress = stakedContractStakers[_stakedContractAddress][_stakedContractIndex].stakerAddress;
     }
-    
+
     function getStakedContractStakersLength(
         address _stakedContractAddress
     ) 
@@ -350,7 +373,7 @@ contract TokenData is Iupgradable {
     }
 
     function isTokenBooked(address _of) public view returns(bool res) {
-        if(now < bookedCA[_of].validUntil)
+        if (now < bookedCA[_of].validUntil)
             res = true;
     }
 
@@ -391,6 +414,15 @@ contract TokenData is Iupgradable {
     */
     function setStakedContractCurrentCommissionIndex(address _stakedContractAddress, uint _index) public onlyInternal {
         stakedContractCurrentCommissionIndex[_stakedContractAddress] = _index;
+    }
+
+    /**
+    * @dev Sets the last complete commission index
+    * @param _stakerAddress smart contract address.
+    * @param _index current index.
+    */
+    function setLastCompletedStakeCommissionIndex(address _stakerAddress, uint _index) public onlyInternal {
+        lastCompletedStakeCommission[_stakerAddress] = _index;
     }
 
     /**
@@ -445,7 +477,7 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Internal function to get stake commission given to an 
+    * @dev Internal function to get stake commission redeemed by an 
     * underwriter for particular stakedcontract on given index.
     * @param _stakerAddress address of staker.
     * @param _stakerIndex index of the staker commission.

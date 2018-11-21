@@ -27,6 +27,7 @@ require('chai')
 
 contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
   const fee = ether(0.002);
+  const tokens = ether(200);
   const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
   before(async function() {
     await advanceBlock();
@@ -37,10 +38,12 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
     td = await TokenData.deployed();
     await tf.payJoiningFee(member1, { from: member1, value: fee });
     await tf.kycVerdict(member1, true);
-    await P1.buyToken({ from: member1, value: ether(1) });
     await tf.payJoiningFee(member2, { from: member2, value: fee });
     await tf.kycVerdict(member2, true);
-    await P1.buyToken({ from: member2, value: ether(1) });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tk.transfer(member1, tokens);
+    await tk.transfer(member2, tokens);
   });
   describe('Lock Tokens', function() {
     const lockTokens = ether(1);
@@ -53,7 +56,6 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
       it('should have zero initialLockedTokens', async function() {
         initialLockedTokens = await tc.tokensLocked(member1, CLA);
         initialTokenBalance = await tk.balanceOf(member1);
-        await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
         initialLockedTokens.should.be.bignumber.equal(0);
       });
       it('should not be able to lock tokens more than balance', async function() {
@@ -77,7 +79,6 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
       });
       it('emits Lock event', async function() {
         const lockTokens = ether(2);
-        await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
         const { logs } = await tc.lock(CLA, lockTokens, validity, {
           from: member2
         });
@@ -138,8 +139,8 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         before(async function() {
           await tf.payJoiningFee(member3, { from: member3, value: fee });
           await tf.kycVerdict(member3, true);
-          await P1.buyToken({ from: member3, value: ether(1) });
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+          await tk.transfer(member3, tokens);
           await tc.lock(CLA, lockTokens, validity, {
             from: member3
           });

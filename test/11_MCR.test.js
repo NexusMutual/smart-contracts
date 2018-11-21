@@ -41,7 +41,7 @@ contract('MCR', function([owner, notOwner]) {
 
     before(async function() {
       await cad.transfer(p1.address, ether(600));
-      balance_DAI = await p1.getBalanceOfCurrencyAsset(CA_DAI);
+      balance_DAI = await p1.getBalanceOfCurrencyAsset.call(CA_DAI);
       balance_ETH = await p1.getEtherPoolBalance();
     });
 

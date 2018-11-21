@@ -11,6 +11,7 @@ const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
 const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const CA_ETH = '0x45544800';
 const expectEvent = require('./utils/expectEvent');
 
 const ETH = '0x455448';
@@ -229,6 +230,7 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
             const amount = ether(1.6);
             beforeEach(async function() {
               await tk.approve(spender, amount, { from: sender });
+              await tk.transfer(sender, ether(50));
             });
 
             it('transfers the requested amount', async function() {

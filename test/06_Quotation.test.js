@@ -71,8 +71,8 @@ contract('Quotation', function([
 ]) {
   const BN_100 = new BigNumber(100);
   const BN_5 = new BigNumber(5);
-  const BN_20 = new BigNumber(20);
   const P_18 = new BigNumber(1e18);
+  const tokens = ether(200);
   const tokenAmount = ether(1);
   const tokenDai = ether(4);
   const stakeTokens = ether(2);
@@ -167,13 +167,10 @@ contract('Quotation', function([
                 value: fee
               });
               await tf.kycVerdict(coverHolder, true);
-              await P1.buyToken({
-                from: coverHolder,
-                value: tokenAmount
-              });
               await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
                 from: coverHolder
               });
+              await tk.transfer(coverHolder, tokens);
             });
             it('should not have locked Cover Note initially', async function() {
               const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
@@ -261,13 +258,10 @@ contract('Quotation', function([
                 value: fee
               });
               await tf.kycVerdict(coverHolder, true);
-              await P1.buyToken({
-                from: coverHolder,
-                value: tokenAmount
-              });
               await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
                 from: coverHolder
               });
+              await tk.transfer(coverHolder, tokens);
             });
             it('should not have locked Cover Note initially', async function() {
               const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
@@ -317,7 +311,10 @@ contract('Quotation', function([
                 .toFixed(0)
                 .should.be.bignumber.equal(await tk.balanceOf(coverHolder));
               newTotalSupply.should.be.bignumber.equal(
-                (await tk.totalSupply()).div(P_18).toFixed(0)
+                (await tk.totalSupply())
+                  .div(P_18)
+                  .plus(1)
+                  .toFixed(0)
               );
             });
             it('should return correct cover details', async function() {
@@ -434,16 +431,17 @@ contract('Quotation', function([
           const staker2 = member2;
           let event;
           before(async function() {
-            await P1.buyToken({ from: staker1, value: tokenAmount });
             await tf.payJoiningFee(staker2, {
               from: staker2,
               value: fee
             });
             await tf.kycVerdict(staker2, true);
-            await P1.buyToken({ from: staker2, value: tokenAmount });
             await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
               from: staker2
             });
+            await tk.transfer(staker2, tokens);
+            await tk.transfer(staker1, tokens);
+            await tk.transfer(staker2, tokens);
             await tf.addStake(smartConAdd, stakeTokens, {
               from: staker1
             });

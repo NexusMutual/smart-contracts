@@ -52,7 +52,7 @@ contract('NXMaster: Emergency Pause', function([
   newMember
 ]) {
   const stakeTokens = ether(1);
-  const tokens = ether(1);
+  const tokens = ether(200);
   const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
 
@@ -73,29 +73,29 @@ contract('NXMaster: Emergency Pause', function([
     mcr = await MCR.deployed();
     await tf.payJoiningFee(member1, { from: member1, value: fee });
     await tf.kycVerdict(member1, true);
-    await P1.buyToken({ from: member1, value: ether(1) });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
     await tf.payJoiningFee(member2, { from: member2, value: fee });
     await tf.kycVerdict(member2, true);
-    await P1.buyToken({ from: member2, value: ether(2) });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tf.payJoiningFee(member3, { from: member3, value: fee });
     await tf.kycVerdict(member3, true);
-    await P1.buyToken({ from: member3, value: ether(2) });
     await tf.payJoiningFee(coverHolder1, {
       from: coverHolder1,
       value: fee
     });
     await tf.kycVerdict(coverHolder1, true);
-    await P1.buyToken({ from: coverHolder1, value: ether(3) });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder1 });
     await tf.payJoiningFee(coverHolder2, {
       from: coverHolder2,
       value: fee
     });
     await tf.kycVerdict(coverHolder2, true);
-    await P1.buyToken({ from: coverHolder2, value: ether(3) });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder2 });
+    await tk.transfer(member1, tokens);
+    await tk.transfer(member2, tokens);
+    await tk.transfer(member3, tokens);
+    await tk.transfer(coverHolder1, tokens);
+    await tk.transfer(coverHolder2, tokens);
     await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
     await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
     maxVotingTime = await cd.maxVotingTime();
@@ -127,10 +127,10 @@ contract('NXMaster: Emergency Pause', function([
         { from: coverHolder2, value: coverDetails[1] }
       );
 
-      await tc.lock(CLA, tokens, validity, {
+      await tc.lock(CLA, ether(60), validity, {
         from: member1
       });
-      await tc.lock(CLA, tokens, validity, {
+      await tc.lock(CLA, ether(9), validity, {
         from: member2
       });
     });

@@ -26,6 +26,7 @@ require('chai')
 contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
   const fee = ether(0.002);
   const stakeTokens = ether(5);
+  const tokens = ether(200);
   const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
   before(async function() {
     await advanceBlock();
@@ -36,13 +37,14 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     td = await TokenData.deployed();
     await tf.payJoiningFee(member1, { from: member1, value: fee });
     await tf.kycVerdict(member1, true);
-    await P1.buyToken({ from: member1, value: ether(1) });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
     await tf.payJoiningFee(member2, { from: member2, value: fee });
     await tf.kycVerdict(member2, true);
-    await P1.buyToken({ from: member2, value: ether(1) });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tk.transfer(member1, tokens);
+    await tk.transfer(member2, tokens);
   });
+
   describe('Stake Tokens', function() {
     describe('Staker is not member', function() {
       it('reverts', async function() {
@@ -55,7 +57,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
       describe('Staker does not have enough tokens', function() {
         it('reverts', async function() {
           await assertRevert(
-            tf.addStake(stakedContract, stakeTokens.plus(9e20), {
+            tf.addStake(stakedContract, stakeTokens.plus(1e24), {
               from: member1
             })
           );

@@ -95,11 +95,11 @@ contract MCR is Iupgradable {
         md.addCurrency(curr);
     }
 
-    // /// @dev Gets name of currency at a given index.
-    // function getCurrencyByIndex(uint16 index) external view returns(uint16 id, bytes4 curr) {
-    //     curr = md.getCurrencyByIndex(index);
-    //     id = index;
-    // }
+    /// @dev Gets name of currency at a given index.
+    function getCurrencyByIndex(uint16 index) external view returns(uint16 id, bytes4 curr) {
+        curr = md.getCurrencyByIndex(index);
+        id = index;
+    }
 
     /// @dev Changes scaling factor which determines token price.
     function changeSF(uint32 val) external onlyOwner {
@@ -203,20 +203,19 @@ contract MCR is Iupgradable {
     *       token supply for dynamic token price calculation
     * @param curr Currency name.
     */ 
-    function calculateTokenPrice (bytes4 curr) public view onlyInternal returns(uint tokenPrice) {
+    function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
         return _calculateTokenPrice(curr, tk.totalSupply());
     }
     
     /// @dev Gets max numbers of tokens that can be sold at the moment.
     function getMaxSellTokens() public view returns(uint maxTokens) {
-        uint maxTokensAccPoolBal = SafeMaths.sub(p1.getEtherPoolBalance(), SafeMaths.mul(
-            SafeMaths.div(SafeMaths.mul(50, pd.getCurrencyAssetBaseMin("ETH")), 100), DECIMAL1E18));
-        maxTokensAccPoolBal = SafeMaths.mul(SafeMaths.div(maxTokensAccPoolBal, 
-        SafeMaths.mul(975, SafeMaths.div(calculateTokenPrice("ETH"), 1000))), DECIMAL1E18);
-        maxTokens = SafeMaths.mul(SafeMaths.div(SafeMaths.mul(SafeMaths.sub(
-            md.getLastMCRPerc(), 10000), 2000), 10000), DECIMAL1E18);
+        uint maxTokensAccPoolBal  = p1.getEtherPoolBalance().sub(((
+            uint(pd.getCurrencyAssetBaseMin("ETH")).mul(50)).div(100)).mul(DECIMAL1E18));
+        maxTokensAccPoolBal = (maxTokensAccPoolBal.div((calculateTokenPrice("ETH")
+            .div(1000)).mul(975))).mul(DECIMAL1E18);
+        maxTokens = (((uint(md.getLastMCRPerc()).sub(10000)).mul(2000)).div(10000)).mul(DECIMAL1E18); 
         if (maxTokens > maxTokensAccPoolBal)
-            maxTokens = maxTokensAccPoolBal;
+            maxTokens = maxTokensAccPoolBal;     
     }
 
     /// @dev Adds MCR Data.

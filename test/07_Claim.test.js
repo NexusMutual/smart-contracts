@@ -57,7 +57,7 @@ contract('Claim', function([
 ]) {
   const P_18 = new BigNumber(1e18);
   const stakeTokens = ether(2);
-  const tokens = ether(6.5);
+  const tokens = ether(200);
   const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
 
@@ -80,19 +80,20 @@ contract('Claim', function([
     before(async function() {
       await tf.payJoiningFee(member1, { from: member1, value: fee });
       await tf.kycVerdict(member1, true);
-      await P1.buyToken({ from: member1, value: ether(0.8) });
       await tf.payJoiningFee(member2, { from: member2, value: fee });
       await tf.kycVerdict(member2, true);
-      await P1.buyToken({ from: member2, value: ether(1) });
       await tf.payJoiningFee(member3, { from: member3, value: fee });
       await tf.kycVerdict(member3, true);
-      await P1.buyToken({ from: member3, value: ether(1.6) });
       await tf.payJoiningFee(member4, { from: member4, value: fee });
       await tf.kycVerdict(member4, true);
-      await P1.buyToken({ from: member4, value: ether(1) });
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+      await tk.transfer(member1, tokens);
+      await tk.transfer(member2, tokens);
+      await tk.transfer(member3, tokens);
+      await tk.transfer(member4, tokens);
       await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
       await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
       await tf.addStake(smartConAdd, stakeTokens, { from: member3 });
@@ -229,9 +230,6 @@ contract('Claim', function([
           describe('if claim is already accepted', function() {
             const newCoverHolder = member4;
             before(async function() {
-              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-                from: member4
-              });
               await P1.makeCoverBegin(
                 PID,
                 smartConAdd,

@@ -89,25 +89,25 @@ contract('MCRDataMock', function([owner, notOwner]) {
         await assertRevert(mcrd.changeMinReqMCR(1, { from: notOwner }));
       });
     });
+  });
 
-    describe('Misc', function() {
-      it('should return true if notarise address', async function() {
-        (await mcrd.isnotarise(owner)).should.equal(true);
-      });
-      it('should return false if not notarise address', async function() {
-        (await mcrd.isnotarise(notOwner)).should.equal(false);
-      });
-      it('should not be able to change master address', async function() {
-        await assertRevert(
-          mcrd.changeMasterAddress(mcrd.address, { from: notOwner })
-        );
-      });
-      it('should not be able to add Currency', async function() {
-        await assertRevert(mcrd.addCurrency('0x4c4f4c', { from: notOwner }));
-        await mcrd.getSFx100000();
-        await mcrd.getLastMCREther();
-        await mcrd.getLastVfull();
-      });
+  describe('Misc', function() {
+    it('should return true if notarise address', async function() {
+      (await mcrd.isnotarise(owner)).should.equal(true);
+    });
+    it('should return false if not notarise address', async function() {
+      (await mcrd.isnotarise(notOwner)).should.equal(false);
+    });
+    it('should not be able to change master address', async function() {
+      await assertRevert(
+        mcrd.changeMasterAddress(mcrd.address, { from: notOwner })
+      );
+    });
+    it('should not be able to add Currency', async function() {
+      await assertRevert(mcrd.addCurrency('0x4c4f4c', { from: notOwner }));
+      await mcrd.getSFx100000();
+      await mcrd.getLastMCREther();
+      await mcrd.getLastVfull();
     });
   });
 });

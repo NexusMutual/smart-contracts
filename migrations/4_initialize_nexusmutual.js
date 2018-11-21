@@ -22,7 +22,7 @@ const Exchange = artifacts.require('Exchange');
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const WETH_0x = web3.eth.accounts[18];
 const Owner = web3.eth.accounts[0];
-const POOL_ETHER = 25 * 1e18;
+const POOL_ETHER = 15 * 1e18;
 
 module.exports = function(deployer) {
   deployer.then(async () => {

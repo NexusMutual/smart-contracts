@@ -150,7 +150,7 @@ contract ClaimsReward is Iupgradable {
                     }
                 }
                 if (totalTokens > 0) {
-                    tokenCalculated = SafeMaths.div(SafeMaths.mul(perc, SafeMaths.mul(tokens, tokensToBeDist)), SafeMaths.mul(100, totalTokens));
+                    tokenCalculated = (perc.mul(tokens).mul(tokensToBeDist)).div(totalTokens.mul(100));
                 }
             }
         }
@@ -160,7 +160,7 @@ contract ClaimsReward is Iupgradable {
     function upgrade(address _newAdd) public onlyInternal {
         uint amount = tk.balanceOf(address(this));
         if (amount > 0)
-            tk.transfer(_newAdd, amount);
+            require(tk.transfer(_newAdd, amount));
     }
 
     /// @dev Total reward in token due for claim by a user.
@@ -192,7 +192,7 @@ contract ClaimsReward is Iupgradable {
     /// @dev Gets reward amount and claiming status for a given claim id.
     /// @return reward amount of tokens to user.
     /// @return claimed true if already claimed false if yet to be claimed.
-    function getRewardAndClaimedStatus(uint check, uint claimId) constant returns(uint reward, bool claimed) {
+    function getRewardAndClaimedStatus(uint check, uint claimId) public view returns(uint reward, bool claimed) {
         uint voteId;
         uint claimid;
 
@@ -217,7 +217,7 @@ contract ClaimsReward is Iupgradable {
 
     function claimAllPendingReward() public isMemberAndcheckPause {
         claimRewardToBeDistributed();
-        // claimStakeCommission(); TODO: fix stake redemption 
+        claimStakeCommission(); 
     }
 
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
@@ -371,7 +371,7 @@ contract ClaimsReward is Iupgradable {
         uint tokenForVoteId = 0;
         bool lastClaimedCheck;
         uint _days = td.lockCADays();
-        bool claimed;
+        bool claimed;   
         uint counter = 0;
         uint claimId;
         uint perc;
@@ -396,7 +396,7 @@ contract ClaimsReward is Iupgradable {
         cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
         lengthVote = cd.getVoteAddressMemberLength(msg.sender);
         lastClaimed = lengthVote;
-        _days = SafeMaths.mul(_days, counter);
+        _days = _days.mul(counter);
         if (tc.tokensLockedAtTime(msg.sender, "CLA", now) > 0)
             tc.reduceLock(msg.sender, "CLA", _days);
         for (i = lastIndexMV; i < lengthVote; i++) {
@@ -411,24 +411,28 @@ contract ClaimsReward is Iupgradable {
                 total = SafeMaths.add(tokenForVoteId, total);
         }
         if (total > 0)
-            require(msg.sender.send(total)); //solhint-disable-line
+            require(tk.transfer(msg.sender, total)); 
         cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
 
-    // function claimStakeCommission() internal {
-    //     uint total=0;
-    //     address scAdd;
-    //     uint len = td.getStakerStakedContractLength(msg.sender);
-    //     uint lastCompletedStakeCommission;
-    //     uint commissionAmt;
-    //     bool claimed;
-    //     lastCompletedStakeCommission = td.lastCompletedStakeCommission(msg.sender);
-    //     for (uint i = lastCompletedStakeCommission; i < len; i++) {
-    //         scAdd = td.getStakerStakedContractByIndex(msg.sender, i);
-            
-    //     }
+    function claimStakeCommission() internal {
+        uint total=0;
+        uint len = td.getStakerStakedContractLength(msg.sender);
+        uint lastCompletedStakeCommission = td.lastCompletedStakeCommission(msg.sender);
+        uint commissionEarned;
+        uint commissionRedeemed;
+        uint maxCommission;
+        for (uint i = lastCompletedStakeCommission; i < len; i++) {
+            commissionRedeemed = td.getStakerRedeemedStakeCommission(msg.sender, i);
+            commissionEarned = td.getStakerEarnedStakeCommission(msg.sender, i);
+            maxCommission = td.getStakerInitialStakedAmountOnContract(msg.sender, i).mul(50).div(100);
+            if (maxCommission == commissionEarned.sub(commissionRedeemed))
+                td.setLastCompletedStakeCommissionIndex(msg.sender, i); 
+            td.pushRedeemedStakeCommissions(msg.sender, i, commissionEarned.sub(commissionRedeemed));
+            total = total.add(commissionEarned.sub(commissionRedeemed));
+        }
 
-    //     if (total > 0)
-    //         require(msg.sender.send(total)); //solhint-disable-line
-    // }
+        if (total > 0) 
+            require(tk.transfer(msg.sender, total)); //solhint-disable-line
+    }
 }

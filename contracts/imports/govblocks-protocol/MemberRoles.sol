@@ -11,17 +11,17 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity 0.4.24;
-import "../openzeppelin-solidity/math/SafeMaths.sol";
-import "../openzeppelin-solidity/token/ERC20/StandardToken.sol";
+import "../openzeppelin-solidity/math/SafeMath.sol";
+import "../openzeppelin-solidity/token/ERC20/ERC20.sol";
 import "./Governed.sol";
 
 
 contract MemberRoles is Governed {
     event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription, bool limitedValidity);
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
     bytes32[] internal memberRole;
-    StandardToken public dAppToken;
+    ERC20 public dAppToken;
     address public firstAB;
 
     bool internal constructorCheck;
@@ -49,7 +49,7 @@ contract MemberRoles is Governed {
     function memberRolesInitiate(bytes32 _dAppName, address _dAppToken, address _firstAB) public {
         require(!constructorCheck);
         dappName = _dAppName;
-        dAppToken = StandardToken(_dAppToken);
+        dAppToken = ERC20(_dAppToken);
         firstAB = _firstAB;
         constructorCheck = true;
     }
@@ -83,7 +83,7 @@ contract MemberRoles is Governed {
     }
 
     /// @dev just to adhere to GovBlockss' Upgradeable interface
-    function changeMasterAddress(address _masterAddress) public pure { //solhint-disable-line
+    function changeMasterAddress(address) public pure { //solhint-disable-line
     }
 
     /// @dev Get All role ids array that has been assigned to a member so far.
@@ -150,7 +150,7 @@ contract MemberRoles is Governed {
         if (_typeOf) {
             if (memberRoleData[_roleId].validity[_memberAddress] <= _validity) {
                 if (!memberRoleData[_roleId].memberActive[_memberAddress]) {
-                    memberRoleData[_roleId].memberCounter = SafeMaths.add(memberRoleData[_roleId].memberCounter, 1);
+                    memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter.add(1);
                     memberRoleData[_roleId].memberActive[_memberAddress] = true;
                     memberRoleData[_roleId].memberAddress.push(_memberAddress);
                     memberRoleData[_roleId].validity[_memberAddress] = _validity;
@@ -160,7 +160,7 @@ contract MemberRoles is Governed {
             }
         } else {
             require(memberRoleData[_roleId].memberActive[_memberAddress]);
-            memberRoleData[_roleId].memberCounter = SafeMaths.sub(memberRoleData[_roleId].memberCounter, 1);
+            memberRoleData[_roleId].memberCounter = memberRoleData[_roleId].memberCounter.sub(1);
             delete memberRoleData[_roleId].memberActive[_memberAddress];
             delete memberRoleData[_roleId].validity[_memberAddress];
         }

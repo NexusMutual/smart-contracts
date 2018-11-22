@@ -23,19 +23,19 @@ import "./MCR.sol";
 import "./QuotationData.sol";
 import "./PoolData.sol";
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract NXMaster2 is Iupgradable {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
-    Claims c1;
-    Pool1 p1;
-    ClaimsData cd;
-    ClaimsReward cr;
-    QuotationData qd;
-    PoolData pd;
-    MCR m1;
+    Claims internal c1;
+    Pool1 internal p1;
+    ClaimsData internal cd;
+    ClaimsReward internal cr;
+    QuotationData internal qd;
+    PoolData internal pd;
+    MCR internal m1;
 
     modifier onlyOwner {
         require(ms.isOwner(msg.sender) == true);
@@ -102,7 +102,7 @@ contract NXMaster2 is Iupgradable {
     /// @dev Adds investment asset details to Pool1.
     function addCurrencyAssetsDetails() internal {
         pd.pushCurrencyAssetsDetails("ETH", 0x00, 1, 50, 400, 18);
-        pd.pushCurrencyAssetsDetails("DAI", 0xf7c3e9e4a7bb8ca2c1c640f03d76d1ac12887bce, 1, 50, 300, 18);
+        pd.pushCurrencyAssetsDetails("DAI", 0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 1, 50, 300, 18);
     }
 
     /// @dev Adds investment asset names to Pool1 module.
@@ -129,29 +129,11 @@ contract NXMaster2 is Iupgradable {
 
     /// @dev Adds investment asset details to Pool1.
     function addInvestmentAssetsDetails() internal {
-        //DGD
-        // tok=SupplyToken(0xeee3870657e4716670f185df08652dd848fe8f7e);
-        // decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("DGD", 0xeee3870657e4716670f185df08652dd848fe8f7e, 1, 500, 4000, 18);
-        //ICN
-        // tok=SupplyToken(0x21e6b27b23241a35d216f8641c72cfed33085fe9);
-        // decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("ICN", 0x21e6b27b23241a35d216f8641c72cfed33085fe9, 1, 1000, 3000, 18);
-        //ZRX
-        // tok=SupplyToken(0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570);
-        // decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("ZRX", 0x6ff6c0ff1d68b964901f986d4c9fa3ac68346570, 1, 500, 2500, 18);
-        //MKR
-        // tok=SupplyToken(0x1dad4783cf3fe3085c1426157ab175a6119a04ba);
-        // decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("MKR", 0x1dad4783cf3fe3085c1426157ab175a6119a04ba, 1, 500, 2000, 18);
-        //GNT
-        // tok=SupplyToken(0xef7fff64389b814a946f3e92105513705ca6b990);
-        // decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("GNT", 0xef7fff64389b814a946f3e92105513705ca6b990, 1, 500, 2000, 18);
-        //MLN
-        // tok=SupplyToken(0x323b5d4c32345ced77393b3530b1eed0f346429d);
-        // decimals=tok.decimals();
-        pd.pushInvestmentAssetsDetails("MLN", 0x323b5d4c32345ced77393b3530b1eed0f346429d, 1, 500, 2000, 18);
+        pd.pushInvestmentAssetsDetails("DGD", 0xeeE3870657E4716670f185dF08652dd848fe8f7e, 1, 500, 4000, 18);
+        pd.pushInvestmentAssetsDetails("ICN", 0x21E6b27b23241a35D216f8641C72cfEd33085fE9, 1, 1000, 3000, 18);
+        pd.pushInvestmentAssetsDetails("ZRX", 0x6Ff6C0Ff1d68b964901F986d4C9FA3ac68346570, 1, 500, 2500, 18);
+        pd.pushInvestmentAssetsDetails("MKR", 0x1Dad4783cf3fe3085C1426157aB175A6119A04bA, 1, 500, 2000, 18);
+        pd.pushInvestmentAssetsDetails("GNT", 0xeF7FfF64389B814A946f3E92105513705CA6B990, 1, 500, 2000, 18);
+        pd.pushInvestmentAssetsDetails("MLN", 0x323B5d4C32345ced77393B3530b1EeD0f346429D, 1, 500, 2000, 18);
     }
 }

@@ -20,13 +20,13 @@ import "./Claims.sol";
 import "./ClaimsReward.sol";
 import "./Pool1.sol";
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./imports/govblocks-protocol/MemberRoles.sol";
 
 
 contract NXMaster is Governed {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
     struct EmergencyPause {
         bool pause;
@@ -153,7 +153,18 @@ contract NXMaster is Governed {
     }
 
     ///@dev Gets emergency pause details by index.
-    function getEmergencyPauseByIndex(uint index) public view returns(uint _index, bool _pause, uint _time, bytes4 _by) {
+    function getEmergencyPauseByIndex(
+        uint index
+    )   
+        public
+        view
+        returns(
+            uint _index,
+            bool _pause,
+            uint _time,
+            bytes4 _by
+        )
+    {
         _pause = emergencyPaused[index].pause;
         _time = emergencyPaused[index].time;
         _by = emergencyPaused[index].by;
@@ -245,7 +256,7 @@ contract NXMaster is Governed {
         changeAllAddress();
     }
 
-    function checkIsAuthToGoverned(address _add) view returns(bool)
+    function checkIsAuthToGoverned(address _add) public view returns(bool)
     {
         return isAuthorizedToGovern(_add);
     }

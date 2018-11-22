@@ -23,11 +23,11 @@ import "./PoolData.sol";
 import "./ClaimsReward.sol";
 import "./ClaimsData.sol";
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract Claims is Iupgradable {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
     struct ClaimRewardStatus {
         string claimStatusDesc;
@@ -54,25 +54,19 @@ contract Claims is Iupgradable {
         _;
     }
 
-    function changeDependentContractAddress() public onlyInternal {
-        tk = NXMToken(ms.tokenAddress());
-        td = TokenData(ms.getLatestAddress("TD"));
-        tf = TokenFunctions(ms.getLatestAddress("TF"));
-        tc = TokenController(ms.getLatestAddress("TC"));
-        p1 = Pool1(ms.getLatestAddress("P1"));
-        p3 = Pool3(ms.getLatestAddress("P3"));
-        pd = PoolData(ms.getLatestAddress("PD"));
-        cr = ClaimsReward(ms.getLatestAddress("CR"));
-        cd = ClaimsData(ms.getLatestAddress("CD"));
-        qd = QuotationData(ms.getLatestAddress("QD"));
-    }
-
     /// @dev Adds status under which a claim can lie.
     /// @param stat description for claim status
     /// @param percCA reward percentage for claim assessor
     /// @param percMV reward percentage for members
     function pushStatus(string stat, uint percCA, uint percMV) external onlyInternal {
         rewardStatus.push(ClaimRewardStatus(stat, percCA, percMV));
+    }
+    
+    /// @dev Sets the status of claim using claim id.
+    /// @param claimId claim id.
+    /// @param stat status to be set.
+    function setClaimStatus(uint claimId, uint stat) external onlyInternal {
+        _setClaimStatus(claimId, stat);
     }
 
     /// @dev Gets the reward percentage to be distributed for a given status id
@@ -95,7 +89,7 @@ contract Claims is Iupgradable {
             uint claimId,
             int8 voteCA,
             int8 voteMV,
-            uint8 statusnumber
+            uint statusnumber
         ) 
     {
         (coverId, claimId, voteCA, voteMV, statusnumber) = cd.getClaimFromNewStart(index, msg.sender);
@@ -163,41 +157,24 @@ contract Claims is Iupgradable {
         tokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18); // amount (not in tokens)
     }
 
-    /// @dev Checks if voting of a claim should be closed or not.
-    /// @param claimId Claim Id.
-    /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
-    /// -1 -> voting has already been closed.
-    function checkVoteClosing(uint claimId) public view returns(int8 close) {
-        close = 0;
-        uint8 status;
-        (, status) = cd.getClaimStatusNumber(claimId);
-        uint dateUpd = cd.getClaimDateUpd(claimId);
-        if (status == 12 && dateUpd.add(cd.payoutRetryTime()) < now)
-            if (cd.getClaimState12Count(claimId) < 60)
-                close = 1;
-        if (status > 5) {
-            close = -1;
-        }  else if (dateUpd.add(cd.maxVotingTime()) <= now) {
-            close = 1;
-        } else if (dateUpd.add(cd.minVotingTime()) >= now) {
-            close = 0;
-        } else if (status == 0 || (status >= 1 && status <= 5)) {
-            close = checkVoteClosingFinal(claimId, status);
-        }
-    }
-
-    /// @dev Sets the status of claim using claim id.
-    /// @param claimId claim id.
-    /// @param stat status to be set.
-    function setClaimStatus(uint claimId, uint8 stat) external onlyInternal {
-        setClaimStatusInternal(claimId, stat);
+    function changeDependentContractAddress() public onlyInternal {
+        tk = NXMToken(ms.tokenAddress());
+        td = TokenData(ms.getLatestAddress("TD"));
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tc = TokenController(ms.getLatestAddress("TC"));
+        p1 = Pool1(ms.getLatestAddress("P1"));
+        p3 = Pool3(ms.getLatestAddress("P3"));
+        pd = PoolData(ms.getLatestAddress("PD"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        cd = ClaimsData(ms.getLatestAddress("CD"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
     /// @dev Updates the pending claim start variable, the lowest claim id with a pending decision/payout.
     function changePendingClaimStart() public onlyInternal {
 
-        uint8 origstat;
-        uint8 state12Count;
+        uint origstat;
+        uint state12Count;
         uint pendingClaimStart = cd.pendingClaimStart();
         uint actualClaimLength = cd.actualClaimLength();
         for (uint i = pendingClaimStart; i < actualClaimLength; i++) {
@@ -256,7 +233,7 @@ contract Claims is Iupgradable {
         require(checkVoteClosing(claimId) != 1);   
         uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", now.add(cd.claimDepositTime()));
         require(tokens > 0);
-        uint8 stat;
+        uint stat;
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat == 0);
         require(cd.getUserClaimVoteCA(msg.sender, claimId) == 0);
@@ -336,6 +313,29 @@ contract Claims is Iupgradable {
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
 
+    /// @dev Checks if voting of a claim should be closed or not.
+    /// @param claimId Claim Id.
+    /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
+    /// -1 -> voting has already been closed.
+    function checkVoteClosing(uint claimId) public view returns(int8 close) {
+        close = 0;
+        uint status;
+        (, status) = cd.getClaimStatusNumber(claimId);
+        uint dateUpd = cd.getClaimDateUpd(claimId);
+        if (status == 12 && dateUpd.add(cd.payoutRetryTime()) < now)
+            if (cd.getClaimState12Count(claimId) < 60)
+                close = 1;
+        if (status > 5) {
+            close = -1;
+        }  else if (dateUpd.add(cd.maxVotingTime()) <= now) {
+            close = 1;
+        } else if (dateUpd.add(cd.minVotingTime()) >= now) {
+            close = 0;
+        } else if (status == 0 || (status >= 1 && status <= 5)) {
+            close = checkVoteClosingFinal(claimId, status);
+        }
+    }
+
     /**
     * @dev Checks if voting of a claim should be closed or not.
     *             Internally called by checkVoteClosing method
@@ -345,7 +345,7 @@ contract Claims is Iupgradable {
     * @return close 1 if voting should be closed,0 in case voting should not be closed,
     *         -1 if voting has already been closed.
     */
-    function checkVoteClosingFinal(uint claimId, uint8 status) internal view returns(int8 close) {
+    function checkVoteClosingFinal(uint claimId, uint status) internal view returns(int8 close) {
         close = 0;
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
@@ -368,7 +368,7 @@ contract Claims is Iupgradable {
     /// @dev Changes the status of an existing claim id, based on current status and current conditions of the system
     /// @param claimId Claim Id.
     /// @param stat status number.
-    function setClaimStatusInternal(uint claimId, uint8 stat) internal {
+    function _setClaimStatus(uint claimId, uint stat) internal {
 
         uint origstat;
         uint state12Count;
@@ -412,7 +412,7 @@ contract Claims is Iupgradable {
         qd.changeCoverStatusNo(coverId, 4);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint sumAssured = qd.getCoverSumAssured(coverId);
-        pd.changeCurrencyAssetVarMin(curr, SafeMaths.add64(pd.getCurrencyAssetVarMin(curr), uint64(sumAssured)));
+        pd.changeCurrencyAssetVarMin(curr, uint64(uint(pd.getCurrencyAssetVarMin(curr)).add(sumAssured)));
         p3.checkLiquidityCreateOrder(curr);
         p1.closeClaimsOraclise(len, cd.maxVotingTime());
     }

@@ -30,11 +30,11 @@ import "./Pool3.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract ClaimsReward is Iupgradable {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
     NXMToken internal tk;
     TokenController internal tc;
@@ -80,7 +80,7 @@ contract ClaimsReward is Iupgradable {
         uint coverid;
         (, coverid) = cd.getClaimCoverId(claimid);
 
-        uint8 status;
+        uint status;
         (, status) = cd.getClaimStatusNumber(claimid);
 
         // when current status is "Pending-Claim Assessor Vote"
@@ -165,7 +165,7 @@ contract ClaimsReward is Iupgradable {
 
     /// @dev Total reward in token due for claim by a user.
     /// @return total total number of tokens
-    function getRewardToBeDistributedByUser(address _add) constant returns(uint total) {
+    function getRewardToBeDistributedByUser(address _add) public view returns(uint total) {
         uint lengthVote = cd.getVoteAddressCALength(_add);
         uint lastIndexCA;
         uint lastIndexMV;
@@ -176,7 +176,7 @@ contract ClaimsReward is Iupgradable {
         for (uint i = lastIndexCA; i < lengthVote; i++) {
             voteId = cd.getVoteAddressCA(_add, i);
             (tokenForVoteId, , , ) = getRewardToBeGiven(1, voteId, 0);
-            total = SafeMaths.add(total, tokenForVoteId);
+            total = total.add(tokenForVoteId);
         }
 
         lengthVote = cd.getVoteAddressMemberLength(_add);
@@ -184,7 +184,7 @@ contract ClaimsReward is Iupgradable {
         for (uint j = lastIndexMV; j < lengthVote; j++) {
             voteId = cd.getVoteAddressMember(_add, j);
             (tokenForVoteId, , , ) = getRewardToBeGiven(0, voteId, 0);
-            total = SafeMaths.add(total, tokenForVoteId);
+            total = total.add(tokenForVoteId);
         }
         return (total);
     }
@@ -230,7 +230,7 @@ contract ClaimsReward is Iupgradable {
     /// @dev Rewards/Punishes users who  participated in Claims assessment.
     //             Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
-    function rewardAgainstClaim(uint claimid, uint coverid, uint8 status) internal {
+    function rewardAgainstClaim(uint claimid, uint coverid, uint status) internal {
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint64 sumAssured = uint64(qd.getCoverSumAssured(coverid));
         uint currPrice = tf.getTokenPrice(curr);
@@ -250,7 +250,7 @@ contract ClaimsReward is Iupgradable {
             cd.changeFinalVerdict(claimid, -1);
             tf.undepositCN(coverid, true); // Unset flag and add covernote to burns
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
-                pd.changeCurrencyAssetVarMin(curr, SafeMaths.sub64(pd.getCurrencyAssetVarMin(curr), sumAssured));
+                pd.changeCurrencyAssetVarMin(curr, uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
                 p3.checkLiquidityCreateOrder(curr);
             }
         } else if (status == 7 || status == 8 || status == 10) {
@@ -261,7 +261,7 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Computes the result of Claim Assessors Voting for a given claim id.
-    function changeClaimStatusCA(uint claimid, uint coverid, uint8 status) internal {
+    function changeClaimStatusCA(uint claimid, uint coverid, uint status) internal {
         // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
             uint caTokens = c1.getCATokens(claimid, 0);
@@ -314,12 +314,12 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Computes the result of Member Voting for a given claim id.
-    function changeClaimStatusMV(uint claimid, uint coverid, uint8 status) internal {
+    function changeClaimStatusMV(uint claimid, uint coverid, uint status) internal {
 
         // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
             uint8 coverStatus;
-            uint8 statusOrig = status;
+            uint statusOrig = status;
             uint mvTokens = c1.getCATokens(claimid, 1);
 
             // If tokens used for acceptance >50%, claim is accepted
@@ -391,7 +391,7 @@ contract ClaimsReward is Iupgradable {
                 cd.setRewardClaimed(voteid, true);
             }
             if (tokenForVoteId > 0)
-                total = SafeMaths.add(tokenForVoteId, total);
+                total = tokenForVoteId.add(total);
         }
         cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
         lengthVote = cd.getVoteAddressMemberLength(msg.sender);
@@ -408,7 +408,7 @@ contract ClaimsReward is Iupgradable {
             if (claimed == false && cd.getFinalVerdict(claimId) != 0)
                 cd.setRewardClaimed(voteid, true);
             if (tokenForVoteId > 0)
-                total = SafeMaths.add(tokenForVoteId, total);
+                total = tokenForVoteId.add(total);
         }
         if (total > 0)
             require(tk.transfer(msg.sender, total)); 

@@ -16,11 +16,11 @@
 pragma solidity 0.4.24;
 
 import "./imports/openzeppelin-solidity/token/ERC20/IERC20.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract NXMToken is IERC20 {
-    using SafeMaths for uint256;
+    using SafeMath for uint256;
 
     event WhiteListed(address indexed member);
 

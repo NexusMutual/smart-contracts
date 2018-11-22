@@ -15,15 +15,15 @@
 
 pragma solidity 0.4.24;
 
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
-import "./imports/ERC1132/IERC1132.sol";
 import "./NXMToken.sol";
-import "./imports/govblocks-protocol/Governed.sol";
 import "./Iupgradable.sol";
+import "./imports/ERC1132/IERC1132.sol";
+import "./imports/govblocks-protocol/Governed.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract TokenController is IERC1132, Governed, Iupgradable {
-    using SafeMaths for uint256;
+    using SafeMath for uint256;
 
     event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
@@ -310,11 +310,11 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     * @param _time timestamp when the tokens should be locked
     */
     function totalLockedBalance(address _of, uint256 _time) public view returns (uint256 amount) {
-        _totalLockedBalance(_of, _time);
+        amount = _totalLockedBalance(_of, _time);
     }  
 
     /**
-    * @dev Returns the total locked tokens at time
+    * @dev Internal function to returns the total locked tokens at time
     * @param _of member whose locked tokens are to be calculate
     * @param _time timestamp when the tokens should be locked
     */

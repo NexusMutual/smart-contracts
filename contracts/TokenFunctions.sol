@@ -22,14 +22,14 @@ import "./TokenController.sol";
 import "./ClaimsReward.sol";
 import "./TokenData.sol";
 import "./QuotationData.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./imports/govblocks-protocol/MemberRoles.sol";
 import "./Iupgradable.sol";
 
 
 contract TokenFunctions is Iupgradable, Governed {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
     MCR internal m1;
     MemberRoles public mr;
@@ -55,6 +55,8 @@ contract TokenFunctions is Iupgradable, Governed {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
+
+    event BurnCATokens(uint claimId, address addr, uint amount);
 
     constructor () public {
         dappName = "NEXUS-MUTUAL";
@@ -168,6 +170,7 @@ contract TokenFunctions is Iupgradable, Governed {
     function burnCAToken(uint claimid, uint _value, address _of) public onlyAuthorizedToGovern {
         require(tc.tokensLockedAtTime(_of, "CLA", now) >= _value);
         tc.burnLockedTokens(_of, "CLA", _value);
+        emit BurnCATokens(claimid, _of, _value);
     }
 
     /**
@@ -233,7 +236,6 @@ contract TokenFunctions is Iupgradable, Governed {
     )
         public
         onlyInternal
-        returns (uint amount)
     {
         uint validity = now.add(td.lockTokenTimeAfterCoverExp()).add(coverPeriod);
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
@@ -357,7 +359,6 @@ contract TokenFunctions is Iupgradable, Governed {
     */
     function getTotalStakedTokensOnSmartContract(address _stakedContractAddress) public view returns(uint amount) {
         uint stakedAmount = 0;
-        uint scIndex;
         address stakerAddress;
         uint sA;
         for (uint i = 0; i < td.getStakedContractStakersLength(_stakedContractAddress); i++) {
@@ -373,23 +374,21 @@ contract TokenFunctions is Iupgradable, Governed {
     * @param _of address of the coverHolder.
     * @param _coverId coverId of the cover.
      */
-    function getUserLockedCNTokens(address _of, uint _coverId) public returns(uint) {
+    function getUserLockedCNTokens(address _of, uint _coverId) public view returns(uint) {
         return _getUserLockedCNTokens(_of, _coverId);
     } 
 
-    function getUserAllLockedCNTokens(address _of) public returns(uint) {
-        uint amount = 0;
+    function getUserAllLockedCNTokens(address _of) public view returns(uint amount) {
         for (uint i = 0; i < qd.getUserCoverLength(_of); i++) {
             amount = amount.add(_getUserLockedCNTokens(_of, qd.getAllCoversOfUser(_of)[i]));
         }
-        return amount;
     }
 
     /**
     * @dev Returns amount of NXM Tokens locked as Cover Note against given coverId.
     * @param _coverId coverId of the cover.
     */
-    function getLockedCNAgainstCover(uint _coverId) public returns(uint) {
+    function getLockedCNAgainstCover(uint _coverId) public view returns(uint) {
         return _getLockedCNAgainstCover(_coverId);
     }
 
@@ -397,7 +396,7 @@ contract TokenFunctions is Iupgradable, Governed {
     * @dev Returns total amount of staked NXM Tokens on all smart contract .
     * @param _stakerAddress address of the Staker.
     */ 
-    function getStakerAllLockedTokens(address _stakerAddress) public returns (uint amount) {
+    function getStakerAllLockedTokens(address _stakerAddress) public view returns (uint amount) {
         uint stakedAmount = 0;
         address scAddress;
         uint scIndex;
@@ -469,7 +468,7 @@ contract TokenFunctions is Iupgradable, Governed {
         (uint amount)
     {   
         amount = _getStakerLockedTokensOnSmartContract(_stakerAddress,
-             _stakedContractAddress, _stakedContractIndex);
+            _stakedContractAddress, _stakedContractIndex);
     }
 
     /**
@@ -534,7 +533,6 @@ contract TokenFunctions is Iupgradable, Governed {
         } 
     }
 
-
     /**
     * @dev Internal function to gets amount of locked NXM tokens,
     *      staked against smartcontract by index
@@ -595,7 +593,7 @@ contract TokenFunctions is Iupgradable, Governed {
         uint _validDays
     ) 
         internal
-        view 
+        pure 
         returns (uint amount)
     {
         uint rf = ((_validDays.sub(_stakeDays)).mul(100000)).div(_validDays);

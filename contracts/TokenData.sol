@@ -16,11 +16,11 @@
 pragma solidity 0.4.24;
 
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract TokenData is Iupgradable {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
     uint public lockTokenTimeAfterCoverExp;
     uint public bookTime;

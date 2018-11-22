@@ -26,33 +26,29 @@ import "./MCRData.sol";
 import "./MCR.sol";
 import "./Pool3.sol";
 import "./Iupgradable.sol";
-import "./imports/0xProject/Exchange.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/BasicToken.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
 
 contract Pool2 is Iupgradable {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
-    TokenFunctions tf;
-    Pool1 p1;
-    Claims c1;
-    Exchange exchange1;
-    Quotation q2;
-    MCR m1;
-    MCRData md;
-    ClaimsReward cr;
-    PoolData pd;
-    BasicToken btok;
-    Pool3 p3;
-    QuotationData qd;
-    // StandardToken internal stok;
+    TokenFunctions internal tf;
+    Pool1 internal p1;
+    Claims internal c1;
+    // Exchange public exchange1;
+    Quotation internal q2;
+    MCR internal m1;
+    MCRData internal md;
+    ClaimsReward internal cr;
+    PoolData internal pd;
+    Pool3 internal p3;
+    QuotationData internal qd;
 
-    address poolAddress;
-    address exchangeContractAddress;
+    address internal poolAddress;
+    address internal exchangeContractAddress;
 
-    uint64 private constant DECIMAL1E18 = 1000000000000000000;
+    uint internal constant DECIMAL1E18 = uint(10) ** 18;
 
     event Liquidity(bytes16 typeOf, bytes16 functionName);
 
@@ -78,7 +74,7 @@ contract Pool2 is Iupgradable {
         _;
     }
 
-    function changeDependentContractAddress() onlyInternal {
+    function changeDependentContractAddress() public onlyInternal {
         m1 = MCR(ms.getLatestAddress("MC"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         pd = PoolData(ms.getLatestAddress("PD"));
@@ -91,7 +87,9 @@ contract Pool2 is Iupgradable {
         qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
-    function changeExchangeContractAddress(address _add) onlyOwner {
+    function () public payable {} //solhint-disable-line
+    
+    function changeExchangeContractAddress(address _add) public onlyOwner {
         exchangeContractAddress = _add; //0x
         p3.changeExchangeContractAddress(exchangeContractAddress);
     }
@@ -109,13 +107,18 @@ contract Pool2 is Iupgradable {
         }
         balance = currBalance.add(iaBalance);
     }
+    // function createOrder(
+    //     bytes8 curr,
+    //     uint makerAmt,
+    //     uint takerAmt,
+    //     bytes16 _type,
+    //     uint8 cancel
+    // ) 
+    //     public
+    //     onlyInternal
+    // {
 
-    function createOrder(bytes8 curr, uint makerAmt, uint takerAmt, bytes16 _type, uint8 cancel) onlyInternal
-    {
-
-
-    }
-
+    // }
     /// @dev Get Investment asset balance and active status for a given asset name.
     function getInvestmentAssetBalAndStatus(
         bytes8 currName
@@ -136,19 +139,19 @@ contract Pool2 is Iupgradable {
     }
 
     ///@dev Gets Pool balance of a given Investment Asset.
-    function getBalanceofInvestmentAsset(bytes8 _curr) public returns(uint balance) {
+    function getBalanceofInvestmentAsset(bytes8 _curr) public view returns(uint balance) {
         address currAddress = pd.getInvestmentAssetAddress(_curr);
-        StandardToken stok = StandardToken(currAddress);
-        return stok.balanceOf(address(this));
+        ERC20 erc20 = ERC20(currAddress);
+        return erc20.balanceOf(address(this));
     }
 
     ///@dev Gets Pool1 balance of a given investmentasset.
-    function getBalanceOfCurrencyAsset(bytes8 _curr) public returns(uint balance) {
-        StandardToken stok = StandardToken(pd.getCurrencyAssetAddress(_curr));
-        return stok.balanceOf(address(this));
+    function getBalanceOfCurrencyAsset(bytes8 _curr) public view returns(uint balance) {
+        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
+        return erc20.balanceOf(address(this));
     }
 
-    function _transferALLInvestmentAssetFromPool(address _newPoolAddress) {
+    function _transferALLInvestmentAssetFromPool(address _newPoolAddress) public onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes8 caName = pd.getAllCurrenciesByIndex(i);
             address caAddress = pd.getCurrencyAssetAddress(caName);
@@ -190,14 +193,14 @@ contract Pool2 is Iupgradable {
         pd.changeInvestmentAssetHoldingPerc(_curr, _minPercX100, _maxPercX100);
     }
 
-    function transferAssetToPool1(bytes8 curr, uint amount) onlyInternal {
+    function transferAssetToPool1(bytes8 curr, uint amount) public onlyInternal {
         address pool1Add = ms.getLatestAddress("P1");
         if (curr == "ETH") {
-            pool1Add.send(amount);
+            require(pool1Add.send(amount));
         } else {
             address caAddress = pd.getCurrencyAssetAddress(curr);
-            StandardToken stok = StandardToken(caAddress);
-            stok.transfer(pool1Add, amount);
+            ERC20 erc20 = ERC20(caAddress);
+            erc20.transfer(pool1Add, amount);
         }
     }
 
@@ -210,9 +213,9 @@ contract Pool2 is Iupgradable {
         returns (bool success)
     {
         // TODO: To be automated by version control in NXMaster
-        StandardToken stok = StandardToken(_iaAddress);
-        if (stok.balanceOf(this) > 0) {
-            stok.transfer(_newPoolAddress, stok.balanceOf(this));
+        ERC20 erc20 = ERC20(_iaAddress);
+        if (erc20.balanceOf(this) > 0) {
+            erc20.transfer(_newPoolAddress, erc20.balanceOf(this));
         }
         success = true;
     }
@@ -225,9 +228,9 @@ contract Pool2 is Iupgradable {
         internal
         returns (bool success)
     {
-        StandardToken stok = StandardToken(_caAddress);
-        if (stok.balanceOf(this) > 0) {
-            stok.transfer(_newPoolAddress, stok.balanceOf(this));
+        ERC20 erc20 = ERC20(_caAddress);
+        if (erc20.balanceOf(this) > 0) {
+            erc20.transfer(_newPoolAddress, erc20.balanceOf(this));
         }
         success = true;
     } 

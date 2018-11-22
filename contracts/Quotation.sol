@@ -24,13 +24,12 @@ import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./MCR.sol";
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/StandardToken.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
 
 contract Quotation is Iupgradable {
-    using SafeMaths
-    for uint;
+    using SafeMath for uint;
 
     TokenFunctions internal tf;
     TokenController internal tc;
@@ -39,7 +38,7 @@ contract Quotation is Iupgradable {
     PoolData internal pd;
     QuotationData internal qd;
     MCR internal m1;
-    StandardToken internal stok;
+    ERC20 internal erc20;
 
     event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
 
@@ -63,7 +62,7 @@ contract Quotation is Iupgradable {
         _;
     }
 
-    function changeDependentContractAddress() onlyInternal {
+    function changeDependentContractAddress() public onlyInternal {
         m1 = MCR(ms.getLatestAddress("MC"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         tc = TokenController(ms.getLatestAddress("TC"));
@@ -96,7 +95,7 @@ contract Quotation is Iupgradable {
     /// @dev Checks if a cover should get expired/closed or not.
     /// @param _cid Cover Index.
     /// @return expire 1 if the Cover's time has expired, 0 otherwise.
-    function checkCoverExpired(uint _cid) constant returns(uint8 expire) {
+    function checkCoverExpired(uint _cid) public view returns(uint8 expire) {
 
         if (qd.getValidityOfCover(_cid) < uint64(now))
             expire = 1;
@@ -107,7 +106,7 @@ contract Quotation is Iupgradable {
     /// @dev Updates the Sum Assured Amount of all the quotation.
     /// @param _cid Cover id
     /// @param _amount that will get subtracted' Current Sum Assured Amount that comes under a quotation.
-    function removeSAFromCSA(uint _cid, uint _amount) checkPause {
+    function removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
 
         require(!(ms.isOwner(msg.sender) != true && ms.isInternal(msg.sender) != true));
         bytes4 coverCurr = qd.getCurrencyOfCover(_cid);
@@ -203,16 +202,19 @@ contract Quotation is Iupgradable {
         bytes4 curr,
         address smaratCA
     ) 
-        constant
+        public
+        pure
         returns(bytes32)
     {
         return keccak256(
-            coverDetails[0],
-            curr, coverPeriod,
-            smaratCA,
-            coverDetails[1],
-            coverDetails[2],
-            coverDetails[3]
+            abi.encodePacked(
+                coverDetails[0],
+                curr, coverPeriod,
+                smaratCA,
+                coverDetails[1],
+                coverDetails[2],
+                coverDetails[3]
+            )
         );
     }
 
@@ -223,7 +225,7 @@ contract Quotation is Iupgradable {
     /// @param s argument from vrs hash.
     function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public view returns(bool) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = keccak256(prefix, hash);
+        bytes32 prefixedHash = keccak256(abi.encodePacked(prefix, hash));
         address a = ecrecover(prefixedHash, v, r, s);
         return (a == qd.getAuthQuoteEngine());
     }
@@ -250,8 +252,8 @@ contract Quotation is Iupgradable {
         if (coverCurr == "ETH") {
             totalFee = joinFee + coverDetails[1];
         } else {
-            stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
-            require(stok.transferFrom(msg.sender, address(this), coverDetails[1]));
+            erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
+            require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]));
         }
         require(msg.value == totalFee);
         require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
@@ -270,7 +272,6 @@ contract Quotation is Iupgradable {
         (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
         require(qd.refundEligible(userAdd));
         qd.setRefundEligible(userAdd, false);
-        bool succ;
         uint joinFee = td.joiningFee();
         if (status) {
             tf.payJoiningFee.value(joinFee)(userAdd);
@@ -280,10 +281,10 @@ contract Quotation is Iupgradable {
                 if (coverCurr == "ETH") {
                     require(poolAdd.send(coverDetails[1]));
                 } else {
-                    stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
-                    stok.transfer(poolAdd, coverDetails[1]);
+                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                    erc20.transfer(poolAdd, coverDetails[1]);
                 }
-                RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
+                emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
                 makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             } else {
@@ -291,10 +292,10 @@ contract Quotation is Iupgradable {
                 if (coverCurr == "ETH") {
                     require(userAdd.send(coverDetails[1]));
                 } else {
-                    stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
-                    stok.transfer(userAdd, coverDetails[1]);
+                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                    erc20.transfer(userAdd, coverDetails[1]);
                 }
-                RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
+                emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
             }
         } else {
             qd.setHoldedCoverIDStatus(holdedCoverID, 3);
@@ -302,11 +303,11 @@ contract Quotation is Iupgradable {
             if (coverCurr == "ETH") {
                 totalRefund = coverDetails[1] + joinFee;
             } else {
-                stok = StandardToken(pd.getCurrencyAssetAddress(coverCurr));
-                stok.transfer(userAdd, coverDetails[1]);
+                erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                erc20.transfer(userAdd, coverDetails[1]);
             }
             require(userAdd.send(totalRefund));
-            RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
+            emit RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
         }
               
     }
@@ -328,17 +329,16 @@ contract Quotation is Iupgradable {
         for (uint64 i = 1; i < currAssetLen; i++) {
             bytes8 currName = pd.getAllCurrenciesByIndex(i);
             address currAddr = pd.getCurrencyAssetAddress(currName);
-            stok = StandardToken(currAddr);
-            if (stok.balanceOf(this) > 0) {
-                stok.transfer(walletAdd, stok.balanceOf(this));
+            erc20 = ERC20(currAddr); //solhint-disable-line
+            if (erc20.balanceOf(this) > 0) {
+                erc20.transfer(walletAdd, erc20.balanceOf(this));
             }
         }
-
     }
 
     /// @dev transfering Ethers to newly created quotation contract.
     function transferAssetsToNewContract(address newAdd) public onlyInternal {
-        uint amount = this.balance;
+        uint amount = address(this).balance;
         if (amount > 0) {
             bool succ = newAdd.send(amount);   
             require(succ);
@@ -347,9 +347,9 @@ contract Quotation is Iupgradable {
         for (uint64 i = 1; i < currAssetLen; i++) {
             bytes8 currName = pd.getAllCurrenciesByIndex(i);
             address currAddr = pd.getCurrencyAssetAddress(currName);
-            stok = StandardToken(currAddr);
-            if (stok.balanceOf(this) > 0) {
-                stok.transfer(newAdd, stok.balanceOf(this));
+            erc20 = ERC20(currAddr); //solhint-disable-line
+            if (erc20.balanceOf(this) > 0) {
+                erc20.transfer(newAdd, erc20.balanceOf(this));
             }
         }
     }
@@ -381,7 +381,7 @@ contract Quotation is Iupgradable {
         }
         // if cover period of quote is less than 60 days.
         if (coverPeriod <= 60) {
-            p1.closeCoverOraclise(cid, uint64(SafeMaths.mul(coverPeriod, 1 days)));
+            p1.closeCoverOraclise(cid, uint64(coverPeriod * 1 days));
         }
         uint coverNoteAmount = (coverDetails[2].mul(5)).div(100);
         tc.mint(from, coverNoteAmount);

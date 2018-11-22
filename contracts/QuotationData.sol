@@ -16,11 +16,11 @@
 pragma solidity 0.4.24;
 
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMaths.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract QuotationData is Iupgradable {
-    using SafeMaths for uint;
+    using SafeMath for uint;
 
     struct Cover {
         bytes8 productName;
@@ -145,36 +145,28 @@ contract QuotationData is Iupgradable {
     /// @param _add Smart Contract Address.
     /// @param _amount Amount to be added.
     function addInTotalSumAssuredSC(address _add, bytes4 _curr, uint _amount) external onlyInternal {
-        currencyCSAOfSCAdd[_add][_curr] = SafeMaths.add(currencyCSAOfSCAdd[_add][_curr], _amount);
+        currencyCSAOfSCAdd[_add][_curr] = currencyCSAOfSCAdd[_add][_curr].add(_amount);
     }
 
     /// @dev Subtracts the amount from Total Sum Assured of a given currency and smart contract address.
     /// @param _add Smart Contract Address.
     /// @param _amount Amount to be subtracted.
     function subFromTotalSumAssuredSC(address _add, bytes4 _curr, uint _amount) external onlyInternal {
-        currencyCSAOfSCAdd[_add][_curr] = SafeMaths.sub(currencyCSAOfSCAdd[_add][_curr], _amount);
+        currencyCSAOfSCAdd[_add][_curr] = currencyCSAOfSCAdd[_add][_curr].sub(_amount);
     }
     
     /// @dev Subtracts the amount from Total Sum Assured of a given currency.
     /// @param _curr Currency Name.
     /// @param _amount Amount to be subtracted.
     function subFromTotalSumAssured(bytes4 _curr, uint _amount) external onlyInternal {
-        currencyCSA[_curr] = SafeMaths.sub(currencyCSA[_curr], _amount);
-    }
-    
-    /// @dev Changes the status of a given cover.
-    /// @param _cid cover Id.
-    /// @param _stat New status.
-    function changeCoverStatusNo(uint _cid, uint8 _stat) public onlyInternal {
-        coverstatus[_cid] = _stat;
-        emit CoverStatusEvent(_cid, _stat);
+        currencyCSA[_curr] = currencyCSA[_curr].sub(_amount);
     }
 
     /// @dev Adds the amount in Total Sum Assured of a given currency.
     /// @param _curr Currency Name.
     /// @param _amount Amount to be added.
     function addInTotalSumAssured(bytes4 _curr, uint _amount) external onlyInternal {
-        currencyCSA[_curr] = SafeMaths.add(currencyCSA[_curr], _amount);
+        currencyCSA[_curr] = currencyCSA[_curr].add(_amount);
     }
     
     /// @dev Creates a blank new cover.
@@ -191,10 +183,10 @@ contract QuotationData is Iupgradable {
         onlyInternal
         // returns (bool)
     {
-        uint expiryDate = SafeMaths.add(now, SafeMaths.mul(_coverPeriod, 1 days));
+        uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
         allCovers.push(Cover(_productName, _userAddress, _currencyCode,
                 _sumAssured, _coverPeriod, expiryDate, _scAddress, premium));
-        uint cid = SafeMaths.sub(allCovers.length, 1);
+        uint cid = allCovers.length.sub(1);
         userCover[_userAddress].push(cid);
         emit CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, _currencyCode);
         // return true;
@@ -215,7 +207,7 @@ contract QuotationData is Iupgradable {
         holdedCoverIDStatus[holdedCoverLen] = 1;             
         allCoverHolded.push(HoldCover(holdedCoverLen, prodId, from, scAddress, 
             coverCurr, coverDetails, coverPeriod));
-        userHoldedCover[from].push(SafeMaths.sub(allCoverHolded.length, 1));
+        userHoldedCover[from].push(allCoverHolded.length.sub(1));
     
     }
 
@@ -468,7 +460,15 @@ contract QuotationData is Iupgradable {
     function getTotalSumAssuredSC(address _add, bytes4 _curr) external view returns(uint amount) {
         amount = currencyCSAOfSCAdd[_add][_curr];
     }
-    
+
     //solhint-disable-next-line
     function changeDependentContractAddress() public {}
+
+    /// @dev Changes the status of a given cover.
+    /// @param _cid cover Id.
+    /// @param _stat New status.
+    function changeCoverStatusNo(uint _cid, uint8 _stat) public onlyInternal {
+        coverstatus[_cid] = _stat;
+        emit CoverStatusEvent(_cid, _stat);
+    }
 }

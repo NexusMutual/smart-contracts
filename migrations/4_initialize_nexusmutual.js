@@ -70,13 +70,13 @@ module.exports = function(deployer) {
     await nxms.changeTokenAddress(tk.address);
     await nxms.addNewVersion(addr);
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
+    await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);
     await qd.changeAuthQuoteEngine(QE);
     await nxms2.addCoverStatus();
     await nxms2.callPoolDataMethods();
     await nxms2.addStatusInClaims();
     await nxms2.addMCRCurr();
-    // await pd.changeWETHAddress(WETH_0x);
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
     await pl2.changeExchangeContractAddress(exchange.address);

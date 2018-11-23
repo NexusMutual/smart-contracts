@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# Global variable
-bridge_pid
-
 # Exit script as soon as a command fails.
 set -o errexit
 
@@ -52,12 +49,12 @@ start_ganache() {
 start_ethereum-bridge() {
   # starts ethereum bridge for oraclize query
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/ethereum-bridge -H localhost:8555 -a 20 &> /dev/null 2>&1 &
+    node_modules/.bin/ethereum-bridge -H localhost:8555 -a 20 &> /dev/null &
   else
-    node_modules/.bin/ethereum-bridge -H localhost:8545 -a 20 &> /dev/null 2>&1 &
+    node_modules/.bin/ethereum-bridge -H localhost:8545 -a 20 &> /dev/null &
   fi
   sleep 10
-  bridge_pid=$!
+  bridge_pid = $!
   echo "Ethereum-bridge is successfully running as process id ${bridge_pid}"
 }
 

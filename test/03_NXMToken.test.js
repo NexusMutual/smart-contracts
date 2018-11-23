@@ -30,7 +30,14 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
+contract('NXMToken', function([
+  owner,
+  member1,
+  member2,
+  member3,
+  notMember,
+  spender2
+]) {
   const fee = ether(0.002);
   const tokenAmount = ether(2);
   const tokens = ether(1);
@@ -171,8 +178,8 @@ contract('NXMToken', function([owner, member1, member2, member3, notMember]) {
       describe('when approve amount is more than balance of sender', function() {
         it('approves the requested amount', async function() {
           const approveTokens = (await tk.balanceOf(member1)).plus(1e18);
-          tk.approve(spender, approveTokens, { from: member1 });
-          (await tk.allowance(member1, spender)).should.be.bignumber.equal(
+          tk.approve(spender2, approveTokens, { from: member1 });
+          (await tk.allowance(member1, spender2)).should.be.bignumber.equal(
             approveTokens
           );
         });

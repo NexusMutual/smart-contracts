@@ -17,7 +17,6 @@ const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
-const Exchange = artifacts.require('Exchange');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const WETH_0x = web3.eth.accounts[18];
@@ -43,7 +42,6 @@ module.exports = function(deployer) {
     const cd = await ClaimsData.deployed();
     const mcr = await MCR.deployed();
     const mcrd = await MCRDataMock.deployed();
-    const exchange = await Exchange.deployed();
     const IA1 = await DAI.new();
     const IA2 = await DAI.new();
     const IA3 = await DAI.new();
@@ -79,8 +77,6 @@ module.exports = function(deployer) {
     await nxms2.addMCRCurr();
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-    await pl2.changeExchangeContractAddress(exchange.address);
-    await pl3.changeExchangeContractAddress(exchange.address);
     await mcr.changenotariseAddress(Owner);
     await pd.changeInvestmentAssetAddress(0x444744, IA1.address);
     await pd.changeInvestmentAssetAddress(0x49434e, IA2.address);

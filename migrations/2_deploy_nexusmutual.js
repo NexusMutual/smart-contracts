@@ -16,9 +16,6 @@ const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
-const Exchange = artifacts.require('Exchange');
-const Token = artifacts.require('Token');
-const TokenTransferProxy = artifacts.require('TokenTransferProxy');
 const founderAddress = web3.eth.accounts[0];
 const INITIAL_SUPPLY = 1500000 * 1e18;
 
@@ -43,10 +40,5 @@ module.exports = function(deployer) {
     await deployer.deploy(TokenFunctions);
     await deployer.deploy(Quotation);
     await deployer.deploy(QuotationDataMock);
-    await deployer.deploy(TokenTransferProxy);
-    await deployer.deploy(Token);
-    const ttpa = await TokenTransferProxy.deployed();
-    const zxta = await Token.deployed();
-    await deployer.deploy(Exchange, zxta.address, ttpa.address);
   });
 };

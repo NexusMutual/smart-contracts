@@ -42,7 +42,7 @@
     "coveralls": "^3.0.2",
     "ethereum-bridge": "^0.6.1",
     "ethereumjs-abi": "^0.6.5",
-    "ganache-cli": "^6.2.3",
+    "ganache-cli": "^6.1.8",
     "husky": "^1.1.2",
     "lint-staged": "^7.2.2",
     "mocha": "^5.2.0",

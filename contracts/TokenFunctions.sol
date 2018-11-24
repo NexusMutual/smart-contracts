@@ -94,18 +94,6 @@ contract TokenFunctions is Iupgradable, Governed {
     function voted(address _add) public view returns(bool) {
         return mr.checkRoleIdByAddress(_add, 4);
     }
-    
-    /**
-    * @dev Adding to Member Role called Voter while Member voting.
-    */ 
-    function lockForMemberVote(address voter, uint time) public onlyInternal {
-        if (!mr.checkRoleIdByAddress(voter, 4))
-            mr.updateMemberRole(voter, 4, true, time);
-        else {
-            if (mr.getValidity(voter, 4) < time)
-                mr.setValidityOfMember(voter, 4, time);
-        }
-    }
 
     /**
     * @dev Set the flag to check if cover note is deposited against the cover id
@@ -221,7 +209,7 @@ contract TokenFunctions is Iupgradable, Governed {
     */
     function withdrawMembership() public isMemberAndcheckPause {
         require(tc.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
-        require(!mr.checkRoleIdByAddress(msg.sender, 4)); // No locked tokens for Member/Governance voting
+        require(!td.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
         require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
         tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
         mr.updateMemberRole(msg.sender, 3, false, 0);
@@ -439,20 +427,10 @@ contract TokenFunctions is Iupgradable, Governed {
             tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
         }
     }
-    
-    /**
-    * @dev Books the user's tokens for maintaining Assessor Velocity
-    *      i.e., these tokens cannot be used to cast another vote for a specified period of time.
-    * @param _to Claims assessor address.
-    * @param value number of tokens that will be booked for a period of time.
-    */
-    function bookCATokens(address _to, uint value) public onlyInternal {
-        td.pushBookedCA(_to, value);
-    }
 
     /**
     * @dev Internal function to gets amount of locked NXM tokens,
-    *      staked against smartcontract by index
+    * staked against smartcontract by index
     * @param _stakerAddress address of user
     * @param _stakedContractAddress staked contract address
     * @param _stakedContractIndex index of staking
@@ -473,7 +451,7 @@ contract TokenFunctions is Iupgradable, Governed {
 
     /**
     * @dev Internal function to gets unlockable amount of locked NXM tokens,
-    *      staked against smartcontract by index
+    * staked against smartcontract by index
     * @param _stakerAddress address of staker
     * @param _stakedContractAddress staked contract address
     * @param _stakerIndex index of staking
@@ -504,7 +482,7 @@ contract TokenFunctions is Iupgradable, Governed {
 
     /**
     * @dev Internal function to gets amount of staked NXM tokens,
-    *      against smartcontract by index
+    * against smartcontract by index
     * @param _stakerAddress address of user
     * @param _stakedContractAddress staked contract address
     * @param _stakedContractIndex index of staking
@@ -535,7 +513,7 @@ contract TokenFunctions is Iupgradable, Governed {
 
     /**
     * @dev Internal function to gets amount of locked NXM tokens,
-    *      staked against smartcontract by index
+    * staked against smartcontract by index
     * @param _stakerAddress address of user
     * @param _stakedContractAddress staked contract address
     * @param _stakedContractIndex index of staking
@@ -582,7 +560,7 @@ contract TokenFunctions is Iupgradable, Governed {
 
     /**
     * @dev Internal function to gets remaining amount of staked NXM tokens,
-    *      against smartcontract by index
+    * against smartcontract by index
     * @param _stakeAmount address of user
     * @param _stakeDays staked contract address
     * @param _validDays index of staking
@@ -602,7 +580,7 @@ contract TokenFunctions is Iupgradable, Governed {
 
     /**
     * @dev Gets the total staked NXM tokens against Smart contract 
-    *       by all stakers
+    * by all stakers
     * @param _stakedContractAddress smart contract address.
     * @return amount total staked NXM tokens.
     */

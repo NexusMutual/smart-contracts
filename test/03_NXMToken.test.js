@@ -383,7 +383,6 @@ contract('NXMToken', function([
       });
       it('should be able to change BookTime', async function() {
         await td.changeBookTime(1, { from: owner });
-        await td.pushBookedCA(member3, 2);
         await increaseTimeTo((await latestTime()) + 3);
         (await td.bookTime()).should.be.bignumber.equal(1);
       });

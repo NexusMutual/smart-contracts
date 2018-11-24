@@ -54,30 +54,38 @@ contract Claims is Iupgradable {
         _;
     }
 
-    /// @dev Adds status under which a claim can lie.
-    /// @param stat description for claim status
-    /// @param percCA reward percentage for claim assessor
-    /// @param percMV reward percentage for members
+    /**
+     * @dev Adds status under which a claim can lie.
+     * @param stat description for claim status
+     * @param percCA reward percentage for claim assessor
+     * @param percMV reward percentage for members
+     */
     function pushStatus(string stat, uint percCA, uint percMV) external onlyInternal {
         rewardStatus.push(ClaimRewardStatus(stat, percCA, percMV));
     }
     
-    /// @dev Sets the status of claim using claim id.
-    /// @param claimId claim id.
-    /// @param stat status to be set.
+    /**
+     * @dev Sets the status of claim using claim id.
+     * @param claimId claim id.
+     * @param stat status to be set.
+     */ 
     function setClaimStatus(uint claimId, uint stat) external onlyInternal {
         _setClaimStatus(claimId, stat);
     }
 
-    /// @dev Gets the reward percentage to be distributed for a given status id
-    /// @param statusNumber the number of type of status
-    /// @return percCA reward Percentage for claim assessor
-    /// @return percMV reward Percentage for members
+    /**
+     * @dev Gets the reward percentage to be distributed for a given status id
+     * @param statusNumber the number of type of status
+     * @return percCA reward Percentage for claim assessor
+     * @return percMV reward Percentage for members
+     */
     function getRewardStatus(uint statusNumber) external view returns(uint percCA, uint percMV) {
         return (rewardStatus[statusNumber].percCA, rewardStatus[statusNumber].percMV);
     }
 
-    /// @dev Gets claim details of claim id = pending claim start + given index
+    /**
+     * @dev Gets claim details of claim id = pending claim start + given index
+     */ 
     function getClaimFromNewStart(
         uint index
     )
@@ -96,19 +104,33 @@ contract Claims is Iupgradable {
         status = rewardStatus[statusnumber].claimStatusDesc;
     }
 
-    /// @dev Gets details of a claim submitted by the calling user, at a given index
-    function getUserClaimByIndex(uint index) external view returns(string status, uint coverId, uint claimId) {
+    /**
+     * @dev Gets details of a claim submitted by the calling user, at a given index
+     */
+    function getUserClaimByIndex(
+        uint index
+    )
+        external
+        view 
+        returns(
+            string status,
+            uint coverId,
+            uint claimId
+        )
+    {
         uint statusno;
         (statusno, coverId, claimId) = cd.getUserClaimByIndex(index, msg.sender);
         status = rewardStatus[statusno].claimStatusDesc;
     }
 
-    /// @dev Gets details of a given claim id.
-    /// @param _claimId Claim Id.
-    /// @return status Current status of claim id
-    /// @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
-    /// @return claimOwner Address through which claim is submitted
-    /// @return coverId Coverid associated with the claim id
+    /**
+     * @dev Gets details of a given claim id.
+     * @param _claimId Claim Id.
+     * @return status Current status of claim id
+     * @return finalVerdict Decision made on the claim, 1 -> acceptance, -1 -> denial
+     * @return claimOwner Address through which claim is submitted
+     * @return coverId Coverid associated with the claim id
+     */
     function getClaimbyIndex(uint _claimId) external view returns (
         uint claimId,
         string status,
@@ -116,7 +138,6 @@ contract Claims is Iupgradable {
         address claimOwner,
         uint coverId
     )
-
     {
         uint stat;
         claimId = _claimId;
@@ -125,10 +146,12 @@ contract Claims is Iupgradable {
         status = rewardStatus[stat].claimStatusDesc;
     }
 
-    /// @dev Gets number of tokens used by a given address to assess a given claimId
-    /// @param _of User's address.
-    /// @param claimId Claim Id.
-    /// @return value Number of tokens.
+    /**
+     * @dev Gets number of tokens used by a given address to assess a given claimId
+     * @param _of User's address.
+     * @param claimId Claim Id.
+     * @return value Number of tokens.
+     */ 
     function getCATokensLockedAgainstClaim(address _of, uint claimId) external view returns(uint value) {
         (, value) = cd.getTokensClaim(_of, claimId);
         uint totalLockedCA = tc.tokensLockedAtTime(_of, "CLA", now);
@@ -136,12 +159,14 @@ contract Claims is Iupgradable {
             value = totalLockedCA;
     }
 
-    /// @dev Calculates total amount that has been used to assess a claim.
-    //      Computaion:Adds acceptCA(tokens used for voting in favor of a claim)
-    //      denyCA(tokens used for voting against a claim) *  current token price.
-    /// @param claimId Claim Id.
-    /// @param member Member type 0 -> Claim Assessors, else members.
-    /// @return tokens Total Amount used in Claims assessment.
+    /**
+     * @dev Calculates total amount that has been used to assess a claim.
+     * Computaion:Adds acceptCA(tokens used for voting in favor of a claim)
+     * denyCA(tokens used for voting against a claim) *  current token price.
+     * @param claimId Claim Id.
+     * @param member Member type 0 -> Claim Assessors, else members.
+     * @return tokens Total Amount used in Claims assessment.
+     */ 
     function getCATokens(uint claimId, uint member) external view returns(uint tokens) {
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
@@ -157,6 +182,9 @@ contract Claims is Iupgradable {
         tokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18); // amount (not in tokens)
     }
 
+    /**
+     * Iupgradable Interface to update dependent contract address
+     */
     function changeDependentContractAddress() public onlyInternal {
         tk = NXMToken(ms.tokenAddress());
         td = TokenData(ms.getLatestAddress("TD"));
@@ -170,7 +198,10 @@ contract Claims is Iupgradable {
         qd = QuotationData(ms.getLatestAddress("QD"));
     }
 
-    /// @dev Updates the pending claim start variable, the lowest claim id with a pending decision/payout.
+    /**
+     * @dev Updates the pending claim start variable,
+     * the lowest claim id with a pending decision/payout.
+     */ 
     function changePendingClaimStart() public onlyInternal {
 
         uint origstat;
@@ -187,11 +218,12 @@ contract Claims is Iupgradable {
         }
     }
 
-    /// @dev Submits a claim for a given cover note.
-    ///      Adds claim to queue incase of emergency pause else directly submits the claim.
-    /// @param coverId Cover Id.
+    /**
+     * @dev Submits a claim for a given cover note.
+     * Adds claim to queue incase of emergency pause else directly submits the claim.
+     * @param coverId Cover Id.
+     */ 
     function submitClaim(uint coverId) public {
-
         address qadd = qd.getCoverMemberAddress(coverId);
         require(qadd == msg.sender);
         bytes16 cStatus;
@@ -205,9 +237,10 @@ contract Claims is Iupgradable {
         }
     }
 
-    ///@dev Submits the Claims queued once the emergency pause is switched off.
+    /**
+     * @dev Submits the Claims queued once the emergency pause is switched off.
+     */
     function submitClaimAfterEPOff() public onlyInternal {
-
         uint lengthOfClaimSubmittedAtEP = cd.getLengthOfClaimSubmittedAtEP();
         uint firstClaimIndexToSubmitAfterEP = cd.getFirstClaimIndexToSubmitAfterEP();
         uint coverId;
@@ -225,11 +258,13 @@ contract Claims is Iupgradable {
         cd.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
     }
 
-    /// @dev Castes vote for members who have tokens locked under Claims Assessment
-    /// @param claimId  claim id.
-    /// @param verdict 1 for Accept,-1 for Deny.
+    /**
+     * @dev Castes vote for members who have tokens locked under Claims Assessment
+     * @param claimId  claim id.
+     * @param verdict 1 for Accept,-1 for Deny.
+     */ 
     function submitCAVote(uint claimId, int8 verdict) public isMemberAndcheckPause {
-        require(td.isTokenBooked(msg.sender) == false);
+        require(td.isCATokensBooked(msg.sender) == false);
         require(checkVoteClosing(claimId) != 1);   
         uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", now.add(cd.claimDepositTime()));
         require(tokens > 0);
@@ -237,7 +272,7 @@ contract Claims is Iupgradable {
         (, stat) = cd.getClaimStatusNumber(claimId);
         require(stat == 0);
         require(cd.getUserClaimVoteCA(msg.sender, claimId) == 0);
-        tf.bookCATokens(msg.sender, tokens);
+        td.bookCATokens(msg.sender);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "CAV", tokens, now, verdict);
         uint voteLength = cd.getAllVoteLength();
@@ -251,11 +286,13 @@ contract Claims is Iupgradable {
         }
     }
 
-    /// @dev Submits a member vote for assessing a claim.
-    //      Tokens other than those locked under Claims
-    //      Assessment can be used to cast a vote for a given claim id.
-    /// @param claimId Selected claim id.
-    /// @param verdict 1 for Accept,-1 for Deny.
+    /**
+     * @dev Submits a member vote for assessing a claim.
+     * Tokens other than those locked under Claims
+     * Assessment can be used to cast a vote for a given claim id.
+     * @param claimId Selected claim id.
+     * @param verdict 1 for Accept,-1 for Deny.
+     */ 
     function submitMemberVote(uint claimId, int8 verdict) public isMemberAndcheckPause {
         require(checkVoteClosing(claimId) != 1);
         uint stat;
@@ -265,9 +302,7 @@ contract Claims is Iupgradable {
         require(cd.getUserClaimVoteMember(msg.sender, claimId) == 0);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
-        uint time = td.lockMVDays();
-        time = now.add(time);
-        tf.lockForMemberVote(msg.sender, time);
+        td.lockForMemberVote(msg.sender);
         uint voteLength = cd.getAllVoteLength();
         cd.addClaimVotemember(claimId, voteLength);
         cd.setUserClaimVoteMember(msg.sender, claimId, voteLength);
@@ -278,7 +313,9 @@ contract Claims is Iupgradable {
         }
     }
 
-    /// @dev Pause Voting of All Pending Claims when Emergency Pause Start.
+    /**
+    * @dev Pause Voting of All Pending Claims when Emergency Pause Start.
+    */ 
     function pauseAllPendingClaimsVoting() public onlyInternal {
         uint firstIndex = cd.pendingClaimStart();
         uint actualClaimLength = cd.actualClaimLength();
@@ -291,8 +328,8 @@ contract Claims is Iupgradable {
     }
 
     /**
-    * @dev Resume the voting phase of all Claims paused due to an emergency pause.
-    */
+     * @dev Resume the voting phase of all Claims paused due to an emergency pause.
+     */
     function startAllPendingClaimsVoting() public onlyInternal {
         uint firstIndx = cd.getFirstClaimIndexToStartVotingAfterEP();
         uint i;
@@ -313,18 +350,22 @@ contract Claims is Iupgradable {
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
     }
 
-    /// @dev Checks if voting of a claim should be closed or not.
-    /// @param claimId Claim Id.
-    /// @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
-    /// -1 -> voting has already been closed.
+    /**
+     * @dev Checks if voting of a claim should be closed or not.
+     * @param claimId Claim Id.
+     * @return close 1 -> voting should be closed, 0 -> if voting should not be closed,
+     * -1 -> voting has already been closed.
+     */ 
     function checkVoteClosing(uint claimId) public view returns(int8 close) {
         close = 0;
         uint status;
         (, status) = cd.getClaimStatusNumber(claimId);
         uint dateUpd = cd.getClaimDateUpd(claimId);
-        if (status == 12 && dateUpd.add(cd.payoutRetryTime()) < now)
+        if (status == 12 && dateUpd.add(cd.payoutRetryTime()) < now) {
             if (cd.getClaimState12Count(claimId) < 60)
                 close = 1;
+        } 
+        
         if (status > 5) {
             close = -1;
         }  else if (dateUpd.add(cd.maxVotingTime()) <= now) {
@@ -337,14 +378,14 @@ contract Claims is Iupgradable {
     }
 
     /**
-    * @dev Checks if voting of a claim should be closed or not.
-    *             Internally called by checkVoteClosing method
-    *             for Claims whose status number is 0 or status number lie between 2 and 6.
-    * @param claimId Claim Id.
-    * @param status Current status of claim.
-    * @return close 1 if voting should be closed,0 in case voting should not be closed,
-    *         -1 if voting has already been closed.
-    */
+     * @dev Checks if voting of a claim should be closed or not.
+     * Internally called by checkVoteClosing method
+     * for Claims whose status number is 0 or status number lie between 2 and 6.
+     * @param claimId Claim Id.
+     * @param status Current status of claim.
+     * @return close 1 if voting should be closed,0 in case voting should not be closed,
+     * -1 if voting has already been closed.
+     */
     function checkVoteClosingFinal(uint claimId, uint status) internal view returns(int8 close) {
         close = 0;
         uint coverId;
@@ -358,16 +399,19 @@ contract Claims is Iupgradable {
         (, accept, deny) = cd.getClaimsTokenMV(claimId);
         uint mvTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
         uint sumassured = qd.getCoverSumAssured(coverId).mul(DECIMAL1E18);
-        if (status == 0 && caTokens >= sumassured.mul(10))
+        if (status == 0 && caTokens >= sumassured.mul(10)) {
             close = 1;
-
-        if (status >= 1 && status <= 5 && mvTokens >= sumassured.mul(10))
+        } else if (status >= 1 && status <= 5 && mvTokens >= sumassured.mul(10)) {
             close = 1;
+        }
     }
 
-    /// @dev Changes the status of an existing claim id, based on current status and current conditions of the system
-    /// @param claimId Claim Id.
-    /// @param stat status number.
+    /**
+     * @dev Changes the status of an existing claim id, based on current 
+     * status and current conditions of the system
+     * @param claimId Claim Id.
+     * @param stat status number.  
+     */
     function _setClaimStatus(uint claimId, uint stat) internal {
 
         uint origstat;
@@ -399,8 +443,10 @@ contract Claims is Iupgradable {
         }
     }
 
-    ///@dev Submits a claim for a given cover note.
-    ///     Set deposits flag against cover.
+    /**
+     * @dev Submits a claim for a given cover note.
+     * Set deposits flag against cover.
+     */
     function addClaim(uint coverId, uint time, address add) internal {
         bool isDeposited;
         (isDeposited, ) = td.getDepositCNDetails(coverId);
@@ -412,7 +458,8 @@ contract Claims is Iupgradable {
         qd.changeCoverStatusNo(coverId, 4);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint sumAssured = qd.getCoverSumAssured(coverId);
-        pd.changeCurrencyAssetVarMin(curr, uint64(uint(pd.getCurrencyAssetVarMin(curr)).add(sumAssured)));
+        pd.changeCurrencyAssetVarMin(curr, uint64(
+            uint(pd.getCurrencyAssetVarMin(curr)).add(sumAssured)));
         p3.checkLiquidityCreateOrder(curr);
         p1.closeClaimsOraclise(len, cd.maxVotingTime());
     }

@@ -160,7 +160,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     function transferAssetToPool2(bytes8 curr, uint amount) external onlyInternal {
         address pool2Add = ms.getLatestAddress("P2");
         if (curr == "ETH") {
-            require(pool2Add.send(amount));
+            pool2Add.transfer(amount);
         } else {
             erc20 = ERC20(pd.getCurrencyAssetAddress(curr)); //solhint-disable-line
             erc20.transfer(pool2Add, amount); 
@@ -229,7 +229,8 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint superWeiSpent;
         uint tokenPurchased;
         uint tokenSupply = tk.totalSupply();
-        require(m1.calculateTokenPriceWithSupply("ETH", tokenSupply) > 0,"Token price can't be zero");
+        require(m1.calculateTokenPriceWithSupply("ETH", tokenSupply) > 0,
+            "Token price can't be zero");
         while (superWeiLeft > 0) {
             tokenPrice = m1.calculateTokenPriceWithSupply("ETH", tokenSupply);
             tempTokens = superWeiLeft.div(tokenPrice);
@@ -277,7 +278,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         isMemberAndcheckPause
     {
         erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
-        require(erc20.transferFrom(msg.sender, this, coverDetails[1]),"Transfer failed");
+        require(erc20.transferFrom(msg.sender, this, coverDetails[1]), "Transfer failed");
         q2.verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
@@ -290,7 +291,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      */
     function sellNXMTokens(uint _amount) public isMemberAndcheckPause returns(bool success) {
         require(tk.balanceOf(msg.sender) >= _amount, "Not enough balance");
-        require(!tf.voted(msg.sender), "member voted");
+        require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
         require(_amount <= m1.getMaxSellTokens(), "exceeds maximum token sell limit");
         uint sellingPrice = _getWei(_amount, tk.totalSupply());
         require(tc.burnFrom(msg.sender, _amount), "Burn not successfull");

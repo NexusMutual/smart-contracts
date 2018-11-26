@@ -35,32 +35,19 @@ contract Pool2 is Iupgradable {
 
     TokenFunctions internal tf;
     Pool1 internal p1;
+    Pool3 internal p3;
+    PoolData internal pd;
     Claims internal c1;
-    // Exchange public exchange1;
+    ClaimsReward internal cr;
     Quotation internal q2;
+    QuotationData internal qd;
     MCR internal m1;
     MCRData internal md;
-    ClaimsReward internal cr;
-    PoolData internal pd;
-    Pool3 internal p3;
-    QuotationData internal qd;
 
     address internal poolAddress;
-    address internal exchangeContractAddress;
-
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
 
     event Liquidity(bytes16 typeOf, bytes16 functionName);
-
-    // event ZeroExOrders(
-    //     bytes16 func,
-    //     address makerAddr,
-    //     address takerAddr,
-    //     uint makerAmt,
-    //     uint takerAmt,
-    //     uint expirationTimeInMilliSec,
-    //     bytes32 orderHash
-    //     );
 
     event Rebalancing(bytes16 name, uint16 param);
 
@@ -88,38 +75,34 @@ contract Pool2 is Iupgradable {
     }
 
     function () public payable {} //solhint-disable-line
-    
-    function changeExchangeContractAddress(address _add) public onlyOwner {
-        exchangeContractAddress = _add; //0x
-        p3.changeExchangeContractAddress(exchangeContractAddress);
-    }
 
-    /// @dev Gets the equivalent investment asset Pool2 balance in ether.
-    /// @param iaCurr array of Investment asset name.
-    /// @param iaRate array of investment asset exchange rate.
-    function totalRiskPoolBalance(bytes8[] iaCurr, uint64[] iaRate) public view returns(uint balance, uint iaBalance) {
+    /**
+     * @dev Gets the equivalent investment asset Pool2 balance in ether.
+     * @param iaCurr array of Investment asset name.
+     * @param iaRate array of investment asset exchange rate. 
+     */ 
+    function totalRiskPoolBalance(
+        bytes8[] iaCurr,
+        uint64[] iaRate
+    ) 
+        public
+        view
+        returns(uint balance, uint iaBalance)
+    {
         uint currBalance;
         (currBalance, ) = m1.calVtpAndMCRtp();
 
         for (uint i = 0; i < iaCurr.length; i++) {
             if (iaRate[i] > 0)
-                iaBalance = iaBalance.add((getBalanceofInvestmentAsset(iaCurr[i]).mul(100)).div(iaRate[i]));
+                iaBalance = iaBalance.add((getBalanceofInvestmentAsset(iaCurr[i])
+                    .mul(100)).div(iaRate[i]));
         }
         balance = currBalance.add(iaBalance);
     }
-    // function createOrder(
-    //     bytes8 curr,
-    //     uint makerAmt,
-    //     uint takerAmt,
-    //     bytes16 _type,
-    //     uint8 cancel
-    // ) 
-    //     public
-    //     onlyInternal
-    // {
 
-    // }
-    /// @dev Get Investment asset balance and active status for a given asset name.
+    /** 
+     * @dev Get Investment asset balance and active status for a given asset name.
+     */ 
     function getInvestmentAssetBalAndStatus(
         bytes8 currName
     )
@@ -135,17 +118,22 @@ contract Pool2 is Iupgradable {
         )
     {
         balance = getBalanceofInvestmentAsset(currName);
-        (curr, , status, _minHoldingPercX100, _maxHoldingPercX100, decimals) = pd.getInvestmentAssetDetails(currName);
+        (curr, , status, _minHoldingPercX100, _maxHoldingPercX100, decimals
+            ) = pd.getInvestmentAssetDetails(currName);
     }
 
-    ///@dev Gets Pool balance of a given Investment Asset.
+    /**
+     * @dev Gets Pool balance of a given Investment Asset.
+     */
     function getBalanceofInvestmentAsset(bytes8 _curr) public view returns(uint balance) {
         address currAddress = pd.getInvestmentAssetAddress(_curr);
         ERC20 erc20 = ERC20(currAddress);
         return erc20.balanceOf(address(this));
     }
 
-    ///@dev Gets Pool1 balance of a given investmentasset.
+    /**  
+     * @dev Gets Pool1 balance of a given investmentasset.
+     */
     function getBalanceOfCurrencyAsset(bytes8 _curr) public view returns(uint balance) {
         ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
         return erc20.balanceOf(address(this));
@@ -158,16 +146,20 @@ contract Pool2 is Iupgradable {
             require(_transferCurrencyAssetFromPool(_newPoolAddress, caAddress));
         }
         if (address(this).balance > 0)
-            require(_newPoolAddress.send(address(this).balance));
+            _newPoolAddress.transfer(address(this).balance);
     }
 
-    /// @dev Sets a given investment asset as active or inactive for trading.
+    /**
+     * @dev Sets a given investment asset as active or inactive for trading.
+     */
     function changeInvestmentAssetStatus(bytes8 curr, uint8 status) public {
         require(ms.checkIsAuthToGoverned(msg.sender));
         pd.changeInvestmentAssetStatus(curr, status);
     }
 
-    // add new investment asset currency.
+    /**
+     * @dev add new investment asset currency.
+     */ 
     function addInvestmentAssetsDetails(
         bytes8 currName,
         address curr,
@@ -178,10 +170,13 @@ contract Pool2 is Iupgradable {
     {
         require(ms.checkIsAuthToGoverned(msg.sender));
         pd.addInvestmentCurrency(currName);
-        pd.pushInvestmentAssetsDetails(currName, curr, 1, _minHoldingPercX100, _maxHoldingPercX100, 18);
+        pd.pushInvestmentAssetsDetails(currName, curr, 1,
+            _minHoldingPercX100, _maxHoldingPercX100, 18);
     }
 
-    // @dev Updates investment asset min and max holding percentages.
+    /** 
+     * @dev Updates investment asset min and max holding percentages.
+     */ 
     function updateInvestmentAssetHoldingPerc(
         bytes8 _curr,
         uint64 _minPercX100,
@@ -196,7 +191,7 @@ contract Pool2 is Iupgradable {
     function transferAssetToPool1(bytes8 curr, uint amount) public onlyInternal {
         address pool1Add = ms.getLatestAddress("P1");
         if (curr == "ETH") {
-            require(pool1Add.send(amount));
+            pool1Add.transfer(amount);
         } else {
             address caAddress = pd.getCurrencyAssetAddress(curr);
             ERC20 erc20 = ERC20(caAddress);
@@ -204,7 +199,9 @@ contract Pool2 is Iupgradable {
         }
     }
 
-    ///@dev Transfers investment asset from current Pool address to the new Pool address.
+    /** 
+     * @dev Transfers investment asset from current Pool address to the new Pool address.
+     */ 
     function _transferInvestmentAssetFromPool(
         address _newPoolAddress,
         address _iaAddress
@@ -220,7 +217,9 @@ contract Pool2 is Iupgradable {
         success = true;
     }
 
-    ///@dev Transfers investment asset from current Pool address to the new Pool address.
+    /** 
+     * @dev Transfers investment asset from current Pool address to the new Pool address.
+     */ 
     function _transferCurrencyAssetFromPool(
         address _newPoolAddress,
         address _caAddress

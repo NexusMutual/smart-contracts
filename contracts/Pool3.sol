@@ -394,6 +394,7 @@ contract Pool3 is Iupgradable {
         if (rateX100 > 0) {
             uint rhsf;
             rhsf = ((iaBalance.mul(10000000)).div(rateX100)).div(totalRiskPoolBalance);
+            
             rhsh = int(rhsf - currentIAmaxHolding);
             rhsl = int(rhsf - currentIAminHolding);
         }

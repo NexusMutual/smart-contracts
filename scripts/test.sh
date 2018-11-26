@@ -40,7 +40,7 @@ start_ganache() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
     node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 21 -e 10000000 > /dev/null &
   else
-    node_modules/.bin/ganache-cli --gasLimit 8000000 -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 21 -e 10000000 > /dev/null &
+    node_modules/.bin/ganache-cli --gasLimit 7000000 -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 21 -e 10000000 > /dev/null &
   fi
 
   ganache_pid=$!

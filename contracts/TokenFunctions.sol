@@ -212,7 +212,7 @@ contract TokenFunctions is Iupgradable, Governed {
         public
         onlyInternal
     {
-        uint validity = now.add(coverPeriod).add(td.lockTokenTimeAfterCoverExp());
+        uint validity = now.add(coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
         tc.lockOf(_of, reason, coverNoteAmount, validity);
     }

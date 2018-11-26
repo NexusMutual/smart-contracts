@@ -63,8 +63,8 @@ contract TokenFunctions is Iupgradable, Governed {
     }
      
     /**
-    * @dev Just for interface
-    */
+     * @dev Just for interface
+     */
     function changeDependentContractAddress() public {
         tk = NXMToken(ms.tokenAddress());
         td = TokenData(ms.getLatestAddress("TD"));
@@ -79,101 +79,88 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Gets the Token price in a given currency
-    * @param curr Currency name.
-    * @return price Token Price.
-    */
+     * @dev Gets the Token price in a given currency
+     * @param curr Currency name.
+     * @return price Token Price.
+     */
     function getTokenPrice(bytes4 curr) public view returns(uint price) {
         price = m1.calculateTokenPrice(curr);
     }
 
     /**
-    * @dev It will tell if user has locked tokens in member vote or not.
-    * @param _add addressof user.
-    */ 
-    function voted(address _add) public view returns(bool) {
-        return mr.checkRoleIdByAddress(_add, 4);
-    }
-
-    /**
-    * @dev Set the flag to check if cover note is deposited against the cover id
-    * @param coverId Cover Id.
-    */ 
+     * @dev Set the flag to check if cover note is deposited against the cover id
+     * @param coverId Cover Id.
+     */ 
     function depositCN(uint coverId) public onlyInternal returns (bool success) {
-        uint toBurn;
-        (, toBurn) = td.getDepositCNDetails(coverId);
-        uint availableCNToken = _getLockedCNAgainstCover(coverId).sub(toBurn);
-        require(availableCNToken > 0);
-        td.setDepositCN(coverId, true, toBurn);
+        require(_getLockedCNAgainstCover(coverId) > 0, "No cover note available");
+        td.setDepositCN(coverId, true);
         success = true;    
     }
 
     /**
-    * @dev Undeposit tokens deposited against a cover.
-    * @param coverId Cover Id.
-    * @param burn if set true, 50 % amount of locked cover note to burn. 
-    */
-    function undepositCN(uint coverId, bool burn) public onlyInternal returns (bool success) {
-        uint toBurn;
-        (, toBurn) = td.getDepositCNDetails(coverId);
-        if (burn == true) {
-            td.setDepositCN(coverId, false, toBurn.add(_getDepositCNAmount(coverId)));
-        } else {
-            td.setDepositCN(coverId, false, toBurn);
+     * @param _of address of Member
+     * @param _coverId Cover Id
+     * @param _lockTime Pending Time + Cover Period 7*1 days
+     */ 
+    function extendCNEPOff(address _of, uint _coverId, uint _lockTime) public onlyInternal {
+        uint timeStamp = now.add(_lockTime);
+        uint coverValidUntil = qd.getValidityOfCover(_coverId);
+        if (timeStamp >= coverValidUntil) {
+            bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
+            tc.extendLockOf(_of, reason, timeStamp);
+        } 
+    }
+
+    function burnDepositCN(uint coverId) public onlyInternal returns (bool success) {
+        address _of = qd.getCoverMemberAddress(coverId);
+        uint amount;
+        (amount, ) = td.depositedCN(coverId);
+        amount = (amount.mul(50)).div(100);
+        bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
+        tc.burnLockedTokens(_of, reason, amount);
+
+        if (_getLockedCNAgainstCover(coverId) == amount) {
+            // should we expire cover ASAP if claim rejected twice?
         }
-        success = true;  
+        success = true;
     }
 
     /**
-    * @dev Unlocks covernote locked against a given cover 
-    * @param coverId id of cover
-    */ 
+     * @dev Unlocks covernote locked against a given cover 
+     * @param coverId id of cover
+     */ 
     function unlockCN(uint coverId) public onlyInternal {
         address _of = qd.getCoverMemberAddress(coverId);
         uint lockedCN = _getLockedCNAgainstCover(coverId);
-        require(lockedCN > 0);
-        uint burnAmount;
-        bool isDeposited;
-        (isDeposited, burnAmount) = td.getDepositCNDetails(coverId);
-        if (isDeposited)
-            require(undepositCN(coverId, false));
-        uint availableCNToken = lockedCN.sub(burnAmount);
-        bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-        if (burnAmount == 0) {
-            tc.releaseLockedTokens(_of, reason, availableCNToken);
-        } else if (availableCNToken == 0) {
-            tc.burnLockedTokens(_of, reason, burnAmount);
-        } else {
-            tc.releaseLockedTokens(_of, reason, availableCNToken);
-            tc.burnLockedTokens(_of, reason, burnAmount);
+        if (lockedCN != 0) {
+            bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
+            tc.releaseLockedTokens(_of, reason, lockedCN);
         }
     }
 
     /** 
-    * @dev Burns tokens used for fraudulent voting against a claim
-    * @param claimid Claim Id.
-    * @param _value number of tokens to be burned
-    * @param _of Claim Assessor's address.
-    */     
+     * @dev Burns tokens used for fraudulent voting against a claim
+     * @param claimid Claim Id.
+     * @param _value number of tokens to be burned
+     * @param _of Claim Assessor's address.
+     */     
     function burnCAToken(uint claimid, uint _value, address _of) public onlyAuthorizedToGovern {
-        require(tc.tokensLockedAtTime(_of, "CLA", now) >= _value);
         tc.burnLockedTokens(_of, "CLA", _value);
         emit BurnCATokens(claimid, _of, _value);
     }
 
     /**
-    * @dev Change the address who can update GovBlocks member role.
-    *      Called when updating to a new version.
-    *      Need to remove onlyOwner to onlyInternal and update automatically at version change
-    */
+     * @dev Change the address who can update GovBlocks member role.
+     * Called when updating to a new version.
+     * Need to remove onlyOwner to onlyInternal and update automatically at version change
+     */
     function changeCanAddMemberAddress(address _newAdd) public onlyOwner {
         mr.changeCanAddMember(3, _newAdd);
-        mr.changeCanAddMember(4, _newAdd);
     }
 
     /** 
-    * @dev Called by user to pay joining membership fee
-    */ 
+     * @dev Called by user to pay joining membership fee
+     */ 
     function payJoiningFee(address _userAddress) public payable checkPause {
         if (msg.sender == address(ms.getLatestAddress("QT"))) {
             require(td.walletAddress() != address(0));
@@ -205,11 +192,11 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Called by existed member if if wish to Withdraw membership.
-    */
+     * @dev Called by existed member if if wish to Withdraw membership.
+     */
     function withdrawMembership() public isMemberAndcheckPause {
         require(tc.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
-        require(!td.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
+        require(!isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
         require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
         tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
         mr.updateMemberRole(msg.sender, 3, false, 0);
@@ -225,31 +212,17 @@ contract TokenFunctions is Iupgradable, Governed {
         public
         onlyInternal
     {
-        uint validity = now.add(td.lockTokenTimeAfterCoverExp()).add(coverPeriod);
+        uint validity = now.add(coverPeriod).add(td.lockTokenTimeAfterCoverExp());
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
         tc.lockOf(_of, reason, coverNoteAmount, validity);
     }
 
-    /**
-    * @param _of address of Member
-    * @param _coverId Cover Id
-    * @param _lockTime Pending Time + Cover Period 7*1 days
-    */ 
-    function depositCNEPOff(address _of, uint _coverId, uint _lockTime) public onlyInternal {
-        uint timeStamp = now.add(_lockTime);
-        uint coverValidUntil = qd.getValidityOfCover(_coverId);
-        if (timeStamp >= coverValidUntil) {
-            bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
-            tc.extendLockOf(_of, reason, timeStamp);
-        } 
-        depositCN(_coverId);
-    }
 
     /**
-    * @dev Staking on contract.
-    * @param _scAddress smart contract address.
-    * @param _amount amount of NXM.
-    */ 
+     * @dev Staking on contract.
+     * @param _scAddress smart contract address.
+     * @param _amount amount of NXM.
+     */ 
     function addStake(address _scAddress, uint _amount) public isMemberAndcheckPause {
         require(tk.balanceOf(msg.sender) >= _amount);
         uint scIndex = td.addStake(msg.sender, _scAddress, _amount);
@@ -258,11 +231,16 @@ contract TokenFunctions is Iupgradable, Governed {
         tc.lockOf(msg.sender, reason, _amount, validity);
     }
 
+    function isLockedForMemberVote(address _of) public view returns(bool res) {
+        if (now < td.isLockedForMV(_of))
+            res = true;
+    }
+
     /**
-    * @dev Sends commission to underwriter on purchase of staked smart contract.
-    * @param _scAddress staker address.
-    * @param _premiumNXM premium of cover in NXM.
-    */
+     * @dev Sends commission to underwriter on purchase of staked smart contract.
+     * @param _scAddress staker address.
+     * @param _premiumNXM premium of cover in NXM.
+     */
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) public onlyInternal {
         uint commissionToBePaid = (_premiumNXM.mul(20)).div(100);
         uint stakeLength = td.getStakedContractStakersLength(_scAddress);
@@ -302,33 +280,34 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Burns tokens staked against a Smart Contract Cover.
-    *      Called when a claim submitted against this cover is accepted.
-    * @param coverid Cover Id.
-    */
-    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sa) public onlyInternal {
+     * @dev Burns tokens staked against a Smart Contract Cover.
+     * Called when a claim submitted against this cover is accepted.
+     * @param coverid Cover Id.
+     */
+    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sa) external onlyInternal {
         address scAddress;
         (, scAddress) = qd.getscAddressOfCover(coverid);
         uint tokenPrice = m1.calculateTokenPrice(curr);
         uint totalStaker = td.getStakedContractStakersLength(scAddress);
-        sa = sa.mul(DECIMAL1E18);
-        uint burnNXMAmount = sa.mul(DECIMAL1E18).div(tokenPrice);
+        uint burnNXMAmount = sa.mul(DECIMAL1E18).mul(DECIMAL1E18).div(tokenPrice);
         address stakerAddress;
         
         for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
             if (burnNXMAmount > 0) {
                 stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
-                uint stakerStakedNXM = _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, i);
+                uint stakerStakedNXM = _getStakerStakedTokensOnSmartContract(
+                    stakerAddress, scAddress, i);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
-                        _burnStakerTokenLockedAgainstSmartContract(stakerAddress,
-                            scAddress, i, burnNXMAmount);
+                        _burnStakerTokenLockedAgainstSmartContract(
+                            stakerAddress, scAddress, i, burnNXMAmount);
                         if (i > 0)
                             td.setStakedContractCurrentBurnIndex(scAddress, i);
                         burnNXMAmount = 0;
                         break;
                     } else {
-                        _burnStakerTokenLockedAgainstSmartContract(stakerAddress, scAddress, i, stakerStakedNXM);
+                        _burnStakerTokenLockedAgainstSmartContract(
+                            stakerAddress, scAddress, i, stakerStakedNXM);
                         burnNXMAmount = burnNXMAmount.sub(stakerStakedNXM);
                     }
                 }
@@ -340,27 +319,32 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Gets the total staked NXM tokens against Smart contract 
-    *       by all stakers
-    * @param _stakedContractAddress smart contract address.
-    * @return amount total staked NXM tokens.
-    */
-    function getTotalStakedTokensOnSmartContract(address _stakedContractAddress) public view returns(uint amount) {
+     * @dev Gets the total staked NXM tokens against
+     * Smart contract by all stakers
+     * @param _stakedContractAddress smart contract address.
+     * @return amount total staked NXM tokens.
+     */
+    function getTotalStakedTokensOnSmartContract(
+        address _stakedContractAddress
+    )
+        external
+        view
+        returns(uint amount)
+    {
         uint stakedAmount = 0;
         address stakerAddress;
-        uint sA;
         for (uint i = 0; i < td.getStakedContractStakersLength(_stakedContractAddress); i++) {
             stakerAddress = td.getStakedContractStakerByIndex(_stakedContractAddress, i);
-            sA = _getStakerStakedTokensOnSmartContract(stakerAddress, _stakedContractAddress, i);
-            stakedAmount = stakedAmount.add(1);
+            stakedAmount = stakedAmount.add(_getStakerStakedTokensOnSmartContract(
+                stakerAddress, _stakedContractAddress, i));
         } 
         amount = stakedAmount;
     }
 
     /**
-    * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
-    * @param _of address of the coverHolder.
-    * @param _coverId coverId of the cover.
+     * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
+     * @param _of address of the coverHolder.
+     * @param _coverId coverId of the cover.
      */
     function getUserLockedCNTokens(address _of, uint _coverId) public view returns(uint) {
         return _getUserLockedCNTokens(_of, _coverId);
@@ -373,17 +357,17 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Returns amount of NXM Tokens locked as Cover Note against given coverId.
-    * @param _coverId coverId of the cover.
-    */
+     * @dev Returns amount of NXM Tokens locked as Cover Note against given coverId.
+     * @param _coverId coverId of the cover.
+     */
     function getLockedCNAgainstCover(uint _coverId) public view returns(uint) {
         return _getLockedCNAgainstCover(_coverId);
     }
 
     /**
-    * @dev Returns total amount of staked NXM Tokens on all smart contract .
-    * @param _stakerAddress address of the Staker.
-    */ 
+     * @dev Returns total amount of staked NXM Tokens on all smart contract .
+     * @param _stakerAddress address of the Staker.
+     */ 
     function getStakerAllLockedTokens(address _stakerAddress) public view returns (uint amount) {
         uint stakedAmount = 0;
         address scAddress;
@@ -391,16 +375,23 @@ contract TokenFunctions is Iupgradable, Governed {
         for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
-            stakedAmount = stakedAmount.add(_getStakerLockedTokensOnSmartContract(_stakerAddress, scAddress, scIndex));
+            stakedAmount = stakedAmount.add(_getStakerLockedTokensOnSmartContract(
+                _stakerAddress, scAddress, scIndex));
         }
         amount = stakedAmount;
     }
 
     /**
-    * @dev Returns total unlockable amount of staked NXM Tokens on all smart contract .
-    * @param _stakerAddress address of the Staker.
-    */ 
-    function getStakerAllUnlockableStakedTokens (address _stakerAddress) public view returns (uint amount) {
+     * @dev Returns total unlockable amount of staked NXM Tokens on all smart contract .
+     * @param _stakerAddress address of the Staker.
+     */ 
+    function getStakerAllUnlockableStakedTokens(
+        address _stakerAddress
+    )
+        public
+        view
+        returns (uint amount)
+    {
         uint unlockableAmount = 0;
         address scAddress;
         for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
@@ -412,8 +403,8 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev releases unlockable staked tokens to staker 
-    */
+     * @dev releases unlockable staked tokens to staker 
+     */
     function unlockStakerUnlockableTokens(address _stakerAddress) public {
         uint unlockableAmount;
         address scAddress;
@@ -422,19 +413,20 @@ contract TokenFunctions is Iupgradable, Governed {
         for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
-            unlockableAmount = _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress, scIndex);
+            unlockableAmount = _getStakerUnlockableTokensOnSmartContract(
+                _stakerAddress, scAddress, scIndex);
             reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
             tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
         }
     }
 
     /**
-    * @dev Internal function to gets amount of locked NXM tokens,
-    * staked against smartcontract by index
-    * @param _stakerAddress address of user
-    * @param _stakedContractAddress staked contract address
-    * @param _stakedContractIndex index of staking
-    */
+     * @dev Internal function to gets amount of locked NXM tokens,
+     * staked against smartcontract by index
+     * @param _stakerAddress address of user
+     * @param _stakedContractAddress staked contract address
+     * @param _stakedContractIndex index of staking
+     */
     function getStakerLockedTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
@@ -450,12 +442,12 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Internal function to gets unlockable amount of locked NXM tokens,
-    * staked against smartcontract by index
-    * @param _stakerAddress address of staker
-    * @param _stakedContractAddress staked contract address
-    * @param _stakerIndex index of staking
-    */
+     * @dev Internal function to gets unlockable amount of locked NXM 
+     * tokens, staked against smartcontract by index
+     * @param _stakerAddress address of staker
+     * @param _stakedContractAddress staked contract address
+     * @param _stakerIndex index of staking
+     */
     function _getStakerUnlockableTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
@@ -470,7 +462,8 @@ contract TokenFunctions is Iupgradable, Governed {
         uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
             _stakerAddress, _stakedContractAddress, stakedContractIndex);
         uint unlockable = currentLockedTokens.sub(
-            _getStakerStakedTokensOnSmartContract(_stakerAddress, _stakedContractAddress, _stakerIndex));
+            _getStakerStakedTokensOnSmartContract(_stakerAddress,
+                _stakedContractAddress, _stakerIndex));
         uint alreadyUnlocked;
         (, , , , alreadyUnlocked) = td.stakerStakedContracts(_stakerAddress, _stakerIndex);
         if (alreadyUnlocked >= unlockable) {
@@ -481,12 +474,12 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Internal function to gets amount of staked NXM tokens,
-    * against smartcontract by index
-    * @param _stakerAddress address of user
-    * @param _stakedContractAddress staked contract address
-    * @param _stakedContractIndex index of staking
-    */
+     * @dev Internal function to gets amount of staked NXM 
+     * tokens, against smartcontract by index
+     * @param _stakerAddress address of user
+     * @param _stakedContractAddress staked contract address
+     * @param _stakedContractIndex index of staking
+     */
     function _getStakerStakedTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
@@ -498,7 +491,8 @@ contract TokenFunctions is Iupgradable, Governed {
         (uint amount)
     {   
         uint dateAdd;
-        uint stakerIndex = td.getStakedContractStakerIndex(_stakedContractAddress, _stakedContractIndex);
+        uint stakerIndex = td.getStakedContractStakerIndex(
+            _stakedContractAddress, _stakedContractIndex);
         (, , dateAdd, ,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
         uint validDays = td.scValidDays();
         uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
@@ -512,12 +506,12 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Internal function to gets amount of locked NXM tokens,
-    * staked against smartcontract by index
-    * @param _stakerAddress address of user
-    * @param _stakedContractAddress staked contract address
-    * @param _stakedContractIndex index of staking
-    */
+     * @dev Internal function to gets amount of locked NXM tokens,
+     * staked against smartcontract by index
+     * @param _stakerAddress address of user
+     * @param _stakedContractAddress staked contract address
+     * @param _stakedContractIndex index of staking
+     */
     function _getStakerLockedTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
@@ -533,15 +527,10 @@ contract TokenFunctions is Iupgradable, Governed {
         amount = tc.tokensLockedAtTime(_stakerAddress, reason, now);
     }
 
-    //Returns 50% of locked CoverNote amount to use as deposit for Claim
-    function _getDepositCNAmount(uint _coverId) internal view returns(uint amount) {
-        amount = (_getLockedCNAgainstCover(_coverId).mul(50)).div(100);
-    }
-
     /**
-    * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
-    * @param _coverId coverId of the cover.
-    */
+     * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
+     * @param _coverId coverId of the cover.
+     */
     function _getLockedCNAgainstCover(uint _coverId) internal view returns(uint) {
         address coverHolder = qd.getCoverMemberAddress(_coverId);
         bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, _coverId));
@@ -549,22 +538,22 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
-    * @param _of address of the coverHolder.
-    * @param _coverId coverId of the cover.
-    */
+     * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
+     * @param _of address of the coverHolder.
+     * @param _coverId coverId of the cover.
+     */
     function _getUserLockedCNTokens(address _of, uint _coverId) internal view returns(uint) {
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
         return tc.tokensLockedAtTime(_of, reason, now); 
     }
 
     /**
-    * @dev Internal function to gets remaining amount of staked NXM tokens,
-    * against smartcontract by index
-    * @param _stakeAmount address of user
-    * @param _stakeDays staked contract address
-    * @param _validDays index of staking
-    */
+     * @dev Internal function to gets remaining amount of staked NXM tokens,
+     * against smartcontract by index
+     * @param _stakeAmount address of user
+     * @param _stakeDays staked contract address
+     * @param _validDays index of staking
+     */
     function _calculateStakedTokens(
         uint _stakeAmount,
         uint _stakeDays,
@@ -579,11 +568,11 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-    * @dev Gets the total staked NXM tokens against Smart contract 
-    * by all stakers
-    * @param _stakedContractAddress smart contract address.
-    * @return amount total staked NXM tokens.
-    */
+     * @dev Gets the total staked NXM tokens against Smart contract 
+     * by all stakers
+     * @param _stakedContractAddress smart contract address.
+     * @return amount total staked NXM tokens.
+     */
     function _burnStakerTokenLockedAgainstSmartContract(
         address _stakerAddress,
         address _stakedContractAddress,

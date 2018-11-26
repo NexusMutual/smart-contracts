@@ -49,8 +49,8 @@ contract TokenData is Iupgradable {
     }
 
     struct CoverNote {
+        uint amount;
         bool isDeposited;
-        uint toBurn;
     }
 
     modifier onlyOwner {
@@ -80,11 +80,11 @@ contract TokenData is Iupgradable {
 
     // mapping to return true if Cover Note deposited against coverId
     // holds amount of covernote to be burned 
-    mapping(uint => CoverNote) internal depositedCN;
+    mapping(uint => CoverNote) public depositedCN;
 
     mapping(address => uint) internal isBookedTokens;
 
-    mapping(address => uint) internal isLockedForMV;
+    mapping(address => uint) public isLockedForMV;
 
     event Commission(
         address indexed stakedContractAddress,
@@ -291,19 +291,18 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev set flag for deposited covernote against a coverId
-    *      Adds amount of covernote to burn
-    * @param coverId coverId of Cover
-    * @param flag true/false if deposited/not deposited
-    * @param burnAmount amount of covernote to burn
+     * @dev set flag to deposit/ undeposit cover note 
+     * against a cover Id
+     * @param coverId coverId of Cover
+     * @param flag true/false for deposit/undeposit
      */
-    function setDepositCN(uint coverId, bool flag, uint burnAmount) public onlyInternal {
-        depositedCN[coverId].isDeposited = flag;
-        depositedCN[coverId].toBurn = burnAmount;
-    }
+    function setDepositCN(uint coverId, bool flag) public onlyInternal {
 
-    function getDepositCNDetails(uint coverId) public view onlyInternal returns (bool, uint) {
-        return (depositedCN[coverId].isDeposited, depositedCN[coverId].toBurn);
+        if (flag == true) {
+            require(!depositedCN[coverId].isDeposited, "Cover note already deposited");    
+        }
+
+        depositedCN[coverId].isDeposited = flag;
     }
 
     function getStakedContractStakerByIndex(
@@ -357,7 +356,7 @@ contract TokenData is Iupgradable {
     * @param _of user's address.
      */
     function bookCATokens(address _of) public onlyInternal {
-        require(isCATokensBooked(_of) == false);
+        require(!isCATokensBooked(_of), "Tokens already booked");
         isBookedTokens[_of] = now.add(bookTime);
     }
 
@@ -372,12 +371,6 @@ contract TokenData is Iupgradable {
      */
     function lockForMemberVote(address _of) public onlyInternal {
         isLockedForMV[_of] = now.add(lockMVDays);
-    }
-
-    //TODO use this to enforce locking of tokens
-    function isLockedForMemberVote(address _of) public view returns(bool res) {
-        if (now < isLockedForMV[_of])
-            res = true;
     }
 
     /**

@@ -248,14 +248,15 @@ contract ClaimsReward is Iupgradable {
 
         if (status == 6 || status == 9 || status == 11) {
             cd.changeFinalVerdict(claimid, -1);
-            tf.undepositCN(coverid, true); // Unset flag and add covernote to burns
+            td.setDepositCN(coverid, false); // Unset flag
+            tf.burnDepositCN(coverid); // burn Deposited CN
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
                 pd.changeCurrencyAssetVarMin(curr, uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
                 p3.checkLiquidityCreateOrder(curr);
             }
         } else if (status == 7 || status == 8 || status == 10) {
             cd.changeFinalVerdict(claimid, 1);
-            tf.undepositCN(coverid, false); // Unset flag and does not add covernote to burns
+            td.setDepositCN(coverid, false); // Unset flag
             require(p1.sendClaimPayout(coverid, claimid)); //send payout
         } 
     }

@@ -228,10 +228,11 @@ contract Claims is Iupgradable {
         require(qadd == msg.sender);
         bytes16 cStatus;
         (, , , , cStatus) = qd.getCoverDetailsByCoverID1(coverId);
-        require(cStatus == "Active" || cStatus == "Claim Denied" || cStatus == "Requested");
-        if (ms.isPause() == false)
+        require(cStatus != "Claim Submitted", "Claim already submitted");
+        require(cStatus != "Cover Expired", "Cover already expired");
+        if (ms.isPause() == false) {
             addClaim(coverId, now, qadd);
-        else {
+        } else {
             cd.setClaimAtEmergencyPause(coverId, now, false);
             qd.changeCoverStatusNo(coverId, 5);
         }
@@ -253,7 +254,6 @@ contract Claims is Iupgradable {
             qadd = qd.getCoverMemberAddress(coverId);
             addClaim(coverId, dateUpd, qadd);
             cd.setClaimSubmittedAtEPTrue(i, true);
-            
         }
         cd.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
     }
@@ -264,7 +264,6 @@ contract Claims is Iupgradable {
      * @param verdict 1 for Accept,-1 for Deny.
      */ 
     function submitCAVote(uint claimId, int8 verdict) public isMemberAndcheckPause {
-        require(td.isCATokensBooked(msg.sender) == false);
         require(checkVoteClosing(claimId) != 1);   
         uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", now.add(cd.claimDepositTime()));
         require(tokens > 0);
@@ -344,7 +343,7 @@ contract Claims is Iupgradable {
             uint coverid;
             (, coverid) = cd.getClaimCoverId(claimID);
             address qadd = qd.getCoverMemberAddress(coverid);
-            tf.depositCNEPOff(qadd, coverid, pendingTime.add(cd.claimDepositTime()));
+            tf.extendCNEPOff(qadd, coverid, pendingTime.add(cd.claimDepositTime()));
             p1.closeClaimsOraclise(claimID, uint64(pTime));
         }
         cd.setFirstClaimIndexToStartVotingAfterEP(i);
@@ -448,9 +447,6 @@ contract Claims is Iupgradable {
      * Set deposits flag against cover.
      */
     function addClaim(uint coverId, uint time, address add) internal {
-        bool isDeposited;
-        (isDeposited, ) = td.getDepositCNDetails(coverId);
-        require(!isDeposited);
         require(tf.depositCN(coverId));
         uint len = cd.actualClaimLength();
         cd.addClaim(len, coverId, add, now);

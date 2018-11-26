@@ -14,7 +14,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('MCRDataMock', function([owner, notOwner]) {
+contract('MCRData', function([owner, notOwner]) {
   before(async function() {
     await advanceBlock();
     mcrd = await MCRDataMock.deployed();

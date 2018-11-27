@@ -283,25 +283,26 @@ contract Pool3 is Iupgradable {
 
     /// @dev Cancels insufficient liquidity trading order and creates a new order
     /// for a new taker amount for a given currency.
-    function cancelLastInsufficientTradingOrder(bytes8 curr, uint newTakerAmt) public onlyInternal {
-
-        uint index = pd.getCurrAllOrderHashLength(curr).sub(1);
-        bytes32 lastCurrHash = pd.getCurrOrderHash(curr, index);
+    function cancelLastInsufficientTradingOrder(bytes8 curr, uint newTakerAmt) public view onlyInternal {
+        curr; // to silence compiler warning
+        newTakerAmt; // to silence compiler warning
+        // uint index = pd.getCurrAllOrderHashLength(curr).sub(1);
+        // bytes32 lastCurrHash = pd.getCurrOrderHash(curr, index);
         //get last 0xOrderhash taker amount (currency asset amount)
-        uint lastTakerAmt;
-        (, , , lastTakerAmt, , , ) = pd.getOrderDetailsByHash(lastCurrHash);
-        lastTakerAmt = lastTakerAmt.div(DECIMAL1E18);
-        if (lastTakerAmt < newTakerAmt) {
-            // check0xOrderStatus(curr, index); // transfer previous order amount
-            // generate new 0x order if it is still insufficient
-            uint check;
-            uint caBalance;
-            (check, caBalance) = checkLiquidity(curr);
-            if (check == 1) {
-                insufficientLiquidityTrading(curr, caBalance, 1);
-            }
-            // cancel old order(off chain while signing the new order)
-        }
+        // uint lastTakerAmt;
+        // (, , , lastTakerAmt, , , ) = pd.getOrderDetailsByHash(lastCurrHash);
+        // lastTakerAmt = lastTakerAmt.div(DECIMAL1E18);
+        // if (lastTakerAmt < newTakerAmt) {
+        //     // check0xOrderStatus(curr, index); // transfer previous order amount
+        //     // generate new 0x order if it is still insufficient
+        //     uint check;
+        //     uint caBalance;
+        //     (check, caBalance) = checkLiquidity(curr);
+        //     if (check == 1) {
+        //         insufficientLiquidityTrading(curr, caBalance, 1);
+        //     }
+        //     // cancel old order(off chain while signing the new order)
+        // }
     }
 
     /// @dev Gets currency asset balance for a given currency name.
@@ -441,9 +442,11 @@ contract Pool3 is Iupgradable {
         }
     }
 
-    function setOrderCancelHashValue(bytes8 curr, bytes32 orderHash) internal {
-        uint lastIndex = pd.getCurrAllOrderHashLength(curr).sub(1);
-        bytes32 lastCurrHash = pd.getCurrOrderHash(curr, lastIndex);
-        pd.setOrderCancelHashValue(orderHash, lastCurrHash);
+    function setOrderCancelHashValue(bytes8 curr, bytes32 orderHash) internal pure {
+        curr; // to silence compiler warning
+        orderHash; // to silence compiler warning
+        // uint lastIndex = pd.getCurrAllOrderHashLength(curr).sub(1);
+        // bytes32 lastCurrHash = pd.getCurrOrderHash(curr, lastIndex);
+        // pd.setOrderCancelHashValue(orderHash, lastCurrHash);
     }
 }

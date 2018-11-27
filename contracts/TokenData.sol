@@ -58,16 +58,24 @@ contract TokenData is Iupgradable {
         _;
     }
 
-    // mapping of uw address to array of sc address to fetch all staked contract address of underwriter
-    // pushing data into this mapped array returns stakerIndex 
+    /**
+     * @dev mapping of uw address to array of sc address to fetch 
+     * all staked contract address of underwriter, pushing
+     * data into this array of Stake returns stakerIndex 
+     */ 
     mapping(address => Stake[]) public stakerStakedContracts; 
 
-    //mapping of sc address to array of UW address to fetch all underwritters of the staked smart contract
-    // pushing data into this mapped array returns scIndex 
+    /** 
+     * @dev mapping of sc address to array of UW address to fetch
+     * all underwritters of the staked smart contract
+     * pushing data into this mapped array returns scIndex 
+     */
     mapping(address => Staker[]) public stakedContractStakers;
 
-    // mapping of staked contract Address to the array of StakeCommission
-    // here index of this array is stakedContractIndex
+    /**
+     * @dev mapping of staked contract Address to the array of StakeCommission
+     * here index of this array is stakedContractIndex
+     */ 
     mapping(address => mapping(uint => StakeCommission)) public stakedContractStakeCommission;
 
     mapping(address => uint) public lastCompletedStakeCommission;
@@ -79,7 +87,6 @@ contract TokenData is Iupgradable {
     mapping(address => uint) public stakedContractCurrentBurnIndex;
 
     // mapping to return true if Cover Note deposited against coverId
-    // holds amount of covernote to be burned 
     mapping(uint => CoverNote) public depositedCN;
 
     mapping(address => uint) internal isBookedTokens;
@@ -117,7 +124,8 @@ contract TokenData is Iupgradable {
         onlyInternal         
         returns (address stakedContractAddress) 
     {
-        stakedContractAddress = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractAddress;
+        stakedContractAddress = stakerStakedContracts[
+            _stakerAddress][_stakerIndex].stakedContractAddress;
     }
 
     function getStakerStakedContractIndex(
@@ -129,7 +137,8 @@ contract TokenData is Iupgradable {
         onlyInternal         
         returns (uint scIndex) 
     {
-        scIndex = stakerStakedContracts[_stakerAddress][_stakerIndex].stakedContractIndex;
+        scIndex = stakerStakedContracts[
+            _stakerAddress][_stakerIndex].stakedContractIndex;
     }
 
     function getStakedContractStakerIndex(
@@ -141,7 +150,8 @@ contract TokenData is Iupgradable {
         onlyInternal         
         returns (uint sIndex) 
     {
-        sIndex = stakedContractStakers[_stakedContractAddress][_stakedContractIndex].stakerIndex;
+        sIndex = stakedContractStakers[
+            _stakedContractAddress][_stakedContractIndex].stakerIndex;
     }
 
     function getStakerInitialStakedAmountOnContract(
@@ -153,7 +163,8 @@ contract TokenData is Iupgradable {
         onlyInternal
         returns (uint amount)
     {
-        amount = stakerStakedContracts[_stakerAddress][_stakerIndex].stakeAmount;
+        amount = stakerStakedContracts[
+            _stakerAddress][_stakerIndex].stakeAmount;
     }
 
     function getStakerStakedContractLength(
@@ -168,12 +179,12 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev pushes the earned commission earned by a staker.
-    * @param _stakerAddress address of staker.
-    * @param _stakedContractAddress address of smart contract.
-    * @param _stakedContractIndex index of the staker to distribute commission.
-    * @param _commissionAmount amount to be given as commission.
-    */ 
+     * @dev pushes the earned commission earned by a staker.
+     * @param _stakerAddress address of staker.
+     * @param _stakedContractAddress address of smart contract.
+     * @param _stakedContractIndex index of the staker to distribute commission.
+     * @param _commissionAmount amount to be given as commission.
+     */ 
     function pushEarnedStakeCommissions(
         address _stakerAddress,
         address _stakedContractAddress,
@@ -184,8 +195,9 @@ contract TokenData is Iupgradable {
         onlyInternal
     {
         stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].
-            commissionEarned = stakedContractStakeCommission[_stakedContractAddress][_stakedContractIndex].
-                commissionEarned.add(_commissionAmount);
+            commissionEarned = stakedContractStakeCommission[_stakedContractAddress][
+                _stakedContractIndex].commissionEarned.add(_commissionAmount);
+                
         emit Commission(
             _stakerAddress,
             _stakedContractAddress,
@@ -195,11 +207,11 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev pushes the redeemed commission redeemed by a staker.
-    * @param _stakerAddress address of staker.
-    * @param _stakerIndex index of the staker to distribute commission.
-    * @param _amount amount to be given as commission.
-    */ 
+     * @dev pushes the redeemed commission redeemed by a staker.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker to distribute commission.
+     * @param _amount amount to be given as commission.
+     */ 
     function pushRedeemedStakeCommissions(
         address _stakerAddress,
         uint _stakerIndex,
@@ -218,10 +230,10 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Gets stake commission given to an underwriter
-    * for particular stakedcontract on given index.
-    * @param _stakerAddress address of staker.
-    * @param _stakerIndex index of the staker commission.
+     * @dev Gets stake commission given to an underwriter
+     * for particular stakedcontract on given index.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker commission.
      */ 
     function getStakerEarnedStakeCommission(
         address _stakerAddress,
@@ -235,11 +247,11 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Gets stake commission redeemed by an underwriter
-    * for particular staked contract on given index.
-    * @param _stakerAddress address of staker.
-    * @param _stakerIndex index of the staker commission.
-    * @return commissionEarned total amount given to staker.
+     * @dev Gets stake commission redeemed by an underwriter
+     * for particular staked contract on given index.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker commission.
+     * @return commissionEarned total amount given to staker.
      */ 
     function getStakerRedeemedStakeCommission(
         address _stakerAddress,
@@ -253,9 +265,9 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Gets total stake commission given to an underwriter
-    * @param _stakerAddress address of staker.
-    * @return totalCommissionEarned total commission earned by staker.
+     * @dev Gets total stake commission given to an underwriter
+     * @param _stakerAddress address of staker.
+     * @return totalCommissionEarned total commission earned by staker.
      */ 
     function getStakerTotalEarnedStakeCommission(
         address _stakerAddress
@@ -272,9 +284,9 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Gets total stake commission given to an underwriter
-    * @param _stakerAddress address of staker.
-    * @return totalCommissionEarned total commission earned by staker.
+     * @dev Gets total stake commission given to an underwriter
+     * @param _stakerAddress address of staker.
+     * @return totalCommissionEarned total commission earned by staker.
      */ 
     function getStakerTotalReedmedStakeCommission(
         address _stakerAddress
@@ -330,10 +342,10 @@ contract TokenData is Iupgradable {
     } 
     
     /**
-    * @dev Adds a new stake record.
-    * @param _stakerAddress staker address.
-    * @param _stakedContractAddress smart contract address.
-    * @param _amount amountof NXM to be staked.
+     * @dev Adds a new stake record.
+     * @param _stakerAddress staker address.
+     * @param _stakedContractAddress smart contract address.
+     * @param _amount amountof NXM to be staked.
      */
     function addStake(
         address _stakerAddress,
@@ -351,9 +363,9 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev books the user's tokens for maintaining Assessor Velocity, i.e.
-    *      once a token is used to cast a vote as a Claims assessor,
-    * @param _of user's address.
+     * @dev books the user's tokens for maintaining Assessor Velocity, 
+     * i.e. once a token is used to cast a vote as a Claims assessor,
+     * @param _of user's address.
      */
     function bookCATokens(address _of) public onlyInternal {
         require(!isCATokensBooked(_of), "Tokens already booked");
@@ -366,48 +378,49 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Lock the user's tokens 
-    * @param _of user's address.
+     * @dev Lock the user's tokens 
+     * @param _of user's address.
      */
     function lockForMemberVote(address _of) public onlyInternal {
         isLockedForMV[_of] = now.add(lockMVDays);
     }
 
     /**
-    * @dev Changes the time period up to which tokens will be locked.
-    *      Used to generate the validity period of tokens booked by
-    *      a user for participating in claim's assessment/claim's voting.
+     * @dev Changes the time period up to which tokens will be locked.
+     *      Used to generate the validity period of tokens booked by
+     *      a user for participating in claim's assessment/claim's voting.
      */ 
     function changeBookTime(uint _time) public onlyOwner {
         bookTime = _time;
     }
 
     /**
-    * @dev Changes lock CA days - number of days for which tokens are locked while submitting a vote.
+     * @dev Changes lock CA days - number of days for which tokens 
+     * are locked while submitting a vote.
      */ 
     function changelockCADays(uint _val) public onlyInternal {
         lockCADays = _val;
     }
     
     /**
-    * @dev Changes lock MV days - number of days for which tokens are locked
-    * while submitting a vote.
+     * @dev Changes lock MV days - number of days for which tokens are locked
+     * while submitting a vote.
      */ 
     function changelockMVDays(uint _val) public onlyInternal {
         lockMVDays = _val;
     }
 
     /**
-    * @dev Changes number of days for which NXM needs to staked in case of underwriting
+     * @dev Changes number of days for which NXM needs to staked in case of underwriting
      */ 
     function changeSCValidDays(uint _days) public onlyOwner {
         scValidDays = _days;
     }
 
     /**
-    * @dev Sets the index which will receive commission.
-    * @param _stakedContractAddress smart contract address.
-    * @param _index current index.
+     * @dev Sets the index which will receive commission.
+     * @param _stakedContractAddress smart contract address.
+     * @param _index current index.
      */
     function setStakedContractCurrentCommissionIndex(
         address _stakedContractAddress,
@@ -420,9 +433,9 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Sets the last complete commission index
-    * @param _stakerAddress smart contract address.
-    * @param _index current index.
+     * @dev Sets the last complete commission index
+     * @param _stakerAddress smart contract address.
+     * @param _index current index.
      */
     function setLastCompletedStakeCommissionIndex(
         address _stakerAddress,
@@ -435,40 +448,46 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Sets the index till which commission is distrubuted.
-    * @param _stakedContractAddress smart contract address.
-    * @param _index current index.
+     * @dev Sets the index till which commission is distrubuted.
+     * @param _stakedContractAddress smart contract address.
+     * @param _index current index.
      */
-    function setStakedContractCurrentBurnIndex(address _stakedContractAddress, uint _index) public onlyInternal {
+    function setStakedContractCurrentBurnIndex(
+        address _stakedContractAddress,
+        uint _index
+    )
+        public
+        onlyInternal
+    {
         stakedContractCurrentBurnIndex[_stakedContractAddress] = _index;
     }
 
     /**
-    * @dev Changes extra lock period for a cover, post its expiry.
+     * @dev Changes extra lock period for a cover, post its expiry.
      */ 
     function setLockTokenTimeAfterCoverExp(uint time) public onlyInternal {
         lockTokenTimeAfterCoverExp = time;
     }
 
     /**
-    * @dev Change the wallet address which receive Joining Fee
+     * @dev Change the wallet address which receive Joining Fee
      */
     function changeWalletAddress(address _address) public onlyOwner {
         walletAddress = _address;
     }
 
     /**
-    * @dev Set the joining fee for membership
+     * @dev Set the joining fee for membership
      */
     function setJoiningFee(uint _amount) public onlyOwner {
         joiningFee = _amount;
     }
 
     /**
-    * @dev Internal function to get stake commission given to an 
-    * underwriter for particular stakedcontract on given index.
-    * @param _stakerAddress address of staker.
-    * @param _stakerIndex index of the staker commission.
+     * @dev Internal function to get stake commission given to an 
+     * underwriter for particular stakedcontract on given index.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker commission.
      */ 
     function _getStakerEarnedStakeCommission(
         address _stakerAddress,
@@ -489,10 +508,10 @@ contract TokenData is Iupgradable {
     }
 
     /**
-    * @dev Internal function to get stake commission redeemed by an 
-    * underwriter for particular stakedcontract on given index.
-    * @param _stakerAddress address of staker.
-    * @param _stakerIndex index of the staker commission.
+     * @dev Internal function to get stake commission redeemed by an 
+     * underwriter for particular stakedcontract on given index.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker commission.
      */ 
     function _getStakerRedeemedStakeCommission(
         address _stakerAddress,

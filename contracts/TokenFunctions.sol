@@ -217,7 +217,6 @@ contract TokenFunctions is Iupgradable, Governed {
         tc.lockOf(_of, reason, coverNoteAmount, validity);
     }
 
-
     /**
      * @dev Staking on contract.
      * @param _scAddress smart contract address.
@@ -226,8 +225,8 @@ contract TokenFunctions is Iupgradable, Governed {
     function addStake(address _scAddress, uint _amount) public isMemberAndcheckPause {
         require(tk.balanceOf(msg.sender) >= _amount);
         uint scIndex = td.addStake(msg.sender, _scAddress, _amount);
-        bytes32 reason = keccak256(abi.encodePacked("UW", msg.sender, _scAddress, scIndex));
         uint validity = (td.scValidDays()).mul(1 days);
+        bytes32 reason = keccak256(abi.encodePacked("UW", msg.sender, _scAddress, scIndex));
         tc.lockOf(msg.sender, reason, _amount, validity);
     }
 

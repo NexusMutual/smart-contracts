@@ -38,7 +38,6 @@ contract Quotation is Iupgradable {
     PoolData internal pd;
     QuotationData internal qd;
     MCR internal m1;
-    ERC20 internal erc20;
 
     event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
 
@@ -73,12 +72,12 @@ contract Quotation is Iupgradable {
     }
 
     /**
-    * @dev Expires a cover after a set period of time.
-    *      Changes the status of the Cover and reduces the current
-    *      sum assured of all areas in which the quotation lies
-    *      Unlocks the CN tokens of the cover. Updates the Total Sum Assured value.
-    * @param _cid Cover Id.
-    */ 
+     * @dev Expires a cover after a set period of time.
+     * Changes the status of the Cover and reduces the current
+     * sum assured of all areas in which the quotation lies
+     * Unlocks the CN tokens of the cover. Updates the Total Sum Assured value.
+     * @param _cid Cover Id.
+     */ 
     function expireCover(uint _cid) public onlyInternal {
         require(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid) != 3);
         qd.changeCoverStatusNo(_cid, 3);
@@ -92,9 +91,11 @@ contract Quotation is Iupgradable {
         }
     }
 
-    /// @dev Checks if a cover should get expired/closed or not.
-    /// @param _cid Cover Index.
-    /// @return expire 1 if the Cover's time has expired, 0 otherwise.
+    /**
+     * @dev Checks if a cover should get expired/closed or not.
+     * @param _cid Cover Index.
+     * @return expire 1 if the Cover's time has expired, 0 otherwise.
+     */ 
     function checkCoverExpired(uint _cid) public view returns(uint8 expire) {
 
         if (qd.getValidityOfCover(_cid) < uint64(now))
@@ -103,9 +104,12 @@ contract Quotation is Iupgradable {
             expire = 0;
     }
 
-    /// @dev Updates the Sum Assured Amount of all the quotation.
-    /// @param _cid Cover id
-    /// @param _amount that will get subtracted' Current Sum Assured Amount that comes under a quotation.
+    /**
+     * @dev Updates the Sum Assured Amount of all the quotation.
+     * @param _cid Cover id
+     * @param _amount that will get subtracted Current Sum Assured 
+     * amount that comes under a quotation.
+     */ 
     function removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
 
         require(!(ms.isOwner(msg.sender) != true && ms.isInternal(msg.sender) != true));
@@ -118,8 +122,10 @@ contract Quotation is Iupgradable {
         }
     }
 
-    /// @dev Makes Cover funded via NXM tokens.
-    /// @param smartCAdd Smart Contract Address
+    /**
+     * @dev Makes Cover funded via NXM tokens.
+     * @param smartCAdd Smart Contract Address
+     */ 
     function makeCoverUsingNXMTokens(
         uint prodId,
         uint[] coverDetails,
@@ -138,9 +144,11 @@ contract Quotation is Iupgradable {
         verifyCoverDetailsIntrnl(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
-    /// @dev Verifies cover details signed off chain.
-    /// @param from address of funder.
-    /// @param scAddress Smart Contract Address
+    /**
+     * @dev Verifies cover details signed off chain.
+     * @param from address of funder.
+     * @param scAddress Smart Contract Address
+     */
     function verifyCoverDetails(
         uint prodId,
         address from,
@@ -168,13 +176,15 @@ contract Quotation is Iupgradable {
         );
     }
 
-    /// @dev Verifies signature.
-    /// @param coverDetails details related to cover.
-    /// @param coverPeriod validity of cover.
-    /// @param smaratCA smarat contract address.
-    /// @param _v argument from vrs hash.
-    /// @param _r argument from vrs hash.
-    /// @param _s argument from vrs hash.
+    /** 
+     * @dev Verifies signature.
+     * @param coverDetails details related to cover.
+     * @param coverPeriod validity of cover.
+     * @param smaratCA smarat contract address.
+     * @param _v argument from vrs hash.
+     * @param _r argument from vrs hash.
+     * @param _s argument from vrs hash.
+     */ 
     function verifySign(
         uint[] coverDetails,
         uint16 coverPeriod,
@@ -192,10 +202,12 @@ contract Quotation is Iupgradable {
         return isValidSignature(hash, _v, _r, _s);
     }
 
-    /// @dev Gets order hash for given cover details.
-    /// @param coverDetails details realted to cover.
-    /// @param coverPeriod validity of cover.
-    /// @param smaratCA smarat contract address.
+    /**
+     * @dev Gets order hash for given cover details.
+     * @param coverDetails details realted to cover.
+     * @param coverPeriod validity of cover.
+     * @param smaratCA smarat contract address.
+     */ 
     function getOrderHash(
         uint[] coverDetails,
         uint16 coverPeriod,
@@ -218,11 +230,13 @@ contract Quotation is Iupgradable {
         );
     }
 
-    /// @dev Verifies signature.
-    /// @param hash order hash
-    /// @param v argument from vrs hash.
-    /// @param r argument from vrs hash.
-    /// @param s argument from vrs hash.
+    /**
+     * @dev Verifies signature.
+     * @param hash order hash
+     * @param v argument from vrs hash.
+     * @param r argument from vrs hash.
+     * @param s argument from vrs hash.
+     */  
     function isValidSignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public view returns(bool) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHash = keccak256(abi.encodePacked(prefix, hash));
@@ -252,7 +266,7 @@ contract Quotation is Iupgradable {
         if (coverCurr == "ETH") {
             totalFee = joinFee + coverDetails[1];
         } else {
-            erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
+            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
             require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]));
         }
         require(msg.value == totalFee);
@@ -268,6 +282,8 @@ contract Quotation is Iupgradable {
         bytes4 coverCurr;
         uint16 coverPeriod;
         uint[]  memory coverDetails = new uint[](4);
+        ERC20 erc20;
+
         (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
         (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
         require(qd.refundEligible(userAdd));
@@ -279,7 +295,7 @@ contract Quotation is Iupgradable {
                 qd.setHoldedCoverIDStatus(holdedCoverID, 2);
                 address poolAdd = ms.getLatestAddress("P1");
                 if (coverCurr == "ETH") {
-                    require(poolAdd.send(coverDetails[1]));
+                    poolAdd.transfer(coverDetails[1]);
                 } else {
                     erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                     erc20.transfer(poolAdd, coverDetails[1]);
@@ -290,7 +306,7 @@ contract Quotation is Iupgradable {
             } else {
                 qd.setHoldedCoverIDStatus(holdedCoverID, 4);
                 if (coverCurr == "ETH") {
-                    require(userAdd.send(coverDetails[1]));
+                    userAdd.transfer(coverDetails[1]);
                 } else {
                     erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                     erc20.transfer(userAdd, coverDetails[1]);
@@ -306,7 +322,7 @@ contract Quotation is Iupgradable {
                 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                 erc20.transfer(userAdd, coverDetails[1]);
             }
-            require(userAdd.send(totalRefund));
+            userAdd.transfer(totalRefund);
             emit RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
         }
               
@@ -318,12 +334,15 @@ contract Quotation is Iupgradable {
         kycTrigger(false, holdedCoverID);
     }
 
-    /// @dev Transfers back the given amount to the owner.
+    /**
+     * @dev Transfers back the given amount to the owner.
+     */  
     function transferBackAssets() public onlyOwner {
         uint amount = address(this).balance;
         address walletAdd = td.walletAddress();
+        ERC20 erc20;
         if (amount > 0) {
-            require(walletAdd.send(amount));   
+            walletAdd.transfer(amount);   
         }
         uint currAssetLen = pd.getAllCurrenciesLen();
         for (uint64 i = 1; i < currAssetLen; i++) {
@@ -336,12 +355,14 @@ contract Quotation is Iupgradable {
         }
     }
 
-    /// @dev transfering Ethers to newly created quotation contract.
+    /**
+     * @dev transfering Ethers to newly created quotation contract.
+     */  
     function transferAssetsToNewContract(address newAdd) public onlyInternal {
         uint amount = address(this).balance;
+        ERC20 erc20;
         if (amount > 0) {
-            bool succ = newAdd.send(amount);   
-            require(succ);
+            newAdd.transfer(amount);   
         }
         uint currAssetLen = pd.getAllCurrenciesLen();
         for (uint64 i = 1; i < currAssetLen; i++) {
@@ -354,9 +375,11 @@ contract Quotation is Iupgradable {
         }
     }
 
-    /// @dev Creates cover of the quotation, changes the status of the quotation ,
-    //                updates the total sum assured and locks the tokens of the cover against a quote.
-    /// @param from Quote member Ethereum address
+    /**
+     * @dev Creates cover of the quotation, changes the status of the quotation ,
+     * updates the total sum assured and locks the tokens of the cover against a quote.
+     * @param from Quote member Ethereum address.
+     */  
     function makeCover(
         uint prodId,
         address from,
@@ -394,9 +417,11 @@ contract Quotation is Iupgradable {
         }
     }
 
-    /// @dev Makes a vover.
-    /// @param from address of funder.
-    /// @param scAddress Smart Contract Address
+    /**
+     * @dev Makes a vover.
+     * @param from address of funder.
+     * @param scAddress Smart Contract Address
+     */  
     function verifyCoverDetailsIntrnl(
         uint prodId,
         address from,

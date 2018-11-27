@@ -47,7 +47,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     QuotationData internal qd;
 
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
-    uint internal constant PRICE_STEP = 1000 * DECIMAL1E18;
+    uint internal constant PRICE_STEP = uint(1000) * DECIMAL1E18;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
     event Payout(address indexed to, bytes16 eventName, uint coverId, uint tokens);

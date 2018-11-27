@@ -118,10 +118,6 @@ contract TokenFunctions is Iupgradable, Governed {
         amount = (amount.mul(50)).div(100);
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
         tc.burnLockedTokens(_of, reason, amount);
-
-        if (_getLockedCNAgainstCover(coverId) == amount) {
-            // should we expire cover ASAP if claim rejected twice?
-        }
         success = true;
     }
 

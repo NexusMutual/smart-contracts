@@ -153,8 +153,9 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     // update currency asset base min and var min
-    function updateCurrencyAssetDetails(bytes8 _curr, uint64 _baseMin) external onlyInternal {
+    function updateCurrencyAssetDetails(bytes8 _curr, uint64 _baseMin, uint64 _varMin) external onlyInternal {
         pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
+        pd.changeCurrencyAssetVarMin(_curr, _varMin);
     }
 
     function transferAssetToPool2(bytes8 curr, uint amount) external onlyInternal {

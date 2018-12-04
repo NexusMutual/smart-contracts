@@ -305,7 +305,7 @@ contract('NXMToken', function([
       await tk.approve(tc.address, sellTokens, { from: member1 });
       const initialTokenBalance = await tk.balanceOf(member1);
       const sellTokensWorth = await P1.getWei(sellTokens);
-      const initialPoolBalance = await P1.getEtherPoolBalance();
+      const initialPoolBalance = await web3.eth.getBalance(P1.address);
       const initialTotalSupply = await tk.totalSupply();
       await P1.sellNXMTokens(sellTokens, { from: member1 });
       const newPoolBalance = initialPoolBalance.minus(sellTokensWorth);
@@ -313,7 +313,9 @@ contract('NXMToken', function([
       const newTotalSupply = initialTotalSupply.minus(sellTokens);
       newTokenBalance.should.be.bignumber.equal(await tk.balanceOf(member1));
       newTotalSupply.should.be.bignumber.equal(await tk.totalSupply());
-      newPoolBalance.should.be.bignumber.equal(await P1.getEtherPoolBalance());
+      newPoolBalance.should.be.bignumber.equal(
+        await web3.eth.getBalance(P1.address)
+      );
     });
 
     it('should not be to sell tokens more than balance', async function() {

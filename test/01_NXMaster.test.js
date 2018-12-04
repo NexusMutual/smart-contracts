@@ -12,14 +12,13 @@ const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1');
 const Pool2 = artifacts.require('Pool2');
-const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
-const WETH_0x = web3.eth.accounts[18];
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const Exchange_0x = web3.eth.accounts[17];
 
 const { ether } = require('./utils/ether');
@@ -38,7 +37,6 @@ let tc;
 let td;
 let pl1;
 let pl2;
-let pl3;
 let pd;
 let qt;
 let qd;
@@ -51,7 +49,6 @@ let addr = [];
 let dai;
 let newMaster;
 let memberRoles;
-let IA1, IA2, IA3, IA4, IA5, IA6;
 
 contract('NXMaster', function([
   owner,
@@ -64,7 +61,6 @@ contract('NXMaster', function([
   const poolEther = ether(2);
   const founderAddress = web3.eth.accounts[19];
   const INITIAL_SUPPLY = ether(1500000);
-  const ver = new BigNumber(1);
   const pauseTime = new BigNumber(2419200);
 
   before(async function() {
@@ -84,14 +80,7 @@ contract('NXMaster', function([
     pl2 = await Pool2.new();
     mcr = await MCR.new();
     nxms2 = await NXMaster2.new();
-    pl3 = await Pool3.new();
     dai = await DAI.new();
-    IA1 = await DAI.new();
-    IA2 = await DAI.new();
-    IA3 = await DAI.new();
-    IA4 = await DAI.new();
-    IA5 = await DAI.new();
-    IA6 = await DAI.new();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -104,7 +93,6 @@ contract('NXMaster', function([
     addr.push(cr.address);
     addr.push(pl1.address);
     addr.push(pl2.address);
-    addr.push(pl3.address);
     addr.push(mcr.address);
     addr.push(nxms2.address);
   });
@@ -146,7 +134,6 @@ contract('NXMaster', function([
       await nxms2.addMCRCurr();
       await nxms2.addStatusInClaims();
       await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-      await pl3.changeExchangeContractAddress(Exchange_0x);
       await mcr.changenotariseAddress(owner);
       await mcr.addMCRData(
         18000,
@@ -156,24 +143,9 @@ contract('NXMaster', function([
         [100, 65407],
         20180807
       );
-      await pd.changeInvestmentAssetAddress(0x444744, IA1.address);
-      await pd.changeInvestmentAssetAddress(0x49434e, IA2.address);
-      await pd.changeInvestmentAssetAddress(0x5a5258, IA3.address);
-      await pd.changeInvestmentAssetAddress(0x474e54, IA4.address);
-      await pd.changeInvestmentAssetAddress(0x4d4c4e, IA5.address);
-      await pd.changeInvestmentAssetAddress(0x4d4b52, IA6.address);
-      await pl3.saveIADetails(
-        [
-          '0x444744',
-          '0x49434e',
-          '0x5a5258',
-          '0x4d4b52',
-          '0x474e54',
-          '0x4d4c4e'
-        ],
-        [100, 200, 300, 400, 500, 600],
-        20180807
-      );
+      await pd.changeInvestmentAssetAddress('0x455448', ZERO_ADDRESS);
+      await pd.changeInvestmentAssetAddress('0x444149', dai.address);
+      await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
     });
 
     it('should be able to add new Member Role', async function() {

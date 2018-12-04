@@ -41,8 +41,8 @@ contract('MCR', function([owner, notOwner]) {
 
     before(async function() {
       await cad.transfer(p1.address, ether(600));
-      balance_DAI = await p1.getBalanceOfCurrencyAsset.call(CA_DAI);
-      balance_ETH = await p1.getEtherPoolBalance();
+      balance_DAI = await cad.balanceOf(p1.address);
+      balance_ETH = await web3.eth.getBalance(p1.address);
     });
 
     it('should return correct V(tp) price', async function() {
@@ -51,7 +51,7 @@ contract('MCR', function([owner, notOwner]) {
       cal_vtp = cal_vtp.plus(balance_ETH);
       cal_vtp
         .toFixed(0)
-        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[0]);
+        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp(balance_ETH))[0]);
     });
 
     it('should return correct MCR(tp) price', async function() {
@@ -59,7 +59,9 @@ contract('MCR', function([owner, notOwner]) {
       cal_mcrtp = cal_vtp.mul(lastMCR[0]).div(lastMCR[2]);
       cal_mcrtp
         .toFixed(0)
-        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[1]);
+        .should.be.bignumber.equal(
+          (await mcr.calVtpAndMCRtp(await web3.eth.getBalance(p1.address)))[1]
+        );
     });
   });
 
@@ -73,7 +75,9 @@ contract('MCR', function([owner, notOwner]) {
       const sf = tpd[0].div(1e5);
       const growthStep = tpd[1];
       const Curr3DaysAvg = tpd[2];
-      const mcrtp = (await mcr.calVtpAndMCRtp())[1];
+      const mcrtp = (await mcr.calVtpAndMCRtp(
+        await web3.eth.getBalance(p1.address)
+      ))[1];
       const mcrtpSquare = mcrtp.times(mcrtp).div(1e8);
       let Max = 1;
       if (mcrtpSquare >= 1) {

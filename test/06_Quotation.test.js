@@ -1,4 +1,5 @@
 const Pool1 = artifacts.require('Pool1');
+const Pool2 = artifacts.require('Pool2');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const TokenController = artifacts.require('TokenController');
@@ -27,12 +28,24 @@ const NPNAME = '0x5443000000000000';
 const NPHASH = 'Test Cover';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
+const coverPeriodLess = 40;
 const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
+const coverDetailsLess = [
+  3,
+  68336755646817250,
+  6047500499718341000,
+  4131417584
+];
 const coverDetailsDai = [5, 16812229066849188, 5694231991898, 7972408607];
 const vrs = [
   28,
   '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a',
   '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff'
+];
+const vrsLess = [
+  28,
+  '0x1d97b6441922c69562ba0d7099a73ecab3a59f10776f9f2f6e06d8bd59361373',
+  '0x681c986a0c96fb4aa644e8ed535e05427f5a9358783151b97ef43eda829a5468'
 ];
 const vrs_dai = [
   27,
@@ -40,6 +53,7 @@ const vrs_dai = [
   '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
 ];
 let P1;
+let P2;
 let cr;
 let tk;
 let tf;
@@ -70,7 +84,7 @@ contract('Quotation', function([
   newMember4
 ]) {
   const BN_100 = new BigNumber(100);
-  const BN_5 = new BigNumber(5);
+  const BN_10 = new BigNumber(10);
   const P_18 = new BigNumber(1e18);
   const tokens = ether(200);
   const tokenAmount = ether(1);
@@ -87,6 +101,7 @@ contract('Quotation', function([
     cr = await ClaimsReward.deployed();
     qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
+    P2 = await Pool2.deployed();
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
@@ -142,7 +157,7 @@ contract('Quotation', function([
             )
           );
           await assertRevert(
-            P1.makeCoverUsingCA(
+            P2.makeCoverUsingCA(
               PID,
               smartConAdd,
               'DAI',
@@ -183,7 +198,7 @@ contract('Quotation', function([
               initialTotalSA.should.be.bignumber.equal(0);
             });
             it('should be able to purchase cover', async function() {
-              const initialPoolBalance = await P1.getEtherPoolBalance();
+              const initialPoolBalance = await web3.eth.getBalance(P1.address);
               const initialTokensOfCoverHolder = await tk.balanceOf(
                 coverHolder
               );
@@ -199,7 +214,7 @@ contract('Quotation', function([
                 vrs[2],
                 { from: coverHolder, value: coverDetails[1] }
               );
-              const newLockedCN = BN_5.times(coverDetails[2]).div(BN_100);
+              const newLockedCN = BN_10.times(coverDetails[2]).div(BN_100);
               const newPoolBalance = initialPoolBalance.plus(
                 new BigNumber(coverDetails[1].toString())
               );
@@ -213,7 +228,7 @@ contract('Quotation', function([
                   await tf.getUserLockedCNTokens.call(coverHolder, 1)
                 );
               newPoolBalance.should.be.bignumber.equal(
-                await P1.getEtherPoolBalance()
+                await web3.eth.getBalance(P1.address)
               );
               newTotalSA.should.be.bignumber.equal(
                 await qd.getTotalSumAssured(CA_ETH)
@@ -289,7 +304,7 @@ contract('Quotation', function([
                 vrs[2],
                 { from: coverHolder }
               );
-              const newLockedCN = BN_5.times(coverDetails[2]).div(BN_100);
+              const newLockedCN = BN_10.times(coverDetails[2]).div(BN_100);
               const newTotalSA = initialTotalSA.plus(
                 new BigNumber(coverDetails[0])
               );
@@ -367,10 +382,10 @@ contract('Quotation', function([
               const initialCAbalance = await cad.balanceOf(coverHolder);
               const initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
               const initialTotalSupply = await tk.totalSupply();
-              await cad.approve(P1.address, coverDetailsDai[1], {
+              await cad.approve(P2.address, coverDetailsDai[1], {
                 from: coverHolder
               });
-              await P1.makeCoverUsingCA(
+              await P2.makeCoverUsingCA(
                 PID,
                 smartConAdd,
                 'DAI',
@@ -386,7 +401,7 @@ contract('Quotation', function([
               );
               const presentCAbalance = await cad.balanceOf(coverHolder);
               const presentTotalSupply = await tk.totalSupply();
-              const newLockedCN = BN_5.times(
+              const newLockedCN = BN_10.times(
                 new BigNumber(coverDetailsDai[2].toString()).div(BN_100)
               ).toFixed(0);
               const newTotalSupply = initialTotalSupply.plus(
@@ -585,10 +600,10 @@ contract('Quotation', function([
               initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               );
-              await cad.approve(P1.address, coverDetailsDai[1], {
+              await cad.approve(P2.address, coverDetailsDai[1], {
                 from: coverHolder
               });
-              await P1.makeCoverUsingCA(
+              await P2.makeCoverUsingCA(
                 PID,
                 smartConAdd,
                 'DAI',
@@ -662,7 +677,7 @@ contract('Quotation', function([
             )
           );
           await assertRevert(
-            P1.makeCoverUsingCA(
+            P2.makeCoverUsingCA(
               PID,
               smartConAdd,
               'DAI',
@@ -909,7 +924,7 @@ contract('Quotation', function([
       (await qd.getCoverStatusNo(1)).should.be.bignumber.equal(3);
     });
     it('should unlock locked cover note tokens', async function() {
-      const unLockedCN = BN_5.times(coverDetails[2])
+      const unLockedCN = BN_10.times(coverDetails[2])
         .div(BN_100)
         .toFixed(0);
       (await tk.balanceOf(member3)).should.be.bignumber.equal(

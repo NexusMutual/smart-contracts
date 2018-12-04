@@ -27,12 +27,5 @@ module.exports = {
       enabled: true,
       runs: 200
     }
-  },
-  mocha: {
-    reporter: 'eth-gas-reporter',
-    reporterOptions: {
-      currency: 'USD',
-      gasPrice: 21
-    }
   }
 };

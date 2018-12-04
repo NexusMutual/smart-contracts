@@ -1,5 +1,4 @@
 const Pool1 = artifacts.require('Pool1');
-const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
@@ -31,7 +30,6 @@ const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
 
 let P1;
-let P3;
 let tk;
 let tf;
 let tc;
@@ -84,7 +82,6 @@ contract('Claim: Assessment', function([
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
-    P3 = await Pool3.deployed();
     mcr = await MCR.deployed();
     await tf.payJoiningFee(member1, { from: member1, value: fee });
     await tf.kycVerdict(member1, true);

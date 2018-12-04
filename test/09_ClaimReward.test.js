@@ -1,5 +1,4 @@
 const Pool1 = artifacts.require('Pool1');
-const Pool3 = artifacts.require('Pool3');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctions');

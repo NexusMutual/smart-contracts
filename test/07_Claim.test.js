@@ -1,5 +1,4 @@
 const Pool1 = artifacts.require('Pool1');
-const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
@@ -74,7 +73,6 @@ contract('Claim', function([
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
-    P3 = await Pool3.deployed();
   });
   describe('Submit Claim', function() {
     before(async function() {

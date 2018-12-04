@@ -40,7 +40,6 @@
     "chai": "^4.1.2",
     "chai-bignumber": "^2.0.2",
     "coveralls": "^3.0.2",
-    "eth-gas-reporter": "^0.1.12",
     "ethereum-bridge": "^0.6.1",
     "ethereumjs-abi": "^0.6.5",
     "ganache-cli": "^6.1.8",

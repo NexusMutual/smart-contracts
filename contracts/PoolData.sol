@@ -22,7 +22,6 @@ import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 contract PoolData is Iupgradable {
     using SafeMath for uint;
 
-
     bytes8[] internal allInvestmentCurrencies;
     bytes8[] internal allCurrencies;
     
@@ -58,21 +57,15 @@ contract PoolData is Iupgradable {
         uint64 minRate;
     }
 
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender) == true);
-        _;
-    }
-
     constructor() public {
         variationPercX100 = 100; //1%
-        ordersExpirationTime["ELT"] = 12 hours; // Excess liquidity trade order time 12 hours
-        ordersExpirationTime["ILT"] = 6 hours; // Insufficient liquidity trade order time 6 hours
-        ordersExpirationTime["RBT"] = 20 hours; // Rebalancing trade order time 20 hours
+        // ordersExpirationTime["ELT"] = 12 hours; // Excess liquidity trade order time 12 hours
+        // ordersExpirationTime["ILT"] = 6 hours; // Insufficient liquidity trade order time 6 hours
+        // ordersExpirationTime["RBT"] = 20 hours; // Rebalancing trade order time 20 hours
         iaRatesTime = 24 hours; //24 hours in seconds
     }
 
     IARankDetails[] internal allIARankDetails;
-    mapping(bytes4 => string) internal apiCurr;
     mapping(uint64 => uint) internal datewiseId;
     mapping(bytes16 => uint) internal currencyLastIndex;
     uint64 internal lastDate;
@@ -80,12 +73,8 @@ contract PoolData is Iupgradable {
     mapping(bytes8 => InvestmentAssets) internal allCurrencyAssets;
     mapping(bytes8 => InvestmentAssets) internal allInvestmentAssets;
     mapping(bytes8 => CurrencyAssets) internal allCurrencyAssetsVarBase;
-    mapping(bytes8 => bytes32[]) internal allCurrOrderHash;
-    bytes32[] internal allRebalancingOrderHash;
-    uint internal totalRiskPoolBalance;
-    uint internal totalIAPoolBalance;
     uint64 internal iaRatesTime;
-    mapping(bytes16 => uint64) internal ordersExpirationTime;
+    // mapping(bytes16 => uint64) internal ordersExpirationTime;
     mapping(bytes8 => mapping(bytes16 => uint8)) internal liquidityOrderStatus;
     
     /** 
@@ -141,20 +130,6 @@ contract PoolData is Iupgradable {
     }
     
     /**
-     * @dev Sets the 0x order Expiration Time in seconds.
-     */  
-    function setOrderExpirationTime(bytes16 _typeof, uint64 time) external onlyInternal {
-        ordersExpirationTime[_typeof] = time; //time in seconds
-    }
-
-    /**
-     * @dev Saves Rebalancing 0x order hash.
-     */  
-    function saveRebalancingOrderHash(bytes32 hash) external onlyInternal {
-        allRebalancingOrderHash.push(hash);
-    }
-
-    /**
      * @dev Saves investment asset rank details.
      * @param maxIACurr Maximum ranked investment asset currency.
      * @param maxRate Maximum ranked investment asset rate.
@@ -181,24 +156,6 @@ contract PoolData is Iupgradable {
      */  
     function changeIARatesTime(uint64 _newTime) external onlyInternal {
         iaRatesTime = _newTime;
-    }
-
-    /**
-     * @dev Sets total risk balance and total investment asset balance to Pool1.
-     */  
-    function setTotalBalance(uint _balance, uint _balanceIA) external onlyInternal {
-        totalRiskPoolBalance = _balance;
-        totalIAPoolBalance = _balanceIA;
-    }
-
-    //Currency assets+ investmentAssets in ETH
-    function setTotalRiskPoolBalance(uint _balance) external onlyInternal {
-        totalRiskPoolBalance = _balance;
-    }
-
-    // investmentAssets balance in ETH
-    function setTotalIAPoolBalance(uint _balanceIA) external onlyInternal {
-        totalIAPoolBalance = _balanceIA;
     }
 
     /** 
@@ -300,6 +257,7 @@ contract PoolData is Iupgradable {
      * @dev Changes the investment asset status.
      */ 
     function changeInvestmentAssetStatus(bytes8 _curr, uint8 _status) external onlyInternal {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         allInvestmentAssets[_curr].status = _status;
     }
 
@@ -312,8 +270,8 @@ contract PoolData is Iupgradable {
         uint64 _maxPercX100
     )
         external
-        onlyInternal
     {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         allInvestmentAssets[_curr].minHoldingPercX100 = _minPercX100;
         allInvestmentAssets[_curr].maxHoldingPercX100 = _maxPercX100;
     }
@@ -370,15 +328,6 @@ contract PoolData is Iupgradable {
         allCurrencyAssets[_curr].currAddress = _currAdd;
     }
     
-    /** 
-     * @dev Stores Currency exchange URL of a given currency.
-     * @param curr Currency Name.
-     * @param url Currency exchange URL
-     */  
-    function addCurrRateApiUrl(bytes4 curr, string url) external onlyOwner {
-        apiCurr[curr] = url;
-    }
-
     /**
      * @dev Changes the Currency asset Holding percentage of a given currency.
      */  
@@ -432,20 +381,6 @@ contract PoolData is Iupgradable {
     }
 
     /**
-     * @dev Gets total investment asset balance in Pool1.
-     */  
-    function getTotalIAPoolBalance() external view returns(uint totalIABalance) {
-        return totalIAPoolBalance;
-    }
-
-    /**
-     * @dev Gets total Risk balance in Pool1.
-     */  
-    function getTotalRiskPoolBalance() external view returns(uint balance) {
-        return totalRiskPoolBalance;
-    }
-
-    /**
      * @dev Gets investment asset rank details by given date.
      */  
     function getIARankDetailsByDate(
@@ -467,27 +402,6 @@ contract PoolData is Iupgradable {
             allIARankDetails[index].minIACurr,
             allIARankDetails[index].minRate
         );
-    }
-
-    /**
-     * @dev Gets the Rebalancing order hash of given index.
-     */  
-    function getRebalancingOrderHashByIndex(uint index) external view returns(bytes32 hash) {
-        return allRebalancingOrderHash[index];
-    }
-
-    /**
-     * @dev Gets count of Rebalancing order hash.
-     */  
-    function getRebalancingOrderHashLength() external view returns(uint length) {
-        return allRebalancingOrderHash.length;
-    }
-
-    /**
-     * @dev Gets Hashes of all the Rebalancing orders.
-     */  
-    function getAllRebalancingOrder() external view returns(bytes32[] hash) {
-        return allRebalancingOrderHash;
     }
 
     /**
@@ -636,7 +550,7 @@ contract PoolData is Iupgradable {
     }
 
     /** 
-     * @dev Gets Currency asset decimals.
+     * @dev Gets Currency asset decimals.ddrescue /dev/sdb
      */ 
     function getCurrencyAssetDecimals(bytes8 _curr) external view returns(uint8 decimal) {
         return allCurrencyAssets[_curr].decimals;
@@ -758,15 +672,6 @@ contract PoolData is Iupgradable {
     }
 
     /** 
-     * @dev Gets Currency exchange URL of a given currency.
-     * @param curr Currency Name.
-     * @return url Currency exchange URL
-     */  
-    function getCurrRateApiUrl(bytes4 curr) external view returns(string url) {
-        url = apiCurr[curr];
-    }
-
-    /** 
      * @dev Gets type of oraclize query for a given Oraclize Query ID.
      * @param myid Oraclize Query ID identifying the query for which the result is being received.
      * @return _typeof It could be of type "quote","quotation","cover","claim" etc.
@@ -850,6 +755,4 @@ contract PoolData is Iupgradable {
     }
         
     function changeDependentContractAddress() public onlyInternal {}
-
-    
 }

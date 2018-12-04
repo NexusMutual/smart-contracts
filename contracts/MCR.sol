@@ -57,39 +57,51 @@ contract MCR is Iupgradable {
         _;
     }
 
-    /// @dev Changes minimum Capital Requirement for system to sustain.
+    /**
+     * @dev Changes minimum Capital Requirement for system to sustain.
+     */  
     function changeMinReqMCR(uint32 minMCR) external onlyInternal {
         md.changeMinReqMCR(minMCR);
     }
     
-    /// @dev Changes time period for obtaining new MCR data from external oracle query.
+    /**
+     * @dev Changes time period for obtaining new MCR data from external oracle query.
+     */  
     function changeMCRTime(uint64 _time) external onlyOwner {
 
         md.changeMCRTime(_time);
     }
 
-    /// @dev Stores name of currencies accepted by the system.
-    /// @param curr Currency Name.
+    /** 
+     * @dev Stores name of currencies accepted by the system.
+     * @param curr Currency Name.
+     */  
     function addCurrency(bytes4 curr) external checkPause {
 
         require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
         md.addCurrency(curr);
     }
 
-    /// @dev Changes scaling factor which determines token price.
+    /** 
+     * @dev Changes scaling factor which determines token price.
+     */  
     function changeSF(uint32 val) external onlyOwner {
         md.changeSF(val);
     }
 
-    /// @dev Changes address which can notise MCR
+    /**
+     * @dev Changes address which can notise MCR
+     */  
     function changenotariseAddress(address add) external onlyOwner {
         md.changeNotariseAdd(add);
     }
 
-    /// @dev Adds new MCR data.
-    /// @param mcrP  Minimum Capital Requirement in percentage.
-    /// @param vF Pool1 fund value in Ether used in the last full daily calculation of the Capital model.
-    /// @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
+    /** 
+     * @dev Adds new MCR data.
+     * @param mcrP  Minimum Capital Requirement in percentage.
+     * @param vF Pool1 fund value in Ether used in the last full daily calculation of the Capital model.
+     * @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
+     */ 
     function addMCRData(
         uint32 mcrP,
         uint32 mcrE,
@@ -106,7 +118,9 @@ contract MCR is Iupgradable {
         addMCRDataExtended(len, onlyDate, curr, mcrE, mcrP, vF.mul(DECIMAL1E18), _threeDayAvg);
     }
 
-    /// @dev Adds MCR Data for last failed attempt.
+    /**
+     * @dev Adds MCR Data for last failed attempt.
+     */  
     function addLastMCRData(uint64 date) external checkPause {
         uint64 lastdate = md.getLastMCRDate();
         uint64 failedDate = uint64(date);
@@ -128,8 +142,11 @@ contract MCR is Iupgradable {
         }
     }
 
-    /// @dev Checks if last notarised Minimum Capital Requirement(MCR) percentage < minimum capital required or not.
-    /// @return check 1 if last added MCR% < Minimum MCR value
+    /**
+     * @dev Checks if last notarised Minimum Capital Requirement(MCR) 
+     * percentage is less than minimum capital required or not.
+     * @return check 1 if last added MCR% < Minimum MCR value
+     */  
     function checkForMinMCR() external view returns(uint8 check) {
 
         check = 0;
@@ -137,7 +154,9 @@ contract MCR is Iupgradable {
             check = 1;
     }
 
-    /// @dev Gets name of currency at a given index.
+    /**
+     * @dev Gets name of currency at a given index. 
+     */  
     function getCurrencyByIndex(uint16 index) external view returns(uint16 id, bytes4 curr) {
         curr = md.getCurrencyByIndex(index);
         id = index;
@@ -151,7 +170,9 @@ contract MCR is Iupgradable {
         tk = NXMToken(ms.tokenAddress());
     }
 
-    /// @dev Gets total sum assured(in ETH).
+    /** 
+     * @dev Gets total sum assured(in ETH).
+     */  
     function getAllSumAssurance() public view returns(uint amount) {
         uint len = md.getCurrLength();
         for (uint16 i = 0; i < len; i++) {
@@ -165,21 +186,23 @@ contract MCR is Iupgradable {
         }
     }
 
-    /// @dev Calculates V(Tp) ,i.e, Pool Fund Value in Ether used for the Token Price Calculation
-    //                      and MCR%(Tp),i.e, MCR% used in the Token Price Calculation.
-    /// @return vtp  Pool Fund Value in Ether used for the Token Price Model
-    /// @return mcrtp MCR% used in the Token Price Model.
-    function calVtpAndMCRtp() public view returns(uint vtp, uint mcrtp) {
+    /**
+     * @dev Calculates V(Tp) and MCR%(Tp), i.e, Pool Fund Value in Ether 
+     * and MCR% used in the Token Price Calculation.
+     * @return vtp  Pool Fund Value in Ether used for the Token Price Model
+     * @return mcrtp MCR% used in the Token Price Model. 
+     */ 
+    function calVtpAndMCRtp(uint poolBalance) public view returns(uint vtp, uint mcrtp) {
         vtp = 0;
         ERC20 erc20;
         for (uint i = 1; i < md.getCurrLength(); i++) {
             bytes4 currency = md.getCurrencyByIndex(uint16(i));
             erc20 = ERC20(pd.getCurrencyAssetAddress(currency));
-            uint currTokens = erc20.balanceOf(ms.getLatestAddress("P1"));
+            uint currTokens = erc20.balanceOf(address(p1));
             if (md.getCurr3DaysAvg(currency) > 0)
                 vtp = vtp.add((currTokens.mul(100)).div(md.getCurr3DaysAvg(currency)));
         }
-        vtp = vtp.add(p1.getEtherPoolBalance());
+        vtp = vtp.add(poolBalance);
         uint mcrFullperc;
         uint vFull;
         (mcrFullperc, , vFull, ) = md.getLastMCR();
@@ -188,35 +211,40 @@ contract MCR is Iupgradable {
         }
     }
 
-   /**
-    * @dev Calculates the Token Price of NXM in a given currency.
-    * @param curr Currency name.
-    * @param totalSupply Tokens in circulation
-    */
-    function calculateTokenPriceWithSupply(
+    /**
+     * @dev Calculates the Token Price of NXM in a given currency.
+     * @param curr Currency name.
+     * @param totalSupply Tokens in circulation
+     */
+    function calculateStepTokenPrice(
         bytes4 curr,
-        uint totalSupply
+        uint totalSupply,
+        uint mcrtp
     ) 
         public
         view
         onlyInternal
         returns(uint tokenPrice)
     {
-        return _calculateTokenPrice(curr, totalSupply);
+        return _calculateTokenPrice(curr, totalSupply, mcrtp);
     }
 
     /**
-    * @dev Calculates the Token Price of NXM in a given currency with provided
-    *       token supply for dynamic token price calculation
-    * @param curr Currency name.
-    */ 
+     * @dev Calculates the Token Price of NXM in a given currency 
+     * with provided token supply for dynamic token price calculation
+     * @param curr Currency name.
+     */ 
     function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
-        return _calculateTokenPrice(curr, tk.totalSupply());
+        uint mcrtp;
+        (, mcrtp) = calVtpAndMCRtp(address(p1).balance); 
+        return _calculateTokenPrice(curr, tk.totalSupply(), mcrtp);
     }
     
-    /// @dev Gets max numbers of tokens that can be sold at the moment.
+    /**
+     * @dev Gets max numbers of tokens that can be sold at the moment.
+     */ 
     function getMaxSellTokens() public view returns(uint maxTokens) {
-        uint maxTokensAccPoolBal  = p1.getEtherPoolBalance().sub(((
+        uint maxTokensAccPoolBal  = address(p1).balance.sub(((
             uint(pd.getCurrencyAssetBaseMin("ETH")).mul(50)).div(100)).mul(DECIMAL1E18));
         maxTokensAccPoolBal = (maxTokensAccPoolBal.div((calculateTokenPrice("ETH")
             .div(1000)).mul(975))).mul(DECIMAL1E18);
@@ -225,39 +253,48 @@ contract MCR is Iupgradable {
             maxTokens = maxTokensAccPoolBal;     
     }
 
-    /// @dev Calls oraclize query to calculate MCR details after 24 hours.
+    /** 
+     * @dev Calls oraclize query to calculate MCR details after 24 hours.
+     */ 
     function callOracliseForMCR() internal {
         p1.mcrOraclise(md.getMCRTime());
     }
 
-    /// @dev Calculates the Token Price of NXM in a given currency with provided
-    ///       token supply for dynamic token price calculation
-    /// @param _curr Currency name.
-    /// @param _totalSupply token supply
-    /// @return tokenPrice Token price.
-    function _calculateTokenPrice(bytes4 _curr, uint _totalSupply) internal view returns(uint tokenPrice) {
-        uint mcrtp;
-        (, mcrtp) = calVtpAndMCRtp();
-        uint totalSupply = _totalSupply.div(DECIMAL1E18);
+    /**
+     * @dev Calculates the Token Price of NXM in a given currency 
+     * with provided token supply for dynamic token price calculation
+     * @param _curr Currency name.
+     * @param _totalSupply token supply
+     * @return tokenPrice Token price.
+     */ 
+    function _calculateTokenPrice(
+        bytes4 _curr,
+        uint _totalSupply,
+        uint mcrtp
+    )
+        internal
+        view
+        returns(uint tokenPrice)
+    {
         uint getSFx100000;
         uint getGrowthStep;
         uint getCurr3DaysAvg;
+        uint max = (mcrtp.mul(mcrtp)); 
         (getSFx100000, getGrowthStep, getCurr3DaysAvg) = md.getTokenPriceDetails(_curr);
-        if ((mcrtp.mul(mcrtp)).div(DECIMAL1E08) >= 1) {
-            tokenPrice = getSFx100000.mul(getGrowthStep.add(totalSupply));
-            tokenPrice = tokenPrice.mul(mcrtp).mul(mcrtp).mul(100000);
-            tokenPrice = tokenPrice.div(getGrowthStep);
-        } else {
-            tokenPrice = getSFx100000.mul(getGrowthStep.add(totalSupply));
-            tokenPrice = tokenPrice.mul(10000 * 10000 * 100000);
-            tokenPrice = tokenPrice.div(getGrowthStep);
+        if (max <= DECIMAL1E08) {
+            max = DECIMAL1E08; 
         }
+        getGrowthStep = getGrowthStep.mul(DECIMAL1E18);
+        tokenPrice = getSFx100000.mul(getGrowthStep.add(_totalSupply));
+        tokenPrice = (tokenPrice.mul(max)).mul(DECIMAL1E18);
+        tokenPrice = (tokenPrice.mul(getCurr3DaysAvg * 10)).div(getGrowthStep); 
+        tokenPrice = (tokenPrice).div(DECIMAL1E08 ** 2);
+    }   
 
-        tokenPrice = (tokenPrice.mul(getCurr3DaysAvg)).div(100);
-    }
-
-    /// @dev Adds MCR Data.
-    ///      Checks if MCR is within valid thresholds in order to rule out any incorrect calculations
+    /**
+     * @dev Adds MCR Data. Checks if MCR is within valid 
+     * thresholds in order to rule out any incorrect calculations 
+     */  
     function addMCRDataExtended(
         uint len,
         uint64 newMCRDate,
@@ -274,7 +311,7 @@ contract MCR is Iupgradable {
         uint lowerThreshold = 0;
         uint upperThreshold = 0;
         if (len > 1) {
-            (vtp, ) = calVtpAndMCRtp();
+            (vtp, ) = calVtpAndMCRtp(address(p1).balance);
             if (vtp >= vF) {
                 upperThreshold = vtp.div(DECIMAL1E18.mul(md.getMinCap()));
                 upperThreshold = upperThreshold.mul(100);

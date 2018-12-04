@@ -12,7 +12,6 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 const TokenController = artifacts.require('TokenController');
 const Pool1 = artifacts.require('Pool1');
 const Pool2 = artifacts.require('Pool2');
-const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
@@ -29,7 +28,6 @@ module.exports = function(deployer) {
     await deployer.deploy(NXMaster2);
     await deployer.deploy(Pool1);
     await deployer.deploy(Pool2);
-    await deployer.deploy(Pool3);
     await deployer.deploy(PoolData);
     await deployer.deploy(MCR);
     await deployer.deploy(MCRDataMock);

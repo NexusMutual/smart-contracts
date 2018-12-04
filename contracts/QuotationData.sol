@@ -79,10 +79,10 @@ contract QuotationData is Iupgradable {
 
     constructor() public {
         pendingCoverStart = 0;
-        productDetails.push(ProductDetails("SCC", "Smart Contract Cover", 90, 1000, 12, 0));
-        allCovers.push(Cover("0x00", 0x000, "0x00", 0, 0, 0, 0x000, 0));
+        productDetails.push(ProductDetails("SCC", "Smart Contract Cover", 90, 1000, 13, 0));
+        allCovers.push(Cover("0x00", address(0), "0x00", 0, 0, 0, address(0), 0));
         uint[] memory arr = new uint[](1);
-        allCoverHolded.push(HoldCover(0, 0, 0x00, 0x00, 0x00, arr, 0));
+        allCoverHolded.push(HoldCover(0, 0, address(0), address(0), 0x00, arr, 0));
 
     }
 

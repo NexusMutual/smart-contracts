@@ -101,7 +101,7 @@ contract NXMaster2 is Iupgradable {
 
     /// @dev Adds investment asset details to Pool1.
     function addCurrencyAssetsDetails() internal {
-        pd.pushCurrencyAssetsDetails("ETH", 0x00, 1, 50, 400, 18);
+        pd.pushCurrencyAssetsDetails("ETH", address(0), 1, 50, 400, 18);
         pd.pushCurrencyAssetsDetails("DAI", 0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 1, 50, 300, 18);
     }
 
@@ -113,12 +113,8 @@ contract NXMaster2 is Iupgradable {
 
     /// @dev Adds investment assets names to Pool1 module.
     function addInvestmentCurrencies() internal {
-        pd.addInvestmentCurrency("DGD");
-        pd.addInvestmentCurrency("ICN");
-        pd.addInvestmentCurrency("ZRX");
-        pd.addInvestmentCurrency("MKR");
-        pd.addInvestmentCurrency("GNT");
-        pd.addInvestmentCurrency("MLN");
+        pd.addInvestmentCurrency("ETH");
+        pd.addInvestmentCurrency("DAI");
     }
 
     /// @dev Adds currency asset data to Pool1 module.
@@ -129,11 +125,7 @@ contract NXMaster2 is Iupgradable {
 
     /// @dev Adds investment asset details to Pool1.
     function addInvestmentAssetsDetails() internal {
-        pd.pushInvestmentAssetsDetails("DGD", 0xeeE3870657E4716670f185dF08652dd848fe8f7e, 1, 500, 4000, 18);
-        pd.pushInvestmentAssetsDetails("ICN", 0x21E6b27b23241a35D216f8641C72cfEd33085fE9, 1, 1000, 3000, 18);
-        pd.pushInvestmentAssetsDetails("ZRX", 0x6Ff6C0Ff1d68b964901F986d4C9FA3ac68346570, 1, 500, 2500, 18);
-        pd.pushInvestmentAssetsDetails("MKR", 0x1Dad4783cf3fe3085C1426157aB175A6119A04bA, 1, 500, 2000, 18);
-        pd.pushInvestmentAssetsDetails("GNT", 0xeF7FfF64389B814A946f3E92105513705CA6B990, 1, 500, 2000, 18);
-        pd.pushInvestmentAssetsDetails("MLN", 0x323B5d4C32345ced77393B3530b1EeD0f346429D, 1, 500, 2000, 18);
+        pd.pushInvestmentAssetsDetails("ETH", address(0), 1, 500, 5000, 18);
+        pd.pushInvestmentAssetsDetails("DAI", 0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 1, 500, 5000, 18);
     }
 }

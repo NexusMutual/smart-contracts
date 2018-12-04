@@ -26,7 +26,6 @@ import "./Claims.sol";
 import "./ClaimsData.sol";
 import "./Pool1.sol";
 import "./Pool2.sol";
-import "./Pool3.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./Iupgradable.sol";
@@ -45,7 +44,6 @@ contract ClaimsReward is Iupgradable {
     ClaimsData internal cd;
     Pool1 internal p1;
     Pool2 internal p2;
-    Pool3 internal p3;
     PoolData internal pd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
@@ -69,7 +67,6 @@ contract ClaimsReward is Iupgradable {
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         p1 = Pool1(ms.getLatestAddress("P1"));
         p2 = Pool2(ms.getLatestAddress("P2"));
-        p3 = Pool3(ms.getLatestAddress("P3"));
         pd = PoolData(ms.getLatestAddress("PD"));
         qd = QuotationData(ms.getLatestAddress("QD"));
     }
@@ -252,7 +249,7 @@ contract ClaimsReward is Iupgradable {
             tf.burnDepositCN(coverid); // burn Deposited CN
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
                 pd.changeCurrencyAssetVarMin(curr, uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                p3.checkLiquidityCreateOrder(curr);
+                p2.checkLiquidityCreateOrder(curr);
             }
         } else if (status == 7 || status == 8 || status == 10) {
             cd.changeFinalVerdict(claimid, 1);

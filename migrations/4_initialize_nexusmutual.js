@@ -12,14 +12,13 @@ const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1');
 const Pool2 = artifacts.require('Pool2');
-const Pool3 = artifacts.require('Pool3');
 const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
-const WETH_0x = web3.eth.accounts[18];
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const Owner = web3.eth.accounts[0];
 const POOL_ETHER = 15 * 1e18;
 
@@ -33,7 +32,6 @@ module.exports = function(deployer) {
     const tc = await TokenController.deployed();
     const pl1 = await Pool1.deployed();
     const pl2 = await Pool2.deployed();
-    const pl3 = await Pool3.deployed();
     const pd = await PoolData.deployed();
     const qt = await Quotation.deployed();
     const qd = await QuotationDataMock.deployed();
@@ -42,12 +40,6 @@ module.exports = function(deployer) {
     const cd = await ClaimsData.deployed();
     const mcr = await MCR.deployed();
     const mcrd = await MCRDataMock.deployed();
-    const IA1 = await DAI.new();
-    const IA2 = await DAI.new();
-    const IA3 = await DAI.new();
-    const IA4 = await DAI.new();
-    const IA5 = await DAI.new();
-    const IA6 = await DAI.new();
     let addr = [
       qd.address,
       td.address,
@@ -61,7 +53,6 @@ module.exports = function(deployer) {
       cr.address,
       pl1.address,
       pl2.address,
-      pl3.address,
       mcr.address,
       nxms2.address
     ];
@@ -78,12 +69,8 @@ module.exports = function(deployer) {
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
     await mcr.changenotariseAddress(Owner);
-    await pd.changeInvestmentAssetAddress(0x444744, IA1.address);
-    await pd.changeInvestmentAssetAddress(0x49434e, IA2.address);
-    await pd.changeInvestmentAssetAddress(0x5a5258, IA3.address);
-    await pd.changeInvestmentAssetAddress(0x474e54, IA4.address);
-    await pd.changeInvestmentAssetAddress(0x4d4c4e, IA5.address);
-    await pd.changeInvestmentAssetAddress(0x4d4b52, IA6.address);
+    await pd.changeInvestmentAssetAddress('0x455448', ZERO_ADDRESS);
+    await pd.changeInvestmentAssetAddress('0x444149', dai.address);
     await mcr.addMCRData(
       18000,
       10000,
@@ -92,11 +79,7 @@ module.exports = function(deployer) {
       [100, 65407],
       20180807
     );
-    await pl3.saveIADetails(
-      ['0x444744', '0x49434e', '0x5a5258', '0x4d4b52', '0x474e54', '0x4d4c4e'],
-      [100, 200, 300, 400, 500, 600],
-      20180807
-    );
+    await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
     const mr = await MemberRoles.deployed();
     await nxms.changeMemberRolesAddress(mr.address);
   });

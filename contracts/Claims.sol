@@ -18,7 +18,7 @@ pragma solidity 0.4.24;
 import "./TokenFunctions.sol";
 import "./QuotationData.sol";
 import "./Pool1.sol";
-import "./Pool3.sol";
+import "./Pool2.sol";
 import "./PoolData.sol";
 import "./ClaimsReward.sol";
 import "./ClaimsData.sol";
@@ -44,7 +44,7 @@ contract Claims is Iupgradable {
     ClaimsData internal cd;
     TokenData internal td;
     PoolData internal pd;
-    Pool3 internal p3;
+    Pool2 internal p2;
     QuotationData internal qd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
@@ -191,7 +191,7 @@ contract Claims is Iupgradable {
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         tc = TokenController(ms.getLatestAddress("TC"));
         p1 = Pool1(ms.getLatestAddress("P1"));
-        p3 = Pool3(ms.getLatestAddress("P3"));
+        p2 = Pool2(ms.getLatestAddress("P2"));
         pd = PoolData(ms.getLatestAddress("PD"));
         cr = ClaimsReward(ms.getLatestAddress("CR"));
         cd = ClaimsData(ms.getLatestAddress("CD"));
@@ -456,7 +456,7 @@ contract Claims is Iupgradable {
         uint sumAssured = qd.getCoverSumAssured(coverId);
         pd.changeCurrencyAssetVarMin(curr, uint64(
             uint(pd.getCurrencyAssetVarMin(curr)).add(sumAssured)));
-        p3.checkLiquidityCreateOrder(curr);
+        p2.checkLiquidityCreateOrder(curr);
         p1.closeClaimsOraclise(len, cd.maxVotingTime());
     }
 }

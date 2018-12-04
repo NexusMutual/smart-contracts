@@ -141,7 +141,7 @@ contract Quotation is Iupgradable {
     {
         require(m1.checkForMinMCR() != 1);
         tc.burnFrom(msg.sender, coverDetails[2]); //need burn allowance
-        verifyCoverDetailsIntrnl(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+        _verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
     /**
@@ -163,7 +163,7 @@ contract Quotation is Iupgradable {
         public
         onlyInternal
     {
-        verifyCoverDetailsIntrnl(
+        _verifyCoverDetails(
             prodId,
             from,
             scAddress,
@@ -406,7 +406,7 @@ contract Quotation is Iupgradable {
         if (coverPeriod <= 60) {
             p1.closeCoverOraclise(cid, uint64(coverPeriod * 1 days));
         }
-        uint coverNoteAmount = (coverDetails[2].mul(5)).div(100);
+        uint coverNoteAmount = (coverDetails[2].mul(10)).div(100);
         tc.mint(from, coverNoteAmount);
         tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
@@ -422,7 +422,7 @@ contract Quotation is Iupgradable {
      * @param from address of funder.
      * @param scAddress Smart Contract Address
      */  
-    function verifyCoverDetailsIntrnl(
+    function _verifyCoverDetails(
         uint prodId,
         address from,
         address scAddress,

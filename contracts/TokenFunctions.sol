@@ -159,8 +159,8 @@ contract TokenFunctions is Iupgradable, Governed {
      */ 
     function payJoiningFee(address _userAddress) public payable checkPause {
         if (msg.sender == address(ms.getLatestAddress("QT"))) {
-            require(td.walletAddress() != address(0));
-            require(td.walletAddress().send(msg.value)); //solhint-disable-line
+            require(td.walletAddress() != address(0), "No walletAddress present");
+            td.walletAddress().transfer(msg.value); 
             tc.addToWhitelist(_userAddress);
             mr.updateMemberRole(_userAddress, 3, true, 0);
         } else {
@@ -219,7 +219,6 @@ contract TokenFunctions is Iupgradable, Governed {
      * @param _amount amount of NXM.
      */ 
     function addStake(address _scAddress, uint _amount) public isMemberAndcheckPause {
-        require(tk.balanceOf(msg.sender) >= _amount);
         uint scIndex = td.addStake(msg.sender, _scAddress, _amount);
         uint validity = (td.scValidDays()).mul(1 days);
         bytes32 reason = keccak256(abi.encodePacked("UW", msg.sender, _scAddress, scIndex));

@@ -284,7 +284,6 @@ contract NXMaster is Governed {
         allContractNames.push("CR");
         allContractNames.push("P1");
         allContractNames.push("P2");
-        allContractNames.push("P3");
         allContractNames.push("MC");
         allContractNames.push("M2");
     }

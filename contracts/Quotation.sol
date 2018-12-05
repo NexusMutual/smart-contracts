@@ -114,7 +114,6 @@ contract Quotation is Iupgradable {
      */ 
     function removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
 
-        require(!(ms.isOwner(msg.sender) != true && ms.isInternal(msg.sender) != true));
         address _add;
         bytes4 coverCurr;
         bytes8 prodID;

@@ -356,8 +356,10 @@ contract QuotationData is Iupgradable {
     /// @dev Provides the details of a cover Id
     /// @param _cid cover Id
     /// @return productName Insurance Product Name.
-    /// @return cid cover Id.
-    /// @return scAddress Address Array
+    /// @return memberAddress cover user address.
+    /// @return scAddress smart contract Address 
+    /// @return currencyCode currency of cover
+    /// @return sumAssured sum assured of cover
     function getCoverDetailsByCoverID1(
         uint _cid
     ) 
@@ -384,7 +386,7 @@ contract QuotationData is Iupgradable {
 
     /// @dev Provides details of a cover Id
     /// @param _cid cover Id
-    /// @return currencyCode Currency in which cover is assured
+    /// @return status status of cover.
     /// @return sumAssured Sum assurance of cover.
     /// @return coverPeriod Cover Period of cover (in days).
     /// @return validUntil is validity of cover.

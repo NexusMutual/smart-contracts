@@ -544,24 +544,6 @@ contract('Quotation', function([
                   { from: coverHolder }
                 )
               );
-              await mcrd.changeMinReqMCR(
-                (await mcrd.getLastMCRPerc()).plus(1),
-                { from: owner }
-              );
-              await assertRevert(
-                qt.makeCoverUsingNXMTokens(
-                  PID,
-                  coverDetails,
-                  coverPeriod,
-                  'ETH',
-                  smartConAdd,
-                  vrs[0],
-                  vrs[1],
-                  vrs[2],
-                  { from: coverHolder }
-                )
-              );
-              await mcrd.changeMinReqMCR(0, { from: owner });
               await qt.makeCoverUsingNXMTokens(
                 PID,
                 coverDetails,

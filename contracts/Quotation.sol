@@ -139,7 +139,6 @@ contract Quotation is Iupgradable {
         public
         isMemberAndcheckPause
     {
-        require(m1.checkForMinMCR() != 1);
         tc.burnFrom(msg.sender, coverDetails[2]); //need burn allowance
         _verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }

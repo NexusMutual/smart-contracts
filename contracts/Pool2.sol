@@ -464,7 +464,7 @@ contract Pool2 is Iupgradable {
         if (_curr == "ETH") {
             caBalance = address(p1).balance;
         } else {
-            ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(_curr));
+            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
             caBalance = erc20.balanceOf(address(p1));
         }
     }

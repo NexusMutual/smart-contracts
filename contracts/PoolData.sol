@@ -550,7 +550,7 @@ contract PoolData is Iupgradable {
     }
 
     /** 
-     * @dev Gets Currency asset decimals.ddrescue /dev/sdb
+     * @dev Gets Currency asset decimals.
      */ 
     function getCurrencyAssetDecimals(bytes8 _curr) external view returns(uint8 decimal) {
         return allCurrencyAssets[_curr].decimals;

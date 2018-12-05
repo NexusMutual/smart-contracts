@@ -48,17 +48,17 @@ contract('ClaimsReward', function([
   member1,
   member2,
   member3,
+  staker1,
+  staker2,
   coverHolder,
   notMember
 ]) {
-  const P_18 = new BigNumber(1e18);
-  const stakeTokens = ether(3);
+  const stakeTokens = ether(250);
   const tokens = ether(6);
   const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
   let coverID;
   let closingTime;
-  let maxVotingTime;
   let claimId;
 
   before(async function() {
@@ -79,25 +79,33 @@ contract('ClaimsReward', function([
     await tf.kycVerdict(member2, true);
     await tf.payJoiningFee(member3, { from: member3, value: fee });
     await tf.kycVerdict(member3, true);
+    await tf.payJoiningFee(staker1, { from: staker1, value: fee });
+    await tf.kycVerdict(staker1, true);
+    await tf.payJoiningFee(staker2, { from: staker2, value: fee });
+    await tf.kycVerdict(staker2, true);
     await tf.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
     await tf.kycVerdict(coverHolder, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker2 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder });
-    await tk.transfer(member1, ether(250));
-    await tk.transfer(member2, ether(250));
-    await tk.transfer(member3, ether(250));
-    await tk.transfer(coverHolder, ether(250));
-    await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
-    await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
+    await tk.transfer(member1, ether(150));
+    await tk.transfer(member2, ether(150));
+    await tk.transfer(member3, ether(150));
+    await tk.transfer(staker1, ether(450));
+    await tk.transfer(staker2, ether(450));
+    await tk.transfer(coverHolder, ether(150));
+    await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
+    await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
     maxVotingTime = await cd.maxVotingTime();
   });
 
   describe('Claim Assesor get rewards after Claim Assessment', function() {
     let rewardToGet;
     let initialBalance;
-    let initialTotalSupply;
+    let initialTokenBalance;
     before(async function() {
       await tc.lock(CLA, tokens, validity, { from: member1 });
       await tc.lock(CLA, tokens, validity, { from: member2 });
@@ -119,7 +127,6 @@ contract('ClaimsReward', function([
       const maxVotingTime = await cd.maxVotingTime();
       const now = await latestTime();
       closingTime = maxVotingTime.plus(now);
-      initialTotalSupply = await tk.totalSupply();
       await cl.submitCAVote(claimId, -1, { from: member1 });
       await cl.submitCAVote(claimId, -1, { from: member2 });
       await cl.submitCAVote(claimId, -1, { from: member3 });
@@ -127,6 +134,7 @@ contract('ClaimsReward', function([
       await cr.changeClaimStatus(claimId);
     });
     it('should be able to claim reward', async function() {
+      initialTokenBalance = await tk.balanceOf(cr.address);
       initialBalance = await tk.balanceOf(member1);
       rewardToGet = await cr.getAllPendingRewardOfUser(member1);
       await assertRevert(cr.claimAllPendingReward({ from: notMember }));
@@ -140,8 +148,10 @@ contract('ClaimsReward', function([
         initialBalance.plus(rewardToGet)
       );
     });
-    it('should increase total supply', async function() {
-      (await tk.totalSupply()).should.be.bignumber.above(initialTotalSupply);
+    it('should decrease token balance of this contract', async function() {
+      (await tk.balanceOf(cr.address)).should.be.bignumber.equal(
+        initialTokenBalance.sub(rewardToGet)
+      );
       await cr.getRewardAndClaimedStatus(1, claimId, { from: member1 });
       await cr.getRewardAndClaimedStatus(1, 2, { from: member1 });
       await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
@@ -150,20 +160,56 @@ contract('ClaimsReward', function([
       await cr.claimAllPendingReward({ from: member1 });
       await cd.getVoteAddressMemberLength(member1);
     });
+  });
+  describe('Staker gets reward', function() {
+    let initialBalance;
+    let rewardToGet;
+    let lockedStakedNXM;
 
-    describe('Misc', function() {
-      it('should not be able change claim status', async function() {
-        await assertRevert(cr.changeClaimStatus(claimId, { from: notMember }));
-      });
+    before(async function() {
+      initialBalance = await tk.balanceOf(staker1);
+      await increaseTimeTo((await latestTime()) + duration.days(3));
+      rewardToGet = await cr.getAllPendingRewardOfUser(staker1);
+      lockedStakedNXM = await tf.getStakerAllLockedTokens(staker1);
+      unlockableStakedNXM = await tf.getStakerAllUnlockableStakedTokens(
+        staker1
+      );
+    });
+    it('should be able to claim reward', async function() {
+      await cr.claimAllPendingReward({ from: staker1 });
+      (await cr.getAllPendingRewardOfUser(staker1)).should.be.bignumber.equal(
+        0
+      );
+    });
+    it('should increase balance of staker', async function() {
+      (await tk.balanceOf(staker1)).should.be.bignumber.equal(
+        initialBalance.plus(rewardToGet)
+      );
+    });
+    it('should decrease locked staked tokens of staker', async function() {
+      (await tf.getStakerAllLockedTokens(staker1)).should.be.bignumber.equal(
+        lockedStakedNXM.sub(unlockableStakedNXM)
+      );
+    });
+    it('should return zero unlockable staked tokens of staker', async function() {
+      (await tf.getStakerAllUnlockableStakedTokens(
+        staker1
+      )).should.be.bignumber.equal(0);
+    });
+  });
 
-      it('should not be able call upgrade function of this contract', async function() {
-        await assertRevert(cr.upgrade(member1, { from: notMember }));
-      });
+  describe('Misc', function() {
+    it('should not be able change claim status', async function() {
+      await assertRevert(cr.changeClaimStatus(claimId, { from: notMember }));
+    });
 
-      it('should be able call upgrade function of this contract', async function() {
-        await tc.mint(cr.address, tokens);
-        await cr.upgrade(member1, { from: owner });
-      });
+    it('should not be able call upgrade function of this contract', async function() {
+      await assertRevert(cr.upgrade(member1, { from: notMember }));
+    });
+
+    it('should be able call upgrade function of this contract', async function() {
+      await tc.mint(cr.address, tokens);
+      await cr.upgrade(member1, { from: owner });
     });
   });
 });

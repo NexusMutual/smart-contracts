@@ -45,7 +45,6 @@ contract Pool1 is usingOraclize, Iupgradable {
     MCRData internal md;
     Claims public c1;
 
-
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
     uint internal constant PRICE_STEP = uint(1000) * DECIMAL1E18;
 

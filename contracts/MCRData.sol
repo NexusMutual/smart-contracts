@@ -16,10 +16,13 @@
 pragma solidity 0.4.24;
 
 import "./Iupgradable.sol";
+
+import "./imports/DSInterface.sol";
+
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
-contract MCRData is Iupgradable {
+contract MCRData is Iupgradable, DSInterface {
     using SafeMath for uint;
 
     address public masterAddress;
@@ -32,6 +35,7 @@ contract MCRData is Iupgradable {
     uint64 internal mcrTime;
     bytes4[] internal allCurrencies;
 
+
     struct McrData {
         uint32 mcrPercx100;
         uint32 mcrEtherx100;
@@ -42,6 +46,9 @@ contract MCRData is Iupgradable {
     McrData[] internal allMCRData;
     mapping(bytes8 => uint32) public allCurr3DaysAvg;
     address public notariseMCR;
+    address public DAIFeed;
+    uint private constant DECIMAL1E16 = uint(10) ** 16;
+   
 
     constructor() public {
         growthStep = 1500000;
@@ -121,6 +128,12 @@ contract MCRData is Iupgradable {
         allMCRData.push(McrData(mcrp, mcre, vf, time));
     }
 
+    /// @dev updates DAIFeed address.
+    /// @param _add address of MKR feed.
+    function changeDAIFeedAddress(address _add) external onlyOwner {
+        DAIFeed = _add;
+    }
+
     /// @dev Checks whether a given address can notaise MCR data or not.
     /// @param _add Address.
     /// @return res Returns 0 if address is not authorized, else 1.
@@ -144,7 +157,14 @@ contract MCRData is Iupgradable {
     /// @param curr Currency Name.
     /// @return rate Average rate X 100(of last 3 days).
     function getCurr3DaysAvg(bytes8 curr) external view returns(uint32 rate) {
-        rate = allCurr3DaysAvg[curr];
+        if(curr == "DAI")
+        {
+            DSInterface ds = DSInterface(DAIFeed);
+            uint daiRate = uint(ds.read()).div(DECIMAL1E16);
+            rate = uint32(daiRate);
+        }
+        else
+            rate = allCurr3DaysAvg[curr];
     }
 
     /// @dev Gets the details of last added MCR.

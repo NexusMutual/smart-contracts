@@ -253,7 +253,7 @@ contract('Quotation', function([
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
               if (
-                cdetails2[1] == CA_ETH &&
+                cdetails1[4] == CA_ETH &&
                 cdetails1[1] == PNAME &&
                 cdetails1[2] == coverHolder &&
                 cdetails1[3] == smartConAdd
@@ -338,7 +338,7 @@ contract('Quotation', function([
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
               if (
-                cdetails2[1] == CA_ETH &&
+                cdetails1[4] == CA_ETH &&
                 cdetails1[1] == PNAME &&
                 cdetails1[2] == coverHolder &&
                 cdetails1[3] == smartConAdd
@@ -429,7 +429,7 @@ contract('Quotation', function([
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
               if (
-                cdetails2[1] == CA_DAI &&
+                cdetails1[4] == CA_DAI &&
                 cdetails1[1] == PNAME &&
                 cdetails1[2] == coverHolder &&
                 cdetails1[3] == smartConAdd

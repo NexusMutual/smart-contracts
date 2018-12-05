@@ -227,7 +227,7 @@ contract Claims is Iupgradable {
         address qadd = qd.getCoverMemberAddress(coverId);
         require(qadd == msg.sender);
         bytes16 cStatus;
-        (, , , , cStatus) = qd.getCoverDetailsByCoverID1(coverId);
+        (, cStatus, , , ) = qd.getCoverDetailsByCoverID2(coverId);
         require(cStatus != "Claim Submitted", "Claim already submitted");
         require(cStatus != "Cover Expired", "Cover already expired");
         if (ms.isPause() == false) {

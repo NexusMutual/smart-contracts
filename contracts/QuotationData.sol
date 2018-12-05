@@ -368,7 +368,8 @@ contract QuotationData is Iupgradable {
             bytes8 productName,
             address memberAddress,
             address scAddress,
-            bytes16 status
+            bytes4 currencyCode,
+            uint sumAssured   
         ) 
     {
         return (
@@ -376,7 +377,8 @@ contract QuotationData is Iupgradable {
             allCovers[_cid].productName,
             allCovers[_cid].memberAddress,
             allCovers[_cid].scAddress,
-            coverStatus[coverstatus[_cid]]
+            allCovers[_cid].currencyCode,
+            allCovers[_cid].sumAssured
         );
     }
 
@@ -393,7 +395,7 @@ contract QuotationData is Iupgradable {
         view
         returns (
             uint cid,
-            bytes4 currencyCode,
+            bytes16 status,
             uint sumAssured,
             uint16 coverPeriod,
             uint validUntil
@@ -401,7 +403,7 @@ contract QuotationData is Iupgradable {
     {
         return (
             _cid,
-            allCovers[_cid].currencyCode,
+            coverStatus[coverstatus[_cid]],
             allCovers[_cid].sumAssured,
             allCovers[_cid].coverPeriod,
             allCovers[_cid].validUntil

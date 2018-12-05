@@ -82,12 +82,14 @@ contract Quotation is Iupgradable {
         require(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid) != 3);
         qd.changeCoverStatusNo(_cid, 3);
         tf.unlockCN(_cid);
-        bytes4 curr = qd.getCurrencyOfCover(_cid);
-        qd.subFromTotalSumAssured(curr, qd.getCoverSumAssured(_cid));
-        if (qd.getProductNameOfCover(_cid) == "SCC") {
-            address scAddress;
-            (, scAddress) = qd.getscAddressOfCover(_cid);
-            qd.subFromTotalSumAssuredSC(scAddress, curr, qd.getCoverSumAssured(_cid));
+        bytes4 curr;
+        address scAddress;
+        uint SA;
+        bytes8 prodID;
+        (, prodID, , scAddress, curr, SA) = qd.getCoverDetailsByCoverID1(_cid);
+        qd.subFromTotalSumAssured(curr, SA);
+        if (prodID == "SCC") {
+            qd.subFromTotalSumAssuredSC(scAddress, curr, SA);
         }
     }
 
@@ -113,11 +115,12 @@ contract Quotation is Iupgradable {
     function removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
 
         require(!(ms.isOwner(msg.sender) != true && ms.isInternal(msg.sender) != true));
-        bytes4 coverCurr = qd.getCurrencyOfCover(_cid);
         address _add;
-        (, _add) = qd.getscAddressOfCover(_cid);
+        bytes4 coverCurr;
+        bytes8 prodID;
+        ( , prodID, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
         qd.subFromTotalSumAssured(coverCurr, _amount);
-        if (qd.getProductNameOfCover(_cid) == "SCC") {
+        if (prodID == "SCC") {
             qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
         }
     }
@@ -139,6 +142,7 @@ contract Quotation is Iupgradable {
         public
         isMemberAndcheckPause
     {
+        
         tc.burnFrom(msg.sender, coverDetails[2]); //need burn allowance
         _verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }

@@ -128,15 +128,18 @@ contract ClaimsReward is Iupgradable {
         int8 claimVerdict = cd.getFinalVerdict(claimId);
 
         if (claimVerdict == verdict && (claimed == false || flag == 1)) {
-            if (check == 1)
+            
+            if (check == 1) {
                 (perc, , tokensToBeDist) = cd.getClaimRewardDetail(claimId);
-            else
+            } else {
                 (, perc, tokensToBeDist) = cd.getClaimRewardDetail(claimId);
+            }
+                
             if (perc > 0) {
                 if (check == 1) {
                     if (verdict == 1) {
                         (, totalTokens, ) = cd.getClaimsTokenCA(claimId);
-                    }else if (verdict == -1) {
+                    } else if (verdict == -1) {
                         (, , totalTokens) = cd.getClaimsTokenCA(claimId);
                     }
                 } else {
@@ -214,14 +217,16 @@ contract ClaimsReward is Iupgradable {
 
     function claimAllPendingReward() public isMemberAndcheckPause {
         claimRewardToBeDistributed();
-        claimStakeCommission(); 
+        claimStakeCommission();
+        tf.unlockStakerUnlockableTokens(msg.sender); 
     }
 
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint commissionEarned = td.getStakerTotalEarnedStakeCommission(_add);
         uint commissionReedmed = td.getStakerTotalReedmedStakeCommission(_add);
-        total = caReward.add(commissionEarned).sub(commissionReedmed);
+        uint unlockableStakedTokens = tf.getStakerAllUnlockableStakedTokens(_add);
+        total = caReward.add(unlockableStakedTokens).add(commissionEarned.sub(commissionReedmed));
     }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.
@@ -231,7 +236,7 @@ contract ClaimsReward is Iupgradable {
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint64 sumAssured = uint64(qd.getCoverSumAssured(coverid));
         uint currPrice = tf.getTokenPrice(curr);
-        uint distributableTokens = (DECIMAL1E18.mul(DECIMAL1E18).mul(sumAssured)).
+        uint distributableTokens = ((DECIMAL1E18 ** 2).mul(sumAssured)).
             div(currPrice.mul(100));            //  1% of sum assured
             
         uint percCA;

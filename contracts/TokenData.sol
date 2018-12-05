@@ -178,6 +178,38 @@ contract TokenData is Iupgradable {
         length = stakerStakedContracts[_stakerAddress].length;
     }
 
+    function getStakerUnlockedStakedTokens(
+        address _stakerAddress,
+        uint _stakerIndex
+    )
+        public 
+        view
+        onlyInternal
+        returns (uint amount)
+    {
+        amount = stakerStakedContracts[
+            _stakerAddress][_stakerIndex].unlockedAmount;
+    }
+
+    /**
+     * @dev pushes the unlocked staked tokens by a staker.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker to distribute commission.
+     * @param _amount amount to be given as commission.
+     */ 
+    function pushUnlockedStakedTokens(
+        address _stakerAddress,
+        uint _stakerIndex,
+        uint _amount
+    )   
+        public
+        onlyInternal
+    {   
+        stakerStakedContracts[_stakerAddress][
+            _stakerIndex].unlockedAmount = stakerStakedContracts[_stakerAddress][
+                _stakerIndex].unlockedAmount.add(_amount);
+    }
+
     /**
      * @dev pushes the earned commission earned by a staker.
      * @param _stakerAddress address of staker.

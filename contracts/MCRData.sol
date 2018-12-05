@@ -16,13 +16,16 @@
 pragma solidity 0.4.24;
 
 import "./Iupgradable.sol";
-
-import "./imports/DSInterface.sol";
-
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
-contract MCRData is Iupgradable, DSInterface {
+contract DSInterface {
+    function peek() public view returns (bytes32, bool);
+    function read() public view returns (bytes32);
+}
+
+
+contract MCRData is Iupgradable {
     using SafeMath for uint;
 
     address public masterAddress;
@@ -35,7 +38,6 @@ contract MCRData is Iupgradable, DSInterface {
     uint64 internal mcrTime;
     bytes4[] internal allCurrencies;
 
-
     struct McrData {
         uint32 mcrPercx100;
         uint32 mcrEtherx100;
@@ -46,9 +48,8 @@ contract MCRData is Iupgradable, DSInterface {
     McrData[] internal allMCRData;
     mapping(bytes8 => uint32) public allCurr3DaysAvg;
     address public notariseMCR;
-    address public DAIFeed;
+    address public daiFeedAddress;
     uint private constant DECIMAL1E16 = uint(10) ** 16;
-   
 
     constructor() public {
         growthStep = 1500000;
@@ -128,10 +129,10 @@ contract MCRData is Iupgradable, DSInterface {
         allMCRData.push(McrData(mcrp, mcre, vf, time));
     }
 
-    /// @dev updates DAIFeed address.
+    /// @dev updates daiFeedAddress address.
     /// @param _add address of MKR feed.
-    function changeDAIFeedAddress(address _add) external onlyOwner {
-        DAIFeed = _add;
+    function changeDAIfeedAddress(address _add) external onlyOwner {
+        daiFeedAddress = _add;
     }
 
     /// @dev Checks whether a given address can notaise MCR data or not.
@@ -157,14 +158,14 @@ contract MCRData is Iupgradable, DSInterface {
     /// @param curr Currency Name.
     /// @return rate Average rate X 100(of last 3 days).
     function getCurr3DaysAvg(bytes8 curr) external view returns(uint32 rate) {
-        if(curr == "DAI")
-        {
-            DSInterface ds = DSInterface(DAIFeed);
+        if (curr == "DAI") {
+            DSInterface ds = DSInterface(daiFeedAddress);
             uint daiRate = uint(ds.read()).div(DECIMAL1E16);
             rate = uint32(daiRate);
-        }
-        else
+        } else {
             rate = allCurr3DaysAvg[curr];
+        }
+            
     }
 
     /// @dev Gets the details of last added MCR.
@@ -207,7 +208,14 @@ contract MCRData is Iupgradable, DSInterface {
     function getTokenPriceDetails(bytes4 curr) external view returns(uint32 sf, uint32 gs, uint32 rate) {
         sf = sfX100000;
         gs = growthStep;
-        rate = allCurr3DaysAvg[curr];
+        if (curr == "DAI") {
+            DSInterface ds = DSInterface(daiFeedAddress);
+            uint daiRate = uint(ds.read()).div(DECIMAL1E16);
+            rate = uint32(daiRate);
+        } else {
+            rate = allCurr3DaysAvg[curr];
+        }
+        
     }
 
     /// @dev Gets Scaling Factor.

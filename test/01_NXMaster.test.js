@@ -2,6 +2,7 @@ const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
+const DSValue = artifacts.require('DSValue');
 const NXMaster = artifacts.require('NXMaster');
 const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
@@ -47,6 +48,7 @@ let mcr;
 let mcrd;
 let addr = [];
 let dai;
+let dsv;
 let newMaster;
 let memberRoles;
 
@@ -81,6 +83,7 @@ contract('NXMaster', function([
     mcr = await MCR.new();
     nxms2 = await NXMaster2.new();
     dai = await DAI.new();
+    dsv = await DSValue.deployed();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -145,6 +148,7 @@ contract('NXMaster', function([
       );
       await pd.changeInvestmentAssetAddress('0x455448', ZERO_ADDRESS);
       await pd.changeInvestmentAssetAddress('0x444149', dai.address);
+      await mcrd.changeDAIfeedAddress(dsv.address);
       await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
     });
 

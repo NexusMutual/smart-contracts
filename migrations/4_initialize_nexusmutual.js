@@ -2,6 +2,7 @@ const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
+const DSValue = artifacts.require('DSValue');
 const NXMaster = artifacts.require('NXMaster');
 const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
@@ -40,6 +41,7 @@ module.exports = function(deployer) {
     const cd = await ClaimsData.deployed();
     const mcr = await MCR.deployed();
     const mcrd = await MCRDataMock.deployed();
+    const dsv = await DSValue.deployed();
     let addr = [
       qd.address,
       td.address,
@@ -71,6 +73,7 @@ module.exports = function(deployer) {
     await mcr.changenotariseAddress(Owner);
     await pd.changeInvestmentAssetAddress('0x455448', ZERO_ADDRESS);
     await pd.changeInvestmentAssetAddress('0x444149', dai.address);
+    await mcrd.changeDAIfeedAddress(dsv.address);
     await mcr.addMCRData(
       18000,
       10000,

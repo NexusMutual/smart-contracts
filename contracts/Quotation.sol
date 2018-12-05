@@ -79,7 +79,7 @@ contract Quotation is Iupgradable {
      * @param _cid Cover Id.
      */ 
     function expireCover(uint _cid) public onlyInternal {
-        require(checkCoverExpired(_cid) == 1 && qd.getCoverStatusNo(_cid) != 3);
+        require(checkCoverExpired(_cid) && qd.getCoverStatusNo(_cid) != 3);
         qd.changeCoverStatusNo(_cid, 3);
         tf.unlockCN(_cid);
         bytes4 curr;
@@ -96,14 +96,12 @@ contract Quotation is Iupgradable {
     /**
      * @dev Checks if a cover should get expired/closed or not.
      * @param _cid Cover Index.
-     * @return expire 1 if the Cover's time has expired, 0 otherwise.
+     * @return expire true if the Cover's time has expired, false otherwise.
      */ 
-    function checkCoverExpired(uint _cid) public view returns(uint8 expire) {
+    function checkCoverExpired(uint _cid) public view returns(bool expire) {
 
-        if (qd.getValidityOfCover(_cid) < uint64(now))
-            expire = 1;
-        else
-            expire = 0;
+        expire = qd.getValidityOfCover(_cid) < uint64(now);
+
     }
 
     /**

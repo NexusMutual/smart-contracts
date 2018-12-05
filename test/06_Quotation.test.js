@@ -884,7 +884,7 @@ contract('Quotation', function([
       validityofCover = await qd.getValidityOfCover(1);
     });
     it('cover should not expired before validity', async function() {
-      (await qt.checkCoverExpired(1)).should.be.bignumber.equal(0);
+      (await qt.checkCoverExpired(1)).should.be.equal(false);
       await increaseTimeTo(validityofCover.plus(1));
     });
     it('should not be able to expire cover for different product than Smart contract cover', async function() {
@@ -895,7 +895,7 @@ contract('Quotation', function([
     it('cover should be expired after validity expires', async function() {
       initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
       await qt.expireCover(1);
-      (await qt.checkCoverExpired(1)).should.be.bignumber.equal(1);
+      (await qt.checkCoverExpired(1)).should.be.equal(true);
     });
 
     it('decrease sum assured', async function() {

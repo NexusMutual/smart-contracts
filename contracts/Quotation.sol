@@ -244,7 +244,7 @@ contract Quotation is Iupgradable {
         return (a == qd.getAuthQuoteEngine());
     }
 
-    function verifyQuote(
+    function initiateMembershipAndCover(
         uint prodId,
         address smartCAdd,
         bytes4 coverCurr,

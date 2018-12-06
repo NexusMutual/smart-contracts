@@ -616,7 +616,7 @@ contract('Quotation', function([
       it('should revert if member', async function() {
         const totalFee = fee.plus(coverDetails[1].toString());
         await assertRevert(
-          qt.verifyQuote(
+          qt.initiateMembershipAndCover(
             PID,
             smartConAdd,
             'ETH',
@@ -673,7 +673,7 @@ contract('Quotation', function([
           );
           const totalFee = fee.plus(coverDetails[1].toString());
           await assertRevert(
-            qt.verifyQuote(
+            qt.initiateMembershipAndCover(
               PID,
               smartConAdd,
               'ETH',
@@ -686,7 +686,7 @@ contract('Quotation', function([
             )
           );
           await assertRevert(
-            qt.verifyQuote(
+            qt.initiateMembershipAndCover(
               PID,
               smartConAdd,
               'ETH',
@@ -698,7 +698,7 @@ contract('Quotation', function([
               { from: notMember, value: totalFee }
             )
           );
-          await qt.verifyQuote(
+          await qt.initiateMembershipAndCover(
             PID,
             smartConAdd,
             'ETH',
@@ -710,7 +710,7 @@ contract('Quotation', function([
             { from: notMember, value: totalFee }
           );
           await assertRevert(
-            qt.verifyQuote(
+            qt.initiateMembershipAndCover(
               PID,
               smartConAdd,
               'ETH',
@@ -732,7 +732,7 @@ contract('Quotation', function([
             from: newMember1
           });
           const totalFee = fee.plus(coverDetails[1].toString());
-          await qt.verifyQuote(
+          await qt.initiateMembershipAndCover(
             PID,
             smartConAdd,
             'ETH',
@@ -753,7 +753,7 @@ contract('Quotation', function([
           await cad.approve(qt.address, coverDetailsDai[1], {
             from: newMember2
           });
-          await qt.verifyQuote(
+          await qt.initiateMembershipAndCover(
             PID,
             smartConAdd,
             'DAI',
@@ -772,7 +772,7 @@ contract('Quotation', function([
             from: newMember3
           });
           const totalFee = fee.plus(coverDetails[1].toString());
-          await qt.verifyQuote(
+          await qt.initiateMembershipAndCover(
             PID,
             smartConAdd,
             'ETH',
@@ -793,7 +793,7 @@ contract('Quotation', function([
             from: newMember4
           });
           const totalFee = fee.plus(coverDetails[1].toString());
-          await qt.verifyQuote(
+          await qt.initiateMembershipAndCover(
             PID,
             smartConAdd,
             'ETH',
@@ -817,7 +817,7 @@ contract('Quotation', function([
           newCoverDetails[3] = validity - 2;
           const totalFee = fee.plus(newCoverDetails[1].toString());
           await assertRevert(
-            qt.verifyQuote(
+            qt.initiateMembershipAndCover(
               PID,
               smartConAdd,
               'ETH',
@@ -837,7 +837,7 @@ contract('Quotation', function([
             from: notMember
           });*/
           await assertRevert(
-            qt.verifyQuote(
+            qt.initiateMembershipAndCover(
               PID,
               smartConAdd,
               'DAI',
@@ -854,7 +854,7 @@ contract('Quotation', function([
           await cad.approve(qt.address, coverDetailsDai[1], {
             from: notMember
           });
-          await qt.verifyQuote(
+          await qt.initiateMembershipAndCover(
             PID,
             smartConAdd,
             'DAI',

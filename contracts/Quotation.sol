@@ -80,14 +80,16 @@ contract Quotation is Iupgradable {
      */ 
     function expireCover(uint _cid) public onlyInternal {
         require(checkCoverExpired(_cid) && qd.getCoverStatusNo(_cid) != 3);
-        qd.changeCoverStatusNo(_cid, 3);
+        
         tf.unlockCN(_cid);
         bytes4 curr;
         address scAddress;
         uint SA;
         bytes8 prodID;
         (, prodID, , scAddress, curr, SA) = qd.getCoverDetailsByCoverID1(_cid);
-        qd.subFromTotalSumAssured(curr, SA);
+        if(qd.getCoverStatusNo(_cid) != 1)
+            qd.subFromTotalSumAssured(curr, SA);
+        qd.changeCoverStatusNo(_cid, 3);
         if (prodID == "SCC") {
             qd.subFromTotalSumAssuredSC(scAddress, curr, SA);
         }

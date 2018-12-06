@@ -235,7 +235,7 @@ contract Pool1 is usingOraclize, Iupgradable {
                 tokenSupply = tokenSupply.add(PRICE_STEP);
                 superWeiSpent = PRICE_STEP.mul(tokenPrice);
                 superWeiLeft = superWeiLeft.sub(superWeiSpent);
-                vtp = vtp.add(PRICE_STEP.mul(tokenPrice));
+                vtp = vtp.add((PRICE_STEP.mul(tokenPrice)).div(DECIMAL1E18));
             }
         }
         tc.mint(msg.sender, tokenPurchased);
@@ -354,11 +354,15 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint tokenPrice;
         uint weiPaid;
         uint tokenSupply = _totalSupply;
-        uint remainingPoolBalance = address(this).balance;
+        uint vtp;
+        uint mcrFullperc;
+        uint vFull;
         uint mcrtp;
+        (mcrFullperc, , vFull, ) = md.getLastMCR();
+        (vtp, ) = m1.calVtpAndMCRtp(address(this).balance);
 
         while (_amount > 0) {
-            (, mcrtp) = m1.calVtpAndMCRtp(remainingPoolBalance);
+            mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
             tokenPrice = m1.calculateStepTokenPrice("ETH", tokenSupply, mcrtp);
             tokenPrice = (tokenPrice.mul(975)).div(1000); //97.5%
             if (_amount <= PRICE_STEP) {
@@ -368,7 +372,7 @@ contract Pool1 is usingOraclize, Iupgradable {
                 _amount = _amount.sub(PRICE_STEP);
                 tokenSupply = tokenSupply.sub(PRICE_STEP);
                 weiPaid = (tokenPrice.mul(PRICE_STEP)).div(DECIMAL1E18);
-                remainingPoolBalance = remainingPoolBalance.sub(weiPaid);
+                vtp = vtp.sub(weiPaid);
                 weiToPay = weiToPay.add(weiPaid);
             }
         }

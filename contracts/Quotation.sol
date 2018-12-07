@@ -88,11 +88,8 @@ contract Quotation is Iupgradable {
         bytes8 prodID;
         (, prodID, , scAddress, curr, SA) = qd.getCoverDetailsByCoverID1(_cid);
         if(qd.getCoverStatusNo(_cid) != 1)
-            qd.subFromTotalSumAssured(curr, SA);
-        qd.changeCoverStatusNo(_cid, 3);
-        
-        qd.subFromTotalSumAssuredSC(scAddress, curr, SA);
-        
+            _removeSAFromCSA(curr, SA);
+        qd.changeCoverStatusNo(_cid, 3);        
     }
 
     /**
@@ -113,15 +110,7 @@ contract Quotation is Iupgradable {
      * amount that comes under a quotation.
      */ 
     function removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
-
-        address _add;
-        bytes4 coverCurr;
-        bytes8 prodID;
-        ( , prodID, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
-        qd.subFromTotalSumAssured(coverCurr, _amount);
-        
-        qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
-        
+       _removeSAFromCSA(_cid, _amount);        
     }
 
     /**
@@ -436,5 +425,22 @@ contract Quotation is Iupgradable {
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
         makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
 
+    }
+
+    /**
+     * @dev Updates the Sum Assured Amount of all the quotation.
+     * @param _cid Cover id
+     * @param _amount that will get subtracted Current Sum Assured 
+     * amount that comes under a quotation.
+     */ 
+    function _removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
+
+        address _add;
+        bytes4 coverCurr;
+        bytes8 prodID;
+        ( , prodID, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
+        qd.subFromTotalSumAssured(coverCurr, _amount);        
+        qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
+        
     }
 }

@@ -116,7 +116,7 @@ contract('Quotation', function([
       });
 
       it('should return correct product name', async function() {
-        const pname = await qd.getProductName(PID);
+        const pname = await qd.productName();
         pname.should.equal(PNAME);
       });
     });
@@ -132,7 +132,6 @@ contract('Quotation', function([
         it('reverts', async function() {
           await assertRevert(
             P1.makeCoverBegin(
-              PID,
               smartConAdd,
               'ETH',
               coverDetails,
@@ -145,7 +144,6 @@ contract('Quotation', function([
           );
           await assertRevert(
             qt.makeCoverUsingNXMTokens(
-              PID,
               coverDetails,
               coverPeriod,
               'ETH',
@@ -158,7 +156,6 @@ contract('Quotation', function([
           );
           await assertRevert(
             P2.makeCoverUsingCA(
-              PID,
               smartConAdd,
               'DAI',
               coverDetailsDai,
@@ -204,7 +201,6 @@ contract('Quotation', function([
               );
               initialTotalSupply = (await tk.totalSupply()).div(P_18);
               await P1.makeCoverBegin(
-                PID,
                 smartConAdd,
                 'ETH',
                 coverDetails,
@@ -294,7 +290,6 @@ contract('Quotation', function([
               );
               initialTotalSupply = (await tk.totalSupply()).div(P_18);
               await qt.makeCoverUsingNXMTokens(
-                PID,
                 coverDetails,
                 coverPeriod,
                 'ETH',
@@ -386,7 +381,6 @@ contract('Quotation', function([
                 from: coverHolder
               });
               await P2.makeCoverUsingCA(
-                PID,
                 smartConAdd,
                 'DAI',
                 coverDetailsDai,
@@ -479,7 +473,6 @@ contract('Quotation', function([
                 staker2
               );
               await P1.makeCoverBegin(
-                PID,
                 smartConAdd,
                 'ETH',
                 coverDetails,
@@ -520,7 +513,6 @@ contract('Quotation', function([
               newCDetails[3] = (await latestTime()) - 2;
               await assertRevert(
                 qt.makeCoverUsingNXMTokens(
-                  PID,
                   newCDetails,
                   coverPeriod,
                   'ETH',
@@ -533,7 +525,6 @@ contract('Quotation', function([
               );
               await assertRevert(
                 qt.makeCoverUsingNXMTokens(
-                  PID,
                   coverDetails,
                   coverPeriod,
                   'ETH',
@@ -545,7 +536,6 @@ contract('Quotation', function([
                 )
               );
               await qt.makeCoverUsingNXMTokens(
-                PID,
                 coverDetails,
                 coverPeriod,
                 'ETH',
@@ -586,7 +576,6 @@ contract('Quotation', function([
                 from: coverHolder
               });
               await P2.makeCoverUsingCA(
-                PID,
                 smartConAdd,
                 'DAI',
                 coverDetailsDai,
@@ -633,7 +622,6 @@ contract('Quotation', function([
         it('reverts', async function() {
           await assertRevert(
             P1.makeCoverBegin(
-              PID,
               smartConAdd,
               'ETH',
               coverDetails,
@@ -647,7 +635,6 @@ contract('Quotation', function([
 
           await assertRevert(
             qt.makeCoverUsingNXMTokens(
-              PID,
               coverDetails,
               coverPeriod,
               'ETH',
@@ -660,7 +647,6 @@ contract('Quotation', function([
           );
           await assertRevert(
             P2.makeCoverUsingCA(
-              PID,
               smartConAdd,
               'DAI',
               coverDetailsDai,
@@ -944,50 +930,22 @@ contract('Quotation', function([
   });
 
   describe('Misc', function() {
-    let productCount;
-    describe('Add new insured product details', function() {
-      it('should not be able to add if not owner', async function() {
-        await assertRevert(
-          qd.addProductDetails(NPNAME, NPHASH, 90, 1000, 12, 0, {
-            from: notMember
-          })
-        );
-      });
-      it('should be able to add if owner', async function() {
-        productCount = await qd.getAllProductCount();
-        await qd.addProductDetails(NPNAME, NPHASH, 90, 1000, 12, 0, {
-          from: owner
-        });
-        const productDetails = await qd.getProductDetails(productCount);
-        await qd.getProductHash(productCount);
-        productDetails[1].should.equal(NPNAME);
-        productDetails[2].should.equal(NPHASH);
-      });
-
-      it('should increase product count', async function() {
-        (await qd.getAllProductCount()).should.be.bignumber.equal(
-          productCount.plus(1)
-        );
-      });
-    });
-
     describe('Change product params if owner', function() {
-      const productID = productCount - 1;
       it('should be able to change Product Hash', async function() {
-        await qd.changeProductHash(productID, 'New Test Cover');
-        (await qd.getProductHash(productID)).should.equal('New Test Cover');
+        await qd.changeProductHash('New Test Cover');
+        (await qd.productHash()).should.equal('New Test Cover');
       });
       it('should be able to change Profit Margin', async function() {
-        await qd.changePM(productID, 4);
+        await qd.changePM(4);
       });
       it('should be able to change STLP', async function() {
-        await qd.changeSTLP(productID, 5);
+        await qd.changeSTLP(5);
       });
       it('should be able to change STL', async function() {
-        await qd.changeSTL(productID, 1);
+        await qd.changeSTL(1);
       });
       it('should be able to change minimum cover period', async function() {
-        await qd.changeMinDays(productID, 31);
+        await qd.changeMinDays(31);
       });
     });
     describe('if not internal contract address', function() {

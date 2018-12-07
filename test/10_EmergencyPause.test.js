@@ -104,7 +104,6 @@ contract('NXMaster: Emergency Pause', function([
   describe('Before Emergency Pause', function() {
     before(async function() {
       await P1.makeCoverBegin(
-        PID,
         smartConAdd,
         'ETH',
         coverDetails,
@@ -116,7 +115,6 @@ contract('NXMaster: Emergency Pause', function([
       );
 
       await P1.makeCoverBegin(
-        PID,
         smartConAdd,
         'ETH',
         coverDetails,

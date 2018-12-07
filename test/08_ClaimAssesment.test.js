@@ -128,7 +128,6 @@ contract('Claim: Assessment', function([
               from: member3
             });
             await P1.makeCoverBegin(
-              PID,
               smartConAdd,
               'ETH',
               coverDetails,
@@ -139,7 +138,6 @@ contract('Claim: Assessment', function([
               { from: coverHolder, value: coverDetails[1] }
             );
             await P1.makeCoverBegin(
-              PID,
               smartConAdd,
               'ETH',
               coverDetails,
@@ -290,7 +288,6 @@ contract('Claim: Assessment', function([
         describe('Member rejects claim', function() {
           before(async function() {
             await P1.makeCoverBegin(
-              PID,
               smartConAdd,
               'ETH',
               coverDetails,
@@ -408,7 +405,6 @@ contract('Claim: Assessment', function([
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
       await tk.transfer(member4, ether(250));
       await P1.makeCoverBegin(
-        PID,
         smartConAdd,
         'ETH',
         coverDetails,

@@ -108,7 +108,6 @@ contract('Claim', function([
       describe('if holds a cover', function() {
         before(async function() {
           await P1.makeCoverBegin(
-            PID,
             smartConAdd,
             'ETH',
             coverDetails,
@@ -229,7 +228,6 @@ contract('Claim', function([
             const newCoverHolder = member4;
             before(async function() {
               await P1.makeCoverBegin(
-                PID,
                 smartConAdd,
                 'ETH',
                 coverDetails,
@@ -256,7 +254,6 @@ contract('Claim', function([
             let coverID;
             before(async function() {
               await P1.makeCoverBegin(
-                PID,
                 smartConAdd,
                 'ETH',
                 coverDetails,
@@ -283,7 +280,6 @@ contract('Claim', function([
         describe('if member is not cover owner', function() {
           before(async function() {
             await qt.makeCoverUsingNXMTokens(
-              PID,
               coverDetails,
               coverPeriod,
               'ETH',

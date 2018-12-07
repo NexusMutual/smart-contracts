@@ -111,7 +111,6 @@ contract('ClaimsReward', function([
       await tc.lock(CLA, tokens, validity, { from: member2 });
       await tc.lock(CLA, tokens, validity, { from: member3 });
       await P1.makeCoverBegin(
-        PID,
         smartConAdd,
         'ETH',
         coverDetails,

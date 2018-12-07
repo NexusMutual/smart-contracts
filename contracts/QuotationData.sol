@@ -33,15 +33,6 @@ contract QuotationData is Iupgradable {
         uint premium;
     }
 
-    struct ProductDetails {
-        bytes8 productName;
-        string productHash;
-        uint16 stlp;
-        uint16 stl;
-        uint16 pm;
-        uint16 minDays;
-    }
-
     struct HoldCover {
         uint holdCoverId;
         uint prodId;
@@ -63,8 +54,15 @@ contract QuotationData is Iupgradable {
     mapping(uint => uint) public holdedCoverIDStatus;
     mapping(address => mapping(bytes4 => uint)) internal currencyCSAOfSCAdd;
     Cover[] internal allCovers;
-    ProductDetails[] internal productDetails;
+    // ProductDetails[] internal productDetails;
     HoldCover[] internal allCoverHolded;
+
+    bytes8 public productName;
+    string public productHash;
+    uint16 public stlp;
+    uint16 public stl;
+    uint16 public pm;
+    uint16 public minDays;
 
     event CoverDetailsEvent(
         uint indexed cid,
@@ -79,7 +77,13 @@ contract QuotationData is Iupgradable {
 
     constructor() public {
         pendingCoverStart = 0;
-        productDetails.push(ProductDetails("SCC", "Smart Contract Cover", 90, 1000, 13, 0));
+        // productDetails.push(ProductDetails("SCC", "Smart Contract Cover", 90, 1000, 13, 0));
+        productName = "SCC";
+        productHash = "Smart Contract Cover";
+        stlp = 90;
+        stl = 1000;
+        pm = 13;
+        minDays = 30;
         allCovers.push(Cover("0x00", address(0), "0x00", 0, 0, 0, address(0), 0));
         uint[] memory arr = new uint[](1);
         allCoverHolded.push(HoldCover(0, 0, address(0), address(0), 0x00, arr, 0));
@@ -102,43 +106,28 @@ contract QuotationData is Iupgradable {
     }
 
     /// @dev Changes the existing Profit Margin value
-    function changePM(uint _prodId, uint16 _pm) external onlyOwner {
-        productDetails[_prodId].pm = _pm;
+    function changePM(uint16 _pm) external onlyOwner {
+        pm = _pm;
     }
 
     /// @dev Changes the existing Short Term Load Period (STLP) value.
-    function changeSTLP(uint _prodId, uint16 _stlp) external onlyOwner {
-        productDetails[_prodId].stlp = _stlp;
+    function changeSTLP(uint16 _stlp) external onlyOwner {
+        stlp = _stlp;
     }
 
     /// @dev Changes the existing Short Term Load (STL) value.
-    function changeSTL(uint _prodId, uint16 _stl) external onlyOwner {
-        productDetails[_prodId].stl = _stl;
+    function changeSTL(uint16 _stl) external onlyOwner {
+        stl = _stl;
     }
 
     /// @dev Changes the existing Minimum cover period (in days)
-    function changeMinDays(uint _prodId, uint16 _days) external onlyOwner {
-        productDetails[_prodId].minDays = _days;
+    function changeMinDays(uint16 _days) external onlyOwner {
+        minDays = _days;
     }
 
     /// @dev Changes the existing Product Hash
-    function changeProductHash(uint _prodId, string _productHash) external onlyOwner {
-        productDetails[_prodId].productHash = _productHash;
-    }
-
-    /// @dev Adds insured product details.
-    function addProductDetails(
-        bytes8 _productName,
-        string _productHash,
-        uint16 _minDays,
-        uint16 _pm,
-        uint16 _stl,
-        uint16 _stlp
-    )
-        external
-        onlyOwner
-    {
-        productDetails.push(ProductDetails(_productName, _productHash, _stlp, _stl, _pm, _minDays));
+    function changeProductHash(string _productHash) external onlyOwner {
+        productHash = _productHash;
     }
     
     /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.
@@ -227,13 +216,10 @@ contract QuotationData is Iupgradable {
     /// @return  _PM Profit margin.
     /// @return  _STL short term Load.
     /// @return  _STLP short term load period.
-    function getProductDetails(
-        uint _prodId
-    )
+    function getProductDetails()
         external
         view
         returns (
-            uint _productId,
             bytes8 _productName,
             string _productHash,
             uint64 _minDays,
@@ -242,13 +228,12 @@ contract QuotationData is Iupgradable {
             uint16 _stlp
         )
     {
-        _productId = _prodId;
-        _productName = productDetails[_prodId].productName;
-        _productHash = productDetails[_prodId].productHash;
-        _minDays = productDetails[_prodId].minDays;
-        _pm = productDetails[_prodId].pm;
-        _stl = productDetails[_prodId].stl;
-        _stlp = productDetails[_prodId].stlp;
+        _productName = productName;
+        _productHash = productHash;
+        _minDays = minDays;
+        _pm = pm;
+        _stl = stl;
+        _stlp = stlp;
     }
 
     /// @dev Gets total number covers created till date.
@@ -276,20 +261,10 @@ contract QuotationData is Iupgradable {
         return coverStatus.length;
     }
 
-    /// @dev Gets Product Name.
-    function getProductName(uint _prodId) external view returns(bytes8 _productName) {
-        return productDetails[_prodId].productName;
-    }
-
-    /// @dev Gets Product Hash.
-    function getProductHash(uint _prodId) external view returns(string _productHash) {
-        return productDetails[_prodId].productHash;
-    }
-
     /// @dev Gets Count of products.
-    function getAllProductCount() external view returns(uint length) {
-        return productDetails.length;
-    }
+    // function getAllProductCount() external view returns(uint length) {
+    //     return productDetails.length;
+    // }
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
     function getTotalSumAssured(bytes4 _curr) external view returns(uint amount) {
@@ -367,11 +342,11 @@ contract QuotationData is Iupgradable {
         view
         returns (
             uint cid,
-            bytes8 productName,
-            address memberAddress,
-            address scAddress,
-            bytes4 currencyCode,
-            uint sumAssured   
+            bytes8 _productName,
+            address _memberAddress,
+            address _scAddress,
+            bytes4 _currencyCode,
+            uint _sumAssured   
         ) 
     {
         return (

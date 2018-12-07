@@ -146,7 +146,6 @@ contract Pool2 is Iupgradable {
      * @dev Enables user to purchase cover via currency asset eg DAI
      */ 
     function makeCoverUsingCA(
-        uint8 prodId,
         address smartCAdd,
         bytes4 coverCurr,
         uint[] coverDetails,
@@ -161,7 +160,7 @@ contract Pool2 is Iupgradable {
     {
         ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
         require(erc20.transferFrom(msg.sender, address(p1), coverDetails[1]), "Transfer failed");
-        q2.verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+        q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
     /**

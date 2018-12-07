@@ -90,9 +90,9 @@ contract Quotation is Iupgradable {
         if(qd.getCoverStatusNo(_cid) != 1)
             qd.subFromTotalSumAssured(curr, SA);
         qd.changeCoverStatusNo(_cid, 3);
-        if (prodID == "SCC") {
-            qd.subFromTotalSumAssuredSC(scAddress, curr, SA);
-        }
+        
+        qd.subFromTotalSumAssuredSC(scAddress, curr, SA);
+        
     }
 
     /**
@@ -119,9 +119,9 @@ contract Quotation is Iupgradable {
         bytes8 prodID;
         ( , prodID, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
         qd.subFromTotalSumAssured(coverCurr, _amount);
-        if (prodID == "SCC") {
-            qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
-        }
+        
+        qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
+        
     }
 
     /**
@@ -129,7 +129,6 @@ contract Quotation is Iupgradable {
      * @param smartCAdd Smart Contract Address
      */ 
     function makeCoverUsingNXMTokens(
-        uint prodId,
         uint[] coverDetails,
         uint16 coverPeriod,
         bytes4 coverCurr,
@@ -143,7 +142,7 @@ contract Quotation is Iupgradable {
     {
         
         tc.burnFrom(msg.sender, coverDetails[2]); //need burn allowance
-        _verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+        _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
     /**
@@ -152,7 +151,6 @@ contract Quotation is Iupgradable {
      * @param scAddress Smart Contract Address
      */
     function verifyCoverDetails(
-        uint prodId,
         address from,
         address scAddress,
         bytes4 coverCurr,
@@ -166,7 +164,6 @@ contract Quotation is Iupgradable {
         onlyInternal
     {
         _verifyCoverDetails(
-            prodId,
             from,
             scAddress,
             coverCurr,
@@ -303,7 +300,7 @@ contract Quotation is Iupgradable {
                     erc20.transfer(poolAdd, coverDetails[1]);
                 }
                 emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
-                makeCover(prodId, userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
+                makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             } else {
                 qd.setHoldedCoverIDStatus(holdedCoverID, 4);
@@ -383,7 +380,6 @@ contract Quotation is Iupgradable {
      * @param from Quote member Ethereum address.
      */  
     function makeCover(
-        uint prodId,
         address from,
         address scAddress,
         bytes4 coverCurr,
@@ -393,7 +389,7 @@ contract Quotation is Iupgradable {
         internal
     {
         uint cid = qd.getCoverLength();
-        qd.addCover(coverPeriod, coverDetails[0], qd.getProductName(prodId),
+        qd.addCover(coverPeriod, coverDetails[0], qd.productName(),
             from, coverCurr, scAddress, coverDetails[1]);
         uint coverLengthNew = qd.getCoverLength();
         if (coverLengthNew.sub(cid) > 1) {
@@ -412,7 +408,7 @@ contract Quotation is Iupgradable {
         tc.mint(from, coverNoteAmount);
         tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
-        if (qd.getProductName(prodId) == "SCC" && scAddress != address(0)) {
+        if (scAddress != address(0)) {
             qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
             if (tf.getTotalStakedTokensOnSmartContract(scAddress) > 0)
                 tf.updateStakerCommissions(scAddress, coverDetails[2]);
@@ -425,7 +421,6 @@ contract Quotation is Iupgradable {
      * @param scAddress Smart Contract Address
      */  
     function _verifyCoverDetails(
-        uint prodId,
         address from,
         address scAddress,
         bytes4 coverCurr,
@@ -439,7 +434,7 @@ contract Quotation is Iupgradable {
     {
         require(coverDetails[3] > now);
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
-        makeCover(prodId, from, scAddress, coverCurr, coverDetails, coverPeriod);
+        makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
 
     }
 }

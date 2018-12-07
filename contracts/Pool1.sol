@@ -188,7 +188,6 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @dev Enables user to purchase cover with funding in ETH.
     /// @param smartCAdd Smart Contract Address
     function makeCoverBegin(
-        uint8 prodId,
         address smartCAdd,
         bytes4 coverCurr,
         uint[] coverDetails,
@@ -203,7 +202,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         payable
     {
         require(msg.value == coverDetails[1]);
-        q2.verifyCoverDetails(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+        q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
     /// @dev Enables user to purchase NXM at the current token price.
@@ -324,8 +323,7 @@ contract Pool1 is usingOraclize, Iupgradable {
                 succ = false;
             }
         }
-        if (qd.getProductNameOfCover(coverid) == "SCC")
-            tf.burnStakerLockedToken(coverid, curr, sumAssured);
+        tf.burnStakerLockedToken(coverid, curr, sumAssured);
     }
 
     /**

@@ -85,10 +85,9 @@ contract Quotation is Iupgradable {
         bytes4 curr;
         address scAddress;
         uint SA;
-        bytes8 prodID;
-        (, prodID, , scAddress, curr, SA) = qd.getCoverDetailsByCoverID1(_cid);
+        (, , scAddress, curr, SA) = qd.getCoverDetailsByCoverID1(_cid);
         if(qd.getCoverStatusNo(_cid) != 1)
-            _removeSAFromCSA(curr, SA);
+            _removeSAFromCSA(_cid, SA);
         qd.changeCoverStatusNo(_cid, 3);        
     }
 
@@ -233,7 +232,6 @@ contract Quotation is Iupgradable {
     }
 
     function initiateMembershipAndCover(
-        uint prodId,
         address smartCAdd,
         bytes4 coverCurr,
         uint[] coverDetails,
@@ -259,21 +257,20 @@ contract Quotation is Iupgradable {
         }
         require(msg.value == totalFee);
         require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
-        qd.addHoldCover(prodId, msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
+        qd.addHoldCover(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
         qd.setRefundEligible(msg.sender, true);
     }
 
     function kycTrigger(bool status, uint holdedCoverID) public checkPause {
         address userAdd;
         address scAddress;
-        uint prodId;
         bytes4 coverCurr;
         uint16 coverPeriod;
         uint[]  memory coverDetails = new uint[](4);
         ERC20 erc20;
 
         (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
-        (, prodId, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
+        (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
         require(qd.refundEligible(userAdd));
         qd.setRefundEligible(userAdd, false);
         uint joinFee = td.joiningFee();
@@ -378,7 +375,7 @@ contract Quotation is Iupgradable {
         internal
     {
         uint cid = qd.getCoverLength();
-        qd.addCover(coverPeriod, coverDetails[0], qd.productName(),
+        qd.addCover(coverPeriod, coverDetails[0],
             from, coverCurr, scAddress, coverDetails[1]);
         uint coverLengthNew = qd.getCoverLength();
         if (coverLengthNew.sub(cid) > 1) {
@@ -433,12 +430,11 @@ contract Quotation is Iupgradable {
      * @param _amount that will get subtracted Current Sum Assured 
      * amount that comes under a quotation.
      */ 
-    function _removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
+    function _removeSAFromCSA(uint _cid, uint _amount) checkPause internal {
 
         address _add;
         bytes4 coverCurr;
-        bytes8 prodID;
-        ( , prodID, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
+        (, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
         qd.subFromTotalSumAssured(coverCurr, _amount);        
         qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
         

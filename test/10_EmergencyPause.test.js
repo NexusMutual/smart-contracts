@@ -149,7 +149,6 @@ contract('NXMaster: Emergency Pause', function([
     before(async function() {
       const totalFee = fee.plus(coverDetails[1].toString());
       await qt.initiateMembershipAndCover(
-        PID,
         smartConAdd,
         'ETH',
         coverDetails,

@@ -84,10 +84,10 @@ contract Quotation is Iupgradable {
         tf.unlockCN(_cid);
         bytes4 curr;
         address scAddress;
-        uint SA;
-        (, , scAddress, curr, SA) = qd.getCoverDetailsByCoverID1(_cid);
-        if(qd.getCoverStatusNo(_cid) != 1)
-            _removeSAFromCSA(_cid, SA);
+        uint sumAssured;
+        (, , scAddress, curr, sumAssured) = qd.getCoverDetailsByCoverID1(_cid);
+        if (qd.getCoverStatusNo(_cid) != 1)
+            _removeSAFromCSA(_cid, sumAssured);
         qd.changeCoverStatusNo(_cid, 3);        
     }
 
@@ -108,8 +108,8 @@ contract Quotation is Iupgradable {
      * @param _amount that will get subtracted Current Sum Assured 
      * amount that comes under a quotation.
      */ 
-    function removeSAFromCSA(uint _cid, uint _amount) public checkPause onlyInternal {
-       _removeSAFromCSA(_cid, _amount);        
+    function removeSAFromCSA(uint _cid, uint _amount) public onlyInternal {
+        _removeSAFromCSA(_cid, _amount);        
     }
 
     /**
@@ -277,7 +277,7 @@ contract Quotation is Iupgradable {
         if (status) {
             tf.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
-                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.hcIDStatus.kycPass));
+                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
                 address poolAdd = ms.getLatestAddress("P1");
                 if (coverCurr == "ETH") {
                     poolAdd.transfer(coverDetails[1]);
@@ -289,7 +289,7 @@ contract Quotation is Iupgradable {
                 makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             } else {
-                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.hcIDStatus.kycPassNoCover));
+                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPassNoCover));
                 if (coverCurr == "ETH") {
                     userAdd.transfer(coverDetails[1]);
                 } else {
@@ -299,7 +299,7 @@ contract Quotation is Iupgradable {
                 emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
             }
         } else {
-            qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.hcIDStatus.kycFailedOrRefunded));
+            qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
             uint totalRefund = joinFee;
             if (coverCurr == "ETH") {
                 totalRefund = coverDetails[1] + joinFee;
@@ -430,13 +430,11 @@ contract Quotation is Iupgradable {
      * @param _amount that will get subtracted Current Sum Assured 
      * amount that comes under a quotation.
      */ 
-    function _removeSAFromCSA(uint _cid, uint _amount) checkPause internal {
-
+    function _removeSAFromCSA(uint _cid, uint _amount) internal checkPause {
         address _add;
         bytes4 coverCurr;
         (, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
         qd.subFromTotalSumAssured(coverCurr, _amount);        
         qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
-        
     }
 }

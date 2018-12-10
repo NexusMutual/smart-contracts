@@ -94,16 +94,6 @@ contract PoolData is Iupgradable {
         allAPIid[myid] = ApiId(_typeof, "", id, uint64(now), uint64(now));
     }
 
-    /**
-     * @dev Saves the details of the Oraclize API.
-     * @param myid Id return by the oraclize query.
-     * @param _typeof type of the query for which oraclize call is made.
-     * @param curr Name of currency (ETH,GBP, etc.)    
-     */  
-    function saveApiDetailsCurr(bytes32 myid, bytes8 _typeof, bytes4 curr, uint id) external onlyInternal {
-        allAPIid[myid] = ApiId(_typeof, curr, id, uint64(now), uint64(now));
-    }
-
     /** 
      * @dev Stores the id return by the oraclize query. 
      * Maintains record of all the Ids return by oraclize query.

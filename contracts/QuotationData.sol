@@ -22,6 +22,8 @@ import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 contract QuotationData is Iupgradable {
     using SafeMath for uint;
 
+    enum HCIDStatus { NA, kycPending, kycPass, kycFailedOrRefunded, kycPassNoCover }
+
     struct Cover {
         address memberAddress;
         bytes4 currencyCode;
@@ -51,10 +53,9 @@ contract QuotationData is Iupgradable {
     mapping(address => bool) public refundEligible;
     mapping(uint => uint) public holdedCoverIDStatus;
     mapping(address => mapping(bytes4 => uint)) internal currencyCSAOfSCAdd;
+
     Cover[] internal allCovers;
     HoldCover[] internal allCoverHolded;
-
-    enum hcIDStatus{NA,kycPending,kycPass,kycFailedOrRefunded,kycPassNoCover}
 
     bytes8 public productName;
     string public productHash;
@@ -187,7 +188,7 @@ contract QuotationData is Iupgradable {
         onlyInternal
     {
         uint holdedCoverLen = allCoverHolded.length;
-        holdedCoverIDStatus[holdedCoverLen] = uint(hcIDStatus.kycPending);             
+        holdedCoverIDStatus[holdedCoverLen] = uint(HCIDStatus.kycPending);             
         allCoverHolded.push(HoldCover(holdedCoverLen, from, scAddress, 
             coverCurr, coverDetails, coverPeriod));
         userHoldedCover[from].push(allCoverHolded.length.sub(1));

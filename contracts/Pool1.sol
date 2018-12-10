@@ -68,6 +68,67 @@ contract Pool1 is usingOraclize, Iupgradable {
         _;
     }
 
+    /**
+     * @dev Pays out the sum assured in case a claim is accepted
+     * @param coverid Cover Id.
+     * @param claimid Claim Id.
+     * @return succ true if payout is successful, false otherwise. 
+     */ 
+    function sendClaimPayout(
+        uint coverid,
+        uint claimid
+    )
+        external
+        onlyInternal
+        returns(bool succ)
+    {
+        
+        address _to = qd.getCoverMemberAddress(coverid);
+        bytes4 curr = qd.getCurrencyOfCover(coverid);
+        uint sumAssured = qd.getCoverSumAssured(coverid);
+        uint sumAssured1e18 = sumAssured.mul(DECIMAL1E18);
+        uint balance;
+
+        //Payout in Ethers in case currency of quotation is ETH
+        if (curr == "ETH") {
+            balance = address(this).balance;
+            //Check if Pool1 has enough ETH balance
+            if (balance >= sumAssured1e18) {
+                succ = _to.send(sumAssured1e18);
+                if (succ == true) {
+                    q2.removeSAFromCSA(coverid, sumAssured);
+                    pd.changeCurrencyAssetVarMin(curr, 
+                        uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
+                    p2.checkLiquidityCreateOrder(curr);
+                    emit Payout(_to, coverid, sumAssured1e18);
+                } else {
+                    c1.setClaimStatus(claimid, 12);
+                }
+            } else {
+                c1.setClaimStatus(claimid, 12);
+                succ = false;
+            }
+        } else {
+          //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
+            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr)); //solhint-disable-line
+            balance = erc20.balanceOf(address(this));
+            //Check if Pool1 has enough fiat crypto balance
+            if (balance >= sumAssured1e18) {
+                transferPayout(_to, curr, sumAssured1e18);
+                q2.removeSAFromCSA(coverid, sumAssured);
+                pd.changeCurrencyAssetVarMin(curr,
+                    uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
+                p2.checkLiquidityCreateOrder(curr);
+                emit Payout(_to, coverid, sumAssured1e18);
+                succ = true;
+            } else {
+                c1.setClaimStatus(claimid, 12);
+                succ = false;
+            }
+        }
+        tf.burnStakerLockedToken(coverid, curr, sumAssured);
+    }
+
     ///@dev Oraclize call to close emergency pause.
     function closeEmergencyPause(uint time) external onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", "", 300000);
@@ -267,65 +328,6 @@ contract Pool1 is usingOraclize, Iupgradable {
         success = true;
     }
 
-    /// @dev Pays out the sum assured in case a claim is accepted
-    /// @param coverid Cover Id.
-    /// @param claimid Claim Id.
-    /// @return succ true if payout is successful, false otherwise.
-    function sendClaimPayout(
-        uint coverid,
-        uint claimid
-    )
-        external
-        onlyInternal
-        returns(bool succ)
-    {
-        
-        address _to = qd.getCoverMemberAddress(coverid);
-        bytes4 curr = qd.getCurrencyOfCover(coverid);
-        uint sumAssured = qd.getCoverSumAssured(coverid);
-        uint sumAssured1e18 = sumAssured.mul(DECIMAL1E18);
-        uint balance;
-
-        //Payout in Ethers in case currency of quotation is ETH
-        if (curr == "ETH") {
-            balance = address(this).balance;
-            //Check if Pool1 has enough ETH balance
-            if (balance >= sumAssured1e18) {
-                succ = _to.send(sumAssured1e18);
-                if (succ == true) {
-                    q2.removeSAFromCSA(coverid, sumAssured);
-                    pd.changeCurrencyAssetVarMin(curr, 
-                        uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                    p2.checkLiquidityCreateOrder(curr);
-                    emit Payout(_to, coverid, sumAssured1e18);
-                } else {
-                    c1.setClaimStatus(claimid, 12);
-                }
-            } else {
-                c1.setClaimStatus(claimid, 12);
-                succ = false;
-            }
-        } else {
-          //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
-            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr)); //solhint-disable-line
-            balance = erc20.balanceOf(address(this));
-            //Check if Pool1 has enough fiat crypto balance
-            if (balance >= sumAssured1e18) {
-                transferPayout(_to, curr, sumAssured1e18);
-                q2.removeSAFromCSA(coverid, sumAssured);
-                pd.changeCurrencyAssetVarMin(curr,
-                    uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                p2.checkLiquidityCreateOrder(curr);
-                emit Payout(_to, coverid, sumAssured1e18);
-                succ = true;
-            } else {
-                c1.setClaimStatus(claimid, 12);
-                succ = false;
-            }
-        }
-        tf.burnStakerLockedToken(coverid, curr, sumAssured);
-    }
-
     /**
      * @dev Returns the amount of wei a seller will get for selling NXM
      * @param _amount Amount of NXM to sell
@@ -382,16 +384,6 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
     function saveApiDetails(bytes32 myid, bytes8 _typeof, uint id) internal {
         pd.saveApiDetails(myid, _typeof, id);
-        pd.addInAllApiCall(myid);
-    }
-
-    /// @dev Save the details of the Oraclize API.
-    /// @param myid Id return by the oraclize query.
-    /// @param _typeof type of the query for which oraclize call is made.
-    /// @param curr currencyfor which api call has been made.
-    /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
-    function saveApiDetailsCurr(bytes32 myid, bytes8 _typeof, bytes4 curr, uint id) internal {
-        pd.saveApiDetailsCurr(myid, _typeof, curr, id);
         pd.addInAllApiCall(myid);
     }
 

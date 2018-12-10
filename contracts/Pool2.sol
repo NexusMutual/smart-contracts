@@ -221,7 +221,8 @@ contract Pool2 is Iupgradable {
      * @dev Checks Excess or insufficient liquidity trade conditions for a given currency.
      */ 
     function checkLiquidity(bytes8 curr) public returns(uint8 check, uint caBalance) {
-        require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
+        // require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
+        // this function will be called by oraclize and it will then create appropriate order
         uint64 baseMin;
         uint64 varMin;
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
@@ -340,7 +341,7 @@ contract Pool2 is Iupgradable {
         if (iaRate > 0) {
             uint investmentAssetDecimals=pd.getInvestmentAssetDecimals(curr);
             uint iaBalance = _getInvestmentAssetBalance(curr).div(10**investmentAssetDecimals);
-             uint totalRiskBal = md.getLastVfull();
+            uint totalRiskBal = md.getLastVfull();
             totalRiskBal = (totalRiskBal.mul(100000)).div(DECIMAL1E18);
             if (iaBalance > 0 && totalRiskBal > 0) {
                 uint iaMax;

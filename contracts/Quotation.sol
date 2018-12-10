@@ -277,7 +277,7 @@ contract Quotation is Iupgradable {
         if (status) {
             tf.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
-                qd.setHoldedCoverIDStatus(holdedCoverID, 2);
+                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.hcIDStatus.kycPass));
                 address poolAdd = ms.getLatestAddress("P1");
                 if (coverCurr == "ETH") {
                     poolAdd.transfer(coverDetails[1]);
@@ -289,7 +289,7 @@ contract Quotation is Iupgradable {
                 makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             } else {
-                qd.setHoldedCoverIDStatus(holdedCoverID, 4);
+                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.hcIDStatus.kycPassNoCover));
                 if (coverCurr == "ETH") {
                     userAdd.transfer(coverDetails[1]);
                 } else {
@@ -299,7 +299,7 @@ contract Quotation is Iupgradable {
                 emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
             }
         } else {
-            qd.setHoldedCoverIDStatus(holdedCoverID, 3);
+            qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.hcIDStatus.kycFailedOrRefunded));
             uint totalRefund = joinFee;
             if (coverCurr == "ETH") {
                 totalRefund = coverDetails[1] + joinFee;

@@ -54,6 +54,8 @@ contract QuotationData is Iupgradable {
     Cover[] internal allCovers;
     HoldCover[] internal allCoverHolded;
 
+    enum hcIDStatus{NA,kycPending,kycPass,kycFailedOrRefunded,kycPassNoCover}
+
     bytes8 public productName;
     string public productHash;
     uint16 public stlp;
@@ -185,7 +187,7 @@ contract QuotationData is Iupgradable {
         onlyInternal
     {
         uint holdedCoverLen = allCoverHolded.length;
-        holdedCoverIDStatus[holdedCoverLen] = 1;             
+        holdedCoverIDStatus[holdedCoverLen] = uint(hcIDStatus.kycPending);             
         allCoverHolded.push(HoldCover(holdedCoverLen, from, scAddress, 
             coverCurr, coverDetails, coverPeriod));
         userHoldedCover[from].push(allCoverHolded.length.sub(1));

@@ -4,7 +4,6 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('DSValue');
 const NXMaster = artifacts.require('NXMaster');
-const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMToken = artifacts.require('NXMToken');
@@ -27,7 +26,6 @@ module.exports = function(deployer) {
     await deployer.deploy(DAI);
     await deployer.deploy(DSValue);
     await deployer.deploy(NXMaster);
-    await deployer.deploy(NXMaster2);
     await deployer.deploy(Pool1);
     await deployer.deploy(Pool2);
     await deployer.deploy(PoolData);

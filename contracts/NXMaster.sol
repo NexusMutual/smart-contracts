@@ -285,7 +285,6 @@ contract NXMaster is Governed {
         allContractNames.push("P1");
         allContractNames.push("P2");
         allContractNames.push("MC");
-        allContractNames.push("M2");
     }
 
     /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.

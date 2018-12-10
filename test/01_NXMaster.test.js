@@ -4,7 +4,6 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('DSValue');
 const NXMaster = artifacts.require('NXMaster');
-const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMToken = artifacts.require('NXMToken');
@@ -31,7 +30,6 @@ require('chai')
   .should();
 
 let nxms;
-let nxms2;
 let nxmtk;
 let tf;
 let tc;
@@ -81,7 +79,6 @@ contract('NXMaster', function([
     pl1 = await Pool1.new();
     pl2 = await Pool2.new();
     mcr = await MCR.new();
-    nxms2 = await NXMaster2.new();
     dai = await DAI.new();
     dsv = await DSValue.deployed();
     addr.push(qd.address);
@@ -97,7 +94,6 @@ contract('NXMaster', function([
     addr.push(pl1.address);
     addr.push(pl2.address);
     addr.push(mcr.address);
-    addr.push(nxms2.address);
   });
   describe('when called by Owner', function() {
     it('should be able to add a new version', async function() {
@@ -115,7 +111,6 @@ contract('NXMaster', function([
       await nxms.changeMasterAddress(newMaster.address, { from: owner });
       await newMaster.changeTokenAddress(nxmtk.address);
       await newMaster.addNewVersion(addr);
-      (await nxms2.ms()).should.equal(newMaster.address);
       nxms = newMaster;
     });
 
@@ -131,10 +126,6 @@ contract('NXMaster', function([
       await pl1.sendTransaction({ from: owner, value: poolEther });
       await td.changeWalletAddress(owner);
       await qd.changeAuthQuoteEngine(QE);
-      await nxms2.callPoolDataMethods();
-      await nxms2.addStatusInClaims();
-      await nxms2.addMCRCurr();
-      await nxms2.addStatusInClaims();
       await pd.changeCurrencyAssetAddress('0x444149', dai.address);
       await mcr.changenotariseAddress(owner);
       await mcr.addMCRData(
@@ -184,15 +175,6 @@ contract('NXMaster', function([
       newMaster = await NXMaster.new();
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
-      );
-      await assertRevert(
-        nxms2.changeMasterAddress(newMaster.address, { from: anotherAccount })
-      );
-    });
-    it('should not be able to change changeDependentContractAddress', async function() {
-      await assertRevert(nxms2.addMCRCurr({ from: anotherAccount }));
-      await assertRevert(
-        nxms2.changeDependentContractAddress({ from: anotherAccount })
       );
     });
     it('should not be able to change MemberRole Address', async function() {

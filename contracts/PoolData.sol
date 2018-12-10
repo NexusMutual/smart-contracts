@@ -63,6 +63,16 @@ contract PoolData is Iupgradable {
         // ordersExpirationTime["ILT"] = 6 hours; // Insufficient liquidity trade order time 6 hours
         // ordersExpirationTime["RBT"] = 20 hours; // Rebalancing trade order time 20 hours
         iaRatesTime = 24 hours; //24 hours in seconds
+        allCurrencyAssets["ETH"] = InvestmentAssets(address(0), 1, 50, 400, 18);
+        allCurrencyAssets["DAI"] = InvestmentAssets(0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 1, 50, 300, 18);
+        allCurrencies.push("ETH");
+        allCurrencies.push("DAI");
+        allInvestmentCurrencies.push("ETH");
+        allInvestmentCurrencies.push("DAI");
+        allCurrencyAssetsVarBase["ETH"] = CurrencyAssets(6, 0);
+        allCurrencyAssetsVarBase["DAI"] = CurrencyAssets(7, 0);
+        allInvestmentAssets["ETH"] = InvestmentAssets(address(0), 1, 500, 5000, 18);
+        allInvestmentAssets["DAI"] = InvestmentAssets(0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 1, 500, 5000, 18);
     }
 
     IARankDetails[] internal allIARankDetails;
@@ -745,4 +755,35 @@ contract PoolData is Iupgradable {
     }
         
     function changeDependentContractAddress() public onlyInternal {}
+
+
+    /// @dev Adds investment asset details to Pool1.
+    // function addCurrencyAssetsDetails() internal {
+    //     pushCurrencyAssetsDetails("ETH", address(0), 1, 50, 400, 18);
+    //     pushCurrencyAssetsDetails("DAI", 0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 1, 50, 300, 18);
+    // }
+
+    // /// @dev Adds investment asset names to Pool1 module.
+    // function addAllCurrencies() internal {
+    //     addAllCurrencies("ETH");
+    //     addAllCurrencies("DAI");
+    // }
+
+    // /// @dev Adds investment assets names to Pool1 module.
+    // function addInvestmentCurrencies() internal {
+    //     addInvestmentCurrency("ETH");
+    //     addInvestmentCurrency("DAI");
+    // }
+
+    // /// @dev Adds currency asset data to Pool1 module.
+    // function addCurrencyAssetsVarBase() internal {
+    //     pushCurrencyAssetsVarBase("ETH", 6); //original 64 baseMin
+    //     pushCurrencyAssetsVarBase("DAI", 7);
+    // }
+
+    // /// @dev Adds investment asset details to Pool1.
+    // function addInvestmentAssetsDetails() internal {
+    //     pushInvestmentAssetsDetails("ETH", address(0), 1, 500, 5000, 18);
+    //     pushInvestmentAssetsDetails("DAI", 0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 1, 500, 5000, 18);
+    // }
 }

@@ -65,6 +65,14 @@ contract ClaimsData is Iupgradable {
         uint deny;
     }
 
+    struct ClaimRewardStatus {
+        // string claimStatusDesc;
+        uint percCA;
+        uint percMV;
+    }
+
+    ClaimRewardStatus[] internal rewardStatus;
+
     Claim[] internal allClaims;
     Vote[] internal allvotes;
     ClaimsPause[] internal claimPause;
@@ -119,6 +127,7 @@ contract ClaimsData is Iupgradable {
         allvotes.push(Vote(0, 0, 0, 0, false));
         allClaims.push(Claim(0, 0));
         claimDepositTime = 7 days;
+        addRewardIncentive();
     }
 
     /**
@@ -556,6 +565,16 @@ contract ClaimsData is Iupgradable {
      */ 
     function getClaimStatusNumber(uint _claimId) external view returns(uint claimId, uint statno) {
         return (_claimId, claimsStatus[_claimId]);
+    }
+
+    /**
+     * @dev Gets the reward percentage to be distributed for a given status id
+     * @param statusNumber the number of type of status
+     * @return percCA reward Percentage for claim assessor
+     * @return percMV reward Percentage for members
+     */
+    function getRewardStatus(uint statusNumber) external view returns(uint percCA, uint percMV) {
+        return (rewardStatus[statusNumber].percCA, rewardStatus[statusNumber].percMV);
     }
 
     /** 
@@ -1090,5 +1109,32 @@ contract ClaimsData is Iupgradable {
     }
 
     function changeDependentContractAddress() public onlyInternal {}
+
+    /**
+     * @dev Adds status under which a claim can lie.
+     * @param percCA reward percentage for claim assessor
+     * @param percMV reward percentage for members
+     */
+    function pushStatus(uint percCA, uint percMV) internal {
+        rewardStatus.push(ClaimRewardStatus(percCA, percMV));
+    }
+
+    function addRewardIncentive() internal {
+        pushStatus(0, 0); //0  Pending-Claim Assessor Vote
+        pushStatus(0, 0); //1 Pending-Claim Assessor Vote Denied, Pending Member Vote
+        pushStatus(0, 0); //2 Pending-CA Vote Threshold not Reached Accept, Pending Member Vote
+        pushStatus(0, 0); //3 Pending-CA Vote Threshold not Reached Deny, Pending Member Vote
+        pushStatus(0, 0); //4 Pending-CA Consensus not reached Accept, Pending Member Vote
+        pushStatus(0, 0); //5 Pending-CA Consensus not reached Deny, Pending Member Vote
+        pushStatus(100, 0); //6 Final-Claim Assessor Vote Denied
+        pushStatus(100, 0); //7 Final-Claim Assessor Vote Accepted
+        pushStatus(0, 100); //8 Final-Claim Assessor Vote Denied, MV Accepted
+        pushStatus(0, 100); //9 Final-Claim Assessor Vote Denied, MV Denied
+        pushStatus(0, 0); //10 Final-Claim Assessor Vote Accept, MV Nodecision
+        pushStatus(0, 0); //11 Final-Claim Assessor Vote Denied, MV Nodecision
+        pushStatus(0, 0); //12 Claim Accepted Payout Pending
+        pushStatus(0, 0); //13 Claim Accepted No Payout 
+        pushStatus(0, 0); //14 Claim Accepted Payout Done
+    }
 
 }

@@ -60,6 +60,8 @@ contract MCRData is Iupgradable {
         allMCRData.push(McrData(0, 0, 0, 0));
         minCap = 1;
         shockParameter = 50;
+        allCurrencies.push("ETH");
+        allCurrencies.push("DAI");
     }
 
     modifier onlyOwner {

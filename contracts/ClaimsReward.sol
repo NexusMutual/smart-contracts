@@ -242,7 +242,7 @@ contract ClaimsReward is Iupgradable {
         uint percCA;
         uint percMV;
 
-        (percCA, percMV) = c1.getRewardStatus(status);
+        (percCA, percMV) = cd.getRewardStatus(status);
         cd.setClaimRewardDetail(claimid, percCA, percMV, distributableTokens);
         if (percCA > 0 || percMV > 0) {
             tc.mint(address(this), distributableTokens);

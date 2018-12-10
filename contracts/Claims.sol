@@ -29,13 +29,7 @@ import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 contract Claims is Iupgradable {
     using SafeMath for uint;
 
-    struct ClaimRewardStatus {
-        string claimStatusDesc;
-        uint percCA;
-        uint percMV;
-    }
-
-    ClaimRewardStatus[] internal rewardStatus;
+    
     TokenFunctions internal tf;
     NXMToken internal tk;
     TokenController internal tc;
@@ -53,16 +47,6 @@ contract Claims is Iupgradable {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
-
-    /**
-     * @dev Adds status under which a claim can lie.
-     * @param stat description for claim status
-     * @param percCA reward percentage for claim assessor
-     * @param percMV reward percentage for members
-     */
-    function pushStatus(string stat, uint percCA, uint percMV) external onlyInternal {
-        rewardStatus.push(ClaimRewardStatus(stat, percCA, percMV));
-    }
     
     /**
      * @dev Sets the status of claim using claim id.
@@ -74,16 +58,6 @@ contract Claims is Iupgradable {
     }
 
     /**
-     * @dev Gets the reward percentage to be distributed for a given status id
-     * @param statusNumber the number of type of status
-     * @return percCA reward Percentage for claim assessor
-     * @return percMV reward Percentage for members
-     */
-    function getRewardStatus(uint statusNumber) external view returns(uint percCA, uint percMV) {
-        return (rewardStatus[statusNumber].percCA, rewardStatus[statusNumber].percMV);
-    }
-
-    /**
      * @dev Gets claim details of claim id = pending claim start + given index
      */ 
     function getClaimFromNewStart(
@@ -92,7 +66,6 @@ contract Claims is Iupgradable {
         external 
         view 
         returns (
-            string status,
             uint coverId,
             uint claimId,
             int8 voteCA,
@@ -101,7 +74,7 @@ contract Claims is Iupgradable {
         ) 
     {
         (coverId, claimId, voteCA, voteMV, statusnumber) = cd.getClaimFromNewStart(index, msg.sender);
-        status = rewardStatus[statusnumber].claimStatusDesc;
+        // status = rewardStatus[statusnumber].claimStatusDesc;
     }
 
     /**
@@ -113,14 +86,14 @@ contract Claims is Iupgradable {
         external
         view 
         returns(
-            string status,
+            uint status,
             uint coverId,
             uint claimId
         )
     {
         uint statusno;
         (statusno, coverId, claimId) = cd.getUserClaimByIndex(index, msg.sender);
-        status = rewardStatus[statusno].claimStatusDesc;
+        status = statusno;
     }
 
     /**
@@ -133,7 +106,7 @@ contract Claims is Iupgradable {
      */
     function getClaimbyIndex(uint _claimId) external view returns (
         uint claimId,
-        string status,
+        uint status,
         int8 finalVerdict,
         address claimOwner,
         uint coverId
@@ -143,7 +116,7 @@ contract Claims is Iupgradable {
         claimId = _claimId;
         (, coverId, finalVerdict, stat, , ) = cd.getClaim(_claimId);
         claimOwner = qd.getCoverMemberAddress(coverId);
-        status = rewardStatus[stat].claimStatusDesc;
+        status = stat;
     }
 
     /**

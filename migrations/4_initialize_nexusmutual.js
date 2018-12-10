@@ -4,7 +4,6 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('DSValue');
 const NXMaster = artifacts.require('NXMaster');
-const NXMaster2 = artifacts.require('NXMaster2');
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMToken = artifacts.require('NXMToken');
@@ -26,7 +25,6 @@ const POOL_ETHER = 15 * 1e18;
 module.exports = function(deployer) {
   deployer.then(async () => {
     const nxms = await NXMaster.deployed();
-    const nxms2 = await NXMaster2.deployed();
     const tk = await NXMToken.deployed();
     const td = await TokenData.deployed();
     const tf = await TokenFunctions.deployed();
@@ -55,8 +53,7 @@ module.exports = function(deployer) {
       cr.address,
       pl1.address,
       pl2.address,
-      mcr.address,
-      nxms2.address
+      mcr.address
     ];
     await nxms.changeTokenAddress(tk.address);
     await nxms.addNewVersion(addr);
@@ -64,10 +61,6 @@ module.exports = function(deployer) {
     await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);
     await qd.changeAuthQuoteEngine(QE);
-    // await nxms2.addCoverStatus();
-    await nxms2.callPoolDataMethods();
-    await nxms2.addStatusInClaims();
-    await nxms2.addMCRCurr();
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
     await mcr.changenotariseAddress(Owner);

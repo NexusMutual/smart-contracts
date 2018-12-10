@@ -287,11 +287,11 @@ contract ClaimsReward is Iupgradable {
 
                     if (accept.div(acceptAndDeny) > 70) {
                         status = 7;
-                        qd.changeCoverStatusNo(coverid, 1);
+                        qd.changeCoverStatusNo(coverid, uint8(QuotationData.CoverStatus.ClaimAccepted));
                         rewardOrPunish = true;
                     } else if (deny.div(acceptAndDeny) > 70) {
                         status = 6;
-                        qd.changeCoverStatusNo(coverid, 2);
+                        qd.changeCoverStatusNo(coverid, uint8(QuotationData.CoverStatus.ClaimDenied));
                         rewardOrPunish = true;
                     } else if (accept.div(acceptAndDeny) > deny.div(acceptAndDeny)) {
                         status = 4;
@@ -356,7 +356,7 @@ contract ClaimsReward is Iupgradable {
             }
 
             c1.setClaimStatus(claimid, status);
-            qd.changeCoverStatusNo(coverid, coverStatus);
+            qd.changeCoverStatusNo(coverid, uint8(coverStatus));
             // Reward/Punish Claim Assessors and Members who participated in Claims assessment
             rewardAgainstClaim(claimid, coverid, status);
         }

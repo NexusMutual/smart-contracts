@@ -131,7 +131,6 @@ contract('NXMaster', function([
       await pl1.sendTransaction({ from: owner, value: poolEther });
       await td.changeWalletAddress(owner);
       await qd.changeAuthQuoteEngine(QE);
-      await nxms2.addCoverStatus();
       await nxms2.callPoolDataMethods();
       await nxms2.addStatusInClaims();
       await nxms2.addMCRCurr();

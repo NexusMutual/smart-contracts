@@ -88,17 +88,6 @@ contract NXMaster2 is Iupgradable {
 
     }
 
-    /// @dev Adds quotation status.
-    function addCoverStatus() public onlyOwner {
-
-        qd.pushCoverStatus("Active");
-        qd.pushCoverStatus("Claim Accepted");
-        qd.pushCoverStatus("Claim Denied");
-        qd.pushCoverStatus("Cover Expired");
-        qd.pushCoverStatus("Claim Submitted");
-        qd.pushCoverStatus("Requested");
-    }
-
     /// @dev Adds investment asset details to Pool1.
     function addCurrencyAssetsDetails() internal {
         pd.pushCurrencyAssetsDetails("ETH", address(0), 1, 50, 400, 18);

@@ -226,15 +226,15 @@ contract Claims is Iupgradable {
     function submitClaim(uint coverId) public {
         address qadd = qd.getCoverMemberAddress(coverId);
         require(qadd == msg.sender);
-        bytes16 cStatus;
+        uint8 cStatus;
         (, cStatus, , , ) = qd.getCoverDetailsByCoverID2(coverId);
-        require(cStatus != "Claim Submitted", "Claim already submitted");
-        require(cStatus != "Cover Expired", "Cover already expired");
+        require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
+        require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
         if (ms.isPause() == false) {
             addClaim(coverId, now, qadd);
         } else {
             cd.setClaimAtEmergencyPause(coverId, now, false);
-            qd.changeCoverStatusNo(coverId, 5);
+            qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));
         }
     }
 
@@ -451,7 +451,7 @@ contract Claims is Iupgradable {
         uint len = cd.actualClaimLength();
         cd.addClaim(len, coverId, add, now);
         cd.callClaimEvent(coverId, add, len, time);
-        qd.changeCoverStatusNo(coverId, 4);
+        qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
         bytes4 curr = qd.getCurrencyOfCover(coverId);
         uint sumAssured = qd.getCoverSumAssured(coverId);
         pd.changeCurrencyAssetVarMin(curr, uint64(

@@ -64,7 +64,7 @@ module.exports = function(deployer) {
     await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);
     await qd.changeAuthQuoteEngine(QE);
-    await nxms2.addCoverStatus();
+    // await nxms2.addCoverStatus();
     await nxms2.callPoolDataMethods();
     await nxms2.addStatusInClaims();
     await nxms2.addMCRCurr();

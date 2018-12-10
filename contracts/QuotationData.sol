@@ -24,6 +24,8 @@ contract QuotationData is Iupgradable {
 
     enum HCIDStatus { NA, kycPending, kycPass, kycFailedOrRefunded, kycPassNoCover }
 
+    enum CoverStatus { Active, ClaimAccepted, ClaimDenied, CoverExpired, ClaimSubmitted, Requested }
+
     struct Cover {
         address memberAddress;
         bytes4 currencyCode;
@@ -45,14 +47,15 @@ contract QuotationData is Iupgradable {
 
     address public authQuoteEngine;
     uint public pendingCoverStart;
-    bytes16[] internal coverStatus;
-    mapping(uint => uint8) internal coverstatus;
+  
     mapping(bytes4 => uint) internal currencyCSA;
     mapping(address => uint[]) internal userCover;
     mapping(address => uint[]) public userHoldedCover;
     mapping(address => bool) public refundEligible;
-    mapping(uint => uint) public holdedCoverIDStatus;
     mapping(address => mapping(bytes4 => uint)) internal currencyCSAOfSCAdd;
+    mapping(uint => uint8) public coverStatus;
+    mapping(uint => uint) public holdedCoverIDStatus;
+    
 
     Cover[] internal allCovers;
     HoldCover[] internal allCoverHolded;
@@ -99,10 +102,10 @@ contract QuotationData is Iupgradable {
         authQuoteEngine = _add;
     }
 
-    /// @dev Pushes status of cover.
-    function pushCoverStatus(bytes16 status) external onlyInternal {
-        coverStatus.push(status);
-    }
+    // /// @dev Pushes status of cover.
+    // function pushCoverStatus(bytes16 status) external onlyInternal {
+    //     coverStatus.push(status);
+    // }
 
     /// @dev Changes the existing Profit Margin value
     function changePM(uint16 _pm) external onlyOwner {
@@ -241,20 +244,20 @@ contract QuotationData is Iupgradable {
         _add = authQuoteEngine;
     }
 
-    /// @dev Gets status of a given index.
-    function getCoverStatus(uint16 index) external view returns(bytes16 status) {
-        return coverStatus[index];
-    }
+    // /// @dev Gets status of a given index.
+    // function getCoverStatus(uint16 index) external view returns(bytes16 status) {
+    //     return coverStatus[index];
+    // }
 
-    /// @dev Gets all possible status for covers.
-    function getAllCoverStatus() external view returns(bytes16[] status) {
-        return coverStatus;
-    }
+    // /// @dev Gets all possible status for covers.
+    // function getAllCoverStatus() external view returns(bytes16[] status) {
+    //     return coverStatus;
+    // }
 
-    /// @dev Gets length of cover status NXMaster.
-    function getCoverStatusLen() external view returns(uint len) {
-        return coverStatus.length;
-    }
+    // /// @dev Gets length of cover status NXMaster.
+    // function getCoverStatusLen() external view returns(uint len) {
+    //     return coverStatus.length;
+    // }
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
     function getTotalSumAssured(bytes4 _curr) external view returns(uint amount) {
@@ -274,8 +277,8 @@ contract QuotationData is Iupgradable {
     }
 
     /// @dev Gets the status of a given cover.
-    function getCoverStatusNo(uint _cid) external view returns(uint8 stat) {
-        stat = coverstatus[_cid];
+    function getCoverStatusNo(uint _cid) external view returns(uint8) {
+        return coverStatus[_cid];
     }
 
     /// @dev Gets the Cover Period (in days) of a given cover.
@@ -355,15 +358,17 @@ contract QuotationData is Iupgradable {
         view
         returns (
             uint cid,
-            bytes16 status,
+            uint8 status,
             uint sumAssured,
             uint16 coverPeriod,
             uint validUntil
         ) 
     {
+
+        // status = coverStatus[_cid];
         return (
             _cid,
-            coverStatus[coverstatus[_cid]],
+            coverStatus[_cid],
             allCovers[_cid].sumAssured,
             allCovers[_cid].coverPeriod,
             allCovers[_cid].validUntil
@@ -428,7 +433,7 @@ contract QuotationData is Iupgradable {
     /// @param _cid cover Id.
     /// @param _stat New status.
     function changeCoverStatusNo(uint _cid, uint8 _stat) public onlyInternal {
-        coverstatus[_cid] = _stat;
+        coverStatus[_cid] = _stat;
         emit CoverStatusEvent(_cid, _stat);
     }
 }

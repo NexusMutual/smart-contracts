@@ -88,7 +88,7 @@ contract Quotation is Iupgradable {
         (, , scAddress, curr, sumAssured) = qd.getCoverDetailsByCoverID1(_cid);
         if (qd.getCoverStatusNo(_cid) != 1)
             _removeSAFromCSA(_cid, sumAssured);
-        qd.changeCoverStatusNo(_cid, 3);        
+        qd.changeCoverStatusNo(_cid, uint8(QuotationData.CoverStatus.CoverExpired));       
     }
 
     /**

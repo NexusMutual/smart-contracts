@@ -239,13 +239,6 @@ contract('Quotation', function([
             it('should return correct cover details', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
-              await tf.getUserLockedCNTokens(coverHolder, CID[0]);
-              await qd.getCoverPeriod(CID[0]);
-              await qd.getCoverPremium(CID[0]);
-              await qd.getTotalSumAssuredSC(smartConAdd, CA_ETH);
-              await qd.getCoverStatusLen();
-              await qd.getAllCoverStatus();
-              await qd.getCoverStatus(CID[0]);
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
               if (

@@ -454,7 +454,6 @@ contract('Quotation', function([
             const coverHolder = member3;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
-            const commission = coverDetails[2] * 0.2 - 1;
             it('should be able to purchase cover ', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
@@ -474,7 +473,9 @@ contract('Quotation', function([
               );
             });
 
-            it('staker gets 20% commission', async function() {
+            it('staker gets commission', async function() {
+              const commission =
+                (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               )).should.be.bignumber.equal(
@@ -491,7 +492,6 @@ contract('Quotation', function([
             const coverHolder = member4;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
-            const commission = coverDetails[2] * 0.2 - 1;
             it('should be able to purchase cover', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
@@ -536,7 +536,9 @@ contract('Quotation', function([
                 { from: coverHolder }
               );
             });
-            it('staker gets 20% commission', async function() {
+            it('staker gets commission', async function() {
+              const commission =
+                (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               )).should.be.bignumber.equal(
@@ -554,7 +556,6 @@ contract('Quotation', function([
             let initialPoolBalanceOfCA;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
-            const commission = coverDetailsDai[2] * 0.2 - 1;
             it('should able to purchase cover using currency assest i.e. DAI ', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
@@ -576,7 +577,10 @@ contract('Quotation', function([
                 { from: coverHolder }
               );
             });
-            it('staker gets 20% commission', async function() {
+            it('staker gets commission', async function() {
+              const commission =
+                (coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
+                1;
               (await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               )).should.be.bignumber.equal(

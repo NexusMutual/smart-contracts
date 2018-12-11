@@ -68,7 +68,7 @@ contract TokenFunctions is Iupgradable, Governed {
      * @param _premiumNXM premium of cover in NXM.
      */
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) external onlyInternal {
-        uint commissionToBePaid = (_premiumNXM.mul(20)).div(100);
+        uint commissionToBePaid = (_premiumNXM.mul(td.stakerCommissionPer())).div(100);
         uint stakeLength = td.getStakedContractStakersLength(_scAddress);
         address claimsRewardAddress = ms.getLatestAddress("CR");
         for (uint i = td.stakedContractCurrentCommissionIndex(_scAddress); i < stakeLength; i++) {
@@ -79,7 +79,7 @@ contract TokenFunctions is Iupgradable, Governed {
                 (stakerAddress, ) = td.stakedContractStakers(_scAddress, i);
                 stakerIndex = td.getStakedContractStakerIndex(_scAddress, i);
                 stakeAmt = td.getStakerInitialStakedAmountOnContract(stakerAddress, stakerIndex);
-                uint maxCommission = (stakeAmt.mul(50)).div(100);
+                uint maxCommission = (stakeAmt.mul(td.stakerMaxCommissionPer())).div(100);
                 uint commissionEarned;
                 commissionEarned = td.getStakerEarnedStakeCommission(stakerAddress, stakerIndex);
                 if (maxCommission > commissionEarned) {

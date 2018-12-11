@@ -29,6 +29,8 @@ contract TokenData is Iupgradable {
     uint public scValidDays;
     uint public joiningFee;
     address public walletAddress;
+    uint public stakerCommissionPer;
+    uint public stakerMaxCommissionPer;
 
     struct StakeCommission {
         uint commissionEarned;
@@ -107,6 +109,13 @@ contract TokenData is Iupgradable {
         scValidDays = 250;
         lockCADays = 7 days;
         lockMVDays = 2 days;
+        stakerCommissionPer = 20;
+        stakerMaxCommissionPer = 50;
+    }
+
+    modifier checkPause {
+        require(ms.isPause() == false, "In Emergency Pause state");
+        _;
     }
 
     /**
@@ -189,6 +198,18 @@ contract TokenData is Iupgradable {
     {
         amount = stakerStakedContracts[
             _stakerAddress][_stakerIndex].unlockedAmount;
+    }
+
+    function setStakerCommissionPer(uint _val)public checkPause{
+
+        require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
+        stakerCommissionPer = _val;
+    }
+
+    function setStakerMaxCommissionPer(uint _val)public checkPause{
+
+        require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
+        stakerMaxCommissionPer = _val;
     }
 
     /**

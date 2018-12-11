@@ -56,24 +56,7 @@ contract Pool2 is Iupgradable {
 
     function () public payable {} //solhint-disable-line
 
-    /**
-     * @dev add new investment asset currency.
-     */ 
-    function addInvestmentAssetsDetails(
-        bytes8 currName,
-        address curr,
-        uint64 _minHoldingPercX100,
-        uint64 _maxHoldingPercX100
-    )   
-        external
-    {
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        pd.addInvestmentCurrency(currName);
-        pd.pushInvestmentAssetsDetails(currName, curr, 1,
-            _minHoldingPercX100, _maxHoldingPercX100, 18);
-    }
-
-    function transferAssetToCapitalPool(bytes8 curr, uint amount) external onlyInternal {
+    function transferAssetToCapitalPool(bytes8 curr, uint amount) public onlyInternal {
         if (curr == "ETH") {
             _transferInvestmentEtherFromPool(ms.getLatestAddress("P1"), amount);
         } else {
@@ -138,7 +121,7 @@ contract Pool2 is Iupgradable {
         if (check == 1) {
             excessLiquidityTrading(curr, caBalance);
         } else if (check == 2) {
-            insufficientLiquidityTrading(curr, caBalance, 0);
+            insufficientLiquidityTrading(curr, caBalance);
         }
     }
 
@@ -221,8 +204,6 @@ contract Pool2 is Iupgradable {
      * @dev Checks Excess or insufficient liquidity trade conditions for a given currency.
      */ 
     function checkLiquidity(bytes8 curr) public returns(uint8 check, uint caBalance) {
-        // require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
-        // this function will be called by oraclize and it will then create appropriate order
         uint64 baseMin;
         uint64 varMin;
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
@@ -235,54 +216,6 @@ contract Pool2 is Iupgradable {
             emit CheckLiquidity("ILT", caBalance);
             return (2, caBalance);
         }
-    }
-
-    /** 
-     * @dev Creates/cancels insufficient liquidity trading  
-     * order for a given currency and a given balance.
-     */ 
-    function insufficientLiquidityTrading(
-        bytes8 curr,
-        uint caBalance,
-        uint8 cancel
-    ) 
-        public
-        onlyInternal
-    {
-        uint64 baseMin;
-        uint64 varMin;
-        bytes8 maxIACurr;
-        uint64 maxIARate;
-        uint makerAmt;
-        uint takerAmt;
-        cancel = 0; //only to silence compiler warning
-        (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-        (maxIACurr, maxIARate, , ) = pd.getIARankDetailsByDate(pd.getLastDate());
-        // amount of asset to buy currency asset
-        takerAmt = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance); //*10**18; // multiply with decimals
-        // amount of assest to sell investment assest
-
-        if (pd.getLiquidityOrderStatus(curr, "ILT") == 0) {
-            
-            if (curr != maxIACurr) {
-                uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(maxIACurr);
-                //  divide by decimals of makerToken;
-                makerAmt = ((takerAmt.mul(maxIARate)).mul(10**investmentAssetDecimals)).
-                    div(md.getCurr3DaysAvg(curr));
-                if (makerAmt <= _getInvestmentAssetBalance(maxIACurr)) {
-                    // zeroExOrders(curr, makerAmt, takerAmt, "ILT", cancel);
-                    // p2.createOrder(curr, makerAmt, takerAmt, "ILT", cancel);
-                    emit Liquidity("ILT", "0x");
-                } else {
-                    emit Liquidity("ILT", "Not0x");
-                }
-            } 
-            // p2.transferAssetToPool(curr, takerAmt);
-        } 
-        // else {
-        //     cancelLastInsufficientTradingOrder(curr, takerAmt);
-        // }
-    
     }
 
     function changeDependentContractAddress() public onlyInternal {
@@ -317,21 +250,21 @@ contract Pool2 is Iupgradable {
         (maxIACurr, maxIARate, , ) = pd.getIARankDetailsByDate(pd.getLastDate());
         makerAmt = ((totalRiskBal.mul(2).mul(maxIARate)).mul(pd.getVariationPercX100())).div(100 * 100 * 100000);
 
-        if (pd.getLiquidityOrderStatus(curr, "RBT") == 0) {
+        // if (pd.getLiquidityOrderStatus(curr, "RBT") == 0) {
 
-            uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(maxIACurr);
-            takerAmt = (makerAmt.mul(md.getCurr3DaysAvg("ETH"))).div(maxIARate);
-            makerAmt = (makerAmt.mul(10**investmentAssetDecimals)).div(100);
-            takerAmt = (takerAmt.mul(DECIMAL1E18)).div(100);
-            
-            if (makerAmt <= _getInvestmentAssetBalance(maxIACurr)) {
-                // zeroExOrders(curr, makerAmt, takerAmt, "ILT", cancel);
-                // p2.createOrder(curr, makerAmt, takerAmt, "RBT", cancel);
-                // change visibility modifier after implementing order functions
-                return 1; // rebalancing order generated
-            } else 
-                return 2; // not enough makerAmt;
-        }
+        uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(maxIACurr);
+        takerAmt = (makerAmt.mul(md.getCurr3DaysAvg("ETH"))).div(maxIARate);
+        makerAmt = (makerAmt.mul(10**investmentAssetDecimals)).div(100);
+        takerAmt = (takerAmt.mul(DECIMAL1E18)).div(100);
+        
+        if (makerAmt <= _getInvestmentAssetBalance(maxIACurr)) {
+            // zeroExOrders(curr, makerAmt, takerAmt, "ILT", cancel);
+            // p2.createOrder(curr, makerAmt, takerAmt, "RBT", cancel);
+            // change visibility modifier after implementing order functions
+            return 1; // rebalancing order generated
+        } else 
+            return 2; // not enough makerAmt;
+        // }
     }
 
     /**
@@ -379,12 +312,12 @@ contract Pool2 is Iupgradable {
     {
         uint currentIAmaxHolding;
         uint currentIAminHolding;
-        uint iaBalance = _getInvestmentAssetBalance(curr).div(DECIMAL1E18);
+        uint iaBalance = _getInvestmentAssetBalance(curr);
         (currentIAminHolding, currentIAmaxHolding) = pd.getInvestmentAssetHoldingPerc(curr);
         
         if (rateX100 > 0) {
             uint rhsf;
-            rhsf = ((iaBalance.mul(10000000)).div(rateX100)).mul(DECIMAL1E18).div(totalRiskPoolBalance);
+            rhsf = (iaBalance.mul(1000000)).div(totalRiskPoolBalance.mul(rateX100));
             rhsh = int(rhsf - currentIAmaxHolding);
             rhsl = int(rhsf - currentIAminHolding);
         }
@@ -417,7 +350,7 @@ contract Pool2 is Iupgradable {
         for (uint i = 0; i < curr.length; i++) {
             rhsl = 0;
             rhsh = 0;
-            if (pd.getInvestmentAssetStatus(curr[i]) == 1) {
+            if (pd.getInvestmentAssetStatus(curr[i])) {
                 (currentIAminHolding, currentIAmaxHolding) = pd.getInvestmentAssetHoldingPerc(curr[i]);
                 (rhsh, rhsl) = getIARank(curr[i], rate[i], totalRiskPoolBalance);
                 if (rhsh > max) {
@@ -457,9 +390,9 @@ contract Pool2 is Iupgradable {
         balance = capitalPoolBalance.add(iaBalance);
     }
 
-   /** 
-    * @dev Gets currency asset balance for a given currency name.
-    */   
+    /** 
+     * @dev Gets currency asset balance for a given currency name.
+     */   
     function _getCurrencyAssetsBalance(bytes8 _curr) internal view returns(uint caBalance) {
         if (_curr == "ETH") {
             caBalance = address(p1).balance;
@@ -484,36 +417,43 @@ contract Pool2 is Iupgradable {
      */  
     function excessLiquidityTrading(bytes8 curr, uint caBalance) internal {
         require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
-        if (pd.getLiquidityOrderStatus(curr, "ELT") == 0) {
-            uint64 baseMin;
-            uint64 varMin;
-            bytes8 minIACurr;
-            uint64 minIARate;
-            uint makerAmt;
-            uint takerAmt;
+        //if (pd.getLiquidityOrderStatus(curr, "ELT") == 0) { lets see what we can do here
+        uint64 baseMin;
+        uint64 varMin;
+        bytes8 minIACurr;
+        uint64 minIARate;
+        uint makerAmt;
+        uint takerAmt;
+        (, , minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
+        if (curr == minIACurr) {
             (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-            (, , minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
-            //  amount of assest to sell currency asset
-            if (caBalance >= ((uint(baseMin).add(varMin)).mul(3)).div(2)) {
+            makerAmt = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
+            p1.transferAssetToInvestmentPool(curr, makerAmt);
+        } 
+    }
 
-                makerAmt = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
-                
-                p1.transferAssetToInvestmentPool(curr, makerAmt); // check if pool2 have enough balance
-                if (curr != minIACurr) {
-                // amount of asset to buy investment asset
-                    if (md.getCurr3DaysAvg(curr) > 0) {
-                        uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(minIACurr);
-                        takerAmt = (makerAmt.mul(minIARate).mul(10**investmentAssetDecimals)).
-                            div(md.getCurr3DaysAvg(curr));
-                        // zeroExOrders(curr, makerAmt, takerAmt, "ELT", 0);
-                        // p2.createOrder(curr, makerAmt, takerAmt, "ELT", 0);
-                        emit Liquidity("ELT", "0x");
-                    }
-                }
-            } else {
-                emit Liquidity("ELT", "Insufficient");
-            }
-        }
+    /** 
+     * @dev Creates/cancels insufficient liquidity trading  
+     * order for a given currency and a given balance.
+     */ 
+    function insufficientLiquidityTrading(
+        bytes8 curr,
+        uint caBalance
+    ) 
+        internal
+    {
+        bytes8 maxIACurr;
+        uint amount;
+        uint64 baseMin;
+        uint64 varMin;
+        uint64 maxIARate;
+        
+        (maxIACurr, maxIARate, , ) = pd.getIARankDetailsByDate(pd.getLastDate());
+        if (curr == maxIACurr) {
+            (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
+            amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
+            transferAssetToCapitalPool(curr, amount);
+        } 
     }
 
     /** 

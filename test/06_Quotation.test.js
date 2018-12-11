@@ -694,7 +694,7 @@ contract('Quotation', function([
             )
           );
           let hcl = await qd.getUserHoldedCoverLength(notMember);
-          await qt.kycTrigger(false, hcl);
+          await qt.kycTrigger(false, notMember);
         });
       });
       describe('if want to join membership', function() {
@@ -713,7 +713,7 @@ contract('Quotation', function([
             vrs[2],
             { from: newMember1, value: totalFee }
           );
-          await qt.kycTrigger(true, 2);
+          await qt.kycTrigger(true, newMember1);
         });
         it('should be able to join membership and purchase cover with DAI', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
@@ -734,7 +734,7 @@ contract('Quotation', function([
             { from: newMember2, value: fee }
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
-          await qt.kycTrigger(true, hcid);
+          await qt.kycTrigger(true, newMember2);
         });
         it('should refund full amount to new member', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
@@ -752,9 +752,9 @@ contract('Quotation', function([
             { from: newMember3, value: totalFee }
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember3, 0);
-          await assertRevert(qt.fullRefund(hcid, { from: owner }));
-          await qt.fullRefund(hcid, { from: newMember3 });
-          await assertRevert(qt.kycTrigger(true, hcid));
+          await assertRevert(qt.fullRefund({ from: owner }));
+          await qt.fullRefund({ from: newMember3 });
+          await assertRevert(qt.kycTrigger(true, newMember3));
         });
         it('should get membership but not cover if quote expires for ETH', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
@@ -775,7 +775,7 @@ contract('Quotation', function([
           const newCoverDetails = coverDetails.slice();
           newCoverDetails[3] = (await latestTime()) - 3;
           await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          await qt.kycTrigger(true, hcid);
+          await qt.kycTrigger(true, newMember4);
         });
 
         it('should revert if quote validity expires', async function() {
@@ -833,7 +833,7 @@ contract('Quotation', function([
           const newCoverDetails = coverDetailsDai.slice();
           newCoverDetails[3] = (await latestTime()) - 3;
           await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          await qt.kycTrigger(true, hcid);
+          await qt.kycTrigger(true, notMember);
         });
       });
     });

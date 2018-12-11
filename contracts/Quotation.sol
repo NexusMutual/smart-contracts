@@ -261,7 +261,10 @@ contract Quotation is Iupgradable {
         qd.setRefundEligible(msg.sender, true);
     }
 
-    function kycTrigger(bool status, uint holdedCoverID) public checkPause {
+    function kycTrigger(bool status, address _add) public checkPause {
+
+        uint holdedCoverLen = qd.getUserHoldedCoverLength(_add) - 1;
+        uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
         address userAdd;
         address scAddress;
         bytes4 coverCurr;
@@ -313,10 +316,8 @@ contract Quotation is Iupgradable {
               
     }
     
-    function fullRefund(uint holdedCoverID) public checkPause {
-        uint holdedCoverLen = qd.getUserHoldedCoverLength(msg.sender) - 1;
-        require(qd.getUserHoldedCoverByIndex(msg.sender, holdedCoverLen) == holdedCoverID);
-        kycTrigger(false, holdedCoverID);
+    function fullRefund() public checkPause {
+        kycTrigger(false, msg.sender);
     }
 
     /**

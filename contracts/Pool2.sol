@@ -56,27 +56,18 @@ contract Pool2 is Iupgradable {
 
     function () public payable {} //solhint-disable-line
 
-    function transferAssetToCapitalPool(bytes8 curr, uint amount) public onlyInternal {
-        if (curr == "ETH") {
-            _transferInvestmentEtherFromPool(ms.getLatestAddress("P1"), amount);
-        } else {
-            _transferInvestmentAssetFromPool(
-                ms.getLatestAddress("P1"), pd.getInvestmentAssetAddress(curr));
-        }
-    }
-
     /**
      * @dev On upgrade transfer all investment assets and ether to new Investment Pool
-     * @param _newPoolAddress New Investment Assest Pool address
+     * @param newPoolAddress New Investment Assest Pool address
      */
-    function transferAllInvestmentAssetFromPool(address _newPoolAddress) external onlyInternal {
+    function upgradeInvestmentPool(address newPoolAddress) external onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes8 iaName = pd.getAllCurrenciesByIndex(i);
-            address iaAddress = pd.getCurrencyAssetAddress(iaName);
-            _transferInvestmentAssetFromPool(_newPoolAddress, iaAddress);
+            _upgradeInvestmentPool(iaName, newPoolAddress);
         }
+
         if (address(this).balance > 0)
-            _newPoolAddress.transfer(address(this).balance);
+            newPoolAddress.transfer(address(this).balance);
     }
 
     /**
@@ -111,17 +102,22 @@ contract Pool2 is Iupgradable {
         }
     }
 
-        /**
-     * @dev Checks Excess or insufficient liquidity trade conditions for a given currency.
+    /**
+     * @dev Internal Swap of assets between Capital 
+     * and Investment Sub pool for excess or insufficient  
+     * liquidity conditions of a given currency.
      */ 
-    function checkLiquidityCreateOrder(bytes4 curr) external onlyInternal {
-        uint8 check;
+    function internalLiquiditySwap(bytes4 curr) external onlyInternal {
         uint caBalance;
-        (check, caBalance) = checkLiquidity(curr);
-        if (check == 1) {
-            excessLiquidityTrading(curr, caBalance);
-        } else if (check == 2) {
-            insufficientLiquidityTrading(curr, caBalance);
+        uint64 baseMin;
+        uint64 varMin;
+        (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
+        caBalance = _getCurrencyAssetsBalance(curr).div(DECIMAL1E18);
+
+        if (caBalance > uint(baseMin).add(varMin).mul(2)) {
+            excessLiquiditySwap(curr, caBalance);
+        } else if (caBalance < uint(baseMin).add(varMin)) {
+            insufficientLiquiditySwap(curr, caBalance);
         }
     }
 
@@ -162,17 +158,16 @@ contract Pool2 is Iupgradable {
         (maxCurr, maxRate, minCurr, minRate) = calculateIARank(curr, rate);
         pd.saveIARankDetails(maxCurr, maxRate, minCurr, minRate, date);
         pd.updatelastDate(date);
-        //Rebalancing Trade : only once per day
         // rebalancingLiquidityTrading(curr, rate, date);
         p1.saveIADetailsOracalise(pd.getIARatesTime());
-        uint8 check;
-        uint caBalance;
-        //Excess Liquidity Trade : atleast once per day
-        for (uint16 i = 0; i < md.getCurrLength(); i++) {
-            (check, caBalance) = checkLiquidity(md.getCurrencyByIndex(i));
-            if (check == 1 && caBalance > 0)
-                excessLiquidityTrading(md.getCurrencyByIndex(i), caBalance);
-        }
+        // uint8 check;
+        // uint caBalance;
+        // //Excess Liquidity Trade : atleast once per day
+        // for (uint16 i = 0; i < md.getCurrLength(); i++) {
+        //     (check, caBalance) = checkLiquidity(md.getCurrencyByIndex(i));
+        //     if (check == 1 && caBalance > 0)
+        //         excessLiquidityTrading(md.getCurrencyByIndex(i), caBalance);
+        // }
     }
 
     /**
@@ -198,24 +193,6 @@ contract Pool2 is Iupgradable {
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
 
         caRateX100 = md.allCurr3DaysAvg(curr);
-    }
-    
-    /**
-     * @dev Checks Excess or insufficient liquidity trade conditions for a given currency.
-     */ 
-    function checkLiquidity(bytes8 curr) public returns(uint8 check, uint caBalance) {
-        uint64 baseMin;
-        uint64 varMin;
-        (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-        caBalance = _getCurrencyAssetsBalance(curr).div(DECIMAL1E18);
-        //Excess liquidity trade
-        if (caBalance > uint(baseMin).add(varMin).mul(2)) {
-            emit CheckLiquidity("ELT", caBalance);
-            return (1, caBalance);
-        } else if (caBalance < uint(baseMin).add(varMin)) {   //Insufficient Liquidity trade
-            emit CheckLiquidity("ILT", caBalance);
-            return (2, caBalance);
-        }
     }
 
     function changeDependentContractAddress() public onlyInternal {
@@ -409,34 +386,32 @@ contract Pool2 is Iupgradable {
             ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(_curr));
             balance = erc20.balanceOf(address(this));
         }
- 
     }
 
     /**
      * @dev Creates Excess liquidity trading order for a given currency and a given balance.
      */  
-    function excessLiquidityTrading(bytes8 curr, uint caBalance) internal {
+    function excessLiquiditySwap(bytes8 curr, uint caBalance) internal {
         require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
-        //if (pd.getLiquidityOrderStatus(curr, "ELT") == 0) { lets see what we can do here
+        bytes8 minIACurr;
+        uint amount;
         uint64 baseMin;
         uint64 varMin;
-        bytes8 minIACurr;
         uint64 minIARate;
-        uint makerAmt;
-        uint takerAmt;
+        
         (, , minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
         if (curr == minIACurr) {
             (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-            makerAmt = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
-            p1.transferAssetToInvestmentPool(curr, makerAmt);
+            amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
+            p1.transferCurrencyAsset(curr, address(this), amount);
         } 
     }
 
     /** 
-     * @dev Creates/cancels insufficient liquidity trading  
-     * order for a given currency and a given balance.
+     * @dev insufficient liquidity swap  
+     * for a given currency and a given balance.
      */ 
-    function insufficientLiquidityTrading(
+    function insufficientLiquiditySwap(
         bytes8 curr,
         uint caBalance
     ) 
@@ -452,32 +427,39 @@ contract Pool2 is Iupgradable {
         if (curr == maxIACurr) {
             (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
             amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
-            transferAssetToCapitalPool(curr, amount);
+            _transferInvestmentAsset(curr, ms.getLatestAddress("P1"), amount);
         } 
     }
 
     /** 
-     * @dev Transfers Ether from this Pool address to another Pool address.
-     */
-    function _transferInvestmentEtherFromPool(address _poolAddress, uint _amount) internal {
-        _poolAddress.transfer(_amount);
-    }  
-
-    /** 
-     * @dev Transfers investment asset from this Pool address to another Pool address.
+     * @dev Transfers ERC20 investment asset from this Pool to another Pool.
      */ 
-    function _transferInvestmentAssetFromPool(
-        address _poolAddress,
-        address _iaAddress
+    function _transferInvestmentAsset(
+        bytes8 _curr,
+        address _transferTo,
+        uint _amount
     ) 
         internal
     {
-        ERC20 erc20 = ERC20(_iaAddress);
-        if (erc20.balanceOf(address(this)) > 0) {
-            erc20.transfer(_poolAddress, erc20.balanceOf(address(this)));
+        if (_curr == "ETH") {
+            _transferTo.transfer(_amount);
+        } else {
+            ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(_curr));
+            erc20.transfer(_transferTo, _amount);
         }
     }
-    
 
-
+    /** 
+     * @dev Transfers ERC20 investment asset from this Pool to another Pool.
+     */ 
+    function _upgradeInvestmentPool(
+        bytes8 _curr,
+        address _newPoolAddress
+    ) 
+        internal
+    {
+        ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(_curr));
+        if(erc20.balanceOf(address(this)) > 0)
+            erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
+    }
 }

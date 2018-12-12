@@ -102,11 +102,6 @@ contract QuotationData is Iupgradable {
         authQuoteEngine = _add;
     }
 
-    // /// @dev Pushes status of cover.
-    // function pushCoverStatus(bytes16 status) external onlyInternal {
-    //     coverStatus.push(status);
-    // }
-
     /// @dev Changes the existing Profit Margin value
     function changePM(uint16 _pm) external onlyOwner {
         pm = _pm;
@@ -243,21 +238,6 @@ contract QuotationData is Iupgradable {
     function getAuthQuoteEngine() external view returns(address _add) {
         _add = authQuoteEngine;
     }
-
-    // /// @dev Gets status of a given index.
-    // function getCoverStatus(uint16 index) external view returns(bytes16 status) {
-    //     return coverStatus[index];
-    // }
-
-    // /// @dev Gets all possible status for covers.
-    // function getAllCoverStatus() external view returns(bytes16[] status) {
-    //     return coverStatus;
-    // }
-
-    // /// @dev Gets length of cover status NXMaster.
-    // function getCoverStatusLen() external view returns(uint len) {
-    //     return coverStatus.length;
-    // }
 
     /// @dev Gets the Total Sum Assured amount of a given currency.
     function getTotalSumAssured(bytes4 _curr) external view returns(uint amount) {

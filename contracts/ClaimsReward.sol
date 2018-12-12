@@ -254,7 +254,7 @@ contract ClaimsReward is Iupgradable {
             tf.burnDepositCN(coverid); // burn Deposited CN
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
                 pd.changeCurrencyAssetVarMin(curr, uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                p2.checkLiquidityCreateOrder(curr);
+                p2.internalLiquiditySwap(curr);
             }
         } else if (status == 7 || status == 8 || status == 10) {
             cd.changeFinalVerdict(claimid, 1);

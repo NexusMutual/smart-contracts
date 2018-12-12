@@ -99,7 +99,7 @@ contract Pool1 is usingOraclize, Iupgradable {
                     q2.removeSAFromCSA(coverid, sumAssured);
                     pd.changeCurrencyAssetVarMin(curr, 
                         uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                    p2.checkLiquidityCreateOrder(curr);
+                    p2.internalLiquiditySwap(curr);
                     emit Payout(_to, coverid, sumAssured1e18);
                 } else {
                     c1.setClaimStatus(claimid, 12);
@@ -118,7 +118,7 @@ contract Pool1 is usingOraclize, Iupgradable {
                 q2.removeSAFromCSA(coverid, sumAssured);
                 pd.changeCurrencyAssetVarMin(curr,
                     uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                p2.checkLiquidityCreateOrder(curr);
+                p2.internalLiquiditySwap(curr);
                 emit Payout(_to, coverid, sumAssured1e18);
                 succ = true;
             } else {
@@ -173,28 +173,24 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
     
     /**
-     * @dev Transfers all assest (i.e ETH balance, Currency Assest and Investment Assest) from
-     * old Pool to new Pool
-     * @param newPoolAddress Address of the operator that can mint new tokens
+     * @dev Transfers all assest (i.e ETH balance, Currency Assest) from old Pool to new Pool
+     * @param newPoolAddress Address of the new Pool
      */
-    function transferAllCurrencyAssestFromPool(address newPoolAddress) external onlyInternal returns(bool success) {
-        
+    function upgradeCapitalPool(address newPoolAddress) external onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes8 caName = pd.getAllCurrenciesByIndex(i);
-            address caAddress = pd.getCurrencyAssetAddress(caName);
-            require(_transferCurrencyAssetFromPool(newPoolAddress, caAddress));
+            _upgradeCapitalPool(caName, newPoolAddress);
         }
         if (address(this).balance > 0)
-            require(newPoolAddress.send(address(this).balance)); //solhint-disable-line
-        success = true;
+            newPoolAddress.transfer(address(this).balance); //solhint-disable-line
     }
 
-    /// @dev Transfers specific currency asset from current Pool address to the new Pool address.
-    function transferFromPool(address _to, address _currAddr, uint _amount) external onlyInternal {
-        ERC20 erc20 = ERC20(_currAddr);
-        if (erc20.balanceOf(this) >= _amount)
-            erc20.transfer(_to, _amount);
-    }
+    // /// @dev Transfers specific ERC20 currency asset from current Pool address to the new Pool address.
+    // function transferFromPool(address _to, address _currAddr, uint _amount) external onlyInternal {
+    //     ERC20 erc20 = ERC20(_currAddr);
+    //     if (erc20.balanceOf(this) >= _amount)
+    //         erc20.transfer(_to, _amount);
+    // }
 
     /// @dev Calls the Oraclize Query to update the version of the contracts.
     function versionOraclise(uint version) external onlyInternal {
@@ -206,15 +202,6 @@ contract Pool1 is usingOraclize, Iupgradable {
     function updateCurrencyAssetDetails(bytes8 _curr, uint64 _baseMin, uint64 _varMin) external onlyInternal {
         pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
         pd.changeCurrencyAssetVarMin(_curr, _varMin);
-    }
-
-    function transferAssetToInvestmentPool(bytes8 curr, uint amount) external onlyInternal {
-        if (curr == "ETH") {
-            ms.getLatestAddress("P2").transfer(amount);
-        } else {
-            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr)); //solhint-disable-line
-            erc20.transfer(ms.getLatestAddress("P2"), amount); 
-        }
     }
 
     function changeDependentContractAddress() public {
@@ -237,6 +224,17 @@ contract Pool1 is usingOraclize, Iupgradable {
         if (erc20.balanceOf(address(this)) > _value)
             erc20.transfer(_to, _value);
     }
+
+    function transferCurrencyAsset(
+        bytes8 curr,
+        address transferTo,
+        uint amount
+    )
+        public
+        onlyInternal
+    {
+        _transferCurrencyAsset(curr, transferTo, amount);
+    } 
 
     /// @dev Handles callback of external oracle query.
     function __callback(bytes32 myid, string result) public {
@@ -308,7 +306,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @return succ True if transfer is a success, otherwise False.
     function transferEther(uint amount, address _add) public checkPause returns(bool succ) {
         require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
-        succ = _add.send(amount); //solhint-disable-line
+        succ = _add.send(amount);
     }
 
     /**
@@ -378,27 +376,38 @@ contract Pool1 is usingOraclize, Iupgradable {
         }
     }
 
-    /// @dev Save the details of the Oraclize API.
-    /// @param myid Id return by the oraclize query.
-    /// @param _typeof type of the query for which oraclize call is made.
-    /// @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
+    /** 
+     * @dev Save the details of the Oraclize API.
+     * @param myid Id return by the oraclize query.
+     * @param _typeof type of the query for which oraclize call is made.
+     * @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
+     */ 
     function saveApiDetails(bytes32 myid, bytes8 _typeof, uint id) internal {
         pd.saveApiDetails(myid, _typeof, id);
         pd.addInAllApiCall(myid);
     }
 
-    ///@dev Transfers investment asset from current Pool address to the new Pool address.
-    function _transferCurrencyAssetFromPool(
-        address _newPoolAddress,
-        address _caAddress
-    )  
-        internal
-        returns (bool success)
-    {
-        ERC20 erc20 = ERC20(_caAddress);
-        if (erc20.balanceOf(this) > 0) {
-            erc20.transfer(_newPoolAddress, erc20.balanceOf(this));
+    function _transferCurrencyAsset(bytes8 _curr, address _transferTo, uint _amount) internal {
+        if (_curr == "ETH") {
+            _transferTo.transfer(_amount);
+        } else {
+            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr)); //solhint-disable-line
+            erc20.transfer(_transferTo, _amount); 
         }
-        success = true;
+    } 
+
+    /** 
+     * @dev Transfers ERC20 Currency asset from this Pool to another Pool on upgrade.
+     */ 
+    function _upgradeCapitalPool(
+        bytes8 _curr,
+        address _newPoolAddress
+    ) 
+        internal
+    {
+        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
+        if(erc20.balanceOf(address(this)) > 0)
+            erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }
+   
 }

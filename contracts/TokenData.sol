@@ -22,13 +22,13 @@ import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 contract TokenData is Iupgradable {
     using SafeMath for uint;
 
+    address public walletAddress;
     uint public lockTokenTimeAfterCoverExp;
     uint public bookTime;
     uint public lockCADays;
     uint public lockMVDays;
     uint public scValidDays;
     uint public joiningFee;
-    address public walletAddress;
     uint public stakerCommissionPer;
     uint public stakerMaxCommissionPer;
 
@@ -82,13 +82,21 @@ contract TokenData is Iupgradable {
 
     mapping(address => uint) public lastCompletedStakeCommission;
 
-    // mapping of the staked contract address to the current staker index who will receive commission.
+    /** 
+     * @dev mapping of the staked contract address to the current 
+     * staker index who will receive commission.
+     */ 
     mapping(address => uint) public stakedContractCurrentCommissionIndex;
 
-    // mapping of the staked contract address to the current staker index to burn token from.
+    /** 
+     * @dev mapping of the staked contract address to the 
+     * current staker index to burn token from.
+     */ 
     mapping(address => uint) public stakedContractCurrentBurnIndex;
 
-    // mapping to return true if Cover Note deposited against coverId
+    /** 
+     * @dev mapping to return true if Cover Note deposited against coverId
+     */ 
     mapping(uint => CoverNote) public depositedCN;
 
     mapping(address => uint) internal isBookedTokens;

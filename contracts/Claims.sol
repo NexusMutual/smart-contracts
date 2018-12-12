@@ -429,7 +429,7 @@ contract Claims is Iupgradable {
         uint sumAssured = qd.getCoverSumAssured(coverId);
         pd.changeCurrencyAssetVarMin(curr, uint64(
             uint(pd.getCurrencyAssetVarMin(curr)).add(sumAssured)));
-        p2.checkLiquidityCreateOrder(curr);
+        p2.internalLiquiditySwap(curr);
         p1.closeClaimsOraclise(len, cd.maxVotingTime());
     }
 }

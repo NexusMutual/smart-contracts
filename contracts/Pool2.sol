@@ -22,6 +22,7 @@ import "./Quotation.sol";
 import "./ClaimsReward.sol";
 import "./PoolData.sol";
 import "./Iupgradable.sol";
+import "./imports/uniswap/solidity-interface.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
@@ -34,15 +35,13 @@ contract Pool2 is Iupgradable {
     Pool1 internal p1;
     PoolData internal pd;
     Quotation internal q2;
-
-    address internal poolAddress;
+    Factory internal factory;
+    address public uniswapFactoryAddress;
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
 
     event Liquidity(bytes16 typeOf, bytes16 functionName);
 
-    event Rebalancing(bytes16 name, uint16 param);
-
-    event CheckLiquidity(bytes16 typeOf, uint balance);
+    event Rebalancing(bytes8 iaCurr, uint tokenAmount);
 
     modifier checkPause {
         require(ms.isPause() == false);
@@ -55,6 +54,12 @@ contract Pool2 is Iupgradable {
     }
 
     function () public payable {} //solhint-disable-line
+
+    function changeUniswapFactoryAddress(address newFactoryAddress) external {
+        require(ms.isOwner(msg.sender) || ms.checkIsAuthToGoverned(msg.sender));
+        uniswapFactoryAddress = newFactoryAddress;
+        factory = Factory(uniswapFactoryAddress);
+    }
 
     /**
      * @dev On upgrade transfer all investment assets and ether to new Investment Pool
@@ -76,12 +81,14 @@ contract Pool2 is Iupgradable {
      */ 
     function delegateCallBack(bytes32 myid) external onlyInternal {
         if (ms.isPause() == false) { // system is not in emergency pause
-            // If callback is of type "cover", then cover id associated with the myid is checked for expiry.
+            // If callback is of type "cover", then cover id 
+            // associated with the myid is checked for expiry.
             if (pd.getApiIdTypeOf(myid) == "COV") {
                 pd.updateDateUpdOfAPI(myid);
                 q2.expireCover(pd.getIdOfApiId(myid));
             } else if (pd.getApiIdTypeOf(myid) == "CLA") {
-                // If callback is of type "claim", then claim id associated with the myid is checked for vote closure.
+                // If callback is of type "claim", then claim id 
+                // associated with the myid is checked for vote closure.
                 pd.updateDateUpdOfAPI(myid);
                 ClaimsReward cr = ClaimsReward(ms.getLatestAddress("CR"));
                 cr.changeClaimStatus(pd.getIdOfApiId(myid));
@@ -90,8 +97,9 @@ contract Pool2 is Iupgradable {
             } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
                 pd.updateDateUpdOfAPI(myid);
                 m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
-            } else if (pd.getApiIdTypeOf(myid) == "SUB") {
+            } else if (pd.getApiIdTypeOf(myid) == "UNI") {
                 pd.updateDateUpdOfAPI(myid);
+                externalLiquidityTrade();
             }
         } else if (pd.getApiIdTypeOf(myid) == "Pause") {
             pd.updateDateUpdOfAPI(myid);
@@ -115,31 +123,10 @@ contract Pool2 is Iupgradable {
         caBalance = _getCurrencyAssetsBalance(curr).div(DECIMAL1E18);
 
         if (caBalance > uint(baseMin).add(varMin).mul(2)) {
-            excessLiquiditySwap(curr, caBalance);
+            internalExcessLiquiditySwap(curr, caBalance);
         } else if (caBalance < uint(baseMin).add(varMin)) {
-            insufficientLiquiditySwap(curr, caBalance);
+            internalInsufficientLiquiditySwap(curr, caBalance);
         }
-    }
-
-    /**
-     * @dev Enables user to purchase cover via currency asset eg DAI
-     */ 
-    function makeCoverUsingCA(
-        address smartCAdd,
-        bytes4 coverCurr,
-        uint[] coverDetails,
-        uint16 coverPeriod,
-        uint8 _v,
-        bytes32 _r,
-        bytes32 _s
-    ) 
-        external
-        isMember
-        checkPause
-    {
-        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
-        require(erc20.transferFrom(msg.sender, address(p1), coverDetails[1]), "Transfer failed");
-        q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
     /**
@@ -158,16 +145,8 @@ contract Pool2 is Iupgradable {
         (maxCurr, maxRate, minCurr, minRate) = calculateIARank(curr, rate);
         pd.saveIARankDetails(maxCurr, maxRate, minCurr, minRate, date);
         pd.updatelastDate(date);
-        // rebalancingLiquidityTrading(curr, rate, date);
-        p1.saveIADetailsOracalise(pd.getIARatesTime());
-        // uint8 check;
-        // uint caBalance;
-        // //Excess Liquidity Trade : atleast once per day
-        // for (uint16 i = 0; i < md.getCurrLength(); i++) {
-        //     (check, caBalance) = checkLiquidity(md.getCurrencyByIndex(i));
-        //     if (check == 1 && caBalance > 0)
-        //         excessLiquidityTrading(md.getCurrencyByIndex(i), caBalance);
-        // }
+        rebalancingLiquidityTrading(maxCurr, maxRate);
+        p1.saveIADetailsOracalise(pd.iaRatesTime());
     }
 
     /**
@@ -191,7 +170,6 @@ contract Pool2 is Iupgradable {
     {
         caBalance = _getCurrencyAssetsBalance(curr);
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-
         caRateX100 = md.allCurr3DaysAvg(curr);
     }
 
@@ -204,76 +182,69 @@ contract Pool2 is Iupgradable {
     }
 
     function rebalancingLiquidityTrading(
-        bytes8 curr,
-        uint caBalance,
-        uint8 cancel
+        bytes8 iaCurr,
+        uint64 iaRate
     ) 
         internal
-        view        
-        onlyInternal
-        returns(uint16)
+        checkPause
     {
-        uint64 baseMin;
-        uint64 varMin;
-        bytes8 maxIACurr;
-        uint64 maxIARate;
-        uint makerAmt;
-        uint takerAmt;
-        caBalance = 0; //only to silence compiler warning
-        cancel = uint8(0); //only to silence compiler warning
+        uint amountToSell;
         uint totalRiskBal = md.getLastVfull();
+        uint intermediaryEth;
         totalRiskBal = (totalRiskBal.mul(100000)).div(DECIMAL1E18);
-        (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-        (maxIACurr, maxIARate, , ) = pd.getIARankDetailsByDate(pd.getLastDate());
-        makerAmt = ((totalRiskBal.mul(2).mul(maxIARate)).mul(pd.getVariationPercX100())).div(100 * 100 * 100000);
+        Exchange exchange;
+        if (totalRiskBal > 0) {
+            amountToSell = ((totalRiskBal.mul(2).mul(
+                iaRate)).mul(pd.variationPercX100())).div(100 * 100 * 100000);
+            amountToSell = (amountToSell.mul(
+                10**uint(pd.getInvestmentAssetDecimals(iaCurr)))).div(100); // amount of asset to sell
 
-        // if (pd.getLiquidityOrderStatus(curr, "RBT") == 0) {
-
-        uint investmentAssetDecimals = pd.getInvestmentAssetDecimals(maxIACurr);
-        takerAmt = (makerAmt.mul(md.getCurr3DaysAvg("ETH"))).div(maxIARate);
-        makerAmt = (makerAmt.mul(10**investmentAssetDecimals)).div(100);
-        takerAmt = (takerAmt.mul(DECIMAL1E18)).div(100);
-        
-        if (makerAmt <= _getInvestmentAssetBalance(maxIACurr)) {
-            // zeroExOrders(curr, makerAmt, takerAmt, "ILT", cancel);
-            // p2.createOrder(curr, makerAmt, takerAmt, "RBT", cancel);
-            // change visibility modifier after implementing order functions
-            return 1; // rebalancing order generated
-        } else 
-            return 2; // not enough makerAmt;
-        // }
+            if (iaCurr != "ETH" && checkTradeConditions(iaCurr, iaRate, totalRiskBal)) {    
+                exchange = Exchange(factory.getExchange(pd.getInvestmentAssetAddress(iaCurr)));
+                intermediaryEth = exchange.getTokenToEthInputPrice(amountToSell);
+                if (intermediaryEth > (address(exchange).balance.mul(4)).div(100)) { 
+                    intermediaryEth = (address(exchange).balance.mul(4)).div(100);
+                    amountToSell = (exchange.getEthToTokenInputPrice(intermediaryEth).mul(995)).div(1000);
+                }
+                
+                exchange.tokenToEthSwapInput(amountToSell, (exchange.getTokenToEthInputPrice(
+                        amountToSell).mul(995)).div(1000), pd.uniswapDeadline().add(now));
+            } else if (iaCurr == "ETH" && checkTradeConditions(iaCurr, iaRate, totalRiskBal)) {
+                _transferInvestmentAsset(iaCurr, address(p1), amountToSell);
+            }
+            emit Rebalancing(iaCurr, amountToSell); 
+        }
     }
 
     /**
-     * @dev Checks whether trading is required for a given investment asset at a given exchange rate.
+     * @dev Checks whether trading is required for a  
+     * given investment asset at a given exchange rate.
      */ 
-    function checkTradeConditions(bytes8 curr, uint64 iaRate) internal view returns(int check) {
+    function checkTradeConditions(
+        bytes8 curr,
+        uint64 iaRate,
+        uint totalRiskBal
+    )
+        internal
+        view
+        returns(bool check)
+    {
         if (iaRate > 0) {
-            uint investmentAssetDecimals=pd.getInvestmentAssetDecimals(curr);
-            uint iaBalance = _getInvestmentAssetBalance(curr).div(10**investmentAssetDecimals);
-            uint totalRiskBal = md.getLastVfull();
-            totalRiskBal = (totalRiskBal.mul(100000)).div(DECIMAL1E18);
+            uint iaBalance =  _getInvestmentAssetBalance(curr).div(DECIMAL1E18);
             if (iaBalance > 0 && totalRiskBal > 0) {
                 uint iaMax;
                 uint iaMin;
                 uint checkNumber;
                 uint z;
                 (iaMin, iaMax) = pd.getInvestmentAssetHoldingPerc(curr);
-                z = pd.getVariationPercX100();
+                z = pd.variationPercX100();
                 checkNumber = (iaBalance.mul(100 * 100000)).div(totalRiskBal.mul(iaRate));
                 if ((checkNumber > ((totalRiskBal.mul(iaMax.add(z))).div(100)).mul(100000)) ||
-                    (checkNumber < ((totalRiskBal.mul(iaMin.sub(z))).div(100)).mul(100000))) {
-                    //a) # of IAx x fx(IAx) / V > MaxIA%x + z% ;  or b) # of IAx x fx(IAx) / V < MinIA%x - z%
-                    return 1;    //eligibleIA
-                } else {
-                    return -1; //not eligibleIA
-                }
+                    (checkNumber < ((totalRiskBal.mul(iaMin.sub(z))).div(100)).mul(100000)))
+                    check = true; //eligibleIA
             }
-            return 0; // balance of IA is 0
-        } else {
-            return -2;
         }
-    }
+    }    
     
     /** 
      * @dev Gets the investment asset rank.
@@ -391,27 +362,28 @@ contract Pool2 is Iupgradable {
     /**
      * @dev Creates Excess liquidity trading order for a given currency and a given balance.
      */  
-    function excessLiquiditySwap(bytes8 curr, uint caBalance) internal {
-        require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
+    function internalExcessLiquiditySwap(bytes8 curr, uint caBalance) internal {
+        // require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
         bytes8 minIACurr;
         uint amount;
         uint64 baseMin;
         uint64 varMin;
-        uint64 minIARate;
         
-        (, , minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
+        (, , minIACurr, ) = pd.getIARankDetailsByDate(pd.getLastDate());
         if (curr == minIACurr) {
             (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
             amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
             p1.transferCurrencyAsset(curr, address(this), amount);
-        } 
+        } else {
+            p1.triggerExternalLiquidityTrade();
+        }
     }
 
     /** 
      * @dev insufficient liquidity swap  
      * for a given currency and a given balance.
      */ 
-    function insufficientLiquiditySwap(
+    function internalInsufficientLiquiditySwap(
         bytes8 curr,
         uint caBalance
     ) 
@@ -421,14 +393,199 @@ contract Pool2 is Iupgradable {
         uint amount;
         uint64 baseMin;
         uint64 varMin;
-        uint64 maxIARate;
         
-        (maxIACurr, maxIARate, , ) = pd.getIARankDetailsByDate(pd.getLastDate());
+        (maxIACurr, , , ) = pd.getIARankDetailsByDate(pd.getLastDate());
+        
         if (curr == maxIACurr) {
             (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
             amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
             _transferInvestmentAsset(curr, ms.getLatestAddress("P1"), amount);
-        } 
+        } else {
+            p1.triggerExternalLiquidityTrade();
+        }
+    }
+
+    /**
+     * @dev Creates External excess liquidity trading  
+     * order for a given currency and a given balance.
+     * @param curr Currency Asset to Sell
+     * @param minIACurr Investment Asset to Buy  
+     * @param amount Amount of Currency Asset to Sell
+     */  
+    function externalExcessLiquiditySwap(
+        bytes8 curr,
+        bytes8 minIACurr,
+        uint256 amount
+    )
+        internal
+        returns (bool trigger)
+    {
+        uint intermediaryEth;
+        Exchange exchange;
+        ERC20 erc20;
+    
+        if (curr == minIACurr) {
+            p1.transferCurrencyAsset(curr, address(this), amount);
+        } else if (curr == "ETH" && minIACurr != "ETH") {
+            p1.transferCurrencyAsset(curr, address(this), amount);
+            exchange = Exchange(factory.getExchange(pd.getInvestmentAssetAddress(minIACurr)));
+            if (amount > (address(exchange).balance.mul(4)).div(100)) { // 4% ETH volume limit 
+                amount = (address(exchange).balance.mul(4)).div(100);
+                trigger = true;
+            }
+            exchange.ethToTokenSwapInput.value((exchange.getTokenToEthInputPrice(
+            amount).mul(995)).div(1000))(amount, pd.uniswapDeadline().add(now));    
+        } else if (curr != "ETH" && minIACurr == "ETH") {
+            p1.transferCurrencyAsset(curr, address(this), amount);
+            exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));
+            erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
+            intermediaryEth = exchange.getTokenToEthInputPrice(amount);
+
+            if (intermediaryEth > (address(exchange).balance.mul(4)).div(100)) { 
+                intermediaryEth = (address(exchange).balance.mul(4)).div(100);
+                amount = exchange.getEthToTokenInputPrice(intermediaryEth);
+                trigger = true;
+            }
+
+            erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
+            erc20.approve(address(exchange), amount);
+            exchange.tokenToEthSwapInput(amount, (
+                intermediaryEth.mul(995)).div(1000), pd.uniswapDeadline().add(now));   
+        } else {
+            p1.transferCurrencyAsset(curr, address(this), amount);
+            exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));
+            intermediaryEth = exchange.getTokenToEthInputPrice(amount);
+
+            if (intermediaryEth > (address(exchange).balance.mul(4)).div(100)) { 
+                intermediaryEth = (address(exchange).balance.mul(4)).div(100);
+                amount = exchange.getEthToTokenInputPrice(intermediaryEth);
+                trigger = true;
+            }
+            
+            Exchange tmp = Exchange(factory.getExchange(
+                pd.getInvestmentAssetAddress(minIACurr))); // minIACurr exchange
+
+            if (intermediaryEth > address(tmp).balance.mul(4).div(100)) { 
+                intermediaryEth = address(tmp).balance.mul(4).div(100);
+                amount = exchange.getEthToTokenInputPrice(intermediaryEth);
+                trigger = true;   
+            }
+
+            erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
+            erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
+            erc20.approve(address(exchange), amount);
+            exchange.tokenToTokenSwapInput(amount, (tmp.getEthToTokenInputPrice(
+                intermediaryEth).mul(995)).div(1000), (intermediaryEth.mul(995)).div(1000), 
+                    pd.uniswapDeadline().add(now), pd.getInvestmentAssetAddress(minIACurr));
+        }
+    }
+
+    /** 
+     * @dev insufficient liquidity swap  
+     * for a given currency and a given balance.
+     * @param curr Currency Asset to buy
+     * @param maxIACurr Investment Asset to sell
+     * @param amount Amount of Investment Asset to sell
+     */ 
+    function externalInsufficientLiquiditySwap(
+        bytes8 curr,
+        bytes8 maxIACurr,
+        uint256 amount
+    ) 
+        internal
+        returns (bool trigger)
+    {   
+
+        Exchange exchange;
+        ERC20 erc20;
+        uint intermediaryEth;
+
+        if (curr == maxIACurr) {
+            _transferInvestmentAsset(curr, address(p1), amount);
+        } else if (curr == "ETH" && maxIACurr != "ETH") {
+            exchange = Exchange(factory.getExchange(pd.getInvestmentAssetAddress(maxIACurr)));
+            intermediaryEth = exchange.getTokenToEthInputPrice(amount);
+
+            if (intermediaryEth > (address(exchange).balance.mul(4)).div(100)) { 
+                intermediaryEth = (address(exchange).balance.mul(4)).div(100);
+                amount = exchange.getEthToTokenInputPrice(intermediaryEth);
+                trigger = true;
+            }
+
+            erc20 = ERC20(pd.getCurrencyAssetAddress(maxIACurr));
+            erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
+            erc20.approve(address(exchange), amount);
+            exchange.tokenToEthTransferInput(amount, (
+                intermediaryEth.mul(995)).div(1000), pd.uniswapDeadline().add(now), address(p1)); 
+
+        } else if (curr != "ETH" && maxIACurr == "ETH") {
+            exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));
+            if (amount > (address(exchange).balance.mul(4)).div(100)) { // 4% ETH volume limit 
+                amount = (address(exchange).balance.mul(4)).div(100);
+                trigger = true;
+            }
+            exchange.ethToTokenTransferInput.value(amount)((exchange.getEthToTokenInputPrice(
+                amount).mul(995)).div(1000), pd.uniswapDeadline().add(now), address(p1));   
+        } else {
+            exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(maxIACurr)));
+            intermediaryEth = exchange.getTokenToEthInputPrice(amount);
+            if (intermediaryEth > (address(exchange).balance.mul(4)).div(100)) { 
+                intermediaryEth = (address(exchange).balance.mul(4)).div(100);
+                amount = exchange.getEthToTokenInputPrice(intermediaryEth);
+                trigger = true;
+            }
+            address iaAddress = pd.getInvestmentAssetAddress(curr);
+            Exchange tmp = Exchange(factory.getExchange(iaAddress));
+
+            if (intermediaryEth > address(tmp).balance.mul(4).div(100)) { 
+                intermediaryEth = address(tmp).balance.mul(4).div(100);
+                amount = exchange.getEthToTokenInputPrice(intermediaryEth);
+                trigger = true;
+            }
+            erc20 = ERC20(pd.getCurrencyAssetAddress(maxIACurr));
+            erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
+            erc20.approve(address(exchange), amount);
+            exchange.tokenToTokenTransferInput(amount, (
+                tmp.getEthToTokenInputPrice(intermediaryEth).mul(995)).div(1000), (
+                    intermediaryEth.mul(995)).div(1000), pd.uniswapDeadline().add(now), address(p1), iaAddress);
+        }
+    }
+
+    /**
+     * @dev External Trade for excess or insufficient  
+     * liquidity conditions of a given currency.
+     */ 
+    function externalLiquidityTrade() internal {
+    
+        bytes8 curr;
+        bytes8 minIACurr;
+        bytes8 maxIACurr;
+        uint caBalance;
+        uint64 baseMin;
+        uint64 varMin;
+        uint amount;
+        uint64 minIARate;
+        uint64 maxIARate;
+        bool triggerTrade;
+
+        (maxIACurr, maxIARate, minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
+        for (uint64 i = 0; i < pd.getAllCurrenciesLen(); i++) {
+            curr = pd.getAllCurrenciesByIndex(i);
+            (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
+            caBalance = _getCurrencyAssetsBalance(curr).div(DECIMAL1E18);
+
+            if (caBalance > uint(baseMin).add(varMin).mul(2)) { //excess
+                amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
+                triggerTrade = externalExcessLiquiditySwap(curr, minIACurr, amount);
+            } else if (caBalance < uint(baseMin).add(varMin)) { // insufficient
+                amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
+                triggerTrade = externalInsufficientLiquiditySwap(curr, maxIACurr, amount);
+            }
+
+            if (triggerTrade) {
+                p1.triggerExternalLiquidityTrade();
+            }
+        }
     }
 
     /** 
@@ -459,7 +616,7 @@ contract Pool2 is Iupgradable {
         internal
     {
         ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(_curr));
-        if(erc20.balanceOf(address(this)) > 0)
+        if (erc20.balanceOf(address(this)) > 0)
             erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }
 }

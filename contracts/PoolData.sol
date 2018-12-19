@@ -22,11 +22,6 @@ import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 contract PoolData is Iupgradable {
     using SafeMath for uint;
 
-    bytes8[] internal allInvestmentCurrencies;
-    bytes8[] internal allCurrencies;
-    
-    bytes32[] public allAPIcall;
-
     struct ApiId {
         bytes8 typeOf;
         bytes4 currency;
@@ -34,8 +29,6 @@ contract PoolData is Iupgradable {
         uint64 dateAdd;
         uint64 dateUpd;
     }
-
-    mapping(bytes32 => ApiId) public allAPIid;
 
     struct CurrencyAssets {
         address currAddress;
@@ -57,10 +50,28 @@ contract PoolData is Iupgradable {
         bytes8 minIACurr;
         uint64 minRate;
     }
+    
+    IARankDetails[] internal allIARankDetails;
+    bytes8[] internal allInvestmentCurrencies;
+    bytes8[] internal allCurrencies;
+    bytes32[] public allAPIcall;
+    mapping(bytes32 => ApiId) public allAPIid;
+    mapping(uint64 => uint) internal datewiseId;
+    mapping(bytes16 => uint) internal currencyLastIndex;
+    mapping(bytes8 => CurrencyAssets) internal allCurrencyAssets;
+    mapping(bytes8 => InvestmentAssets) internal allInvestmentAssets;
+    uint public uniswapDeadline;
+    uint public liquidityTradeCallbackTime;
+    uint public lastLiquidityTradeTrigger;
+    uint64 internal lastDate;
+    uint64 public variationPercX100;
+    uint64 public iaRatesTime;
 
     constructor() public {
         variationPercX100 = 100; //1%
         iaRatesTime = 24 hours; //24 hours in seconds
+        uniswapDeadline = 20 minutes;
+        liquidityTradeCallbackTime = 4 hours;
         allCurrencies.push("ETH");
         allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6, 0);
         allCurrencies.push("DAI");
@@ -71,15 +82,14 @@ contract PoolData is Iupgradable {
         allInvestmentAssets["DAI"] = InvestmentAssets(0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, true, 500, 5000, 18);
     }
 
-    IARankDetails[] internal allIARankDetails;
-    mapping(uint64 => uint) internal datewiseId;
-    mapping(bytes16 => uint) internal currencyLastIndex;
-    mapping(bytes8 => CurrencyAssets) internal allCurrencyAssets;
-    mapping(bytes8 => InvestmentAssets) internal allInvestmentAssets;
-    uint64 internal lastDate;
-    uint64 public variationPercX100;
-    uint64 internal iaRatesTime;
-    
+    function changeUniswapDeadlineTime(uint newDeadline) external onlyInternal {
+        uniswapDeadline = newDeadline;
+    }
+
+    function changeliquidityTradeCallbackTime(uint newTime) external onlyInternal {
+        liquidityTradeCallbackTime = newTime;
+    }
+
     /** 
      * @dev Updates the Timestamp at which result of oracalize call is received.
      */  
@@ -135,13 +145,10 @@ contract PoolData is Iupgradable {
         iaRatesTime = _newTime;
     }
 
-    /** 
-     * @dev Sets Last index for given currency.
-     */ 
-    function setCurrencyLastIndex(bytes16 curr, uint index) external onlyInternal {
-        currencyLastIndex[curr] = index;
+    function setLastLiquidityTradeTrigger() external onlyInternal {
+        lastLiquidityTradeTrigger = now;
     }
-    
+
     /** 
      * @dev Updates Last Date.
      */  
@@ -149,13 +156,6 @@ contract PoolData is Iupgradable {
         lastDate = newDate;
     }
  
-    /** 
-     * @dev Saves Rate Id for a given date.
-     */  
-    function saveRateIdByDate(uint64 date, uint index) external onlyInternal {
-        datewiseId[date] = index;
-    }
-
     /**
      * @dev Adds currency asset currency. 
      */  
@@ -172,7 +172,7 @@ contract PoolData is Iupgradable {
     }
     
     /**
-     * @dev Adds investment currency. 
+     * @dev Adds investment asset. 
      */  
     function addInvestmentAssetCurrency(
         bytes8 _curr,
@@ -261,36 +261,6 @@ contract PoolData is Iupgradable {
         allInvestmentAssets[_curr].currAddress = _currAdd;
     }
 
-    /** 
-     * @dev Gets investment asset rank details by given index.
-     */  
-    function getIARankDetailsByIndex(
-        uint index
-    )
-        external
-        view
-        returns(
-            bytes8 maxIACurr,
-            uint64 maxRate,
-            bytes8 minIACurr,
-            uint64 minRate
-        )
-    {
-        return (
-            allIARankDetails[index].maxIACurr,
-            allIARankDetails[index].maxRate,
-            allIARankDetails[index].minIACurr,
-            allIARankDetails[index].minRate
-        );
-    }
-        
-    /**
-     * @dev Gets time after which investment asset rates need to be fed.
-     */  
-    function getIARatesTime() external view returns(uint64 time) {
-        return iaRatesTime;
-    }
-
     /**
      * @dev Gets investment asset rank details by given date.
      */  
@@ -313,20 +283,6 @@ contract PoolData is Iupgradable {
             allIARankDetails[index].minIACurr,
             allIARankDetails[index].minRate
         );
-    }
-
-    /**
-     * @dev Gets index of investment asset details for a given date.
-     */  
-    function getIADetailsIndexByDate(uint64 date) external view returns(uint index) {
-        return (datewiseId[date]);
-    }
-
-    /** 
-     * @dev Gets Last index for given currency.
-     */ 
-    function getCurrencyLastIndex(bytes16 curr) external view returns(uint index) {
-        return currencyLastIndex[curr];
     }
 
     /** 
@@ -376,13 +332,6 @@ contract PoolData is Iupgradable {
      */  
     function getAllCurrencies() external view returns(bytes8[] currencies) {
         return allCurrencies;
-    }
-
-    /**
-     * @dev Gets the variation range percentage.
-     */  
-    function getVariationPercX100() external view returns(uint64 variation) {
-        return variationPercX100;
     }
 
     /**

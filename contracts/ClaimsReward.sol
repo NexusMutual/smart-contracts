@@ -428,7 +428,8 @@ contract ClaimsReward is Iupgradable {
         for (uint i = lastCompletedStakeCommission; i < len; i++) {
             commissionRedeemed = td.getStakerRedeemedStakeCommission(msg.sender, i);
             commissionEarned = td.getStakerEarnedStakeCommission(msg.sender, i);
-            maxCommission = td.getStakerInitialStakedAmountOnContract(msg.sender, i).mul(td.stakerMaxCommissionPer()).div(100);
+            maxCommission = td.getStakerInitialStakedAmountOnContract(
+                msg.sender, i).mul(td.stakerMaxCommissionPer()).div(100);
             if (maxCommission == commissionEarned.sub(commissionRedeemed))
                 td.setLastCompletedStakeCommissionIndex(msg.sender, i); 
             td.pushRedeemedStakeCommissions(msg.sender, i, commissionEarned.sub(commissionRedeemed));

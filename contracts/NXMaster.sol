@@ -64,7 +64,6 @@ contract NXMaster is Governed {
         _;
     }
 
-    /// @dev Constructor
     constructor() public {
         owner = msg.sender;
         contractsActive[address(this)] = true; //1
@@ -256,8 +255,7 @@ contract NXMaster is Governed {
         changeAllAddress();
     }
 
-    function checkIsAuthToGoverned(address _add) public view returns(bool)
-    {
+    function checkIsAuthToGoverned(address _add) public view returns(bool) {
         return isAuthorizedToGovern(_add);
     }
 

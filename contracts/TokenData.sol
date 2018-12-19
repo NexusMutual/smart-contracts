@@ -208,14 +208,12 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].unlockedAmount;
     }
 
-    function setStakerCommissionPer(uint _val)public checkPause{
-
+    function setStakerCommissionPer(uint _val) public checkPause {
         require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
         stakerCommissionPer = _val;
     }
 
-    function setStakerMaxCommissionPer(uint _val)public checkPause{
-
+    function setStakerMaxCommissionPer(uint _val) public checkPause {
         require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
         stakerMaxCommissionPer = _val;
     }

@@ -2,11 +2,6 @@ const Pool1 = artifacts.require('Pool1');
 const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 
-const MCR = artifacts.require('MCR');
-
-const MCRDataMock = artifacts.require('MCRDataMock');
-
-const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
@@ -21,6 +16,7 @@ const newAsset = '0x535253';
 const CA_DAI = '0x4441490000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NEW_ADDRESS = '0xb24919181daead6635e613576ca11c5aa5a4e133';
+
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
@@ -133,6 +129,16 @@ contract('Pool', function([owner, notOwner]) {
     it('should return Investment Asset Rank Details', async function() {
       const lastDate = await pd.getLastDate();
       await pd.getIARankDetailsByDate(lastDate);
+    });
+    it('should return data', async function() {
+      const length = await pd.getApilCallLength();
+      const myId = await pd.getApiCallIndex(length - 1);
+      await pd.getApiCallDetails(myId);
+      await pd.getDateUpdOfAPI(myId);
+      await pd.getCurrOfApiId(myId);
+      await pd.getDateUpdOfAPI(myId);
+      await pd.getDateAddOfAPI(myId);
+      await pd.getApiIdTypeOf(myId);
     });
   });
 

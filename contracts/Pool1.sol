@@ -129,6 +129,14 @@ contract Pool1 is usingOraclize, Iupgradable {
         tf.burnStakerLockedToken(coverid, curr, sumAssured);
     }
 
+    function triggerExternalLiquidityTrade() external onlyInternal {
+        if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
+            pd.setLastLiquidityTradeTrigger();
+            bytes32 myid = oraclize_query(pd.liquidityTradeCallbackTime(), "URL", "", 300000);
+            saveApiDetails(myid, "UNI", 0);
+        }
+    }
+
     ///@dev Oraclize call to close emergency pause.
     function closeEmergencyPause(uint time) external onlyInternal {
         bytes32 myid = oraclize_query(time, "URL", "", 300000);
@@ -184,13 +192,6 @@ contract Pool1 is usingOraclize, Iupgradable {
         if (address(this).balance > 0)
             newPoolAddress.transfer(address(this).balance); //solhint-disable-line
     }
-
-    // /// @dev Transfers specific ERC20 currency asset from current Pool address to the new Pool address.
-    // function transferFromPool(address _to, address _currAddr, uint _amount) external onlyInternal {
-    //     ERC20 erc20 = ERC20(_currAddr);
-    //     if (erc20.balanceOf(this) >= _amount)
-    //         erc20.transfer(_to, _amount);
-    // }
 
     /// @dev Calls the Oraclize Query to update the version of the contracts.
     function versionOraclise(uint version) external onlyInternal {
@@ -261,6 +262,27 @@ contract Pool1 is usingOraclize, Iupgradable {
         payable
     {
         require(msg.value == coverDetails[1]);
+        q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+    }
+
+    /**
+     * @dev Enables user to purchase cover via currency asset eg DAI
+     */ 
+    function makeCoverUsingCA(
+        address smartCAdd,
+        bytes4 coverCurr,
+        uint[] coverDetails,
+        uint16 coverPeriod,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+    ) 
+        public
+        isMember
+        checkPause
+    {
+        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
+        require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]), "Transfer failed");
         q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
 
@@ -406,7 +428,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         internal
     {
         ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
-        if(erc20.balanceOf(address(this)) > 0)
+        if (erc20.balanceOf(address(this)) > 0)
             erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }
    

@@ -155,7 +155,7 @@ contract('Quotation', function([
             )
           );
           await assertRevert(
-            P2.makeCoverUsingCA(
+            P1.makeCoverUsingCA(
               smartConAdd,
               'DAI',
               coverDetailsDai,
@@ -368,10 +368,10 @@ contract('Quotation', function([
               const initialCAbalance = await cad.balanceOf(coverHolder);
               const initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
               const initialTotalSupply = await tk.totalSupply();
-              await cad.approve(P2.address, coverDetailsDai[1], {
+              await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
               });
-              await P2.makeCoverUsingCA(
+              await P1.makeCoverUsingCA(
                 smartConAdd,
                 'DAI',
                 coverDetailsDai,
@@ -563,10 +563,10 @@ contract('Quotation', function([
               initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               );
-              await cad.approve(P2.address, coverDetailsDai[1], {
+              await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
               });
-              await P2.makeCoverUsingCA(
+              await P1.makeCoverUsingCA(
                 smartConAdd,
                 'DAI',
                 coverDetailsDai,
@@ -639,7 +639,7 @@ contract('Quotation', function([
             )
           );
           await assertRevert(
-            P2.makeCoverUsingCA(
+            P1.makeCoverUsingCA(
               smartConAdd,
               'DAI',
               coverDetailsDai,

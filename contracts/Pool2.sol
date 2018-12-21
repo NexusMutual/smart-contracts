@@ -208,7 +208,7 @@ contract Pool2 is Iupgradable {
                 }
                 
                 exchange.tokenToEthSwapInput(amountToSell, (exchange.getTokenToEthInputPrice(
-                        amountToSell).mul(995)).div(1000), pd.uniswapDeadline().add(now));
+                    amountToSell).mul(995)).div(1000), pd.uniswapDeadline().add(now));
             } else if (iaCurr == "ETH" && checkTradeConditions(iaCurr, iaRate, totalRiskBal)) {
                 _transferInvestmentAsset(iaCurr, address(p1), amountToSell);
             }

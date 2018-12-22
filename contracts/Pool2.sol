@@ -53,7 +53,7 @@ contract Pool2 is Iupgradable {
         _;
     }
 
-    function () public payable {} //solhint-disable-line
+    function () public payable {} 
 
     function changeUniswapFactoryAddress(address newFactoryAddress) external {
         require(ms.isOwner(msg.sender) || ms.checkIsAuthToGoverned(msg.sender));

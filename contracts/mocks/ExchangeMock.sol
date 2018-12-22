@@ -1,17 +1,19 @@
 pragma solidity 0.4.24;
 
-import "./Factory.sol";
+import "./FactoryMock.sol";
 import "../imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
 
-contract Exchange {
+contract ExchangeMock {
 
     ERC20 internal token;
-    Factory internal factory;
+    FactoryMock internal factory;
 
     constructor (address tokenAddress) public {
         token = ERC20(tokenAddress);
     }
+
+    function () public payable {}
  
     function getEthToTokenInputPrice(uint256 ethSold) public view returns(uint256) {
         require(ethSold > 0);
@@ -190,7 +192,7 @@ contract Exchange {
         uint256 weiBought = (ethBought * 10**18);
         require(weiBought >= minEthBought);
         require(token.transferFrom(buyer, address(this), tokensSold));
-        uint256 tokensBought = Exchange(exchangeAddress).ethToTokenTransferInput.value(
+        uint256 tokensBought = ExchangeMock(exchangeAddress).ethToTokenTransferInput.value(
             weiBought)(minTokensBought, deadline, recipient);
         // log.EthPurchase(buyer, tokensSold, weiBought);
         return tokensBought;

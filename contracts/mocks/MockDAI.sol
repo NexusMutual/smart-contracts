@@ -1,7 +1,8 @@
-pragma solidity ^0.4.24;
+pragma solidity 0.4.24;
  
 import "../imports/openzeppelin-solidity/token/ERC20/IERC20.sol";
 import "../imports/openzeppelin-solidity/math/SafeMath.sol";
+
 
 contract MockDAI is IERC20 {
     using SafeMath for uint256;
@@ -16,7 +17,7 @@ contract MockDAI is IERC20 {
     mapping (address => mapping (address => uint256)) private _allowed;
 
     constructor() public {
-        _totalSupply = 1000 * (10**uint(decimals));
+        _totalSupply = 999999 * (10**uint(decimals));
         _balances[msg.sender] = _totalSupply;
     }
 

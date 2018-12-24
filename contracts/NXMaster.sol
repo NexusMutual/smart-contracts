@@ -19,6 +19,7 @@ import "./TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsReward.sol";
 import "./Pool1.sol";
+import "./Pool2.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
@@ -46,7 +47,6 @@ contract NXMaster is Governed {
 
     Claims internal c1;
     ClaimsReward internal cr;
-    Pool1 internal p1;
     MemberRoles public mr;
     TokenFunctions internal tf;
     Iupgradable internal up;
@@ -262,7 +262,7 @@ contract NXMaster is Governed {
     /// @dev Allow AB Members to Start Emergency Pause
     function startEmergencyPause() public onlyAuthorizedToGovern {
         addEmergencyPause(true, "AB"); //Start Emergency Pause
-        p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
+        Pool1 p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
         c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
@@ -289,6 +289,9 @@ contract NXMaster is Governed {
     function changeAllAddress() internal {
         uint i;
         uint currentVersion = versionDates.length - 1;
+        Pool1 p1;
+        Pool2 p2;
+
         if (versionDates.length < 3) {
             for (i = 0; i < allContractNames.length; i++) {
                 contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
@@ -308,7 +311,17 @@ contract NXMaster is Governed {
                 cr = ClaimsReward(allContractVersions[currentVersion - 1]["CR"]);
                 cr.upgrade(allContractVersions[currentVersion]["CR"]);
             }
-            
+
+            if (allContractVersions[currentVersion]["P1"] != allContractVersions[currentVersion - 1]["P1"]) {
+                p1 = Pool1(allContractVersions[currentVersion - 1]["P1"]);
+                p1.upgradeCapitalPool(allContractVersions[currentVersion]["P1"]);
+            }
+
+            if (allContractVersions[currentVersion]["P2"] != allContractVersions[currentVersion - 1]["P2"]) {
+                p2 = Pool2(allContractVersions[currentVersion - 1]["P2"]);
+                p2.upgradeInvestmentPool(allContractVersions[currentVersion]["P2"]);
+            }
+
             p1 = Pool1(allContractVersions[currentVersion]["P1"]);
             p1.versionOraclise(currentVersion);
         }

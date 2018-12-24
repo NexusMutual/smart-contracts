@@ -459,7 +459,7 @@ contract Pool2 is Iupgradable {
         internal
     {
         ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(_curr));
-        if(erc20.balanceOf(address(this)) > 0)
+        if (erc20.balanceOf(address(this)) > 0)
             erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }
 }

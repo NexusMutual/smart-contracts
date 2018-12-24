@@ -29,6 +29,7 @@ import "./Pool2.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./Iupgradable.sol";
+import "./Governance.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
@@ -45,6 +46,7 @@ contract ClaimsReward is Iupgradable {
     Pool1 internal p1;
     Pool2 internal p2;
     PoolData internal pd;
+    Governance internal gv;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -69,6 +71,7 @@ contract ClaimsReward is Iupgradable {
         p2 = Pool2(ms.getLatestAddress("P2"));
         pd = PoolData(ms.getLatestAddress("PD"));
         qd = QuotationData(ms.getLatestAddress("QD"));
+        gv = Governance(ms.getLatestAddress("GV"));
     }
 
     /// @dev Decides the next course of action for a given claim.
@@ -215,10 +218,11 @@ contract ClaimsReward is Iupgradable {
 
     }
 
-    function claimAllPendingReward() public isMemberAndcheckPause {
+    function claimAllPendingReward(uint[] _proposals) public isMemberAndcheckPause {
         claimRewardToBeDistributed();
         claimStakeCommission();
         tf.unlockStakerUnlockableTokens(msg.sender); 
+        gv.claimReward(msg.sender, _proposals);
     }
 
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
@@ -428,7 +432,8 @@ contract ClaimsReward is Iupgradable {
         for (uint i = lastCompletedStakeCommission; i < len; i++) {
             commissionRedeemed = td.getStakerRedeemedStakeCommission(msg.sender, i);
             commissionEarned = td.getStakerEarnedStakeCommission(msg.sender, i);
-            maxCommission = td.getStakerInitialStakedAmountOnContract(msg.sender, i).mul(td.stakerMaxCommissionPer()).div(100);
+            maxCommission = td.getStakerInitialStakedAmountOnContract(msg.sender, i)
+            .mul(td.stakerMaxCommissionPer()).div(100);
             if (maxCommission == commissionEarned.sub(commissionRedeemed))
                 td.setLastCompletedStakeCommissionIndex(msg.sender, i); 
             td.pushRedeemedStakeCommissions(msg.sender, i, commissionEarned.sub(commissionRedeemed));

@@ -208,13 +208,13 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].unlockedAmount;
     }
 
-    function setStakerCommissionPer(uint _val)public checkPause{
+    function setStakerCommissionPer(uint _val)public checkPause {
 
         require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
         stakerCommissionPer = _val;
     }
 
-    function setStakerMaxCommissionPer(uint _val)public checkPause{
+    function setStakerMaxCommissionPer(uint _val)public checkPause {
 
         require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
         stakerMaxCommissionPer = _val;
@@ -442,8 +442,9 @@ contract TokenData is Iupgradable {
      * @dev Lock the user's tokens 
      * @param _of user's address.
      */
-    function lockForMemberVote(address _of) public onlyInternal {
-        isLockedForMV[_of] = now.add(lockMVDays);
+    function lockForMemberVote(address _of, uint _days) public onlyInternal {
+        if (_days.add(now) > isLockedForMV[_of])
+            isLockedForMV[_of] = _days.add(now);
     }
 
     /**

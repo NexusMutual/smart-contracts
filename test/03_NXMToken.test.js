@@ -112,6 +112,10 @@ contract('NXMToken', function([
 
   describe('transfer', function() {
     const transferTokens = ether(1);
+    before(async function() {
+      tk.transfer(member1, ether(26), { from: owner });
+    });
+
     describe('when the recipient is a member', function() {
       const to = notMember;
 

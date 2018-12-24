@@ -338,7 +338,7 @@ contract('Quotation', function([
           describe('Purchase Cover With DAI', function() {
             const coverHolder = member5;
             let initialTotalSA;
-            let presentPoolBalanceOfCA;
+            let initialPoolBalanceOfCA;
             before(async function() {
               await tf.payJoiningFee(coverHolder, {
                 from: coverHolder,
@@ -366,7 +366,7 @@ contract('Quotation', function([
             });
             it('should able to purchase cover using currency assest i.e. DAI ', async function() {
               const initialCAbalance = await cad.balanceOf(coverHolder);
-              const initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
+              initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
               const initialTotalSupply = await tk.totalSupply();
               await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
@@ -404,8 +404,8 @@ contract('Quotation', function([
               const presentPoolBalanceOfCA = new BigNumber(
                 coverDetailsDai[1].toString()
               );
-              presentPoolBalanceOfCA.should.be.bignumber.equal(
-                await cad.balanceOf(P1.address)
+              (await cad.balanceOf(P1.address)).should.be.bignumber.equal(
+                initialPoolBalanceOfCA.plus(presentPoolBalanceOfCA)
               );
             });
             it('should return correct cover details purchased with DAI', async function() {

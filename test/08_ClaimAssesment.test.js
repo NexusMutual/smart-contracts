@@ -224,7 +224,7 @@ contract('Claim: Assessment', function([
               0
             );
             const priceinEther = await mcr.calculateTokenPrice(CA_ETH);
-            const burnedAmount = 1e18 / priceinEther - 2;
+            const burnedAmount = 1e18 / priceinEther - 1;
             (await tf.getStakerLockedTokensOnSmartContract(
               staker1,
               smartConAdd,

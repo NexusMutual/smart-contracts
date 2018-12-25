@@ -87,6 +87,7 @@ contract('NXMaster', function([
     dsv = await DSValue.deployed();
     gov = await Governance.deployed();
     propCat = await ProposalCategory.deployed();
+    memberRoles = await MemberRoles.deployed();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -102,6 +103,7 @@ contract('NXMaster', function([
     addr.push(mcr.address);
     addr.push(gov.address);
     addr.push(propCat.address);
+    addr.push(memberRoles.address);
   });
   describe('when called by Owner', function() {
     it('should be able to add a new version', async function() {
@@ -120,13 +122,6 @@ contract('NXMaster', function([
       await newMaster.changeTokenAddress(nxmtk.address);
       await newMaster.addNewVersion(addr);
       nxms = newMaster;
-    });
-
-    it('should be able to change MemberRole Address', async function() {
-      this.timeout(0);
-      memberRoles = await MemberRoles.deployed();
-      await nxms.changeMemberRolesAddress(memberRoles.address);
-      (await nxms.mr()).should.equal(memberRoles.address);
     });
 
     it('should be able to reinitialize', async function() {
@@ -183,13 +178,6 @@ contract('NXMaster', function([
       newMaster = await NXMaster.new();
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
-      );
-    });
-    it('should not be able to change MemberRole Address', async function() {
-      memberRoles = await MemberRoles.deployed();
-      const MRAddress = await memberRoles.address;
-      await assertRevert(
-        newMaster.changeMemberRolesAddress(MRAddress, { from: anotherAccount })
       );
     });
 

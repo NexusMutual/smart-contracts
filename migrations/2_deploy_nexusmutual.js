@@ -17,6 +17,7 @@ const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
+const MemberRoles = artifacts.require('MemberRoles');
 const founderAddress = web3.eth.accounts[0];
 const INITIAL_SUPPLY = 1500000 * 1e18;
 
@@ -42,5 +43,6 @@ module.exports = function(deployer) {
     await deployer.deploy(QuotationDataMock);
     await deployer.deploy(Governance);
     await deployer.deploy(ProposalCategory);
+    await deployer.deploy(MemberRoles);
   });
 };

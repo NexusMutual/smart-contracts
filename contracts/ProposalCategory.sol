@@ -10,6 +10,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 pragma solidity 0.4.24;
+
 import "./imports/govblocks-protocol/interfaces/IProposalCategory.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./Iupgradable.sol";
@@ -37,6 +38,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     mapping (uint => CategoryAction) internal categoryActionData;
     mapping (uint => uint) public categoryABReq;
     
+    function changeDependentContractAddress() public onlyInternal {}
+
     /// @dev Adds new category
     /// @param _name Category name
     /// @param _memberRoleToVote Voting Layer sequence in which the voting has to be performed.

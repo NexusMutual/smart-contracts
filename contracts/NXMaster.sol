@@ -48,7 +48,6 @@ contract NXMaster is Governed {
     Claims internal c1;
     ClaimsReward internal cr;
     Pool1 internal p1;
-    MemberRoles public mr;
     TokenFunctions internal tf;
     Iupgradable internal up;
 
@@ -74,15 +73,6 @@ contract NXMaster is Governed {
         contractsActive[address(this)] = true;
         versionDates.push(now); //solhint-disable-line
         addContractNames();
-    }
-
-    /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
-    /// and can be found in the imports folder
-    /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
-    function changeMemberRolesAddress(address _memberRolesAddress) public onlyInternal {
-        mr = MemberRoles(_memberRolesAddress);
-        tf = TokenFunctions(allContractVersions[versionDates.length - 1]["TF"]);
-        tf.changeMemberRolesAddress(_memberRolesAddress);
     }
 
     /// @dev Add Emergency pause
@@ -144,6 +134,7 @@ contract NXMaster is Governed {
 
     /// @dev checks whether the address is a member of the mutual or not.
     function isMember(address _add) public view returns(bool) {
+        MemberRoles mr = MemberRoles(getLatestAddress("MR"));
         return mr.checkRole(_add, uint(MemberRoles.Role.Member));
     }
 

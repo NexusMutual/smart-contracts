@@ -42,6 +42,8 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _;
     }
 
+    function changeDependentContractAddress() public onlyInternal {}
+    
     function memberRolesInitiate(bytes32 _dAppName, address _dAppToken, address _firstAB) public {
         require(!constructorCheck);
         dappName = _dAppName;

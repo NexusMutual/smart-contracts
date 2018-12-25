@@ -33,7 +33,7 @@ contract TokenFunctions is Iupgradable, Governed {
     using SafeMath for uint;
 
     MCR internal m1;
-    MemberRoles public mr;
+    MemberRoles internal mr;
     NXMToken public tk;
     TokenController internal tc;
     TokenData internal td;
@@ -231,7 +231,7 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-     * @dev Just for interface
+     * @dev Change Dependent Contract Address
      */
     function changeDependentContractAddress() public {
         tk = NXMToken(ms.tokenAddress());
@@ -241,10 +241,7 @@ contract TokenFunctions is Iupgradable, Governed {
         qd = QuotationData(ms.getLatestAddress("QD"));
         m1 = MCR(ms.getLatestAddress("MC"));
         gv = Governance(ms.getLatestAddress("GV"));
-    }
-
-    function changeMemberRolesAddress(address memberAddress) public onlyInternal {
-        mr = MemberRoles(memberAddress);
+        mr = MemberRoles(ms.getLatestAddress("MR"));
     }
 
     /**

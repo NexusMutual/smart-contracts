@@ -64,9 +64,7 @@ module.exports = function(deployer) {
       mr.address
     ];
     await nxms.changeTokenAddress(tk.address);
-    console.log('ok0', addr);
     await nxms.addNewVersion(addr);
-    console.log('ok1');
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
     await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);
@@ -85,11 +83,8 @@ module.exports = function(deployer) {
       [100, 65407],
       20180807
     );
-    console.log('ok2');
     await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
-    console.log('ok3');
-
-    await nxms.changeMemberRolesAddress(mr.address);
-    console.log('ok');
+    // await nxms.changeMemberRolesAddress(mr.address);
+    // console.log('ok');
   });
 };

@@ -14,7 +14,9 @@ module.exports = {
   ],
   forceParse: [
     'imports/ERC1132',
-    'imports/govblocks-protocol/interfaces',
+    'imports/govblocks-protocol',
+    'Governance.sol',
+    'ProposalCategory.sol',
     'mocks'
   ]
 };

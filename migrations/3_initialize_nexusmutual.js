@@ -84,7 +84,11 @@ module.exports = function(deployer) {
       20180807
     );
     await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
-    // await nxms.changeMemberRolesAddress(mr.address);
-    // console.log('ok');
+
+    await mr.memberRolesInitiate(
+      '0x4e657875732d4d757475616c',
+      '0x4e584d',
+      Owner
+    );
   });
 };

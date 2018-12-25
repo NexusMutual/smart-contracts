@@ -145,15 +145,6 @@ contract('NXMaster', function([
       await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
     });
 
-    it('should be able to add new Member Role', async function() {
-      await memberRoles.addNewMemberRole(
-        '0x4d656d626572',
-        'Member of Nexus Mutual',
-        tf.address,
-        false
-      );
-    });
-
     it('should be able to change token controller address', async function() {
       await tc.changeOperator(tc.address);
     });

@@ -133,11 +133,14 @@ contract('ClaimsReward', function([
       await cr.changeClaimStatus(claimId);
     });
     it('should be able to claim reward', async function() {
+      let proposalIds = [];
       initialTokenBalance = await tk.balanceOf(cr.address);
       initialBalance = await tk.balanceOf(member1);
       rewardToGet = await cr.getAllPendingRewardOfUser(member1);
-      await assertRevert(cr.claimAllPendingReward({ from: notMember }));
-      await cr.claimAllPendingReward({ from: member1 });
+      await assertRevert(
+        cr.claimAllPendingReward(proposalIds, { from: notMember })
+      );
+      await cr.claimAllPendingReward(proposalIds, { from: member1 });
       (await cr.getAllPendingRewardOfUser(member1)).should.be.bignumber.equal(
         0
       );
@@ -151,12 +154,13 @@ contract('ClaimsReward', function([
       (await tk.balanceOf(cr.address)).should.be.bignumber.equal(
         initialTokenBalance.sub(rewardToGet)
       );
+      let proposalIds = [];
       await cr.getRewardAndClaimedStatus(1, claimId, { from: member1 });
       await cr.getRewardAndClaimedStatus(1, 2, { from: member1 });
       await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
       await cr.getRewardAndClaimedStatus(0, 2, { from: member1 });
       await cr.getRewardToBeDistributedByUser(member1);
-      await cr.claimAllPendingReward({ from: member1 });
+      await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cd.getVoteAddressMemberLength(member1);
     });
   });
@@ -175,7 +179,8 @@ contract('ClaimsReward', function([
       );
     });
     it('should be able to claim reward', async function() {
-      await cr.claimAllPendingReward({ from: staker1 });
+      let proposalIds = [];
+      await cr.claimAllPendingReward(proposalIds, { from: staker1 });
       (await cr.getAllPendingRewardOfUser(staker1)).should.be.bignumber.equal(
         0
       );

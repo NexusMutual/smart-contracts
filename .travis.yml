@@ -10,7 +10,6 @@ cache:
     - node_modules
 
 script:
-  - npm install
   - npm run test
 
 jobs:
@@ -18,11 +17,8 @@ jobs:
   allow_failures:
     - env: SOLIDITY_COVERAGE=true
   include:
-    - stage: tests
-      name: "unit tests"
-      script: npm run test
-    - stage: tests
-      name: "unit tests with coverage"
-      script: npm run test
-      env: SOLIDITY_COVERAGE=true
+    - stage: compile
+      name: "Compilation"
+      script: truffle compile
+
 

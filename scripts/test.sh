@@ -54,7 +54,7 @@ start_ethereum-bridge() {
     node_modules/.bin/ethereum-bridge -H localhost:8545 -a 20 &> /dev/null &
   fi
   sleep 10
-  bridge_pid=$!
+  bridge_pid = $!
   echo "Ethereum-bridge is successfully running as process id ${bridge_pid}"
 }
 

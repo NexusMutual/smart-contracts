@@ -87,45 +87,21 @@ contract Pool1 is usingOraclize, Iupgradable {
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint sumAssured = qd.getCoverSumAssured(coverid);
         uint sumAssured1e18 = sumAssured.mul(DECIMAL1E18);
-        uint balance;
+        bool check;
 
-        //Payout in Ethers in case currency of quotation is ETH
-        if (curr == "ETH") {
-            balance = address(this).balance;
-            //Check if Pool1 has enough ETH balance
-            if (balance >= sumAssured1e18) {
-                succ = _to.send(sumAssured1e18);
-                if (succ == true) {
-                    q2.removeSAFromCSA(coverid, sumAssured);
-                    pd.changeCurrencyAssetVarMin(curr, 
-                        uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                    p2.internalLiquiditySwap(curr);
-                    emit Payout(_to, coverid, sumAssured1e18);
-                } else {
-                    c1.setClaimStatus(claimid, 12);
-                }
-            } else {
-                c1.setClaimStatus(claimid, 12);
-                succ = false;
-            }
+        //Payout
+        check = _transferCurrencyAsset(curr, _to, sumAssured1e18);
+        if (check == true) {
+            q2.removeSAFromCSA(coverid, sumAssured);
+            pd.changeCurrencyAssetVarMin(curr, 
+                uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
+            p2.internalLiquiditySwap(curr);
+            emit Payout(_to, coverid, sumAssured1e18);
+            succ = true;
         } else {
-          //Payout from the corresponding fiat faucet, in case currency of quotation is in fiat crypto
-            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr)); //solhint-disable-line
-            balance = erc20.balanceOf(address(this));
-            //Check if Pool1 has enough fiat crypto balance
-            if (balance >= sumAssured1e18) {
-                transferPayout(_to, curr, sumAssured1e18);
-                q2.removeSAFromCSA(coverid, sumAssured);
-                pd.changeCurrencyAssetVarMin(curr,
-                    uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
-                p2.internalLiquiditySwap(curr);
-                emit Payout(_to, coverid, sumAssured1e18);
-                succ = true;
-            } else {
-                c1.setClaimStatus(claimid, 12);
-                succ = false;
-            }
+            c1.setClaimStatus(claimid, 12);
         }
+
         tf.burnStakerLockedToken(coverid, curr, sumAssured);
     }
 
@@ -218,13 +194,6 @@ contract Pool1 is usingOraclize, Iupgradable {
         c1 = Claims(ms.getLatestAddress("CL"));
         qd = QuotationData(ms.getLatestAddress("QD"));
     }
-    
-    /// @dev Transfers Amount to user when claim gets accepted.
-    function transferPayout(address _to, bytes8 _curr, uint _value) public onlyInternal {
-        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
-        if (erc20.balanceOf(address(this)) > _value)
-            erc20.transfer(_to, _value);
-    }
 
     function transferCurrencyAsset(
         bytes8 curr,
@@ -233,8 +202,9 @@ contract Pool1 is usingOraclize, Iupgradable {
     )
         public
         onlyInternal
+        returns(bool)
     {
-        _transferCurrencyAsset(curr, transferTo, amount);
+        return _transferCurrencyAsset(curr, transferTo, amount);
     } 
 
     /// @dev Handles callback of external oracle query.
@@ -409,12 +379,16 @@ contract Pool1 is usingOraclize, Iupgradable {
         pd.addInAllApiCall(myid);
     }
 
-    function _transferCurrencyAsset(bytes8 _curr, address _transferTo, uint _amount) internal {
-        if (_curr == "ETH") {
+    function _transferCurrencyAsset(bytes8 _curr, address _transferTo, uint _amount) internal returns(bool succ) {
+        if (_curr == "ETH" && address(this).balance >= _amount) {
             _transferTo.transfer(_amount);
+            succ = true;
         } else {
             ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr)); //solhint-disable-line
-            erc20.transfer(_transferTo, _amount); 
+            if (erc20.balanceOf(address(this)) >= _amount) {
+                erc20.transfer(_transferTo, _amount); 
+                succ = true;
+            }
         }
     } 
 

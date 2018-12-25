@@ -16,9 +16,9 @@ import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 import "./imports/govblocks-protocol/interfaces/IMemberRoles.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./TokenController.sol";
+import "./Iupgradable.sol";
 
-
-contract MemberRoles is IMemberRoles, Governed {
+contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     TokenController public dAppToken;
 
@@ -40,15 +40,6 @@ contract MemberRoles is IMemberRoles, Governed {
         else
             require(isAuthorizedToGovern(msg.sender), "Not Authorized");
         _;
-    }
-
-    /// @dev To Initiate default settings whenever the contract is regenerated!
-    function updateDependencyAddresses() public pure { //solhint-disable-line
-    }
-
-    /// @dev just to adhere to GovBlockss' Upgradeable interface
-    function changeMasterAddress(address _masterAddress) public pure { //solhint-disable-line
-        _masterAddress;
     }
 
     function memberRolesInitiate(bytes32 _dAppName, address _dAppToken, address _firstAB) public {

@@ -12,9 +12,9 @@
 pragma solidity 0.4.24;
 import "./imports/govblocks-protocol/interfaces/IProposalCategory.sol";
 import "./imports/govblocks-protocol/Governed.sol";
+import "./Iupgradable.sol";
 
-
-contract ProposalCategory is  Governed, IProposalCategory {
+contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
 
     bool internal constructorCheck;
 

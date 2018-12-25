@@ -15,6 +15,8 @@ const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
+const Governance = artifacts.require('Governance');
+const ProposalCategory = artifacts.require('ProposalCategory');
 const founderAddress = web3.eth.accounts[0];
 const INITIAL_SUPPLY = 1500000 * 1e18;
 
@@ -38,5 +40,7 @@ module.exports = function(deployer) {
     await deployer.deploy(TokenFunctions);
     await deployer.deploy(Quotation);
     await deployer.deploy(QuotationDataMock);
+    await deployer.deploy(Governance);
+    await deployer.deploy(ProposalCategory);
   });
 };

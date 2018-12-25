@@ -16,6 +16,8 @@ const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
+const Governance = artifacts.require('Governance');
+const ProposalCategory = artifacts.require('ProposalCategory');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -40,6 +42,9 @@ module.exports = function(deployer) {
     const mcr = await MCR.deployed();
     const mcrd = await MCRDataMock.deployed();
     const dsv = await DSValue.deployed();
+    const gov = await Governance.deployed();
+    const propCat = await ProposalCategory.deployed();
+    const mr = await MemberRoles.deployed();
     let addr = [
       qd.address,
       td.address,
@@ -53,10 +58,15 @@ module.exports = function(deployer) {
       cr.address,
       pl1.address,
       pl2.address,
-      mcr.address
+      mcr.address,
+      gov.address,
+      propCat.address,
+      mr.address
     ];
     await nxms.changeTokenAddress(tk.address);
+    console.log('ok0', addr);
     await nxms.addNewVersion(addr);
+    console.log('ok1');
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
     await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);
@@ -75,8 +85,11 @@ module.exports = function(deployer) {
       [100, 65407],
       20180807
     );
+    console.log('ok2');
     await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
-    const mr = await MemberRoles.deployed();
+    console.log('ok3');
+
     await nxms.changeMemberRolesAddress(mr.address);
+    console.log('ok');
   });
 };

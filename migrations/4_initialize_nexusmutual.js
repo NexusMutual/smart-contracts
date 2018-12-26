@@ -16,6 +16,8 @@ const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
+const Governance = artifacts.require('Governance');
+const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
@@ -42,6 +44,9 @@ module.exports = function(deployer) {
     const mcr = await MCR.deployed();
     const mcrd = await MCRDataMock.deployed();
     const dsv = await DSValue.deployed();
+    const gov = await Governance.deployed();
+    const propCat = await ProposalCategory.deployed();
+    const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
     let addr = [
       qd.address,
@@ -56,7 +61,10 @@ module.exports = function(deployer) {
       cr.address,
       pl1.address,
       pl2.address,
-      mcr.address
+      mcr.address,
+      gov.address,
+      propCat.address,
+      mr.address
     ];
     await nxms.changeTokenAddress(tk.address);
     await nxms.addNewVersion(addr);
@@ -79,8 +87,11 @@ module.exports = function(deployer) {
       20180807
     );
     await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
-    const mr = await MemberRoles.deployed();
-    await nxms.changeMemberRolesAddress(mr.address);
+    await mr.memberRolesInitiate(
+      '0x4e657875732d4d757475616c',
+      '0x4e584d',
+      Owner
+    );
     await pl2.changeUniswapFactoryAddress(factory.address);
     await dai.transfer(pl1.address, POOL_ASSET);
     await dai.transfer(pl2.address, POOL_ASSET);

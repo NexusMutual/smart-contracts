@@ -23,7 +23,7 @@ import "./Pool2.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
-import "./imports/govblocks-protocol/MemberRoles.sol";
+import "./MemberRoles.sol";
 
 
 contract NXMaster is Governed {
@@ -44,10 +44,11 @@ contract NXMaster is Governed {
     mapping(uint => mapping(bytes2 => address)) internal allContractVersions;
 
     address public tokenAddress;
+    address public eventCallerAdd;
 
     Claims internal c1;
     ClaimsReward internal cr;
-    MemberRoles public mr;
+    Pool1 internal p1;
     TokenFunctions internal tf;
     Iupgradable internal up;
 
@@ -72,15 +73,6 @@ contract NXMaster is Governed {
         contractsActive[address(this)] = true;
         versionDates.push(now); //solhint-disable-line
         addContractNames();
-    }
-
-    /// @dev Changes the member roles contract address. The contract has been reused from GovBlocks
-    /// and can be found in the imports folder
-    /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
-    function changeMemberRolesAddress(address _memberRolesAddress) public onlyInternal {
-        mr = MemberRoles(_memberRolesAddress);
-        tf = TokenFunctions(allContractVersions[versionDates.length - 1]["TF"]);
-        tf.changeMemberRolesAddress(_memberRolesAddress);
     }
 
     /// @dev Add Emergency pause
@@ -142,13 +134,18 @@ contract NXMaster is Governed {
 
     /// @dev checks whether the address is a member of the mutual or not.
     function isMember(address _add) public view returns(bool) {
-        return mr.checkRoleIdByAddress(_add, 3);
+        MemberRoles mr = MemberRoles(getLatestAddress("MR"));
+        return mr.checkRole(_add, uint(MemberRoles.Role.Member));
     }
 
     ///@dev Changes owner of the contract.
     ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
     function changeOwner(address to) public onlyOwner {
         owner = to;
+    }
+
+    function getEventCallerAddress() public view returns(address) {
+        return eventCallerAdd;
     }
 
     ///@dev Gets emergency pause details by index.
@@ -204,6 +201,10 @@ contract NXMaster is Governed {
        
     }
 
+    function setEventCallerAddress(address _add) public onlyOwner {
+        eventCallerAdd = _add;
+    }
+
     /// @dev Gets current version amd its master address
     /// @return versionNo Current version number that is active
     function getCurrentVersion() public view returns(uint versionNo) {
@@ -234,6 +235,12 @@ contract NXMaster is Governed {
             contractsName[i] = allContractNames[i];
             contractsAddress[i] = allContractVersions[versionNo][allContractNames[i]];
         }
+    }
+
+    function dAppLocker() public view returns(address _add) {
+
+        _add = getLatestAddress("TC");
+
     }
 
     /// @dev Gets latest contract address
@@ -283,6 +290,9 @@ contract NXMaster is Governed {
         allContractNames.push("P1");
         allContractNames.push("P2");
         allContractNames.push("MC");
+        allContractNames.push("GV");
+        allContractNames.push("PC");
+        allContractNames.push("MR");
     }
 
     /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.

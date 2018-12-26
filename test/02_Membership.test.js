@@ -23,7 +23,7 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
       it('should be able to join as member', async function() {
         await tf.payJoiningFee(member1, { from: member1, value: fee });
         await tf.kycVerdict(member1, true, { from: owner });
-        (await mr.checkRoleIdByAddress(member1, 3)).should.equal(true);
+        (await mr.checkRole(member1, 2)).should.equal(true);
       });
     });
     describe('if not paid joining fee', function() {
@@ -31,7 +31,7 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
         await assertRevert(
           tf.payJoiningFee(member2, { from: member2, value: fee - 1e15 })
         );
-        (await mr.checkRoleIdByAddress(member2, 3)).should.equal(false);
+        (await mr.checkRole(member2, 2)).should.equal(false);
       });
     });
   });
@@ -40,7 +40,7 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
     describe('If met Withdraw membership conditions', function() {
       it('should be able to withdraw membership', async function() {
         await tf.withdrawMembership({ from: member1 });
-        (await mr.checkRoleIdByAddress(member1, 3)).should.equal(false);
+        (await mr.checkRole(member1, 2)).should.equal(false);
       });
     });
     describe('If not met Withdraw membership conditions', function() {

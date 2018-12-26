@@ -24,20 +24,22 @@ import "./TokenData.sol";
 import "./QuotationData.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
-import "./imports/govblocks-protocol/MemberRoles.sol";
+import "./MemberRoles.sol";
 import "./Iupgradable.sol";
+import "./Governance.sol";
 
 
 contract TokenFunctions is Iupgradable, Governed {
     using SafeMath for uint;
 
     MCR internal m1;
-    MemberRoles public mr;
+    MemberRoles internal mr;
     NXMToken public tk;
     TokenController internal tc;
     TokenData internal td;
     QuotationData internal qd;
     ClaimsReward internal cr;
+    Governance internal gv;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -229,7 +231,7 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-     * @dev Just for interface
+     * @dev Change Dependent Contract Address
      */
     function changeDependentContractAddress() public {
         tk = NXMToken(ms.tokenAddress());
@@ -238,10 +240,8 @@ contract TokenFunctions is Iupgradable, Governed {
         cr = ClaimsReward(ms.getLatestAddress("CR"));
         qd = QuotationData(ms.getLatestAddress("QD"));
         m1 = MCR(ms.getLatestAddress("MC"));
-    }
-
-    function changeMemberRolesAddress(address memberAddress) public onlyInternal {
-        mr = MemberRoles(memberAddress);
+        gv = Governance(ms.getLatestAddress("GV"));
+        mr = MemberRoles(ms.getLatestAddress("MR"));
     }
 
     /**
@@ -317,7 +317,7 @@ contract TokenFunctions is Iupgradable, Governed {
      * Need to remove onlyOwner to onlyInternal and update automatically at version change
      */
     function changeCanAddMemberAddress(address _newAdd) public onlyOwner {
-        mr.changeCanAddMember(3, _newAdd);
+        mr.changeAuthorized(uint(MemberRoles.Role.Member), _newAdd);
     }
 
     /** 
@@ -328,7 +328,7 @@ contract TokenFunctions is Iupgradable, Governed {
             require(td.walletAddress() != address(0), "No walletAddress present");
             td.walletAddress().transfer(msg.value); 
             tc.addToWhitelist(_userAddress);
-            mr.updateMemberRole(_userAddress, 3, true, 0);
+            mr.updateRole(_userAddress, uint(MemberRoles.Role.Member), true);
         } else {
             require(!qd.refundEligible(_userAddress));
             require(!ms.isMember(_userAddress));
@@ -345,7 +345,7 @@ contract TokenFunctions is Iupgradable, Governed {
             uint fee = td.joiningFee();
             require(td.walletAddress().send(fee)); //solhint-disable-line
             tc.addToWhitelist(_userAddress);
-            mr.updateMemberRole(_userAddress, 3, true, 0);
+            mr.updateRole(_userAddress, uint(MemberRoles.Role.Member), true);
         } else {
             qd.setRefundEligible(_userAddress, false);
             require(_userAddress.send(td.joiningFee())); //solhint-disable-line
@@ -359,9 +359,11 @@ contract TokenFunctions is Iupgradable, Governed {
         require(tc.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
         require(!isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
         require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+        gv.removeDelegation(msg.sender);
         tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
-        mr.updateMemberRole(msg.sender, 3, false, 0);
+        mr.updateRole(msg.sender, uint(MemberRoles.Role.Member), false);
         tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
+        
     }
 
     function lockCN(

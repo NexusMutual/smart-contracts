@@ -274,7 +274,7 @@ contract Claims is Iupgradable {
         require(cd.getUserClaimVoteMember(msg.sender, claimId) == 0);
         cd.addVote(msg.sender, tokens, claimId, verdict);
         cd.callVoteEvent(msg.sender, claimId, "MV", tokens, now, verdict);
-        td.lockForMemberVote(msg.sender);
+        td.lockForMemberVote(msg.sender, td.lockMVDays());
         uint voteLength = cd.getAllVoteLength();
         cd.addClaimVotemember(claimId, voteLength);
         cd.setUserClaimVoteMember(msg.sender, claimId, voteLength);

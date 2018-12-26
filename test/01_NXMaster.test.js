@@ -16,6 +16,8 @@ const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
+const Governance = artifacts.require('Governance');
+const ProposalCategory = artifacts.require('ProposalCategory');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -49,6 +51,8 @@ let dai;
 let dsv;
 let newMaster;
 let memberRoles;
+let gov;
+let propCat;
 
 contract('NXMaster', function([
   owner,
@@ -81,6 +85,9 @@ contract('NXMaster', function([
     mcr = await MCR.new();
     dai = await DAI.new();
     dsv = await DSValue.deployed();
+    gov = await Governance.deployed();
+    propCat = await ProposalCategory.deployed();
+    memberRoles = await MemberRoles.deployed();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -94,6 +101,9 @@ contract('NXMaster', function([
     addr.push(pl1.address);
     addr.push(pl2.address);
     addr.push(mcr.address);
+    addr.push(gov.address);
+    addr.push(propCat.address);
+    addr.push(memberRoles.address);
   });
   describe('when called by Owner', function() {
     it('should be able to add a new version', async function() {
@@ -112,13 +122,6 @@ contract('NXMaster', function([
       await newMaster.changeTokenAddress(nxmtk.address);
       await newMaster.addNewVersion(addr);
       nxms = newMaster;
-    });
-
-    it('should be able to change MemberRole Address', async function() {
-      this.timeout(0);
-      memberRoles = await MemberRoles.deployed();
-      await nxms.changeMemberRolesAddress(memberRoles.address);
-      (await nxms.mr()).should.equal(memberRoles.address);
     });
 
     it('should be able to reinitialize', async function() {
@@ -140,15 +143,6 @@ contract('NXMaster', function([
       await pd.changeInvestmentAssetAddress('0x444149', dai.address);
       await mcrd.changeDAIfeedAddress(dsv.address);
       await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
-    });
-
-    it('should be able to add new Member Role', async function() {
-      await memberRoles.addNewMemberRole(
-        '0x4d656d626572',
-        'Member of Nexus Mutual',
-        tf.address,
-        false
-      );
     });
 
     it('should be able to change token controller address', async function() {
@@ -175,13 +169,6 @@ contract('NXMaster', function([
       newMaster = await NXMaster.new();
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
-      );
-    });
-    it('should not be able to change MemberRole Address', async function() {
-      memberRoles = await MemberRoles.deployed();
-      const MRAddress = await memberRoles.address;
-      await assertRevert(
-        newMaster.changeMemberRolesAddress(MRAddress, { from: anotherAccount })
       );
     });
 

@@ -440,8 +440,9 @@ contract TokenData is Iupgradable {
      * @dev Lock the user's tokens 
      * @param _of user's address.
      */
-    function lockForMemberVote(address _of) public onlyInternal {
-        isLockedForMV[_of] = now.add(lockMVDays);
+    function lockForMemberVote(address _of, uint _days) public onlyInternal {
+        if (_days.add(now) > isLockedForMV[_of])
+            isLockedForMV[_of] = _days.add(now);
     }
 
     /**

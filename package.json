@@ -50,7 +50,7 @@
     "solc": "^0.4.24",
     "solhint": "^1.4.0",
     "solidity-coverage": "^0.5.11",
-    "truffle": "4.1.15",
+    "truffle": "^4.1.14",
     "truffle-hdwallet-provider": "0.0.5"
   }
 }

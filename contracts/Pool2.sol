@@ -80,34 +80,36 @@ contract Pool2 is Iupgradable {
      * @param myid Oraclize Query ID identifying the query for which the result is being received
      */ 
     function delegateCallBack(bytes32 myid) external onlyInternal {
+        bool updateDate;
+        bytes8 res = pd.getApiIdTypeOf(myid);
+
         if (ms.isPause() == false) { // system is not in emergency pause
-            // If callback is of type "cover", then cover id 
-            // associated with the myid is checked for expiry.
-            if (pd.getApiIdTypeOf(myid) == "COV") {
-                pd.updateDateUpdOfAPI(myid);
-                q2.expireCover(pd.getIdOfApiId(myid));
-            } else if (pd.getApiIdTypeOf(myid) == "CLA") {
-                // If callback is of type "claim", then claim id 
-                // associated with the myid is checked for vote closure.
-                pd.updateDateUpdOfAPI(myid);
+            uint id = pd.getIdOfApiId(myid);
+            if (res == "COV") {
+                q2.expireCover(id);
+                updateDate = true;
+            } else if (res == "CLA") {
                 ClaimsReward cr = ClaimsReward(ms.getLatestAddress("CR"));
-                cr.changeClaimStatus(pd.getIdOfApiId(myid));
-            } else if (pd.getApiIdTypeOf(myid) == "MCR") {
-                pd.updateDateUpdOfAPI(myid);
-            } else if (pd.getApiIdTypeOf(myid) == "MCRF") {
-                pd.updateDateUpdOfAPI(myid);
-                m1.addLastMCRData(uint64(pd.getIdOfApiId(myid)));
-            } else if (pd.getApiIdTypeOf(myid) == "UNI") {
-                pd.updateDateUpdOfAPI(myid);
-                externalLiquidityTrade();
+                cr.changeClaimStatus(id);
+                updateDate = true;
+            } else if (res == "MCRF") {
+                m1.addLastMCRData(uint64(id));
+                updateDate = true;
+            } else if (res == "UNI") {
+                _externalLiquidityTrade();
+                updateDate = true;
             }
-        } else if (pd.getApiIdTypeOf(myid) == "Pause") {
-            pd.updateDateUpdOfAPI(myid);
+        } else if (res == "Pause") {
             bytes4 by;
             (, , by) = ms.getLastEmergencyPause();
-            if (by == "AB")
+            if (by == "AB") {
                 ms.addEmergencyPause(false, "AUT"); //set pause to false
+                updateDate = true;
+            }
         }
+
+        if (updateDate) 
+            pd.updateDateUpdOfAPI(myid);
     }
 
     /**
@@ -117,15 +119,15 @@ contract Pool2 is Iupgradable {
      */ 
     function internalLiquiditySwap(bytes4 curr) external onlyInternal {
         uint caBalance;
-        uint64 baseMin;
-        uint64 varMin;
+        uint baseMin;
+        uint varMin;
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-        caBalance = _getCurrencyAssetsBalance(curr).div(DECIMAL1E18);
+        caBalance = _getCurrencyAssetsBalance(curr);
 
         if (caBalance > uint(baseMin).add(varMin).mul(2)) {
-            internalExcessLiquiditySwap(curr, caBalance);
+            _internalExcessLiquiditySwap(curr, baseMin, varMin, caBalance);
         } else if (caBalance < uint(baseMin).add(varMin)) {
-            internalInsufficientLiquiditySwap(curr, caBalance);
+            _internalInsufficientLiquiditySwap(curr, baseMin, varMin, caBalance);
         }
     }
 
@@ -362,18 +364,15 @@ contract Pool2 is Iupgradable {
     /**
      * @dev Creates Excess liquidity trading order for a given currency and a given balance.
      */  
-    function internalExcessLiquiditySwap(bytes8 curr, uint caBalance) internal {
+    function _internalExcessLiquiditySwap(bytes8 _curr, uint _baseMin, uint _varMin, uint _caBalance) internal {
         // require(ms.isInternal(msg.sender) || md.isnotarise(msg.sender));
         bytes8 minIACurr;
         uint amount;
-        uint64 baseMin;
-        uint64 varMin;
         
         (, , minIACurr, ) = pd.getIARankDetailsByDate(pd.getLastDate());
-        if (curr == minIACurr) {
-            (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-            amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
-            p1.transferCurrencyAsset(curr, address(this), amount);
+        if (_curr == minIACurr) {
+            amount = _caBalance.sub(((_baseMin.add(_varMin)).mul(3)).div(2)); //*10**18;
+            p1.transferCurrencyAsset(_curr, address(this), amount);
         } else {
             p1.triggerExternalLiquidityTrade();
         }
@@ -383,23 +382,16 @@ contract Pool2 is Iupgradable {
      * @dev insufficient liquidity swap  
      * for a given currency and a given balance.
      */ 
-    function internalInsufficientLiquiditySwap(
-        bytes8 curr,
-        uint caBalance
-    ) 
-        internal
-    {
+    function _internalInsufficientLiquiditySwap(bytes8 _curr, uint _baseMin, uint _varMin, uint _caBalance) internal {
+        
         bytes8 maxIACurr;
         uint amount;
-        uint64 baseMin;
-        uint64 varMin;
         
         (maxIACurr, , , ) = pd.getIARankDetailsByDate(pd.getLastDate());
         
-        if (curr == maxIACurr) {
-            (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-            amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
-            _transferInvestmentAsset(curr, ms.getLatestAddress("P1"), amount);
+        if (_curr == maxIACurr) {
+            amount = (((_baseMin.add(_varMin)).mul(3)).div(2)).sub(_caBalance);
+            _transferInvestmentAsset(_curr, ms.getLatestAddress("P1"), amount);
         } else {
             p1.triggerExternalLiquidityTrade();
         }
@@ -555,18 +547,18 @@ contract Pool2 is Iupgradable {
      * @dev External Trade for excess or insufficient  
      * liquidity conditions of a given currency.
      */ 
-    function externalLiquidityTrade() internal {
-    
+    function _externalLiquidityTrade() internal {
+        
+        bool triggerTrade;
         bytes8 curr;
         bytes8 minIACurr;
         bytes8 maxIACurr;
-        uint caBalance;
-        uint64 baseMin;
-        uint64 varMin;
         uint amount;
-        uint64 minIARate;
-        uint64 maxIARate;
-        bool triggerTrade;
+        uint minIARate;
+        uint maxIARate;
+        uint baseMin;
+        uint varMin;
+        uint caBalance;
 
         (maxIACurr, maxIARate, minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
         for (uint64 i = 0; i < pd.getAllCurrenciesLen(); i++) {

@@ -76,11 +76,11 @@ contract PoolData is Iupgradable {
         allCurrencies.push("ETH");
         allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6 * DECIMAL1E18, 0);
         allCurrencies.push("DAI");
-        allCurrencyAssets["DAI"] = CurrencyAssets(0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 7 * DECIMAL1E18, 0);
+        allCurrencyAssets["DAI"] = CurrencyAssets(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359, 7 * DECIMAL1E18, 0);
         allInvestmentCurrencies.push("ETH");
         allInvestmentAssets["ETH"] = InvestmentAssets(address(0), true, 500, 5000, 18);
         allInvestmentCurrencies.push("DAI");
-        allInvestmentAssets["DAI"] = InvestmentAssets(0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, true, 500, 5000, 18);
+        allInvestmentAssets["DAI"] = InvestmentAssets(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359, true, 500, 5000, 18);
     }
 
     function changeUniswapDeadlineTime(uint newDeadline) external onlyInternal {

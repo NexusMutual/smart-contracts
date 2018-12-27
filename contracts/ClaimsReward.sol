@@ -231,7 +231,8 @@ contract ClaimsReward is Iupgradable {
         uint commissionReedmed = td.getStakerTotalReedmedStakeCommission(_add);
         uint unlockableStakedTokens = tf.getStakerAllUnlockableStakedTokens(_add);
         uint governanceReward = gv.getPendingReward(_add);
-        total = caReward.add(unlockableStakedTokens).add(commissionEarned.sub(commissionReedmed)).add(governanceReward);
+        total = caReward.add(unlockableStakedTokens).add(commissionEarned.
+        sub(commissionReedmed)).add(governanceReward);
     }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.

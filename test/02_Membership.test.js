@@ -1,11 +1,13 @@
 const MemberRoles = artifacts.require('MemberRoles');
 const TokenFunctions = artifacts.require('TokenFunctions');
+const NXMaster = artifacts.require('NXMaster');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { ether } = require('./utils/ether');
 
 let tf;
 let mr;
+let nxms;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -14,8 +16,9 @@ require('chai')
 
 contract('NXMToken:Membership', function([owner, member1, member2]) {
   before(async function() {
+    nxms = await NXMaster.deployed();
     tf = await TokenFunctions.deployed();
-    mr = await MemberRoles.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
   });
   describe('Buy membership', function() {
     const fee = ether(0.002);

@@ -15,6 +15,7 @@ import "./imports/govblocks-protocol/interfaces/IProposalCategory.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./Iupgradable.sol";
 
+
 contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
 
     bool internal constructorCheck;
@@ -37,8 +38,6 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     CategoryStruct[] internal allCategory;
     mapping (uint => CategoryAction) internal categoryActionData;
     mapping (uint => uint) public categoryABReq;
-    
-    function changeDependentContractAddress() public onlyInternal {}
 
     /// @dev Adds new category
     /// @param _name Category name
@@ -170,6 +169,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         addInitialCategories("Special Resolution", "", "EX", 75, 75, 2, 0);
         constructorCheck = true;
     }
+
+    function changeDependentContractAddress() public onlyInternal {}
 
     /// @dev Updates category details
     /// @param _categoryId Category id that needs to be updated

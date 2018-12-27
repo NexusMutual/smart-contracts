@@ -18,6 +18,7 @@ import "./imports/govblocks-protocol/Governed.sol";
 import "./TokenController.sol";
 import "./Iupgradable.sol";
 
+
 contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     TokenController public dAppToken;
@@ -44,7 +45,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     function changeDependentContractAddress() public onlyInternal {}
     
-    function memberRolesInitiate(bytes32 _dAppName, address _dAppToken, address _firstAB) public {
+    function memberRolesInitiate (bytes32 _dAppName, address _dAppToken, address _firstAB) public {
         require(!constructorCheck);
         dappName = _dAppName;
         dAppToken = TokenController(_dAppToken);

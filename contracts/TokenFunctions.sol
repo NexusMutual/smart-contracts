@@ -331,6 +331,7 @@ contract TokenFunctions is Iupgradable, Governed {
             mr.updateRole(_userAddress, uint(MemberRoles.Role.Member), true);
         } else {
             require(!qd.refundEligible(_userAddress));
+            require(mr.totalRoles() > 0, "No member roles found");
             require(!ms.isMember(_userAddress));
             require(msg.value == td.joiningFee());
             qd.setRefundEligible(_userAddress, true);

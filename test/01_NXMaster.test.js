@@ -85,9 +85,9 @@ contract('NXMaster', function([
     mcr = await MCR.new();
     dai = await DAI.new();
     dsv = await DSValue.deployed();
-    gov = await Governance.deployed();
-    propCat = await ProposalCategory.deployed();
-    memberRoles = await MemberRoles.deployed();
+    gov = await Governance.new();
+    propCat = await ProposalCategory.new();
+    memberRoles = await MemberRoles.new();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -122,6 +122,16 @@ contract('NXMaster', function([
       await newMaster.changeTokenAddress(nxmtk.address);
       await newMaster.addNewVersion(addr);
       nxms = newMaster;
+    });
+
+    it('should be able to change single contract (proxy contracts)', async function() {
+      this.timeout(0);
+      let newMemberRoles = await MemberRoles.new();
+      await nxms.upgradeContractImplementation(
+        '0x4d52',
+        newMemberRoles.address
+      );
+      memberRoles = newMemberRoles;
     });
 
     it('should be able to reinitialize', async function() {

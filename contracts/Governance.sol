@@ -335,7 +335,7 @@ contract Governance is IGovernance, Iupgradable {
         
         for (uint i = 0; i < _proposals.length; i++) {
 
-            voteId = memberProposalVote[_memberAddress][_proposals[i]];
+            voteId = memberProposalVote[leader][_proposals[i]];
             require(
                 !rewardClaimed[voteId][_memberAddress],
                 "Reward already claimed"
@@ -347,7 +347,8 @@ contract Governance is IGovernance, Iupgradable {
                 allProposalData[_proposals[i]].propStatus > uint(ProposalStatus.VotingStarted),
                 "Reward can be claimed only after the proposal is closed"
             );
-            if (allVotes[voteId].dateAdd > (lastUpd + tokenHoldingTime) || leader == _memberAddress) {
+            if ((allVotes[voteId].dateAdd > (lastUpd + tokenHoldingTime) || leader == _memberAddress) && 
+                allVotes[voteId].voter == leader) {
 
                 pendingDAppReward += ((proposalVoteTally[_proposals[i]].memberVoteValue[0] + 
                 proposalVoteTally[_proposals[i]].memberVoteValue[1]) / proposalVoteTally[_proposals[i]].voters);

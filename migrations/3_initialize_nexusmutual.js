@@ -42,9 +42,9 @@ module.exports = function(deployer) {
     const mcr = await MCR.deployed();
     const mcrd = await MCRDataMock.deployed();
     const dsv = await DSValue.deployed();
-    const gov = await Governance.deployed();
-    const propCat = await ProposalCategory.deployed();
-    const mr = await MemberRoles.deployed();
+    const gov = await Governance.new();
+    const propCat = await ProposalCategory.new();
+    const mr = await MemberRoles.new();
     let addr = [
       qd.address,
       td.address,
@@ -84,11 +84,5 @@ module.exports = function(deployer) {
       20180807
     );
     await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
-
-    await mr.memberRolesInitiate(
-      '0x4e657875732d4d757475616c',
-      '0x4e584d',
-      Owner
-    );
   });
 };

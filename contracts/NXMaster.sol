@@ -23,6 +23,7 @@ import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./MemberRoles.sol";
+import "./imports/proxy/OwnedUpgradeabilityProxy.sol";
 
 
 contract NXMaster is Governed {
@@ -73,6 +74,14 @@ contract NXMaster is Governed {
         contractsActive[address(this)] = true;
         versionDates.push(now); //solhint-disable-line
         addContractNames();
+    }
+
+    /// @dev upgrades a single contract
+    function upgradeContractImplementation(bytes2 _contractsName, address _contractsAddress) 
+        external onlyOwner 
+    {
+        require(_contractsName == "GV" || _contractsName == "MR" || _contractsName == "PC");
+        _replaceImplementation(_contractsName, _contractsAddress);
     }
 
     /// @dev Add Emergency pause
@@ -189,13 +198,18 @@ contract NXMaster is Governed {
     /// @dev Changes Master contract address
     function changeMasterAddress(address _masterAddress) public {
         if (_masterAddress != address(this)) {
-            require(msg.sender == owner);
+            require(msg.sender == owner, "Neither master nor owner");
         }
         
         for (uint i = 0; i < allContractNames.length; i++) {
-            up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
-            up.changeMasterAddress(address(this));
+            if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
+                allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+                up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
+                up.changeMasterAddress(address(this));
+            }
+            
         }
+        
         contractsActive[address(this)] = false;
         contractsActive[_masterAddress] = true;
        
@@ -253,13 +267,25 @@ contract NXMaster is Governed {
     /// @dev Creates a new version of contract addresses
     /// @param _contractAddresses Array of contract addresses which will be generated
     function addNewVersion(address[] _contractAddresses) public onlyOwner {
-        for (uint i = 0; i < allContractNames.length; i++) {
-            allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
-        }
-        versionDates.push(now); //solhint-disable-line
 
+        for (uint i = 0; i < allContractNames.length; i++) {
+            if ((allContractNames[i] == "MR" || allContractNames[i] == "GV" || 
+                allContractNames[i] == "PC") && versionDates.length == 1) {
+                _generateProxy(allContractNames[i], _contractAddresses[i]);
+            } else if (!(allContractNames[i] == "MR" || allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+                allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
+            }
+
+        }
+
+            
+        versionDates.push(now); //solhint-disable-line
+        
+            
         changeMasterAddress(address(this));
         changeAllAddress();
+
+        
     }
 
     function checkIsAuthToGoverned(address _add) public view returns(bool)
@@ -274,6 +300,24 @@ contract NXMaster is Governed {
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
         c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
+    }
+
+    function _replaceImplementation(bytes2 _contractsName, address _contractsAddress) internal {
+        uint currentVersion = versionDates.length - 1;
+        OwnedUpgradeabilityProxy tempInstance 
+            = OwnedUpgradeabilityProxy(allContractVersions[currentVersion][_contractsName]);
+        tempInstance.upgradeTo(_contractsAddress);
+    }
+
+    function _generateProxy(bytes2 _contractName, address _contractAddress) internal {
+        uint currentVersion = versionDates.length;
+        OwnedUpgradeabilityProxy tempInstance = new OwnedUpgradeabilityProxy(_contractAddress);
+        allContractVersions[currentVersion][_contractName] = address(tempInstance);
+        contractsActive[address(tempInstance)] = true;
+        if (_contractName == "MR") {
+            MemberRoles mr = MemberRoles(address(tempInstance));
+            mr.memberRolesInitiate(dAppName, dAppLocker(), owner);
+        }
     }
 
     /// @dev Save the initials of all the contracts
@@ -302,16 +346,22 @@ contract NXMaster is Governed {
         uint currentVersion = versionDates.length - 1;
         if (versionDates.length < 3) {
             for (i = 0; i < allContractNames.length; i++) {
-                contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
-                up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
-                up.changeDependentContractAddress();
+                if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
+                    allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+                    contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
+                    up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
+                    up.changeDependentContractAddress();
+                }
             }
         } else {
             for (i = 0; i < allContractNames.length; i++) {
-                contractsActive[allContractVersions[currentVersion - 1][allContractNames[i]]] = false;
-                contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
-                up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
-                up.changeDependentContractAddress();
+                if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
+                    allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+                    contractsActive[allContractVersions[currentVersion - 1][allContractNames[i]]] = false;
+                    contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
+                    up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
+                    up.changeDependentContractAddress();
+                }
             }
 
             if (allContractVersions[currentVersion]["CR"] != allContractVersions[currentVersion - 1]["CR"] 

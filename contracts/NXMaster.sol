@@ -49,7 +49,6 @@ contract NXMaster is Governed {
 
     Claims internal c1;
     ClaimsReward internal cr;
-    Pool1 internal p1;
     TokenFunctions internal tf;
     Iupgradable internal up;
 

@@ -32,8 +32,8 @@ contract PoolData is Iupgradable {
 
     struct CurrencyAssets {
         address currAddress;
-        uint64 baseMin;
-        uint64 varMin;
+        uint baseMin;
+        uint varMin;
     }
 
     struct InvestmentAssets {
@@ -60,6 +60,7 @@ contract PoolData is Iupgradable {
     mapping(bytes16 => uint) internal currencyLastIndex;
     mapping(bytes8 => CurrencyAssets) internal allCurrencyAssets;
     mapping(bytes8 => InvestmentAssets) internal allInvestmentAssets;
+    uint internal constant DECIMAL1E18 = uint(10) ** 18;
     uint public uniswapDeadline;
     uint public liquidityTradeCallbackTime;
     uint public lastLiquidityTradeTrigger;
@@ -73,9 +74,9 @@ contract PoolData is Iupgradable {
         uniswapDeadline = 20 minutes;
         liquidityTradeCallbackTime = 4 hours;
         allCurrencies.push("ETH");
-        allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6, 0);
+        allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6 * DECIMAL1E18, 0);
         allCurrencies.push("DAI");
-        allCurrencyAssets["DAI"] = CurrencyAssets(0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 7, 0);
+        allCurrencyAssets["DAI"] = CurrencyAssets(0xF7c3E9e4A7bB8cA2c1C640f03d76d1AC12887BCE, 7 * DECIMAL1E18, 0);
         allInvestmentCurrencies.push("ETH");
         allInvestmentAssets["ETH"] = InvestmentAssets(address(0), true, 500, 5000, 18);
         allInvestmentCurrencies.push("DAI");
@@ -158,36 +159,39 @@ contract PoolData is Iupgradable {
  
     /**
      * @dev Adds currency asset currency. 
+     * @param curr currency of the asset
+     * @param currAddress address of the currency
+     * @param baseMin base minimum in 10^18. 
      */  
     function addCurrencyAssetCurrency(
-        bytes8 _curr,
-        address _currAddress,
-        uint64 _baseMin
+        bytes8 curr,
+        address currAddress,
+        uint baseMin
     ) 
         external
     {
         require(ms.checkIsAuthToGoverned(msg.sender));
-        allCurrencies.push(_curr);
-        allCurrencyAssets[_curr] = CurrencyAssets(_currAddress, _baseMin, 0);
+        allCurrencies.push(curr);
+        allCurrencyAssets[curr] = CurrencyAssets(currAddress, baseMin, 0);
     }
     
     /**
      * @dev Adds investment asset. 
      */  
     function addInvestmentAssetCurrency(
-        bytes8 _curr,
-        address _currAddress,
-        bool _status,
-        uint64 _minHoldingPercX100,
-        uint64 _maxHoldingPercX100,
+        bytes8 curr,
+        address currAddress,
+        bool status,
+        uint64 minHoldingPercX100,
+        uint64 maxHoldingPercX100,
         uint8 decimals
     ) 
         external
     {
         require(ms.checkIsAuthToGoverned(msg.sender));
-        allInvestmentCurrencies.push(_curr);
-        allInvestmentAssets[_curr] = InvestmentAssets(_currAddress, _status,
-            _minHoldingPercX100, _maxHoldingPercX100, decimals);
+        allInvestmentCurrencies.push(curr);
+        allInvestmentAssets[curr] = InvestmentAssets(currAddress, status,
+            minHoldingPercX100, maxHoldingPercX100, decimals);
     }
     
     /**
@@ -200,65 +204,65 @@ contract PoolData is Iupgradable {
     /**
      * @dev Changes base minimum of a given currency asset.
      */ 
-    function changeCurrencyAssetBaseMin(bytes8 _curr, uint64 _baseMin) external onlyInternal {
-        allCurrencyAssets[_curr].baseMin = _baseMin;
+    function changeCurrencyAssetBaseMin(bytes8 curr, uint baseMin) external onlyInternal {
+        allCurrencyAssets[curr].baseMin = baseMin;
     }
 
     /**
      * @dev changes variable minimum of a given currency asset.
      */  
-    function changeCurrencyAssetVarMin(bytes8 _curr, uint64 _varMin) external onlyInternal {
-        allCurrencyAssets[_curr].varMin = _varMin;
+    function changeCurrencyAssetVarMin(bytes8 curr, uint varMin) external onlyInternal {
+        allCurrencyAssets[curr].varMin = varMin;
     }
 
     /**
      * @dev Updates investment asset decimals.
      */  
-    function updateInvestmentAssetDecimals(bytes8 _curr, uint8 _newDecimal) external onlyInternal {
-        allInvestmentAssets[_curr].decimals = _newDecimal;
+    function updateInvestmentAssetDecimals(bytes8 curr, uint8 newDecimal) external onlyInternal {
+        allInvestmentAssets[curr].decimals = newDecimal;
     }
 
     /** 
      * @dev Changes the investment asset status.
      */ 
-    function changeInvestmentAssetStatus(bytes8 _curr, bool _status) external onlyInternal {
+    function changeInvestmentAssetStatus(bytes8 curr, bool status) external onlyInternal {
         require(ms.checkIsAuthToGoverned(msg.sender));
-        allInvestmentAssets[_curr].status = _status;
+        allInvestmentAssets[curr].status = status;
     }
 
     /** 
      * @dev Changes the investment asset Holding percentage of a given currency.
      */
     function changeInvestmentAssetHoldingPerc(
-        bytes8 _curr,
-        uint64 _minPercX100,
-        uint64 _maxPercX100
+        bytes8 curr,
+        uint64 minPercX100,
+        uint64 maxPercX100
     )
         external
     {
         require(ms.checkIsAuthToGoverned(msg.sender));
-        allInvestmentAssets[_curr].minHoldingPercX100 = _minPercX100;
-        allInvestmentAssets[_curr].maxHoldingPercX100 = _maxPercX100;
+        allInvestmentAssets[curr].minHoldingPercX100 = minPercX100;
+        allInvestmentAssets[curr].maxHoldingPercX100 = maxPercX100;
     }
 
     /**
      * @dev Gets Currency asset token address. 
      */  
-    function changeCurrencyAssetAddress(bytes8 _curr, address _currAdd) external onlyInternal {
-        allCurrencyAssets[_curr].currAddress = _currAdd;
+    function changeCurrencyAssetAddress(bytes8 curr, address currAdd) external onlyInternal {
+        allCurrencyAssets[curr].currAddress = currAdd;
     }
 
     /**
      * @dev Changes Investment asset token address.
      */ 
     function changeInvestmentAssetAddress(
-        bytes8 _curr,
-        address _currAdd
+        bytes8 curr,
+        address currAdd
     )
         external
         onlyInternal
     {
-        allInvestmentAssets[_curr].currAddress = _currAdd;
+        allInvestmentAssets[curr].currAddress = currAdd;
     }
 
     /**
@@ -338,42 +342,42 @@ contract PoolData is Iupgradable {
      * @dev Gets currency asset details for a given currency.
      */  
     function getCurrencyAssetVarBase(
-        bytes8 _curr
+        bytes8 curr
     )
         external
         view
         returns(
-            bytes8 curr,
-            uint64 baseMin,
-            uint64 varMin
+            bytes8 currency,
+            uint baseMin,
+            uint varMin
         )
     {
         return (
-            _curr,
-            allCurrencyAssets[_curr].baseMin,
-            allCurrencyAssets[_curr].varMin
+            curr,
+            allCurrencyAssets[curr].baseMin,
+            allCurrencyAssets[curr].varMin
         );
     }
 
     /**
      * @dev Gets minimum variable value for currency asset.
      */  
-    function getCurrencyAssetVarMin(bytes8 _curr) external view returns(uint64 varMin) {
-        return allCurrencyAssets[_curr].varMin;
+    function getCurrencyAssetVarMin(bytes8 curr) external view returns(uint varMin) {
+        return allCurrencyAssets[curr].varMin;
     }
 
     /** 
      * @dev Gets base minimum of  a given currency asset.
      */  
-    function getCurrencyAssetBaseMin(bytes8 _curr) external view returns(uint64 baseMin) {
-        return allCurrencyAssets[_curr].baseMin;
+    function getCurrencyAssetBaseMin(bytes8 curr) external view returns(uint baseMin) {
+        return allCurrencyAssets[curr].baseMin;
     }
 
     /** 
      * @dev Gets investment asset maximum and minimum holding percentage of a given currency.
      */  
     function getInvestmentAssetHoldingPerc(
-        bytes8 _curr
+        bytes8 curr
     )
         external
         view
@@ -383,42 +387,42 @@ contract PoolData is Iupgradable {
         )
     {
         return (
-            allInvestmentAssets[_curr].minHoldingPercX100,
-            allInvestmentAssets[_curr].maxHoldingPercX100
+            allInvestmentAssets[curr].minHoldingPercX100,
+            allInvestmentAssets[curr].maxHoldingPercX100
         );
     }
 
     /** 
      * @dev Gets investment asset decimals.
      */  
-    function getInvestmentAssetDecimals(bytes8 _curr) external view returns(uint8 decimal) {
-        return allInvestmentAssets[_curr].decimals;
+    function getInvestmentAssetDecimals(bytes8 curr) external view returns(uint8 decimal) {
+        return allInvestmentAssets[curr].decimals;
     }
 
     /**
      * @dev Gets investment asset maximum holding percentage of a given currency.
      */  
-    function getInvestmentAssetMaxHoldingPerc(bytes8 _curr) external view returns(uint64 maxHoldingPercX100) {
-        return allInvestmentAssets[_curr].maxHoldingPercX100;
+    function getInvestmentAssetMaxHoldingPerc(bytes8 curr) external view returns(uint64 maxHoldingPercX100) {
+        return allInvestmentAssets[curr].maxHoldingPercX100;
     }
 
     /**
      * @dev Gets investment asset minimum holding percentage of a given currency.
      */  
-    function getInvestmentAssetMinHoldingPerc(bytes8 _curr) external view returns(uint64 minHoldingPercX100) {
-        return allInvestmentAssets[_curr].minHoldingPercX100;
+    function getInvestmentAssetMinHoldingPerc(bytes8 curr) external view returns(uint64 minHoldingPercX100) {
+        return allInvestmentAssets[curr].minHoldingPercX100;
     }
 
     /** 
      * @dev Gets investment asset details of a given currency
      */  
     function getInvestmentAssetDetails(
-        bytes8 _curr
+        bytes8 curr
     )
         external
         view
         returns(
-            bytes8 curr,
+            bytes8 currency,
             address currAddress,
             bool status,
             uint64 minHoldingPerc,
@@ -427,34 +431,34 @@ contract PoolData is Iupgradable {
         )
     {
         return (
-            _curr,
-            allInvestmentAssets[_curr].currAddress,
-            allInvestmentAssets[_curr].status,
-            allInvestmentAssets[_curr].minHoldingPercX100,
-            allInvestmentAssets[_curr].maxHoldingPercX100,
-            allInvestmentAssets[_curr].decimals
+            curr,
+            allInvestmentAssets[curr].currAddress,
+            allInvestmentAssets[curr].status,
+            allInvestmentAssets[curr].minHoldingPercX100,
+            allInvestmentAssets[curr].maxHoldingPercX100,
+            allInvestmentAssets[curr].decimals
         );
     }
 
     /**
      * @dev Gets Currency asset token address.
      */  
-    function getCurrencyAssetAddress(bytes8 _curr) external view returns(address currAddress) {
-        return allCurrencyAssets[_curr].currAddress;
+    function getCurrencyAssetAddress(bytes8 curr) external view returns(address currAddress) {
+        return allCurrencyAssets[curr].currAddress;
     }
 
     /**
      * @dev Gets investment asset token address.
      */  
-    function getInvestmentAssetAddress(bytes8 _curr) external view returns(address currAddress) {
-        return allInvestmentAssets[_curr].currAddress;
+    function getInvestmentAssetAddress(bytes8 curr) external view returns(address currAddress) {
+        return allInvestmentAssets[curr].currAddress;
     }
 
     /**
      * @dev Gets investment asset active Status of a given currency.
      */  
-    function getInvestmentAssetStatus(bytes8 _curr) external view returns(bool status) {
-        return allInvestmentAssets[_curr].status;
+    function getInvestmentAssetStatus(bytes8 curr) external view returns(bool status) {
+        return allInvestmentAssets[curr].status;
     }
 
     /** 
@@ -462,8 +466,8 @@ contract PoolData is Iupgradable {
      * @param myid Oraclize Query ID identifying the query for which the result is being received.
      * @return _typeof It could be of type "quote","quotation","cover","claim" etc.
      */  
-    function getApiIdTypeOf(bytes32 myid) external view returns(bytes8 _typeof) {
-        _typeof = allAPIid[myid].typeOf;
+    function getApiIdTypeOf(bytes32 myid) external view returns(bytes8) {
+        return allAPIid[myid].typeOf;
     }
 
     /** 
@@ -471,29 +475,29 @@ contract PoolData is Iupgradable {
      * @param myid Oraclize Query ID identifying the query for which the result is being received.
      * @return id1 It could be the ID of "proposal","quotation","cover","claim" etc.
      */  
-    function getIdOfApiId(bytes32 myid) external view returns(uint id1) {
-        id1 = allAPIid[myid].id;
+    function getIdOfApiId(bytes32 myid) external view returns(uint) {
+        return allAPIid[myid].id;
     }
 
     /** 
      * @dev Gets the Timestamp of a oracalize call.
      */  
-    function getDateAddOfAPI(bytes32 myid) external view returns(uint64 dateAdd) {
-        dateAdd = allAPIid[myid].dateAdd;
+    function getDateAddOfAPI(bytes32 myid) external view returns(uint64) {
+        return allAPIid[myid].dateAdd;
     }
 
     /**
      * @dev Gets the Timestamp at which result of oracalize call is received.
      */  
-    function getDateUpdOfAPI(bytes32 myid) external view returns(uint64 dateUpd) {
-        dateUpd = allAPIid[myid].dateUpd;
+    function getDateUpdOfAPI(bytes32 myid) external view returns(uint64) {
+        return allAPIid[myid].dateUpd;
     }
 
     /** 
      * @dev Gets currency by oracalize id. 
      */  
-    function getCurrOfApiId(bytes32 myid) external view returns(bytes4 curr) {
-        curr = allAPIid[myid].currency;
+    function getCurrOfApiId(bytes32 myid) external view returns(bytes4) {
+        return allAPIid[myid].currency;
     }
 
     /**
@@ -508,7 +512,7 @@ contract PoolData is Iupgradable {
     /**
      * @dev Gets Length of API call. 
      */  
-    function getApilCallLength() external view returns(uint len) {
+    function getApilCallLength() external view returns(uint) {
         return allAPIcall.length;
     }
     

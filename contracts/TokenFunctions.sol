@@ -393,9 +393,8 @@ contract TokenFunctions is Iupgradable, Governed {
         tc.lockOf(msg.sender, reason, _amount, validity);
     }
 
-    function isLockedForMemberVote(address _of) public view returns(bool res) {
-        if (now < td.isLockedForMV(_of))
-            res = true;
+    function isLockedForMemberVote(address _of) public view returns(bool) {
+        return now < td.isLockedForMV(_of);
     }
 
     /**

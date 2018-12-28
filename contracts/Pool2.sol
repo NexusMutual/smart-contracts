@@ -80,35 +80,30 @@ contract Pool2 is Iupgradable {
      * @param myid Oraclize Query ID identifying the query for which the result is being received
      */ 
     function delegateCallBack(bytes32 myid) external onlyInternal {
-        bool updateDate;
+        
         bytes8 res = pd.getApiIdTypeOf(myid);
 
         if (ms.isPause() == false) { // system is not in emergency pause
             uint id = pd.getIdOfApiId(myid);
             if (res == "COV") {
-                q2.expireCover(id);
-                updateDate = true;
+                q2.expireCover(id);                
             } else if (res == "CLA") {
                 ClaimsReward cr = ClaimsReward(ms.getLatestAddress("CR"));
-                cr.changeClaimStatus(id);
-                updateDate = true;
+                cr.changeClaimStatus(id);                
             } else if (res == "MCRF") {
-                m1.addLastMCRData(uint64(id));
-                updateDate = true;
+                m1.addLastMCRData(uint64(id));                
             } else if (res == "UNI") {
-                _externalLiquidityTrade();
-                updateDate = true;
+                _externalLiquidityTrade();                
             }
         } else if (res == "Pause") {
             bytes4 by;
             (, , by) = ms.getLastEmergencyPause();
             if (by == "AB") {
-                ms.addEmergencyPause(false, "AUT"); //set pause to false
-                updateDate = true;
+                ms.addEmergencyPause(false, "AUT"); //set pause to false                
             }
         }
 
-        if (updateDate) 
+        if (res != "") 
             pd.updateDateUpdOfAPI(myid);
     }
 

@@ -1,6 +1,6 @@
 const MCR = artifacts.require('MCR');
 const MCRDataMock = artifacts.require('MCRDataMock');
-const Pool1 = artifacts.require('Pool1');
+const Pool1 = artifacts.require('Pool1Mock');
 const PoolData = artifacts.require('PoolData');
 const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');

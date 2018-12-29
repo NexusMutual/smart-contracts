@@ -5,7 +5,7 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const NXMaster = artifacts.require('NXMaster');
-const Pool1 = artifacts.require('Pool1');
+const Pool1 = artifacts.require('Pool1Mock');
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');

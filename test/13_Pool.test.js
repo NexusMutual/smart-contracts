@@ -1,4 +1,4 @@
-const Pool1 = artifacts.require('Pool1');
+const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 

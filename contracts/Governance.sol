@@ -14,17 +14,17 @@
 //     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity 0.4.24;
-import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
-import "./TokenController.sol";
-import "./EventCaller.sol";
 
-import "./imports/govblocks-protocol/interfaces/IGovernance.sol";
+import "./Iupgradable.sol";
+import "./EventCaller.sol";
 import "./ProposalCategory.sol";
 import "./MemberRoles.sol";
-import "./TokenFunctions.sol";
-import "./TokenData.sol";
 import "./NXMToken.sol";
+import "./TokenData.sol";
+import "./TokenFunctions.sol";
+import "./TokenController.sol";
+import "./imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./imports/govblocks-protocol/interfaces/IGovernance.sol";
 
 
 contract Governance is IGovernance, Iupgradable {
@@ -86,8 +86,6 @@ contract Governance is IGovernance, Iupgradable {
     mapping(uint => bool) public proposalPaused;
     mapping(uint => mapping(address => bool)) public rewardClaimed; //voteid->member->reward claimed
     mapping (address => mapping(uint => uint)) public memberProposalVote;
-    
-    
     mapping (address => uint) public followerDelegation;
     mapping (address => uint[]) public leaderDelegation;
     mapping (uint => VoteTally) public proposalVoteTally;
@@ -97,6 +95,7 @@ contract Governance is IGovernance, Iupgradable {
     uint public tokenHoldingTime;
     uint public allowedToCatgorize;
     uint public maxVoteWeigthPer;
+
     IMemberRoles internal memberRole;
     ProposalCategory internal proposalCategory;
     TokenController internal tokenInstance;
@@ -126,7 +125,6 @@ contract Governance is IGovernance, Iupgradable {
     }
 
     modifier isMemberAndcheckPause {
-
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
@@ -149,7 +147,8 @@ contract Governance is IGovernance, Iupgradable {
     function removeDelegation(address _add) external onlyInternal {
         uint delegationId = followerDelegation[_add];
         if (delegationId > 0) {
-            require(!tokenFunction.isLockedForMemberVote(allDelegation[delegationId].leader), "leader voted");
+            require(!tokenFunction.isLockedForMemberVote(
+                allDelegation[delegationId].leader), "leader voted");
             allDelegation[delegationId].leader = address(0);
             allDelegation[delegationId].lastUpd = now;
         }
@@ -240,7 +239,6 @@ contract Governance is IGovernance, Iupgradable {
             allProposalSolutions[_proposalId].length > 1,
             "Add more solutions"
         );
-
         _openProposalForVoting(_proposalId);
     }
 
@@ -509,18 +507,17 @@ contract Governance is IGovernance, Iupgradable {
             lastUpd = allDelegation[delegationId].lastUpd;
         } else
             leader = _memberAddress;
-        uint[] votesByMember = allVotesByMember[leader];
+
         uint proposalId;
-        uint i;
-        for (i = 0; i < votesByMember.length; i++) {  
-            if (allVotes[votesByMember[i]].dateAdd > (lastUpd + tokenHoldingTime) || leader == _memberAddress) {
-                if (!rewardClaimed[votesByMember[i]][_memberAddress]) {
-                    proposalId = allVotes[votesByMember[i]].proposalId;
+        for (uint i = 0; i < allVotesByMember[leader].length; i++) {  
+            if (allVotes[allVotesByMember[leader][i]].dateAdd > (
+                lastUpd + tokenHoldingTime) || leader == _memberAddress) {
+                if (!rewardClaimed[allVotesByMember[leader][i]][_memberAddress]) {
+                    proposalId = allVotes[allVotesByMember[leader][i]].proposalId;
                     pendingDAppReward += ((proposalVoteTally[proposalId].memberVoteValue[0] + 
-                    proposalVoteTally[proposalId].memberVoteValue[1]) / proposalVoteTally[proposalId].voters);
+                        proposalVoteTally[proposalId].memberVoteValue[1]) / proposalVoteTally[proposalId].voters);
                 }
             }
-            
         }
     }
 
@@ -719,29 +716,21 @@ contract Governance is IGovernance, Iupgradable {
         proposalVoteTally[_proposalId].memberVoteValue[_solution] += voteWeight;
         proposalVoteTally[_proposalId].voters += voters;
         proposalVoteTally[_proposalId].abVoteValue[_solution] += voteWeightAB;
-
-
     }
 
-    function maxOf(uint a, uint b) internal returns(uint res) {
-
+    function maxOf(uint a, uint b) internal pure returns(uint res) {
         res = a;
         if (res < b)
             res = b;
-        
     }
 
-    function minOf(uint a, uint b) internal view returns(uint res) {
-
+    function minOf(uint a, uint b) internal pure returns(uint res) {
         res = a;
         if (res > b)
             res = b;
-        
     }
     
-    function checkLastUpd(uint _lastUpd) internal view returns(bool)
-    {
-
+    function checkLastUpd(uint _lastUpd) internal view returns(bool) {
         return (now - _lastUpd) > tokenHoldingTime;
     }
 
@@ -757,12 +746,16 @@ contract Governance is IGovernance, Iupgradable {
             +proposalVoteTally[_proposalId].memberVoteValue[1];
             check = totalTokenVoted.mul(100).div(nxmToken.totalSupply()) > categoryQuorumPerc;
         }  
-
-        
     }
 
     /// @dev This does the remaining functionality of closing proposal vote
-    function closeProposalVoteThReached(uint maxVoteValue, uint totalVoteValue, uint category, uint _proposalId, uint max)  //solhint-disable-line
+    function closeProposalVoteThReached(
+        uint maxVoteValue,
+        uint totalVoteValue,
+        uint category,
+        uint _proposalId,
+        uint max
+    )
         internal
     {
         uint _majorityVote;

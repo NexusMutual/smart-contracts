@@ -140,14 +140,14 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     /// @dev Get All role ids array that has been assigned to a member so far.
     function roles(address _memberAddress) public view returns(uint[]) { //solhint-disable-line
         uint length = memberRoleData.length;
-        uint[] assignedRoles;
+        uint[] memory assignedRoles = new uint[](length);
+        uint counter = 0; 
         for (uint i = 1; i < length; i++) {
             if (memberRoleData[i].memberActive[_memberAddress]) {
-                assignedRoles.push(i);
+                assignedRoles[counter] = i;
+                counter++;
             }
         }
-        
-
         return assignedRoles;
     }
 
@@ -203,8 +203,14 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         memberRoleData.push(MemberRoleDetails(0, new address[](0), _authorized));
     }
 
-    function checkMemberInArray(address _memberAddress, address[] memberArray) 
-    internal view returns(bool memberExists) {
+    function checkMemberInArray(
+        address _memberAddress,
+        address[] memberArray
+    )
+        internal
+        pure
+        returns(bool memberExists)
+    {
         uint i;
         for (i = 0; i < memberArray.length; i++) {
             if (memberArray[i] == _memberAddress) {

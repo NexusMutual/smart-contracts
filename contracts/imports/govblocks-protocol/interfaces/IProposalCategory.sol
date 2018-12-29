@@ -9,6 +9,7 @@
     GNU General Public License for more details.
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
+
 pragma solidity 0.4.24;
 
 
@@ -43,9 +44,33 @@ contract IProposalCategory {
         bytes2 _contractName,
         uint[] _incentives
     ) 
-        external{
+        external;
 
-        }
+    /// @dev gets category details
+    function category(uint _categoryId)
+        external view 
+        returns(
+            uint categoryId,
+            uint memberRoleToVote,
+            uint majorityVotePerc,
+            uint quorumPerc,
+            uint[] allowedToCreateProposal,
+            uint closingTime,
+            uint minStake
+        );
+    
+    ///@dev gets category action details
+    function categoryAction(uint _categoryId)
+        external view
+        returns(
+            uint categoryId,
+            address contractAddress,
+            bytes2 contractName,
+            uint defaultIncentive
+        );
+    
+    /// @dev Gets Total number of categories added till now
+    function totalCategories() external view returns(uint numberOfCategories);
 
     /// @dev Updates category details
     /// @param _categoryId Category id that needs to be updated
@@ -72,42 +97,6 @@ contract IProposalCategory {
         bytes2 _contractName,
         uint[] _incentives
     )
-        public{
-
-        }
-
-    /// @dev gets category details
-    function category(uint _categoryId)
-        external view 
-        returns(
-            uint categoryId,
-            uint memberRoleToVote,
-            uint majorityVotePerc,
-            uint quorumPerc,
-            uint[] allowedToCreateProposal,
-            uint closingTime,
-            uint minStake
-        ){
-
-        }
-
-    ///@dev gets category action details
-    function categoryAction(uint _categoryId)
-        external view
-        returns(
-            uint categoryId,
-            address contractAddress,
-            bytes2 contractName,
-            uint defaultIncentive
-        ){
-
-        }
-    
-    /// @dev Gets Total number of categories added till now
-    function totalCategories() 
-        external view
-        returns(uint numberOfCategories){
-            
-        }
+        public;
 
 }

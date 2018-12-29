@@ -15,6 +15,8 @@ pragma solidity 0.4.24;
 
 contract IMemberRoles {
 
+    event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
+    
     /// @dev Adds new member role
     /// @param _roleName New role name
     /// @param _roleDescription New description hash
@@ -56,9 +58,5 @@ contract IMemberRoles {
     /// @param _memberAddress Address of member
     /// @param _roleId Checks member's authenticity with the roleId.
     /// i.e. Returns true if this roleId is assigned to member
-    function checkRole(address _memberAddress, uint _roleId) public view returns(bool);
-
-    event MemberRole(uint256 indexed roleId, bytes32 roleName, string roleDescription);
-
-    
+    function checkRole(address _memberAddress, uint _roleId) public view returns(bool);   
 }

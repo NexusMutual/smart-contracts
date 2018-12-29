@@ -14,133 +14,9 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity 0.4.24;
-contract IGovernance{
 
 
-
-
-    /// @dev Creates a new proposal
-    /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
-    /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
-    function createProposal(
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash, 
-        uint _categoryId
-    ) external 
-    {
-    }
-
-    /// @dev Edits the details of an existing proposal and creates new version
-    /// @param _proposalId Proposal id that details needs to be updated
-    /// @param _proposalDescHash Proposal description hash having long and short description of proposal.
-    function updateProposal(
-        uint _proposalId, 
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash
-    ) 
-        external
-    {
-    }
-
-    /// @dev Categorizes proposal to proceed further. Categories shows the proposal objective.
-    function categorizeProposal(
-        uint _proposalId, 
-        uint _categoryId,
-        uint _incentives
-    ) external
-    {
-    }
-
-    /// @dev Initiates add solution 
-    /// @param _solutionHash Solution hash having required data against adding solution
-    function addSolution(
-        uint _proposalId,
-        string _solutionHash, 
-        bytes _action
-    ) 
-        external 
-    {
-    }
-
-    /// @dev Opens proposal for voting
-    function openProposalForVoting(uint _proposalId) 
-        external
-    {
-    }
-
-    /// @dev Submit proposal with solution
-    /// @param _proposalId Proposal id
-    /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
-    function submitProposalWithSolution(
-        uint _proposalId, 
-        string _solutionHash, 
-        bytes _action
-    ) 
-        external 
-    {   
-    }
-
-
-
-    /// @dev Creates a new proposal with solution and votes for the solution
-    /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
-    /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
-    /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
-    function createProposalwithSolution(
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash,
-        uint _categoryId, 
-        string _solutionHash, 
-        bytes _action
-    ) 
-        external
-    {   
-    }    
-
-    /// @dev Casts vote
-    /// @param _proposalId Proposal id
-    /// @param _solutionChosen solution chosen while voting. _solutionChosen[0] is the chosen solution
-    function submitVote(uint32 _proposalId, uint64 _solutionChosen) external {
-    } 
-
-    function canCloseProposal(uint _proposalId) 
-        public 
-        view 
-        returns(uint closeValue) 
-    {
-    }
-
-    function closeProposal(uint _proposalId) external {
-    }
-
-    function claimReward(address _memberAddress, uint[] _proposals) 
-        external returns(uint pendingDAppReward) 
-    {
-    }
-
-    function pauseProposal(uint _proposalId)
-    {
-    }
-
-    function resumeProposal(uint _proposalId)
-    {
-    }
-
-    function proposal(uint _proposalId) external view returns(uint proposalId, uint category, uint status, uint finalVerdict, uint totalReward)
-    {
-    }
-
-    function callRewardClaimed(address _member, uint[] _voterProposals, uint _gbtReward)
-    external
-    {
-    }
-
-    function  allowedToCatgorize() public returns(uint roleId) {
-    }
-    
+contract IGovernance { 
 
     event Proposal(
         address indexed proposalOwner,
@@ -172,5 +48,88 @@ contract IGovernance{
         uint[] voterProposals,
         uint gbtReward
     );
+
+    /// @dev Creates a new proposal
+    /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
+    /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
+    function createProposal(
+        string _proposalSD,
+        string _proposalDescHash,
+        uint _categoryId
+    ) external;
+
+    /// @dev Edits the details of an existing proposal and creates new version
+    /// @param _proposalId Proposal id that details needs to be updated
+    /// @param _proposalDescHash Proposal description hash having long and short description of proposal.
+    function updateProposal(
+        uint _proposalId, 
+        string _proposalTitle, 
+        string _proposalSD, 
+        string _proposalDescHash
+    ) external;
+
+    /// @dev Categorizes proposal to proceed further. Categories shows the proposal objective.
+    function categorizeProposal(
+        uint _proposalId, 
+        uint _categoryId,
+        uint _incentives
+    ) external;
+
+    /// @dev Initiates add solution 
+    /// @param _solutionHash Solution hash having required data against adding solution
+    function addSolution(
+        uint _proposalId,
+        string _solutionHash, 
+        bytes _action
+    ) external; 
+
+    /// @dev Opens proposal for voting
+    function openProposalForVoting(uint _proposalId) external;
+
+    /// @dev Submit proposal with solution
+    /// @param _proposalId Proposal id
+    /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
+    function submitProposalWithSolution(
+        uint _proposalId, 
+        string _solutionHash, 
+        bytes _action
+    ) 
+        external; 
+
+    /// @dev Creates a new proposal with solution and votes for the solution
+    /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
+    /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
+    /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
+    function createProposalwithSolution(
+        string _proposalTitle, 
+        string _proposalSD, 
+        string _proposalDescHash,
+        uint _categoryId, 
+        string _solutionHash, 
+        bytes _action
+    ) 
+        external;
+
+    /// @dev Casts vote
+    /// @param _proposalId Proposal id
+    /// @param _solutionChosen solution chosen while voting. _solutionChosen[0] is the chosen solution
+    function submitVote(uint32 _proposalId, uint64 _solutionChosen) external;
+
+    function closeProposal(uint _proposalId) external;
+
+    function claimReward(address _memberAddress, uint[] _proposals) external returns(uint pendingDAppReward); 
+
+    function callRewardClaimed(address _member, uint[] _voterProposals, uint _gbtReward) external;
+
+    function proposal(uint _proposalId)
+        external view returns(uint proposalId, uint category, uint status, uint finalVerdict, uint totalReward);
+
+    function canCloseProposal(uint _proposalId) public view returns(uint closeValue);
+
+    function pauseProposal(uint _proposalId) public;
+    
+    function resumeProposal(uint _proposalId) public;
+    
+    function  allowedToCatgorize() public returns(uint roleId);
 
 }

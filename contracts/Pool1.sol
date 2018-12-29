@@ -100,6 +100,7 @@ contract Pool1 is usingOraclize, Iupgradable {
             succ = true;
         } else {
             c1.setClaimStatus(claimid, 12);
+            p2.internalLiquiditySwap(curr);
         }
 
         tf.burnStakerLockedToken(coverid, curr, sumAssured);
@@ -108,14 +109,14 @@ contract Pool1 is usingOraclize, Iupgradable {
     function triggerExternalLiquidityTrade() external onlyInternal {
         if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
             pd.setLastLiquidityTradeTrigger();
-            bytes32 myid = oraclize_query(pd.liquidityTradeCallbackTime(), "URL", "", 300000);
+            bytes32 myid = oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
             saveApiDetails(myid, "UNI", 0);
         }
     }
 
     ///@dev Oraclize call to close emergency pause.
     function closeEmergencyPause(uint time) external onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "", 300000);
+        bytes32 myid = oraclizeQuery(4, time, "URL", "", 300000);
         saveApiDetails(myid, "Pause", 0);
     }
 
@@ -123,7 +124,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @param id Claim Id to be closed
     /// @param time Time (in seconds) after which Claims assessment voting needs to be closed
     function closeClaimsOraclise(uint id, uint64 time) external onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "", 3000000);
+        bytes32 myid = oraclizeQuery(4, time, "URL", "", 3000000);
         saveApiDetails(myid, "CLA", id);
     }
 
@@ -131,28 +132,28 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @param id Quote Id to be expired
     /// @param time Time (in seconds) after which the cover should be expired
     function closeCoverOraclise(uint id, uint64 time) external onlyInternal {
-        bytes32 myid = oraclize_query(
-            time, "URL", strConcat("http://a1.nexusmutual.io/api/Claims/closeClaim_hash/", uint2str(id)), 1000000);
+        bytes32 myid = oraclizeQuery(4, time, "URL", strConcat(
+            "http://a1.nexusmutual.io/api/Claims/closeClaim_hash/", uint2str(id)), 1000000);
         saveApiDetails(myid, "COV", id);
     }
 
     /// @dev Calls the Oraclize Query to initiate MCR calculation.
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function mcrOraclise(uint64 time) external onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/");
+        bytes32 myid = oraclizeQuery(3, time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/postMCR/K4", 0);
         saveApiDetails(myid, "MCR", 0);
     }
 
     /// @dev Calls the Oraclize Query in case MCR calculation fails.
     /// @param time Time (in seconds) after which the next MCR calculation should be initiated
     function mcrOracliseFail(uint id, uint64 time) external onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "", 1000000);
+        bytes32 myid = oraclizeQuery(4, time, "URL", "", 1000000);
         saveApiDetails(myid, "MCRF", id);
     }
 
     /// @dev Oraclize call to update investment asset rates.
     function saveIADetailsOracalise(uint64 time) external onlyInternal {
-        bytes32 myid = oraclize_query(time, "URL", "http://a3.nexusmutual.io");
+        bytes32 myid = oraclizeQuery(3, time, "URL", "http://a3.nexusmutual.io", 0);
         saveApiDetails(myid, "IARB", 0);
     }
     
@@ -171,7 +172,7 @@ contract Pool1 is usingOraclize, Iupgradable {
 
     /// @dev Calls the Oraclize Query to update the version of the contracts.
     function versionOraclise(uint version) external onlyInternal {
-        bytes32 myid = oraclize_query("URL", "http://a1.nexusmutual.io/api/MCR/setlatest/T");
+        bytes32 myid = oraclizeQuery(2, 0, "URL", "http://a1.nexusmutual.io/api/MCR/setlatest/T", 0);
         saveApiDetails(myid, "VER", version);
     }
 
@@ -259,35 +260,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @dev Enables user to purchase NXM at the current token price.
     function buyToken() public payable isMember checkPause returns(bool success) {
         require(msg.value > 0);
-        uint tokenPrice;
-        uint superWeiLeft = (msg.value).mul(DECIMAL1E18);
-        uint tempTokens;
-        uint superWeiSpent;
-        uint tokenPurchased;
-        uint tokenSupply = tk.totalSupply();
-        uint vtp;
-        uint mcrFullperc;
-        uint vFull;
-        uint mcrtp;
-        (mcrFullperc, , vFull, ) = md.getLastMCR();
-
-        (vtp, ) = m1.calVtpAndMCRtp((address(this).balance).sub(msg.value));
-        require(m1.calculateTokenPrice("ETH") > 0, "Token price can not be zero");
-        while (superWeiLeft > 0) {
-            mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
-            tokenPrice = m1.calculateStepTokenPrice("ETH", tokenSupply, mcrtp);
-            tempTokens = superWeiLeft.div(tokenPrice);
-            if (tempTokens <= PRICE_STEP) {
-                tokenPurchased = tokenPurchased.add(tempTokens);
-                break;
-            } else {
-                tokenPurchased = tokenPurchased.add(PRICE_STEP);
-                tokenSupply = tokenSupply.add(PRICE_STEP);
-                superWeiSpent = PRICE_STEP.mul(tokenPrice);
-                superWeiLeft = superWeiLeft.sub(superWeiSpent);
-                vtp = vtp.add((PRICE_STEP.mul(tokenPrice)).div(DECIMAL1E18));
-            }
-        }
+        uint tokenPurchased = _getToken(msg.value);
         tc.mint(msg.sender, tokenPurchased);
         success = true;
     }
@@ -312,7 +285,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         require(tk.balanceOf(msg.sender) >= _amount, "Not enough balance");
         require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
         require(_amount <= m1.getMaxSellTokens(), "exceeds maximum token sell limit");
-        uint sellingPrice = _getWei(_amount, tk.totalSupply());
+        uint sellingPrice = _getWei(_amount);
         require(tc.burnFrom(msg.sender, _amount), "Burn not successfull");
         msg.sender.transfer(sellingPrice);
         success = true;
@@ -320,30 +293,31 @@ contract Pool1 is usingOraclize, Iupgradable {
 
     /**
      * @dev Returns the amount of wei a seller will get for selling NXM
-     * @param _amount Amount of NXM to sell
+     * @param amount Amount of NXM to sell
      * @return weiToPay Amount of wei the seller will get
      */
-    function getWei(uint _amount) public view returns(uint weiToPay) {
-        return _getWei(_amount, tk.totalSupply());
+    function getWei(uint amount) public view returns(uint weiToPay) {
+        return _getWei(amount);
+    }
+
+    /**
+     * @dev Returns the amount of token a buyer will get for corresponding wei
+     * @param weiPaid Amount of wei 
+     * @return tokenToGet Amount of tokens the buyer will get
+     */
+    function getToken(uint weiPaid) public view returns(uint tokenToGet) {
+        return _getToken(weiPaid);
     }
 
     /**
      * @dev Returns the amount of wei a seller will get for selling NXM
      * @param _amount Amount of NXM to sell
-     * @param _totalSupply total supply of tokens
      * @return weiToPay Amount of wei the seller will get
      */
-    function _getWei(
-        uint _amount,
-        uint _totalSupply
-    )
-        internal
-        view
-        returns(uint weiToPay)
-    {
+    function _getWei(uint _amount) internal view returns(uint weiToPay) {
         uint tokenPrice;
         uint weiPaid;
-        uint tokenSupply = _totalSupply;
+        uint tokenSupply = tk.totalSupply();
         uint vtp;
         uint mcrFullperc;
         uint vFull;
@@ -364,6 +338,38 @@ contract Pool1 is usingOraclize, Iupgradable {
                 weiPaid = (tokenPrice.mul(PRICE_STEP)).div(DECIMAL1E18);
                 vtp = vtp.sub(weiPaid);
                 weiToPay = weiToPay.add(weiPaid);
+            }
+        }
+    }
+
+    function _getToken(uint _weiPaid) internal view returns(uint tokenToGet){
+        uint tokenPrice;
+        uint superWeiLeft = (_weiPaid).mul(DECIMAL1E18);
+        uint tempTokens;
+        uint superWeiSpent;
+        uint tokenSupply = tk.totalSupply();
+        uint vtp;
+        uint mcrFullperc;   
+        uint vFull;
+        uint mcrtp;
+        (mcrFullperc, , vFull, ) = md.getLastMCR();
+        (vtp, ) = m1.calVtpAndMCRtp((address(this).balance).sub(_weiPaid));
+
+        require(m1.calculateTokenPrice("ETH") > 0, "Token price can not be zero");
+
+        while (superWeiLeft > 0) {
+            mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
+            tokenPrice = m1.calculateStepTokenPrice("ETH", tokenSupply, mcrtp);
+            tempTokens = superWeiLeft.div(tokenPrice);
+            if (tempTokens <= PRICE_STEP) {
+                tokenToGet = tokenToGet.add(tempTokens);
+                break;
+            } else {
+                tokenToGet = tokenToGet.add(PRICE_STEP);
+                tokenSupply = tokenSupply.add(PRICE_STEP);
+                superWeiSpent = PRICE_STEP.mul(tokenPrice);
+                superWeiLeft = superWeiLeft.sub(superWeiSpent);
+                vtp = vtp.add((PRICE_STEP.mul(tokenPrice)).div(DECIMAL1E18));
             }
         }
     }
@@ -405,5 +411,23 @@ contract Pool1 is usingOraclize, Iupgradable {
         if (erc20.balanceOf(address(this)) > 0)
             erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }
-   
+
+    function oraclizeQuery(
+        uint paramCount,
+        uint timestamp,
+        string datasource,
+        string arg,
+        uint gasLimit
+    ) 
+        internal
+        returns (bytes32 id)
+    {
+        if (paramCount == 4){
+            id = oraclize_query(timestamp, datasource, arg, gasLimit);   
+        } else if (paramCount == 3){
+            id = oraclize_query(timestamp, datasource, arg);   
+        } else {
+            id = oraclize_query(datasource, arg);
+        }
+    }
 }

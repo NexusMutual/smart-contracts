@@ -93,7 +93,7 @@ contract Governance is IGovernance, Iupgradable {
     bool internal constructorCheck;
     uint internal minVoteWeight;
     uint public tokenHoldingTime;
-    uint public allowedToCatgorize;
+    uint internal roleIdAllowedToCatgorize;
     uint public maxVoteWeigthPer;
 
     IMemberRoles internal memberRole;
@@ -120,7 +120,7 @@ contract Governance is IGovernance, Iupgradable {
     }
 
     modifier isAllowedToCategorize() {
-        require(memberRole.checkRole(msg.sender, allowedToCatgorize), "Not authorized");
+        require(memberRole.checkRole(msg.sender, roleIdAllowedToCatgorize), "Not authorized");
         _;
     }
 
@@ -205,7 +205,6 @@ contract Governance is IGovernance, Iupgradable {
         external
         voteNotStarted(_proposalId) isAllowedToCategorize
     {
-
         require(
             allProposalSolutions[_proposalId].length < 2,
             "Solutions had already been submitted"
@@ -282,15 +281,15 @@ contract Governance is IGovernance, Iupgradable {
         );
     }
 
-    function submitVote(uint _proposalId, uint _solution) external {
+    function submitVote(uint _proposalId, uint _solutionChosen) external {
         // require(addressProposalVote[msg.sender][_proposalId] == 0, "Already voted");
 
         require(allProposalData[_proposalId].propStatus == 
         uint(Governance.ProposalStatus.VotingStarted), "Not allowed");
 
-        require(_solution <= allProposalSolutions[_proposalId].length, "Solution doesn't exist");
+        require(_solutionChosen <= allProposalSolutions[_proposalId].length, "Solution doesn't exist");
 
-        _submitVote(_proposalId, _solution);
+        _submitVote(_proposalId, _solutionChosen);
     }
 
     function closeProposal(uint _proposalId) external {
@@ -362,7 +361,16 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
-    function proposal(uint _proposalId) external view returns(uint, uint, uint, uint, uint)
+    function proposal(uint _proposalId)
+        external
+        view
+        returns(
+            uint proposalId,
+            uint category,
+            uint status,
+            uint finalVerdict,
+            uint totalRewar
+        )
     {
         return(
             _proposalId,
@@ -568,6 +576,10 @@ contract Governance is IGovernance, Iupgradable {
         } else {
             closeValue = 0;
         }
+    }
+
+    function allowedToCatgorize() public returns(uint roleId) {
+        return roleIdAllowedToCatgorize;
     }
 
     function _createProposal(

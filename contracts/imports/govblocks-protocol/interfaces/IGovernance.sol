@@ -53,6 +53,7 @@ contract IGovernance {
     /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
     function createProposal(
+        string _proposalTitle,
         string _proposalSD,
         string _proposalDescHash,
         uint _categoryId
@@ -94,7 +95,7 @@ contract IGovernance {
         string _solutionHash, 
         bytes _action
     ) 
-        external; 
+        external;
 
     /// @dev Creates a new proposal with solution and votes for the solution
     /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
@@ -113,7 +114,7 @@ contract IGovernance {
     /// @dev Casts vote
     /// @param _proposalId Proposal id
     /// @param _solutionChosen solution chosen while voting. _solutionChosen[0] is the chosen solution
-    function submitVote(uint32 _proposalId, uint64 _solutionChosen) external;
+    function submitVote(uint _proposalId, uint _solutionChosen) external;
 
     function closeProposal(uint _proposalId) external;
 
@@ -122,7 +123,15 @@ contract IGovernance {
     function callRewardClaimed(address _member, uint[] _voterProposals, uint _gbtReward) external;
 
     function proposal(uint _proposalId)
-        external view returns(uint proposalId, uint category, uint status, uint finalVerdict, uint totalReward);
+        external
+        view
+        returns(
+            uint proposalId,
+            uint category,
+            uint status,
+            uint finalVerdict,
+            uint totalReward
+        );
 
     function canCloseProposal(uint _proposalId) public view returns(uint closeValue);
 
@@ -130,6 +139,6 @@ contract IGovernance {
     
     function resumeProposal(uint _proposalId) public;
     
-    function  allowedToCatgorize() public returns(uint roleId);
+    function allowedToCatgorize() public returns(uint roleId);
 
 }

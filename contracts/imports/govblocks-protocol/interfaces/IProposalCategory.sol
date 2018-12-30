@@ -48,7 +48,8 @@ contract IProposalCategory {
 
     /// @dev gets category details
     function category(uint _categoryId)
-        external view 
+        external
+        view
         returns(
             uint categoryId,
             uint memberRoleToVote,
@@ -61,7 +62,8 @@ contract IProposalCategory {
     
     ///@dev gets category action details
     function categoryAction(uint _categoryId)
-        external view
+        external
+        view
         returns(
             uint categoryId,
             address contractAddress,

@@ -260,7 +260,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @dev Enables user to purchase NXM at the current token price.
     function buyToken() public payable isMember checkPause returns(bool success) {
         require(msg.value > 0);
-        uint tokenPurchased = _getToken(msg.value);
+        uint tokenPurchased = _getToken(address(this).balance, msg.value);
         tc.mint(msg.sender, tokenPurchased);
         success = true;
     }
@@ -306,7 +306,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @return tokenToGet Amount of tokens the buyer will get
      */
     function getToken(uint weiPaid) public view returns(uint tokenToGet) {
-        return _getToken(weiPaid);
+        return _getToken((address(this).balance).add(weiPaid), weiPaid);
     }
 
     /**
@@ -342,7 +342,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         }
     }
 
-    function _getToken(uint _weiPaid) internal view returns(uint tokenToGet){
+    function _getToken(uint _poolBalance, uint _weiPaid) internal view returns(uint tokenToGet) {
         uint tokenPrice;
         uint superWeiLeft = (_weiPaid).mul(DECIMAL1E18);
         uint tempTokens;
@@ -353,7 +353,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint vFull;
         uint mcrtp;
         (mcrFullperc, , vFull, ) = md.getLastMCR();
-        (vtp, ) = m1.calVtpAndMCRtp((address(this).balance).sub(_weiPaid));
+        (vtp, ) = m1.calVtpAndMCRtp((_poolBalance).sub(_weiPaid));
 
         require(m1.calculateTokenPrice("ETH") > 0, "Token price can not be zero");
 

@@ -3,7 +3,6 @@ const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
-const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenData = artifacts.require('TokenData');
 const TokenFunctions = artifacts.require('TokenFunctions');
@@ -29,7 +28,6 @@ module.exports = function(deployer) {
     await deployer.deploy(Pool2);
     await deployer.deploy(PoolData);
     await deployer.deploy(MCR);
-    await deployer.deploy(MCRDataMock);
     const tc = await deployer.deploy(TokenController);
     await deployer.deploy(NXMToken, tc.address, founderAddress, INITIAL_SUPPLY);
     await deployer.deploy(TokenData);

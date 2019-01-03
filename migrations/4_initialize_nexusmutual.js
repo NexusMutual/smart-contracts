@@ -2,10 +2,9 @@ const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
-const DSValue = artifacts.require('DSValue');
+const DSValue = artifacts.require('DSValueMock');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
-const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const TokenController = artifacts.require('TokenController');
@@ -42,7 +41,6 @@ module.exports = function(deployer) {
     const cr = await ClaimsReward.deployed();
     const cd = await ClaimsData.deployed();
     const mcr = await MCR.deployed();
-    const mcrd = await MCRDataMock.deployed();
     const dsv = await DSValue.deployed();
     const gov = await Governance.deployed();
     const propCat = await ProposalCategory.deployed();
@@ -53,7 +51,6 @@ module.exports = function(deployer) {
       td.address,
       cd.address,
       pd.address,
-      mcrd.address,
       qt.address,
       tf.address,
       tc.address,
@@ -68,32 +65,31 @@ module.exports = function(deployer) {
     ];
     await nxms.changeTokenAddress(tk.address);
     await nxms.addNewVersion(addr);
+    const dai = await DAI.deployed();
+    await pd.changeCurrencyAssetAddress('0x444149', dai.address);
+    await pd.changeInvestmentAssetAddress('0x444149', dai.address);
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
     await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
     await td.changeWalletAddress(Owner);
     await qd.changeAuthQuoteEngine(QE);
-    const dai = await DAI.deployed();
-    await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-    await mcr.changenotariseAddress(Owner);
-    await pd.changeInvestmentAssetAddress('0x455448', ZERO_ADDRESS);
-    await pd.changeInvestmentAssetAddress('0x444149', dai.address);
-    await mcrd.changeDAIfeedAddress(dsv.address);
+    await pd.changeNotariseAddress(Owner);
+    await dai.transfer(pl1.address, POOL_ASSET);
+    await pd.changeDAIfeedAddress(dsv.address);
     await mcr.addMCRData(
       18000,
-      10000,
-      2,
+      100 * 1e18,
+      2 * 1e18,
       ['0x455448', '0x444149'],
-      [100, 65407],
-      20180807
+      [100, 15517],
+      20190103
     );
-    await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
+    await pl2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103);
+    await dai.transfer(pl2.address, POOL_ASSET);
     await mr.memberRolesInitiate(
       '0x4e657875732d4d757475616c',
       '0x4e584d',
       Owner
     );
     await pl2.changeUniswapFactoryAddress(factory.address);
-    await dai.transfer(pl1.address, POOL_ASSET);
-    await dai.transfer(pl2.address, POOL_ASSET);
   });
 };

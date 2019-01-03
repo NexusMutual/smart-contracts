@@ -97,11 +97,11 @@ contract MCR is Iupgradable {
         uint mcrP,
         uint mcrE,
         uint vF,
-        bytes4[] memory curr,
+        bytes4[] curr,
         uint[] _threeDayAvg,
         uint64 onlyDate
     )
-        public
+        external
         checkPause
     {
         require(pd.isnotarise(msg.sender));
@@ -112,8 +112,7 @@ contract MCR is Iupgradable {
     /**
      * @dev Adds MCR Data for last failed attempt.
      */  
-    function addLastMCRData(uint64 date) external checkPause
-     {
+    function addLastMCRData(uint64 date) external checkPause {
         uint64 lastdate = uint64(pd.getLastMCRDate());
         uint64 failedDate = uint64(date);
         if (failedDate >= lastdate) {

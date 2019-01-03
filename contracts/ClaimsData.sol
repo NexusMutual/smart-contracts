@@ -1136,5 +1136,4 @@ contract ClaimsData is Iupgradable {
         pushStatus(0, 0); //13 Claim Accepted No Payout 
         pushStatus(0, 0); //14 Claim Accepted Payout Done
     }
-
 }

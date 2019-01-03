@@ -438,7 +438,6 @@ contract TokenFunctions is Iupgradable, Governed {
             stakerAddress, stakedContractAddress, stakerIndex);
     }
 
-
     /**
      * @dev releases unlockable staked tokens to staker 
      */

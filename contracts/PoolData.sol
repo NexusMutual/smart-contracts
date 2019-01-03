@@ -192,78 +192,6 @@ contract PoolData is Iupgradable {
         daiFeedAddress = _add;
     }
 
-    /// @dev Checks whether a given address can notaise MCR data or not.
-    /// @param _add Address.
-    /// @return res Returns 0 if address is not authorized, else 1.
-    function isnotarise(address _add) external view returns(bool res) {
-        res = false;
-        if (_add == notariseMCR)
-            res = true;
-    }
-
-    /// @dev Gets the average rate of a currency.
-    /// @param curr Currency Name.
-    /// @return rate Average rate X 100(of last 3 days).
-    function _getCurr3DaysAvg(bytes4 curr) internal view returns(uint rate) {
-        if (curr == "DAI") {
-            DSValue ds = DSValue(daiFeedAddress);
-            rate = uint(ds.read()).div(DECIMAL1E16);
-        } else {
-            rate = allCurr3DaysAvg[curr];
-        }
-    }
-
-    /// @dev Gets the details of last added MCR.
-    /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
-    /// @return vFull Total Pool fund value in Ether used in the last full daily calculation.
-    function getLastMCR() external view returns(uint mcrPercx100, uint mcrEtherx100, uint vFull, uint64 date) {
-        uint index = allMCRData.length.sub(1);
-        return (
-            allMCRData[index].mcrPercx100,
-            allMCRData[index].mcrEther,
-            allMCRData[index].vFull,
-            allMCRData[index].date
-        );
-    }
-
-    /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
-    /// @return val MCR% value,multiplied by 100.
-    function getLastMCRPerc() external view returns(uint) {
-       return allMCRData[allMCRData.length.sub(1)].mcrPercx100;
-    }
-
-    /// @dev Gets last Ether price of Capital Model
-    /// @return val ether value,multiplied by 100.
-    function getLastMCREther() external view returns(uint) {
-        return allMCRData[allMCRData.length.sub(1)].mcrEther;
-    }
-
-    /// @dev Gets Pool fund value in Ether used in the last full daily calculation from the Capital model.
-    function getLastVfull() external view returns(uint) {
-        return allMCRData[allMCRData.length.sub(1)].vFull;
-    }
-
-    /// @dev Gets last Minimum Capital Requirement in Ether.
-    /// @return date of MCR.
-    function getLastMCRDate() external view returns(uint64 date) {
-        date = allMCRData[allMCRData.length.sub(1)].date;
-    }
-
-    /// @dev Gets details for token price calculation.
-    function getTokenPriceDetails(bytes4 curr) external view returns(uint sf, uint gs, uint rate) {
-        sf = sfX100000;
-        gs = growthStep;
-        rate = _getCurr3DaysAvg(curr);
-    }
-
-    function getCurr3DaysAvg(bytes4 curr) public view returns(uint rate) {
-        return _getCurr3DaysAvg(curr);
-    }
-    /// @dev Gets the total number of times MCR calculation has been made.
-    function getMCRDataLength() external view returns(uint len) {
-        len = allMCRData.length;
-    }
- 
     function changeUniswapDeadlineTime(uint newDeadline) external onlyInternal {
         uniswapDeadline = newDeadline;
     }
@@ -446,6 +374,63 @@ contract PoolData is Iupgradable {
         allInvestmentAssets[curr].currAddress = currAdd;
     }
 
+    /// @dev Checks whether a given address can notaise MCR data or not.
+    /// @param _add Address.
+    /// @return res Returns 0 if address is not authorized, else 1.
+    function isnotarise(address _add) external view returns(bool res) {
+        res = false;
+        if (_add == notariseMCR)
+            res = true;
+    }
+
+    /// @dev Gets the details of last added MCR.
+    /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
+    /// @return vFull Total Pool fund value in Ether used in the last full daily calculation.
+    function getLastMCR() external view returns(uint mcrPercx100, uint mcrEtherx100, uint vFull, uint64 date) {
+        uint index = allMCRData.length.sub(1);
+        return (
+            allMCRData[index].mcrPercx100,
+            allMCRData[index].mcrEther,
+            allMCRData[index].vFull,
+            allMCRData[index].date
+        );
+    }
+
+    /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
+    /// @return val MCR% value,multiplied by 100.
+    function getLastMCRPerc() external view returns(uint) {
+        return allMCRData[allMCRData.length.sub(1)].mcrPercx100;
+    }
+
+    /// @dev Gets last Ether price of Capital Model
+    /// @return val ether value,multiplied by 100.
+    function getLastMCREther() external view returns(uint) {
+        return allMCRData[allMCRData.length.sub(1)].mcrEther;
+    }
+
+    /// @dev Gets Pool fund value in Ether used in the last full daily calculation from the Capital model.
+    function getLastVfull() external view returns(uint) {
+        return allMCRData[allMCRData.length.sub(1)].vFull;
+    }
+
+    /// @dev Gets last Minimum Capital Requirement in Ether.
+    /// @return date of MCR.
+    function getLastMCRDate() external view returns(uint64 date) {
+        date = allMCRData[allMCRData.length.sub(1)].date;
+    }
+
+    /// @dev Gets details for token price calculation.
+    function getTokenPriceDetails(bytes4 curr) external view returns(uint sf, uint gs, uint rate) {
+        sf = sfX100000;
+        gs = growthStep;
+        rate = _getCurr3DaysAvg(curr);
+    }
+    
+    /// @dev Gets the total number of times MCR calculation has been made.
+    function getMCRDataLength() external view returns(uint len) {
+        len = allMCRData.length;
+    }
+ 
     /**
      * @dev Gets investment asset rank details by given date.
      */  
@@ -724,6 +709,22 @@ contract PoolData is Iupgradable {
             allAPIid[myid].dateUpd
         );
     }
-        
+
+    function getCurr3DaysAvg(bytes4 curr) public view returns(uint rate) {
+        return _getCurr3DaysAvg(curr);
+    }
+
     function changeDependentContractAddress() public onlyInternal {}
+
+    /// @dev Gets the average rate of a currency.
+    /// @param curr Currency Name.
+    /// @return rate Average rate X 100(of last 3 days).
+    function _getCurr3DaysAvg(bytes4 curr) internal view returns(uint rate) {
+        if (curr == "DAI") {
+            DSValue ds = DSValue(daiFeedAddress);
+            rate = uint(ds.read()).div(DECIMAL1E16);
+        } else {
+            rate = allCurr3DaysAvg[curr];
+        }
+    }
 }

@@ -419,9 +419,9 @@ contract Pool1 is usingOraclize, Iupgradable {
         internal
         returns (bytes32 id)
     {
-        if (paramCount == 4){
+        if (paramCount == 4) {
             id = oraclize_query(timestamp, datasource, arg, gasLimit);   
-        } else if (paramCount == 3){
+        } else if (paramCount == 3) {
             id = oraclize_query(timestamp, datasource, arg);   
         } else {
             id = oraclize_query(datasource, arg);

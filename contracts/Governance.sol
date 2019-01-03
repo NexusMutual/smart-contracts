@@ -794,15 +794,16 @@ contract Governance is IGovernance, Iupgradable {
         address actionAddress;
         (, actionAddress, contractName, ) = proposalCategory.categoryAction(category);
         _updateProposalStatus(_proposalId, _status);
-                /*solhint-disable*/
-        if (contractName == "MS")
+        if (contractName == "MS") {
             actionAddress = address(ms);
-        else if (contractName !="EX")
+        } else if (contractName != "EX") {
             actionAddress = ms.getLatestAddress(contractName);
-        /*solhint-enable*/
-        if (actionAddress.call(allProposalSolutions[_proposalId][max])) {
+        }
+
+        if (actionAddress.call(allProposalSolutions[_proposalId][max])) { //solhint-disable-line
             eventCaller.callActionSuccess(_proposalId);
         }
+
         eventCaller.callProposalAccepted(_proposalId);
     }
 

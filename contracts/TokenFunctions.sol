@@ -419,9 +419,30 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
+     * @dev Function to gets unlockable amount of locked NXM 
+     * tokens, staked against smartcontract by index
+     * @param stakerAddress address of staker
+     * @param stakedContractAddress staked contract address
+     * @param stakerIndex index of staking
+     */
+    function getStakerUnlockableTokensOnSmartContract (
+        address stakerAddress,
+        address stakedContractAddress,
+        uint stakerIndex
+    ) 
+        public
+        view
+        returns (uint)
+    {
+        return _getStakerUnlockableTokensOnSmartContract(
+            stakerAddress, stakedContractAddress, stakerIndex);
+    }
+
+
+    /**
      * @dev releases unlockable staked tokens to staker 
      */
-    function unlockStakerUnlockableTokens(address _stakerAddress) public {
+    function unlockStakerUnlockableTokens(address _stakerAddress) public onlyInternal {
         uint unlockableAmount;
         address scAddress;
         bytes32 reason;
@@ -469,8 +490,8 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-     * @dev Internal function to gets amount of staked NXM 
-     * tokens, against smartcontract by index
+     * @dev Internal function to get the amount of staked NXM 
+     * tokens against smartcontract by index
      * @param _stakerAddress address of user
      * @param _stakedContractAddress staked contract address
      * @param _stakedContractIndex index of staking
@@ -501,7 +522,7 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     /**
-     * @dev Internal function to gets amount of locked NXM tokens,
+     * @dev Internal function to get the amount of locked NXM tokens,
      * staked against smartcontract by index
      * @param _stakerAddress address of user
      * @param _stakedContractAddress staked contract address

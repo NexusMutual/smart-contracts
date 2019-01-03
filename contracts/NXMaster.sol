@@ -324,7 +324,6 @@ contract NXMaster is Governed {
         allContractNames.push("TD");
         allContractNames.push("CD");
         allContractNames.push("PD");
-        allContractNames.push("MD");
         allContractNames.push("QT");
         allContractNames.push("TF");
         allContractNames.push("TC");

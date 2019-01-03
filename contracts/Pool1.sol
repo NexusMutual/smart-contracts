@@ -23,7 +23,6 @@ import "./PoolData.sol";
 import "./Quotation.sol";
 import "./Pool2.sol";
 import "./MCR.sol";
-import "./MCRData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
@@ -42,7 +41,6 @@ contract Pool1 is usingOraclize, Iupgradable {
     Pool2 internal p2;
     PoolData internal pd;
     MCR internal m1;
-    MCRData internal md;
     Claims public c1;
 
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
@@ -110,14 +108,14 @@ contract Pool1 is usingOraclize, Iupgradable {
         if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
             pd.setLastLiquidityTradeTrigger();
             bytes32 myid = oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
-            saveApiDetails(myid, "UNI", 0);
+            saveApiDetails(myid, "ULT", 0);
         }
     }
 
     ///@dev Oraclize call to close emergency pause.
     function closeEmergencyPause(uint time) external onlyInternal {
         bytes32 myid = oraclizeQuery(4, time, "URL", "", 300000);
-        saveApiDetails(myid, "Pause", 0);
+        saveApiDetails(myid, "EP", 0);
     }
 
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
@@ -163,7 +161,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      */
     function upgradeCapitalPool(address newPoolAddress) external onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
-            bytes8 caName = pd.getAllCurrenciesByIndex(i);
+            bytes4 caName = pd.getCurrenciesByIndex(i);
             _upgradeCapitalPool(caName, newPoolAddress);
         }
         if (address(this).balance > 0)
@@ -177,14 +175,13 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     // update currency asset base min and var min
-    function updateCurrencyAssetDetails(bytes8 _curr, uint64 _baseMin, uint64 _varMin) external onlyInternal {
+    function updateCurrencyAssetDetails(bytes4 _curr, uint64 _baseMin, uint64 _varMin) external onlyInternal {
         pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
         pd.changeCurrencyAssetVarMin(_curr, _varMin);
     }
 
     function changeDependentContractAddress() public {
         m1 = MCR(ms.getLatestAddress("MC"));
-        md = MCRData(ms.getLatestAddress("MD"));
         tk = NXMToken(ms.tokenAddress());
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         tc = TokenController(ms.getLatestAddress("TC"));
@@ -197,7 +194,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     function transferCurrencyAsset(
-        bytes8 curr,
+        bytes4 curr,
         address transferTo,
         uint amount
     )
@@ -322,7 +319,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint mcrFullperc;
         uint vFull;
         uint mcrtp;
-        (mcrFullperc, , vFull, ) = md.getLastMCR();
+        (mcrFullperc, , vFull, ) = pd.getLastMCR();
         (vtp, ) = m1.calVtpAndMCRtp(address(this).balance);
 
         while (_amount > 0) {
@@ -352,7 +349,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint mcrFullperc;   
         uint vFull;
         uint mcrtp;
-        (mcrFullperc, , vFull, ) = md.getLastMCR();
+        (mcrFullperc, , vFull, ) = pd.getLastMCR();
         (vtp, ) = m1.calVtpAndMCRtp((_poolBalance).sub(_weiPaid));
 
         require(m1.calculateTokenPrice("ETH") > 0, "Token price can not be zero");
@@ -380,12 +377,12 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @param _typeof type of the query for which oraclize call is made.
      * @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
      */ 
-    function saveApiDetails(bytes32 myid, bytes8 _typeof, uint id) internal {
+    function saveApiDetails(bytes32 myid, bytes4 _typeof, uint id) internal {
         pd.saveApiDetails(myid, _typeof, id);
         pd.addInAllApiCall(myid);
     }
 
-    function _transferCurrencyAsset(bytes8 _curr, address _transferTo, uint _amount) internal returns(bool succ) {
+    function _transferCurrencyAsset(bytes4 _curr, address _transferTo, uint _amount) internal returns(bool succ) {
         if (_curr == "ETH" && address(this).balance >= _amount) {
             _transferTo.transfer(_amount);
             succ = true;
@@ -402,7 +399,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @dev Transfers ERC20 Currency asset from this Pool to another Pool on upgrade.
      */ 
     function _upgradeCapitalPool(
-        bytes8 _curr,
+        bytes4 _curr,
         address _newPoolAddress
     ) 
         internal

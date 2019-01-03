@@ -331,8 +331,8 @@ contract Quotation is Iupgradable {
             walletAdd.transfer(amount);   
         }
         uint currAssetLen = pd.getAllCurrenciesLen();
-        for (uint64 i = 1; i < currAssetLen; i++) {
-            bytes8 currName = pd.getAllCurrenciesByIndex(i);
+        for (uint i = 1; i < currAssetLen; i++) {
+            bytes4 currName = pd.getCurrenciesByIndex(i);
             address currAddr = pd.getCurrencyAssetAddress(currName);
             erc20 = ERC20(currAddr); //solhint-disable-line
             if (erc20.balanceOf(this) > 0) {
@@ -352,7 +352,7 @@ contract Quotation is Iupgradable {
         }
         uint currAssetLen = pd.getAllCurrenciesLen();
         for (uint64 i = 1; i < currAssetLen; i++) {
-            bytes8 currName = pd.getAllCurrenciesByIndex(i);
+            bytes4 currName = pd.getCurrenciesByIndex(i);
             address currAddr = pd.getCurrencyAssetAddress(currName);
             erc20 = ERC20(currAddr); //solhint-disable-line
             if (erc20.balanceOf(this) > 0) {

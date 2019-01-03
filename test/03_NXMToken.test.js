@@ -1,5 +1,5 @@
 const MCR = artifacts.require('MCR');
-const MCRDataMock = artifacts.require('MCRDataMock');
+const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const TokenController = artifacts.require('TokenController');
@@ -18,8 +18,7 @@ const ETH = '0x455448';
 
 let P1;
 let nxms;
-let mcr;
-let mcrd;
+let pd;
 let tk;
 let tf;
 let tc;
@@ -50,7 +49,7 @@ contract('NXMToken', function([
     td = await TokenData.deployed();
     P1 = await Pool1.deployed();
     mcr = await MCR.deployed();
-    mcrd = await MCRDataMock.deployed();
+    pd = await PoolData.deployed();
     nxms = await NXMaster.deployed();
   });
 
@@ -359,7 +358,7 @@ contract('NXMToken', function([
   describe('Misc', function() {
     describe('Buy Tokens at zero price', function() {
       before(async function() {
-        await mcrd.changeSF(0, { from: owner });
+        await pd.changeSF(0, { from: owner });
       });
       it('reverts', async function() {
         const initialTokenBalance = await tk.balanceOf(member1);

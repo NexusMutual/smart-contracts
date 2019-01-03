@@ -2,10 +2,9 @@ const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
-const DSValue = artifacts.require('DSValue');
+const DSValue = artifacts.require('DSValueMock');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
-const MCRDataMock = artifacts.require('MCRDataMock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const TokenController = artifacts.require('TokenController');
@@ -45,7 +44,6 @@ let cl;
 let cr;
 let cd;
 let mcr;
-let mcrd;
 let addr = [];
 let dai;
 let dsv;
@@ -75,7 +73,6 @@ contract('NXMaster', function([
     tc = await TokenController.new();
     cd = await ClaimsData.new();
     pd = await PoolData.new();
-    mcrd = await MCRDataMock.new();
     qt = await Quotation.new();
     nxmtk = await NXMToken.new(tc.address, founderAddress, INITIAL_SUPPLY);
     cl = await Claims.new();
@@ -92,7 +89,6 @@ contract('NXMaster', function([
     addr.push(td.address);
     addr.push(cd.address);
     addr.push(pd.address);
-    addr.push(mcrd.address);
     addr.push(qt.address);
     addr.push(tf.address);
     addr.push(tc.address);
@@ -140,19 +136,18 @@ contract('NXMaster', function([
       await td.changeWalletAddress(owner);
       await qd.changeAuthQuoteEngine(QE);
       await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-      await mcr.changenotariseAddress(owner);
+      await pd.changeInvestmentAssetAddress('0x444149', dai.address);
+      await pd.changeNotariseAddress(owner);
+      await pd.changeDAIfeedAddress(dsv.address);
       await mcr.addMCRData(
         18000,
-        10000,
-        2,
+        100 * 1e18,
+        2 * 1e18,
         ['0x455448', '0x444149'],
-        [100, 65407],
-        20180807
+        [100, 15517],
+        20190103
       );
-      await pd.changeInvestmentAssetAddress('0x455448', ZERO_ADDRESS);
-      await pd.changeInvestmentAssetAddress('0x444149', dai.address);
-      await mcrd.changeDAIfeedAddress(dsv.address);
-      await pl2.saveIADetails(['0x455448', '0x444149'], [100, 65407], 20180807);
+      await pl2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103);
     });
 
     it('should be able to change token controller address', async function() {

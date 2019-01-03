@@ -8,7 +8,6 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
-const MCRDataMock = artifacts.require('MCRDataMock');
 const MCR = artifacts.require('MCR');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -105,7 +104,6 @@ contract('Quotation', function([
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
-    mcrd = await MCRDataMock.deployed();
   });
 
   describe('Cover Purchase', function() {

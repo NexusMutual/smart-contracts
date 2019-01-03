@@ -3,6 +3,7 @@ const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
+const { assertRevert } = require('./utils/assertRevert');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
@@ -13,7 +14,7 @@ let pd;
 
 const BigNumber = web3.BigNumber;
 const newAsset = '0x535253';
-const CA_DAI = '0x4441490000000000';
+const CA_DAI = '0x44414900';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NEW_ADDRESS = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 
@@ -30,10 +31,102 @@ contract('Pool', function([owner, notOwner]) {
   });
 
   describe('PoolData', function() {
+    describe('if owner', function() {
+      describe('Change Minimum Cap', function() {
+        it('should be able to change min cap', async function() {
+          await pd.changeMinCap(ether(1), { from: owner });
+          (await pd.minCap()).should.be.bignumber.equal(ether(1));
+        });
+      });
+      describe('Change ShockParameter', function() {
+        it('should be able to change ShockParameter', async function() {
+          await pd.changeShockParameter(1, { from: owner });
+          (await pd.shockParameter()).should.be.bignumber.equal(1);
+        });
+      });
+      describe('Change GrowthStep', function() {
+        it('should be able to change GrowthStep', async function() {
+          await pd.changeGrowthStep(1, { from: owner });
+          (await pd.growthStep()).should.be.bignumber.equal(1);
+        });
+      });
+      describe('Change MCRTime', function() {
+        it('should be able to change MCRTime', async function() {
+          await pd.changeMCRTime(1, { from: owner });
+          (await pd.mcrTime()).should.be.bignumber.equal(1);
+        });
+      });
+      describe('Change MCRFailTime', function() {
+        it('should be able to change MCRFailTime', async function() {
+          await pd.changeMCRFailTime(1, { from: owner });
+          (await pd.mcrFailTime()).should.be.bignumber.equal(1);
+        });
+      });
+      describe('Change MinReqMCR', function() {
+        it('should be able to change MinReqMCR', async function() {
+          await pd.changeMinReqMCR(1, { from: owner });
+          (await pd.minMCRReq()).should.be.bignumber.equal(1);
+        });
+      });
+    });
+
+    describe('if not owner', function() {
+      describe('Change Minimum Cap', function() {
+        it('should not be able to change min cap', async function() {
+          await assertRevert(pd.changeMinCap(1, { from: notOwner }));
+        });
+      });
+      describe('Change ShockParameter', function() {
+        it('should not be able to change ShockParameter', async function() {
+          await assertRevert(pd.changeShockParameter(1, { from: notOwner }));
+        });
+      });
+      describe('Change GrowthStep', function() {
+        it('should not be able to change GrowthStep', async function() {
+          await assertRevert(pd.changeGrowthStep(1, { from: notOwner }));
+        });
+      });
+      describe('Change MCRTime', function() {
+        it('should not be able to change MCRTime', async function() {
+          await assertRevert(pd.changeMCRTime(1, { from: notOwner }));
+        });
+      });
+      describe('Change MCRFailTime', function() {
+        it('should not be able to change MCRFailTime', async function() {
+          await assertRevert(pd.changeMCRFailTime(1, { from: notOwner }));
+        });
+      });
+      describe('Change MinReqMCR', function() {
+        it('should not be able to change MinReqMCR', async function() {
+          await assertRevert(pd.changeMinReqMCR(1, { from: notOwner }));
+        });
+      });
+    });
+
+    describe('Misc', function() {
+      it('should return true if notarise address', async function() {
+        (await pd.isnotarise(owner)).should.equal(true);
+      });
+      it('should return false if not notarise address', async function() {
+        (await pd.isnotarise(notOwner)).should.equal(false);
+      });
+      it('should not be able to change master address', async function() {
+        await assertRevert(
+          pd.changeMasterAddress(pd.address, { from: notOwner })
+        );
+      });
+      it('should not be able to add Currency', async function() {
+        await assertRevert(pd.addCurrency('0x4c4f4c', { from: notOwner }));
+        await pd.sfX100000();
+        await pd.getLastMCREther();
+        await pd.getLastVfull();
+      });
+    });
+
     it('should return correct data', async function() {
       await pd.getAllCurrencies();
       const caIndex = await pd.getAllCurrenciesLen();
-      (await pd.getAllCurrenciesByIndex(caIndex - 1)).should.equal(CA_DAI);
+      (await pd.getCurrenciesByIndex(caIndex - 1)).should.equal(CA_DAI);
       await pd.getAllInvestmentCurrencies();
       const iaIndex = await pd.getInvestmentCurrencyLen();
       (await pd.getInvestmentCurrencyByIndex(iaIndex - 1)).should.equal(CA_DAI);

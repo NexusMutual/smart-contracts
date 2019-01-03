@@ -138,7 +138,6 @@ contract TokenData is Iupgradable {
     ) 
         public
         view
-        onlyInternal         
         returns (address stakedContractAddress) 
     {
         stakedContractAddress = stakerStakedContracts[
@@ -151,7 +150,6 @@ contract TokenData is Iupgradable {
     ) 
         public
         view
-        onlyInternal         
         returns (uint scIndex) 
     {
         scIndex = stakerStakedContracts[
@@ -164,7 +162,6 @@ contract TokenData is Iupgradable {
     ) 
         public
         view
-        onlyInternal         
         returns (uint sIndex) 
     {
         sIndex = stakedContractStakers[
@@ -177,7 +174,6 @@ contract TokenData is Iupgradable {
     )
         public 
         view
-        onlyInternal
         returns (uint amount)
     {
         amount = stakerStakedContracts[
@@ -189,7 +185,6 @@ contract TokenData is Iupgradable {
     ) 
         public
         view
-        onlyInternal
         returns (uint length)
     {
         length = stakerStakedContracts[_stakerAddress].length;
@@ -201,7 +196,6 @@ contract TokenData is Iupgradable {
     )
         public 
         view
-        onlyInternal
         returns (uint amount)
     {
         amount = stakerStakedContracts[
@@ -382,7 +376,6 @@ contract TokenData is Iupgradable {
     )
         public
         view
-        onlyInternal
         returns (address stakerAddress)
     {
         stakerAddress = stakedContractStakers[
@@ -394,7 +387,6 @@ contract TokenData is Iupgradable {
     ) 
         public
         view
-        onlyInternal
         returns (uint length)
     {
         length = stakedContractStakers[_stakedContractAddress].length;

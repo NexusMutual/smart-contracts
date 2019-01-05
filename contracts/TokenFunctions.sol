@@ -29,6 +29,7 @@ import "./Iupgradable.sol";
 import "./Governance.sol";
 
 
+
 contract TokenFunctions is Iupgradable, Governed {
     using SafeMath for uint;
 
@@ -112,18 +113,19 @@ contract TokenFunctions is Iupgradable, Governed {
      * Called when a claim submitted against this cover is accepted.
      * @param coverid Cover Id.
      */
-    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sa) external onlyInternal {
+    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external onlyInternal {
         address scAddress;
         (, scAddress) = qd.getscAddressOfCover(coverid);
         uint tokenPrice = m1.calculateTokenPrice(curr);
         uint totalStaker = td.getStakedContractStakersLength(scAddress);
-        uint burnNXMAmount = sa.mul(DECIMAL1E18).mul(DECIMAL1E18).div(tokenPrice);
+        uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
         address stakerAddress;
-        
+        uint stakerStakedNXM;
+
         for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
             if (burnNXMAmount > 0) {
                 stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
-                uint stakerStakedNXM = _getStakerStakedTokensOnSmartContract(
+                stakerStakedNXM = _getStakerStakedTokensOnSmartContract(
                     stakerAddress, scAddress, i);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
@@ -222,10 +224,12 @@ contract TokenFunctions is Iupgradable, Governed {
     {
         uint unlockableAmount = 0;
         address scAddress;
+        uint scIndex;
         for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
+            scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
             unlockableAmount = unlockableAmount.add(
-                _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress, i));
+                _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress, i, scIndex));
         }
         amount = unlockableAmount;
     }
@@ -434,8 +438,8 @@ contract TokenFunctions is Iupgradable, Governed {
         view
         returns (uint)
     {
-        return _getStakerUnlockableTokensOnSmartContract(
-            stakerAddress, stakedContractAddress, stakerIndex);
+        return _getStakerUnlockableTokensOnSmartContract(stakerAddress, stakedContractAddress,
+            stakerIndex, td.getStakerStakedContractIndex(stakerAddress, stakerIndex));
     }
 
     /**
@@ -450,7 +454,7 @@ contract TokenFunctions is Iupgradable, Governed {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
             unlockableAmount = _getStakerUnlockableTokensOnSmartContract(
-                _stakerAddress, scAddress, scIndex);
+                _stakerAddress, scAddress, i, scIndex);
             td.pushUnlockedStakedTokens(_stakerAddress, i, unlockableAmount);
             reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
             tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
@@ -467,20 +471,20 @@ contract TokenFunctions is Iupgradable, Governed {
     function _getStakerUnlockableTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
-        uint _stakerIndex
+        uint _stakerIndex,
+        uint _stakedContractIndex
     ) 
         internal
         view
         returns
         (uint amount)
     {   
-        uint stakedContractIndex = td.getStakerStakedContractIndex(_stakerAddress, _stakerIndex);
         uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
-            _stakerAddress, _stakedContractAddress, stakedContractIndex);
+            _stakerAddress, _stakedContractAddress, _stakedContractIndex);
         uint unlockable = currentLockedTokens.sub(
             _getStakerStakedTokensOnSmartContract(_stakerAddress,
-                _stakedContractAddress, _stakerIndex));
-        uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, _stakerIndex);
+                _stakedContractAddress, _stakedContractIndex));
+        uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, _stakerIndex); //sIndex
         if (alreadyUnlocked >= unlockable) {
             amount = 0;
         } else {

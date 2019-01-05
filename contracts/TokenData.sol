@@ -408,7 +408,7 @@ contract TokenData is Iupgradable {
         returns(uint scIndex) 
     {
         scIndex = (stakedContractStakers[_stakedContractAddress].push(
-            Staker(_stakerAddress, getStakerStakedContractLength(_stakerAddress)))).sub(1);
+            Staker(_stakerAddress, stakerStakedContracts[_stakerAddress].length))).sub(1);
         stakerStakedContracts[_stakerAddress].push(
             Stake(_stakedContractAddress, scIndex, now, _amount, 0));
     }

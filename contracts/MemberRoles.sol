@@ -45,11 +45,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     function changeDependentContractAddress() public onlyInternal {}
     
-    function memberRolesInitiate (bytes32 _dAppName, address _dAppToken, address _firstAB) public {
+    function memberRolesInitiate (bytes32 _dAppName, address _dAppToken, address _firstAB, address memberAuthority) public {
         require(!constructorCheck);
         dappName = _dAppName;
         dAppToken = TokenController(_dAppToken);
-        addInitialMemberRoles(_firstAB);
+        addInitialMemberRoles(_firstAB, memberAuthority);
         constructorCheck = true;
     }
 
@@ -220,7 +220,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         }
     }
 
-    function addInitialMemberRoles(address _firstAB) internal {
+    function addInitialMemberRoles(address _firstAB, address memberAuthority) internal {
         _addRole("Unassigned", "Unassigned", address(0));
         _addRole(
             "Advisory Board",
@@ -230,7 +230,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _addRole(
             "Member",
             "Represents all users of Mutual.", //solhint-disable-line
-            address(0)
+            memberAuthority
         );
         _updateRole(_firstAB, 1, true);
     }

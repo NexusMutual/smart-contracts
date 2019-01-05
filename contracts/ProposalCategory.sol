@@ -119,6 +119,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         50, 25, 1, 0);
         addInitialCategories("Edit category", "QmQmvfBiCLfe5jPdq69iRBRRdnSHSroJQ4SG8DhtkXcLfQ", 
         "PC", 50, 25, 1, 0);
+        addInitialCategories("Resume Proposal", "QmQPWVjmv2Gt2Dzt1rxmFkHCptFSdtX4VC5g7VVNUByLv1", "GV", 50, 25, 1, 0);
+        addInitialCategories("Pause Proposal", "QmWWoiRZCmi61LQKpGyGuKjasFVpq8JzbLPvDhU8TBS9tk", "GV", 50, 25, 1, 0);
         addInitialCategories("Change dApp Token Proxy", "QmPR9K6BevCXRVBxWGjF9RV7Pmtxr7D4gE3qsZu5bzi8GK",
         "MS", 50, 25, 1, 0);
         addInitialCategories("Add new authorized address", "QmNTYRfNCYxdnGjYxzd8epUsLNbnkREffJpcwqugoQPDXN",
@@ -141,8 +143,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             1,
             0
         );
-        addInitialCategories("Resume Proposal", "QmQPWVjmv2Gt2Dzt1rxmFkHCptFSdtX4VC5g7VVNUByLv1", "GV", 50, 25, 1, 0);
-        addInitialCategories("Pause Proposal", "QmWWoiRZCmi61LQKpGyGuKjasFVpq8JzbLPvDhU8TBS9tk", "GV", 50, 25, 1, 0);
+        
         addInitialCategories("Buy GBT in Pool", "QmUc6apk3aRoHPaSwafo7RkV4XTJaaWS6Q7MogTMqLDyWs", "PL", 50, 25, 1, 0);
         //  --------------------------------------------------------------------------------------------- //
         addInitialCategories("Implement Emergency Pause", "QmZSaEsvTCpy357ZSrPYKqby1iaksBwPdKCGWzW1HpgSpe",

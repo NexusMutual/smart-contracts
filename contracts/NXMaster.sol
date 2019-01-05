@@ -314,7 +314,7 @@ contract NXMaster is Governed {
         contractsActive[address(tempInstance)] = true;
         if (_contractName == "MR") {
             MemberRoles mr = MemberRoles(address(tempInstance));
-            mr.memberRolesInitiate(dAppName, dAppLocker(), owner);
+            mr.memberRolesInitiate(dAppName, dAppLocker(), owner, allContractVersions[currentVersion]["TF"]);
         }
     }
 

@@ -170,8 +170,16 @@ contract PoolData is Iupgradable {
         sfX100000 = val;
     }
     
-    /// @dev Updates the 3 day average rate of a currency.
-    ///      To be replaced by MakerDao's on chain rates
+    /// @dev Updates the 3 day average rate of a IA currency.
+    /// To be replaced by MakerDao's on chain rates
+    /// @param curr IA Currency Name.
+    /// @param rate Average exchange rate X 100 (of last 3 days).
+    function updateIAAvgRate(bytes4 curr, uint rate) external onlyInternal {
+        iaAvgRate[curr] = rate;
+    }
+
+    /// @dev Updates the 3 day average rate of a CA currency.
+    /// To be replaced by MakerDao's on chain rates
     /// @param curr Currency Name.
     /// @param rate Average exchange rate X 100 (of last 3 days).
     function updateCAAvgRate(bytes4 curr, uint rate) external onlyInternal {
@@ -422,7 +430,7 @@ contract PoolData is Iupgradable {
     function getTokenPriceDetails(bytes4 curr) external view returns(uint sf, uint gs, uint rate) {
         sf = sfX100000;
         gs = growthStep;
-        rate = _getCAAvgRate(curr);
+        rate = _getAvgRate(curr, false);
     }
     
     /// @dev Gets the total number of times MCR calculation has been made.
@@ -710,18 +718,24 @@ contract PoolData is Iupgradable {
     }
 
     function getCAAvgRate(bytes4 curr) public view returns(uint rate) {
-        return _getCAAvgRate(curr);
+        return _getAvgRate(curr, false);
+    }
+
+    function getIAAvgRate(bytes4 curr) public view returns(uint rate) {
+        return _getAvgRate(curr, true);
     }
 
     function changeDependentContractAddress() public onlyInternal {}
 
-    /// @dev Gets the average rate of a currency.
+    /// @dev Gets the average rate of a CA currency.
     /// @param curr Currency Name.
     /// @return rate Average rate X 100(of last 3 days).
-    function _getCAAvgRate(bytes4 curr) internal view returns(uint rate) {
+    function _getAvgRate(bytes4 curr, bool isIA) internal view returns(uint rate) {
         if (curr == "DAI") {
             DSValue ds = DSValue(daiFeedAddress);
             rate = uint(ds.read()).div(uint(10) ** 16);
+        } else if (isIA) {
+            rate = iaAvgRate[curr];
         } else {
             rate = caAvgRate[curr];
         }

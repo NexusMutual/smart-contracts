@@ -41,6 +41,7 @@ contract('MCR', function([owner, notOwner]) {
       await cad.transfer(p1.address, ether(600));
       balance_DAI = await cad.balanceOf(p1.address);
       balance_ETH = await web3.eth.getBalance(p1.address);
+      balance_ETH = balance_ETH.plus(await p1.getInvestmentAssetBalance());
     });
 
     it('should return correct V(tp) price', async function() {

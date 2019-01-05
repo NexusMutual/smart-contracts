@@ -140,6 +140,9 @@ contract Pool2 is Iupgradable {
         (maxCurr, maxRate, minCurr, minRate) = _calculateIARank(curr, rate);
         pd.saveIARankDetails(maxCurr, maxRate, minCurr, minRate, date);
         pd.updatelastDate(date);
+        for (uint i = 0; i < curr.length; i++) {
+            pd.updateIAAvgRate(curr[i], rate[i]);
+        }
         _rebalancingLiquidityTrading(maxCurr, maxRate);
         p1.saveIADetailsOracalise(pd.iaRatesTime());
     }

@@ -459,10 +459,11 @@ contract TokenController is IERC1132, Governed, Iupgradable {
     {
         uint256 amount = _tokensLocked(_of, _reason);
         require(amount >= _amount);
+
         if (amount == _amount)
             locked[_of][_reason].claimed = true;
-        else
-            locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
+
+        locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
         require(token.transfer(_of, _amount));
         emit Unlocked(_of, _reason, _amount);
     }

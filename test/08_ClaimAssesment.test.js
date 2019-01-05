@@ -231,15 +231,19 @@ contract('Claim: Assessment', function([
           });
           it('should burn stakers staked tokens', async function() {
             const priceinEther = await mcr.calculateTokenPrice(CA_ETH);
-            const burnedAmount = (1e18 / priceinEther).toFixed(0);
+            const burnedAmount = ether(1).mul(ether(1).div(priceinEther));
             (await tf.getStakerLockedTokensOnSmartContract(
               staker1,
               smartConAdd,
               0
             ))
               .div(ether(1))
+              .toFixed(4)
               .should.be.bignumber.equal(
-                initialStakedTokens1.div(ether(1)).minus(burnedAmount)
+                initialStakedTokens1
+                  .minus(burnedAmount)
+                  .div(ether(1))
+                  .toFixed(4)
               );
           });
           it('should burns tokens used for fraudulent voting against a claim', async function() {

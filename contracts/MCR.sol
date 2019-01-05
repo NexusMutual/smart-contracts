@@ -177,14 +177,16 @@ contract MCR is Iupgradable {
         vtp = 0;
         ERC20 erc20;
         uint currTokens = 0;
-        for (uint i = 1; i < pd.getAllCurrenciesLen(); i++) {
+        uint i;
+        for (i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes4 currency = pd.getCurrenciesByIndex(i);
             erc20 = ERC20(pd.getCurrencyAssetAddress(currency));
             currTokens = erc20.balanceOf(address(p1));
             if (pd.getCAAvgRate(currency) > 0)
                 vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
         }
-        vtp = vtp.add(poolBalance);
+
+        vtp = vtp.add(poolBalance).add(p1.getInvestmentAssetBalance());
         uint mcrFullperc;
         uint vFull;
         (mcrFullperc, , vFull, ) = pd.getLastMCR();
@@ -229,7 +231,6 @@ contract MCR is Iupgradable {
     function calculateVtpAndMCRtp(uint poolBalance) public view returns(uint vtp, uint mcrtp) {
         return _calVtpAndMCRtp(poolBalance);
     }
-
 
     /**
      * @dev Gets max numbers of tokens that can be sold at the moment.

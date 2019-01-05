@@ -287,6 +287,20 @@ contract Pool1 is usingOraclize, Iupgradable {
         success = true;
     }
 
+    function getInvestmentAssetBalance() public view returns (uint balance) {
+        ERC20 erc20;
+        uint currTokens;
+        for (uint i = 1; i < pd.getInvestmentCurrencyLen(); i++) {
+            bytes4 currency = pd.getInvestmentCurrencyByIndex(i);
+            erc20 = ERC20(pd.getInvestmentAssetAddress(currency));
+            currTokens = erc20.balanceOf(address(p2));
+            if (pd.getIAAvgRate(currency) > 0)
+                balance = balance.add((currTokens.mul(100)).div(pd.getIAAvgRate(currency)));
+        }
+
+        balance = balance.add(address(p2).balance);
+    }
+
     /**
      * @dev Returns the amount of wei a seller will get for selling NXM
      * @param amount Amount of NXM to sell

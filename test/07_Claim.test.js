@@ -144,7 +144,7 @@ contract('Claim', function([
                 (await pd.getCurrencyAssetVarMin(
                   coverCurr
                 )).should.be.bignumber.equal(
-                  initialCurrencyAssetVarMin.plus(sumAssured)
+                  initialCurrencyAssetVarMin.plus(sumAssured.mul(ether(1)))
                 );
               });
             });

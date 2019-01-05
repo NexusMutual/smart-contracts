@@ -173,7 +173,7 @@ contract('Claim: Assessment', function([
             await increaseTimeTo(minTime.plus(2));
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(1);
           });
-          it('should be able change claim status', async function() {
+          it('should be able to change claim status', async function() {
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(6);
@@ -184,12 +184,24 @@ contract('Claim: Assessment', function([
         });
 
         describe('All CAs accept claim', function() {
+          let initialStakedTokens1;
+          let initialStakedTokens2;
           before(async function() {
             const now = await latestTime();
             await increaseTimeTo(BOOK_TIME.plus(now));
             coverID = await qd.getAllCoversOfUser(coverHolder);
             await cl.submitClaim(coverID[1], { from: coverHolder });
             claimId = (await cd.actualClaimLength()) - 1;
+            initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
+              staker1,
+              smartConAdd,
+              0
+            );
+            initialStakedTokens2 = await tf.getStakerLockedTokensOnSmartContract(
+              staker2,
+              smartConAdd,
+              1
+            );
           });
 
           it('should let claim assessor to vote for claim assessment', async function() {
@@ -203,7 +215,7 @@ contract('Claim: Assessment', function([
             await cd.setpendingClaimStart(1);
             await assertRevert(cd.setpendingClaimStart(0));
           });
-          it('should be able change claim status', async function() {
+          it('should be able to change claim status', async function() {
             await cd.getCaClaimVotesToken(claimId);
             await cd.getVoteVerdict(claimId, 1, 1);
             const now = await latestTime();
@@ -218,20 +230,17 @@ contract('Claim: Assessment', function([
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(-1);
           });
           it('should burn stakers staked tokens', async function() {
-            const initialStakedTokens = await tf.getStakerLockedTokensOnSmartContract(
-              staker1,
-              smartConAdd,
-              0
-            );
             const priceinEther = await mcr.calculateTokenPrice(CA_ETH);
-            const burnedAmount = 1e18 / priceinEther - 1;
+            const burnedAmount = (1e18 / priceinEther).toFixed(0);
             (await tf.getStakerLockedTokensOnSmartContract(
               staker1,
               smartConAdd,
               0
-            )).should.be.bignumber.equal(
-              initialStakedTokens.minus(burnedAmount.toFixed(0))
-            );
+            ))
+              .div(ether(1))
+              .should.be.bignumber.equal(
+                initialStakedTokens1.div(ether(1)).minus(burnedAmount)
+              );
           });
           it('should burns tokens used for fraudulent voting against a claim', async function() {
             const initialTB = await tc.tokensLocked(member1, CLA);

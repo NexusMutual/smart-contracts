@@ -44,12 +44,12 @@ contract('MCR', function([owner, notOwner]) {
     });
 
     it('should return correct V(tp) price', async function() {
-      const price_dai = await pd.getCurr3DaysAvg(CA_DAI);
+      const price_dai = await pd.getCAAvgRate(CA_DAI);
       cal_vtp = balance_DAI.mul(100).div(price_dai);
       cal_vtp = cal_vtp.plus(balance_ETH);
       cal_vtp
         .toFixed(0)
-        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp(balance_ETH))[0]);
+        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[0]);
     });
 
     it('should return correct MCR(tp) price', async function() {
@@ -57,9 +57,7 @@ contract('MCR', function([owner, notOwner]) {
       cal_mcrtp = cal_vtp.mul(lastMCR[0]).div(lastMCR[2]);
       cal_mcrtp
         .toFixed(0)
-        .should.be.bignumber.equal(
-          (await mcr.calVtpAndMCRtp(await web3.eth.getBalance(p1.address)))[1]
-        );
+        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[1]);
     });
   });
 
@@ -73,9 +71,7 @@ contract('MCR', function([owner, notOwner]) {
       const sf = tpd[0].div(1e5);
       const growthStep = tpd[1];
       const Curr3DaysAvg = tpd[2];
-      const mcrtp = (await mcr.calVtpAndMCRtp(
-        await web3.eth.getBalance(p1.address)
-      ))[1];
+      const mcrtp = (await mcr.calVtpAndMCRtp())[1];
       const mcrtpSquare = mcrtp.times(mcrtp).div(1e8);
       let Max = 1;
       if (mcrtpSquare >= 1) {
@@ -87,7 +83,7 @@ contract('MCR', function([owner, notOwner]) {
         .times(Max)
         .times(sf);
       tp_eth = tp.times(Curr3DaysAvg.div(100));
-      tp_dai = tp.times((await pd.getCurr3DaysAvg(CA_DAI)).div(100));
+      tp_dai = tp.times((await pd.getCAAvgRate(CA_DAI)).div(100));
     });
     it('should return correct Token price in ETH', async function() {
       tp_eth.should.be.bignumber.equal(
@@ -150,7 +146,7 @@ contract('MCR', function([owner, notOwner]) {
     });
     it('should be able to get all Sum Assurance', async function() {
       await mcr.getAllSumAssurance();
-      await pd.updateCurr3DaysAvg('0x44414900', 0, { from: owner });
+      await pd.updateCAAvgRate('0x44414900', 0, { from: owner });
       await mcr.getAllSumAssurance();
     });
     it('should not be able to change master address', async function() {

@@ -426,9 +426,8 @@ contract Claims is Iupgradable {
         cd.callClaimEvent(coverId, add, len, time);
         qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
         bytes4 curr = qd.getCurrencyOfCover(coverId);
-        uint sumAssured = qd.getCoverSumAssured(coverId);
-        pd.changeCurrencyAssetVarMin(curr, uint64(
-            uint(pd.getCurrencyAssetVarMin(curr)).add(sumAssured)));
+        uint sumAssured = qd.getCoverSumAssured(coverId).mul(DECIMAL1E18);
+        pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).add(sumAssured));
         p2.internalLiquiditySwap(curr);
         p1.closeClaimsOraclise(len, cd.maxVotingTime());
     }

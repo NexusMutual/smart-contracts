@@ -85,7 +85,7 @@ contract ClaimsReward is Iupgradable {
 
         // when current status is "Pending-Claim Assessor Vote"
         if (status == 0) {
-            changeClaimStatusCA(claimid, coverid, status);
+            _changeClaimStatusCA(claimid, coverid, status);
         } else if (status >= 1 && status <= 5) { 
             changeClaimStatusMV(claimid, coverid, status);
         } else if (status == 12) { // when current status is "Claim Accepted Payout Pending"
@@ -238,12 +238,11 @@ contract ClaimsReward is Iupgradable {
     /// @dev Rewards/Punishes users who  participated in Claims assessment.
     //             Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
-    function rewardAgainstClaim(uint claimid, uint coverid, uint status) internal {
+    function _rewardAgainstClaim(uint claimid, uint coverid, uint sumAssured, uint status) internal {
         bytes4 curr = qd.getCurrencyOfCover(coverid);
-        uint64 sumAssured = uint64(qd.getCoverSumAssured(coverid));
         uint currPrice = tf.getTokenPrice(curr);
-        uint distributableTokens = ((DECIMAL1E18 ** 2).mul(sumAssured)).
-            div(currPrice.mul(100));            //  1% of sum assured
+        uint distributableTokens = sumAssured.mul(
+            DECIMAL1E18).div(currPrice.mul(100));//  1% of sum assured
             
         uint percCA;
         uint percMV;
@@ -259,7 +258,7 @@ contract ClaimsReward is Iupgradable {
             td.setDepositCN(coverid, false); // Unset flag
             tf.burnDepositCN(coverid); // burn Deposited CN
             if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
-                pd.changeCurrencyAssetVarMin(curr, uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
+                pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).sub(sumAssured));
                 p2.internalLiquiditySwap(curr);
             }
         } else if (status == 7 || status == 8 || status == 10) {
@@ -270,7 +269,7 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Computes the result of Claim Assessors Voting for a given claim id.
-    function changeClaimStatusCA(uint claimid, uint coverid, uint status) internal {
+    function _changeClaimStatusCA(uint claimid, uint coverid, uint status) internal {
         // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
             uint caTokens = c1.getCATokens(claimid, 0);
@@ -287,9 +286,9 @@ contract ClaimsReward is Iupgradable {
             if (caTokens == 0) {
                 status = 3;
             } else {
-                uint sumassured = qd.getCoverSumAssured(coverid);
+                uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
                 // Min threshold reached tokens used for voting > 5* sum assured 
-                if (caTokens > sumassured.mul(DECIMAL1E18).mul(5)) {
+                if (caTokens > sumAssured.mul(5)) {
 
                     if (accept.div(acceptAndDeny) > 70) {
                         status = 7;
@@ -318,7 +317,7 @@ contract ClaimsReward is Iupgradable {
             c1.setClaimStatus(claimid, status);
 
             if (rewardOrPunish)
-                rewardAgainstClaim(claimid, coverid, status);
+                _rewardAgainstClaim(claimid, coverid, sumAssured, status);
         }
     }
 
@@ -332,16 +331,18 @@ contract ClaimsReward is Iupgradable {
             uint mvTokens = c1.getCATokens(claimid, 1);
 
             // If tokens used for acceptance >50%, claim is accepted
-            uint sumassured = qd.getCoverSumAssured(coverid);
+            uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
             uint thresholdUnreached = 0;
             // Minimum threshold for member voting is reached only when 
             // value of tokens used for voting > 5* sum assured of claim id
-            if (mvTokens < sumassured.mul(DECIMAL1E18).mul(5))
+            if (mvTokens < sumAssured.mul(5))
                 thresholdUnreached = 1;
+
             uint accept;
             (, accept) = cd.getClaimMVote(claimid, 1);
             uint deny;
             (, deny) = cd.getClaimMVote(claimid, -1);
+
             if (accept.add(deny) > 0) {
                 if (accept.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 && 
                     statusOrig <= 5 && thresholdUnreached == 0) {
@@ -353,6 +354,7 @@ contract ClaimsReward is Iupgradable {
                     coverStatus = 2;
                 }
             }
+            
             if (thresholdUnreached == 1 && (statusOrig == 2 || statusOrig == 4)) {
                 status = 10;
                 coverStatus = 1;
@@ -364,7 +366,7 @@ contract ClaimsReward is Iupgradable {
             c1.setClaimStatus(claimid, status);
             qd.changeCoverStatusNo(coverid, uint8(coverStatus));
             // Reward/Punish Claim Assessors and Members who participated in Claims assessment
-            rewardAgainstClaim(claimid, coverid, status);
+            _rewardAgainstClaim(claimid, coverid, sumAssured, status);
         }
     }
 

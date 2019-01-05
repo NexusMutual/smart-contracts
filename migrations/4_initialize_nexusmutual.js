@@ -22,8 +22,8 @@ const FactoryMock = artifacts.require('FactoryMock');
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const Owner = web3.eth.accounts[0];
-const POOL_ETHER = 15 * 1e18;
-const POOL_ASSET = 1000 * 1e18;
+const POOL_ETHER = 10 * 1e18;
+const POOL_ASSET = 50 * 1e18;
 
 module.exports = function(deployer) {
   deployer.then(async () => {

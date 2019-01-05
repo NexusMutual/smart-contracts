@@ -57,7 +57,8 @@ contract IGovernance {
         string _proposalSD,
         string _proposalDescHash,
         uint _categoryId
-    ) external;
+    ) 
+        external;
 
     /// @dev Edits the details of an existing proposal and creates new version
     /// @param _proposalId Proposal id that details needs to be updated
@@ -67,14 +68,16 @@ contract IGovernance {
         string _proposalTitle, 
         string _proposalSD, 
         string _proposalDescHash
-    ) external;
+    ) 
+        external;
 
     /// @dev Categorizes proposal to proceed further. Categories shows the proposal objective.
     function categorizeProposal(
         uint _proposalId, 
         uint _categoryId,
         uint _incentives
-    ) external;
+    ) 
+        external;
 
     /// @dev Initiates add solution 
     /// @param _solutionHash Solution hash having required data against adding solution
@@ -82,7 +85,8 @@ contract IGovernance {
         uint _proposalId,
         string _solutionHash, 
         bytes _action
-    ) external; 
+    ) 
+        external; 
 
     /// @dev Opens proposal for voting
     function openProposalForVoting(uint _proposalId) external;

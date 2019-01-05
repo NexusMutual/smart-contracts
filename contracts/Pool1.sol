@@ -83,18 +83,17 @@ contract Pool1 is usingOraclize, Iupgradable {
         
         address _to = qd.getCoverMemberAddress(coverid);
         bytes4 curr = qd.getCurrencyOfCover(coverid);
-        uint sumAssured = qd.getCoverSumAssured(coverid);
-        uint sumAssured1e18 = sumAssured.mul(DECIMAL1E18);
+        uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
         bool check;
 
         //Payout
-        check = _transferCurrencyAsset(curr, _to, sumAssured1e18);
+        check = _transferCurrencyAsset(curr, _to, sumAssured);
         if (check == true) {
-            q2.removeSAFromCSA(coverid, sumAssured);
+            q2.removeSAFromCSA(coverid, qd.getCoverSumAssured(coverid));
             pd.changeCurrencyAssetVarMin(curr, 
-                uint64(uint(pd.getCurrencyAssetVarMin(curr)).sub(sumAssured)));
+                pd.getCurrencyAssetVarMin(curr).sub(sumAssured));
             p2.internalLiquiditySwap(curr);
-            emit Payout(_to, coverid, sumAssured1e18);
+            emit Payout(_to, coverid, sumAssured);
             succ = true;
         } else {
             c1.setClaimStatus(claimid, 12);
@@ -175,7 +174,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     // update currency asset base min and var min
-    function updateCurrencyAssetDetails(bytes4 _curr, uint64 _baseMin, uint64 _varMin) external onlyInternal {
+    function updateCurrencyAssetDetails(bytes4 _curr, uint _baseMin, uint _varMin) external onlyInternal {
         pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
         pd.changeCurrencyAssetVarMin(_curr, _varMin);
     }
@@ -320,7 +319,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint vFull;
         uint mcrtp;
         (mcrFullperc, , vFull, ) = pd.getLastMCR();
-        (vtp, ) = m1.calVtpAndMCRtp(address(this).balance);
+        (vtp, ) = m1.calVtpAndMCRtp();
 
         while (_amount > 0) {
             mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
@@ -350,7 +349,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint vFull;
         uint mcrtp;
         (mcrFullperc, , vFull, ) = pd.getLastMCR();
-        (vtp, ) = m1.calVtpAndMCRtp((_poolBalance).sub(_weiPaid));
+        (vtp, ) = m1.calculateVtpAndMCRtp((_poolBalance).sub(_weiPaid));
 
         require(m1.calculateTokenPrice("ETH") > 0, "Token price can not be zero");
 

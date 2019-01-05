@@ -70,6 +70,8 @@ contract PoolData is Iupgradable {
     }
 
     IARankDetails[] internal allIARankDetails;
+    McrData[] public allMCRData;
+
     bytes4[] internal allInvestmentCurrencies;
     bytes4[] internal allCurrencies;
     bytes32[] public allAPIcall;
@@ -78,28 +80,25 @@ contract PoolData is Iupgradable {
     mapping(bytes16 => uint) internal currencyLastIndex;
     mapping(bytes4 => CurrencyAssets) internal allCurrencyAssets;
     mapping(bytes4 => InvestmentAssets) internal allInvestmentAssets;
+    mapping(bytes4 => uint) internal caAvgRate;
+    mapping(bytes4 => uint) internal iaAvgRate;
 
-    uint internal constant DECIMAL1E18 = uint(10) ** 18;
+    address internal notariseMCR;
+    address public daiFeedAddress;
+    uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint public uniswapDeadline;
     uint public liquidityTradeCallbackTime;
     uint public lastLiquidityTradeTrigger;
     uint64 internal lastDate;
     uint64 public variationPercX100;
     uint64 public iaRatesTime;
-
     uint public minCap;
-    uint public shockParameter;
     uint64 public mcrTime;
     uint64 public minMCRReq;
     uint64 public sfX100000;
+    uint public shockParameter;
     uint64 public growthStep;
-    uint64 public mcrFailTime;
-
-    McrData[] public allMCRData;
-    mapping(bytes4 => uint) public allCurr3DaysAvg;
-    address internal notariseMCR;
-    address public daiFeedAddress;
-    uint private constant DECIMAL1E16 = uint(10) ** 16;
+    uint64 public mcrFailTime; 
 
     constructor() public {
         growthStep = 1500000;
@@ -172,11 +171,11 @@ contract PoolData is Iupgradable {
     }
     
     /// @dev Updates the 3 day average rate of a currency.
-    ///      To be replaced by MakeDaos on chain rates
+    ///      To be replaced by MakerDao's on chain rates
     /// @param curr Currency Name.
     /// @param rate Average exchange rate X 100 (of last 3 days).
-    function updateCurr3DaysAvg(bytes4 curr, uint rate) external onlyInternal {
-        allCurr3DaysAvg[curr] = rate;
+    function updateCAAvgRate(bytes4 curr, uint rate) external onlyInternal {
+        caAvgRate[curr] = rate;
     }
 
     /// @dev Adds details of (Minimum Capital Requirement)MCR.
@@ -423,7 +422,7 @@ contract PoolData is Iupgradable {
     function getTokenPriceDetails(bytes4 curr) external view returns(uint sf, uint gs, uint rate) {
         sf = sfX100000;
         gs = growthStep;
-        rate = _getCurr3DaysAvg(curr);
+        rate = _getCAAvgRate(curr);
     }
     
     /// @dev Gets the total number of times MCR calculation has been made.
@@ -710,8 +709,8 @@ contract PoolData is Iupgradable {
         );
     }
 
-    function getCurr3DaysAvg(bytes4 curr) public view returns(uint rate) {
-        return _getCurr3DaysAvg(curr);
+    function getCAAvgRate(bytes4 curr) public view returns(uint rate) {
+        return _getCAAvgRate(curr);
     }
 
     function changeDependentContractAddress() public onlyInternal {}
@@ -719,12 +718,12 @@ contract PoolData is Iupgradable {
     /// @dev Gets the average rate of a currency.
     /// @param curr Currency Name.
     /// @return rate Average rate X 100(of last 3 days).
-    function _getCurr3DaysAvg(bytes4 curr) internal view returns(uint rate) {
+    function _getCAAvgRate(bytes4 curr) internal view returns(uint rate) {
         if (curr == "DAI") {
             DSValue ds = DSValue(daiFeedAddress);
-            rate = uint(ds.read()).div(DECIMAL1E16);
+            rate = uint(ds.read()).div(uint(10) ** 16);
         } else {
-            rate = allCurr3DaysAvg[curr];
+            rate = caAvgRate[curr];
         }
     }
 }

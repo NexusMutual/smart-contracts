@@ -124,7 +124,7 @@ contract MCR is Iupgradable {
             pd.pushMCRData(mcrP, mcrE, vF, date);
             for (uint j = 0; j < len; j++) {
                 bytes4 currName = pd.getCurrenciesByIndex(j);
-                pd.updateCurr3DaysAvg(currName, pd.getCurr3DaysAvg(currName));
+                pd.updateCAAvgRate(currName, pd.getCAAvgRate(currName));
             }
 
             emit MCREvent(date, block.number, new bytes4[](0), new uint[](0), mcrE, mcrP, vF);
@@ -161,8 +161,8 @@ contract MCR is Iupgradable {
             if (currName == "ETH") {
                 amount = amount.add(qd.getTotalSumAssured(currName));
             } else {
-                if (pd.getCurr3DaysAvg(currName) > 0)
-                    amount = amount.add((qd.getTotalSumAssured(currName).mul(100)).div(pd.getCurr3DaysAvg(currName)));
+                if (pd.getCAAvgRate(currName) > 0)
+                    amount = amount.add((qd.getTotalSumAssured(currName).mul(100)).div(pd.getCAAvgRate(currName)));
             }
         }
     }
@@ -173,7 +173,7 @@ contract MCR is Iupgradable {
      * @return vtp  Pool Fund Value in Ether used for the Token Price Model
      * @return mcrtp MCR% used in the Token Price Model. 
      */ 
-    function calVtpAndMCRtp(uint poolBalance) public view returns(uint vtp, uint mcrtp) {
+    function _calVtpAndMCRtp(uint poolBalance) public view returns(uint vtp, uint mcrtp) {
         vtp = 0;
         ERC20 erc20;
         uint currTokens = 0;
@@ -181,8 +181,8 @@ contract MCR is Iupgradable {
             bytes4 currency = pd.getCurrenciesByIndex(i);
             erc20 = ERC20(pd.getCurrencyAssetAddress(currency));
             currTokens = erc20.balanceOf(address(p1));
-            if (pd.getCurr3DaysAvg(currency) > 0)
-                vtp = vtp.add((currTokens.mul(100)).div(pd.getCurr3DaysAvg(currency)));
+            if (pd.getCAAvgRate(currency) > 0)
+                vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
         }
         vtp = vtp.add(poolBalance);
         uint mcrFullperc;
@@ -218,10 +218,19 @@ contract MCR is Iupgradable {
      */ 
     function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
         uint mcrtp;
-        (, mcrtp) = calVtpAndMCRtp(address(p1).balance); 
+        (, mcrtp) = _calVtpAndMCRtp(address(p1).balance); 
         return _calculateTokenPrice(curr, tk.totalSupply(), mcrtp);
     }
     
+    function calVtpAndMCRtp() public view returns(uint vtp, uint mcrtp) {
+        return _calVtpAndMCRtp(address(p1).balance);
+    }
+
+    function calculateVtpAndMCRtp(uint poolBalance) public view returns(uint vtp, uint mcrtp) {
+        return _calVtpAndMCRtp(poolBalance);
+    }
+
+
     /**
      * @dev Gets max numbers of tokens that can be sold at the moment.
      */ 
@@ -260,16 +269,16 @@ contract MCR is Iupgradable {
     {
         uint getSFx100000;
         uint getGrowthStep;
-        uint getCurr3DaysAvg;
+        uint getCAAvgRate;
         uint max = (mcrtp.mul(mcrtp)); 
-        (getSFx100000, getGrowthStep, getCurr3DaysAvg) = pd.getTokenPriceDetails(_curr);
+        (getSFx100000, getGrowthStep, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
         if (max <= DECIMAL1E08) {
             max = DECIMAL1E08; 
         }
         getGrowthStep = getGrowthStep.mul(DECIMAL1E18);
         tokenPrice = getSFx100000.mul(getGrowthStep.add(_totalSupply));
         tokenPrice = (tokenPrice.mul(max)).mul(DECIMAL1E18);
-        tokenPrice = (tokenPrice.mul(getCurr3DaysAvg * 10)).div(getGrowthStep); 
+        tokenPrice = (tokenPrice.mul(getCAAvgRate * 10)).div(getGrowthStep); 
         tokenPrice = (tokenPrice).div(DECIMAL1E08 ** 2);
     }   
 
@@ -293,7 +302,7 @@ contract MCR is Iupgradable {
         uint lowerThreshold = 0;
         uint upperThreshold = 0;
         if (len > 1) {
-            (vtp, ) = calVtpAndMCRtp(address(p1).balance);
+            (vtp, ) = _calVtpAndMCRtp(address(p1).balance);
             if (vtp >= vF) {
                 upperThreshold = vtp.div(pd.minCap());
                 upperThreshold = upperThreshold.mul(100);
@@ -315,7 +324,7 @@ contract MCR is Iupgradable {
             vtp = pd.getLastMCRDate(); // due to stack to deep error,we are reusing already declared variable
             pd.pushMCRData(mcrP, mcrE, vF, newMCRDate);
             for (uint i = 0; i < curr.length; i++) {
-                pd.updateCurr3DaysAvg(curr[i], _threeDayAvg[i]);
+                pd.updateCAAvgRate(curr[i], _threeDayAvg[i]);
             }
             emit MCREvent(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
             // Oraclize call for next MCR calculation

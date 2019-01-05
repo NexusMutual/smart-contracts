@@ -165,7 +165,7 @@ contract Pool2 is Iupgradable {
     {
         caBalance = _getCurrencyAssetsBalance(curr);
         (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-        caRateX100 = pd.allCurr3DaysAvg(curr);
+        caRateX100 = pd.getCAAvgRate(curr);
     }
 
     function changeDependentContractAddress() public onlyInternal {
@@ -322,7 +322,7 @@ contract Pool2 is Iupgradable {
         returns(uint balance, uint iaBalance)
     {
         uint capitalPoolBalance;
-        (capitalPoolBalance, ) = m1.calVtpAndMCRtp(address(p1).balance);
+        (capitalPoolBalance, ) = m1.calVtpAndMCRtp();
         for (uint i = 0; i < iaCurr.length; i++) {
             if (iaRate[i] > 0) {
                 iaBalance = (iaBalance.add(_getInvestmentAssetBalance(

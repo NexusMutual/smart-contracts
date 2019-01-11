@@ -231,6 +231,17 @@ contract Quotation is Iupgradable {
         return (a == qd.getAuthQuoteEngine());
     }
 
+    function getRecentHoldedCoverIdStatus(address userAdd) public view returns(int) {
+
+        uint holdedCoverLen = qd.getUserHoldedCoverLength(userAdd);
+        if (holdedCoverLen == 0) {
+            return -1;
+        } else {
+            uint holdedCoverID = qd.getUserHoldedCoverByIndex(userAdd, holdedCoverLen - 1);
+            return int(qd.holdedCoverIDStatus(holdedCoverID));
+        }
+    }
+    
     function initiateMembershipAndCover(
         address smartCAdd,
         bytes4 coverCurr,
@@ -315,7 +326,7 @@ contract Quotation is Iupgradable {
         }
               
     }
-    
+
     function fullRefund() public checkPause {
         kycTrigger(false, msg.sender);
     }

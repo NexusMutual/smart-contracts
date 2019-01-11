@@ -128,21 +128,6 @@ contract Governance is IGovernance, Iupgradable {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
-
-    function callRewardClaimed(
-        address _member,
-        uint[] _voterProposals,
-        uint _gbtReward
-    ) 
-        external
-        onlyInternal 
-    {
-        emit RewardClaimed(
-            _member,
-            _voterProposals, 
-            _gbtReward
-        );
-    }
  
     function removeDelegation(address _add) external onlyInternal {
         uint delegationId = followerDelegation[_add];
@@ -356,8 +341,14 @@ contract Governance is IGovernance, Iupgradable {
             
         }
 
-        if (pendingDAppReward > 0)
+        if (pendingDAppReward > 0) {
             require(nxmToken.transfer(msg.sender, pendingDAppReward));
+            emit RewardClaimed(
+            _memberAddress,
+            _proposals,
+            pendingDAppReward
+        );
+        }
 
     }
 
@@ -609,7 +600,7 @@ contract Governance is IGovernance, Iupgradable {
         eventCaller.callProposalCreated(
             _proposalId,
             _categoryId,
-            ms.dAppName(),
+            address(ms),
             _proposalDescHash
         );
     }

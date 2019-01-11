@@ -124,8 +124,6 @@ contract IGovernance {
 
     function claimReward(address _memberAddress, uint[] _proposals) external returns(uint pendingDAppReward); 
 
-    function callRewardClaimed(address _member, uint[] _voterProposals, uint _gbtReward) external;
-
     function proposal(uint _proposalId)
         external
         view

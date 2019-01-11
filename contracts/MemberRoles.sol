@@ -43,11 +43,17 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _;
     }
 
-    function changeDependentContractAddress() public onlyInternal {}
+    function changeDependentContractAddress() public {}
+
+    function changeMasterAddress(address _masterAddress) public {
+        if (masterAddress != address(0))
+            require(masterAddress == msg.sender);
+        masterAddress = _masterAddress;
+        
+    }
     
-    function memberRolesInitiate (bytes32 _dAppName, address _dAppToken, address _firstAB, address memberAuthority) public {
+    function memberRolesInitiate (address _dAppToken, address _firstAB, address memberAuthority) public {
         require(!constructorCheck);
-        dappName = _dAppName;
         dAppToken = TokenController(_dAppToken);
         addInitialMemberRoles(_firstAB, memberAuthority);
         constructorCheck = true;

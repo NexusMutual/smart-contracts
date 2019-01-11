@@ -131,35 +131,35 @@ contract('Pool', function([owner, notOwner]) {
       const iaIndex = await pd.getInvestmentCurrencyLen();
       (await pd.getInvestmentCurrencyByIndex(iaIndex - 1)).should.equal(CA_DAI);
     });
-    it('should be able to add new Currency Asset', async function() {
-      await pd.addCurrencyAssetCurrency(newAsset, ZERO_ADDRESS, 1);
-      await pd.getCurrencyAssetVarBase(newAsset);
-      (await pd.getCurrencyAssetAddress(newAsset)).should.equal(ZERO_ADDRESS);
-      (await pd.getCurrencyAssetVarMin(newAsset)).should.be.bignumber.equal(0);
-      (await pd.getCurrencyAssetBaseMin(newAsset)).should.be.bignumber.equal(1);
-    });
-    it('should be able to add new Investment Asset', async function() {
-      await pd.addInvestmentAssetCurrency(
-        newAsset,
-        ZERO_ADDRESS,
-        false,
-        4000,
-        8500,
-        18
-      );
-      await pd.getInvestmentAssetDetails(newAsset);
-      (await pd.getInvestmentAssetStatus(newAsset)).should.equal(false);
-      (await pd.getInvestmentAssetAddress(newAsset)).should.equal(ZERO_ADDRESS);
-      (await pd.getInvestmentAssetMinHoldingPerc(
-        newAsset
-      )).should.be.bignumber.equal(4000);
-      (await pd.getInvestmentAssetMaxHoldingPerc(
-        newAsset
-      )).should.be.bignumber.equal(8500);
-      (await pd.getInvestmentAssetDecimals(newAsset)).should.be.bignumber.equal(
-        18
-      );
-    });
+    // it('should be able to add new Currency Asset', async function() {
+    //   await pd.addCurrencyAssetCurrency(newAsset, ZERO_ADDRESS, 1);
+    //   await pd.getCurrencyAssetVarBase(newAsset);
+    //   (await pd.getCurrencyAssetAddress(newAsset)).should.equal(ZERO_ADDRESS);
+    //   (await pd.getCurrencyAssetVarMin(newAsset)).should.be.bignumber.equal(0);
+    //   (await pd.getCurrencyAssetBaseMin(newAsset)).should.be.bignumber.equal(1);
+    // });
+    // it('should be able to add new Investment Asset', async function() {
+    //   await pd.addInvestmentAssetCurrency(
+    //     newAsset,
+    //     ZERO_ADDRESS,
+    //     false,
+    //     4000,
+    //     8500,
+    //     18
+    //   );
+    //   await pd.getInvestmentAssetDetails(newAsset);
+    //   (await pd.getInvestmentAssetStatus(newAsset)).should.equal(false);
+    //   (await pd.getInvestmentAssetAddress(newAsset)).should.equal(ZERO_ADDRESS);
+    //   (await pd.getInvestmentAssetMinHoldingPerc(
+    //     newAsset
+    //   )).should.be.bignumber.equal(4000);
+    //   (await pd.getInvestmentAssetMaxHoldingPerc(
+    //     newAsset
+    //   )).should.be.bignumber.equal(8500);
+    //   (await pd.getInvestmentAssetDecimals(newAsset)).should.be.bignumber.equal(
+    //     18
+    //   );
+    // });
     it('should be able to change Variation Percentage', async function() {
       await pd.changeVariationPercX100(400);
       (await pd.variationPercX100()).should.be.bignumber.equal(400);
@@ -206,19 +206,19 @@ contract('Pool', function([owner, notOwner]) {
         19
       );
     });
-    it('should be able to change Investment Asset Status', async function() {
-      await pd.changeInvestmentAssetStatus(newAsset, true);
-      (await pd.getInvestmentAssetStatus(newAsset)).should.equal(true);
-    });
-    it('should be able to change Investment Asset Holding Percentage', async function() {
-      await pd.changeInvestmentAssetHoldingPerc(newAsset, 4500, 9000);
-      (await pd.getInvestmentAssetMinHoldingPerc(
-        newAsset
-      )).should.be.bignumber.equal(4500);
-      (await pd.getInvestmentAssetMaxHoldingPerc(
-        newAsset
-      )).should.be.bignumber.equal(9000);
-    });
+    // it('should be able to change Investment Asset Status', async function() {
+    //   await pd.changeInvestmentAssetStatus(newAsset, true);
+    //   (await pd.getInvestmentAssetStatus(newAsset)).should.equal(true);
+    // });
+    // it('should be able to change Investment Asset Holding Percentage', async function() {
+    //   await pd.changeInvestmentAssetHoldingPerc(newAsset, 4500, 9000);
+    //   (await pd.getInvestmentAssetMinHoldingPerc(
+    //     newAsset
+    //   )).should.be.bignumber.equal(4500);
+    //   (await pd.getInvestmentAssetMaxHoldingPerc(
+    //     newAsset
+    //   )).should.be.bignumber.equal(9000);
+    // });
     it('should return Investment Asset Rank Details', async function() {
       const lastDate = await pd.getLastDate();
       await pd.getIARankDetailsByDate(lastDate);

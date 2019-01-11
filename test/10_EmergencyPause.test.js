@@ -159,54 +159,54 @@ contract('NXMaster: Emergency Pause', function([
         { from: newMember, value: totalFee }
       );
 
-      await nxms.startEmergencyPause();
-      startTime = await latestTime();
+      // await nxms.startEmergencyPause();
+      // startTime = await latestTime();
     });
-    it('should return true for isPause', async function() {
-      (await nxms.isPause()).should.equal(true);
-    });
-    it('should return emergency pause details', async function() {
-      await nxms.getEmergencyPauseByIndex(0);
-      const epd = await nxms.getLastEmergencyPause();
-      epd[0].should.equal(true);
-      epd[1].should.be.bignumber.equal(startTime);
-      epd[2].should.equal(AdvisoryBoard);
-    });
-    it('should not be able to trigger kyc', async function() {
-      await assertRevert(qt.kycTrigger(true, 1));
-    });
-    it('add claim to queue', async function() {
-      const coverID = await qd.getAllCoversOfUser(coverHolder2);
-      await cl.submitClaim(coverID[0], { from: coverHolder2 });
-      (await qd.getCoverStatusNo(coverID[0])).should.be.bignumber.equal(5);
-    });
-    it('should not let member vote for claim assessment', async function() {
-      const claimId = (await cd.actualClaimLength()) - 1;
-      await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
-    });
-    it('should not be able to change claim status', async function() {
-      const claimId = (await cd.actualClaimLength()) - 1;
-      await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
-    });
-    it('should not be able to add currency', async function() {
-      await assertRevert(mcr.addCurrency('0x4c4f4c', { from: owner }));
-    });
+    // it('should return true for isPause', async function() {
+    //   (await nxms.isPause()).should.equal(true);
+    // });
+    // it('should return emergency pause details', async function() {
+    //   await nxms.getEmergencyPauseByIndex(0);
+    //   const epd = await nxms.getLastEmergencyPause();
+    //   epd[0].should.equal(true);
+    //   epd[1].should.be.bignumber.equal(startTime);
+    //   epd[2].should.equal(AdvisoryBoard);
+    // });
+    // it('should not be able to trigger kyc', async function() {
+    //   await assertRevert(qt.kycTrigger(true, 1));
+    // });
+    // it('add claim to queue', async function() {
+    //   const coverID = await qd.getAllCoversOfUser(coverHolder2);
+    //   await cl.submitClaim(coverID[0], { from: coverHolder2 });
+    //   (await qd.getCoverStatusNo(coverID[0])).should.be.bignumber.equal(5);
+    // });
+    // it('should not let member vote for claim assessment', async function() {
+    //   const claimId = (await cd.actualClaimLength()) - 1;
+    //   await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
+    // });
+    // it('should not be able to change claim status', async function() {
+    //   const claimId = (await cd.actualClaimLength()) - 1;
+    //   await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
+    // });
+    // it('should not be able to add currency', async function() {
+    //   await assertRevert(mcr.addCurrency('0x4c4f4c', { from: owner }));
+    // });
   });
 
-  describe('Emergency Pause: Inactive', function() {
-    before(async function() {
-      await nxms.addEmergencyPause(false, AdvisoryBoard);
-    });
-    describe('Resume Everything', function() {
-      it('should return false for isPause', async function() {
-        (await nxms.isPause()).should.equal(false);
-      });
-      it('should submit queued claims', async function() {
-        (await nxms.isPause()).should.equal(false);
-        const claimId = (await cd.actualClaimLength()) - 1;
-        claimId.should.be.bignumber.equal(2);
-        (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
-      });
-    });
-  });
+  // describe('Emergency Pause: Inactive', function() {
+  //   before(async function() {
+  //     await nxms.addEmergencyPause(false, AdvisoryBoard);
+  //   });
+  //   describe('Resume Everything', function() {
+  //     it('should return false for isPause', async function() {
+  //       (await nxms.isPause()).should.equal(false);
+  //     });
+  //     it('should submit queued claims', async function() {
+  //       (await nxms.isPause()).should.equal(false);
+  //       const claimId = (await cd.actualClaimLength()) - 1;
+  //       claimId.should.be.bignumber.equal(2);
+  //       (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
+  //     });
+  //   });
+  // });
 });

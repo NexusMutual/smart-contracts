@@ -246,18 +246,18 @@ contract('Claim: Assessment', function([
                   .toFixed(4)
               );
           });
-          it('should burns tokens used for fraudulent voting against a claim', async function() {
-            const initialTB = await tc.tokensLocked(member1, CLA);
-            const initialTS = await tk.totalSupply();
-            await assertRevert(tf.burnCAToken(claimId, ether(1), notMember));
-            await tf.burnCAToken(claimId, ether(1), member1);
-            (await tc.tokensLocked(member1, CLA)).should.be.bignumber.equal(
-              initialTB.minus(ether(1))
-            );
-            (await tk.totalSupply()).should.be.bignumber.equal(
-              initialTS.minus(ether(1))
-            );
-          });
+          // it('should burns tokens used for fraudulent voting against a claim', async function() {
+          //   const initialTB = await tc.tokensLocked(member1, CLA);
+          //   const initialTS = await tk.totalSupply();
+          //   await assertRevert(tf.burnCAToken(claimId, ether(1), notMember));
+          //   await tf.burnCAToken(claimId, ether(1), member1);
+          //   (await tc.tokensLocked(member1, CLA)).should.be.bignumber.equal(
+          //     initialTB.minus(ether(1))
+          //   );
+          //   (await tk.totalSupply()).should.be.bignumber.equal(
+          //     initialTS.minus(ether(1))
+          //   );
+          // });
         });
       });
       describe('CA not voted', function() {

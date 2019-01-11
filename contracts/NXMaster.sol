@@ -39,7 +39,6 @@ contract NXMaster is Governed {
     EmergencyPause[] public emergencyPaused;
 
     uint[] public versionDates;
-    bytes32 public dAppName;
     bytes2[] internal allContractNames;
     mapping(address => bool) public contractsActive;
     mapping(uint => mapping(bytes2 => address)) internal allContractVersions;
@@ -67,8 +66,8 @@ contract NXMaster is Governed {
 
     constructor() public {
         owner = msg.sender;
+        masterAddress = address(this);
         contractsActive[address(this)] = true; //1
-        dappName = "NEXUS-MUTUAL";
         pauseTime = 28 days; //4 weeks
         contractsActive[address(this)] = true;
         versionDates.push(now); //solhint-disable-line
@@ -256,6 +255,10 @@ contract NXMaster is Governed {
 
     }
 
+    function dAppToken() public view returns(address _add) {
+        _add = tokenAddress;
+    }
+
     /// @dev Gets latest contract address
     /// @param _contractName Contract name to fetch
     function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress) {
@@ -273,7 +276,30 @@ contract NXMaster is Governed {
                 _generateProxy(allContractNames[i], _contractAddresses[i]);
             } else if (!(allContractNames[i] == "MR" || allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
                 allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
+            } else {
+                allContractVersions[versionDates.length][allContractNames[i]] = 
+                allContractVersions[versionDates.length - 1][allContractNames[i]];
             }
+
+        }
+
+            
+        versionDates.push(now); //solhint-disable-line
+        
+            
+        changeMasterAddress(address(this));
+        changeAllAddress();
+
+        
+    }
+
+    /// @dev Adding a new version when we got new master.
+    /// @param _contractAddresses Array of contract addresses which will be generated
+    function addVersionForNewMaster(address[] _contractAddresses) public onlyOwner {
+
+        for (uint i = 0; i < allContractNames.length; i++) {
+            
+            allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
 
         }
 
@@ -314,7 +340,7 @@ contract NXMaster is Governed {
         contractsActive[address(tempInstance)] = true;
         if (_contractName == "MR") {
             MemberRoles mr = MemberRoles(address(tempInstance));
-            mr.memberRolesInitiate(dAppName, dAppLocker(), owner, allContractVersions[currentVersion]["TF"]);
+            mr.memberRolesInitiate(dAppLocker(), owner, allContractVersions[currentVersion]["TF"]);
         }
     }
 

@@ -107,9 +107,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     }
 
     /// @dev Initiates Default settings for Proposal Category contract (Adding default categories)
-    function proposalCategoryInitiate(bytes32 _dAppName) external { //solhint-disable-line
+    function proposalCategoryInitiate() external { //solhint-disable-line
         require(!constructorCheck);
-        dappName = _dAppName;
         addInitialCategories("Uncategorized", "", "MR", 50, 25, 1, 0);
         addInitialCategories("Add new member role", "QmQFnBep7AyMYU3LJDuHSpTYatnw65XjHzzirrghtZoR8U", 
         "MR", 50, 25, 1, 0);
@@ -121,10 +120,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "PC", 50, 25, 1, 0);
         addInitialCategories("Resume Proposal", "QmQPWVjmv2Gt2Dzt1rxmFkHCptFSdtX4VC5g7VVNUByLv1", "GV", 50, 25, 1, 0);
         addInitialCategories("Pause Proposal", "QmWWoiRZCmi61LQKpGyGuKjasFVpq8JzbLPvDhU8TBS9tk", "GV", 50, 25, 1, 0);
-        addInitialCategories("Change dApp Token Proxy", "QmPR9K6BevCXRVBxWGjF9RV7Pmtxr7D4gE3qsZu5bzi8GK",
-        "MS", 50, 25, 1, 0);
-        addInitialCategories("Add new authorized address", "QmNTYRfNCYxdnGjYxzd8epUsLNbnkREffJpcwqugoQPDXN",
-        "GV", 50, 25, 1, 0);
+        // addInitialCategories("Change dApp Token Proxy", "QmPR9K6BevCXRVBxWGjF9RV7Pmtxr7D4gE3qsZu5bzi8GK",
+        // "MS", 50, 25, 1, 0);
         addInitialCategories(
             "Upgrade a contract Implementation",
             "Qme4hGas6RuDYk9LKE2XkK9E46LNeCBUzY12DdT5uQstvh",
@@ -134,17 +131,16 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             1,
             0
         );
-        addInitialCategories(
-            "Upgrade a contract proxy",
-            "QmUNGEn7E2csB3YxohDxBKNqvzwa1WfvrSH4TCCFD9DZsg",
-            "MS",
-            50, 
-            25, 
-            1,
-            0
-        );
+        // addInitialCategories(
+        //     "Upgrade a contract proxy",
+        //     "QmUNGEn7E2csB3YxohDxBKNqvzwa1WfvrSH4TCCFD9DZsg",
+        //     "MS",
+        //     50, 
+        //     25, 
+        //     1,
+        //     0
+        // );
         
-        addInitialCategories("Buy GBT in Pool", "QmUc6apk3aRoHPaSwafo7RkV4XTJaaWS6Q7MogTMqLDyWs", "PL", 50, 25, 1, 0);
         //  --------------------------------------------------------------------------------------------- //
         addInitialCategories("Implement Emergency Pause", "QmZSaEsvTCpy357ZSrPYKqby1iaksBwPdKCGWzW1HpgSpe",
         "MS", 0, 15, 1, 0);
@@ -171,7 +167,14 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         constructorCheck = true;
     }
 
-    function changeDependentContractAddress() public onlyInternal {}
+    function changeDependentContractAddress() public {}
+
+    function changeMasterAddress(address _masterAddress) public {
+        if (masterAddress != address(0))
+            require(masterAddress == msg.sender);
+        masterAddress = _masterAddress;
+        
+    }
 
     /// @dev Updates category details
     /// @param _categoryId Category id that needs to be updated

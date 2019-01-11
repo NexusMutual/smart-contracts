@@ -18,20 +18,15 @@ pragma solidity 0.4.24;
 import "./NXMToken.sol";
 import "./Iupgradable.sol";
 import "./imports/ERC1132/IERC1132.sol";
-import "./imports/govblocks-protocol/Governed.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
-contract TokenController is IERC1132, Governed, Iupgradable {
+contract TokenController is IERC1132, Iupgradable {
     using SafeMath for uint256;
 
     event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
     NXMToken public token;
-
-    constructor () public {
-        dappName = "NEXUS-MUTUAL";
-    }
     
     /**
     * @dev Just for interface

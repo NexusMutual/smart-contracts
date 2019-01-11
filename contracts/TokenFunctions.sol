@@ -23,14 +23,12 @@ import "./ClaimsReward.sol";
 import "./TokenData.sol";
 import "./QuotationData.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
-import "./imports/govblocks-protocol/Governed.sol";
 import "./MemberRoles.sol";
 import "./Iupgradable.sol";
 import "./Governance.sol";
 
 
-
-contract TokenFunctions is Iupgradable, Governed {
+contract TokenFunctions is Iupgradable {
     using SafeMath for uint;
 
     MCR internal m1;
@@ -60,10 +58,6 @@ contract TokenFunctions is Iupgradable, Governed {
     }
 
     event BurnCATokens(uint claimId, address addr, uint amount);
-
-    constructor () public {
-        dappName = "NEXUS-MUTUAL";
-    }
     
     /**
      * @dev Sends commission to underwriter on purchase of staked smart contract.
@@ -310,7 +304,9 @@ contract TokenFunctions is Iupgradable, Governed {
      * @param _value number of tokens to be burned
      * @param _of Claim Assessor's address.
      */     
-    function burnCAToken(uint claimid, uint _value, address _of) public onlyAuthorizedToGovern {
+    function burnCAToken(uint claimid, uint _value, address _of) public {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
         tc.burnLockedTokens(_of, "CLA", _value);
         emit BurnCATokens(claimid, _of, _value);
     }
@@ -342,7 +338,7 @@ contract TokenFunctions is Iupgradable, Governed {
         }
     }
 
-    function kycVerdict(address _userAddress, bool verdict) public checkPause onlyInternal {
+    function kycVerdict(address _userAddress, bool verdict) public checkPause {
         require(!ms.isMember(_userAddress));
         require(qd.refundEligible(_userAddress));
         if (verdict) {

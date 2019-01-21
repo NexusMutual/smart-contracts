@@ -1,4 +1,5 @@
 const Pool1 = artifacts.require('Pool1Mock');
+const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
@@ -9,6 +10,7 @@ const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
+const DAI = artifacts.require('MockDAI');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -39,6 +41,7 @@ let cl;
 let qd;
 let qt;
 let cad;
+let p2;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -73,6 +76,8 @@ contract('Claim', function([
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
+    p2 = await Pool2.deployed();
+    cad = await DAI.deployed();
   });
   describe('Submit Claim', function() {
     before(async function() {
@@ -107,6 +112,17 @@ contract('Claim', function([
 
       describe('if holds a cover', function() {
         before(async function() {
+          // console.log('helll');
+          await P1.makeCoverBegin(
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            v,
+            r,
+            s,
+            { from: coverHolder, value: coverDetails[1] }
+          );
           await P1.makeCoverBegin(
             smartConAdd,
             'ETH',
@@ -131,8 +147,165 @@ contract('Claim', function([
                 initialCurrencyAssetVarMin = await pd.getCurrencyAssetVarMin(
                   coverCurr
                 );
+                await P1.transferFundToOtherAdd(owner, 5 * 1e18); // To check insufficientTrade condition
+                let CABalE;
+                let CABalD;
+                let CABalE2;
+                let CABalD2;
+
+                CABalE = await web3.eth.getBalance(P1.address);
+                CABalE2 = await web3.eth.getBalance(p2.address);
+                CABalD = await cad.balanceOf(P1.address);
+                CABalD2 = await cad.balanceOf(p2.address);
                 await cl.submitClaim(coverID[0], { from: coverHolder });
+                // var disl = await pd.allAPIcall(await pd.getApilCallLength() - 1);
+                // var erd = await pd.getApiCallDetails(disl);
+                // console.log(erd);
+                const CAdetails = await pd.getCurrencyAssetVarBase(coverCurr);
+                const rankDetails = await pd.getIARankDetailsByDate(
+                  await pd.getLastDate()
+                );
+                let coverCurrCA;
+                if (coverCurr == 0x45544800) coverCurrCA = CABalE;
+                else coverCurrCA = CABalD;
+                let amount;
+                let typeOfTrade = 'noTradeReq';
+                if (
+                  coverCurrCA >
+                  2 * (CAdetails[1].toNumber() + CAdetails[2].toNumber())
+                )
+                  typeOfTrade = 'ELT';
+                if (
+                  coverCurrCA <
+                  CAdetails[1].toNumber() + CAdetails[2].toNumber()
+                )
+                  typeOfTrade = 'ILT';
+                if (typeOfTrade == 'noTradeReq') amount = 0;
+                // if(rankDetails[2] == coverCurr)
+                amount =
+                  coverCurrCA -
+                  (CAdetails[1].toNumber() + CAdetails[2].toNumber()) * 1.5;
+
+                let finalCABalE = await web3.eth.getBalance(P1.address);
+                let finalCABalE2 = await web3.eth.getBalance(p2.address);
+                let finalCABalD = await cad.balanceOf(P1.address);
+                let finalCABalD2 = await cad.balanceOf(p2.address);
+                let calCABalE;
+                let calCABalE2;
+                let calCABalD;
+                let calCABalD2;
+                if (coverCurr == 0x45544800) {
+                  calCABalE = parseFloat(CABalE) - parseFloat(amount);
+                  calCABalE2 = parseFloat(CABalE2) + parseFloat(amount);
+                  parseFloat(finalCABalE).should.be.equal(
+                    parseFloat(calCABalE)
+                  );
+                  parseFloat(finalCABalE2).should.be.equal(
+                    parseFloat(calCABalE2)
+                  );
+                } else {
+                  calCABalD = parseFloat(CABalD) - parseFloat(amount);
+                  calCABalD2 = parseFloat(CABalD2) + parseFloat(amount);
+                  parseFloat(finalCABalD).should.be.equal(
+                    parseFloat(calCABalD)
+                  );
+                  parseFloat(finalCABalD2).should.be.equal(
+                    parseFloat(calCABalD2)
+                  );
+                }
               });
+              // it('should be able to submit claim for another cover', async function() {
+              //   coverID = await qd.getAllCoversOfUser(coverHolder);
+              //   coverCurr = await qd.getCurrencyOfCover(coverID[1]);
+              //   await P1.sendTransaction({ from: owner, value: 7*1e18 });
+              //   // initialCurrencyAssetVarMin = await pd.getCurrencyAssetVarMin(
+              //   //   coverCurr
+              //   // );
+              //   // await increaseTimeTo(parseFloat(await pd.lastLiquidityTradeTrigger()) + parseFloat(await pd.liquidityTradeCallbackTime()) + 1);
+              //   // let CABalE;
+              //   // let CABalD;
+              //   // let CABalE2;
+              //   // let CABalD2;
+
+              //   CABalE = await web3.eth.getBalance(P1.address);
+              //   CABalE2 = await web3.eth.getBalance(p2.address);
+              //   CABalD = await cad.balanceOf(P1.address);
+              //   CABalD2 = await cad.balanceOf(p2.address);
+              //   // console.log("CABalE",parseFloat(CABalE),'CABalE2',parseFloat(CABalE2),'CABalD',parseFloat(CABalD),'CABalD2',parseFloat(CABalD2));
+
+              //   await cl.submitClaim(coverID[1], { from: coverHolder });
+              //   let apiCallData;
+              //   let apiId;
+              //   // let testgg = parseFloat(await pd.lastLiquidityTradeTrigger()) + parseFloat(await pd.liquidityTradeCallbackTime());
+              //   // var date = new Date();
+              //   // var timestamp = date.getTime();
+              //   // console.log(timestamp , ' ',testgg);
+              //   let z=await pd.getApilCallLength()-1;
+              //   for(;z>=0;z--)
+              //   {
+              //     apiId = await pd.getApiCallIndex(z);
+              //     apiCallData = await pd.getApiCallDetails(apiId);
+              //     console.log(apiCallData);
+              //     console.log(apiId);
+              //     if(apiCallData[0] == 0x554c5400)
+              //       break;
+              //   }
+              //   // console.log("11122");
+              //   const CAdetails = await pd.getCurrencyAssetVarBase("ETH");
+              //   const rankDetails = await pd.getIARankDetailsByDate(await pd.getLastDate());
+              //   console.log(rankDetails[0],"<<---");
+              //   let amount = (parseFloat(await p2._getCurrencyAssetsBalance("ETH")))-(parseFloat(CAdetails[1])+parseFloat(CAdetails[2]))*3/2;
+              //   console.log("******",amount);
+              //   console.log(CAdetails[1].toNumber(),' ',CAdetails[2].toNumber(),' ',parseFloat(await p2._getCurrencyAssetsBalance("ETH")));
+              //   console.log(parseFloat(CABalE),"******",parseFloat(CABalE2));
+              //   // await P1.transferCurrencyAsset("ETH",p2.address,amount);
+              //   await p2._externalLiquidityTrade();
+              //   // console.log("hjhjhjh");
+              //   // await P1.__callback(apiId,"re");
+              //   // // var disl = await pd.allAPIcall(await pd.getApilCallLength() - 1);
+              //   // // var erd = await pd.getApiCallDetails(disl);
+              //   // // console.log(erd);
+              //   // console.log(rankDetails);
+              //   // let coverCurrCA;
+              //   // if(coverCurr == 0x45544800)
+              //   //   coverCurrCA = CABalE;
+              //   // else
+              //   //   coverCurrCA = CABalD;
+              //   // let amount;
+              //   // let typeOfTrade = 'noTradeReq';
+              //   // if(coverCurrCA > 2*(CAdetails[1].toNumber()+CAdetails[2].toNumber()))
+              //   //   typeOfTrade = 'ELT';
+              //   // if(coverCurrCA < (CAdetails[1].toNumber()+CAdetails[2].toNumber()))
+              //   //   typeOfTrade = 'ILT';
+              //   // if(typeOfTrade == 'noTradeReq')
+              //   //   amount = 0;
+              //   // // if(rankDetails[2] == coverCurr)
+              //   //   amount = coverCurrCA - ((CAdetails[1].toNumber()+CAdetails[2].toNumber())*1.5);
+
+              //   // let finalCABalE = await web3.eth.getBalance(P1.address);
+              //   // let finalCABalE2 = await web3.eth.getBalance(p2.address);
+              //   // let finalCABalD = await cad.balanceOf(P1.address);
+              //   // let finalCABalD2 = await cad.balanceOf(p2.address);
+              //   // let calCABalE;
+              //   // let calCABalE2;
+              //   // let calCABalD;
+              //   // let calCABalD2;
+              //   // if(coverCurr == 0x45544800)
+              //   // {
+              //   //   calCABalE = parseFloat(CABalE) - parseFloat(amount);
+              //   //   calCABalE2 = parseFloat(CABalE2) + parseFloat(amount);
+              //   //   parseFloat(finalCABalE).should.be.equal(parseFloat(calCABalE));
+              //   //   parseFloat(finalCABalE2).should.be.equal(parseFloat(calCABalE2));
+              //   // }
+              //   // else
+              //   // {
+              //   //   calCABalD = parseFloat(CABalD) - parseFloat(amount);
+              //   //   calCABalD2 = parseFloat(CABalD2) + parseFloat(amount);
+              //   //   parseFloat(finalCABalD).should.be.equal(parseFloat(calCABalD));
+              //   //   parseFloat(finalCABalD2).should.be.equal(parseFloat(calCABalD2));
+              //   // }
+
+              // });
               it('cover status should change', async function() {
                 const claimDetails = await cd.getAllClaimsByIndex(1);
                 claimDetails[0].should.be.bignumber.equal(coverID[0]);
@@ -141,6 +314,7 @@ contract('Claim', function([
               });
               it('should increase CurrencyAssetVarMin', async function() {
                 const sumAssured = await qd.getCoverSumAssured(coverID[0]);
+                // const sumAssured1 =sumAssured.plus(await qd.getCoverSumAssured(coverID[1]));
                 (await pd.getCurrencyAssetVarMin(
                   coverCurr
                 )).should.be.bignumber.equal(

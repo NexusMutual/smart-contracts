@@ -47,8 +47,9 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     function changeMasterAddress(address _masterAddress) public {
         if (masterAddress != address(0))
-            require(masterAddress == msg.sender);
+            require(masterAddress == msg.sender || ms.isInternal(msg.sender));
         masterAddress = _masterAddress;
+        ms = NXMaster(_masterAddress);
         
     }
     

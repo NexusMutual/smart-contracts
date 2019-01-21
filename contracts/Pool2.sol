@@ -298,11 +298,12 @@ contract Pool2 is Iupgradable {
             if (pd.getInvestmentAssetStatus(curr[i])) {
                 (currentIAminHolding, currentIAmaxHolding) = pd.getInvestmentAssetHoldingPerc(curr[i]);
                 (rhsh, rhsl) = getIARank(curr[i], rate[i], totalRiskPoolBalance);
-                if (rhsh > max) {
+                if (rhsh > max || i == 0) {
                     max = rhsh;
                     maxCurr = curr[i];
                     maxRate = rate[i];
-                } else if (rhsl < min || rhsl == 0 || min == -1) {
+                }
+                if (rhsl < min || rhsl == 0 || i == 0) {
                     min = rhsl;
                     minCurr = curr[i];
                     minRate = rate[i];
@@ -559,7 +560,7 @@ contract Pool2 is Iupgradable {
         for (uint64 i = 0; i < pd.getAllCurrenciesLen(); i++) {
             curr = pd.getCurrenciesByIndex(i);
             (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-            caBalance = _getCurrencyAssetsBalance(curr).div(DECIMAL1E18);
+            caBalance = _getCurrencyAssetsBalance(curr);
 
             if (caBalance > uint(baseMin).add(varMin).mul(2)) { //excess
                 amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;

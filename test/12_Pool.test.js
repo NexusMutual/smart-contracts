@@ -131,35 +131,34 @@ contract('Pool', function([owner, notOwner]) {
       const iaIndex = await pd.getInvestmentCurrencyLen();
       (await pd.getInvestmentCurrencyByIndex(iaIndex - 1)).should.equal(CA_DAI);
     });
-    // it('should be able to add new Currency Asset', async function() {
-    //   await pd.addCurrencyAssetCurrency(newAsset, ZERO_ADDRESS, 1);
-    //   await pd.getCurrencyAssetVarBase(newAsset);
-    //   (await pd.getCurrencyAssetAddress(newAsset)).should.equal(ZERO_ADDRESS);
-    //   (await pd.getCurrencyAssetVarMin(newAsset)).should.be.bignumber.equal(0);
-    //   (await pd.getCurrencyAssetBaseMin(newAsset)).should.be.bignumber.equal(1);
-    // });
-    // it('should be able to add new Investment Asset', async function() {
-    //   await pd.addInvestmentAssetCurrency(
-    //     newAsset,
-    //     ZERO_ADDRESS,
-    //     false,
-    //     4000,
-    //     8500,
-    //     18
-    //   );
-    //   await pd.getInvestmentAssetDetails(newAsset);
-    //   (await pd.getInvestmentAssetStatus(newAsset)).should.equal(false);
-    //   (await pd.getInvestmentAssetAddress(newAsset)).should.equal(ZERO_ADDRESS);
-    //   (await pd.getInvestmentAssetMinHoldingPerc(
-    //     newAsset
-    //   )).should.be.bignumber.equal(4000);
-    //   (await pd.getInvestmentAssetMaxHoldingPerc(
-    //     newAsset
-    //   )).should.be.bignumber.equal(8500);
-    //   (await pd.getInvestmentAssetDecimals(newAsset)).should.be.bignumber.equal(
-    //     18
-    //   );
-    // });
+    it('should not be able to add new Currency Asset', async function() {
+      await assertRevert(
+        pd.addCurrencyAssetCurrency(newAsset, ZERO_ADDRESS, 1)
+      );
+    });
+    it('should not be able to add new Investment Asset', async function() {
+      await assertRevert(
+        pd.addInvestmentAssetCurrency(
+          newAsset,
+          ZERO_ADDRESS,
+          false,
+          4000,
+          8500,
+          18
+        )
+      );
+    });
+
+    it('should not be able to change UniswapFactoryAddress if not owner', async function() {
+      await assertRevert(
+        p2.changeUniswapFactoryAddress(pd.address, { from: notOwner })
+      );
+    });
+    it('should be able to transfer all investment asset to new address if owner', async function() {
+      await p2.upgradeInvestmentPool(owner);
+      await p2.upgradeInvestmentPool(owner);
+      await p2.sendTransaction({ from: owner, value: 10 * 1e18 });
+    });
     it('should be able to change Variation Percentage', async function() {
       await pd.changeVariationPercX100(400);
       (await pd.variationPercX100()).should.be.bignumber.equal(400);
@@ -206,6 +205,23 @@ contract('Pool', function([owner, notOwner]) {
         19
       );
     });
+
+    it('should not be able to call saveIADetails if not notarise', async function() {
+      await assertRevert(
+        p2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103, {
+          from: notOwner
+        })
+      );
+    });
+
+    it('should be able to get Currency asset details in single call', async function() {
+      await p2.getCurrencyAssetDetails('0x455448');
+    });
+
+    it('should be able to get Currency asset details in single call', async function() {
+      await p2.getCurrencyAssetDetails('0x444149');
+    });
+
     // it('should be able to change Investment Asset Status', async function() {
     //   await pd.changeInvestmentAssetStatus(newAsset, true);
     //   (await pd.getInvestmentAssetStatus(newAsset)).should.equal(true);

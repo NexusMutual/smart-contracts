@@ -85,7 +85,7 @@ contract Quotation is Iupgradable {
         bytes4 curr;
         address scAddress;
         uint sumAssured;
-        (, , scAddress, curr, sumAssured) = qd.getCoverDetailsByCoverID1(_cid);
+        (, , scAddress, curr, sumAssured, ) = qd.getCoverDetailsByCoverID1(_cid);
         if (qd.getCoverStatusNo(_cid) != 1)
             _removeSAFromCSA(_cid, sumAssured);
         qd.changeCoverStatusNo(_cid, uint8(QuotationData.CoverStatus.CoverExpired));       
@@ -388,7 +388,7 @@ contract Quotation is Iupgradable {
     {
         uint cid = qd.getCoverLength();
         qd.addCover(coverPeriod, coverDetails[0],
-            from, coverCurr, scAddress, coverDetails[1]);
+            from, coverCurr, scAddress, coverDetails[1], coverDetails[2]);
         uint coverLengthNew = qd.getCoverLength();
         if (coverLengthNew.sub(cid) > 1) {
             for (uint i = cid; i < coverLengthNew; i++) {
@@ -445,7 +445,7 @@ contract Quotation is Iupgradable {
     function _removeSAFromCSA(uint _cid, uint _amount) internal checkPause {
         address _add;
         bytes4 coverCurr;
-        (, , _add, coverCurr, ) = qd.getCoverDetailsByCoverID1(_cid);
+        (, , _add, coverCurr, , ) = qd.getCoverDetailsByCoverID1(_cid);
         qd.subFromTotalSumAssured(coverCurr, _amount);        
         qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
     }

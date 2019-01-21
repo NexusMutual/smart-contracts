@@ -455,7 +455,8 @@ contract Governance is IGovernance, Iupgradable {
         proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));        
         eventCaller = EventCaller(ms.getEventCallerAddress());
         tokenFunction = TokenFunctions(ms.getLatestAddress("TF"));
-        nxmToken = NXMToken(ms.getLatestAddress("TK"));
+        nxmToken = NXMToken(ms.tokenAddress());
+        tokenData = TokenData(ms.getLatestAddress("TD"));
     }
 
     /// @dev checks if the msg.sender is allowed to create a proposal under certain category
@@ -573,6 +574,11 @@ contract Governance is IGovernance, Iupgradable {
         return roleIdAllowedToCatgorize;
     }
 
+    function voteTallyData(uint _proposalId, uint _solution) public constant returns(uint, uint, uint) {
+        return (proposalVoteTally[_proposalId].memberVoteValue[_solution],
+            proposalVoteTally[_proposalId].abVoteValue[_solution], proposalVoteTally[_proposalId].voters);
+    }
+
     function _createProposal(
         string _proposalTitle,
         string _proposalSD,
@@ -669,7 +675,7 @@ contract Governance is IGovernance, Iupgradable {
         // addressProposalVote[msg.sender][_proposalId] = totalVotes;
         allVotes.push(ProposalVote(msg.sender, _proposalId, now));
 
-        setVoteTally(_proposalId, _solution);
+        setVoteTally(_proposalId, _solution, mrSequence);
         emit Vote(msg.sender, _proposalId, totalVotes - 1, now, _solution);
 
         if (mrSequence == uint(MemberRoles.Role.Member)) {
@@ -688,7 +694,7 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
-    function setVoteTally(uint _proposalId, uint _solution) internal
+    function setVoteTally(uint _proposalId, uint _solution, uint mrSequence) internal
     {
         uint category = allProposalData[_proposalId].category;
         uint voteWeight;
@@ -696,7 +702,8 @@ contract Governance is IGovernance, Iupgradable {
         uint voters = 1;
         voteWeight = minOf(maxOf(tokenInstance.totalBalanceOf(msg.sender), 1), 
         maxVoteWeigthPer.mul(nxmToken.totalSupply()).div(100));      
-        if (memberRole.checkRole(msg.sender, 1) && proposalCategory.categoryABReq(category) > 0)
+        if (memberRole.checkRole(msg.sender, 1) && (proposalCategory.categoryABReq(category) > 0) || 
+            mrSequence == uint(MemberRoles.Role.AdvisoryBoard))
             voteWeightAB = 1;
         uint delegationId;
         tokenData.lockForMemberVote(msg.sender, tokenHoldingTime);
@@ -868,7 +875,7 @@ contract Governance is IGovernance, Iupgradable {
         uint _majorityVote;
         uint abMem = memberRole.numberOfMembers(_roleId);
         (, , _majorityVote, , , , ) = proposalCategory.category(category);
-        if (proposalVoteTally[_proposalId].abVoteValue[1] > _majorityVote.mul(100).div(abMem)) {
+        if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(abMem) > _majorityVote) {
             
             callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
         } else {
@@ -894,6 +901,7 @@ contract Governance is IGovernance, Iupgradable {
         tokenHoldingTime = 1 * 7 days;
         maxVoteWeigthPer = 5;
         constructorCheck = true;
+        roleIdAllowedToCatgorize = uint(MemberRoles.Role.AdvisoryBoard);
     }
 
 }

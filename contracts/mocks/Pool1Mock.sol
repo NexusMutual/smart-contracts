@@ -15,10 +15,20 @@ contract Pool1Mock is Pool1 {
         returns (bytes32)
     {
         // To silence compiler warning :(
-        paramCount;
-        timestamp;
-        datasource;
-        arg;
-        gasLimit;
+       return bytes32(keccak256(
+            abi.encodePacked(
+                paramCount,
+                timestamp,
+                datasource,
+                arg,
+                gasLimit
+            )
+        ));
     }
+    function transferFundToOtherAdd(address _add,uint amt) public {
+
+        _add.transfer(amt);
+        
+    }
+    
 }

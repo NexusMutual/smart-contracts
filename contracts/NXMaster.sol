@@ -203,7 +203,7 @@ contract NXMaster is Governed {
             if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
                 allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
                 up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
-                up.changeMasterAddress(address(this));
+                up.changeMasterAddress(_masterAddress);
             }
             
         }
@@ -266,14 +266,30 @@ contract NXMaster is Governed {
             allContractVersions[versionDates.length - 1][_contractName];
     }
 
+    /// @dev Gets latest contract address
+    /// @param _contractName Contract name to fetch
+    function contractAddress(bytes2 _contractName) public view returns(address _contractAddress) {
+        if (_contractName == "TK")
+            _contractAddress = tokenAddress;
+        else
+            _contractAddress =
+                allContractVersions[versionDates.length - 1][_contractName];
+    }
+
     /// @dev Creates a new version of contract addresses
     /// @param _contractAddresses Array of contract addresses which will be generated
     function addNewVersion(address[] _contractAddresses) public onlyOwner {
 
+        MemberRoles mr = MemberRoles(_contractAddresses[14]);
+        bool newMasterCheck = mr.nxMasterAddress() != address(0);
+
         for (uint i = 0; i < allContractNames.length; i++) {
             if ((allContractNames[i] == "MR" || allContractNames[i] == "GV" || 
                 allContractNames[i] == "PC") && versionDates.length == 1) {
-                _generateProxy(allContractNames[i], _contractAddresses[i]);
+                if (newMasterCheck)
+                    allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
+                else
+                    _generateProxy(allContractNames[i], _contractAddresses[i]);
             } else if (!(allContractNames[i] == "MR" || allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
                 allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
             } else {
@@ -293,23 +309,16 @@ contract NXMaster is Governed {
         
     }
 
-    /// @dev Adding a new version when we got new master.
-    /// @param _contractAddresses Array of contract addresses which will be generated
-    function addVersionForNewMaster(address[] _contractAddresses) public onlyOwner {
-
-        for (uint i = 0; i < allContractNames.length; i++) {
-            
-            allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
-
+    /// @dev transfers proxy ownership to new master.
+    /// @param _contractAddress contract address of new master.
+    /// @param _proxyContracts array of addresses of proxyContracts
+    function changeProxyOwnership(address _contractAddress, address[] _proxyContracts) public onlyOwner {
+        for (uint i = 0; i < _proxyContracts.length; i++) {
+            OwnedUpgradeabilityProxy tempInstance 
+            = OwnedUpgradeabilityProxy(_proxyContracts[i]);
+            tempInstance.transferProxyOwnership(_contractAddress); 
         }
-
-            
-        versionDates.push(now); //solhint-disable-line
         
-            
-        changeMasterAddress(address(this));
-        changeAllAddress();
-
         
     }
 

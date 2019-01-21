@@ -6,6 +6,7 @@ import "./NXMaster.sol";
 contract Iupgradable {
 
     NXMaster public ms;
+    address public nxMasterAddress;
 
     modifier onlyInternal {
         require(ms.isInternal(msg.sender));
@@ -19,6 +20,7 @@ contract Iupgradable {
             require(ms.isInternal(msg.sender), "Not internal");
         }
         ms = NXMaster(_masterAddress);
+        nxMasterAddress = _masterAddress;
     }
 
 }

@@ -239,10 +239,9 @@ contract ClaimsReward is Iupgradable {
     //             Unlocking and burning of the tokens will also depend upon the status of claim.
     /// @param claimid Claim Id.
     function _rewardAgainstClaim(uint claimid, uint coverid, uint sumAssured, uint status) internal {
+        uint premiumNXM = qd.getCoverPremiumNXM(coverid);
         bytes4 curr = qd.getCurrencyOfCover(coverid);
-        uint currPrice = tf.getTokenPrice(curr);
-        uint distributableTokens = sumAssured.mul(
-            DECIMAL1E18).div(currPrice.mul(100));//  1% of sum assured
+        uint distributableTokens = premiumNXM.mul(20).div(100);//  20% of premium
             
         uint percCA;
         uint percMV;
@@ -264,6 +263,7 @@ contract ClaimsReward is Iupgradable {
         } else if (status == 7 || status == 8 || status == 10) {
             cd.changeFinalVerdict(claimid, 1);
             td.setDepositCN(coverid, false); // Unset flag
+            tf.unlockCN(coverid);
             require(p1.sendClaimPayout(coverid, claimid)); //send payout
         } 
     }

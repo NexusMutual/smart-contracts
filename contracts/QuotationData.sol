@@ -33,7 +33,7 @@ contract QuotationData is Iupgradable {
         uint16 coverPeriod;
         uint validUntil;
         address scAddress;
-        uint premium;
+        uint premiumNXM;
     }
 
     struct HoldCover {
@@ -73,6 +73,7 @@ contract QuotationData is Iupgradable {
         uint sumAssured,
         uint expiry,
         uint premium,
+        uint premiumNXM,
         bytes4 curr
     );
 
@@ -162,17 +163,18 @@ contract QuotationData is Iupgradable {
         address _userAddress,
         bytes4 _currencyCode,
         address _scAddress,
-        uint premium
+        uint premium,
+        uint premiumNXM
     )   
         external
         onlyInternal
     {
         uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
         allCovers.push(Cover(_userAddress, _currencyCode,
-                _sumAssured, _coverPeriod, expiryDate, _scAddress, premium));
+                _sumAssured, _coverPeriod, expiryDate, _scAddress, premiumNXM));
         uint cid = allCovers.length.sub(1);
         userCover[_userAddress].push(cid);
-        emit CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, _currencyCode);
+        emit CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, premiumNXM, _currencyCode);
     }
 
     function addHoldCover(
@@ -291,9 +293,9 @@ contract QuotationData is Iupgradable {
         _add = allCovers[_cid].memberAddress;
     }
 
-    /// @dev Gets the premium amount of a given cover.
-    function getCoverPremium(uint _cid) external view returns(uint _premium) {
-        _premium = allCovers[_cid].premium;
+    /// @dev Gets the premium amount of a given cover in NXM.
+    function getCoverPremiumNXM(uint _cid) external view returns(uint _premiumNXM) {
+        _premiumNXM = allCovers[_cid].premiumNXM;
     }
 
     /// @dev Provides the details of a cover Id
@@ -313,7 +315,8 @@ contract QuotationData is Iupgradable {
             address _memberAddress,
             address _scAddress,
             bytes4 _currencyCode,
-            uint _sumAssured   
+            uint _sumAssured,  
+            uint premiumNXM 
         ) 
     {
         return (
@@ -321,7 +324,8 @@ contract QuotationData is Iupgradable {
             allCovers[_cid].memberAddress,
             allCovers[_cid].scAddress,
             allCovers[_cid].currencyCode,
-            allCovers[_cid].sumAssured
+            allCovers[_cid].sumAssured,
+            allCovers[_cid].premiumNXM
         );
     }
 

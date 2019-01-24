@@ -78,7 +78,7 @@ contract Governance is IGovernance, Iupgradable {
 
     ProposalStruct[] internal allProposal;
     ProposalVote[] internal allVotes;
-    DelegateVote[] internal allDelegation;
+    DelegateVote[] public allDelegation;
 
     mapping(uint => ProposalData) internal allProposalData;
     mapping(uint => bytes[]) internal allProposalSolutions;
@@ -87,14 +87,14 @@ contract Governance is IGovernance, Iupgradable {
     mapping(uint => mapping(address => bool)) public rewardClaimed; //voteid->member->reward claimed
     mapping (address => mapping(uint => uint)) public memberProposalVote;
     mapping (address => uint) public followerDelegation;
-    mapping (address => uint[]) public leaderDelegation;
+    mapping (address => uint[]) internal leaderDelegation;
     mapping (uint => VoteTally) public proposalVoteTally;
 
     bool internal constructorCheck;
     uint internal minVoteWeight;
     uint public tokenHoldingTime;
     uint internal roleIdAllowedToCatgorize;
-    uint public maxVoteWeigthPer;
+    uint internal maxVoteWeigthPer;
 
     IMemberRoles internal memberRole;
     ProposalCategory internal proposalCategory;

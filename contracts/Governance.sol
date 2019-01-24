@@ -78,7 +78,7 @@ contract Governance is IGovernance, Iupgradable {
 
     ProposalStruct[] internal allProposal;
     ProposalVote[] internal allVotes;
-    DelegateVote[] internal allDelegation;
+    DelegateVote[] public allDelegation;
 
     mapping(uint => ProposalData) internal allProposalData;
     mapping(uint => bytes[]) internal allProposalSolutions;
@@ -87,14 +87,14 @@ contract Governance is IGovernance, Iupgradable {
     mapping(uint => mapping(address => bool)) public rewardClaimed; //voteid->member->reward claimed
     mapping (address => mapping(uint => uint)) public memberProposalVote;
     mapping (address => uint) public followerDelegation;
-    mapping (address => uint[]) public leaderDelegation;
+    mapping (address => uint[]) internal leaderDelegation;
     mapping (uint => VoteTally) public proposalVoteTally;
 
     bool internal constructorCheck;
     uint internal minVoteWeight;
     uint public tokenHoldingTime;
     uint internal roleIdAllowedToCatgorize;
-    uint public maxVoteWeigthPer;
+    uint internal maxVoteWeigthPer;
 
     IMemberRoles internal memberRole;
     ProposalCategory internal proposalCategory;
@@ -428,6 +428,10 @@ contract Governance is IGovernance, Iupgradable {
         return (allProposal.length);
     }
 
+    function getFollowers(address _add) external view returns(uint[]){
+        return leaderDelegation[_add];
+    }
+
     function delegateVote(address _add) public isMemberAndcheckPause {
 
         require(getPendingReward(msg.sender) == 0);
@@ -570,7 +574,7 @@ contract Governance is IGovernance, Iupgradable {
         }
     }
 
-    function allowedToCatgorize() public returns(uint roleId) {
+    function allowedToCatgorize() public view returns(uint roleId) {
         return roleIdAllowedToCatgorize;
     }
 

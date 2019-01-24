@@ -574,7 +574,7 @@ contract Governance is IGovernance, Iupgradable {
         }
     }
 
-    function allowedToCatgorize() public returns(uint roleId) {
+    function allowedToCatgorize() public view returns(uint roleId) {
         return roleIdAllowedToCatgorize;
     }
 

@@ -130,7 +130,7 @@ contract Pool2 is Iupgradable {
      * @param rate array of investment asset exchange rate.
      * @param date current date in yyyymmdd.
      */ 
-    function saveIADetails(bytes4[] curr, uint64[] rate, uint64 date) external checkPause {
+    function saveIADetails(bytes4[] curr, uint64[] rate, uint64 date, uint bit) external checkPause {
         bytes4 maxCurr;
         bytes4 minCurr;
         uint64 maxRate;
@@ -143,7 +143,8 @@ contract Pool2 is Iupgradable {
         for (uint i = 0; i < curr.length; i++) {
             pd.updateIAAvgRate(curr[i], rate[i]);
         }
-        _rebalancingLiquidityTrading(maxCurr, maxRate);
+        if (bit == 1)   //for testing purpose
+            _rebalancingLiquidityTrading(maxCurr, maxRate);
         p1.saveIADetailsOracalise(pd.iaRatesTime());
     }
 
@@ -587,9 +588,13 @@ contract Pool2 is Iupgradable {
         internal
     {
         if (_curr == "ETH") {
+            if (_amount > address(this).balance)
+                _amount = address(this).balance;
             _transferTo.transfer(_amount);
         } else {
             ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(_curr));
+            if (_amount > erc20.balanceOf(address(this)))
+                _amount = erc20.balanceOf(address(this));
             erc20.transfer(_transferTo, _amount);
         }
     }

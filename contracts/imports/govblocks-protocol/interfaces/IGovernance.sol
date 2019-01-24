@@ -141,6 +141,6 @@ contract IGovernance {
     
     function resumeProposal(uint _proposalId) public;
     
-    function allowedToCatgorize() public returns(uint roleId);
+    function allowedToCatgorize() public view returns(uint roleId);
 
 }

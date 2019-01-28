@@ -428,7 +428,7 @@ contract Governance is IGovernance, Iupgradable {
         return (allProposal.length);
     }
 
-    function getFollowers(address _add) external view returns(uint[]){
+    function getFollowers(address _add) external view returns(uint[]) {
         return leaderDelegation[_add];
     }
 

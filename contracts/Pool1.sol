@@ -85,15 +85,12 @@ contract Pool1 is usingOraclize, Iupgradable {
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
         bool check;
-        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
+        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
 
         //Payout
-        if(curr=="ETH" && address(this).balance >= sumAssured)
-        {
+        if (curr == "ETH" && address(this).balance >= sumAssured) {
             check = _transferCurrencyAsset(curr, _to, sumAssured);
-        }
-        else if(curr == "DAI" && erc20.balanceOf(address(this))>=sumAssured)
-        {
+        } else if (curr == "DAI" && erc20.balanceOf(address(this)) >= sumAssured) {
             
             check = _transferCurrencyAsset(curr, _to, sumAssured);
         }
@@ -115,9 +112,9 @@ contract Pool1 is usingOraclize, Iupgradable {
 
     function triggerExternalLiquidityTrade() external onlyInternal {
         // if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
-            pd.setLastLiquidityTradeTrigger();
-            bytes32 myid = oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
-            saveApiDetails(myid, "ULT", 0);
+        pd.setLastLiquidityTradeTrigger();
+        bytes32 myid = oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
+        saveApiDetails(myid, "ULT", 0);
         // }
     }
 

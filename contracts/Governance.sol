@@ -859,7 +859,7 @@ contract Governance is IGovernance, Iupgradable {
             uint abMem = memberRole.numberOfMembers(_roleId);
             if (abMaj > 0) {
                 
-                if (proposalVoteTally[_proposalId].abVoteValue[1] > abMaj.mul(100).div(abMem)) {
+                if (proposalVoteTally[_proposalId].abVoteValue[1] >= abMaj.mul(100).div(abMem)) {
                     
                     callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
                 } else {

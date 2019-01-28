@@ -161,7 +161,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "PD", 50, 15, 2, 60);
         addInitialCategories("Update Investment Asset Status", "QmcXWfRU4jn7qhuJLUQbqYmZAsHL8mdW9PzWMfSMBJQ8CC",
         "PD", 50, 15, 2, 60);
-        // addInitialCategories("Change AB Member", "", "EX", 101, 15, 2); //no func yet
+        addInitialCategories("Change AB Member", "", "MR", 50, 15, 2, 0); 
         addInitialCategories("Any other Item", "", "EX", 50, 15, 2, 80);
         addInitialCategories("Special Resolution", "", "EX", 75, 75, 2, 0);
         constructorCheck = true;

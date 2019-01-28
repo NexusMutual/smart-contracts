@@ -8,6 +8,7 @@ contract DSValueMock {
     }
 
     function read() public pure returns (bytes32) {
-        return 0x000000000000000000000000000000000000000000000008696a94dfc55d0000;
+        return 0x0000000000000000000000000000000000000000000000008AC7230489E80000;
+        
     }
 }

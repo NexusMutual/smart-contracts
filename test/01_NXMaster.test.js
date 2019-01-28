@@ -147,7 +147,12 @@ contract('NXMaster', function([
         [100, 15517],
         20190103
       );
-      await pl2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103);
+      await pl2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 15517],
+        20190103,
+        1
+      ); // for testing
     });
 
     it('should be able to change token controller address', async function() {

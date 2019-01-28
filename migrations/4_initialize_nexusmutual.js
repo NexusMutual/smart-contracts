@@ -83,7 +83,12 @@ module.exports = function(deployer) {
       [100, 15517],
       20190103
     );
-    await pl2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103);
+    await pl2.saveIADetails(
+      ['0x455448', '0x444149'],
+      [100, 15517],
+      20190103,
+      1
+    ); //testing
     await dai.transfer(pl2.address, POOL_ASSET);
     await pl2.changeUniswapFactoryAddress(factory.address);
   });

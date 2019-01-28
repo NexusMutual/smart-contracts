@@ -1,6 +1,7 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
+const DAI = artifacts.require('MockDAI');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { assertRevert } = require('./utils/assertRevert');
@@ -11,6 +12,7 @@ const { latestTime } = require('./utils/latestTime');
 let p1;
 let p2;
 let pd;
+let cad;
 
 const BigNumber = web3.BigNumber;
 const newAsset = '0x535253';
@@ -28,6 +30,7 @@ contract('Pool', function([owner, notOwner]) {
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
     pd = await PoolData.deployed();
+    cad = await DAI.deployed();
   });
 
   describe('PoolData', function() {
@@ -208,11 +211,11 @@ contract('Pool', function([owner, notOwner]) {
 
     it('should not be able to call saveIADetails if not notarise', async function() {
       await assertRevert(
-        p2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103, {
+        p2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103, 1, {
           from: notOwner
         })
       );
-    });
+    }); // for testing
 
     it('should be able to get Currency asset details in single call', async function() {
       await p2.getCurrencyAssetDetails('0x455448');
@@ -251,57 +254,102 @@ contract('Pool', function([owner, notOwner]) {
     });
   });
 
-  // describe('', function() {
-  //   it('should be able to', async function() {
+  describe('Liquidity', function() {
+    it('should be able to', async function() {
+      await pd.changeCurrencyAssetBaseMin('0x455448', 6 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
+      await p1.upgradeCapitalPool(owner);
+      await p2.upgradeInvestmentPool(owner);
+      await p1.sendTransaction({ from: owner, value: 20 * 1e18 });
+      await cad.transfer(p1.address, 20 * 1e18);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190125,
+        0
+      );
+      let baseMinE = await pd.getCurrencyAssetBaseMin('0x455448');
+      let baseMinD = await pd.getCurrencyAssetBaseMin('0x444149');
+      let holdMinE = await pd.getInvestmentAssetMinHoldingPerc('0x455448');
+      let holdMinD = await pd.getInvestmentAssetMinHoldingPerc('0x444149');
+      let holdMaxE = await pd.getInvestmentAssetMaxHoldingPerc('0x455448');
+      let holdMaxD = await pd.getInvestmentAssetMaxHoldingPerc('0x444149');
+      let CABalE;
+      let CABalD;
+      let CABalE2;
+      let CABalD2;
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      let z = await pd.variationPercX100();
+      let rateE = await pd.getCAAvgRate('0x455448');
+      let rateD = await pd.getCAAvgRate('0x444149');
+      const rankDetails = await pd.getIARankDetailsByDate(
+        await pd.getLastDate()
+      );
+      console.log('baseMinE...', baseMinE);
+      console.log('baseMinD...', baseMinD);
+      console.log('holdMinE...', holdMinE);
+      console.log('holdMinD...', holdMinD);
+      console.log('holdMaxE...', holdMaxE);
+      console.log('holdMaxD...', holdMaxD);
+      console.log('CABalE...', CABalE);
+      console.log('CABalE2...', CABalE2);
+      console.log('CABalD...', CABalD);
+      console.log('CABalD2...', CABalD2);
+      console.log('z...', z);
+      console.log('rateE...', rateE);
+      console.log('rateD...', rateD);
+      console.log('rankDetails...', rankDetails);
+    });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    // });
 
-  //   });
-  // });
+    // describe('', function() {
+    //   it('should be able to', async function() {
 
-  // describe('', function() {
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    // });
 
-  //   });
-  // });
+    // describe('', function() {
+    //   it('should be able to', async function() {
 
-  // describe('', function() {
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
+    //   });
+    //   it('should be able to', async function() {
 
-  //   });
-  //   it('should be able to', async function() {
-
-  //   });
-  // });
+    //   });
+  });
 });

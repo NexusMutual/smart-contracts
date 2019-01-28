@@ -85,9 +85,19 @@ contract Pool1 is usingOraclize, Iupgradable {
         bytes4 curr = qd.getCurrencyOfCover(coverid);
         uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
         bool check;
+        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
 
         //Payout
-        check = _transferCurrencyAsset(curr, _to, sumAssured);
+        if(curr=="ETH" && address(this).balance >= sumAssured)
+        {
+            check = _transferCurrencyAsset(curr, _to, sumAssured);
+        }
+        else if(curr == "DAI" && erc20.balanceOf(address(this))>=sumAssured)
+        {
+            
+            check = _transferCurrencyAsset(curr, _to, sumAssured);
+        }
+        
         if (check == true) {
             q2.removeSAFromCSA(coverid, qd.getCoverSumAssured(coverid));
             pd.changeCurrencyAssetVarMin(curr, 
@@ -104,11 +114,11 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     function triggerExternalLiquidityTrade() external onlyInternal {
-        if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
+        // if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
             pd.setLastLiquidityTradeTrigger();
             bytes32 myid = oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
             saveApiDetails(myid, "ULT", 0);
-        }
+        // }
     }
 
     ///@dev Oraclize call to close emergency pause.
@@ -201,6 +211,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         onlyInternal
         returns(bool)
     {
+    
         return _transferCurrencyAsset(curr, transferTo, amount);
     } 
 
@@ -396,15 +407,18 @@ contract Pool1 is usingOraclize, Iupgradable {
     }
 
     function _transferCurrencyAsset(bytes4 _curr, address _transferTo, uint _amount) internal returns(bool succ) {
-        if (_curr == "ETH" && address(this).balance >= _amount) {
+        if (_curr == "ETH") {
+            if (address(this).balance < _amount)
+                _amount = address(this).balance;
             _transferTo.transfer(_amount);
             succ = true;
         } else {
             ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr)); //solhint-disable-line
-            if (erc20.balanceOf(address(this)) >= _amount) {
-                erc20.transfer(_transferTo, _amount); 
-                succ = true;
-            }
+            if (erc20.balanceOf(address(this)) < _amount) 
+                _amount = erc20.balanceOf(address(this));
+            erc20.transfer(_transferTo, _amount); 
+            succ = true;
+            
         }
     } 
 

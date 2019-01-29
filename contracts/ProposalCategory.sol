@@ -161,7 +161,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "PD", 50, 15, 2, 60);
         addInitialCategories("Update Investment Asset Status", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
         "PD", 50, 15, 2, 60);
-        addInitialCategories("Change AB Member", "QmUBjPDdSiG3pRMqkVzZA2WaqiksT7ixNd3gPQwngGmF9x", "MR", 50, 15, 2, 0); 
+        addInitialCategories("Change AB Member", "QmUBjPDdSiG3pRMqkVzZA2WaqiksT7ixNd3gPQwngGmF9x", 
+            "MR", 50, 15, 2, 0); 
         addInitialCategories("Any other Item", "", "EX", 50, 15, 2, 80);
         addInitialCategories("Special Resolution", "", "EX", 75, 75, 2, 0);
         constructorCheck = true;

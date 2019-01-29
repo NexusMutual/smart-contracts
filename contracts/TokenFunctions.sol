@@ -378,7 +378,20 @@ contract TokenFunctions is Iupgradable {
     {
         uint validity = now.add(coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
+        td.setDepositCNAmount(coverId, coverNoteAmount);
         tc.lockOf(_of, reason, coverNoteAmount, validity);
+    }
+
+    /**
+     * @dev In case of new NXMToken we have to add all members in Whitelist again. 
+     */ 
+    function addAllMembersInWhiteList() public onlyOwner {
+        address[] memory allMemebrs = new address[](mr.numberOfMembers(uint(MemberRoles.Role.Member)));
+        (, allMemebrs) = mr.members(uint(MemberRoles.Role.Member));
+        for (uint i = 0; i < allMemebrs.length; i++) {
+            tc.addToWhitelist(allMemebrs[i]);
+        }
+
     }
 
     /**
@@ -394,7 +407,7 @@ contract TokenFunctions is Iupgradable {
     }
 
     function isLockedForMemberVote(address _of) public view returns(bool) {
-        return now < td.isLockedForMV(_of);
+        return now < tk.isLockedForMV(_of);
     }
 
     /**

@@ -34,6 +34,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     MemberRoleDetails[] internal memberRoleData;
     bool internal constructorCheck;
+    uint public maxABCount;
 
     modifier checkRoleAuthority(uint _memberRoleId) {
         if (memberRoleData[_memberRoleId].authorized != address(0))
@@ -95,9 +96,23 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
         require(isAuthorizedToGovern(msg.sender), "Not Authorized");
         
-        updateRole(_newABAddress, 1, true);
-        updateRole(_removeAB, 1, false);
+        updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
+        updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
 
+    }
+
+    function addInitialABMembers(address[] abArray)public {
+        require(ms.owner() == msg.sender);
+        require(numberOfMembers(uint(Role.AdvisoryBoard)) <= 
+        maxABCount - abArray.length); //AB count can't exceed maxABCount
+        for (uint i = 0; i < abArray.length; i++) {
+            updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
+        }
+    }
+
+    function changeMaxABCount(uint _val)public {
+        require(ms.owner() == msg.sender);
+        maxABCount = _val;
     }
 
     /// @dev Return number of member roles
@@ -228,6 +243,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     }
 
     function addInitialMemberRoles(address _firstAB, address memberAuthority) internal {
+        maxABCount = 5;
         _addRole("Unassigned", "Unassigned", address(0));
         _addRole(
             "Advisory Board",
@@ -239,7 +255,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             "Represents all users of Mutual.", //solhint-disable-line
             memberAuthority
         );
-        _updateRole(_firstAB, 1, true);
+        _updateRole(_firstAB, uint(Role.AdvisoryBoard), true);
     }
 
 }

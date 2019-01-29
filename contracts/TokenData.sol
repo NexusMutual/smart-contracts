@@ -101,8 +101,6 @@ contract TokenData is Iupgradable {
 
     mapping(address => uint) internal isBookedTokens;
 
-    mapping(address => uint) public isLockedForMV;
-
     event Commission(
         address indexed stakedContractAddress,
         address indexed stakerAddress,
@@ -370,6 +368,17 @@ contract TokenData is Iupgradable {
         depositedCN[coverId].isDeposited = flag;
     }
 
+    /**
+     * @dev set locked cover note amount
+     * against a cover Id
+     * @param coverId coverId of Cover
+     * @param amount amount of nxm to be locked
+     */
+    function setDepositCNAmount(uint coverId, uint amount) public onlyInternal {
+
+        depositedCN[coverId].amount = amount;
+    }
+
     function getStakedContractStakerByIndex(
         address _stakedContractAddress,
         uint _stakedContractIndex
@@ -426,15 +435,6 @@ contract TokenData is Iupgradable {
     function isCATokensBooked(address _of) public view returns(bool res) {
         if (now < isBookedTokens[_of])
             res = true;
-    }
-
-    /**
-     * @dev Lock the user's tokens 
-     * @param _of user's address.
-     */
-    function lockForMemberVote(address _of, uint _days) public onlyInternal {
-        if (_days.add(now) > isLockedForMV[_of])
-            isLockedForMV[_of] = _days.add(now);
     }
 
     /**

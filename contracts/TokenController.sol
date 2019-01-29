@@ -190,6 +190,14 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
+     * @dev Lock the user's tokens 
+     * @param _of user's address.
+     */
+    function lockForMemberVote(address _of, uint _days) public onlyInternal {
+        token.lockForMemberVote(_of, _days);
+    }
+
+    /**
     * @dev Unlocks the unlockable tokens of a specified address
     * @param _of Address of user, claiming back unlockable tokens
     */

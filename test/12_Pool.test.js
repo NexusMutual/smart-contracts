@@ -211,9 +211,15 @@ contract('Pool', function([owner, notOwner]) {
 
     it('should not be able to call saveIADetails if not notarise', async function() {
       await assertRevert(
-        p2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103, 1, {
-          from: notOwner
-        })
+        p2.saveIADetails(
+          ['0x455448', '0x444149'],
+          [100, 15517],
+          20190103,
+          true,
+          {
+            from: notOwner
+          }
+        )
       );
     }); // for testing
 
@@ -266,7 +272,7 @@ contract('Pool', function([owner, notOwner]) {
         ['0x455448', '0x444149'],
         [100, 1000],
         20190125,
-        0
+        false
       );
       let baseMinE = await pd.getCurrencyAssetBaseMin('0x455448');
       let baseMinD = await pd.getCurrencyAssetBaseMin('0x444149');
@@ -288,20 +294,20 @@ contract('Pool', function([owner, notOwner]) {
       const rankDetails = await pd.getIARankDetailsByDate(
         await pd.getLastDate()
       );
-      console.log('baseMinE...', baseMinE);
-      console.log('baseMinD...', baseMinD);
-      console.log('holdMinE...', holdMinE);
-      console.log('holdMinD...', holdMinD);
-      console.log('holdMaxE...', holdMaxE);
-      console.log('holdMaxD...', holdMaxD);
-      console.log('CABalE...', CABalE);
-      console.log('CABalE2...', CABalE2);
-      console.log('CABalD...', CABalD);
-      console.log('CABalD2...', CABalD2);
-      console.log('z...', z);
-      console.log('rateE...', rateE);
-      console.log('rateD...', rateD);
-      console.log('rankDetails...', rankDetails);
+      // console.log('baseMinE...', baseMinE);
+      // console.log('baseMinD...', baseMinD);
+      // console.log('holdMinE...', holdMinE);
+      // console.log('holdMinD...', holdMinD);
+      // console.log('holdMaxE...', holdMaxE);
+      // console.log('holdMaxD...', holdMaxD);
+      // console.log('CABalE...', CABalE);
+      // console.log('CABalE2...', CABalE2);
+      // console.log('CABalD...', CABalD);
+      // console.log('CABalD2...', CABalD2);
+      // console.log('z...', z);
+      // console.log('rateE...', rateE);
+      // console.log('rateD...', rateD);
+      // console.log('rankDetails...', rankDetails);
     });
     //   it('should be able to', async function() {
 

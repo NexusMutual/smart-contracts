@@ -151,7 +151,7 @@ contract('NXMaster', function([
         ['0x455448', '0x444149'],
         [100, 15517],
         20190103,
-        1
+        true
       ); // for testing
     });
 

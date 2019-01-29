@@ -707,12 +707,12 @@ contract Governance is IGovernance, Iupgradable {
             mrSequence == uint(MemberRoles.Role.AdvisoryBoard))
             voteWeightAB = 1;
         uint delegationId;
-        tokenData.lockForMemberVote(msg.sender, tokenHoldingTime);
+        tokenInstance.lockForMemberVote(msg.sender, tokenHoldingTime);
         for (uint i = 0; i < leaderDelegation[msg.sender].length; i++) {
             delegationId = leaderDelegation[msg.sender][i];
             if (allDelegation[delegationId].leader == msg.sender && 
             checkLastUpd(allDelegation[delegationId].lastUpd)) {
-                tokenData.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
+                tokenInstance.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
                 voteWeight += minOf(maxOf(tokenInstance.totalBalanceOf(allDelegation[delegationId].follower), 1),
                 maxVoteWeigthPer.mul(nxmToken.totalSupply()).div(100));
                 voters++;

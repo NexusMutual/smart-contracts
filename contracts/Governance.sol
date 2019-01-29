@@ -293,10 +293,10 @@ contract Governance is IGovernance, Iupgradable {
         // uint maxVote = proposalVoteTally[_proposalId].memberVoteValue[0];
         // if(maxVote < proposalVoteTally[_proposalId].memberVoteValue[1])
         //     maxVote = proposalVoteTally[_proposalId].memberVoteValue[1];
-        if (_memberRole == uint(MemberRoles.Role.Member)) {
-            closeMemberVote(_proposalId, category, _memberRole);
-        } else if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard)) {
+        if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard)) {
             closeABVote(_proposalId, category, _memberRole);
+        } else {
+            closeMemberVote(_proposalId, category, _memberRole);
         }
         
     }
@@ -747,16 +747,13 @@ contract Governance is IGovernance, Iupgradable {
 
     /// @dev Checks if the vote count against any solution passes the threshold value or not.
     function checkForThreshold(uint _proposalId, uint _category) internal view returns(bool check) {
-        
         uint categoryQuorumPerc;
         uint roleId;
         check = false;
         (, roleId, , categoryQuorumPerc, , , ) = proposalCategory.category(_category);
-        if (roleId == uint(MemberRoles.Role.Member)) {
-            uint totalTokenVoted = proposalVoteTally[_proposalId].memberVoteValue[0]
-            +proposalVoteTally[_proposalId].memberVoteValue[1];
-            check = totalTokenVoted.mul(100).div(nxmToken.totalSupply()) > categoryQuorumPerc;
-        }  
+        uint totalTokenVoted = proposalVoteTally[_proposalId].memberVoteValue[0]
+        +proposalVoteTally[_proposalId].memberVoteValue[1];
+        check = totalTokenVoted.mul(100).div(nxmToken.totalSupply()) > categoryQuorumPerc;
     }
 
     /// @dev This does the remaining functionality of closing proposal vote

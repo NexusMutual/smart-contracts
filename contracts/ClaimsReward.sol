@@ -241,7 +241,7 @@ contract ClaimsReward is Iupgradable {
     function _rewardAgainstClaim(uint claimid, uint coverid, uint sumAssured, uint status) internal {
         uint premiumNXM = qd.getCoverPremiumNXM(coverid);
         bytes4 curr = qd.getCurrencyOfCover(coverid);
-        uint distributableTokens = premiumNXM.mul(20).div(100);//  20% of premium
+        uint distributableTokens = premiumNXM.mul(cd.claimRewardPerc()).div(100);//  20% of premium
             
         uint percCA;
         uint percMV;
@@ -264,7 +264,7 @@ contract ClaimsReward is Iupgradable {
             cd.changeFinalVerdict(claimid, 1);
             td.setDepositCN(coverid, false); // Unset flag
             tf.unlockCN(coverid);
-            require(p1.sendClaimPayout(coverid, claimid)); //send payout
+            p1.sendClaimPayout(coverid, claimid); //send payout
         } 
     }
 
@@ -272,7 +272,7 @@ contract ClaimsReward is Iupgradable {
     function _changeClaimStatusCA(uint claimid, uint coverid, uint status) internal {
         // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
-            uint caTokens = c1.getCATokens(claimid, 0);
+            uint caTokens = c1.getCATokens(claimid, 0); // converted in cover currency. 
             uint accept;
             uint deny;
             uint acceptAndDeny;
@@ -287,7 +287,7 @@ contract ClaimsReward is Iupgradable {
                 status = 3;
             } else {
                 uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
-                // Min threshold reached tokens used for voting > 5* sum assured 
+                // Min threshold reached tokens used for voting > 5* sum assured  
                 if (caTokens > sumAssured.mul(5)) {
 
                     if (accept.div(acceptAndDeny) > 70) {
@@ -328,7 +328,7 @@ contract ClaimsReward is Iupgradable {
         if (c1.checkVoteClosing(claimid) == 1) {
             uint8 coverStatus;
             uint statusOrig = status;
-            uint mvTokens = c1.getCATokens(claimid, 1);
+            uint mvTokens = c1.getCATokens(claimid, 1); // converted in cover currency. 
 
             // If tokens used for acceptance >50%, claim is accepted
             uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
@@ -347,20 +347,20 @@ contract ClaimsReward is Iupgradable {
                 if (accept.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 && 
                     statusOrig <= 5 && thresholdUnreached == 0) {
                     status = 8;
-                    coverStatus = 1;
+                    coverStatus = uint8(QuotationData.CoverStatus.ClaimAccepted);
                 } else if (deny.mul(100).div(accept.add(deny)) > 50 && statusOrig > 1 &&
                     statusOrig <= 5 && thresholdUnreached == 0) {
                     status = 9;
-                    coverStatus = 2;
+                    coverStatus = uint8(QuotationData.CoverStatus.ClaimDenied);
                 }
             }
             
             if (thresholdUnreached == 1 && (statusOrig == 2 || statusOrig == 4)) {
                 status = 10;
-                coverStatus = 1;
+                coverStatus = uint8(QuotationData.CoverStatus.ClaimAccepted);
             } else if (thresholdUnreached == 1 && (statusOrig == 5 || statusOrig == 3)) {
                 status = 11;
-                coverStatus = 2;
+                coverStatus = uint8(QuotationData.CoverStatus.ClaimDenied);
             }
 
             c1.setClaimStatus(claimid, status);

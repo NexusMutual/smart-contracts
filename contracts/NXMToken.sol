@@ -32,6 +32,8 @@ contract NXMToken is IERC20 {
 
     mapping (address => bool) public whiteListed;
 
+    mapping(address => uint) public isLockedForMV;
+
     uint256 private _totalSupply;
 
     string public name = "NXM";
@@ -217,6 +219,8 @@ contract NXMToken is IERC20 {
     * @param value The amount to be transferred.
     */
     function transfer(address to, uint256 value) public canTransfer(to) returns (bool) {
+
+        require(isLockedForMV[msg.sender] < now);
         require(value <= _balances[msg.sender]);
         require(to != address(0));
         _transfer(to, value); // check if not voted under governance
@@ -254,6 +258,15 @@ contract NXMToken is IERC20 {
         require(to != address(0));
         _transferFrom(from, to, value);
         return true;
+    }
+
+    /**
+     * @dev Lock the user's tokens 
+     * @param _of user's address.
+     */
+    function lockForMemberVote(address _of, uint _days) public onlyOperator {
+        if (_days.add(now) > isLockedForMV[_of])
+            isLockedForMV[_of] = _days.add(now);
     }
 
     /**

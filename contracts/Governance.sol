@@ -293,10 +293,10 @@ contract Governance is IGovernance, Iupgradable {
         // uint maxVote = proposalVoteTally[_proposalId].memberVoteValue[0];
         // if(maxVote < proposalVoteTally[_proposalId].memberVoteValue[1])
         //     maxVote = proposalVoteTally[_proposalId].memberVoteValue[1];
-        if (_memberRole == uint(MemberRoles.Role.Member)) {
-            closeMemberVote(_proposalId, category, _memberRole);
-        } else if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard)) {
+        if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard)) {
             closeABVote(_proposalId, category, _memberRole);
+        } else {
+            closeMemberVote(_proposalId, category, _memberRole);
         }
         
     }
@@ -336,18 +336,15 @@ contract Governance is IGovernance, Iupgradable {
                 proposalVoteTally[_proposals[i]].memberVoteValue[1]) / proposalVoteTally[_proposals[i]].voters);
                 
             }
-           
-
-            
         }
 
         if (pendingDAppReward > 0) {
             require(nxmToken.transfer(msg.sender, pendingDAppReward));
             emit RewardClaimed(
-            _memberAddress,
-            _proposals,
-            pendingDAppReward
-        );
+                _memberAddress,
+                _proposals,
+                pendingDAppReward
+            );
         }
 
     }
@@ -547,11 +544,7 @@ contract Governance is IGovernance, Iupgradable {
             // _roleId != uint(MemberRoles.Role.TokenHolder) &&
             _roleId != uint(MemberRoles.Role.UnAssigned)
         ) {
-            if (_roleId == uint(MemberRoles.Role.Member)) {
-                if (memberRole.numberOfMembers(_roleId) == proposalVoteTally[_proposalId].voters 
-                || dateUpdate.add(_closingTime) <= now)
-                    closeValue = 1;
-            } else if (_roleId == uint(MemberRoles.Role.AdvisoryBoard)) {
+            if (_roleId == uint(MemberRoles.Role.AdvisoryBoard)) {
                 uint abMaj;
                 (, , abMaj, , , , ) = proposalCategory.category(allProposalData[_proposalId].category);
                 uint abMem = memberRole.numberOfMembers(_roleId);
@@ -562,6 +555,10 @@ contract Governance is IGovernance, Iupgradable {
 
                     closeValue = 1;
                 }
+            } else {
+                if (memberRole.numberOfMembers(_roleId) == proposalVoteTally[_proposalId].voters 
+                || dateUpdate.add(_closingTime) <= now)
+                    closeValue = 1;
             }
                 // closeValue = 1;
         } else if (pStatus == uint(ProposalStatus.VotingStarted)) {
@@ -682,10 +679,7 @@ contract Governance is IGovernance, Iupgradable {
         setVoteTally(_proposalId, _solution, mrSequence);
         emit Vote(msg.sender, _proposalId, totalVotes - 1, now, _solution);
 
-        if (mrSequence == uint(MemberRoles.Role.Member)) {
-            if (memberRole.numberOfMembers(mrSequence) == proposalVoteTally[_proposalId].voters)
-                eventCaller.callVoteCast(_proposalId);
-        } else if (mrSequence == uint(MemberRoles.Role.AdvisoryBoard)) {
+        if (mrSequence == uint(MemberRoles.Role.AdvisoryBoard)) {
             uint abMaj;
             (, , abMaj, , , , ) = proposalCategory.category(allProposalData[_proposalId].category);
             uint abMem = memberRole.numberOfMembers(mrSequence);
@@ -694,6 +688,9 @@ contract Governance is IGovernance, Iupgradable {
             if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(abMem) >= abMaj || totalABVoted == abMem) {
                 eventCaller.callVoteCast(_proposalId);
             }
+        } else {
+            if (memberRole.numberOfMembers(mrSequence) == proposalVoteTally[_proposalId].voters)
+                eventCaller.callVoteCast(_proposalId);
         }
 
     }
@@ -710,12 +707,12 @@ contract Governance is IGovernance, Iupgradable {
             mrSequence == uint(MemberRoles.Role.AdvisoryBoard))
             voteWeightAB = 1;
         uint delegationId;
-        tokenData.lockForMemberVote(msg.sender, tokenHoldingTime);
+        tokenInstance.lockForMemberVote(msg.sender, tokenHoldingTime);
         for (uint i = 0; i < leaderDelegation[msg.sender].length; i++) {
             delegationId = leaderDelegation[msg.sender][i];
             if (allDelegation[delegationId].leader == msg.sender && 
             checkLastUpd(allDelegation[delegationId].lastUpd)) {
-                tokenData.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
+                tokenInstance.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
                 voteWeight += minOf(maxOf(tokenInstance.totalBalanceOf(allDelegation[delegationId].follower), 1),
                 maxVoteWeigthPer.mul(nxmToken.totalSupply()).div(100));
                 voters++;
@@ -750,16 +747,13 @@ contract Governance is IGovernance, Iupgradable {
 
     /// @dev Checks if the vote count against any solution passes the threshold value or not.
     function checkForThreshold(uint _proposalId, uint _category) internal view returns(bool check) {
-        
         uint categoryQuorumPerc;
         uint roleId;
         check = false;
         (, roleId, , categoryQuorumPerc, , , ) = proposalCategory.category(_category);
-        if (roleId == uint(MemberRoles.Role.Member)) {
-            uint totalTokenVoted = proposalVoteTally[_proposalId].memberVoteValue[0]
-            +proposalVoteTally[_proposalId].memberVoteValue[1];
-            check = totalTokenVoted.mul(100).div(nxmToken.totalSupply()) > categoryQuorumPerc;
-        }  
+        uint totalTokenVoted = proposalVoteTally[_proposalId].memberVoteValue[0]
+        +proposalVoteTally[_proposalId].memberVoteValue[1];
+        check = totalTokenVoted.mul(100).div(nxmToken.totalSupply()) > categoryQuorumPerc;
     }
 
     /// @dev This does the remaining functionality of closing proposal vote

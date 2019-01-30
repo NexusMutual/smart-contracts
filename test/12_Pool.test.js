@@ -211,9 +211,15 @@ contract('Pool', function([owner, notOwner]) {
 
     it('should not be able to call saveIADetails if not notarise', async function() {
       await assertRevert(
-        p2.saveIADetails(['0x455448', '0x444149'], [100, 15517], 20190103, 1, {
-          from: notOwner
-        })
+        p2.saveIADetails(
+          ['0x455448', '0x444149'],
+          [100, 15517],
+          20190103,
+          true,
+          {
+            from: notOwner
+          }
+        )
       );
     }); // for testing
 
@@ -266,8 +272,9 @@ contract('Pool', function([owner, notOwner]) {
         ['0x455448', '0x444149'],
         [100, 1000],
         20190125,
-        0
+        false
       );
+      await pd.changeVariationPercX100(100);
       let baseMinE = await pd.getCurrencyAssetBaseMin('0x455448');
       let baseMinD = await pd.getCurrencyAssetBaseMin('0x444149');
       let holdMinE = await pd.getInvestmentAssetMinHoldingPerc('0x455448');

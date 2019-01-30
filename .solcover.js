@@ -4,11 +4,13 @@ module.exports = {
   deepSkip: true,
   skipFiles: [
     'imports',
-    'Pool1.sol',
-    'Pool2.sol',
+    // 'Pool1.sol',
+    // 'Pool2.sol',
     'EventCaller.sol',
     'Governance.sol',
     'ProposalCategory.sol',
+    'dummyDaiFeed.sol',
+    // 'MemberRoles.sol',
     'mocks'
   ],
   forceParse: [

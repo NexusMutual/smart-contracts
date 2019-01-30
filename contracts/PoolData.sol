@@ -99,6 +99,7 @@ contract PoolData is Iupgradable {
     uint public shockParameter;
     uint64 public growthStep;
     uint64 public mcrFailTime; 
+    uint public ethVolumeLimit;
 
     constructor() public {
         growthStep = 1500000;
@@ -113,6 +114,7 @@ contract PoolData is Iupgradable {
         iaRatesTime = 24 hours; //24 hours in seconds
         uniswapDeadline = 20 minutes;
         liquidityTradeCallbackTime = 4 hours;
+        ethVolumeLimit = 4;
         allCurrencies.push("ETH");
         allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6 * DECIMAL1E18, 0);
         allCurrencies.push("DAI");
@@ -381,6 +383,10 @@ contract PoolData is Iupgradable {
         allInvestmentAssets[curr].currAddress = currAdd;
     }
 
+    function setEthVolumeLimit(uint val) external onlyOwner {
+        ethVolumeLimit = val;
+    }
+    
     /// @dev Checks whether a given address can notaise MCR data or not.
     /// @param _add Address.
     /// @return res Returns 0 if address is not authorized, else 1.

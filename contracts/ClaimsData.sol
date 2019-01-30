@@ -101,6 +101,7 @@ contract ClaimsData is Iupgradable {
     uint32 public minVotingTime;
     uint32 public payoutRetryTime;
     uint32 public escalationTime;
+    uint public claimRewardPerc;
    
     event ClaimRaise(
         uint indexed coverId,
@@ -127,6 +128,7 @@ contract ClaimsData is Iupgradable {
         allvotes.push(Vote(0, 0, 0, 0, false));
         allClaims.push(Claim(0, 0));
         claimDepositTime = 7 days;
+        claimRewardPerc = 20;
         addRewardIncentive();
     }
 
@@ -176,6 +178,11 @@ contract ClaimsData is Iupgradable {
     function setRewardDistributedIndexMV(address _voter, uint mvIndex) external onlyInternal {
 
         voterVoteRewardReceived[_voter].lastMVvoteIndex = mvIndex;
+    }
+
+    function setClaimRewardPerc(uint _val) external onlyInternal {
+
+        claimRewardPerc = _val;
     }
 
     /**

@@ -112,7 +112,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         addInitialCategories("Uncategorized", "", "MR", 50, 25, 1, 0);
         addInitialCategories("Add new member role", "QmQFnBep7AyMYU3LJDuHSpTYatnw65XjHzzirrghtZoR8U", 
         "MR", 50, 25, 1, 0);
-        addInitialCategories("Update member role", "QmNMQQHnnZQce43ys3E5vEenbVRkcJwFRCQ6oTcP2ZNntY", 
+        addInitialCategories("Update member role", "QmXMzSViLBJ22P9oj51Zz7isKTRnXWPHZcQ5hzGvvWD3UV", 
         "MR", 50, 25, 1, 0);
         addInitialCategories("Add new category", "QmUq9Rb6rWFHZXjVtyzh7AWGDeyVFtDHKiP5fJpgnuinQ7", "PC", 
         50, 25, 1, 0);
@@ -144,24 +144,25 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         //  --------------------------------------------------------------------------------------------- //
         addInitialCategories("Implement Emergency Pause", "QmZSaEsvTCpy357ZSrPYKqby1iaksBwPdKCGWzW1HpgSpe",
         "MS", 0, 15, 1, 0);
-        addInitialCategories("Extend or Switch Off Emergency Pause", "QmS9mT25ewYCZ4qCgE4XHQUkid2NajvnXoJiwstR7tVge8",
+        addInitialCategories("Extend or Switch Off Emergency Pause", "Qmao6dD8amq4kxsAheWn5gQX22ABucFFGRvnRuY1VqtEKy",
         "MS", 50, 15, 2, 0);
-        addInitialCategories("Burn Claims Assessor Bond", "Qmd3VmAZp6PbWPKHx3FFcZw1krwS4FXfDa7ZBFpJzjf4YU",
+        addInitialCategories("Burn Claims Assessor Bond", "QmezNJUF2BM5Nv9EMnsEKUmuqjvdySzvQFvhEdvFJbau3k",
         "TF", 80, 15, 1, 0);
         // addInitialCategories("Pause Claim Assessor Voting for 3 days", "", "EX", 60, 15, 1); //no func yet
         addInitialCategories("Changes to Capital Model", "", "EX", 50, 15, 2, 60);
         addInitialCategories("Changes to Pricing Model", "", "EX", 50, 15, 2, 60);
         addInitialCategories("Withdraw funds to Pay for Support Services", 
-        "QmYpeKJ89JDZQcLre28LrPW3BNcv1SLZ74SCXvJpZH1778", "P1", 50, 15, 2, 80);
+        "QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM", "P1", 50, 15, 2, 80);
         // addInitialCategories("Release new smart contract code", "", "EX", 80, 15, 2); //no func yet
         // addInitialCategories("Change to Authorities", "", "EX", 80, 15, 2); //no func yet
-        addInitialCategories("Add Investment Asset", "QmUHmVK3dZKk6PJk6FsX7x68481NUCH57FhPEFaHg1T353",
+        addInitialCategories("Add Investment Asset", "Qmd66GdYtn1BYmZTB1op1Fbfkq6uywMpow5LRmG2Twbzjb",
         "PD", 50, 15, 2, 60);
-        addInitialCategories("Edit Investment Asset", "QmaxEC2tuQQf1WijKFxbnRRTRQ6UyV2w1X2BuuuDNRiab3",
+        addInitialCategories("Edit Investment Asset", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
         "PD", 50, 15, 2, 60);
-        addInitialCategories("Update Investment Asset Status", "QmcXWfRU4jn7qhuJLUQbqYmZAsHL8mdW9PzWMfSMBJQ8CC",
+        addInitialCategories("Update Investment Asset Status", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
         "PD", 50, 15, 2, 60);
-        // addInitialCategories("Change AB Member", "", "EX", 101, 15, 2); //no func yet
+        addInitialCategories("Change AB Member", "QmUBjPDdSiG3pRMqkVzZA2WaqiksT7ixNd3gPQwngGmF9x", 
+            "MR", 50, 15, 2, 0); 
         addInitialCategories("Any other Item", "", "EX", 50, 15, 2, 80);
         addInitialCategories("Special Resolution", "", "EX", 75, 75, 2, 0);
         constructorCheck = true;
@@ -174,6 +175,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             require(masterAddress == msg.sender || ms.isInternal(msg.sender));
         masterAddress = _masterAddress;
         ms = NXMaster(_masterAddress);
+        nxMasterAddress = _masterAddress;
         
     }
 

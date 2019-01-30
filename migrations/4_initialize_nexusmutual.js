@@ -18,6 +18,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
+const eventCaller = artifacts.require('EventCaller');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -46,6 +47,7 @@ module.exports = function(deployer) {
     const propCat = await ProposalCategory.deployed();
     const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
+    const ec = await eventCaller.deployed();
     let addr = [
       qd.address,
       td.address,
@@ -91,5 +93,6 @@ module.exports = function(deployer) {
     ); //testing
     await dai.transfer(pl2.address, POOL_ASSET);
     await pl2.changeUniswapFactoryAddress(factory.address);
+    await nxms.setEventCallerAddress(ec.address);
   });
 };

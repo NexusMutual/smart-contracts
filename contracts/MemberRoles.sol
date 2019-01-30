@@ -51,6 +51,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             require(masterAddress == msg.sender || ms.isInternal(msg.sender));
         masterAddress = _masterAddress;
         ms = NXMaster(_masterAddress);
+        nxMasterAddress = _masterAddress;
         
     }
     
@@ -59,6 +60,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         dAppToken = TokenController(_dAppToken);
         addInitialMemberRoles(_firstAB, memberAuthority);
         constructorCheck = true;
+    }
+
+    function setDApp(address _dAppToken) public {
+        require(ms.isOwner(msg.sender));
+        dAppToken = TokenController(_dAppToken);
     }
 
     /// @dev Adds new member role

@@ -175,6 +175,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             require(masterAddress == msg.sender || ms.isInternal(msg.sender));
         masterAddress = _masterAddress;
         ms = NXMaster(_masterAddress);
+        nxMasterAddress = _masterAddress;
         
     }
 

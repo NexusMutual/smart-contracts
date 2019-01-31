@@ -219,10 +219,10 @@ contract('Claim: Assessment', function([
           });
           it('should be able to change claim status', async function() {
             await cd.getCaClaimVotesToken(claimId);
-            await cd.getVoteVerdict(claimId, 1, 1);
-            await cd.getVoteVerdict(claimId, 1, 0);
-            await cd.getClaimVoteLength(claimId, 1, 1);
-            await cd.getClaimVoteLength(claimId, 1, 0);
+            // await cd.getVoteVerdict(claimId, 1, 1);
+            // await cd.getVoteVerdict(claimId, 1, 0);
+            // await cd.getClaimVoteLength(claimId, 1, 1);
+            // await cd.getClaimVoteLength(claimId, 1, 0);
             const now = await latestTime();
             const maxVotingTime = await cd.maxVotingTime();
             closingTime = maxVotingTime.plus(now);

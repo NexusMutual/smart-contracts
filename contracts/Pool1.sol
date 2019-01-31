@@ -144,7 +144,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @dev Calls the Oraclize Query to initiate MCR calculation.
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function mcrOraclise(uint64 time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(3, time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/postMCR/K4", 0);
+        bytes32 myid = oraclizeQuery(3, time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/postMCR/K6", 0);
         saveApiDetails(myid, "MCR", 0);
     }
 

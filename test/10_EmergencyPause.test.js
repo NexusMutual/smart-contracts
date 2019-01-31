@@ -11,7 +11,7 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const TokenData = artifacts.require('TokenData');
 const MCR = artifacts.require('MCR');
-
+const Governance = artifacts.require('Governance');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
@@ -36,6 +36,7 @@ let cl;
 let qd;
 let qt;
 let mcr;
+let gv;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -71,6 +72,9 @@ contract('NXMaster: Emergency Pause', function([
     qt = await Quotation.deployed();
     td = await TokenData.deployed();
     mcr = await MCR.deployed();
+
+    gvAddress = await nxms.getLatestAddress('GV');
+    gv = await Governance.at(gvAddress);
     await tf.payJoiningFee(member1, { from: member1, value: fee });
     await tf.kycVerdict(member1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
@@ -159,8 +163,29 @@ contract('NXMaster: Emergency Pause', function([
         { from: newMember, value: totalFee }
       );
 
-      // await nxms.startEmergencyPause();
-      // startTime = await latestTime();
+      let p = await gv.getProposalLength();
+      console.log('p is :::', p.toNumber());
+
+      let ggg = await gv.allowedToCreateProposal(0);
+      console.log('---->', ggg);
+      // await gv.createProposal(
+      //     'Implement Emergency Pause',
+      //     'Implement Emergency Pause',
+      //     'Implement Emergency Pause',
+      //     0
+      //   );
+      //   console.log("1");
+      // await gv.categorizeProposal(p.toNumber() - 1, 10, 0);
+      // console.log("2");
+      // await gv.addSolution(p, 'Implement Emergency Pause', '0x872f1eb3');
+      // console.log("3");
+      // await gv.openProposalForVoting(p);
+      // console.log("4");
+      // await gv.submitVote(p, 1);
+      // console.log("5");
+      // await gv.closeProposal(p);
+
+      startTime = await latestTime();
     });
     // it('should return true for isPause', async function() {
     //   (await nxms.isPause()).should.equal(true);

@@ -15,17 +15,19 @@ contract ExchangeMock {
 
     function () public payable {}
  
-    function getEthToTokenInputPrice(uint256 ethSold) public view returns(uint256) {
-        require(ethSold > 0);
-        uint256 tokenReserve = token.balanceOf(address(this));
-        return getInputPrice(ethSold, address(this).balance, tokenReserve);	
+    function getEthToTokenInputPrice(uint256 ethSold) public pure returns(uint256) {
+        // require(ethSold > 0);
+        // uint256 tokenReserve = token.balanceOf(address(this));
+        // return getInputPrice(ethSold, address(this).balance, tokenReserve);	
+        return ethSold*10;
     }
 
-    function getTokenToEthInputPrice(uint256 tokensSold) public view returns(uint256) {
-        require(tokensSold > 0);
-        uint256 tokenReserve = token.balanceOf(address(this));
-        uint256 ethBought = getInputPrice(tokensSold, tokenReserve, address(this).balance);
-        return (ethBought * 10**18);
+    function getTokenToEthInputPrice(uint256 tokensSold) public pure returns(uint256) {
+        // require(tokensSold > 0);
+        // uint256 tokenReserve = token.balanceOf(address(this));
+        // uint256 ethBought = getInputPrice(tokensSold, tokenReserve, address(this).balance);
+        // return (ethBought * 10**18);
+        return (tokensSold/10);
     }
 
     function ethToTokenSwapInput(
@@ -165,8 +167,8 @@ contract ExchangeMock {
         returns (uint256)
     {
         require(deadline >= block.timestamp && ethSold > 0 && minTokens > 0);
-        uint256 tokenReserve = token.balanceOf(address(this));
-        uint256 tokensBought = getInputPrice(ethSold, (address(this).balance - ethSold), tokenReserve);
+        // uint256 tokenReserve = token.balanceOf(address(this));
+        uint256 tokensBought = ethSold*10;
         require(tokensBought >= minTokens);
         require(token.transfer(recipient, tokensBought));
         buyer;
@@ -187,9 +189,9 @@ contract ExchangeMock {
     {
         require((deadline >= block.timestamp && tokensSold > 0) && (minTokensBought > 0 && minEthBought > 0));
         require(exchangeAddress != address(this) && exchangeAddress != address(0));
-        uint256 tokenReserve = token.balanceOf(address(this));
-        uint256 ethBought = getInputPrice(tokensSold, tokenReserve, address(this).balance);
-        uint256 weiBought = (ethBought * 10**18);
+        // uint256 tokenReserve = token.balanceOf(address(this));
+        uint256 ethBought = tokensSold/10;
+        uint256 weiBought = (ethBought);
         require(weiBought >= minEthBought);
         require(token.transferFrom(buyer, address(this), tokensSold));
         uint256 tokensBought = ExchangeMock(exchangeAddress).ethToTokenTransferInput.value(
@@ -209,9 +211,9 @@ contract ExchangeMock {
         returns (uint256)
     {
         require(deadline >= block.timestamp && tokensSold > 0 && minEth > 0);
-        uint256 tokenReserve = token.balanceOf(address(this));
-        uint256 ethBought = getInputPrice(tokensSold, tokenReserve, address(this).balance);
-        uint256 weiBought = ethBought * (10**18);
+        // uint256 tokenReserve = token.balanceOf(address(this));
+        uint256 ethBought = tokensSold/10;
+        uint256 weiBought = ethBought ;
         require(weiBought >= minEth);
         recipient.transfer(weiBought);
         require(token.transferFrom(buyer, address(this), tokensSold));

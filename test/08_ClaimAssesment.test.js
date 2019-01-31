@@ -168,6 +168,8 @@ contract('Claim: Assessment', function([
             await cl.submitCAVote(claimId, -1, { from: member2 });
             await cl.submitCAVote(claimId, -1, { from: member3 });
             await cd.getAllVotesForClaim(claimId);
+            let isBooked = await td.isCATokensBooked(member1);
+            isBooked.should.be.equal(true);
           });
           it('should close voting after min time', async function() {
             await increaseTimeTo(minTime.plus(2));
@@ -218,6 +220,9 @@ contract('Claim: Assessment', function([
           it('should be able to change claim status', async function() {
             await cd.getCaClaimVotesToken(claimId);
             await cd.getVoteVerdict(claimId, 1, 1);
+            await cd.getVoteVerdict(claimId, 1, 0);
+            await cd.getClaimVoteLength(claimId, 1, 1);
+            await cd.getClaimVoteLength(claimId, 1, 0);
             const now = await latestTime();
             const maxVotingTime = await cd.maxVotingTime();
             closingTime = maxVotingTime.plus(now);
@@ -432,6 +437,7 @@ contract('Claim: Assessment', function([
     });
     it('reverts', async function() {
       claimId = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
       await assertRevert(cl.submitCAVote(claimId, -1, { from: member4 }));
       await cd.setClaimTokensMV(coverID[3], 1, 1);
       await cd.setClaimTokensMV(coverID[3], -1, 1);

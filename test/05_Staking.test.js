@@ -106,6 +106,40 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             );
             lockedTokens.should.be.bignumber.equal(0);
           });
+          it('only owner should be able to set StakedContractCurrentCommissionIndex', async function() {
+            await assertRevert(
+              td.setStakedContractCurrentCommissionIndex(stakedContract, 1, {
+                from: member1
+              })
+            );
+            await td.setStakedContractCurrentCommissionIndex(
+              stakedContract,
+              1,
+              { from: owner }
+            );
+          });
+
+          it('only owner should be able to set LastCompletedStakeCommissionIndex', async function() {
+            await assertRevert(
+              td.setLastCompletedStakeCommissionIndex(member1, 1, {
+                from: member1
+              })
+            );
+            await td.setLastCompletedStakeCommissionIndex(member1, 1, {
+              from: owner
+            });
+          });
+
+          it('only owner should be able to set StakedContractCurrentBurnIndex', async function() {
+            await assertRevert(
+              td.setStakedContractCurrentBurnIndex(stakedContract, 1, {
+                from: member1
+              })
+            );
+            await td.setStakedContractCurrentBurnIndex(stakedContract, 1, {
+              from: owner
+            });
+          });
         });
       });
     });

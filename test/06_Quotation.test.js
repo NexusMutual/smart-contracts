@@ -911,17 +911,21 @@ contract('Quotation', function([
         await qd.changeProductHash('New Test Cover');
         (await qd.productHash()).should.equal('New Test Cover');
       });
-      it('should be able to change Profit Margin', async function() {
+      it('only owner should be able to change Profit Margin', async function() {
         await qd.changePM(4);
+        await assertRevert(qd.changePM(4, { from: notMember }));
       });
-      it('should be able to change STLP', async function() {
+      it('only owner should be able to change STLP', async function() {
         await qd.changeSTLP(5);
+        await assertRevert(qd.changeSTLP(4, { from: notMember }));
       });
-      it('should be able to change STL', async function() {
+      it('only owner should be able to change STL', async function() {
         await qd.changeSTL(1);
+        await assertRevert(qd.changeSTL(4, { from: notMember }));
       });
-      it('should be able to change minimum cover period', async function() {
+      it('only owner should be able to change minimum cover period', async function() {
         await qd.changeMinDays(31);
+        await assertRevert(qd.changeMinDays(4, { from: notMember }));
       });
     });
     describe('if not internal contract address', function() {

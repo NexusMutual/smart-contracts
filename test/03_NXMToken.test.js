@@ -409,6 +409,15 @@ contract('NXMToken', function([
         );
         await tf.changeCanAddMemberAddress(member1, { from: owner });
       });
+
+      it('only owner should be able to change MVDays', async function() {
+        await assertRevert(td.changelockMVDays(1, { from: member1 }));
+        await td.changelockMVDays(await td.lockMVDays(), { from: owner });
+      });
+
+      it('should not be able to change BookTime if not owner', async function() {
+        await assertRevert(td.changeBookTime(1, { from: member1 }));
+      });
     });
   });
 });

@@ -158,6 +158,7 @@ contract('Claim', function([
                 CABalD = await cad.balanceOf(P1.address);
                 CABalD2 = await cad.balanceOf(p2.address);
                 await cl.submitClaim(coverID[0], { from: coverHolder });
+
                 // var disl = await pd.allAPIcall(await pd.getApilCallLength() - 1);
                 // var erd = await pd.getApiCallDetails(disl);
                 // console.log(erd);

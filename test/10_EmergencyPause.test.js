@@ -48,6 +48,7 @@ contract('NXMaster: Emergency Pause', function([
   member1,
   member2,
   member3,
+  member4,
   coverHolder1,
   coverHolder2,
   newMember
@@ -83,6 +84,12 @@ contract('NXMaster: Emergency Pause', function([
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tf.payJoiningFee(member3, { from: member3, value: fee });
     await tf.kycVerdict(member3, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+
+    await tf.payJoiningFee(member4, { from: member4, value: fee });
+    await tf.kycVerdict(member4, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+
     await tf.payJoiningFee(coverHolder1, {
       from: coverHolder1,
       value: fee
@@ -98,6 +105,7 @@ contract('NXMaster: Emergency Pause', function([
     await tk.transfer(member1, tokens);
     await tk.transfer(member2, tokens);
     await tk.transfer(member3, tokens);
+    await tk.transfer(member4, tokens);
     await tk.transfer(coverHolder1, tokens);
     await tk.transfer(coverHolder2, tokens);
     await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
@@ -135,6 +143,12 @@ contract('NXMaster: Emergency Pause', function([
       await tc.lock(CLA, ether(9), validity, {
         from: member2
       });
+      let proposalsIDs = [];
+      await cr.claimAllPendingReward(proposalsIDs, { from: member4 });
+      // var date = new Date();
+      // console.log('--- should be 0 ---', await tc.totalLockedBalance(member4, date.getTime()));
+      // console.log('--- should be true ---', await !tf.isLockedForMemberVote(member4));
+      // console.log('--- should be 0 ---', await cr.getAllPendingRewardOfUser(member4));
     });
     it('should return false for isPause', async function() {
       (await nxms.isPause()).should.equal(false);
@@ -145,6 +159,19 @@ contract('NXMaster: Emergency Pause', function([
       const claimId = (await cd.actualClaimLength()) - 1;
       claimId.should.be.bignumber.equal(1);
       (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
+    });
+    it('should be able to do claim assessment or stake NXM for claim', async function() {
+      await tc.lock(CLA, ether(60), validity, { from: member3 });
+    });
+    it('should be able to buy nxm token', async function() {
+      await P1.buyToken({ value: ether(60), from: member1 });
+    });
+
+    it('should be able to redeem NXM tokens', async function() {
+      await P1.sellNXMTokens(ether(1), { from: member1 });
+    });
+    it('should be able to withdraw membership', async function() {
+      await tf.withdrawMembership({ from: member4 });
     });
   });
 
@@ -163,18 +190,18 @@ contract('NXMaster: Emergency Pause', function([
         { from: newMember, value: totalFee }
       );
 
-      let p = await gv.getProposalLength();
-      console.log('p is :::', p.toNumber());
+      // let p = await gv.getProposalLength();
+      // console.log('p is :::', p.toNumber());
 
-      let ggg = await gv.allowedToCreateProposal(0);
-      console.log('---->', ggg);
+      // let ggg = await gv.allowedToCreateProposal(0);
+      // console.log('---->', ggg);
       // await gv.createProposal(
       //     'Implement Emergency Pause',
       //     'Implement Emergency Pause',
       //     'Implement Emergency Pause',
       //     0
       //   );
-      //   console.log("1");
+      // console.log("1");
       // await gv.categorizeProposal(p.toNumber() - 1, 10, 0);
       // console.log("2");
       // await gv.addSolution(p, 'Implement Emergency Pause', '0x872f1eb3');
@@ -184,54 +211,93 @@ contract('NXMaster: Emergency Pause', function([
       // await gv.submitVote(p, 1);
       // console.log("5");
       // await gv.closeProposal(p);
-
+      // await nxms.startEmergencyPause();
+      await nxms.addEmergencyPause(true, AdvisoryBoard);
       startTime = await latestTime();
+
+      var date = new Date();
     });
-    // it('should return true for isPause', async function() {
-    //   (await nxms.isPause()).should.equal(true);
-    // });
-    // it('should return emergency pause details', async function() {
-    //   await nxms.getEmergencyPauseByIndex(0);
-    //   const epd = await nxms.getLastEmergencyPause();
-    //   epd[0].should.equal(true);
-    //   epd[1].should.be.bignumber.equal(startTime);
-    //   epd[2].should.equal(AdvisoryBoard);
-    // });
-    // it('should not be able to trigger kyc', async function() {
-    //   await assertRevert(qt.kycTrigger(true, 1));
-    // });
-    // it('add claim to queue', async function() {
-    //   const coverID = await qd.getAllCoversOfUser(coverHolder2);
-    //   await cl.submitClaim(coverID[0], { from: coverHolder2 });
-    //   (await qd.getCoverStatusNo(coverID[0])).should.be.bignumber.equal(5);
-    // });
-    // it('should not let member vote for claim assessment', async function() {
-    //   const claimId = (await cd.actualClaimLength()) - 1;
-    //   await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
-    // });
-    // it('should not be able to change claim status', async function() {
-    //   const claimId = (await cd.actualClaimLength()) - 1;
-    //   await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
-    // });
-    // it('should not be able to add currency', async function() {
-    //   await assertRevert(mcr.addCurrency('0x4c4f4c', { from: owner }));
-    // });
+    it('should return true for isPause', async function() {
+      (await nxms.isPause()).should.equal(true);
+    });
+    it('should return emergency pause details', async function() {
+      await nxms.getEmergencyPauseByIndex(0);
+      const epd = await nxms.getLastEmergencyPause();
+      epd[0].should.equal(true);
+      epd[1].should.be.bignumber.equal(startTime);
+      epd[2].should.equal(AdvisoryBoard);
+    });
+    it('should not be able to trigger kyc', async function() {
+      await assertRevert(qt.kycTrigger(true, 1));
+    });
+    it('add claim to queue', async function() {
+      const coverID = await qd.getAllCoversOfUser(coverHolder2);
+      await cl.submitClaim(coverID[0], { from: coverHolder2 });
+      (await qd.getCoverStatusNo(coverID[0])).should.be.bignumber.equal(5);
+    });
+    it('should not let member vote for claim assessment', async function() {
+      const claimId = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
+    });
+    it('should not be able to change claim status', async function() {
+      const claimId = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
+    });
+    it('should not be able to add currency', async function() {
+      await assertRevert(mcr.addCurrency('0x4c4f4c', { from: owner }));
+    });
+    it('should not be able to make cover', async function() {
+      await assertRevert(
+        P1.makeCoverBegin(
+          smartConAdd,
+          'ETH',
+          coverDetails,
+          coverPeriod,
+          v,
+          r,
+          s,
+          { from: coverHolder1, value: coverDetails[1] }
+        )
+      );
+    });
+    it('should not be able to assess risk', async function() {
+      await assertRevert(tf.addStake(smartConAdd, 1, { from: member1 }));
+    });
+    it('should not be able to submit CA Vote', async function() {
+      const claimId = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(claimId, 0, { from: member1 }));
+    });
+
+    it('should not be able to do claim assessment or stake NXM for claim', async function() {
+      await assertRevert(tc.lock(CLA, ether(60), validity, { from: member3 }));
+      // dont use member1 or member2 as they are already locked
+    });
+    it('should not be able to buy nxm token', async function() {
+      await assertRevert(P1.buyToken({ value: ether(60), from: member1 }));
+    });
+    it('should not be able to redeem NXM tokens', async function() {
+      await assertRevert(P1.sellNXMTokens(ether(1), { from: member1 }));
+    });
+
+    it('should not be able to withdraw membership', async function() {
+      await assertRevert(tf.withdrawMembership({ from: member4 }));
+    });
   });
 
-  // describe('Emergency Pause: Inactive', function() {
-  //   before(async function() {
-  //     await nxms.addEmergencyPause(false, AdvisoryBoard);
-  //   });
-  //   describe('Resume Everything', function() {
-  //     it('should return false for isPause', async function() {
-  //       (await nxms.isPause()).should.equal(false);
-  //     });
-  //     it('should submit queued claims', async function() {
-  //       (await nxms.isPause()).should.equal(false);
-  //       const claimId = (await cd.actualClaimLength()) - 1;
-  //       claimId.should.be.bignumber.equal(2);
-  //       (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
-  //     });
-  //   });
-  // });
+  describe('Emergency Pause: Inactive', function() {
+    before(async function() {
+      await nxms.addEmergencyPause(false, AdvisoryBoard);
+    });
+    describe('Resume Everything', function() {
+      it('should return false for isPause', async function() {
+        (await nxms.isPause()).should.equal(false);
+      });
+      it('should submit queued claims', async function() {
+        (await nxms.isPause()).should.equal(false);
+        const claimId = (await cd.actualClaimLength()) - 1;
+        claimId.should.be.bignumber.equal(2);
+        (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
+      });
+    });
+  });
 });

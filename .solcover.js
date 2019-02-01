@@ -7,8 +7,8 @@ module.exports = {
     // 'Pool1.sol',
     // 'Pool2.sol',
     'EventCaller.sol',
-    'Governance.sol',
-    'ProposalCategory.sol',
+    // 'Governance.sol',
+    // 'ProposalCategory.sol',
     'dummyDaiFeed.sol',
     // 'MemberRoles.sol',
     'mocks'
@@ -16,8 +16,8 @@ module.exports = {
   forceParse: [
     'imports/ERC1132',
     'imports/govblocks-protocol',
-    'Governance.sol',
-    'ProposalCategory.sol',
+    // 'Governance.sol',
+    // 'ProposalCategory.sol',
     'mocks'
   ]
 };

@@ -12,7 +12,7 @@ let gbt;
 let address;
 let gvAddress;
 let p1;
-let mrLength
+let mrLength;
 let p2;
 let mrLength1;
 
@@ -24,26 +24,23 @@ contract('MemberRoles', function([owner, member, other]) {
     address = await nxms.getLatestAddress('GV');
     gv = await Governance.at(address);
     tf = await TokenFunctions.deployed();
-    await tf.payJoiningFee(owner, { value: 2000000000000000});
+    await tf.payJoiningFee(owner, { value: 2000000000000000 });
     await tf.kycVerdict(owner, true);
+  });
+
+  it('should not allow unauthorized to change master address', async function() {
+    await assertRevert(mr.changeMasterAddress(nxms.address, { from: other }));
+    await mr.changeMasterAddress(nxms.address);
   });
 
   it('should have added initial member roles', async function() {
     const ab = await mr.totalRoles.call();
-    assert.equal(
-      ab,
-      3,
-      'Initial member roles not created'
-    );
+    assert.equal(ab, 3, 'Initial member roles not created');
   });
 
   it('should have added owner to AB', async function() {
     const roles = await mr.roles(owner);
-    assert.equal(
-      await mr.checkRole(owner, 1),
-      true,
-      'Owner not added to AB'
-    );
+    assert.equal(await mr.checkRole(owner, 1), true, 'Owner not added to AB');
     assert.equal(
       await mr.checkRole(member, 1),
       false,
@@ -73,19 +70,15 @@ contract('MemberRoles', function([owner, member, other]) {
     await gv.submitVote(p1.toNumber(), 1);
     await gv.closeProposal(p1.toNumber());
     mrLength1 = await mr.totalRoles();
-    assert.isAbove(mrLength1.toNumber(), mrLength.toNumber(), "Role not added");
+    assert.isAbove(mrLength1.toNumber(), mrLength.toNumber(), 'Role not added');
   });
 
   it('should add a member to a role', async function() {
     var transaction = await mr.updateRole(member, 3, true);
     await assertRevert(mr.updateRole(member, 2, true));
     await assertRevert(mr.updateRole(member, 3, true));
-    await assertRevert(mr.updateRole(member, 2, false, { from: other}));
-    assert.equal(
-      await mr.checkRole(member, 3),
-      true,
-      'user not added to AB'
-    );
+    await assertRevert(mr.updateRole(member, 2, false, { from: other }));
+    assert.equal(await mr.checkRole(member, 3), true, 'user not added to AB');
   });
 
   it('Should fetch all address by role id', async function() {
@@ -101,9 +94,9 @@ contract('MemberRoles', function([owner, member, other]) {
   it('Should fetch member count of all roles', async function() {
     const g6 = await mr.getMemberLengthForAllRoles();
     assert.equal(g6.length, 4);
-    assert.equal(g6[0].toNumber(),0);
-    assert.equal(g6[1].toNumber(),1);
-    assert.equal(g6[3].toNumber(),1);
+    assert.equal(g6[0].toNumber(), 0);
+    assert.equal(g6[1].toNumber(), 1);
+    assert.equal(g6[3].toNumber(), 1);
   });
 
   it('Should follow the upgradable interface', async function() {
@@ -121,11 +114,7 @@ contract('MemberRoles', function([owner, member, other]) {
     await mr.updateRole(member, 3, true);
     let members = await mr.members(1);
     assert.equal(members[1].length, 1);
-    assert.equal(
-      await mr.checkRole(member, 3),
-      true,
-      'user not added to AB'
-    );
+    assert.equal(await mr.checkRole(member, 3), true, 'user not added to AB');
   });
 
   it('Should be able to remove member from a role', async function() {
@@ -142,9 +131,8 @@ contract('MemberRoles', function([owner, member, other]) {
   it('Should not allow unauthorized people to update member roles', async function() {
     await mr.changeAuthorized(3, owner);
     await assertRevert(mr.changeAuthorized(3, owner, { from: other }));
-    await assertRevert(
-      mr.updateRole(member, 3, true, { from: other })
-    );
+    await assertRevert(mr.changeAuthorized(1, owner));
+    await assertRevert(mr.updateRole(member, 3, true, { from: other }));
   });
 
   it('Should change authorizedAddress when rquested by authorizedAddress', async function() {
@@ -158,11 +146,7 @@ contract('MemberRoles', function([owner, member, other]) {
 
   it('Should get proper Roles', async () => {
     const mrs = await mr.roles(owner);
-    assert.equal(
-      await mr.checkRole(owner, 1),
-      true,
-      'Owner not added to AB'
-    );
+    assert.equal(await mr.checkRole(owner, 1), true, 'Owner not added to AB');
     assert.equal(mrs[0].toNumber(), 1);
     const mrs2 = await mr.roles(other);
   });
@@ -171,8 +155,10 @@ contract('MemberRoles', function([owner, member, other]) {
     assert.equal(await mr.checkRole(owner, 0), true);
   });
 
-  it('Should check if a user holds dApp token', async () => {
-    assert.equal(await mr.checkRole(owner, 2), true);
+  it('Should check role if user buys membership', async () => {
+    await tf.payJoiningFee(member, { value: 2000000000000000, from: member });
+    await tf.kycVerdict(member, true);
+    assert.equal(await mr.checkRole(member, 2), true);
     assert.equal(await mr.checkRole(other, 2), false);
   });
 });

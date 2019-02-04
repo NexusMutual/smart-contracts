@@ -766,11 +766,12 @@ contract Governance is IGovernance, Iupgradable {
     )
         internal
     {
+        
         uint _majorityVote;
         
         allProposalData[_proposalId].finalVerdict = max;
         (, , _majorityVote, , , , ) = proposalCategory.category(category);
-        
+               
         if (SafeMath.div(SafeMath.mul(maxVoteValue, 100), totalVoteValue) >= _majorityVote) {
             if (max > 0) {
                 callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, max);
@@ -837,16 +838,14 @@ contract Governance is IGovernance, Iupgradable {
         uint totalVoteValue;
         uint maxVote;
         if (checkForThreshold(_proposalId, category)) {
-           
             maxVote = proposalVoteTally[_proposalId].memberVoteValue[0];
             max = 0;
             totalVoteValue = proposalVoteTally[_proposalId].memberVoteValue[0] + 
-            proposalVoteTally[_proposalId].abVoteValue[1];
+            proposalVoteTally[_proposalId].memberVoteValue[1];
             if (maxVote < proposalVoteTally[_proposalId].memberVoteValue[1]) {
                 maxVote = proposalVoteTally[_proposalId].memberVoteValue[1];
                 max = 1;
             }
-             
             closeProposalVoteThReached(maxVote, totalVoteValue, category, _proposalId, max);
         } else {
             uint abMaj = proposalCategory.categoryABReq(category);

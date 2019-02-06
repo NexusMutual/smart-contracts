@@ -86,6 +86,7 @@ contract NXMaster is Governed {
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
     function addEmergencyPause(bool _pause, bytes4 _by) public {
+        require(msg.sender == getLatestAddress("P2") || msg.sender == getLatestAddress("GV"));
         emergencyPaused.push(EmergencyPause(_pause, now, _by));
         if (_pause == false) {
             c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
@@ -327,7 +328,7 @@ contract NXMaster is Governed {
     }
 
     /// @dev Allow AB Members to Start Emergency Pause
-    function startEmergencyPause() public {
+    function startEmergencyPause() public  onlyAuthorizedToGovern {
         addEmergencyPause(true, "AB"); //Start Emergency Pause
         Pool1 p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks

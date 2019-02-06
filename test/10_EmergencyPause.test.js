@@ -1,4 +1,5 @@
 const Pool1 = artifacts.require('Pool1Mock');
+const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
@@ -12,6 +13,7 @@ const Quotation = artifacts.require('Quotation');
 const TokenData = artifacts.require('TokenData');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
+const ProposalCategory = artifacts.require('ProposalCategory');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
@@ -20,7 +22,6 @@ const { latestTime } = require('./utils/latestTime');
 
 const CLA = '0x434c41';
 const fee = ether(0.002);
-const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
 const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
@@ -30,6 +31,7 @@ const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
 const AdvisoryBoard = '0x41420000';
 
 let P1;
+let p2;
 let nxms;
 let cr;
 let cl;
@@ -73,7 +75,7 @@ contract('NXMaster: Emergency Pause', function([
     qt = await Quotation.deployed();
     td = await TokenData.deployed();
     mcr = await MCR.deployed();
-
+    p2 = await Pool2.deployed();
     gvAddress = await nxms.getLatestAddress('GV');
     gv = await Governance.at(gvAddress);
     await tf.payJoiningFee(member1, { from: member1, value: fee });
@@ -89,6 +91,7 @@ contract('NXMaster: Emergency Pause', function([
     await tf.payJoiningFee(member4, { from: member4, value: fee });
     await tf.kycVerdict(member4, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
 
     await tf.payJoiningFee(coverHolder1, {
       from: coverHolder1,
@@ -145,10 +148,6 @@ contract('NXMaster: Emergency Pause', function([
       });
       let proposalsIDs = [];
       await cr.claimAllPendingReward(proposalsIDs, { from: member4 });
-      // var date = new Date();
-      // console.log('--- should be 0 ---', await tc.totalLockedBalance(member4, date.getTime()));
-      // console.log('--- should be true ---', await !tf.isLockedForMemberVote(member4));
-      // console.log('--- should be 0 ---', await cr.getAllPendingRewardOfUser(member4));
     });
     it('should return false for isPause', async function() {
       (await nxms.isPause()).should.equal(false);
@@ -190,32 +189,19 @@ contract('NXMaster: Emergency Pause', function([
         { from: newMember, value: totalFee }
       );
 
-      // let p = await gv.getProposalLength();
-      // console.log('p is :::', p.toNumber());
-
-      // let ggg = await gv.allowedToCreateProposal(0);
-      // console.log('---->', ggg);
-      // await gv.createProposal(
-      //     'Implement Emergency Pause',
-      //     'Implement Emergency Pause',
-      //     'Implement Emergency Pause',
-      //     0
-      //   );
-      // console.log("1");
-      // await gv.categorizeProposal(p.toNumber() - 1, 10, 0);
-      // console.log("2");
-      // await gv.addSolution(p, 'Implement Emergency Pause', '0x872f1eb3');
-      // console.log("3");
-      // await gv.openProposalForVoting(p);
-      // console.log("4");
-      // await gv.submitVote(p, 1);
-      // console.log("5");
-      // await gv.closeProposal(p);
-      // await nxms.startEmergencyPause();
-      await nxms.addEmergencyPause(true, AdvisoryBoard);
+      let p = await gv.getProposalLength();
+      await gv.createProposal(
+        'Implement Emergency Pause',
+        'Implement Emergency Pause',
+        'Implement Emergency Pause',
+        0
+      );
+      await gv.categorizeProposal(p.toNumber(), 8, 0);
+      await gv.addSolution(p, 'Implement Emergency Pause', '0x872f1eb3');
+      await gv.openProposalForVoting(p);
+      await gv.submitVote(p, 1);
+      await gv.closeProposal(p);
       startTime = await latestTime();
-
-      var date = new Date();
     });
     it('should return true for isPause', async function() {
       (await nxms.isPause()).should.equal(true);
@@ -286,7 +272,57 @@ contract('NXMaster: Emergency Pause', function([
 
   describe('Emergency Pause: Inactive', function() {
     before(async function() {
-      await nxms.addEmergencyPause(false, AdvisoryBoard);
+      await tc.burnFrom(owner, await tk.balanceOf(owner));
+      // await nxms.addEmergencyPause(false, AdvisoryBoard);
+      let p = await gv.getProposalLength();
+      await gv.createProposal(
+        'close Emergency Pause',
+        'close Emergency Pause',
+        'close Emergency Pause',
+        0
+      );
+      await gv.categorizeProposal(p.toNumber(), 9, 0);
+      await gv.addSolution(
+        p,
+        'Implement Emergency Pause',
+        '0xffa3992900000000000000000000000000000000000000000000000000000000000000004142000000000000000000000000000000000000000000000000000000000000'
+      );
+      await gv.openProposalForVoting(p);
+      await gv.submitVote(p, 1, {
+        from: '0x48bbf43e3051dfd9675be9ffe55d44c68bade737'
+      });
+      await gv.submitVote(p, 1, {
+        from: '0x1a572ad98557baa0c908e5bd91d9c626106837e0'
+      });
+      await gv.submitVote(p, 1, {
+        from: '0x004b7d0721cbffcb87aeae35bf88196dd07281d1'
+      });
+      await gv.submitVote(p, 1, {
+        from: '0x03e5395f639f5f18d9995e2e5b9bdff3e2b6d285'
+      });
+      await gv.submitVote(p, 1, {
+        from: '0x238ed68b27f40bde5db9711b83cc17ee9af5bf44'
+      });
+      await gv.closeProposal(p);
+    });
+    describe('Turning off emergency pause automatically', function() {
+      it('should be able to turn off automatically', async function() {
+        let p = await gv.getProposalLength();
+        await gv.createProposal(
+          'Implement Emergency Pause',
+          'Implement Emergency Pause',
+          'Implement Emergency Pause',
+          0
+        );
+        await gv.categorizeProposal(p.toNumber(), 8, 0);
+        await gv.addSolution(p, 'Implement Emergency Pause', '0x872f1eb3');
+        await gv.openProposalForVoting(p);
+        await gv.submitVote(p, 1);
+        await gv.closeProposal(p);
+        startTime = await latestTime();
+        var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+        await p2.delegateCallBack(APIID);
+      });
     });
     describe('Resume Everything', function() {
       it('should return false for isPause', async function() {

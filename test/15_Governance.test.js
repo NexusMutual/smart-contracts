@@ -1,19 +1,28 @@
 const Governance = artifacts.require('Governance');
 const NXMaster = artifacts.require('NXMaster');
 const EventCaller = artifacts.require('EventCaller');
+const ClaimsReward = artifacts.require('ClaimsReward');
+const NXMToken = artifacts.require('NXMToken');
 const expectEvent = require('./utils/expectEvent');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const encode = require('./utils/encoder.js').encode;
 const AdvisoryBoard = '0x41420000';
+const TokenFunctions = artifacts.require('TokenFunctions');
 
+let tf;
 let gv;
+let cr;
 let nxms;
 let proposalId;
 let pId;
+let nxmToken;
 
 contract('Governance', ([owner, notOwner, voter, noStake]) => {
   before(async function() {
     nxms = await NXMaster.deployed();
+    tf = await TokenFunctions.deployed();
+    cr = await ClaimsReward.deployed();
+    nxmToken = await NXMToken.deployed();
     let address = await nxms.getLatestAddress('GV');
     gv = await Governance.at(address);
   });
@@ -90,7 +99,7 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
   });
 
   it('Should not update proposal if solution exists', async function() {
-    await assertRevert(gv.categorizeProposal(proposalId, 2, 0));
+    await assertRevert(gv.categorizeProposal(proposalId, 2, 10^18));
     await assertRevert(gv.updateProposal(proposalId, 'Addnewrole', 'AddnewRoleSD', 'AddnewRoleDescription'));
   });
 
@@ -116,20 +125,16 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
       'Pause proposal',
       0
     );
-    console.log(await gv.proposal(p));
     await gv.categorizeProposal(p, 6, 0);
     let actionHash = encode(
       'pauseProposal(uint)',
       proposalId
     );
-    console.log("categorized");
     await gv.submitProposalWithSolution(p, 'Pause proposal', actionHash);
-    console.log("open");
     await gv.submitVote(p, 1);
-    console.log("voteCast");
     await gv.closeProposal(p);
-    // let isPaused = await gv.proposalPaused(proposalId);
-    // assert.equal(isPaused.toNumber(), true, "Proposal not paused");
+    let isPaused = await gv.proposalPaused(proposalId);
+    assert.equal(isPaused, true, "Proposal not paused");
   });
 
   it('Should not close a paused proposal', async function() {
@@ -150,26 +155,39 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
       'resumeProposal(uint)',
       proposalId
     );
-    await gv.submitProposalWithSolution(p, 'Pause proposal', actionHash);
+    await gv.submitProposalWithSolution(p, 'Resume proposal', actionHash);
     await gv.submitVote(p, 1);
     await gv.closeProposal(p);
-    // let isPaused = await gv.proposalPaused(proposalId);
-    // assert.equal(isPaused.toNumber(), true, "Proposal not paused");
+    let isPaused = await gv.proposalPaused(proposalId);
+    assert.equal(isPaused, false, "Proposal not resumed");
   });
 
 
   it('Should close proposal', async function() {
     let canClose = await gv.canCloseProposal(proposalId);
-    console.log(canClose);
     assert.equal(canClose.toNumber(), 1);
     await gv.closeProposal(proposalId);
   });
 
   it('Should not close already closed proposal', async function() {
     let canClose = await gv.canCloseProposal(proposalId);
-    console.log(canClose);
     assert.equal(canClose.toNumber(), 2);
     await assertRevert(gv.closeProposal(proposalId));
   });
+
+  it('Should get rewards', async function() {
+    let pendingRewards = await gv.getPendingReward(owner);
+    console.log(pendingRewards);
+  });
+
+  // it('Should claim rewards', async function() {
+  //   await tf.payJoiningFee(owner, { value: 2000000000000000 });
+  //   await tf.kycVerdict(owner, true); 
+  //   console.log(await nxms.isMember(owner));
+  //   console.log(await nxmToken.balanceOf(cr.address));
+  //   await cr.claimAllPendingReward([1,2,3]);
+  //   let pendingRewards = await gv.getPendingReward(owner);
+  //   console.log(pendingRewards);
+  // });
 
 });

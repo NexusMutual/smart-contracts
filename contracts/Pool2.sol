@@ -540,7 +540,8 @@ contract Pool2 is Iupgradable {
         } else if (curr != "ETH" && maxIACurr == "ETH") {
             exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));
             intermediaryEth = exchange.getTokenToEthInputPrice(amount);
-            if (intermediaryEth > (address(exchange).balance.mul(pd.ethVolumeLimit())).div(100)) { // 4% ETH volume limit 
+            if (intermediaryEth > (address(exchange).
+            balance.mul(pd.ethVolumeLimit())).div(100)) { // 4% ETH volume limit 
                 intermediaryEth = (address(exchange).balance.mul(pd.ethVolumeLimit())).div(100);
                 trigger = true;
             }

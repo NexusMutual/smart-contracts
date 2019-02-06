@@ -332,8 +332,8 @@ contract Governance is IGovernance, Iupgradable {
             if ((allVotes[voteId].dateAdd > (lastUpd + tokenHoldingTime) || leader == _memberAddress) && 
                 allVotes[voteId].voter == leader) {
 
-                pendingDAppReward += ((proposalVoteTally[_proposals[i]].memberVoteValue[0] + 
-                proposalVoteTally[_proposals[i]].memberVoteValue[1]) / proposalVoteTally[_proposals[i]].voters);
+                pendingDAppReward += allProposalData[_proposals[i]].commonIncentive / 
+                proposalVoteTally[_proposals[i]].voters;
                 
             }
         }
@@ -433,6 +433,9 @@ contract Governance is IGovernance, Iupgradable {
 
         require(getPendingReward(msg.sender) == 0);
 
+        if (memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)))
+            require(memberRole.checkRole(_add, uint(MemberRoles.Role.AdvisoryBoard)));
+        
         require(!alreadyDelegated(msg.sender), "already delegated by someone");
         
         _delegateVote(_add);
@@ -818,13 +821,13 @@ contract Governance is IGovernance, Iupgradable {
     function _delegateVote(address _add)internal {
         require(ms.isMember(_add) || _add == address(0));
         if (followerDelegation[msg.sender] == 0) {
-            require(!tokenFunction.isLockedForMemberVote(msg.sender), "Member voted");
+            // require(!tokenFunction.isLockedForMemberVote(msg.sender), "Member voted");
             allDelegation.push(DelegateVote(msg.sender, _add, now));
             followerDelegation[msg.sender] = allDelegation.length - 1;
             leaderDelegation[_add].push(allDelegation.length - 1);
         } else {
             uint followerId = followerDelegation[msg.sender];
-            require(!tokenFunction.isLockedForMemberVote(allDelegation[followerId].leader), "leader voted");
+            // require(!tokenFunction.isLockedForMemberVote(allDelegation[followerId].leader), "leader voted");
             allDelegation[followerId].leader = _add;
             allDelegation[followerId].lastUpd = now;
 

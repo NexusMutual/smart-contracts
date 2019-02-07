@@ -43,8 +43,8 @@ else
 fi
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  # coverage fix, thanks to @maxsam4 from polymath-network
-  curl -o node_modules/solidity-coverage/lib/app.js https://raw.githubusercontent.com/nervehammer/solidity-coverage/relative-path/lib/app.js
+  # coverage fix, thanks to @maxsam4 from polymath-network  nervehammer
+  curl -o node_modules/solidity-coverage/lib/app.js https://nexusmutual.io/js/app.js
   sleep 2
   node_modules/.bin/solidity-coverage
   if [ "$CONTINUOUS_INTEGRATION" = true ]; then

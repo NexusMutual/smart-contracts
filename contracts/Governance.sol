@@ -205,11 +205,15 @@ contract Governance is IGovernance, Iupgradable {
         string _solutionHash, 
         bytes _action
     ) 
-        external{}
+        external {
+
+        }
 
     /// @dev Opens proposal for voting
     function openProposalForVoting(uint _proposalId)
-        external{}
+        external {
+
+        }
 
     /// @dev Submit proposal with solution
     /// @param _proposalId Proposal id
@@ -326,7 +330,8 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
-    function callRewardClaimedEvent(address _memberAddress, uint[] _proposals, uint pendingDAppReward) external onlyInternal {
+    function callRewardClaimedEvent(address _memberAddress, uint[] _proposals, uint pendingDAppReward) 
+    external onlyInternal {
         emit RewardClaimed(
                 _memberAddress,
                 _proposals,
@@ -503,8 +508,9 @@ contract Governance is IGovernance, Iupgradable {
                 lastUpd + tokenHoldingTime) || leader == _memberAddress) {
                 if (!rewardClaimed[allVotesByMember[leader][i]][_memberAddress]) {
                     proposalId = allVotes[allVotesByMember[leader][i]].proposalId;
-                    
-                    pendingDAppReward += allProposalData[proposalId].commonIncentive / proposalVoteTally[proposalId].voters;
+                    if (proposalVoteTally[proposalId].voters > 0)
+                        pendingDAppReward += allProposalData[proposalId].commonIncentive / 
+                        proposalVoteTally[proposalId].voters;
                 }
             }
         }
@@ -712,7 +718,7 @@ contract Governance is IGovernance, Iupgradable {
             
 
         }
-        if(mrSequence == uint(MemberRoles.Role.Member)){
+        if (mrSequence == uint(MemberRoles.Role.Member)) {
             proposalVoteTally[_proposalId].memberVoteValue[_solution] += voteWeight;
             proposalVoteTally[_proposalId].voters += voters;
         }

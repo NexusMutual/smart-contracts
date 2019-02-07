@@ -223,8 +223,7 @@ contract ClaimsReward is Iupgradable {
         claimStakeCommission();
         tf.unlockStakerUnlockableTokens(msg.sender); 
         uint gvReward = gv.claimReward(msg.sender, _proposals);
-        if(gvReward > 0)
-        {
+        if (gvReward > 0) {
             tk.transfer(msg.sender, gvReward);
             gv.callRewardClaimedEvent(msg.sender, _proposals, gvReward);
         }
@@ -403,7 +402,9 @@ contract ClaimsReward is Iupgradable {
                 counter++;
                 cd.setRewardClaimed(voteid, true);
             } else if (perc == 0 && cd.getFinalVerdict(claimId) != 0 && !claimed) {
-                counter++;
+                (perc, , ) = cd.getClaimRewardDetail(claimId);
+                if (perc == 0)
+                    counter++;
                 cd.setRewardClaimed(voteid, true);
             }
             if (tokenForVoteId > 0)

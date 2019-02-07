@@ -197,16 +197,16 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
     await assertRevert(gv.closeProposal(proposalId));
   });
 
-  // it('Should get rewards', async function() {
-  //   let pendingRewards = await gv.getPendingReward(owner);
-  //   console.log(pendingRewards);
-  // });
+  it('Should get rewards', async function() {
+    let pendingRewards = await gv.getPendingReward(owner);
+    console.log(pendingRewards);
+  });
 
-  // it('Should claim rewards', async function() {
-  //   console.log(await nxms.isMember(owner));
-  //   console.log(await nxmToken.balanceOf(cr.address));
-  //   await cr.claimAllPendingReward([1, 2, 3]);
-  //   let pendingRewards = await gv.getPendingReward(owner);
-  //   console.log(pendingRewards);
-  // });
+  it('Should claim rewards', async function() {
+    console.log(await nxms.isMember(owner));
+    console.log(await nxmToken.balanceOf(cr.address));
+    await cr.claimAllPendingReward([1, 2, 3]);
+    let pendingRewards = await gv.getPendingReward(owner);
+    console.log(pendingRewards);
+  });
 });

@@ -14,6 +14,7 @@ const TokenData = artifacts.require('TokenData');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
+const MemberRoles = artifacts.require('MemberRoles');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
@@ -39,6 +40,7 @@ let qd;
 let qt;
 let mcr;
 let gv;
+let mr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -78,6 +80,8 @@ contract('NXMaster: Emergency Pause', function([
     p2 = await Pool2.deployed();
     gvAddress = await nxms.getLatestAddress('GV');
     gv = await Governance.at(gvAddress);
+    let address = await nxms.getLatestAddress('MR');
+    mr = await MemberRoles.at(address);
     await tf.payJoiningFee(member1, { from: member1, value: fee });
     await tf.kycVerdict(member1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
@@ -197,8 +201,11 @@ contract('NXMaster: Emergency Pause', function([
         0
       );
       await gv.categorizeProposal(p.toNumber(), 8, 0);
-      await gv.addSolution(p, 'Implement Emergency Pause', '0x872f1eb3');
-      await gv.openProposalForVoting(p);
+      await gv.submitProposalWithSolution(
+        p,
+        'Implement Emergency Pause',
+        '0x872f1eb3'
+      );
       await gv.submitVote(p, 1);
       await gv.closeProposal(p);
       startTime = await latestTime();
@@ -282,27 +289,18 @@ contract('NXMaster: Emergency Pause', function([
         0
       );
       await gv.categorizeProposal(p.toNumber(), 9, 0);
-      await gv.addSolution(
+      await gv.submitProposalWithSolution(
         p,
         'Implement Emergency Pause',
         '0xffa3992900000000000000000000000000000000000000000000000000000000000000004142000000000000000000000000000000000000000000000000000000000000'
       );
-      await gv.openProposalForVoting(p);
-      await gv.submitVote(p, 1, {
-        from: '0x48bbf43e3051dfd9675be9ffe55d44c68bade737'
-      });
-      await gv.submitVote(p, 1, {
-        from: '0x1a572ad98557baa0c908e5bd91d9c626106837e0'
-      });
-      await gv.submitVote(p, 1, {
-        from: '0x004b7d0721cbffcb87aeae35bf88196dd07281d1'
-      });
-      await gv.submitVote(p, 1, {
-        from: '0x03e5395f639f5f18d9995e2e5b9bdff3e2b6d285'
-      });
-      await gv.submitVote(p, 1, {
-        from: '0x238ed68b27f40bde5db9711b83cc17ee9af5bf44'
-      });
+      let members = await mr.members(2);
+      let iteration = 0;
+      for (iteration = 0; iteration < members[1].length; iteration++)
+        await gv.submitVote(p, 1, {
+          from: members[1][iteration]
+        });
+
       await gv.closeProposal(p);
     });
     describe('Turning off emergency pause automatically', function() {
@@ -315,8 +313,11 @@ contract('NXMaster: Emergency Pause', function([
           0
         );
         await gv.categorizeProposal(p.toNumber(), 8, 0);
-        await gv.addSolution(p, 'Implement Emergency Pause', '0x872f1eb3');
-        await gv.openProposalForVoting(p);
+        await gv.submitProposalWithSolution(
+          p,
+          'Implement Emergency Pause',
+          '0x872f1eb3'
+        );
         await gv.submitVote(p, 1);
         await gv.closeProposal(p);
         startTime = await latestTime();

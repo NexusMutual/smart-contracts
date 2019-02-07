@@ -205,26 +205,11 @@ contract Governance is IGovernance, Iupgradable {
         string _solutionHash, 
         bytes _action
     ) 
-        external
-    {
-        require(
-            allProposalData[_proposalId].propStatus == uint(Governance.ProposalStatus.AwaitingSolution),
-            "Not in solutioning phase"
-        );
-
-        _addSolution(_proposalId, _action, _solutionHash);
-    }
+        external{}
 
     /// @dev Opens proposal for voting
     function openProposalForVoting(uint _proposalId)
-        external onlyProposalOwner(_proposalId) voteNotStarted(_proposalId)
-    {
-        require(
-            allProposalSolutions[_proposalId].length > 1,
-            "Add more solutions"
-        );
-        _openProposalForVoting(_proposalId);
-    }
+        external{}
 
     /// @dev Submit proposal with solution
     /// @param _proposalId Proposal id
@@ -338,15 +323,15 @@ contract Governance is IGovernance, Iupgradable {
             }
         }
 
-        if (pendingDAppReward > 0) {
-            require(nxmToken.transfer(msg.sender, pendingDAppReward));
-            emit RewardClaimed(
+
+    }
+
+    function callRewardClaimedEvent(address _memberAddress, uint[] _proposals, uint pendingDAppReward) external onlyInternal {
+        emit RewardClaimed(
                 _memberAddress,
                 _proposals,
                 pendingDAppReward
             );
-        }
-
     }
 
     function proposal(uint _proposalId)
@@ -518,8 +503,8 @@ contract Governance is IGovernance, Iupgradable {
                 lastUpd + tokenHoldingTime) || leader == _memberAddress) {
                 if (!rewardClaimed[allVotesByMember[leader][i]][_memberAddress]) {
                     proposalId = allVotes[allVotesByMember[leader][i]].proposalId;
-                    pendingDAppReward += ((proposalVoteTally[proposalId].memberVoteValue[0] + 
-                        proposalVoteTally[proposalId].memberVoteValue[1]) / proposalVoteTally[proposalId].voters);
+                    
+                    pendingDAppReward += allProposalData[proposalId].commonIncentive / proposalVoteTally[proposalId].voters;
                 }
             }
         }
@@ -727,8 +712,10 @@ contract Governance is IGovernance, Iupgradable {
             
 
         }
-        proposalVoteTally[_proposalId].memberVoteValue[_solution] += voteWeight;
-        proposalVoteTally[_proposalId].voters += voters;
+        if(mrSequence == uint(MemberRoles.Role.Member)){
+            proposalVoteTally[_proposalId].memberVoteValue[_solution] += voteWeight;
+            proposalVoteTally[_proposalId].voters += voters;
+        }
         proposalVoteTally[_proposalId].abVoteValue[_solution] += voteWeightAB;
     }
 
@@ -805,13 +792,6 @@ contract Governance is IGovernance, Iupgradable {
         }
 
         eventCaller.callProposalAccepted(_proposalId);
-    }
-
-    function _getLockedBalance(address _of, uint _time)
-        internal view returns(uint lockedTokens)
-    {
-        _time += now; //solhint-disable-line
-        lockedTokens = tokenInstance.tokensLockedAtTime(_of, "GOV", _time);
     }
 
     function _updateProposalStatus(uint _proposalId, uint _status) internal {

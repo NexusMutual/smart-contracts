@@ -222,7 +222,12 @@ contract ClaimsReward is Iupgradable {
         claimRewardToBeDistributed();
         claimStakeCommission();
         tf.unlockStakerUnlockableTokens(msg.sender); 
-        gv.claimReward(msg.sender, _proposals);
+        uint gvReward = gv.claimReward(msg.sender, _proposals);
+        if(gvReward > 0)
+        {
+            tk.transfer(msg.sender, gvReward);
+            gv.callRewardClaimedEvent(msg.sender, _proposals, gvReward);
+        }
     }
 
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {

@@ -1,4 +1,5 @@
 const Governance = artifacts.require('Governance');
+const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
 const EventCaller = artifacts.require('EventCaller');
 const ClaimsReward = artifacts.require('ClaimsReward');
@@ -12,6 +13,7 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 let tf;
 let gv;
 let cr;
+let pc;
 let nxms;
 let proposalId;
 let pId;
@@ -25,6 +27,8 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
     nxmToken = await NXMToken.deployed();
     let address = await nxms.getLatestAddress('GV');
     gv = await Governance.at(address);
+    address = await nxms.getLatestAddress('PC');
+    pc = await ProposalCategory.at(address);
   });
 
   it('should not allow unauthorized to change master address', async function() {
@@ -39,7 +43,11 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
     let propLength = await gv.getProposalLength();
     proposalId = propLength.toNumber();
     await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
-    await assertRevert(gv.createProposal('Add new member', 'Add new member', 'hash', 9, {from: notOwner}));
+    await assertRevert(
+      gv.createProposal('Add new member', 'Add new member', 'hash', 9, {
+        from: notOwner
+      })
+    );
     let propLength2 = await gv.getProposalLength();
     assert.isAbove(
       propLength2.toNumber(),
@@ -49,7 +57,9 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
   });
 
   it('Should not allow unauthorized person to categorize proposal', async function() {
-    await assertRevert(gv.categorizeProposal(proposalId, 1, 0, {from: notOwner}));
+    await assertRevert(
+      gv.categorizeProposal(proposalId, 1, 0, { from: notOwner })
+    );
   });
 
   it('Should not categorize under invalid category', async function() {
@@ -60,11 +70,11 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
   it('Should categorize proposal', async function() {
     await gv.categorizeProposal(proposalId, 1, 0);
     let proposalData = await gv.proposal(proposalId);
-    assert.equal(proposalData[1].toNumber(), 1, "Proposal not categorized");
+    assert.equal(proposalData[1].toNumber(), 1, 'Proposal not categorized');
   });
 
   it('Should update proposal details', async function() {
-    let {logs} = await gv.updateProposal(
+    let { logs } = await gv.updateProposal(
       proposalId,
       'Addnewmember',
       'AddnewmemberSD',
@@ -72,7 +82,11 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
     );
     let gvAddress = await Governance.deployed();
     const event = expectEvent.inLogs(logs, 'Proposal');
-    assert.equal(event.args.proposalTitle, "Addnewmember", "Proposal details not updated");
+    assert.equal(
+      event.args.proposalTitle,
+      'Addnewmember',
+      'Proposal details not updated'
+    );
   });
 
   it('Should reset proposal category', async function() {
@@ -80,27 +94,51 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
     assert.equal(proposalDataUpdated[1].toNumber(), 0, 'Category not reset');
   });
 
-  it('Should not open proposal for voting before categorizing', async() => {
-    await assertRevert(gv.submitProposalWithSolution(proposalId, "Addnewmember", "0x4d52"));
+  it('Should not open proposal for voting before categorizing', async () => {
+    await assertRevert(
+      gv.submitProposalWithSolution(proposalId, 'Addnewmember', '0x4d52')
+    );
   });
 
   it('Should allow only owner to open proposal for voting', async () => {
-    let actionHash = encode(
-      'addRole(bytes32,string,address)',
-      '0x41647669736f727920426f617265000000000000000000000000000000000000',
-      'New member role',
-      owner
-    );
-    await gv.categorizeProposal(proposalId, 1, 0);
+    await tf.payJoiningFee(owner, { value: 2000000000000000 });
+    await tf.kycVerdict(owner, true);
+    // let actionHash = encode(
+    //   'addEmergencyPause(bool,bytes4)',
+    //   false,
+    //   '0x4344',
+    //   owner
+    // );
+    await gv.categorizeProposal(proposalId, 9, 10 ^ 18);
+    console.log(await gv.proposal(proposalId));
+    console.log(await pc.category(9));
     await assertRevert(gv.submitVote(proposalId, 1));
-    await assertRevert(gv.submitProposalWithSolution(proposalId, "Addnewmember", actionHash, { from:notOwner}));
-    await gv.submitProposalWithSolution(proposalId, "Addnewmember", actionHash);
+    await assertRevert(
+      gv.submitProposalWithSolution(
+        proposalId,
+        'Addnewmember',
+        '0xffa3992900000000000000000000000000000000000000000000000000000000000000004344000000000000000000000000000000000000000000000000000000000000',
+        { from: notOwner }
+      )
+    );
+    await gv.submitProposalWithSolution(
+      proposalId,
+      'Addnewmember',
+      '0xffa3992900000000000000000000000000000000000000000000000000000000000000004344000000000000000000000000000000000000000000000000000000000000'
+    );
     assert.equal((await gv.canCloseProposal(proposalId)).toNumber(), 0);
   });
 
   it('Should not update proposal if solution exists', async function() {
-    await assertRevert(gv.categorizeProposal(proposalId, 2, 10^18));
-    await assertRevert(gv.updateProposal(proposalId, 'Addnewrole', 'AddnewRoleSD', 'AddnewRoleDescription'));
+    await assertRevert(gv.categorizeProposal(proposalId, 2, 10 ^ 18));
+    await assertRevert(
+      gv.updateProposal(
+        proposalId,
+        'Addnewrole',
+        'AddnewRoleSD',
+        'AddnewRoleDescription'
+      )
+    );
   });
 
   it('Should not allow voting for non existent solution', async () => {
@@ -108,33 +146,26 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
   });
 
   it('Should not allow unauthorized people to vote', async () => {
-    await assertRevert(gv.submitVote(proposalId, 1, { from: notOwner}));
+    await assertRevert(gv.submitVote(proposalId, 1, { from: notOwner }));
   });
 
   it('Should submit vote to valid solution', async function() {
     await gv.submitVote(proposalId, 1);
+    console.log('-==-=-=-=-=-=-=-=', await gv.proposalVoteTally(proposalId));
     await assertRevert(gv.submitVote(proposalId, 1));
   });
 
   it('Should pause proposal', async function() {
     let p = await gv.getProposalLength();
     p = p.toNumber();
-    await gv.createProposal(
-      'Pause',
-      'Pause proposal',
-      'Pause proposal',
-      0
-    );
+    await gv.createProposal('Pause', 'Pause proposal', 'Pause proposal', 0);
     await gv.categorizeProposal(p, 6, 0);
-    let actionHash = encode(
-      'pauseProposal(uint)',
-      proposalId
-    );
+    let actionHash = encode('pauseProposal(uint)', proposalId);
     await gv.submitProposalWithSolution(p, 'Pause proposal', actionHash);
     await gv.submitVote(p, 1);
     await gv.closeProposal(p);
     let isPaused = await gv.proposalPaused(proposalId);
-    assert.equal(isPaused, true, "Proposal not paused");
+    assert.equal(isPaused, true, 'Proposal not paused');
   });
 
   it('Should not close a paused proposal', async function() {
@@ -144,24 +175,15 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
   it('Should resume proposal', async function() {
     let p = await gv.getProposalLength();
     p = p.toNumber();
-    await gv.createProposal(
-      'Resume',
-      'Resume proposal',
-      'Resume proposal',
-      0
-    );
+    await gv.createProposal('Resume', 'Resume proposal', 'Resume proposal', 0);
     await gv.categorizeProposal(p, 5, 0);
-    let actionHash = encode(
-      'resumeProposal(uint)',
-      proposalId
-    );
+    let actionHash = encode('resumeProposal(uint)', proposalId);
     await gv.submitProposalWithSolution(p, 'Resume proposal', actionHash);
     await gv.submitVote(p, 1);
     await gv.closeProposal(p);
     let isPaused = await gv.proposalPaused(proposalId);
-    assert.equal(isPaused, false, "Proposal not resumed");
+    assert.equal(isPaused, false, 'Proposal not resumed');
   });
-
 
   it('Should close proposal', async function() {
     let canClose = await gv.canCloseProposal(proposalId);
@@ -180,14 +202,11 @@ contract('Governance', ([owner, notOwner, voter, noStake]) => {
     console.log(pendingRewards);
   });
 
-  // it('Should claim rewards', async function() {
-  //   await tf.payJoiningFee(owner, { value: 2000000000000000 });
-  //   await tf.kycVerdict(owner, true); 
-  //   console.log(await nxms.isMember(owner));
-  //   console.log(await nxmToken.balanceOf(cr.address));
-  //   await cr.claimAllPendingReward([1,2,3]);
-  //   let pendingRewards = await gv.getPendingReward(owner);
-  //   console.log(pendingRewards);
-  // });
-
+  it('Should claim rewards', async function() {
+    console.log(await nxms.isMember(owner));
+    console.log(await nxmToken.balanceOf(cr.address));
+    await cr.claimAllPendingReward([1, 2, 3]);
+    let pendingRewards = await gv.getPendingReward(owner);
+    console.log(pendingRewards);
+  });
 });

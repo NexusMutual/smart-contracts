@@ -199,21 +199,14 @@ contract Governance is IGovernance, Iupgradable {
     }
 
     /// @dev Initiates add solution
-    /// @param _solutionHash Solution hash having required data against adding solution
-    function addSolution(
-        uint _proposalId, 
-        string _solutionHash, 
-        bytes _action
-    ) 
-        external {
-
-        }
+    //To implement the governance interface
+    function addSolution(uint, string, bytes) external {
+    }
 
     /// @dev Opens proposal for voting
-    function openProposalForVoting(uint _proposalId)
-        external {
-
-        }
+    //To implement the governance interface
+    function openProposalForVoting(uint) external {
+    }
 
     /// @dev Submit proposal with solution
     /// @param _proposalId Proposal id
@@ -285,7 +278,7 @@ contract Governance is IGovernance, Iupgradable {
         if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard)) {
             closeABVote(_proposalId, category, _memberRole);
         } else {
-            closeMemberVote(_proposalId, category, _memberRole);
+            closeMemberVote(_proposalId, category);
         }
         
     }
@@ -822,7 +815,7 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
-    function closeMemberVote(uint _proposalId, uint category, uint _roleId) internal {
+    function closeMemberVote(uint _proposalId, uint category) internal {
         uint max;
         uint totalVoteValue;
         uint maxVote;
@@ -838,10 +831,10 @@ contract Governance is IGovernance, Iupgradable {
             closeProposalVoteThReached(maxVote, totalVoteValue, category, _proposalId, max);
         } else {
             uint abMaj = proposalCategory.categoryABReq(category);
-            uint abMem = memberRole.numberOfMembers(_roleId);
+            uint abMem = memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard));
             if (abMaj > 0) {
                 
-                if (proposalVoteTally[_proposalId].abVoteValue[1] >= abMaj.mul(100).div(abMem)) {
+                if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(abMem) >= abMaj) {
                     
                     callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
                 } else {

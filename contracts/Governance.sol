@@ -312,7 +312,7 @@ contract Governance is IGovernance, Iupgradable {
                 "Reward can be claimed only after the proposal is closed"
             );
             if ((allVotes[voteId].dateAdd > (lastUpd + tokenHoldingTime) || leader == _memberAddress) && 
-                allVotes[voteId].voter == leader) {
+                allVotes[voteId].voter == leader && proposalVoteTally[_proposals[i]].voters > 0) {
 
                 pendingDAppReward += allProposalData[_proposals[i]].commonIncentive / 
                 proposalVoteTally[_proposals[i]].voters;
@@ -688,7 +688,7 @@ contract Governance is IGovernance, Iupgradable {
         uint voteWeight;
         uint voteWeightAB;
         uint voters = 1;
-        voteWeight = minOf(maxOf(tokenInstance.totalBalanceOf(msg.sender), 1), 
+        voteWeight = minOf(maxOf(tokenInstance.totalBalanceOf(msg.sender), 10**18), 
         maxVoteWeigthPer.mul(nxmToken.totalSupply()).div(100));      
         if (memberRole.checkRole(msg.sender, 1) && (proposalCategory.categoryABReq(category) > 0) || 
             mrSequence == uint(MemberRoles.Role.AdvisoryBoard))
@@ -700,7 +700,7 @@ contract Governance is IGovernance, Iupgradable {
             if (allDelegation[delegationId].leader == msg.sender && 
             checkLastUpd(allDelegation[delegationId].lastUpd)) {
                 tokenInstance.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
-                voteWeight += minOf(maxOf(tokenInstance.totalBalanceOf(allDelegation[delegationId].follower), 1),
+                voteWeight += minOf(maxOf(tokenInstance.totalBalanceOf(allDelegation[delegationId].follower), 10**18),
                 maxVoteWeigthPer.mul(nxmToken.totalSupply()).div(100));
                 voters++;
                 if (proposalCategory.categoryABReq(category) > 0 && 
@@ -847,14 +847,14 @@ contract Governance is IGovernance, Iupgradable {
                 _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));
             }
         }
-        tokenInstance.mint(ms.getLatestAddress("CR"), totalVoteValue);
+        tokenInstance.mint(ms.getLatestAddress("CR"), allProposalData[_proposalId].commonIncentive);
     }
 
     function closeABVote(uint _proposalId, uint category, uint _roleId) internal {
         uint _majorityVote;
         uint abMem = memberRole.numberOfMembers(_roleId);
         (, , _majorityVote, , , , ) = proposalCategory.category(category);
-        if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(abMem) > _majorityVote) {
+        if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(abMem) >= _majorityVote) {
             
             callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
         } else {

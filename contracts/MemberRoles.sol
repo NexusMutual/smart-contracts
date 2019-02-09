@@ -112,7 +112,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         require(numberOfMembers(uint(Role.AdvisoryBoard)) <= 
         maxABCount - abArray.length); //AB count can't exceed maxABCount
         for (uint i = 0; i < abArray.length; i++) {
-            updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
+            _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
         }
     }
 

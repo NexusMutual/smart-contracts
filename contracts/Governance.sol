@@ -131,7 +131,7 @@ contract Governance is IGovernance, Iupgradable {
 
     event ProposalCategorized(
         uint indexed proposalId,
-        address indexed proposalOwner,
+        address indexed categorizedBy,
         uint categoryId
     );
  

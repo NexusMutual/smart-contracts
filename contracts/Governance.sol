@@ -128,6 +128,12 @@ contract Governance is IGovernance, Iupgradable {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;
     }
+
+    event ProposalCategorized(
+        uint indexed proposalId,
+        address indexed categorizedBy,
+        uint categoryId
+    );
  
     function removeDelegation(address _add) external onlyInternal {
         uint delegationId = followerDelegation[_add];
@@ -603,7 +609,7 @@ contract Governance is IGovernance, Iupgradable {
         uint _proposalId,
         uint _categoryId,
         uint _incentive
-    ) 
+    )
         internal
     {
         require(
@@ -613,6 +619,8 @@ contract Governance is IGovernance, Iupgradable {
         allProposalData[_proposalId].category = _categoryId;
         allProposalData[_proposalId].commonIncentive = _incentive;
         allProposalData[_proposalId].propStatus = uint(ProposalStatus.AwaitingSolution);
+
+        emit ProposalCategorized(_proposalId, msg.sender, _categoryId);
     }
 
     function _addSolution(uint _proposalId, bytes _action, string _solutionHash)

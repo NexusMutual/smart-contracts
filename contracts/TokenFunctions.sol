@@ -101,8 +101,8 @@ contract TokenFunctions is Iupgradable {
         if (commissionToBePaid > 0 && stakeLength > 0)
             td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
     }
-
-    /**
+mapping (address=>uint[]) burnDates;
+     /**
      * @dev Burns tokens staked against a Smart Contract Cover.
      * Called when a claim submitted against this cover is accepted.
      * @param coverid Cover Id.
@@ -115,12 +115,14 @@ contract TokenFunctions is Iupgradable {
         uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
         address stakerAddress;
         uint stakerStakedNXM;
-
+        burnDates[scAddress].push(now);
         for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
             if (burnNXMAmount > 0) {
                 stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
-                stakerStakedNXM = _getStakerStakedTokensOnSmartContract(
-                    stakerAddress, scAddress, i);
+            //     stakerStakedNXM = _getStakerLockedTokensOnSmartContract(
+            // stakerAddress, scAddress, i).sub(_getStakerUnlockableTokensOnSmartContract(
+            //         stakerAddress, scAddress, i));
+          stakerStakedNXM =  _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, i);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
                         _burnStakerTokenLockedAgainstSmartContract(
@@ -482,6 +484,34 @@ contract TokenFunctions is Iupgradable {
      * @param _stakedContractAddress staked contract address
      
      */
+    // function _getStakerUnlockableTokensOnSmartContract (
+    //     address _stakerAddress,
+    //     address _stakedContractAddress,
+    //     // uint _stakerIndex,
+    //     uint _stakedContractIndex
+    // ) 
+    //     internal
+    //     view
+    //     returns
+    //     (uint amount)
+    // {   
+    //     // uint initialStake;
+    //     // (, , , initialStake,) = td.stakerStakedContracts(_stakerAddress, _stakerIndex);
+    //     uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
+    //         _stakerAddress, _stakedContractAddress, _stakedContractIndex);
+    //     amount = currentLockedTokens.sub(
+    //         _getStakerStakedTokensOnSmartContract(_stakerAddress,
+    //             _stakedContractAddress, _stakedContractIndex));
+    //     // uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, _stakerIndex); //sIndex
+    //     // if (alreadyUnlocked >= unlockable) {
+    //     //     amount = 0;
+    //     // } else {
+    //     //     amount = currentLockedTokens.sub(alreadyUnlocked);
+    //     //     if(amount > currentLockedTokens)
+    //     //         amount = currentLockedTokens;
+    //     // }
+    // }
+
     function _getStakerUnlockableTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
@@ -493,14 +523,17 @@ contract TokenFunctions is Iupgradable {
         returns
         (uint amount)
     {   
-        // uint initialStake;
-        // (, , , initialStake,) = td.stakerStakedContracts(_stakerAddress, _stakerIndex);
+        uint initialStake;
+        uint stakerIndex = td.getStakedContractStakerIndex(
+            _stakedContractAddress, _stakedContractIndex);
+        (, , , initialStake,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
+        uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex); //sIndex
         uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
             _stakerAddress, _stakedContractAddress, _stakedContractIndex);
-        amount = currentLockedTokens.sub(
+        amount = initialStake.sub(
             _getStakerStakedTokensOnSmartContract(_stakerAddress,
-                _stakedContractAddress, _stakedContractIndex));
-        // uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, _stakerIndex); //sIndex
+                _stakedContractAddress, _stakedContractIndex)).sub(alreadyUnlocked);
+        
         // if (alreadyUnlocked >= unlockable) {
         //     amount = 0;
         // } else {
@@ -517,6 +550,36 @@ contract TokenFunctions is Iupgradable {
      * @param _stakedContractAddress staked contract address
      * @param _stakedContractIndex index of staking
      */
+    // function _getStakerStakedTokensOnSmartContract (
+    //     address _stakerAddress,
+    //     address _stakedContractAddress,
+    //     uint _stakedContractIndex
+    // )
+    //     internal
+    //     view
+    //     returns
+    //     (uint amount)
+    // {   
+    //     uint dateAdd;
+    //     uint stakerIndex = td.getStakedContractStakerIndex(
+    //         _stakedContractAddress, _stakedContractIndex);
+    //     uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex);
+    //     uint initialStake;
+    //     (, , dateAdd, initialStake,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
+    //     uint validDays = td.scValidDays();
+    //     uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
+    //         _stakerAddress, _stakedContractAddress, _stakedContractIndex);
+    //     uint dayStaked = (now.sub(dateAdd)).div(1 days);
+    //     if (currentLockedTokens == 0) {
+    //         amount = 0;
+    //     } else if (validDays > dayStaked) {
+    //         amount = _calculateStakedTokens(initialStake, dayStaked, validDays);
+    //         if (currentLockedTokens < amount) {
+    //             amount = currentLockedTokens;
+    //         }
+    //     } 
+    // }
+
     function _getStakerStakedTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
@@ -541,11 +604,9 @@ contract TokenFunctions is Iupgradable {
             amount = 0;
         } else if (validDays > dayStaked) {
             amount = _calculateStakedTokens(initialStake, dayStaked, validDays);
-            if (currentLockedTokens > initialStake.sub(amount).sub(alreadyUnlocked)) {
-                amount = currentLockedTokens.sub(initialStake.sub(amount).sub(alreadyUnlocked));
-            } else {
-                amount = 0;
-            }
+            // if (currentLockedTokens < amount) {
+            //     amount = currentLockedTokens;
+            // }
         } 
     }
 

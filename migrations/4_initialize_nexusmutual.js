@@ -6,7 +6,7 @@ const DSValue = artifacts.require('DSValueMock');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1Mock');
@@ -94,7 +94,7 @@ module.exports = function(deployer) {
     ); //testing
     await dai.transfer(pl2.address, POOL_ASSET);
     await pl2.changeUniswapFactoryAddress(factory.address);
-    let pcAddress = await nxms.getLatestAddress("PC");
+    let pcAddress = await nxms.getLatestAddress('PC');
     pc = await ProposalCategory.at(pcAddress);
     await pc.proposalCategoryInitiate();
   });

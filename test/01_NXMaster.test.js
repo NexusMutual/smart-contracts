@@ -128,6 +128,7 @@ contract('NXMaster', function([
         newMemberRoles.address
       );
       memberRoles = newMemberRoles;
+      memberRoles = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     });
 
     it('should be able to reinitialize', async function() {
@@ -206,8 +207,8 @@ contract('NXMaster', function([
       isInternal.should.equal(false);
     });
     it('should return true if member', async function() {
-      await tf.payJoiningFee(member, { from: member, value: fee });
-      await tf.kycVerdict(member, true);
+      await memberRoles.payJoiningFee(member, { from: member, value: fee });
+      await memberRoles.kycVerdict(member, true);
       const isMember = await nxms.isMember(member);
       isMember.should.equal(true);
     });

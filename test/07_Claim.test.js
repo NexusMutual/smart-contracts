@@ -3,7 +3,7 @@ const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenData = artifacts.require('TokenData');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
@@ -11,6 +11,8 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
+const NXMaster = artifacts.require('NXMaster');
+const MemberRoles = artifacts.require('MemberRoles');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -42,6 +44,8 @@ let qd;
 let qt;
 let cad;
 let p2;
+let nxms;
+let mr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -78,17 +82,19 @@ contract('Claim', function([
     qt = await Quotation.deployed();
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
+    nxms = await NXMaster.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
   });
   describe('Submit Claim', function() {
     before(async function() {
-      await tf.payJoiningFee(member1, { from: member1, value: fee });
-      await tf.kycVerdict(member1, true);
-      await tf.payJoiningFee(member2, { from: member2, value: fee });
-      await tf.kycVerdict(member2, true);
-      await tf.payJoiningFee(member3, { from: member3, value: fee });
-      await tf.kycVerdict(member3, true);
-      await tf.payJoiningFee(member4, { from: member4, value: fee });
-      await tf.kycVerdict(member4, true);
+      await mr.payJoiningFee(member1, { from: member1, value: fee });
+      await mr.kycVerdict(member1, true);
+      await mr.payJoiningFee(member2, { from: member2, value: fee });
+      await mr.kycVerdict(member2, true);
+      await mr.payJoiningFee(member3, { from: member3, value: fee });
+      await mr.kycVerdict(member3, true);
+      await mr.payJoiningFee(member4, { from: member4, value: fee });
+      await mr.kycVerdict(member4, true);
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });

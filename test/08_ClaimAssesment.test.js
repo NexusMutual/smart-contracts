@@ -2,7 +2,7 @@ const Pool1 = artifacts.require('Pool1Mock');
 const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenData = artifacts.require('TokenData');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
@@ -10,6 +10,8 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
+const MemberRoles = artifacts.require('MemberRoles');
+const NXMaster = artifacts.require('NXMaster');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -40,6 +42,8 @@ let qd;
 let qt;
 let cad;
 let mcr;
+let nxms;
+let mr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -83,18 +87,20 @@ contract('Claim: Assessment', function([
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
     mcr = await MCR.deployed();
-    await tf.payJoiningFee(member1, { from: member1, value: fee });
-    await tf.kycVerdict(member1, true);
-    await tf.payJoiningFee(member2, { from: member2, value: fee });
-    await tf.kycVerdict(member2, true);
-    await tf.payJoiningFee(member3, { from: member3, value: fee });
-    await tf.kycVerdict(member3, true);
-    await tf.payJoiningFee(staker1, { from: staker1, value: fee });
-    await tf.kycVerdict(staker1, true);
-    await tf.payJoiningFee(staker2, { from: staker2, value: fee });
-    await tf.kycVerdict(staker2, true);
-    await tf.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
-    await tf.kycVerdict(coverHolder, true);
+    nxms = await NXMaster.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.kycVerdict(member1, true);
+    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.kycVerdict(member2, true);
+    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.kycVerdict(member3, true);
+    await mr.payJoiningFee(staker1, { from: staker1, value: fee });
+    await mr.kycVerdict(staker1, true);
+    await mr.payJoiningFee(staker2, { from: staker2, value: fee });
+    await mr.kycVerdict(staker2, true);
+    await mr.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
+    await mr.kycVerdict(coverHolder, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
@@ -419,8 +425,8 @@ contract('Claim: Assessment', function([
 
   describe('Member not locked tokens for Claim Assessment', function() {
     before(async function() {
-      await tf.payJoiningFee(member4, { from: member4, value: fee });
-      await tf.kycVerdict(member4, true);
+      await mr.payJoiningFee(member4, { from: member4, value: fee });
+      await mr.kycVerdict(member4, true);
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
       await tk.transfer(member4, ether(250));
       await P1.makeCoverBegin(

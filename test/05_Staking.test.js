@@ -1,8 +1,10 @@
 const NXMToken = artifacts.require('NXMToken');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1Mock');
+const MemberRoles = artifacts.require('MemberRoles');
+const NXMaster = artifacts.require('NXMaster');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -17,6 +19,8 @@ let tf;
 let tc;
 let td;
 let P1;
+let mr;
+let nxms;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -35,11 +39,13 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     tf = await TokenFunctions.deployed();
     tc = await TokenController.deployed();
     td = await TokenData.deployed();
-    await tf.payJoiningFee(member1, { from: member1, value: fee });
-    await tf.kycVerdict(member1, true);
+    nxms = await NXMaster.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.kycVerdict(member1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tf.payJoiningFee(member2, { from: member2, value: fee });
-    await tf.kycVerdict(member2, true);
+    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.kycVerdict(member2, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tk.transfer(member1, tokens);
     await tk.transfer(member2, tokens);

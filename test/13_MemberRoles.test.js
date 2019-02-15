@@ -2,7 +2,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 const encode = require('./utils/encoder.js').encode;
 let mr;
@@ -19,13 +19,13 @@ let mrLength1;
 contract('MemberRoles', function([owner, member, other]) {
   before(async function() {
     nxms = await NXMaster.deployed();
-    let address = await nxms.getLatestAddress('MR');
+    address = await nxms.getLatestAddress('MR');
     mr = await MemberRoles.at(address);
     address = await nxms.getLatestAddress('GV');
     gv = await Governance.at(address);
     tf = await TokenFunctions.deployed();
-    await tf.payJoiningFee(owner, { value: 2000000000000000 });
-    await tf.kycVerdict(owner, true);
+    await mr.payJoiningFee(owner, { value: 2000000000000000 });
+    await mr.kycVerdict(owner, true);
   });
 
   it('should not allow unauthorized to change master address', async function() {
@@ -156,8 +156,8 @@ contract('MemberRoles', function([owner, member, other]) {
   });
 
   it('Should check role if user buys membership', async () => {
-    await tf.payJoiningFee(member, { value: 2000000000000000, from: member });
-    await tf.kycVerdict(member, true);
+    await mr.payJoiningFee(member, { value: 2000000000000000, from: member });
+    await mr.kycVerdict(member, true);
     assert.equal(await mr.checkRole(member, 2), true);
     assert.equal(await mr.checkRole(other, 2), false);
   });

@@ -96,7 +96,7 @@ contract Governance is IGovernance, Iupgradable {
     uint internal roleIdAllowedToCatgorize;
     uint internal maxVoteWeigthPer;
 
-    IMemberRoles internal memberRole;
+    MemberRoles internal memberRole;
     ProposalCategory internal proposalCategory;
     TokenController internal tokenInstance;
     EventCaller internal eventCaller;
@@ -444,7 +444,7 @@ contract Governance is IGovernance, Iupgradable {
             initiateGovernance();
         }
         tokenInstance = TokenController(ms.getLatestAddress("TC"));
-        memberRole = IMemberRoles(ms.getLatestAddress("MR"));
+        memberRole = MemberRoles(ms.getLatestAddress("MR"));
         proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));        
         eventCaller = EventCaller(ms.getEventCallerAddress());
         tokenFunction = TokenFunctions(ms.getLatestAddress("TF"));

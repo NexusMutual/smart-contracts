@@ -43,6 +43,8 @@ contract TokenData is Iupgradable {
         uint dateAdd;
         uint stakeAmount;
         uint unlockedAmount;
+        uint burnedAmount;
+        uint unLockableBeforeLastBurn;
     }
 
     struct Staker {
@@ -142,6 +144,30 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].stakedContractAddress;
     }
 
+    function getStakerStakedBurnedByIndex(
+        address _stakerAddress,
+        uint _stakerIndex
+    ) 
+        public
+        view
+        returns (uint burnedAmount) 
+    {
+        burnedAmount = stakerStakedContracts[
+            _stakerAddress][_stakerIndex].burnedAmount;
+    }
+
+    function getStakerStakedUnlockableBeforeLastBurnByIndex(
+        address _stakerAddress,
+        uint _stakerIndex
+    ) 
+        public
+        view
+        returns (uint unlockable) 
+    {
+        unlockable = stakerStakedContracts[
+            _stakerAddress][_stakerIndex].unLockableBeforeLastBurn;
+    }
+
     function getStakerStakedContractIndex(
         address _stakerAddress,
         uint _stakerIndex
@@ -227,6 +253,62 @@ contract TokenData is Iupgradable {
         stakerStakedContracts[_stakerAddress][
             _stakerIndex].unlockedAmount = stakerStakedContracts[_stakerAddress][
                 _stakerIndex].unlockedAmount.add(_amount);
+    }
+
+    /**
+     * @dev pushes the Burned tokens for a staker.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker.
+     * @param _amount amount to be burned.
+     */ 
+    function pushBurnedTokens(
+        address _stakerAddress,
+        uint _stakerIndex,
+        uint _amount
+    )   
+        public
+        onlyInternal
+    {   
+        stakerStakedContracts[_stakerAddress][
+            _stakerIndex].burnedAmount = stakerStakedContracts[_stakerAddress][
+                _stakerIndex].burnedAmount.add(_amount);
+    }
+
+    /**
+     * @dev pushes the unLockable tokens for a staker before last burn.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker.
+     * @param _amount amount to be added to unlockable.
+     */ 
+    function pushUnlockableBeforeLastBurnTokens(
+        address _stakerAddress,
+        uint _stakerIndex,
+        uint _amount
+    )   
+        public
+        onlyInternal
+    {   
+        stakerStakedContracts[_stakerAddress][
+            _stakerIndex].unLockableBeforeLastBurn = stakerStakedContracts[_stakerAddress][
+                _stakerIndex].unLockableBeforeLastBurn.add(_amount);
+    }
+
+    /**
+     * @dev sets the unLockable tokens for a staker before last burn.
+     * @param _stakerAddress address of staker.
+     * @param _stakerIndex index of the staker.
+     * @param _amount amount to be added to unlockable.
+     */ 
+    function setUnlockableBeforeLastBurnTokens(
+        address _stakerAddress,
+        uint _stakerIndex,
+        uint _amount
+    )   
+        public
+        onlyInternal
+    {   
+        stakerStakedContracts[_stakerAddress][
+            _stakerIndex].unLockableBeforeLastBurn = _amount;
     }
 
     /**
@@ -419,7 +501,7 @@ contract TokenData is Iupgradable {
         scIndex = (stakedContractStakers[_stakedContractAddress].push(
             Staker(_stakerAddress, stakerStakedContracts[_stakerAddress].length))).sub(1);
         stakerStakedContracts[_stakerAddress].push(
-            Stake(_stakedContractAddress, scIndex, now, _amount, 0));
+            Stake(_stakedContractAddress, scIndex, now, _amount, 0, 0, 0));
     }
 
     /**

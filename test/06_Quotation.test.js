@@ -1,7 +1,7 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
 const NXMToken = artifacts.require('NXMToken');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const ClaimsReward = artifacts.require('ClaimsReward');
@@ -9,6 +9,8 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
 const MCR = artifacts.require('MCR');
+const MemberRoles = artifacts.require('MemberRoles');
+const NXMaster = artifacts.require('NXMaster');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
@@ -63,6 +65,8 @@ let qt;
 let cad;
 let mcr;
 let mcrd;
+let mr;
+let nxms;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -104,6 +108,8 @@ contract('Quotation', function([
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
+    nxms = await NXMaster.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
   });
 
   describe('Cover Purchase', function() {
@@ -121,8 +127,8 @@ contract('Quotation', function([
 
     describe('If user is a member', function() {
       before(async function() {
-        await tf.payJoiningFee(member1, { from: member1, value: fee });
-        await tf.kycVerdict(member1, true);
+        await mr.payJoiningFee(member1, { from: member1, value: fee });
+        await mr.kycVerdict(member1, true);
         await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
       });
 
@@ -172,11 +178,11 @@ contract('Quotation', function([
           describe('Purchase Cover With Ether', function() {
             const coverHolder = member3;
             before(async function() {
-              await tf.payJoiningFee(coverHolder, {
+              await mr.payJoiningFee(coverHolder, {
                 from: coverHolder,
                 value: fee
               });
-              await tf.kycVerdict(coverHolder, true);
+              await mr.kycVerdict(coverHolder, true);
               await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
                 from: coverHolder
               });
@@ -254,11 +260,11 @@ contract('Quotation', function([
             const coverHolder = member4;
             let initialTotalSA;
             before(async function() {
-              await tf.payJoiningFee(coverHolder, {
+              await mr.payJoiningFee(coverHolder, {
                 from: coverHolder,
                 value: fee
               });
-              await tf.kycVerdict(coverHolder, true);
+              await mr.kycVerdict(coverHolder, true);
               await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
                 from: coverHolder
               });
@@ -338,11 +344,11 @@ contract('Quotation', function([
             let initialTotalSA;
             let initialPoolBalanceOfCA;
             before(async function() {
-              await tf.payJoiningFee(coverHolder, {
+              await mr.payJoiningFee(coverHolder, {
                 from: coverHolder,
                 value: fee
               });
-              await tf.kycVerdict(coverHolder, true);
+              await mr.kycVerdict(coverHolder, true);
               await P1.buyToken({
                 from: coverHolder,
                 value: tokenAmount
@@ -428,11 +434,11 @@ contract('Quotation', function([
           const staker2 = member2;
           let event;
           before(async function() {
-            await tf.payJoiningFee(staker2, {
+            await mr.payJoiningFee(staker2, {
               from: staker2,
               value: fee
             });
-            await tf.kycVerdict(staker2, true);
+            await mr.kycVerdict(staker2, true);
             await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
               from: staker2
             });

@@ -3,7 +3,7 @@ const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
@@ -82,32 +82,32 @@ contract('NXMaster: Emergency Pause', function([
     gv = await Governance.at(gvAddress);
     let address = await nxms.getLatestAddress('MR');
     mr = await MemberRoles.at(address);
-    await tf.payJoiningFee(member1, { from: member1, value: fee });
-    await tf.kycVerdict(member1, true);
+    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.kycVerdict(member1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tf.payJoiningFee(member2, { from: member2, value: fee });
-    await tf.kycVerdict(member2, true);
+    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.kycVerdict(member2, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-    await tf.payJoiningFee(member3, { from: member3, value: fee });
-    await tf.kycVerdict(member3, true);
+    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.kycVerdict(member3, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
 
-    await tf.payJoiningFee(member4, { from: member4, value: fee });
-    await tf.kycVerdict(member4, true);
+    await mr.payJoiningFee(member4, { from: member4, value: fee });
+    await mr.kycVerdict(member4, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
 
-    await tf.payJoiningFee(coverHolder1, {
+    await mr.payJoiningFee(coverHolder1, {
       from: coverHolder1,
       value: fee
     });
-    await tf.kycVerdict(coverHolder1, true);
+    await mr.kycVerdict(coverHolder1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder1 });
-    await tf.payJoiningFee(coverHolder2, {
+    await mr.payJoiningFee(coverHolder2, {
       from: coverHolder2,
       value: fee
     });
-    await tf.kycVerdict(coverHolder2, true);
+    await mr.kycVerdict(coverHolder2, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder2 });
     await tk.transfer(member1, tokens);
     await tk.transfer(member2, tokens);
@@ -174,7 +174,7 @@ contract('NXMaster: Emergency Pause', function([
       await P1.sellNXMTokens(ether(1), { from: member1 });
     });
     it('should be able to withdraw membership', async function() {
-      await tf.withdrawMembership({ from: member4 });
+      await mr.withdrawMembership({ from: member4 });
     });
   });
 
@@ -273,7 +273,7 @@ contract('NXMaster: Emergency Pause', function([
     });
 
     it('should not be able to withdraw membership', async function() {
-      await assertRevert(tf.withdrawMembership({ from: member4 }));
+      await assertRevert(mr.withdrawMembership({ from: member4 }));
     });
   });
 

@@ -1,11 +1,12 @@
 const MCR = artifacts.require('MCR');
 const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const NXMaster = artifacts.require('NXMaster');
 const Pool1 = artifacts.require('Pool1Mock');
+const MemberRoles = artifacts.require('MemberRoles');
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
@@ -23,6 +24,7 @@ let tk;
 let tf;
 let tc;
 let td;
+let mr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -51,6 +53,7 @@ contract('NXMToken', function([
     mcr = await MCR.deployed();
     pd = await PoolData.deployed();
     nxms = await NXMaster.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
   });
 
   describe('token details', function() {
@@ -76,8 +79,8 @@ contract('NXMToken', function([
 
   describe('buying tokens', function() {
     before(async function() {
-      await tf.payJoiningFee(member1, { from: member1, value: fee });
-      await tf.kycVerdict(member1, true);
+      await mr.payJoiningFee(member1, { from: member1, value: fee });
+      await mr.kycVerdict(member1, true);
     });
     it('should not able to buy tokens if not member', async function() {
       await assertRevert(P1.buyToken({ from: notMember, value: tokenAmount }));
@@ -91,8 +94,8 @@ contract('NXMToken', function([
   describe('balanceOf', function() {
     describe('when the requested account is a member and has no tokens', function() {
       it('returns zero', async function() {
-        await tf.payJoiningFee(member2, { from: member2, value: fee });
-        await tf.kycVerdict(member2, true);
+        await mr.payJoiningFee(member2, { from: member2, value: fee });
+        await mr.kycVerdict(member2, true);
         (await tk.balanceOf(member2)).should.be.bignumber.equal(0);
       });
     });
@@ -208,8 +211,8 @@ contract('NXMToken', function([
     const to = member3;
 
     before(async function() {
-      await tf.payJoiningFee(member3, { from: member3, value: fee });
-      await tf.kycVerdict(member3, true);
+      await mr.payJoiningFee(member3, { from: member3, value: fee });
+      await mr.kycVerdict(member3, true);
     });
 
     describe('when the spender is not a member', function() {

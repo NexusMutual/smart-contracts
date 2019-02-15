@@ -1,5 +1,5 @@
 const MemberRoles = artifacts.require('MemberRoles');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMaster = artifacts.require('NXMaster');
 
 const { assertRevert } = require('./utils/assertRevert');
@@ -24,15 +24,15 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
     const fee = ether(0.002);
     describe('if paid joining fee', function() {
       it('should be able to join as member', async function() {
-        await tf.payJoiningFee(member1, { from: member1, value: fee });
-        await tf.kycVerdict(member1, true, { from: owner });
+        await mr.payJoiningFee(member1, { from: member1, value: fee });
+        await mr.kycVerdict(member1, true, { from: owner });
         (await mr.checkRole(member1, 2)).should.equal(true);
       });
     });
     describe('if not paid joining fee', function() {
       it('reverts', async function() {
         await assertRevert(
-          tf.payJoiningFee(member2, { from: member2, value: fee - 1e15 })
+          mr.payJoiningFee(member2, { from: member2, value: fee - 1e15 })
         );
         (await mr.checkRole(member2, 2)).should.equal(false);
       });
@@ -42,13 +42,13 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
   describe('Withdraw membership', function() {
     describe('If met Withdraw membership conditions', function() {
       it('should be able to withdraw membership', async function() {
-        await tf.withdrawMembership({ from: member1 });
+        await mr.withdrawMembership({ from: member1 });
         (await mr.checkRole(member1, 2)).should.equal(false);
       });
     });
     describe('If not met Withdraw membership conditions', function() {
       it('reverts', async function() {
-        await assertRevert(tf.withdrawMembership({ from: member1 }));
+        await assertRevert(mr.withdrawMembership({ from: member1 }));
       });
     });
   });

@@ -2,11 +2,12 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 let pc;
 let gv;
 let tf;
+let mr;
 let nullAddress = '0x0000000000000000000000000000000000000000';
 const encode = require('./utils/encoder.js').encode;
 
@@ -18,8 +19,10 @@ contract('Proposal Category', function([owner, other]) {
     address = await nxms.getLatestAddress('GV');
     gv = await Governance.at(address);
     tf = await TokenFunctions.deployed();
-    await tf.payJoiningFee(owner, { value: 2000000000000000 });
-    await tf.kycVerdict(owner, true);
+    address = await nxms.getLatestAddress('MR');
+    mr = await MemberRoles.at(address);
+    await mr.payJoiningFee(owner, { value: 2000000000000000 });
+    await mr.kycVerdict(owner, true);
   });
 
   it('Should be initialized', async function() {

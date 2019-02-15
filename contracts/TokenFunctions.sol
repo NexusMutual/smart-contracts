@@ -101,7 +101,7 @@ contract TokenFunctions is Iupgradable {
         if (commissionToBePaid > 0 && stakeLength > 0)
             td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
     }
-mapping (address=>uint[]) burnDates;
+    
      /**
      * @dev Burns tokens staked against a Smart Contract Cover.
      * Called when a claim submitted against this cover is accepted.
@@ -115,14 +115,14 @@ mapping (address=>uint[]) burnDates;
         uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
         address stakerAddress;
         uint stakerStakedNXM;
-        burnDates[scAddress].push(now);
         for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
             if (burnNXMAmount > 0) {
                 stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
-            //     stakerStakedNXM = _getStakerLockedTokensOnSmartContract(
-            // stakerAddress, scAddress, i).sub(_getStakerUnlockableTokensOnSmartContract(
-            //         stakerAddress, scAddress, i));
-          stakerStakedNXM =  _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, i);
+                uint stakerIndex = td.getStakedContractStakerIndex(
+                scAddress, i);
+                uint v;
+                (v, stakerStakedNXM) = unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
+                td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, v);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
                         _burnStakerTokenLockedAgainstSmartContract(
@@ -161,8 +161,12 @@ mapping (address=>uint[]) burnDates;
         address stakerAddress;
         for (uint i = 0; i < td.getStakedContractStakersLength(_stakedContractAddress); i++) {
             stakerAddress = td.getStakedContractStakerByIndex(_stakedContractAddress, i);
-            stakedAmount = stakedAmount.add(_getStakerStakedTokensOnSmartContract(
-                stakerAddress, _stakedContractAddress, i));
+            uint stakerIndex = td.getStakedContractStakerIndex(
+            _stakedContractAddress, i);
+            uint currentlyStaked;
+            (, currentlyStaked) = unlockableBeforeBurningAndCanBurn(stakerAddress, 
+            _stakedContractAddress, stakerIndex);
+            stakedAmount = stakedAmount.add(currentlyStaked);
         } 
         amount = stakedAmount;
     }
@@ -201,8 +205,9 @@ mapping (address=>uint[]) burnDates;
         for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
-            stakedAmount = stakedAmount.add(_getStakerLockedTokensOnSmartContract(
-                _stakerAddress, scAddress, scIndex));
+            uint currentlyStaked;
+            (, currentlyStaked) = unlockableBeforeBurningAndCanBurn(_stakerAddress, scAddress, i);
+            stakedAmount = stakedAmount.add(currentlyStaked);
         }
         amount = stakedAmount;
     }
@@ -225,9 +230,8 @@ mapping (address=>uint[]) burnDates;
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
             unlockableAmount = unlockableAmount.add(
-                _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress,
-                 // i,
-                  scIndex));
+            _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress,
+            scIndex));
         }
         amount = unlockableAmount;
     }
@@ -324,53 +328,6 @@ mapping (address=>uint[]) burnDates;
         mr.changeAuthorized(uint(MemberRoles.Role.Member), _newAdd);
     }
 
-    /** 
-     * @dev Called by user to pay joining membership fee
-     */ 
-    function payJoiningFee(address _userAddress) public payable checkPause {
-        if (msg.sender == address(ms.getLatestAddress("QT"))) {
-            require(td.walletAddress() != address(0), "No walletAddress present");
-            td.walletAddress().transfer(msg.value); 
-            tc.addToWhitelist(_userAddress);
-            mr.updateRole(_userAddress, uint(MemberRoles.Role.Member), true);
-        } else {
-            require(!qd.refundEligible(_userAddress));
-            require(mr.totalRoles() > 0, "No member roles found");
-            require(!ms.isMember(_userAddress));
-            require(msg.value == td.joiningFee());
-            qd.setRefundEligible(_userAddress, true);
-        }
-    }
-
-    function kycVerdict(address _userAddress, bool verdict) public checkPause {
-        require(!ms.isMember(_userAddress));
-        require(qd.refundEligible(_userAddress));
-        if (verdict) {
-            qd.setRefundEligible(_userAddress, false);
-            uint fee = td.joiningFee();
-            require(td.walletAddress().send(fee)); //solhint-disable-line
-            tc.addToWhitelist(_userAddress);
-            mr.updateRole(_userAddress, uint(MemberRoles.Role.Member), true);
-        } else {
-            qd.setRefundEligible(_userAddress, false);
-            require(_userAddress.send(td.joiningFee())); //solhint-disable-line
-        }
-    }
-
-    /**
-     * @dev Called by existed member if if wish to Withdraw membership.
-     */
-    function withdrawMembership() public isMemberAndcheckPause {
-        require(tc.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
-        require(!isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
-        require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
-        gv.removeDelegation(msg.sender);
-        tc.burnFrom(msg.sender, tk.balanceOf(msg.sender));
-        mr.updateRole(msg.sender, uint(MemberRoles.Role.Member), false);
-        tc.removeFromWhitelist(msg.sender); // need clarification on whitelist
-        
-    }
-
     function lockCN(
         uint coverNoteAmount,
         uint coverPeriod,
@@ -452,8 +409,7 @@ mapping (address=>uint[]) burnDates;
         returns (uint)
     {
         return _getStakerUnlockableTokensOnSmartContract(stakerAddress, stakedContractAddress,
-            // stakerIndex,
-             td.getStakerStakedContractIndex(stakerAddress, stakerIndex));
+        td.getStakerStakedContractIndex(stakerAddress, stakerIndex));
     }
 
     /**
@@ -468,54 +424,46 @@ mapping (address=>uint[]) burnDates;
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
             unlockableAmount = _getStakerUnlockableTokensOnSmartContract(
-                _stakerAddress, scAddress,
-                 // i,
-                 scIndex);
+            _stakerAddress, scAddress,
+            scIndex);
+            td.setUnlockableBeforeLastBurnTokens(_stakerAddress, i, 0);
             td.pushUnlockedStakedTokens(_stakerAddress, i, unlockableAmount);
             reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
             tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
         }
     }
 
-    /**
-     * @dev Internal function to gets unlockable amount of locked NXM 
-     * tokens, staked against smartcontract by index
-     * @param _stakerAddress address of staker
-     * @param _stakedContractAddress staked contract address
-     
-     */
-    // function _getStakerUnlockableTokensOnSmartContract (
-    //     address _stakerAddress,
-    //     address _stakedContractAddress,
-    //     // uint _stakerIndex,
-    //     uint _stakedContractIndex
-    // ) 
-    //     internal
-    //     view
-    //     returns
-    //     (uint amount)
-    // {   
-    //     // uint initialStake;
-    //     // (, , , initialStake,) = td.stakerStakedContracts(_stakerAddress, _stakerIndex);
-    //     uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
-    //         _stakerAddress, _stakedContractAddress, _stakedContractIndex);
-    //     amount = currentLockedTokens.sub(
-    //         _getStakerStakedTokensOnSmartContract(_stakerAddress,
-    //             _stakedContractAddress, _stakedContractIndex));
-    //     // uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, _stakerIndex); //sIndex
-    //     // if (alreadyUnlocked >= unlockable) {
-    //     //     amount = 0;
-    //     // } else {
-    //     //     amount = currentLockedTokens.sub(alreadyUnlocked);
-    //     //     if(amount > currentLockedTokens)
-    //     //         amount = currentLockedTokens;
-    //     // }
-    // }
+    function unlockableBeforeBurningAndCanBurn(
+        address stakerAdd, 
+        address stakedAdd, 
+        uint stakerIndex
+    )
+    internal 
+    view 
+    returns
+    (uint amount, uint canBurn) {
+
+        uint dateAdd;
+        uint initialStake;
+        uint totalBurnt;
+        uint ub;
+        (, , dateAdd, initialStake, , totalBurnt, ub) = td.stakerStakedContracts(stakerAdd, stakerIndex);
+        canBurn = _calculateStakedTokens(initialStake, (now.sub(dateAdd)).div(1 days), td.scValidDays());
+        // Can't use SafeMaths for int.
+        int v = int(initialStake - (canBurn) - (totalBurnt) - (
+            td.getStakerUnlockedStakedTokens(stakerAdd, stakerIndex)) - (ub));
+        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
+            stakerAdd, stakedAdd, td.getStakerStakedContractIndex(stakerAdd, stakerIndex));
+        if (v < 0)
+            v = 0;
+        amount = uint(v);
+        if (canBurn > currentLockedTokens.sub(amount).sub(ub))
+            canBurn = currentLockedTokens.sub(amount).sub(ub);
+    }
 
     function _getStakerUnlockableTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
-        // uint _stakerIndex,
         uint _stakedContractIndex
     ) 
         internal
@@ -526,88 +474,13 @@ mapping (address=>uint[]) burnDates;
         uint initialStake;
         uint stakerIndex = td.getStakedContractStakerIndex(
             _stakedContractAddress, _stakedContractIndex);
-        (, , , initialStake,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
-        uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex); //sIndex
-        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
-            _stakerAddress, _stakedContractAddress, _stakedContractIndex);
-        amount = initialStake.sub(
-            _getStakerStakedTokensOnSmartContract(_stakerAddress,
-                _stakedContractAddress, _stakedContractIndex)).sub(alreadyUnlocked);
-        
-        // if (alreadyUnlocked >= unlockable) {
-        //     amount = 0;
-        // } else {
-        //     amount = currentLockedTokens.sub(alreadyUnlocked);
-        //     if(amount > currentLockedTokens)
-        //         amount = currentLockedTokens;
-        // }
-    }
-
-    /**
-     * @dev Internal function to get the amount of staked NXM 
-     * tokens against smartcontract by index
-     * @param _stakerAddress address of user
-     * @param _stakedContractAddress staked contract address
-     * @param _stakedContractIndex index of staking
-     */
-    // function _getStakerStakedTokensOnSmartContract (
-    //     address _stakerAddress,
-    //     address _stakedContractAddress,
-    //     uint _stakedContractIndex
-    // )
-    //     internal
-    //     view
-    //     returns
-    //     (uint amount)
-    // {   
-    //     uint dateAdd;
-    //     uint stakerIndex = td.getStakedContractStakerIndex(
-    //         _stakedContractAddress, _stakedContractIndex);
-    //     uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex);
-    //     uint initialStake;
-    //     (, , dateAdd, initialStake,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
-    //     uint validDays = td.scValidDays();
-    //     uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
-    //         _stakerAddress, _stakedContractAddress, _stakedContractIndex);
-    //     uint dayStaked = (now.sub(dateAdd)).div(1 days);
-    //     if (currentLockedTokens == 0) {
-    //         amount = 0;
-    //     } else if (validDays > dayStaked) {
-    //         amount = _calculateStakedTokens(initialStake, dayStaked, validDays);
-    //         if (currentLockedTokens < amount) {
-    //             amount = currentLockedTokens;
-    //         }
-    //     } 
-    // }
-
-    function _getStakerStakedTokensOnSmartContract (
-        address _stakerAddress,
-        address _stakedContractAddress,
-        uint _stakedContractIndex
-    )
-        internal
-        view
-        returns
-        (uint amount)
-    {   
-        uint dateAdd;
-        uint stakerIndex = td.getStakedContractStakerIndex(
-            _stakedContractAddress, _stakedContractIndex);
+        uint burnt;
+        (, , , initialStake, , burnt,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
         uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex);
-        uint initialStake;
-        (, , dateAdd, initialStake,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
-        uint validDays = td.scValidDays();
-        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
-            _stakerAddress, _stakedContractAddress, _stakedContractIndex);
-        uint dayStaked = (now.sub(dateAdd)).div(1 days);
-        if (currentLockedTokens == 0) {
-            amount = 0;
-        } else if (validDays > dayStaked) {
-            amount = _calculateStakedTokens(initialStake, dayStaked, validDays);
-            // if (currentLockedTokens < amount) {
-            //     amount = currentLockedTokens;
-            // }
-        } 
+        uint currentStakedTokens;
+        (, currentStakedTokens) = unlockableBeforeBurningAndCanBurn(_stakerAddress, 
+            _stakedContractAddress, stakerIndex);
+        amount = initialStake.sub(currentStakedTokens).sub(alreadyUnlocked).sub(burnt);
     }
 
     /**
@@ -629,7 +502,7 @@ mapping (address=>uint[]) burnDates;
     {   
         bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress,
             _stakedContractAddress, _stakedContractIndex));
-        amount = tc.tokensLockedAtTime(_stakerAddress, reason, now);
+        amount = tc.tokensLocked(_stakerAddress, reason);
     }
 
     /**
@@ -668,8 +541,11 @@ mapping (address=>uint[]) burnDates;
         pure 
         returns (uint amount)
     {
-        uint rf = ((_validDays.sub(_stakeDays)).mul(100000)).div(_validDays);
-        amount = (rf.mul(_stakeAmount)).div(100000);
+        if (_validDays > _stakeDays) {
+            uint rf = ((_validDays.sub(_stakeDays)).mul(100000)).div(_validDays);
+            amount = (rf.mul(_stakeAmount)).div(100000);
+        } else 
+            amount = 0;
     }
 
     /**
@@ -686,6 +562,9 @@ mapping (address=>uint[]) burnDates;
     ) 
         internal
     {
+        uint stakerIndex = td.getStakedContractStakerIndex(
+            _stakedContractAddress, _stakedContractIndex);
+        td.pushBurnedTokens(_stakerAddress, stakerIndex, _amount);
         bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress,
             _stakedContractAddress, _stakedContractIndex));
         tc.burnLockedTokens(_stakerAddress, reason, _amount);

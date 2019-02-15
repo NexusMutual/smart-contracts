@@ -4,11 +4,12 @@ const NXMaster = artifacts.require('NXMaster');
 const EventCaller = artifacts.require('EventCaller');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMToken = artifacts.require('NXMToken');
+const MemberRoles = artifacts.require('MemberRoles');
 const expectEvent = require('./utils/expectEvent');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const encode = require('./utils/encoder.js').encode;
 const AdvisoryBoard = '0x41420000';
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 let tf;
 let gv;
@@ -18,6 +19,7 @@ let nxms;
 let proposalId;
 let pId;
 let nxmToken;
+let mr;
 
 contract('Governance', ([owner, notOwner]) => {
   before(async function() {
@@ -29,6 +31,8 @@ contract('Governance', ([owner, notOwner]) => {
     gv = await Governance.at(address);
     address = await nxms.getLatestAddress('PC');
     pc = await ProposalCategory.at(address);
+    address = await nxms.getLatestAddress('MR');
+    mr = await MemberRoles.at(address);
   });
 
   it('should not allow unauthorized to change master address', async function() {
@@ -101,8 +105,8 @@ contract('Governance', ([owner, notOwner]) => {
   });
 
   it('Should allow only owner to open proposal for voting', async () => {
-    await tf.payJoiningFee(owner, { value: 2000000000000000 });
-    await tf.kycVerdict(owner, true);
+    await mr.payJoiningFee(owner, { value: 2000000000000000 });
+    await mr.kycVerdict(owner, true);
     // let actionHash = encode(
     //   'addEmergencyPause(bool,bytes4)',
     //   false,

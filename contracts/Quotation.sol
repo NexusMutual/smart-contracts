@@ -24,6 +24,7 @@ import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./MCR.sol";
 import "./Iupgradable.sol";
+import "./MemberRoles.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
@@ -38,6 +39,7 @@ contract Quotation is Iupgradable {
     PoolData internal pd;
     QuotationData internal qd;
     MCR internal m1;
+    MemberRoles internal mr;
 
     event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
 
@@ -69,6 +71,7 @@ contract Quotation is Iupgradable {
         qd = QuotationData(ms.getLatestAddress("QD"));
         p1 = Pool1(ms.getLatestAddress("P1"));
         pd = PoolData(ms.getLatestAddress("PD"));
+        mr = MemberRoles(ms.getLatestAddress("MR"));
     }
 
     /**
@@ -289,7 +292,7 @@ contract Quotation is Iupgradable {
         qd.setRefundEligible(userAdd, false);
         uint joinFee = td.joiningFee();
         if (status) {
-            tf.payJoiningFee.value(joinFee)(userAdd);
+            mr.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
                 qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
                 address poolAdd = ms.getLatestAddress("P1");

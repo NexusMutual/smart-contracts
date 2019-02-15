@@ -17,11 +17,23 @@ import "./imports/govblocks-protocol/interfaces/IMemberRoles.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./TokenController.sol";
 import "./Iupgradable.sol";
+import "./ClaimsReward.sol";
+import "./TokenData.sol";
+import "./QuotationData.sol";
+import "./Governance.sol";
+import "./TokenFunctions.sol";
+import "./NXMToken.sol";
 
 
 contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     TokenController public dAppToken;
+    TokenData internal td;
+    QuotationData internal qd;
+    ClaimsReward internal cr;
+    Governance internal gv;
+    TokenFunctions internal tf;
+    NXMToken public tk;
 
     struct MemberRoleDetails {
         uint memberCounter;
@@ -44,7 +56,14 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _;
     }
 
-    function changeDependentContractAddress() public {}
+    function changeDependentContractAddress() public {
+        td = TokenData(ms.getLatestAddress("TD"));
+        cr = ClaimsReward(ms.getLatestAddress("CR"));
+        qd = QuotationData(ms.getLatestAddress("QD"));
+        gv = Governance(ms.getLatestAddress("GV"));
+        tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tk = NXMToken(ms.tokenAddress());
+    }
 
     function changeMasterAddress(address _masterAddress) public {
         if (masterAddress != address(0))
@@ -119,6 +138,57 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     function changeMaxABCount(uint _val)public {
         require(ms.owner() == msg.sender);
         maxABCount = _val;
+    }
+
+    /** 
+     * @dev Called by user to pay joining membership fee
+     */ 
+    function payJoiningFee(address _userAddress) public payable {
+
+        require(!ms.isPause(), "Emergency Pause Applied");
+        if (msg.sender == address(ms.getLatestAddress("QT"))) {
+            require(td.walletAddress() != address(0), "No walletAddress present");
+            td.walletAddress().transfer(msg.value); 
+            dAppToken.addToWhitelist(_userAddress);
+            _updateRole(_userAddress, uint(Role.Member), true);
+        } else {
+            require(!qd.refundEligible(_userAddress));
+            require(totalRoles() > 0, "No member roles found");
+            require(!ms.isMember(_userAddress));
+            require(msg.value == td.joiningFee());
+            qd.setRefundEligible(_userAddress, true);
+        }
+    }
+
+    function kycVerdict(address _userAddress, bool verdict) public {
+        require(!ms.isPause());
+        require(!ms.isMember(_userAddress));
+        require(qd.refundEligible(_userAddress));
+        if (verdict) {
+            qd.setRefundEligible(_userAddress, false);
+            uint fee = td.joiningFee();
+            require(td.walletAddress().send(fee)); //solhint-disable-line
+            dAppToken.addToWhitelist(_userAddress);
+            _updateRole(_userAddress, uint(MemberRoles.Role.Member), true);
+        } else {
+            qd.setRefundEligible(_userAddress, false);
+            require(_userAddress.send(td.joiningFee())); //solhint-disable-line
+        }
+    }
+
+    /**
+     * @dev Called by existed member if if wish to Withdraw membership.
+     */
+    function withdrawMembership() public {
+        require(!ms.isPause() && ms.isMember(msg.sender));
+        require(dAppToken.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
+        require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
+        require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+        gv.removeDelegation(msg.sender);
+        dAppToken.burnFrom(msg.sender, tk.balanceOf(msg.sender));
+        _updateRole(msg.sender, uint(Role.Member), false);
+        dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist
+        
     }
 
     /// @dev Return number of member roles

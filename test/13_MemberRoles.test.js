@@ -1,5 +1,6 @@
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
+const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -36,6 +37,12 @@ contract('MemberRoles', function([owner, member, other]) {
   it('should have added initial member roles', async function() {
     const ab = await mr.totalRoles.call();
     assert.equal(ab, 3, 'Initial member roles not created');
+  });
+
+  it('Only owner should be able to update Token controller address', async function() {
+    let tcAddress = await TokenController.deployed();
+    await mr.setDApp(tcAddress);
+    await assertRevert(mr.setDApp(tcAddress, { from: other }));
   });
 
   it('should have added owner to AB', async function() {

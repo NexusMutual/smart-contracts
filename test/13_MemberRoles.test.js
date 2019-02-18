@@ -41,8 +41,8 @@ contract('MemberRoles', function([owner, member, other]) {
 
   it('Only owner should be able to update Token controller address', async function() {
     let tcAddress = await TokenController.deployed();
-    await mr.setDApp(tcAddress);
-    await assertRevert(mr.setDApp(tcAddress, { from: other }));
+    await mr.setDApp(tcAddress.address);
+    await assertRevert(mr.setDApp(tcAddress.address, { from: other }));
   });
 
   it('should have added owner to AB', async function() {

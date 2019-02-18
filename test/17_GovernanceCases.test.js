@@ -12,7 +12,7 @@ const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const encode = require('./utils/encoder.js').encode;
 const AdvisoryBoard = '0x41420000';
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 let tf;
 let gv;

@@ -121,8 +121,8 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
         require(isAuthorizedToGovern(msg.sender), "Not Authorized");
         
-        updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
-        updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
+        _updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
+        _updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
 
     }
 

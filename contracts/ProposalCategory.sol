@@ -263,16 +263,6 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         emit Category(categoryId, _name, _actionHash);
     }
 
-    function setClosingTime(uint _closingTime) external{
-        for(uint i=1;i<allCategory.length;i++){
-            allCategory[i].closingTime = _closingTime;
-        }
-    }
-
-    function setSpecialResolution(uint _categoryId, uint _value) external {
-        isSpecialResolution[_categoryId] = _value;
-    }
-
     function addInitialCategories(
         string _name,
         string _actionHash,

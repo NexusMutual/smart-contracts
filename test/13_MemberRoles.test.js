@@ -29,6 +29,11 @@ contract('MemberRoles', function([owner, member, other]) {
     await mr.kycVerdict(owner, true);
   });
 
+  it('Should not be able to initiate member roles twice', async function() {
+    let nxmToken = await nxms.getLatestAddress('TK');
+    await assertRevert(mr.memberRolesInitiate(nxmToken, owner, owner));
+  });
+
   it('should not allow unauthorized to change master address', async function() {
     await assertRevert(mr.changeMasterAddress(nxms.address, { from: other }));
     await mr.changeMasterAddress(nxms.address);
@@ -119,7 +124,7 @@ contract('MemberRoles', function([owner, member, other]) {
       'user incorrectly added to AB'
     );
     await mr.updateRole(member, 3, true);
-    let members = await mr.members(1);
+    let members = await mr.members(3);
     assert.equal(members[1].length, 1);
     assert.equal(await mr.checkRole(member, 3), true, 'user not added to AB');
   });
@@ -132,7 +137,7 @@ contract('MemberRoles', function([owner, member, other]) {
       'user not removed from AB'
     );
     const g3 = await mr.members(3);
-    assertRevert(mr.updateRole(member, 3, false));
+    await assertRevert(mr.updateRole(member, 3, false));
   });
 
   it('Should not allow unauthorized people to update member roles', async function() {

@@ -126,9 +126,13 @@ contract(
                   'Proposal1',
                   0
                 );
+                let proposalsStatus = await gv.getStatusOfProposals();
+                assert.equal(proposalsStatus[1].toNumber(), 2);
               });
               it('Should whitelist proposal and set Incentives', async function() {
                 await gv.categorizeProposal(pId, 12, 130 * 1e18);
+                let proposalsStatus = await gv.getStatusOfProposals();
+                assert.equal(proposalsStatus[2].toNumber(), 1);
               });
               it('Should open for voting', async function() {
                 await gv.submitProposalWithSolution(
@@ -136,9 +140,15 @@ contract(
                   'changes to pricing model',
                   '0x'
                 );
+                let proposalsStatus = await gv.getStatusOfProposals();
+                assert.equal(proposalsStatus[3].toNumber(), 1);
+                let action = await gv.getSolutionAction(pId, 1);
+                assert.equal(action[1], '0x');
               });
               it('should follow voting process', async function() {
                 await gv.submitVote(pId, 1, { from: ab1 });
+                let voteWeight = await gv.voteTallyData(pId, 1);
+                assert.equal(voteWeight[1].toNumber(), 2);
                 await gv.submitVote(pId, 1, { from: ab3 });
                 await gv.submitVote(pId, 1, { from: ab4 });
                 await gv.submitVote(pId, 1, { from: ab5 });
@@ -153,6 +163,8 @@ contract(
               it('Proposal should be accepted', async function() {
                 let proposal = await gv.proposal(pId);
                 assert.equal(proposal[2].toNumber(), 3);
+                let proposalsStatus = await gv.getStatusOfProposals();
+                assert.equal(proposalsStatus[4].toNumber(), 1);
               });
               it('Should get rewards', async function() {
                 for (let i = 0; i < 13; i++) {
@@ -283,6 +295,8 @@ contract(
             it('Proposal should be rejected', async function() {
               let proposal = await gv.proposal(pId);
               assert.equal(proposal[2].toNumber(), 4, 'Incorrect result');
+              let proposalsStatus = await gv.getStatusOfProposals();
+              assert.equal(proposalsStatus[5].toNumber(), 1);
             });
             it('Should get rewards', async function() {
               for (let i = 0; i < 13; i++) {
@@ -390,7 +404,7 @@ contract(
                   await gv.submitVote(pId, 0, { from: mem5 });
                   await gv.submitVote(pId, 0, { from: mem7 });
                 });
-                it('Sould close vote', async function() {
+                it('Should close vote', async function() {
                   increaseTime(604800);
                   await gv.closeProposal(pId);
                 });
@@ -446,7 +460,7 @@ contract(
                 await gv.submitVote(pId, 1, { from: ab3 });
                 await gv.submitVote(pId, 1, { from: mem7 });
               });
-              it('Sould close vote', async function() {
+              it('Should close vote', async function() {
                 increaseTime(604800);
                 await gv.closeProposal(pId);
               });
@@ -485,6 +499,11 @@ contract(
           it('Should whitelist proposal and set Incentives', async function() {
             await gv.categorizeProposal(pId, 11, 0);
           });
+          it('Shpuld not close proposal before opening for vote', async function() {
+            let canClose = await gv.canCloseProposal(pId);
+            assert.equal(canClose.toNumber(), 0);
+            await assertRevert(gv.closeProposal(pId));
+          });
           it('Should open for voting', async function() {
             await gv.submitProposalWithSolution(
               pId,
@@ -492,8 +511,15 @@ contract(
               '0x'
             );
           });
-          it('Sould close vote', async function() {
-            increaseTime(604800);
+          it('Should not close proposal before time is completed', async function() {
+            let canClose = await gv.canCloseProposal(pId);
+            assert.equal(canClose.toNumber(), 0);
+            await assertRevert(gv.closeProposal(pId));
+          });
+          it('Should close vote', async function() {
+            increaseTime(604805);
+            let canClose = await gv.canCloseProposal(pId);
+            assert.equal(canClose.toNumber(), 1);
             await gv.closeProposal(pId);
           });
           it('Proposal should be denied', async function() {
@@ -630,20 +656,22 @@ contract(
     describe("Proposals which doesn't require white listing", function() {
       describe('Open for member vote', function() {
         describe('If threshold is reached', function() {
-          it('Should create proposal', async function() {
+          it('Should create proposal with solution', async function() {
             increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
-            await gv.createProposal('Proposal9', 'Proposal9', 'Proposal9', 0);
-          });
-          it('Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 17, 0);
-          });
-          it('Should open for voting', async function() {
             let actionHash = encode('swapABMember(address,address)', mem9, ab5);
-            await gv.submitProposalWithSolution(
-              pId,
+            let isAllowed = await gv.allowedToCreateProposal(17, {
+              from: mem1
+            });
+            assert.equal(isAllowed, true);
+            await gv.createProposalwithSolution(
+              'Proposal9',
+              'Proposal9',
+              'Proposal9',
+              17,
               'Swap AB Member',
-              actionHash
+              actionHash,
+              { from: mem1 }
             );
           });
           it('should follow voting process', async function() {
@@ -682,25 +710,18 @@ contract(
           });
         });
         describe('If threshold is not reached', function() {
-          it('Should create proposal', async function() {
+          it('Should create proposal with solution', async function() {
             increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
-            await gv.createProposal(
-              'Proposal10',
-              'Proposal10',
-              'Proposal10',
-              0
-            );
-          });
-          it('Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 17, 0);
-          });
-          it('Should open for voting', async function() {
             let actionHash = encode('swapABMember(address,address)', mem9, ab5);
-            await gv.submitProposalWithSolution(
-              pId,
+            await gv.createProposalwithSolution(
+              'Proposal10',
+              'Proposal10',
+              'Proposal10',
+              17,
               'Swap AB Member',
-              actionHash
+              actionHash,
+              { from: mem1 }
             );
           });
           it('should follow voting process', async function() {
@@ -734,25 +755,18 @@ contract(
           });
         });
         describe('If none of members have voted', function() {
-          it('Should create proposal', async function() {
+          it('Should create proposal with solution', async function() {
             increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
-            await gv.createProposal(
-              'Proposal11',
-              'Proposal11',
-              'Proposal11',
-              0
-            );
-          });
-          it('Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 17, 0);
-          });
-          it('Should open for voting', async function() {
             let actionHash = encode('swapABMember(address,address)', mem9, ab5);
-            await gv.submitProposalWithSolution(
-              pId,
+            await gv.createProposalwithSolution(
+              'Proposal11',
+              'Proposal11',
+              'Proposal11',
+              17,
               'Swap AB Member',
-              actionHash
+              actionHash,
+              { from: mem1 }
             );
           });
           it('Should close vote', async function() {

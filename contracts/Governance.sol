@@ -430,11 +430,13 @@ contract Governance is IGovernance, Iupgradable {
 
         require(getPendingReward(msg.sender) == 0);
 
+        require(allDelegation[followerDelegation[_add]].leader == address(0));
+
+        require(!alreadyDelegated(msg.sender), "already delegated by someone");
+
         if (memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)))
             require(memberRole.checkRole(_add, uint(MemberRoles.Role.AdvisoryBoard)));
-        
-        require(!alreadyDelegated(msg.sender), "already delegated by someone");
-        
+
         _delegateVote(_add);
         
     }
@@ -443,7 +445,7 @@ contract Governance is IGovernance, Iupgradable {
 
         require(getPendingReward(msg.sender) == 0);
         _delegateVote(address(0));
-        
+
     }
 
     /// @dev updates all dependency addresses to latest ones from Master

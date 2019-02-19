@@ -49,7 +49,7 @@ contract('Proposal Category', function([owner, other]) {
     //proposal to add category
     let actionHash = encode(
       'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
-      'Yo',
+      'Description',
       1,
       1,
       0,
@@ -58,7 +58,7 @@ contract('Proposal Category', function([owner, other]) {
       '',
       nullAddress,
       'EX',
-      [0, 0, 0]
+      [0, 0, 0, 1]
     );
     let p1 = await gv.getProposalLength();
     await gv.createProposalwithSolution(

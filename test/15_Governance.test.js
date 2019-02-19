@@ -1,10 +1,10 @@
 const Governance = artifacts.require('Governance');
+const MemberRoles = artifacts.require('MemberRoles');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
 const EventCaller = artifacts.require('EventCaller');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMToken = artifacts.require('NXMToken');
-const MemberRoles = artifacts.require('MemberRoles');
 const expectEvent = require('./utils/expectEvent');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const encode = require('./utils/encoder.js').encode;
@@ -18,8 +18,8 @@ let pc;
 let nxms;
 let proposalId;
 let pId;
-let nxmToken;
 let mr;
+let nxmToken;
 
 contract('Governance', ([owner, notOwner]) => {
   before(async function() {
@@ -107,15 +107,9 @@ contract('Governance', ([owner, notOwner]) => {
   it('Should allow only owner to open proposal for voting', async () => {
     await mr.payJoiningFee(owner, { value: 2000000000000000 });
     await mr.kycVerdict(owner, true);
-    // let actionHash = encode(
-    //   'addEmergencyPause(bool,bytes4)',
-    //   false,
-    //   '0x4344',
-    //   owner
-    // );
     await gv.categorizeProposal(proposalId, 9, 1e18);
-    console.log(await gv.proposal(proposalId));
-    console.log(await pc.category(9));
+    await gv.proposal(proposalId);
+    await pc.category(9);
     await assertRevert(gv.submitVote(proposalId, 1));
     await assertRevert(
       gv.submitProposalWithSolution(
@@ -155,7 +149,7 @@ contract('Governance', ([owner, notOwner]) => {
 
   it('Should submit vote to valid solution', async function() {
     await gv.submitVote(proposalId, 1);
-    console.log('-==-=-=-=-=-=-=-=', await gv.proposalDetails(proposalId));
+    await gv.proposalDetails(proposalId);
     await assertRevert(gv.submitVote(proposalId, 1));
   });
 
@@ -203,12 +197,11 @@ contract('Governance', ([owner, notOwner]) => {
 
   it('Should get rewards', async function() {
     let pendingRewards = await gv.getPendingReward(owner);
-    console.log(pendingRewards);
   });
 
   it('Should claim rewards', async function() {
-    console.log(await nxms.isMember(owner));
-    console.log(await nxmToken.balanceOf(cr.address));
+    await nxms.isMember(owner);
+    await nxmToken.balanceOf(cr.address);
     await cr.claimAllPendingReward([1, 2, 3]);
     let pendingRewards = await gv.getPendingReward(owner);
     assert.equal(pendingRewards.toNumber(), 0, 'Rewards not claimed');

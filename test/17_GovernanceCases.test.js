@@ -66,8 +66,6 @@ contract(
       mr = await MemberRoles.at(address);
       tc = await TokenController.deployed();
       pd = await PoolData.deployed();
-      await assertRevert(mr.changeMaxABCount(5, { from: ab2 }));
-      await mr.changeMaxABCount(5);
       await mr.addInitialABMembers([ab2, ab3, ab4, ab5]);
       await nxmToken.approve(tc.address, maxAllowance);
       let bal = await nxmToken.balanceOf(ab1);

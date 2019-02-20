@@ -34,12 +34,12 @@ contract('MemberRoles', function([owner, member, other]) {
     await assertRevert(mr.memberRolesInitiate(nxmToken, owner, owner));
   });
 
-  it('should not allow unauthorized to change master address', async function() {
+  it('Should not allow unauthorized to change master address', async function() {
     await assertRevert(mr.changeMasterAddress(nxms.address, { from: other }));
     await mr.changeMasterAddress(nxms.address);
   });
 
-  it('should have added initial member roles', async function() {
+  it('hould have added initial member roles', async function() {
     const ab = await mr.totalRoles.call();
     assert.equal(ab, 3, 'Initial member roles not created');
   });
@@ -48,6 +48,15 @@ contract('MemberRoles', function([owner, member, other]) {
     let tcAddress = await TokenController.deployed();
     await mr.setDApp(tcAddress.address);
     await assertRevert(mr.setDApp(tcAddress.address, { from: other }));
+  });
+
+  it('Only owner should be able to update max AB count', async function() {
+    await assertRevert(mr.changeMaxABCount(1, { from: other }));
+    await mr.changeMaxABCount(1);
+  });
+
+  it('Should not add initial AB members more than defined max AB count', async function() {
+    await assertRevert(mr.addInitialABMembers([member, other]));
   });
 
   it('should have added owner to AB', async function() {

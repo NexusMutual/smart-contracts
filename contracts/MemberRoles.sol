@@ -131,8 +131,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     }
 
     function addInitialABMembers(address[] abArray) external onlyOwner {
-        require(numberOfMembers(uint(Role.AdvisoryBoard)) <= 
-        maxABCount - abArray.length); //AB count can't exceed maxABCount
+
+        require(maxABCount >= 
+            SafeMath.add(numberOfMembers(uint(Role.AdvisoryBoard)), abArray.length)
+        );
+        //AB count can't exceed maxABCount
         for (uint i = 0; i < abArray.length; i++) {
             _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
         }

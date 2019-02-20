@@ -755,19 +755,20 @@ contract Governance is IGovernance, Iupgradable {
             delegationId = leaderDelegation[msg.sender][i];
             if (allDelegation[delegationId].leader == msg.sender && 
             checkLastUpd(allDelegation[delegationId].lastUpd)) {
-                tokenInstance.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
-                if(proposalCategory.isSpecialResolution(category) == 1) {
+                if (memberRole.checkRole(allDelegation[delegationId].follower, mrSequence)) {
+                    tokenInstance.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
+                    if(proposalCategory.categoryABReq(category) > 0 || mrSequence==uint(MemberRoles.Role.AdvisoryBoard)) {
+                        voteWeightAB += 1;
+                    }
+                }
+                if (proposalCategory.isSpecialResolution(category) == 1) {
                     voteWeight += tokenInstance.totalBalanceOf(allDelegation[delegationId].follower) + 10**18;
                 }
-                else{
+                else {
                     voteWeight += (minOf(tokenInstance.totalBalanceOf(allDelegation[delegationId].follower),
                                         maxVoteWeigthPer.mul(nxmToken.totalSupply()).div(100))) + 10**18;
                 }
                 voters++;
-                if ((proposalCategory.categoryABReq(category) > 0 || mrSequence==uint(MemberRoles.Role.AdvisoryBoard)) && 
-                memberRole.checkRole(allDelegation[delegationId].follower, 1)) {
-                    voteWeightAB += 1;
-                }
             }
             
 

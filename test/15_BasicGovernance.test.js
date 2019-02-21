@@ -203,6 +203,11 @@ contract(
       await gv.closeProposal(p);
       let isPaused = await gv.proposalPaused(proposalId);
       assert.equal(isPaused, false, 'Proposal not resumed');
+      await assertRevert(gv.resumeProposal(proposalId));
+    });
+
+    it('Should not claim reward for an open proposal', async function() {
+      await assertRevert(cr.claimAllPendingReward([proposalId]));
     });
 
     it('Should close proposal', async function() {
@@ -221,12 +226,20 @@ contract(
       let pendingRewards = await gv.getPendingReward(ab1);
     });
 
+    it('Should claim reward only through claimRewards contract', async function() {
+      await assertRevert(gv.claimReward(ab1, [1, 2, 3]));
+    });
+
     it('Should claim rewards', async function() {
       await nxms.isMember(ab1);
       await nxmToken.balanceOf(cr.address);
       await cr.claimAllPendingReward([1, 2, 3]);
       let pendingRewards = await gv.getPendingReward(ab1);
       assert.equal(pendingRewards.toNumber(), 0, 'Rewards not claimed');
+    });
+
+    it('Should not claim reward twice for same proposal', async function() {
+      await assertRevert(cr.claimAllPendingReward([1, 2, 3]));
     });
 
     describe('Delegation cases', function() {
@@ -252,6 +265,9 @@ contract(
       });
       it('AB member cannot delegate vote to Non-Member', async function() {
         await assertRevert(gv.delegateVote(notMember, { from: ab4 }));
+      });
+      it('Non-Member cannot delegate vote', async function() {
+        await assertRevert(gv.delegateVote(ab1, { from: notMember }));
       });
       it('AB member cannot delegate vote to AB who is follower', async function() {
         await assertRevert(gv.delegateVote(ab2, { from: ab4 }));
@@ -294,13 +310,24 @@ contract(
         await gv.submitVote(pId, 1, { from: mem4 });
         await assertRevert(gv.submitVote(pId, 1, { from: mem4 }));
       });
+      it('Member cannot assign proxy if voted within 7 days', async function() {
+        await assertRevert(gv.delegateVote(ab1, { from: mem4 }));
+      });
       it('Follower cannot vote on a proposal', async function() {
         await assertRevert(gv.submitVote(pId, 1, { from: ab2 }));
       });
+      it('Member can assign proxy if voted more than 7 days earlier', async function() {
+        increaseTime(604805);
+        await gv.delegateVote(ab1, { from: mem4 });
+      });
       it('Follower can undelegate vote if not voted since 7 days', async function() {
         increaseTime(604800);
-        await gv.unDelegate({ from: ab2 });
+        await gv.unDelegate({ from: mem5 });
+        await gv.alreadyDelegated(mem3);
         increaseTime(172800);
+      });
+      it('Follower cannot assign new proxy if revoked proxy within 7 days', async function() {
+        await assertRevert(gv.delegateVote(ab1, { from: mem5 }));
       });
       it('Undelegated Follower cannot vote within 7 days since undelegation', async function() {
         pId = (await gv.getProposalLength()).toNumber();
@@ -311,11 +338,21 @@ contract(
           'changes to pricing model',
           '0x'
         );
-        await assertRevert(gv.submitVote(pId, 1, { from: ab2 }));
-        increaseTime(518400);
+        await assertRevert(gv.submitVote(pId, 1, { from: mem5 }));
+        increaseTime(518400); //7 days will be completed since revoking proxy
       });
       it('Undelegated Follower can vote after 7 days', async function() {
-        await gv.submitVote(pId, 1, { from: ab2 });
+        await gv.submitVote(pId, 1, { from: ab1 });
+        await gv.submitVote(pId, 1, { from: ab3 });
+        await gv.submitVote(pId, 1, { from: ab4 });
+        await gv.submitVote(pId, 1, { from: mem2 });
+        await gv.submitVote(pId, 1, { from: mem3 });
+        await gv.submitVote(pId, 1, { from: mem5 });
+      });
+      it('Follower cannot undelegate if there are rewards pending to be claimed', async function() {
+        await gv.closeProposal(pId);
+        await assertRevert(gv.unDelegate({ from: mem5 }));
+        await cr.claimAllPendingReward([pId]);
       });
     });
   }

@@ -118,6 +118,16 @@ contract(
               it('Should create proposal', async function() {
                 increaseTime(604800);
                 pId = (await gv.getProposalLength()).toNumber();
+                await assertRevert(
+                  gv.createProposalwithSolution(
+                    'Proposal',
+                    'Proposal',
+                    'Proposal',
+                    12,
+                    'Changes to pricing model',
+                    '0x'
+                  )
+                );
                 await gv.createProposal(
                   'Proposal1',
                   'Proposal1',

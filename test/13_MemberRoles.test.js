@@ -1,5 +1,6 @@
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
+const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -28,14 +29,34 @@ contract('MemberRoles', function([owner, member, other]) {
     await mr.kycVerdict(owner, true);
   });
 
-  it('should not allow unauthorized to change master address', async function() {
+  it('Should not be able to initiate member roles twice', async function() {
+    let nxmToken = await nxms.getLatestAddress('TK');
+    await assertRevert(mr.memberRolesInitiate(nxmToken, owner, owner));
+  });
+
+  it('Should not allow unauthorized to change master address', async function() {
     await assertRevert(mr.changeMasterAddress(nxms.address, { from: other }));
     await mr.changeMasterAddress(nxms.address);
   });
 
-  it('should have added initial member roles', async function() {
+  it('hould have added initial member roles', async function() {
     const ab = await mr.totalRoles.call();
     assert.equal(ab, 3, 'Initial member roles not created');
+  });
+
+  it('Only owner should be able to update Token controller address', async function() {
+    let tcAddress = await TokenController.deployed();
+    await mr.setDApp(tcAddress.address);
+    await assertRevert(mr.setDApp(tcAddress.address, { from: other }));
+  });
+
+  it('Only owner should be able to update max AB count', async function() {
+    await assertRevert(mr.changeMaxABCount(1, { from: other }));
+    await mr.changeMaxABCount(1);
+  });
+
+  it('Should not add initial AB members more than defined max AB count', async function() {
+    await assertRevert(mr.addInitialABMembers([member, other]));
   });
 
   it('should have added owner to AB', async function() {
@@ -112,7 +133,7 @@ contract('MemberRoles', function([owner, member, other]) {
       'user incorrectly added to AB'
     );
     await mr.updateRole(member, 3, true);
-    let members = await mr.members(1);
+    let members = await mr.members(3);
     assert.equal(members[1].length, 1);
     assert.equal(await mr.checkRole(member, 3), true, 'user not added to AB');
   });
@@ -125,7 +146,7 @@ contract('MemberRoles', function([owner, member, other]) {
       'user not removed from AB'
     );
     const g3 = await mr.members(3);
-    assertRevert(mr.updateRole(member, 3, false));
+    await assertRevert(mr.updateRole(member, 3, false));
   });
 
   it('Should not allow unauthorized people to update member roles', async function() {

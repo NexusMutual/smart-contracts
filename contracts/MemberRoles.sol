@@ -56,6 +56,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _;
     }
 
+    modifier onlyOwner() {
+        require(ms.isOwner(msg.sender));
+        _;
+    }
+
     function changeDependentContractAddress() public {
         td = TokenData(ms.getLatestAddress("TD"));
         cr = ClaimsReward(ms.getLatestAddress("CR"));
@@ -81,8 +86,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         constructorCheck = true;
     }
 
-    function setDApp(address _dAppToken) public {
-        require(ms.isOwner(msg.sender));
+    function setDApp(address _dAppToken) public onlyOwner {
         dAppToken = TokenController(_dAppToken);
     }
 
@@ -117,26 +121,27 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     function swapABMember(
         address _newABAddress,
         address _removeAB
-    ) public {
+    )
+    external
+    checkRoleAuthority(uint(Role.AdvisoryBoard)) {
 
-        require(isAuthorizedToGovern(msg.sender), "Not Authorized");
-        
-        updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
-        updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
+        _updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
+        _updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
 
     }
 
-    function addInitialABMembers(address[] abArray)public {
-        require(ms.owner() == msg.sender);
-        require(numberOfMembers(uint(Role.AdvisoryBoard)) <= 
-        maxABCount - abArray.length); //AB count can't exceed maxABCount
+    function addInitialABMembers(address[] abArray) external onlyOwner {
+
+        require(maxABCount >= 
+            SafeMath.add(numberOfMembers(uint(Role.AdvisoryBoard)), abArray.length)
+        );
+        //AB count can't exceed maxABCount
         for (uint i = 0; i < abArray.length; i++) {
             _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
         }
     }
 
-    function changeMaxABCount(uint _val)public {
-        require(ms.owner() == msg.sender);
+    function changeMaxABCount(uint _val) external onlyOwner{
         maxABCount = _val;
     }
 

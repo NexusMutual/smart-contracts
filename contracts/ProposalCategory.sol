@@ -38,6 +38,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     CategoryStruct[] internal allCategory;
     mapping (uint => CategoryAction) internal categoryActionData;
     mapping (uint => uint) public categoryABReq;
+    mapping (uint => uint) public isSpecialResolution;
 
     /// @dev Adds new category
     /// @param _name Category name
@@ -245,7 +246,6 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     ) 
         internal
     {
-        categoryABReq[allCategory.length] = _incentives[2];
         allCategory.push(
             CategoryStruct(
                 _memberRoleToVote,
@@ -258,6 +258,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         );
         uint categoryId = allCategory.length - 1;
         categoryActionData[categoryId] = CategoryAction(_incentives[1], _contractAddress, _contractName);
+        categoryABReq[categoryId] = _incentives[2];
+        isSpecialResolution[categoryId] = _incentives[3];
         emit Category(categoryId, _name, _actionHash);
     }
 
@@ -273,11 +275,12 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         internal 
     {
         uint[] memory allowedToCreateProposal = new uint[](1);
-        uint[] memory stakeIncentive = new uint[](3);        
+        uint[] memory stakeIncentive = new uint[](4);
         allowedToCreateProposal[0] = 2;
         stakeIncentive[0] = 0;
         stakeIncentive[1] = 0;
         stakeIncentive[2] = _categoryABReq;
+        stakeIncentive[3] = 0;
         _addCategory(
                 _name,
                 _memberRoleToVote,

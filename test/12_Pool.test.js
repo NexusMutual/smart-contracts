@@ -4,6 +4,7 @@ const PoolData = artifacts.require('PoolData');
 const DAI = artifacts.require('MockDAI');
 const testtt = artifacts.require('ExchangeMock');
 const MCR = artifacts.require('MCR');
+const DSValue = artifacts.require('DSValueMock');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { assertRevert } = require('./utils/assertRevert');
@@ -17,6 +18,7 @@ let pd;
 let cad;
 let emock;
 let mcr;
+let DSV;
 
 const BigNumber = web3.BigNumber;
 const newAsset = '0x535253';
@@ -37,6 +39,7 @@ contract('Pool', function([owner, notOwner]) {
     cad = await DAI.deployed();
     emock = await testtt.deployed();
     mcr = await MCR.deployed();
+    DSV = await DSValue.deployed();
   });
 
   describe('PoolData', function() {
@@ -268,6 +271,7 @@ contract('Pool', function([owner, notOwner]) {
 
   describe('Liquidity', function() {
     it('Setting the testing parameters', async function() {
+      await DSV.setRate(10 * 1e18);
       await pd.changeCurrencyAssetBaseMin('0x455448', 6 * 1e18);
       await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
       await p1.upgradeCapitalPool(owner);

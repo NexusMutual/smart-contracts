@@ -126,6 +126,11 @@ contract Governance is IGovernance, Iupgradable {
         _;
     }
 
+    modifier checkPendingRewards {
+        require(getPendingReward(msg.sender) == 0, "Claim pending rewards");
+        _;
+    }
+
     event ProposalCategorized(
         uint indexed proposalId,
         address indexed categorizedBy,
@@ -137,11 +142,7 @@ contract Governance is IGovernance, Iupgradable {
     }
  
     function removeDelegation(address _add) external onlyInternal {
-        uint delegationId = followerDelegation[_add];
-        if (delegationId > 0) {
-            allDelegation[delegationId].leader = address(0);
-            allDelegation[delegationId].lastUpd = now;
-        }
+        _unDelegate(_add);
     }
 
     /// @dev Creates a new proposal
@@ -195,11 +196,6 @@ contract Governance is IGovernance, Iupgradable {
         external
         voteNotStarted(_proposalId) isAllowedToCategorize
     {
-        require(
-            allProposalSolutions[_proposalId].length < 2,
-            "Solutions had already been submitted"
-        );
-
         _categorizeProposal(_proposalId, _categoryId, _incentive);
     }
 
@@ -420,26 +416,37 @@ contract Governance is IGovernance, Iupgradable {
         return leaderDelegation[_add];
     }
 
-    function delegateVote(address _add) public isMemberAndcheckPause {
+    function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
 
-        require(getPendingReward(msg.sender) == 0);
-
+        //Check if given address is not a follower
         require(allDelegation[followerDelegation[_add]].leader == address(0));
 
+        if(followerDelegation[msg.sender] > 0){
+            require(SafeMath.add(allDelegation[followerDelegation[msg.sender]].lastUpd, tokenHoldingTime) < now);
+        }
+
         require(!alreadyDelegated(msg.sender), "already delegated by someone");
+
+        if (allVotesByMember[msg.sender].length>0) {
+            uint memberLastVoteId = SafeMath.sub(allVotesByMember[msg.sender].length, 1);
+            require(SafeMath.add(allVotes[allVotesByMember[msg.sender][memberLastVoteId]].dateAdd, tokenHoldingTime) < now);
+        }
 
         if (memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)))
             require(memberRole.checkRole(_add, uint(MemberRoles.Role.AdvisoryBoard)));
 
-        _delegateVote(_add);
-        
+        // require(getPendingReward(msg.sender) == 0);
+
+        require(ms.isMember(_add));
+
+        allDelegation.push(DelegateVote(msg.sender, _add, now));
+        followerDelegation[msg.sender] = allDelegation.length - 1;
+        leaderDelegation[_add].push(allDelegation.length - 1);
+
     }
 
-    function unDelegate() public isMemberAndcheckPause {
-
-        require(getPendingReward(msg.sender) == 0);
-        _delegateVote(address(0));
-
+    function unDelegate() external isMemberAndcheckPause checkPendingRewards {
+        _unDelegate(msg.sender);
     }
 
     /// @dev updates all dependency addresses to latest ones from Master
@@ -814,19 +821,12 @@ contract Governance is IGovernance, Iupgradable {
         allProposalData[_proposalId].propStatus = _status;
     }
 
-    function _delegateVote(address _add)internal {
-        require(ms.isMember(_add) || _add == address(0));
-        if (followerDelegation[msg.sender] == 0) {
-            allDelegation.push(DelegateVote(msg.sender, _add, now));
-            followerDelegation[msg.sender] = allDelegation.length - 1;
-            leaderDelegation[_add].push(allDelegation.length - 1);
-        } else {
-            uint followerId = followerDelegation[msg.sender];
-            allDelegation[followerId].leader = _add;
+    function _unDelegate(address _follower) internal {
+        uint followerId = followerDelegation[_follower];
+        if(followerId > 0) {
+            allDelegation[followerId].leader = address(0);
             allDelegation[followerId].lastUpd = now;
-
         }
-
     }
 
     function closeMemberVote(uint _proposalId, uint category) internal {

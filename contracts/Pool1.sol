@@ -345,7 +345,7 @@ contract Pool1 is usingOraclize, Iupgradable {
 
         while (_amount > 0) {
             mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
-            tokenPrice = m1.calculateStepTokenPrice("ETH", tokenSupply, mcrtp);
+            tokenPrice = m1.calculateStepTokenPrice("ETH", mcrtp);
             tokenPrice = (tokenPrice.mul(975)).div(1000); //97.5%
             if (_amount <= PRICE_STEP) {
                 weiToPay = weiToPay.add((tokenPrice.mul(_amount)).div(DECIMAL1E18));
@@ -374,10 +374,9 @@ contract Pool1 is usingOraclize, Iupgradable {
         (vtp, ) = m1.calculateVtpAndMCRtp((_poolBalance).sub(_weiPaid));
 
         require(m1.calculateTokenPrice("ETH") > 0, "Token price can not be zero");
-
         while (superWeiLeft > 0) {
             mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
-            tokenPrice = m1.calculateStepTokenPrice("ETH", tokenSupply, mcrtp);
+            tokenPrice = m1.calculateStepTokenPrice("ETH", mcrtp);            
             tempTokens = superWeiLeft.div(tokenPrice);
             if (tempTokens <= PRICE_STEP) {
                 tokenToGet = tokenToGet.add(tempTokens);

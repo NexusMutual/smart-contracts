@@ -74,27 +74,29 @@ contract('MCR', function([owner, notOwner]) {
       const Curr3DaysAvg = tpd[2];
       const mcrtp = (await mcr.calVtpAndMCRtp())[1];
       const mcrtpSquare = mcrtp.times(mcrtp).div(1e8);
-      let Max = 1;
-      if (mcrtpSquare >= 1) {
-        Max = mcrtpSquare;
-      }
-      const tp = tc
-        .div(growthStep)
-        .plus(1)
-        .times(Max)
-        .times(sf);
+      const mcrEth = (await pd.getLastMCREther()).div(1e18);
+      const tp = sf.plus(
+        mcrEth
+          .div(growthStep)
+          .times(mcrtpSquare)
+          .times(mcrtpSquare)
+      );
       tp_eth = tp.times(Curr3DaysAvg.div(100));
       tp_dai = tp.times((await pd.getCAAvgRate(CA_DAI)).div(100));
     });
     it('should return correct Token price in ETH', async function() {
-      tp_eth.should.be.bignumber.equal(
-        (await mcr.calculateTokenPrice(CA_ETH)).div(1e18)
-      );
+      tp_eth
+        .toFixed(4)
+        .should.be.bignumber.equal(
+          (await mcr.calculateTokenPrice(CA_ETH)).div(1e18).toFixed(4)
+        );
     });
     it('should return correct Token price in DAI', async function() {
-      tp_dai.should.be.bignumber.equal(
-        (await mcr.calculateTokenPrice(CA_DAI)).div(1e18)
-      );
+      tp_dai
+        .toFixed(4)
+        .should.be.bignumber.equal(
+          (await mcr.calculateTokenPrice(CA_DAI)).div(1e18).toFixed(4)
+        );
     });
   });
   describe('if owner/internal contract address', function() {

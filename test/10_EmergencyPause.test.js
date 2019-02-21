@@ -171,7 +171,7 @@ contract('NXMaster: Emergency Pause', function([
     });
 
     it('should be able to redeem NXM tokens', async function() {
-      await P1.sellNXMTokens(ether(1), { from: member1 });
+      await P1.sellNXMTokens(ether(0.01), { from: member1 });
     });
     it('should be able to withdraw membership', async function() {
       await mr.withdrawMembership({ from: member4 });

@@ -51,6 +51,9 @@ contract(
     mem7,
     mem8,
     mem9,
+    mem10,
+    mem11,
+    mem12,
     notMember
   ]) => {
     before(async function() {
@@ -86,9 +89,12 @@ contract(
         0,
         0,
         20000,
-        267600
+        40000,
+        64000,
+        100000,
+        63600
       ];
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 18; i++) {
         await nxmToken.approve(cr.address, maxAllowance, {
           from: web3.eth.accounts[i]
         });
@@ -107,7 +113,7 @@ contract(
       await gv.delegateVote(ab3, { from: mem3 });
       await gv.delegateVote(mem4, { from: mem8 });
       await gv.delegateVote(mem5, { from: mem6 });
-      increaseTime(604800);
+      await increaseTime(604800);
     });
 
     describe('Proposals which required white listing', function() {
@@ -116,8 +122,18 @@ contract(
           describe('Accepted by majority vote,', function() {
             describe('with no Automatic action', function() {
               it('Should create proposal', async function() {
-                increaseTime(604800);
+                await increaseTime(604800);
                 pId = (await gv.getProposalLength()).toNumber();
+                await assertRevert(
+                  gv.createProposalwithSolution(
+                    'Proposal',
+                    'Proposal',
+                    'Proposal',
+                    12,
+                    'Changes to pricing model',
+                    '0x'
+                  )
+                );
                 await gv.createProposal(
                   'Proposal1',
                   'Proposal1',
@@ -155,7 +171,7 @@ contract(
                 await gv.submitVote(pId, 1, { from: mem7 });
               });
               it('Should close vote', async function() {
-                increaseTime(604800);
+                await increaseTime(604800);
                 await gv.closeProposal(pId);
               });
               it('Proposal should be accepted', async function() {
@@ -185,7 +201,7 @@ contract(
             });
             describe('with Automatic action', function() {
               it('Should create proposal', async function() {
-                increaseTime(604800);
+                await increaseTime(604800);
                 balance = await web3.eth.getBalance(notMember);
                 pId = (await gv.getProposalLength()).toNumber();
                 await gv.createProposal(
@@ -220,7 +236,7 @@ contract(
                 await gv.submitVote(pId, 1, { from: mem7 });
               });
               it('Should close vote', async function() {
-                increaseTime(604800);
+                await increaseTime(604800);
                 await gv.closeProposal(pId);
               });
               it('Proposal should be accepted', async function() {
@@ -257,7 +273,7 @@ contract(
           });
           describe('If Rejected', function() {
             it('Should create proposal', async function() {
-              increaseTime(604800);
+              await increaseTime(604800);
               balance = await web3.eth.getBalance(notMember);
               pId = (await gv.getProposalLength()).toNumber();
               await gv.createProposal('Proposal3', 'Proposal3', 'Proposal3', 0);
@@ -287,7 +303,7 @@ contract(
               await gv.submitVote(pId, 1, { from: mem7 });
             });
             it('Should close vote', async function() {
-              increaseTime(604800);
+              await increaseTime(604800);
               await gv.closeProposal(pId);
             });
             it('Proposal should be rejected', async function() {
@@ -343,7 +359,7 @@ contract(
                   await gv.submitVote(pId, 1, { from: mem7 });
                 });
                 it('Should close vote', async function() {
-                  increaseTime(604800);
+                  await increaseTime(604800);
                   await gv.closeProposal(pId);
                 });
                 it('Proposal should be accepted', async function() {
@@ -368,7 +384,7 @@ contract(
               });
               describe('with Automatic action', function() {
                 it('Should create proposal', async function() {
-                  increaseTime(604800);
+                  await increaseTime(604800);
                   status = await pd.getInvestmentAssetDetails(
                     web3.toHex('DAI')
                   );
@@ -403,7 +419,7 @@ contract(
                   await gv.submitVote(pId, 0, { from: mem7 });
                 });
                 it('Should close vote', async function() {
-                  increaseTime(604800);
+                  await increaseTime(604800);
                   await gv.closeProposal(pId);
                 });
                 it('Proposal should be accepted', async function() {
@@ -459,7 +475,7 @@ contract(
                 await gv.submitVote(pId, 1, { from: mem7 });
               });
               it('Should close vote', async function() {
-                increaseTime(604800);
+                await increaseTime(604800);
                 await gv.closeProposal(pId);
               });
               it('Proposal should be accepted', async function() {
@@ -497,7 +513,7 @@ contract(
           it('Should whitelist proposal and set Incentives', async function() {
             await gv.categorizeProposal(pId, 11, 0);
           });
-          it('Shpuld not close proposal before opening for vote', async function() {
+          it('Should not close proposal before opening for vote', async function() {
             let canClose = await gv.canCloseProposal(pId);
             assert.equal(canClose.toNumber(), 0);
             await assertRevert(gv.closeProposal(pId));
@@ -515,7 +531,7 @@ contract(
             await assertRevert(gv.closeProposal(pId));
           });
           it('Should close vote', async function() {
-            increaseTime(604805);
+            await increaseTime(604805);
             let canClose = await gv.canCloseProposal(pId);
             assert.equal(canClose.toNumber(), 1);
             await gv.closeProposal(pId);
@@ -535,7 +551,7 @@ contract(
               'Tokens locked for claims assessment - ' +
                 (await tc.tokensLocked(mem9, CLA))
             );
-            increaseTime(604800);
+            await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
             await gv.createProposal('Proposal7', 'Proposal7', 'Proposal7', 0);
           });
@@ -562,7 +578,7 @@ contract(
             await gv.submitVote(pId, 1, { from: ab5 });
           });
           it('Should close vote', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             await gv.closeProposal(pId);
           });
           it('Proposal should be accepted', async function() {
@@ -595,7 +611,7 @@ contract(
               'Tokens locked for claims assessment - ' +
                 (await tc.tokensLocked(mem9, CLA))
             );
-            increaseTime(604800);
+            await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
             await gv.createProposal('Proposal8', 'Proposal8', 'Proposal8', 0);
           });
@@ -620,7 +636,7 @@ contract(
             await gv.submitVote(pId, 0, { from: ab3 });
           });
           it('Should close vote', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             await gv.closeProposal(pId);
           });
           it('Proposal should be denied', async function() {
@@ -655,7 +671,7 @@ contract(
       describe('Open for member vote', function() {
         describe('If threshold is reached', function() {
           it('Should create proposal with solution', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
             let actionHash = encode('swapABMember(address,address)', mem9, ab5);
             let isAllowed = await gv.allowedToCreateProposal(17, {
@@ -680,7 +696,7 @@ contract(
             await gv.submitVote(pId, 0, { from: mem5 });
           });
           it('Should close vote', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             await gv.closeProposal(pId);
           });
           it('Proposal should be accepted', async function() {
@@ -709,7 +725,7 @@ contract(
         });
         describe('If threshold is not reached', function() {
           it('Should create proposal with solution', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
             let actionHash = encode('swapABMember(address,address)', mem9, ab5);
             await gv.createProposalwithSolution(
@@ -728,7 +744,7 @@ contract(
             await gv.submitVote(pId, 1, { from: ab5 });
           });
           it('Should close vote', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             await gv.closeProposal(pId);
           });
           it('Proposal should be denied', async function() {
@@ -754,7 +770,7 @@ contract(
         });
         describe('If none of members have voted', function() {
           it('Should create proposal with solution', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
             let actionHash = encode('swapABMember(address,address)', mem9, ab5);
             await gv.createProposalwithSolution(
@@ -768,7 +784,7 @@ contract(
             );
           });
           it('Should close vote', async function() {
-            increaseTime(604800);
+            await increaseTime(604800);
             await gv.closeProposal(pId);
           });
           it('Proposal should be denied', async function() {
@@ -785,17 +801,17 @@ contract(
       });
     });
 
-    describe('Special resultions', function() {
+    describe('Special resolutions', function() {
       describe('Open for member vote', function() {
         describe('Accepted', function() {
           describe('with no Automatic action', function() {
             it('Should create proposal', async function() {
-              increaseTime(604800);
+              await increaseTime(604800);
               pId = (await gv.getProposalLength()).toNumber();
               await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
             });
             it('Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 18, 130 * 1e18);
+              await gv.categorizeProposal(pId, 19, 160 * 1e18);
             });
             it('Should open for voting', async function() {
               await gv.submitProposalWithSolution(
@@ -810,39 +826,157 @@ contract(
               await gv.submitVote(pId, 1, { from: ab4 });
               await gv.submitVote(pId, 1, { from: ab5 });
               await gv.submitVote(pId, 1, { from: mem4 });
-              await gv.submitVote(pId, 0, { from: mem5 });
+              await gv.submitVote(pId, 1, { from: mem5 });
               await gv.submitVote(pId, 1, { from: mem7 });
+              await gv.submitVote(pId, 1, { from: mem10 });
+              await gv.submitVote(pId, 1, { from: mem11 });
+              await gv.submitVote(pId, 1, { from: mem12 });
             });
             it('Should close vote', async function() {
-              increaseTime(604800);
+              await increaseTime(604800);
               await gv.closeProposal(pId);
             });
             it('Proposal should be accepted', async function() {
               let proposal = await gv.proposal(pId);
               assert.equal(proposal[2].toNumber(), 3);
             });
-            it('Should get rewards', async function() {
-              for (let i = 0; i < 14; i++) {
-                if (web3.eth.accounts[i] != mem9) {
-                  assert.equal(
-                    (await gv.getPendingReward(
-                      web3.eth.accounts[i]
-                    )).toNumber(),
-                    10 * 1e18,
-                    web3.eth.accounts[i] + ' ' + i + " didn't get reward"
-                  );
-                }
-              }
-            });
             it('Should claim rewards', async function() {
-              for (let i = 0; i < 14; i++) {
-                if (web3.eth.accounts[i] != mem9) {
-                  await cr.claimAllPendingReward([pId], {
-                    from: web3.eth.accounts[i]
-                  });
-                }
+              for (let i = 0; i < 13; i++) {
+                await cr.claimAllPendingReward([pId], {
+                  from: web3.eth.accounts[i]
+                });
               }
             });
+          });
+          describe('with Automatic action', function() {
+            it('Add new category for special resolution', async function() {
+              let pool1Address = await nxms.getLatestAddress('P1');
+              let actionHash = encode(
+                'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
+                'Special Withdraw funds',
+                2,
+                75,
+                75,
+                [2],
+                604800,
+                'QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM',
+                pool1Address,
+                'P1',
+                [0, 0, 0, 1]
+              );
+              pId = (await gv.getProposalLength()).toNumber();
+              await gv.createProposalwithSolution(
+                'New category',
+                'proposal',
+                'proposal',
+                3,
+                'For testing Special Resolution cases',
+                actionHash
+              );
+              await gv.submitVote(pId, 1, { from: ab1 });
+              await gv.submitVote(pId, 1, { from: ab3 });
+              await gv.submitVote(pId, 1, { from: ab4 });
+              await gv.submitVote(pId, 1, { from: ab5 });
+              await gv.closeProposal(pId);
+              assert.equal((await pc.totalCategories()).toNumber(), 21);
+            });
+            it('Should create proposal', async function() {
+              await increaseTime(604800);
+              balance = await web3.eth.getBalance(notMember);
+              pId = (await gv.getProposalLength()).toNumber();
+              await gv.createProposal(
+                'Proposal13',
+                'Proposal13',
+                'Proposal13',
+                0
+              );
+            });
+            it('Should whitelist proposal and set Incentives', async function() {
+              await gv.categorizeProposal(pId, 20, 160 * 1e18);
+            });
+            it('Should open for voting', async function() {
+              let actionHash = encode(
+                'transferEther(uint,address)',
+                '10000000000000000',
+                notMember
+              );
+              await gv.submitProposalWithSolution(
+                pId,
+                'Withdraw funds to Pay for Support Services',
+                actionHash
+              );
+            });
+            it('should follow voting process', async function() {
+              await gv.submitVote(pId, 1, { from: ab1 });
+              await gv.submitVote(pId, 1, { from: ab3 });
+              await gv.submitVote(pId, 1, { from: ab4 });
+              await gv.submitVote(pId, 1, { from: ab5 });
+              await gv.submitVote(pId, 1, { from: mem4 });
+              await gv.submitVote(pId, 1, { from: mem5 });
+              await gv.submitVote(pId, 1, { from: mem7 });
+              await gv.submitVote(pId, 1, { from: mem10 });
+              await gv.submitVote(pId, 1, { from: mem11 });
+              await gv.submitVote(pId, 1, { from: mem12 });
+            });
+            it('Should close vote', async function() {
+              await increaseTime(604800);
+              await gv.closeProposal(pId);
+            });
+            it('Should execute defined automatic action', async function() {
+              let bal = await web3.eth.getBalance(notMember);
+              assert.isAbove(
+                bal.toNumber(),
+                balance.toNumber(),
+                'Action not executed'
+              );
+            });
+          });
+        });
+        describe('Majority not reached', function() {
+          it('Should create proposal', async function() {
+            await increaseTime(604800);
+            pId = (await gv.getProposalLength()).toNumber();
+            await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
+          });
+          it('Should whitelist proposal and set Incentives', async function() {
+            await gv.categorizeProposal(pId, 19, 150 * 1e18);
+          });
+          it('Should open for voting', async function() {
+            await gv.submitProposalWithSolution(
+              pId,
+              'changes to pricing model',
+              '0x'
+            );
+          });
+          it('should follow voting process', async function() {
+            await gv.submitVote(pId, 1, { from: ab1 });
+            await gv.submitVote(pId, 1, { from: ab3 });
+            await gv.submitVote(pId, 1, { from: ab4 });
+            await gv.submitVote(pId, 1, { from: ab5 });
+            await gv.submitVote(pId, 1, { from: mem4 });
+            await gv.submitVote(pId, 0, { from: mem5 });
+            await gv.submitVote(pId, 1, { from: mem7 });
+            await gv.submitVote(pId, 1, { from: mem10 });
+            await gv.submitVote(pId, 1, { from: mem11 });
+          });
+          it('Should close vote', async function() {
+            await increaseTime(604800);
+            await gv.closeProposal(pId);
+          });
+          it('Proposal should be denied', async function() {
+            let proposal = await gv.proposal(pId);
+            assert.equal(proposal[2].toNumber(), 6);
+          });
+          it('Should not get rewards', async function() {
+            for (let i = 0; i < 14; i++) {
+              if (web3.eth.accounts[i] != mem9) {
+                assert.isAbove(
+                  (await gv.getPendingReward(web3.eth.accounts[i])).toNumber(),
+                  0,
+                  'Incorrect reward'
+                );
+              }
+            }
           });
         });
       });

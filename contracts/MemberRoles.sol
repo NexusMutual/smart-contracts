@@ -144,7 +144,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
      * @dev Called by user to pay joining membership fee
      */ 
     function payJoiningFee(address _userAddress) public payable {
-
+        require(_userAddress != address(0));
         require(!ms.isPause(), "Emergency Pause Applied");
         if (msg.sender == address(ms.getLatestAddress("QT"))) {
             require(td.walletAddress() != address(0), "No walletAddress present");
@@ -162,6 +162,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     function kycVerdict(address _userAddress, bool verdict) public {
         require(!ms.isPause());
+        require(_userAddress != address(0));
         require(!ms.isMember(_userAddress));
         require(qd.refundEligible(_userAddress));
         if (verdict) {

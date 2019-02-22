@@ -301,6 +301,19 @@ contract('NXMToken', function([
             });
           });
         });
+        describe('when the recipient is ZERO_ADDRESS', function() {
+          const amount = ether(1.6);
+          let ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+          beforeEach(async function() {
+            await tk.approve(spender, amount, { from: sender });
+            await tk.transfer(sender, ether(50));
+          });
+          it('reverts', async function() {
+            await assertRevert(
+              tk.transferFrom(sender, ZERO_ADDRESS, amount, { from: spender })
+            );
+          });
+        });
       });
     });
   });

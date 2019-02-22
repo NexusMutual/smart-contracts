@@ -53,6 +53,7 @@ contract('NXMaster: Emergency Pause', function([
   member2,
   member3,
   member4,
+  member5,
   coverHolder1,
   coverHolder2,
   newMember
@@ -220,6 +221,11 @@ contract('NXMaster: Emergency Pause', function([
       epd[1].should.be.bignumber.equal(startTime);
       epd[2].should.equal(AdvisoryBoard);
     });
+    it('should not be able to pay joining fee', async function() {
+      await assertRevert(
+        mr.payJoiningFee(member5, { from: member5, value: fee })
+      );
+    });
     it('should not be able to trigger kyc', async function() {
       await assertRevert(qt.kycTrigger(true, 1));
     });
@@ -274,6 +280,11 @@ contract('NXMaster: Emergency Pause', function([
 
     it('should not be able to withdraw membership', async function() {
       await assertRevert(mr.withdrawMembership({ from: member4 }));
+    });
+    it('should extend CN EPOfff', async function() {
+      const coverID = await qd.getAllCoversOfUser(coverHolder1);
+      pendingTime = parseFloat((await cd.getPendingClaimDetailsByIndex(0))[1]);
+      await tf.extendCNEPOff(coverHolder1, coverID[0], pendingTime);
     });
   });
 
@@ -334,6 +345,13 @@ contract('NXMaster: Emergency Pause', function([
         const claimId = (await cd.actualClaimLength()) - 1;
         claimId.should.be.bignumber.equal(2);
         (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
+      });
+      it('should extend CN EPOfff', async function() {
+        const coverID = await qd.getAllCoversOfUser(coverHolder1);
+        pendingTime = parseFloat(
+          (await cd.getPendingClaimDetailsByIndex(0))[1]
+        );
+        await tf.extendCNEPOff(coverHolder1, coverID[0], pendingTime);
       });
     });
   });

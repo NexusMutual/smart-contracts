@@ -198,6 +198,27 @@ contract('Quotation', function([
               const initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
               initialTotalSA.should.be.bignumber.equal(0);
             });
+            it('should not be able to purchase cover if premiumNXM is 0', async function() {
+              initialTotalSupply = (await tk.totalSupply()).div(P_18);
+              let premiumNXM = coverDetails[2]; // to restore value at end of this it('')
+
+              // coverDetails[2](premiumNXM) is 0 (refer TokenFunctions.sol)
+              coverDetails[2] = 0;
+              await assertRevert(
+                P1.makeCoverBegin(
+                  smartConAdd,
+                  'ETH',
+                  coverDetails,
+                  coverPeriod,
+                  vrs[0],
+                  vrs[1],
+                  vrs[2],
+                  { from: coverHolder, value: coverDetails[1] }
+                )
+              );
+
+              coverDetails[2] = premiumNXM; // restore the value
+            });
             it('should be able to purchase cover', async function() {
               const initialPoolBalance = await web3.eth.getBalance(P1.address);
               const initialTokensOfCoverHolder = await tk.balanceOf(

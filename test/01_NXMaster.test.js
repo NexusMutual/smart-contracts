@@ -160,6 +160,10 @@ contract('NXMaster', function([
       await tc.changeOperator(tc.address);
     });
 
+    // it('should not be able to change to an invalid address', async function() {
+    // await assertRevert(tc.changeOperator('pokemon'));
+    // });
+
     it('owner should be able to change owner address', async function() {
       await nxms.changeOwner(newOwner, { from: owner });
       newOwner.should.equal(await nxms.owner());

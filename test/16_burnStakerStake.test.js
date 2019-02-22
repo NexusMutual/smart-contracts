@@ -89,6 +89,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
             time = time + (await duration.days(10));
             await increaseTimeTo(time + 10);
             await tf.addStake(stakedContract, stakeTokens, { from: UW3 });
+            await tf.burnStakerLockedToken(stakedContract, 0);
             let tx = await tf.burnStakerLockedToken(
               stakedContract,
               4000 * 1e18

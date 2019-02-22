@@ -33,7 +33,9 @@ contract MCR is Iupgradable {
     QuotationData internal qd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
-    uint private constant DECIMAL1E08 = uint(10) ** 8;
+    uint private constant DECIMAL1E16 = uint(10) ** 16;
+    uint private constant DECIMAL1E05 = uint(10) ** 5;
+    uint private constant DECIMAL1E19 = uint(10) ** 19;
 
     event MCREvent(
         uint indexed date,
@@ -198,11 +200,10 @@ contract MCR is Iupgradable {
     /**
      * @dev Calculates the Token Price of NXM in a given currency.
      * @param curr Currency name.
-     * @param totalSupply Tokens in circulation
+     
      */
     function calculateStepTokenPrice(
         bytes4 curr,
-        uint totalSupply,
         uint mcrtp
     ) 
         public
@@ -210,7 +211,7 @@ contract MCR is Iupgradable {
         onlyInternal
         returns(uint tokenPrice)
     {
-        return _calculateTokenPrice(curr, totalSupply, mcrtp);
+        return _calculateTokenPrice(curr, mcrtp);
     }
 
     /**
@@ -221,7 +222,7 @@ contract MCR is Iupgradable {
     function calculateTokenPrice (bytes4 curr) public view returns(uint tokenPrice) {
         uint mcrtp;
         (, mcrtp) = _calVtpAndMCRtp(address(p1).balance); 
-        return _calculateTokenPrice(curr, tk.totalSupply(), mcrtp);
+        return _calculateTokenPrice(curr, mcrtp);
     }
     
     function calVtpAndMCRtp() public view returns(uint vtp, uint mcrtp) {
@@ -255,13 +256,11 @@ contract MCR is Iupgradable {
     /**
      * @dev Calculates the Token Price of NXM in a given currency 
      * with provided token supply for dynamic token price calculation
-     * @param _curr Currency name.
-     * @param _totalSupply token supply
+     * @param _curr Currency name.  
      * @return tokenPrice Token price.
      */ 
     function _calculateTokenPrice(
         bytes4 _curr,
-        uint _totalSupply,
         uint mcrtp
     )
         internal
@@ -271,17 +270,15 @@ contract MCR is Iupgradable {
         uint getSFx100000;
         uint getGrowthStep;
         uint getCAAvgRate;
-        uint max = (mcrtp.mul(mcrtp)); 
+        uint max = (mcrtp.mul(mcrtp).mul(mcrtp).mul(mcrtp)); 
         (getSFx100000, getGrowthStep, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
-        if (max <= DECIMAL1E08) {
-            max = DECIMAL1E08; 
-        }
+        uint mcrEth = pd.getLastMCREther();
         getGrowthStep = getGrowthStep.mul(DECIMAL1E18);
-        tokenPrice = getSFx100000.mul(getGrowthStep.add(_totalSupply));
-        tokenPrice = (tokenPrice.mul(max)).mul(DECIMAL1E18);
-        tokenPrice = (tokenPrice.mul(getCAAvgRate * 10)).div(getGrowthStep); 
-        tokenPrice = (tokenPrice).div(DECIMAL1E08 ** 2);
-    }   
+        tokenPrice = (mcrEth.mul(DECIMAL1E18).div(getGrowthStep).mul(max)).div(DECIMAL1E16);
+        tokenPrice = tokenPrice.add(getSFx100000.mul(DECIMAL1E18).div(DECIMAL1E05));
+        tokenPrice = tokenPrice.mul(getCAAvgRate * 10); 
+        tokenPrice = (tokenPrice).div(10**3);
+    } 
 
     /**
      * @dev Adds MCR Data. Checks if MCR is within valid 

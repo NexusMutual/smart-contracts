@@ -121,8 +121,6 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "PC", 50, 25, 1, 0);
         addInitialCategories("Resume Proposal", "QmQPWVjmv2Gt2Dzt1rxmFkHCptFSdtX4VC5g7VVNUByLv1", "GV", 50, 25, 1, 0);
         addInitialCategories("Pause Proposal", "QmWWoiRZCmi61LQKpGyGuKjasFVpq8JzbLPvDhU8TBS9tk", "GV", 50, 25, 1, 0);
-        // addInitialCategories("Change dApp Token Proxy", "QmPR9K6BevCXRVBxWGjF9RV7Pmtxr7D4gE3qsZu5bzi8GK",
-        // "MS", 50, 25, 1, 0);
         addInitialCategories(
             "Upgrade a contract Implementation",
             "Qme4hGas6RuDYk9LKE2XkK9E46LNeCBUzY12DdT5uQstvh",
@@ -132,15 +130,6 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             1,
             0
         );
-        // addInitialCategories(
-        //     "Upgrade a contract proxy",
-        //     "QmUNGEn7E2csB3YxohDxBKNqvzwa1WfvrSH4TCCFD9DZsg",
-        //     "MS",
-        //     50, 
-        //     25, 
-        //     1,
-        //     0
-        // );
         
         //  --------------------------------------------------------------------------------------------- //
         addInitialCategories("Implement Emergency Pause", "QmZSaEsvTCpy357ZSrPYKqby1iaksBwPdKCGWzW1HpgSpe",
@@ -165,7 +154,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         addInitialCategories("Change AB Member", "QmUBjPDdSiG3pRMqkVzZA2WaqiksT7ixNd3gPQwngGmF9x", 
             "MR", 50, 15, 2, 0); 
         addInitialCategories("Any other Item", "", "EX", 50, 15, 2, 80);
-        addInitialCategories("Special Resolution", "", "EX", 75, 75, 2, 0);
+        addInitialCategories("Special Resolution", "", "EX", 75, 0, 2, 0);
         constructorCheck = true;
     }
 
@@ -280,7 +269,12 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         stakeIncentive[0] = 0;
         stakeIncentive[1] = 0;
         stakeIncentive[2] = _categoryABReq;
-        stakeIncentive[3] = 0;
+        if(_quorumPerc == 0){//For special resolutions
+            stakeIncentive[3] = 1;
+        }
+        else{
+            stakeIncentive[3] = 0;
+        }
         _addCategory(
                 _name,
                 _memberRoleToVote,

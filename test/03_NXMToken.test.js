@@ -319,7 +319,7 @@ contract('NXMToken', function([
   });
 
   describe('Sell Tokens', function() {
-    const sellTokens = ether(2);
+    const sellTokens = ether(0.02);
     it('should able to sell tokens', async function() {
       await tk.approve(tc.address, sellTokens, { from: member1 });
       const initialTokenBalance = await tk.balanceOf(member1);
@@ -375,6 +375,14 @@ contract('NXMToken', function([
     describe('Buy Tokens at zero price', function() {
       before(async function() {
         await pd.changeSF(0, { from: owner });
+        await mcr.addMCRData(
+          180,
+          0,
+          2,
+          ['0x455448', '0x444149'],
+          [100, 15517],
+          20190219
+        );
       });
       it('reverts', async function() {
         const initialTokenBalance = await tk.balanceOf(member1);

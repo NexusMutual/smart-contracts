@@ -64,6 +64,7 @@ contract('Claim: Assessment 2', function([
   underWriter3,
   underWriter4,
   underWriter5,
+  underWriter6,
   claimAssessor1,
   claimAssessor2,
   claimAssessor3,
@@ -96,6 +97,7 @@ contract('Claim: Assessment 2', function([
   let coverID;
   let claimID;
   let maxVotingTime;
+  let newStakerPercentage = 5;
   before(async function() {
     await advanceBlock();
     tk = await NXMToken.deployed();
@@ -123,7 +125,7 @@ contract('Claim: Assessment 2', function([
     await dai.transfer(p1.address, 1250 * 1e18);
     await mcr.addMCRData(
       10000,
-      100 * 1e18,
+      0,
       100 * 1e18,
       [ethereum_string, dai_string],
       [100, 2500],
@@ -131,7 +133,7 @@ contract('Claim: Assessment 2', function([
     );
     await p2.upgradeInvestmentPool(owner);
     await pd.changeGrowthStep(400000);
-    await pd.changeSF(4);
+    await pd.changeSF(10);
     await td.changeBookTime(60);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
     if ((await tk.totalSupply()) < 600000 * 1e18)
@@ -275,8 +277,6 @@ contract('Claim: Assessment 2', function([
     await tk.transfer(coverHolder2, 1000 * 1e18, { from: owner });
     await tk.transfer(coverHolder3, 1000 * 1e18, { from: owner });
     await tk.transfer(coverHolder4, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder5, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder5, 1000 * 1e18, { from: owner });
     await tk.transfer(coverHolder5, 1000 * 1e18, { from: owner });
     await tk.transfer(coverHolder6, 1000 * 1e18, { from: owner });
     await tk.transfer(coverHolder7, 1000 * 1e18, { from: owner });
@@ -602,6 +602,7 @@ contract('Claim: Assessment 2', function([
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
+      let now = await latestTime();
       claimID = (await cd.actualClaimLength()) - 1;
 
       claimAssessor1Object.initialDate = parseFloat(
@@ -629,7 +630,7 @@ contract('Claim: Assessment 2', function([
       );
 
       minVotingTime = await cd.minVotingTime();
-      let now = await latestTime();
+
       closingTime = minVotingTime.plus(now);
       await increaseTimeTo(closingTime.minus(2));
 
@@ -802,6 +803,10 @@ contract('Claim: Assessment 2', function([
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
+
+      // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
+      await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
+
       claimID = (await cd.actualClaimLength()) - 1;
 
       claimAssessor1Object.initialDate = parseFloat(
@@ -955,7 +960,25 @@ contract('Claim: Assessment 2', function([
       assert.equal(coverTokensBurned, 0);
 
       let UWTokensLockedExpected = [2000, 3000, 4000, 5000, 6000];
-      let UWTokensBurnedExpected = [2000, 3000, 4000, 999.8, 0];
+      let UWTokensBurnedExpected = [2000, 3000, 4000, 1000, 0];
+
+      // to verify, the staker staked burned by index
+      assert.equal(
+        parseFloat(await td.getStakerStakedBurnedByIndex(underWriter1, 0)) /
+          1e18,
+        2000
+      );
+
+      // befor the last burn happened, all UW 2000 were staked and none was unlocked befor the voting closed.
+      assert.equal(
+        parseFloat(
+          await td.getStakerStakedUnlockableBeforeLastBurnByIndex(
+            underWriter1,
+            0
+          )
+        ) / 1e18,
+        0
+      );
 
       for (let i = 0; i < UWarray.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
@@ -1195,7 +1218,7 @@ contract('Claim: Assessment 2', function([
       assert.equal(coverTokensUnlockable, 0);
       assert.equal(coverTokensBurned, 5.0);
 
-      let UWTokensLockedExpected = [0, 0, 0, 4000.2, 6000];
+      let UWTokensLockedExpected = [0, 0, 0, 4000, 6000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
       for (let i = 0; i < UWarray.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
@@ -1434,8 +1457,8 @@ contract('Claim: Assessment 2', function([
       assert.equal(coverTokensUnlockable, 5);
       assert.equal(coverTokensBurned, 0);
 
-      let UWTokensLockedExpected = [0, 0, 0, 4000.2, 6000];
-      let UWTokensBurnedExpected = [0, 0, 0, 4000.2, 5999.6];
+      let UWTokensLockedExpected = [0, 0, 0, 4000, 6000];
+      let UWTokensBurnedExpected = [0, 0, 0, 4000, 6000];
       for (let i = 0; i < UWarray.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
@@ -3125,7 +3148,7 @@ contract('Claim: Assessment 2', function([
       assert.equal(coverTokensBurned, 0);
 
       let UWTokensLockedExpected = [5000, 6000, 7000, 8000, 9000];
-      let UWTokensBurnedExpected = [5000, 6000, 7000, 8000, 3998.2];
+      let UWTokensBurnedExpected = [5000, 6000, 7000, 8000, 4000];
       for (let i = 0; i < UWarray.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
@@ -3364,7 +3387,7 @@ contract('Claim: Assessment 2', function([
       assert.equal(coverTokensUnlockable, 0);
       assert.equal(coverTokensBurned, 15);
 
-      let UWTokensLockedExpected = [0, 0, 0, 0, 5001.8];
+      let UWTokensLockedExpected = [0, 0, 0, 0, 5000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -3606,8 +3629,8 @@ contract('Claim: Assessment 2', function([
       assert.equal(coverTokensUnlockable, 15);
       assert.equal(coverTokensBurned, 0);
 
-      let UWTokensLockedExpected = [0, 0, 0, 0, 5001.8];
-      let UWTokensBurnedExpected = [0, 0, 0, 0, 5001.8];
+      let UWTokensLockedExpected = [0, 0, 0, 0, 5000];
+      let UWTokensBurnedExpected = [0, 0, 0, 0, 5000];
 
       for (let i = 0; i < UWarray.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
@@ -4845,6 +4868,25 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
+    });
+  });
+  describe('Setting staker commission and max commision percentages when not authorized to govern', function() {
+    it('not allowed for set staker commission percentage', async function() {
+      await assertRevert(td.setStakerCommissionPer(newStakerPercentage));
+    });
+    it('not allowed for set staker maximum commission percentage', async function() {
+      await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
+    });
+  });
+  describe('Burning 0 tokens of a staker', function() {
+    it('successful', async function() {
+      await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
+      await mr.kycVerdict(underWriter6, true);
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
+      await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
+      tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
+
+      await tf.burnStakerLockedToken(SC1, 0, { from: owner });
     });
   });
 });

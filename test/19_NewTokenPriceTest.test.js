@@ -1,5 +1,6 @@
 const MCR = artifacts.require('MCR');
 const Pool1 = artifacts.require('Pool1Mock');
+const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
@@ -21,6 +22,8 @@ let balance_DAI;
 let balance_ETH;
 let nxms;
 let mr;
+let cad;
+let p2;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -32,6 +35,7 @@ contract('MCR', function([owner, notOwner]) {
     await advanceBlock();
     mcr = await MCR.deployed();
     tk = await NXMToken.deployed();
+    p2 = await Pool2.deployed();
     p1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     cad = await DAI.deployed();
@@ -48,46 +52,39 @@ contract('MCR', function([owner, notOwner]) {
         from: notOwner,
         value: 2000000000000000
       });
+      await p2.upgradeInvestmentPool(owner);
+      await p1.upgradeCapitalPool(owner);
+      await p1.sendTransaction({ from: owner, value: 90000000000000000000 });
       await mr.kycVerdict(notOwner, true);
       await mcr.addMCRData(
-        50,
-        1000 * 1e18,
-        await web3.eth.getBalance(p1.address),
+        9000,
+        100 * 1e18,
+        90000000000000000000,
         ['0x455448', '0x444149'],
         [100, 15517],
         20190219
       );
 
-      await pd.changeGrowthStep(1500000);
-      await pd.changeSF(140);
+      await pd.changeGrowthStep(5203349);
+      await pd.changeSF(1948);
     });
-    it('single tranche 900', async function() {
+    it('single tranche 0.1ETH', async function() {
+      let dataaa = await pd.getTokenPriceDetails('ETH');
       let x = await tk.balanceOf(notOwner);
-      await p1.buyToken({ from: notOwner, value: 1260000029573064060 });
+      await p1.buyToken({ from: notOwner, value: 100000000000000000 });
       let y = await tk.balanceOf(notOwner);
-      console.log('single tranche 900 ==> ', parseFloat(y - x));
-      (y - x).should.be.bignumber.equal(900 * 1e18);
+      console.log('single tranche 0.1ETH ==> ', parseFloat(y - x) / 1e18);
+      ((y - x) / 1e18).toFixed(2).should.be.bignumber.equal(5.13);
     });
-    it('double tranches 1100 = 1000+100', async function() {
-      let x = await tk.balanceOf(notOwner);
-      await p1.buyToken({
-        from: notOwner,
-        value: 1540000043071691906.6666666666667
-      });
-      let y = await tk.balanceOf(notOwner);
-      console.log('double tranches 1100 = 1000+100 ==> ', parseFloat(y - x));
-    });
-    it('multiple tranches 5500 = 1000+1000+1000+1000+1000+500', async function() {
+    it('multiple tranches 100ETH', async function() {
       let x = await tk.balanceOf(notOwner);
       await p1.buyToken({
         from: notOwner,
-        value: 7700000384546460466.6666666666668
+        value: 100000000000000000000
       });
       let y = await tk.balanceOf(notOwner);
-      console.log(
-        'multiple tranches 5500 = 1000+1000+1000+1000+1000+500 ==> ',
-        parseFloat(y - x)
-      );
+      console.log('multiple tranches 100ETH ==> ', parseFloat(y - x) / 1e18);
+      ((y - x) / 1e18).toFixed(2).should.be.bignumber.equal(5114.54);
     });
   });
 });

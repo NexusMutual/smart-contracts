@@ -81,7 +81,7 @@ contract Quotation is Iupgradable {
      * Unlocks the CN tokens of the cover. Updates the Total Sum Assured value.
      * @param _cid Cover Id.
      */ 
-    function expireCover(uint _cid) public onlyInternal {
+    function expireCover(uint _cid) public {
         require(checkCoverExpired(_cid) && qd.getCoverStatusNo(_cid) != 3);
         
         tf.unlockCN(_cid);

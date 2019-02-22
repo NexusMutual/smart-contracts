@@ -275,9 +275,9 @@ contract MCR is Iupgradable {
         uint mcrEth = pd.getLastMCREther();
         getGrowthStep = getGrowthStep.mul(DECIMAL1E18);
         tokenPrice = (mcrEth.mul(DECIMAL1E18).div(getGrowthStep).mul(max)).div(DECIMAL1E16);
-        tokenPrice = (tokenPrice.add(getSFx100000.mul(DECIMAL1E18).div(DECIMAL1E05))).mul(DECIMAL1E16);
+        tokenPrice = tokenPrice.add(getSFx100000.mul(DECIMAL1E18).div(DECIMAL1E05));
         tokenPrice = tokenPrice.mul(getCAAvgRate * 10); 
-        tokenPrice = (tokenPrice).div(DECIMAL1E19);
+        tokenPrice = (tokenPrice).div(10**3);
     } 
 
     /**

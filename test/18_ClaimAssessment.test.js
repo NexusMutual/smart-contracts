@@ -601,7 +601,15 @@ contract('Claim: Assessment 2', function([
       await tc.lock(CLA, 20000 * 1e18, validity, { from: claimAssessor3 });
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
+
+      // try submitting an invalid cover ID
+      await assertRevert(tf.depositCN(46, { from: owner }));
+
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
+
+      // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
+      await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
+
       let now = await latestTime();
       claimID = (await cd.actualClaimLength()) - 1;
 
@@ -614,6 +622,9 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor3, CLA)
       );
+
+      // tries to burn CA votes, but reverts as not auth to governed
+      await assertRevert(tf.burnCAToken(claimID, 10, claimAssessor1));
 
       await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
@@ -803,9 +814,6 @@ contract('Claim: Assessment 2', function([
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
-
-      // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
-      await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
 
       claimID = (await cd.actualClaimLength()) - 1;
 
@@ -4869,6 +4877,15 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
     });
+    it('Unlocks token locked by coverholder and then does it again, but next time, no unlock', async function() {
+      const coverID1 = (await qd.getAllCoversOfUser(coverHolder1))[0];
+
+      // after this there are some locked CN, hence balance of CH1 increases
+      await tf.unlockCN(coverID1, { from: owner });
+
+      // locked CN already unlocked hence, balance remains same after next statement
+      await tf.unlockCN(coverID1, { from: owner });
+    });
   });
   describe('Setting staker commission and max commision percentages when not authorized to govern', function() {
     it('not allowed for set staker commission percentage', async function() {
@@ -4887,6 +4904,11 @@ contract('Claim: Assessment 2', function([
       tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
 
       await tf.burnStakerLockedToken(SC1, 0, { from: owner });
+    });
+  });
+  describe('Add all mebers in wehitelist', function() {
+    it('successful', async function() {
+      await tf.addAllMembersInWhiteList({ from: owner });
     });
   });
 });

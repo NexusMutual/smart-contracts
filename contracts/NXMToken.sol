@@ -222,8 +222,6 @@ contract NXMToken is IERC20 {
 
         require(isLockedForMV[msg.sender] < now);
         require(value <= _balances[msg.sender]);
-        /* istanbul ignore next  */
-        require(to != address(0));
         _transfer(to, value); // check if not voted under governance
         return true;
     }
@@ -256,8 +254,6 @@ contract NXMToken is IERC20 {
     {
         require(value <= _balances[from]);
         require(value <= _allowed[from][msg.sender]);
-        /* istanbul ignore next  */
-        require(to != address(0));
         _transferFrom(from, to, value);
         return true;
     }
@@ -322,8 +318,6 @@ contract NXMToken is IERC20 {
     * @param amount The amount that will be burnt.
     */
     function _burn(address account, uint256 amount) internal {
-        /* istanbul ignore next  */
-        require(account != address(0));
         require(amount <= _balances[account]);
 
         _totalSupply = _totalSupply.sub(amount);

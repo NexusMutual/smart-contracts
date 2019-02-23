@@ -36,7 +36,7 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     function changeOperator(address _newOperator) public onlyInternal {
-        require(token.changeOperator(_newOperator));
+        token.changeOperator(_newOperator);
     }
     
     /**
@@ -416,7 +416,7 @@ contract TokenController is IERC1132, Iupgradable {
     */
     function _increaseLockAmount(address _of, bytes32 _reason, uint256 _amount) internal {
         require(_tokensLocked(_of, _reason) > 0);
-        require(token.operatorTransfer(msg.sender, _amount));
+        token.operatorTransfer(msg.sender, _amount);
 
         locked[_of][_reason].amount = locked[_of][_reason].amount.add(_amount);
         emit Locked(_of, _reason, _amount, locked[_of][_reason].validity);
@@ -447,7 +447,7 @@ contract TokenController is IERC1132, Iupgradable {
             locked[_of][_reason].claimed = true;
         
         locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
-        require(token.burn(_amount));
+        token.burn(_amount);
         emit Burned(_of, _reason, _amount);
     }
 
@@ -467,7 +467,7 @@ contract TokenController is IERC1132, Iupgradable {
             locked[_of][_reason].claimed = true;
 
         locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
-        require(token.transfer(_of, _amount));
+        token.transfer(_of, _amount);
         emit Unlocked(_of, _reason, _amount);
     }
 }

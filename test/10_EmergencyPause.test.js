@@ -41,6 +41,7 @@ let qt;
 let mcr;
 let gv;
 let mr;
+let newStakerPercentage = 5;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -285,6 +286,14 @@ contract('NXMaster: Emergency Pause', function([
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
       pendingTime = parseFloat((await cd.getPendingClaimDetailsByIndex(0))[1]);
       await tf.extendCNEPOff(coverHolder1, coverID[0], pendingTime);
+    });
+    describe('Setting staker commission and max commision percentages when not authorized to govern', function() {
+      it('not allowed for set staker commission percentage', async function() {
+        await assertRevert(td.setStakerCommissionPer(newStakerPercentage));
+      });
+      it('not allowed for set staker maximum commission percentage', async function() {
+        await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
+      });
     });
   });
 

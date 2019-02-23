@@ -358,7 +358,7 @@ contract(
         await cr.claimAllPendingReward([pId], { from: mem5 });
       });
       it('Follower can assign new proxy if revoked proxy more than 7 days earlier', async function() {
-        await increaseTime(604800);
+        await increaseTime(604810);
         await gv.delegateVote(ab1, { from: mem5 });
       });
     });

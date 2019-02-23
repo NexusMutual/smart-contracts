@@ -47,11 +47,6 @@ contract TokenFunctions is Iupgradable {
         _;
     }
     
-    modifier checkPause {
-        require(ms.isPause() == false);
-        _;
-    }
-
     modifier isMemberAndcheckPause {
         require(ms.isPause() == false && ms.isMember(msg.sender) == true);
         _;

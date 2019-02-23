@@ -360,7 +360,16 @@ contract('NXMaster: Emergency Pause', function([
         pendingTime = parseFloat(
           (await cd.getPendingClaimDetailsByIndex(0))[1]
         );
-        await tf.extendCNEPOff(coverHolder1, coverID[0], pendingTime);
+        // console.log('pending time is: ', pendingTime);
+        // console.log('coverValidUntil time is: ', parseFloat(await qd.getValidityOfCover(coverID[0])));
+        // console.log('latest tine', parseFloat(await latestTime()));
+        await tf.extendCNEPOff(
+          coverHolder1,
+          coverID[0],
+          pendingTime + 5270396,
+          { from: owner }
+        );
+        // the time passed is so that pendingTime + X + latestTime is greater than coverValidUntilTime
       });
     });
   });

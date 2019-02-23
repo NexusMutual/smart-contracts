@@ -188,6 +188,7 @@ contract Quotation is Iupgradable {
         view
         returns(bool)
     {
+        require(smaratCA != address(0));
         bytes32 hash = getOrderHash(coverDetails, coverPeriod, curr, smaratCA);
         return isValidSignature(hash, _v, _r, _s);
     }
@@ -409,11 +410,10 @@ contract Quotation is Iupgradable {
         tc.mint(from, coverNoteAmount);
         tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
-        if (scAddress != address(0)) {
-            qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
-            if (tf.getTotalStakedTokensOnSmartContract(scAddress) > 0)
-                tf.updateStakerCommissions(scAddress, coverDetails[2]);
-        }
+        qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
+        if (tf.getTotalStakedTokensOnSmartContract(scAddress) > 0)
+            tf.updateStakerCommissions(scAddress, coverDetails[2]);
+        
     }
 
     /**

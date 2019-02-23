@@ -28,14 +28,15 @@ const PHASH = 'Smart Contract Cover';
 const NPNAME = '0x5443000000000000';
 const NPHASH = 'Test Cover';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
+const nullAddress = '0x0000000000000000000000000000000000000000';
 const coverPeriod = 61;
-const coverPeriodLess = 40;
+const coverPeriodLess = 50;
 const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
 const coverDetailsLess = [
-  3,
-  68336755646817250,
-  6047500499718341000,
-  4131417584
+  5,
+  19671964915000000,
+  20000000000000000000,
+  3549627424
 ];
 const coverDetailsDai = [5, 16812229066849188, 5694231991898, 7972408607];
 const vrs = [
@@ -44,9 +45,9 @@ const vrs = [
   '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff'
 ];
 const vrsLess = [
-  28,
-  '0x1d97b6441922c69562ba0d7099a73ecab3a59f10776f9f2f6e06d8bd59361373',
-  '0x681c986a0c96fb4aa644e8ed535e05427f5a9358783151b97ef43eda829a5468'
+  27,
+  '0x22d150b6e2d3f9ae98c67425d1224c87aed5f853487252875118352771b3ece2',
+  '0x0fb3f18fc2b8a74083b3cf8ca24bcf877a397836bd4fa1aba4c3ae96ca92873b'
 ];
 const vrs_dai = [
   27,
@@ -117,6 +118,13 @@ contract('Quotation', function([
       it('should return correct AuthQuoteEngine address', async function() {
         const authQE = await qd.getAuthQuoteEngine();
         authQE.should.equal(QE);
+      });
+      it('should return correct Product Details', async function() {
+        const productDetails = await qd.getProductDetails();
+        parseFloat(productDetails[0]).should.equal(30);
+        parseFloat(productDetails[1]).should.equal(13);
+        parseFloat(productDetails[2]).should.equal(1000);
+        parseFloat(productDetails[3]).should.equal(90);
       });
     });
 
@@ -254,6 +262,20 @@ contract('Quotation', function([
               );
               newTotalSupply.should.be.bignumber.equal(
                 (await tk.totalSupply()).div(P_18).toFixed(0)
+              );
+            });
+            it('should be revert if smart contract address is null', async function() {
+              await assertRevert(
+                P1.makeCoverBegin(
+                  nullAddress,
+                  'ETH',
+                  coverDetails,
+                  coverPeriod,
+                  vrs[0],
+                  vrs[1],
+                  vrs[2],
+                  { from: coverHolder, value: coverDetails[1] }
+                )
               );
             });
             it('should return correct cover details', async function() {
@@ -610,12 +632,44 @@ contract('Quotation', function([
                 staker2
               )).should.be.bignumber.equal(initialStakeCommissionOfS2);
             });
+            it('should able to purchase cover with cover period less than 60 ', async function() {
+              let coverLen = await qd.getCoverLength();
+              let totalSASC = await qd.getTotalSumAssuredSC(smartConAdd, 'DAI');
+              await cad.approve(P1.address, coverDetailsLess[1], {
+                from: coverHolder
+              });
+              await P1.makeCoverUsingCA(
+                smartConAdd,
+                'DAI',
+                coverDetailsLess,
+                coverPeriodLess,
+                vrsLess[0],
+                vrsLess[1],
+                vrsLess[2],
+                { from: coverHolder }
+              );
+              coverLen
+                .plus(1)
+                .should.be.bignumber.equal(await qd.getCoverLength());
+              coverPeriodLess.should.be.bignumber.equal(
+                await qd.getCoverPeriod((await qd.getCoverLength()) - 1)
+              );
+              totalSASC
+                .plus(coverDetailsLess[0])
+                .should.be.bignumber.equal(
+                  await qd.getTotalSumAssuredSC(smartConAdd, 'DAI')
+                );
+            });
           });
         });
       });
     });
 
     describe('If user is not a member', function() {
+      it('should return -1 if user have no holded Covers', async function() {
+        let holdedId = await qt.getRecentHoldedCoverIdStatus(member1);
+        holdedId.should.be.bignumber.equal(-1);
+      });
       it('should revert if member', async function() {
         const totalFee = fee.plus(coverDetails[1].toString());
         await assertRevert(
@@ -737,6 +791,8 @@ contract('Quotation', function([
             vrs[2],
             { from: newMember1, value: totalFee }
           );
+          let holdedId = await qt.getRecentHoldedCoverIdStatus(newMember1);
+          holdedId.should.be.bignumber.above(0);
           await qt.kycTrigger(true, newMember1);
         });
         it('should be able to join membership and purchase cover with DAI', async function() {
@@ -759,6 +815,29 @@ contract('Quotation', function([
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
           await qt.kycTrigger(true, newMember2);
+        });
+        it('should refund full amount if user aks (DAI)', async function() {
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+            from: newMember3
+          });
+          await cad.transfer(newMember3, tokenDai);
+          let initialDAI = await cad.balanceOf(member3);
+          await cad.approve(qt.address, coverDetailsLess[1], {
+            from: newMember3
+          });
+          const totalFee = fee;
+          await qt.initiateMembershipAndCover(
+            smartConAdd,
+            'DAI',
+            coverDetailsLess,
+            coverPeriodLess,
+            vrsLess[0],
+            vrsLess[1],
+            vrsLess[2],
+            { from: newMember3, value: totalFee }
+          );
+          await qt.fullRefund({ from: newMember3 });
+          initialDAI.should.be.bignumber.equal(await cad.balanceOf(member3));
         });
         it('should refund full amount to new member', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
@@ -880,6 +959,10 @@ contract('Quotation', function([
       initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
       await qt.expireCover(1);
       (await qt.checkCoverExpired(1)).should.be.equal(true);
+    });
+
+    it('Expired cover should not be expired again', async function() {
+      await assertRevert(qt.expireCover(1));
     });
 
     it('decrease sum assured', async function() {

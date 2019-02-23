@@ -450,4 +450,13 @@ contract('Claim: Assessment', function([
       await cd.setClaimTokensMV(coverID[3], -1, 1);
     });
   });
+  describe('Expire Cover', function() {
+    it('CSA should not change while ExpireCover if cover status is 1', async function() {
+      const now = await latestTime();
+      await increaseTimeTo(now + 62 * 24 * 3600);
+      let CSA = await qd.getTotalSumAssured('ETH');
+      await qt.expireCover(coverID[1]);
+      CSA.should.be.bignumber.equal(await qd.getTotalSumAssured('ETH'));
+    });
+  });
 });

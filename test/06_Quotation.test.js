@@ -118,11 +118,6 @@ contract('Quotation', function([
         const authQE = await qd.getAuthQuoteEngine();
         authQE.should.equal(QE);
       });
-
-      it('should return correct product name', async function() {
-        const pname = await qd.productName();
-        pname.should.equal(PNAME);
-      });
     });
 
     describe('If user is a member', function() {
@@ -934,10 +929,6 @@ contract('Quotation', function([
 
   describe('Misc', function() {
     describe('Change product params if owner', function() {
-      it('should be able to change Product Hash', async function() {
-        await qd.changeProductHash('New Test Cover');
-        (await qd.productHash()).should.equal('New Test Cover');
-      });
       it('only owner should be able to change Profit Margin', async function() {
         await qd.changePM(4);
         await assertRevert(qd.changePM(4, { from: notMember }));

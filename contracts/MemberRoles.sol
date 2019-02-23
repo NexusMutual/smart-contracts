@@ -47,7 +47,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     MemberRoleDetails[] internal memberRoleData;
     bool internal constructorCheck;
     uint public maxABCount;
-
+    bool public launched;
     modifier checkRoleAuthority(uint _memberRoleId) {
         if (memberRoleData[_memberRoleId].authorized != address(0))
             require(msg.sender == memberRoleData[_memberRoleId].authorized);
@@ -118,6 +118,20 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _updateRole(_memberAddress, _roleId, _active);
     }
 
+    function addMembersBeforeLaunch(address[] userArray, uint[] tokens) public onlyOwner {
+        require(!launched);
+
+        for(uint i=0;i<userArray.length;i++)
+        {
+            require(!ms.isMember(userArray[i]));
+            dAppToken.addToWhitelist(userArray[i]);
+            _updateRole(userArray[i], uint(Role.Member), true);
+            dAppToken.mint(userArray[i], tokens[i]);
+        }
+        launched = true;
+
+    }
+
     function swapABMember(
         address _newABAddress,
         address _removeAB
@@ -175,7 +189,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             uint fee = td.joiningFee();
             require(td.walletAddress().send(fee)); //solhint-disable-line
             dAppToken.addToWhitelist(_userAddress);
-            _updateRole(_userAddress, uint(MemberRoles.Role.Member), true);
+            _updateRole(_userAddress, uint(Role.Member), true);
         } else {
             qd.setRefundEligible(_userAddress, false);
             require(_userAddress.send(td.joiningFee())); //solhint-disable-line

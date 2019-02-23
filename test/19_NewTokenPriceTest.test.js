@@ -87,4 +87,40 @@ contract('MCR', function([owner, notOwner]) {
       ((y - x) / 1e18).toFixed(2).should.be.bignumber.equal(5114.54);
     });
   });
+
+  describe('Token Price Calculation2', function() {
+    let tp_eth;
+    let tp_dai;
+
+    before(async function() {
+      await p2.upgradeInvestmentPool(owner);
+      await p1.upgradeCapitalPool(owner);
+      await p1.sendTransaction({ from: owner, value: 10 * 1e18 });
+      await mcr.addMCRData(
+        1000,
+        100 * 1e18,
+        10 * 1e18,
+        ['0x455448', '0x444149'],
+        [100, 14800],
+        20190219
+      );
+
+      await pd.changeGrowthStep(5203349);
+      await pd.changeSF(1948);
+    });
+    it('single tranches 15 times Buy tokens', async function() {
+      let x;
+      let y;
+      for (let i = 0; i < 15; i++) {
+        console.log(
+          'token rate 1ETH =  ',
+          1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+        );
+        x = await tk.balanceOf(notOwner);
+        await p1.buyToken({ from: notOwner, value: 10 * 1e18 });
+        y = await tk.balanceOf(notOwner);
+        console.log('single tranche 10ETH ==> ', parseFloat(y - x) / 1e18);
+      }
+    });
+  });
 });

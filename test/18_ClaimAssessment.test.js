@@ -326,7 +326,21 @@ contract('Claim: Assessment 2', function([
     tf.addStake(SC5, 20 * 1e18, { from: underWriter2 });
     tf.addStake(SC5, 25 * 1e18, { from: underWriter1 });
   });
-
+  // describe('Should not be able to purchase cover if premiumNXM is 0', function() {
+  //   it('success in not purchasing', async function() {
+  //     // coverDetails[2](premiumNXM) is 0 (refer TokenFunctions.sol)
+  //     await assertRevert(p1.makeCoverBegin(
+  //       SC1,
+  //       ethereum_string,
+  //       [1, 6570841889000000, 0, 3549627424], // coverDetails[2] made 0
+  //       100,
+  //       28,
+  //       '0x6c944cf6193a757c7dfe36691aa993ac5b635c705db54df4bd30f333b4b209f9',
+  //       '0x4400c07f7b7a3335f9ab7a0cba334995eac0b385363cb884010b487aa9fede6e',
+  //       { from: coverHolder5, value: 6570841889000000 }
+  //     ));
+  //   });
+  // });
   describe('claim test case', function() {
     let UWarray = [
       underWriter1,
@@ -572,6 +586,18 @@ contract('Claim: Assessment 2', function([
       await lockCNFlag.should.equal(1);
     });
 
+    it('Should not be able to updateStakerCommission if premiumNXM is 0', async function() {
+      await tf.updateStakerCommissions(SC1, 0, { from: owner });
+    });
+
+    it('Calling updateStakerCommissions when max commission is reached which is in case of buying cover 7 for SC4', async function() {
+      // after calling make cover begin for SC4, all UW's recived 50% (max) of their staked as commission so calling the funtion in the next line has no effect
+      await tf.updateStakerCommissions(SC4, 400000000000000000000, {
+        from: owner
+      });
+      // the above function is simply run but has no effect for else part of if (maxCommission > commissionEarned)
+    });
+
     it('should pass for CA vote > 10 SA and majority > 70 % for reject(D1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
@@ -608,7 +634,8 @@ contract('Claim: Assessment 2', function([
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
 
       // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
-      await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
+      // await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
+      await assertRevert(td.setDepositCN(coverID[0], true, { from: owner }));
 
       let now = await latestTime();
       claimID = (await cd.actualClaimLength()) - 1;
@@ -4895,17 +4922,19 @@ contract('Claim: Assessment 2', function([
       await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
     });
   });
-  describe('Burning 0 tokens of a staker', function() {
-    it('successful', async function() {
-      await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
-      await mr.kycVerdict(underWriter6, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
-      await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
-      tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
+  // describe('Burning 0 tokens of a staker', function() {
+  //   it('successful', async function() {
+  //     await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
+  //     await mr.kycVerdict(underWriter6, true);
+  //     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
+  //     await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
+  //     tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
+  //     coverID = await qd.getAllCoversOfUser(coverHolder5);
 
-      await tf.burnStakerLockedToken(SC1, 0, { from: owner });
-    });
-  });
+  //     console.log('coverId is', coverID[0]);
+  //     await tf.burnStakerLockedToken(coverID[0], "ETH", 0);
+  //   });
+  // });
   describe('Add all mebers in wehitelist', function() {
     it('successful', async function() {
       await tf.addAllMembersInWhiteList({ from: owner });

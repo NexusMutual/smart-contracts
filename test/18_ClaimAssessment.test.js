@@ -625,6 +625,8 @@ contract('Claim: Assessment 2', function([
       await tc.lock(CLA, 50000 * 1e18, validity, { from: claimAssessor1 });
       await tc.lock(CLA, 30000 * 1e18, validity, { from: claimAssessor2 });
       await tc.lock(CLA, 20000 * 1e18, validity, { from: claimAssessor3 });
+      // cannot withdraw membership as it has staked tokens
+      await assertRevert(mr.withdrawMembership({ from: claimAssessor1 }));
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
 
@@ -1147,6 +1149,8 @@ contract('Claim: Assessment 2', function([
       await cl.submitMemberVote(claimID, -1, { from: member2 });
       await cl.submitMemberVote(claimID, 1, { from: member3 });
 
+      // cannot withdraw membership as member has voted
+      await assertRevert(mr.withdrawMembership({ from: member1 }));
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
@@ -1177,6 +1181,9 @@ contract('Claim: Assessment 2', function([
         parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+
+      // cannot withdraw membership as it has not claimedPending reward
+      await assertRevert(mr.withdrawMembership({ from: member1 }));
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });

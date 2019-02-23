@@ -60,8 +60,6 @@ contract QuotationData is Iupgradable {
     Cover[] internal allCovers;
     HoldCover[] internal allCoverHolded;
 
-    bytes8 public productName;
-    string public productHash;
     uint16 public stlp;
     uint16 public stl;
     uint16 public pm;
@@ -81,8 +79,6 @@ contract QuotationData is Iupgradable {
 
     constructor() public {
         pendingCoverStart = 0;
-        productName = "SCC";
-        productHash = "Smart Contract Cover";
         stlp = 90;
         stl = 1000;
         pm = 13;
@@ -121,11 +117,6 @@ contract QuotationData is Iupgradable {
     /// @dev Changes the existing Minimum cover period (in days)
     function changeMinDays(uint16 _days) external onlyOwner {
         minDays = _days;
-    }
-
-    /// @dev Changes the existing Product Hash
-    function changeProductHash(string _productHash) external onlyOwner {
-        productHash = _productHash;
     }
     
     /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.
@@ -177,6 +168,7 @@ contract QuotationData is Iupgradable {
         emit CoverDetailsEvent(cid, _scAddress, _sumAssured, expiryDate, premium, premiumNXM, _currencyCode);
     }
 
+    /// @dev create holded cover which will process after verdict of KYC.
     function addHoldCover(
         address from,
         address scAddress,
@@ -195,6 +187,9 @@ contract QuotationData is Iupgradable {
     
     }
 
+    ///@dev sets refund eligible bit.
+    ///@param _add user address.
+    ///@param status indicates if user have pending kyc.
     function setRefundEligible(address _add, bool status) external onlyInternal {
         refundEligible[_add] = status;
     }
@@ -215,16 +210,13 @@ contract QuotationData is Iupgradable {
         external
         view
         returns (
-            bytes8 _productName,
-            string _productHash,
             uint64 _minDays,
             uint16 _pm,
             uint16 _stl,
             uint16 _stlp
         )
     {
-        _productName = productName;
-        _productHash = productHash;
+
         _minDays = minDays;
         _pm = pm;
         _stl = stl;
@@ -300,11 +292,11 @@ contract QuotationData is Iupgradable {
 
     /// @dev Provides the details of a cover Id
     /// @param _cid cover Id
-    /// @return productName Insurance Product Name.
     /// @return memberAddress cover user address.
     /// @return scAddress smart contract Address 
     /// @return currencyCode currency of cover
     /// @return sumAssured sum assured of cover
+    /// @return premiumNXM premium in NXM
     function getCoverDetailsByCoverID1(
         uint _cid
     ) 
@@ -349,7 +341,6 @@ contract QuotationData is Iupgradable {
         ) 
     {
 
-        // status = coverStatus[_cid];
         return (
             _cid,
             coverStatus[_cid],
@@ -359,6 +350,11 @@ contract QuotationData is Iupgradable {
         );
     }
 
+    /// @dev Provides details of a holded cover Id
+    /// @param _hcid holded cover Id
+    /// @return scAddress SmartCover address of cover.
+    /// @return coverCurr currency of cover.
+    /// @return coverPeriod Cover Period of cover (in days).
     function getHoldedCoverDetailsByID1(
         uint _hcid
     )
@@ -379,14 +375,20 @@ contract QuotationData is Iupgradable {
         );
     }
 
+    /// @dev Gets total number holded covers created till date.
     function getUserHoldedCoverLength(address _add) external view returns (uint) {
         return userHoldedCover[_add].length;
     }
 
+    /// @dev Gets holded cover index by index of user holded covers.
     function getUserHoldedCoverByIndex(address _add, uint index) external view returns (uint) {
         return userHoldedCover[_add][index];
     }
 
+    /// @dev Provides the details of a holded cover Id
+    /// @param _hcid holded cover Id
+    /// @return memberAddress holded cover user address.
+    /// @return coverDetails array contains SA, Cover Currency Price,Price in NXM, Expiration time of Qoute.    
     function getHoldedCoverDetailsByID2(
         uint _hcid
     ) 

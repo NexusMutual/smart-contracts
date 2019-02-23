@@ -4,6 +4,7 @@ const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
+const NXMToken = artifacts.require('NXMToken');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 const encode = require('./utils/encoder.js').encode;
 let mr;
@@ -15,9 +16,10 @@ let gvAddress;
 let p1;
 let mrLength;
 let p2;
+let tk;
 let mrLength1;
 
-contract('MemberRoles', function([owner, member, other]) {
+contract('MemberRoles', function([owner, member, other, user1, user2, user3]) {
   before(async function() {
     nxms = await NXMaster.deployed();
     address = await nxms.getLatestAddress('MR');
@@ -25,6 +27,7 @@ contract('MemberRoles', function([owner, member, other]) {
     address = await nxms.getLatestAddress('GV');
     gv = await Governance.at(address);
     tf = await TokenFunctions.deployed();
+    tk = await NXMToken.deployed();
     await mr.payJoiningFee(owner, { value: 2000000000000000 });
     await mr.kycVerdict(owner, true);
   });
@@ -181,5 +184,53 @@ contract('MemberRoles', function([owner, member, other]) {
     await mr.kycVerdict(member, true);
     assert.equal(await mr.checkRole(member, 2), true);
     assert.equal(await mr.checkRole(other, 2), false);
+  });
+
+  it('Should not able to add members before launch by non-owner', async () => {
+    await assertRevert(
+      mr.addMembersBeforeLaunch(
+        [user1, user2, user3],
+        [100 * 1e18, 200 * 1e18, 300 * 1e18],
+        { from: member }
+      )
+    );
+  });
+
+  it('Should not able to add members before launch if one of user is already member', async () => {
+    await assertRevert(
+      mr.addMembersBeforeLaunch(
+        [owner, user2, user3],
+        [100 * 1e18, 200 * 1e18, 300 * 1e18],
+        { from: owner }
+      )
+    );
+  });
+
+  it('Should able to add members before launch', async () => {
+    await mr.addMembersBeforeLaunch(
+      [user1, user2, user3],
+      [100 * 1e18, 200 * 1e18, 300 * 1e18],
+      { from: owner }
+    );
+    assert.equal(await mr.checkRole(user1, 2), true);
+    assert.equal(await mr.checkRole(user2, 2), true);
+    assert.equal(await mr.checkRole(user3, 2), true);
+    assert.equal(await tk.whiteListed(user1), true);
+    assert.equal(await tk.whiteListed(user2), true);
+    assert.equal(await tk.whiteListed(user3), true);
+    assert.equal(await tk.balanceOf(user1), 100 * 1e18);
+    assert.equal(await tk.balanceOf(user2), 200 * 1e18);
+    assert.equal(await tk.balanceOf(user3), 300 * 1e18);
+    assert.equal(await mr.launched(), true);
+  });
+
+  it('Should not able to add members before launch more than once', async () => {
+    await assertRevert(
+      mr.addMembersBeforeLaunch(
+        [user1, user2, user3],
+        [100 * 1e18, 200 * 1e18, 300 * 1e18],
+        { from: owner }
+      )
+    );
   });
 });

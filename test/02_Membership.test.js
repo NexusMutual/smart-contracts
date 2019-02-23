@@ -8,6 +8,7 @@ const { ether } = require('./utils/ether');
 let tf;
 let mr;
 let nxms;
+const fee = ether(0.002);
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -21,7 +22,6 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
   });
   describe('Buy membership', function() {
-    const fee = ether(0.002);
     describe('if paid joining fee', function() {
       it('should be able to join as member', async function() {
         await mr.payJoiningFee(member1, { from: member1, value: fee });
@@ -38,7 +38,7 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
       });
     });
   });
-
+  // console.log('yoy', await mr.checkRole(member1, 2));
   describe('Withdraw membership', function() {
     describe('If met Withdraw membership conditions', function() {
       it('should be able to withdraw membership', async function() {
@@ -46,7 +46,7 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
         (await mr.checkRole(member1, 2)).should.equal(false);
       });
     });
-    describe('If not met Withdraw membership conditions', function() {
+    describe('Cannot withdrawn if already withdrawn', function() {
       it('reverts', async function() {
         await assertRevert(mr.withdrawMembership({ from: member1 }));
       });

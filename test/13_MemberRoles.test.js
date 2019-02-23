@@ -7,6 +7,9 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMToken = artifacts.require('NXMToken');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 const encode = require('./utils/encoder.js').encode;
+const { ether } = require('./utils/ether');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
+
 let mr;
 let gv;
 let pc;
@@ -18,8 +21,20 @@ let mrLength;
 let p2;
 let tk;
 let mrLength1;
+let qd;
 
-contract('MemberRoles', function([owner, member, other, user1, user2, user3]) {
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const fee = ether(0.002);
+
+contract('MemberRoles', function([
+  owner,
+  member,
+  other,
+  user1,
+  user2,
+  user3,
+  member2
+]) {
   before(async function() {
     nxms = await NXMaster.deployed();
     address = await nxms.getLatestAddress('MR');
@@ -28,10 +43,38 @@ contract('MemberRoles', function([owner, member, other, user1, user2, user3]) {
     gv = await Governance.at(address);
     tf = await TokenFunctions.deployed();
     tk = await NXMToken.deployed();
+    qd = await QuotationDataMock.deployed();
     await mr.payJoiningFee(owner, { value: 2000000000000000 });
     await mr.kycVerdict(owner, true);
   });
-
+  it('Should not be able to pay joining fee using ZERO_ADDRESS', async function() {
+    await assertRevert(
+      mr.payJoiningFee(ZERO_ADDRESS, { from: owner, value: fee })
+    );
+  });
+  it('Should not allow a member(who has refund eligible) to pay joining fee', async function() {
+    await qd.setRefundEligible(member2, true);
+    await assertRevert(
+      mr.payJoiningFee(member2, { from: member2, value: fee })
+    );
+  });
+  it('Should not be able to pay joining fee for already a member', async function() {
+    await assertRevert(mr.payJoiningFee(owner, { value: 2000000000000000 }));
+  });
+  it('Should not be able to trigger kyc using ZERO_ADDRESS', async function() {
+    await assertRevert(mr.kycVerdict(ZERO_ADDRESS, true));
+  });
+  it('Should not be able to trigger kyc for already a member', async function() {
+    await assertRevert(mr.kycVerdict(owner, true));
+  });
+  it('Should not allow a member(who has not refund eligible) to trigger kyc', async function() {
+    await qd.setRefundEligible(member2, false);
+    await assertRevert(mr.kycVerdict(member2, true));
+  });
+  it('Kyc declined, refund will be done', async function() {
+    await qd.setRefundEligible(member2, true);
+    await mr.kycVerdict(member2, false);
+  });
   it('Should not be able to initiate member roles twice', async function() {
     let nxmToken = await nxms.getLatestAddress('TK');
     await assertRevert(mr.memberRolesInitiate(nxmToken, owner, owner));

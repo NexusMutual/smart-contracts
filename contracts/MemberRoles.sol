@@ -172,7 +172,6 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             _updateRole(_userAddress, uint(Role.Member), true);
         } else {
             require(!qd.refundEligible(_userAddress));
-            require(totalRoles() > 0, "No member roles found");
             require(!ms.isMember(_userAddress));
             require(msg.value == td.joiningFee());
             qd.setRefundEligible(_userAddress, true);
@@ -187,12 +186,12 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         if (verdict) {
             qd.setRefundEligible(_userAddress, false);
             uint fee = td.joiningFee();
-            require(td.walletAddress().send(fee)); //solhint-disable-line
+            td.walletAddress().send(fee); //solhint-disable-line
             dAppToken.addToWhitelist(_userAddress);
             _updateRole(_userAddress, uint(Role.Member), true);
         } else {
             qd.setRefundEligible(_userAddress, false);
-            require(_userAddress.send(td.joiningFee())); //solhint-disable-line
+            _userAddress.send(td.joiningFee()); //solhint-disable-line
         }
     }
 

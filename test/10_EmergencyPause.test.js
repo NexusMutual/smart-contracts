@@ -228,7 +228,7 @@ contract('NXMaster: Emergency Pause', function([
       );
     });
     it('should not be able to trigger kyc', async function() {
-      await assertRevert(qt.kycTrigger(true, 1));
+      await assertRevert(mr.kycVerdict(member5, true));
     });
     it('add claim to queue', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder2);

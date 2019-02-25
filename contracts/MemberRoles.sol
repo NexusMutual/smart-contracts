@@ -186,12 +186,12 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         if (verdict) {
             qd.setRefundEligible(_userAddress, false);
             uint fee = td.joiningFee();
-            td.walletAddress().send(fee); //solhint-disable-line
+            td.walletAddress().transfer(fee); //solhint-disable-line
             dAppToken.addToWhitelist(_userAddress);
             _updateRole(_userAddress, uint(Role.Member), true);
         } else {
             qd.setRefundEligible(_userAddress, false);
-            _userAddress.send(td.joiningFee()); //solhint-disable-line
+            _userAddress.transfer(td.joiningFee()); //solhint-disable-line
         }
     }
 

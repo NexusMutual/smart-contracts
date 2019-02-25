@@ -211,6 +211,18 @@ contract('NXMaster: Emergency Pause', function([
       await gv.submitVote(p, 1);
       await gv.closeProposal(p);
       startTime = await latestTime();
+      await assertRevert(
+        qt.initiateMembershipAndCover(
+          smartConAdd,
+          'ETH',
+          coverDetails,
+          coverPeriod,
+          v,
+          r,
+          s,
+          { from: newMember, value: totalFee }
+        )
+      );
     });
     it('should return true for isPause', async function() {
       (await nxms.isPause()).should.equal(true);

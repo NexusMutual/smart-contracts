@@ -53,10 +53,11 @@ contract('MemberRoles', function([
     );
   });
   it('Should not allow a member(who has refund eligible) to pay joining fee', async function() {
-    await qd.setRefundEligible(member2, true);
+    mr.payJoiningFee(member2, { from: member2, value: fee });
     await assertRevert(
       mr.payJoiningFee(member2, { from: member2, value: fee })
     );
+    await mr.kycVerdict(member2, false);
   });
   it('Should not be able to pay joining fee for already a member', async function() {
     await assertRevert(mr.payJoiningFee(owner, { value: 2000000000000000 }));
@@ -68,11 +69,10 @@ contract('MemberRoles', function([
     await assertRevert(mr.kycVerdict(owner, true));
   });
   it('Should not allow a member(who has not refund eligible) to trigger kyc', async function() {
-    await qd.setRefundEligible(member2, false);
     await assertRevert(mr.kycVerdict(member2, true));
   });
   it('Kyc declined, refund will be done', async function() {
-    await qd.setRefundEligible(member2, true);
+    await mr.payJoiningFee(member2, { from: member2, value: fee });
     await mr.kycVerdict(member2, false);
   });
   it('Should not be able to initiate member roles twice', async function() {

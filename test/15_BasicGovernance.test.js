@@ -343,19 +343,24 @@ contract(
         );
         await assertRevert(gv.submitVote(pId, 1, { from: mem5 }));
         await increaseTime(432000); //7 days will be completed since revoking proxy
+        await gv.delegateVote(ab1, { from: ab4 });
       });
       it('Undelegated Follower can vote after 7 days', async function() {
         await gv.submitVote(pId, 1, { from: ab1 });
         await gv.submitVote(pId, 1, { from: ab3 });
-        await gv.submitVote(pId, 1, { from: ab4 });
         await gv.submitVote(pId, 1, { from: mem2 });
         await gv.submitVote(pId, 1, { from: mem3 });
         await gv.submitVote(pId, 1, { from: mem5 });
       });
       it('Follower cannot undelegate if there are rewards pending to be claimed', async function() {
+        await increaseTime(604810);
         await gv.closeProposal(pId);
         await assertRevert(gv.unDelegate({ from: mem5 }));
         await cr.claimAllPendingReward([pId], { from: mem5 });
+      });
+      it('Follower should not get reward if delegated within 7days', async function() {
+        let pendingReward = await gv.getPendingReward(ab4);
+        assert.equal(pendingReward.toNumber(), 0);
       });
       it('Follower can assign new proxy if revoked proxy more than 7 days earlier', async function() {
         await increaseTime(604810);

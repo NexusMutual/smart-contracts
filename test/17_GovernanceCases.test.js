@@ -170,6 +170,10 @@ contract(
                 await gv.submitVote(pId, 0, { from: mem5 });
                 await gv.submitVote(pId, 1, { from: mem7 });
               });
+              it('Should not vote if cloing time of proposal is completed', async function() {
+                await increaseTime(604810);
+                await assertRevert(gv.submitVote(pId, 1, { from: mem9 }));
+              });
               it('Should close vote', async function() {
                 await increaseTime(604800);
                 await gv.closeProposal(pId);

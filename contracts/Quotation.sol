@@ -393,15 +393,6 @@ contract Quotation is Iupgradable {
         uint cid = qd.getCoverLength();
         qd.addCover(coverPeriod, coverDetails[0],
             from, coverCurr, scAddress, coverDetails[1], coverDetails[2]);
-        uint coverLengthNew = qd.getCoverLength();
-        if (coverLengthNew.sub(cid) > 1) {
-            for (uint i = cid; i < coverLengthNew; i++) {
-                if (qd.getCoverMemberAddress(i) == from) {
-                    cid = i;
-                    break;
-                }
-            }
-        }
         // if cover period of quote is less than 60 days.
         if (coverPeriod <= 60) {
             p1.closeCoverOraclise(cid, uint64(coverPeriod * 1 days));

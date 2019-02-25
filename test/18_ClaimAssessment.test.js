@@ -379,8 +379,9 @@ contract('Claim: Assessment 2', function([
             (await tk.balanceOf(UWarray[i])) / 1e18
           );
           changeInUWBalance[i] = currentUWBalance - balanceUW[i];
-          if (changeInUWBalance[i] != changeInUWBalanceExpected[i])
+          if (changeInUWBalance[i] != changeInUWBalanceExpected[i]) {
             rewardsFlag = -1;
+          }
           balanceUW[i] = currentUWBalance;
         }
       }
@@ -672,7 +673,7 @@ contract('Claim: Assessment 2', function([
       minVotingTime = await cd.minVotingTime();
 
       closingTime = minVotingTime.plus(now);
-      await increaseTimeTo(closingTime.minus(2));
+      await increaseTimeTo(closingTime.minus(10));
 
       // changing the claim status here
       await cr.changeClaimStatus(claimID);

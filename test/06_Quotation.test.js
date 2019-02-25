@@ -85,7 +85,8 @@ contract('Quotation', function([
   newMember1,
   newMember2,
   newMember3,
-  newMember4
+  newMember4,
+  newMember5
 ]) {
   const BN_100 = new BigNumber(100);
   const BN_10 = new BigNumber(10);
@@ -859,6 +860,27 @@ contract('Quotation', function([
           await qt.fullRefund({ from: newMember3 });
           await assertRevert(qt.kycTrigger(true, newMember3));
         });
+
+        it('should revert if wallet address is not set', async function() {
+          await td.changeWalletAddress(nullAddress);
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+            from: newMember5
+          });
+          const totalFee = fee.plus(coverDetails[1].toString());
+          await qt.initiateMembershipAndCover(
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            vrs[0],
+            vrs[1],
+            vrs[2],
+            { from: newMember5, value: totalFee }
+          );
+          await assertRevert(qt.kycTrigger(true, newMember5));
+          await td.changeWalletAddress(owner);
+        });
+
         it('should get membership but not cover if quote expires for ETH', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember4

@@ -203,7 +203,7 @@ contract(
                 }
               });
             });
-            describe('with Automatic action', function() {
+            describe('with Automatic action and valid parameters', function() {
               it('Should create proposal', async function() {
                 await increaseTime(604800);
                 balance = await web3.eth.getBalance(notMember);
@@ -253,6 +253,73 @@ contract(
                   bal.toNumber(),
                   balance.toNumber(),
                   'Action not executed'
+                );
+              });
+              it('Should get rewards', async function() {
+                for (let i = 0; i < 13; i++) {
+                  assert.equal(
+                    (await gv.getPendingReward(
+                      web3.eth.accounts[i]
+                    )).toNumber(),
+                    10 * 1e18,
+                    web3.eth.accounts[i] + "didn't get reward"
+                  );
+                }
+              });
+              it('Should claim rewards', async function() {
+                for (let i = 0; i < 13; i++) {
+                  await cr.claimAllPendingReward([pId], {
+                    from: web3.eth.accounts[i]
+                  });
+                }
+              });
+            });
+            describe('with Automatic action and invalid parameters', function() {
+              it('Should create proposal', async function() {
+                await increaseTime(604800);
+                balance = await web3.eth.getBalance(notMember);
+                pId = (await gv.getProposalLength()).toNumber();
+                await gv.createProposal(
+                  'Proposal2',
+                  'Proposal2',
+                  'Proposal2',
+                  0
+                );
+              });
+              it('Should whitelist proposal and set Incentives', async function() {
+                await gv.categorizeProposal(pId, 13, 130 * 1e18);
+              });
+              it('Should open for voting', async function() {
+                let actionHash = '0x';
+                await gv.submitProposalWithSolution(
+                  pId,
+                  'Withdraw funds to Pay for Support Services',
+                  actionHash
+                );
+              });
+              it('should follow voting process', async function() {
+                await gv.submitVote(pId, 1, { from: ab1 });
+                await gv.submitVote(pId, 1, { from: ab3 });
+                await gv.submitVote(pId, 1, { from: ab4 });
+                await gv.submitVote(pId, 1, { from: ab5 });
+                await gv.submitVote(pId, 0, { from: mem4 });
+                await gv.submitVote(pId, 0, { from: mem5 });
+                await gv.submitVote(pId, 1, { from: mem7 });
+              });
+              it('Should close vote', async function() {
+                await increaseTime(604800);
+                await gv.closeProposal(pId);
+              });
+              it('Proposal should be accepted', async function() {
+                let proposal = await gv.proposal(pId);
+                assert.equal(proposal[2].toNumber(), 3);
+              });
+              it('Should not execute defined automatic action', async function() {
+                let bal = await web3.eth.getBalance(notMember);
+                assert.equal(
+                  bal.toNumber(),
+                  balance.toNumber(),
+                  'Action executed'
                 );
               });
               it('Should get rewards', async function() {

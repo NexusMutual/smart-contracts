@@ -40,6 +40,8 @@ contract(
       tc = await TokenController.deployed();
       await gv.addSolution(0, '', '0x');
       await gv.openProposalForVoting(0);
+      await mr.payJoiningFee(ab1, { value: 2000000000000000 });
+      await mr.kycVerdict(ab1, true);
     });
 
     it('Only Owner should be able to change tokenHoldingTime', async function() {
@@ -122,8 +124,6 @@ contract(
     });
 
     it('Should allow only owner to open proposal for voting', async () => {
-      await mr.payJoiningFee(ab1, { value: 2000000000000000 });
-      await mr.kycVerdict(ab1, true);
       await gv.categorizeProposal(proposalId, 9, 1e18);
       await gv.proposal(proposalId);
       await pc.category(9);

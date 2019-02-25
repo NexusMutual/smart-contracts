@@ -20,9 +20,4 @@ contract QuotationDataMock is QuotationData {
 	function changeHoldedCoverCurrency (uint index, bytes4 newCurr) public {
 		allCoverHolded[index].coverCurr = newCurr;
 	}
-
-	function getCoverLength() external view returns(uint len) {
-        return (allCovers.length);
-    }
-
 }

@@ -61,11 +61,6 @@ contract Pool1 is usingOraclize, Iupgradable {
         _;
     }
 
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender), "Not Owner");
-        _;
-    }
-
     /**
      * @dev Pays out the sum assured in case a claim is accepted
      * @param coverid Cover Id.

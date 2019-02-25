@@ -39,7 +39,7 @@ const ethereum_string = 'ETH';
 const dai_string = 'DAI';
 
 let dai;
-let P1;
+let p1;
 let tk;
 let tf;
 let tc;
@@ -326,21 +326,7 @@ contract('Claim: Assessment 2', function([
     tf.addStake(SC5, 20 * 1e18, { from: underWriter2 });
     tf.addStake(SC5, 25 * 1e18, { from: underWriter1 });
   });
-  // describe('Should not be able to purchase cover if premiumNXM is 0', function() {
-  //   it('success in not purchasing', async function() {
-  //     // coverDetails[2](premiumNXM) is 0 (refer TokenFunctions.sol)
-  //     await assertRevert(p1.makeCoverBegin(
-  //       SC1,
-  //       ethereum_string,
-  //       [1, 6570841889000000, 0, 3549627424], // coverDetails[2] made 0
-  //       100,
-  //       28,
-  //       '0x6c944cf6193a757c7dfe36691aa993ac5b635c705db54df4bd30f333b4b209f9',
-  //       '0x4400c07f7b7a3335f9ab7a0cba334995eac0b385363cb884010b487aa9fede6e',
-  //       { from: coverHolder5, value: 6570841889000000 }
-  //     ));
-  //   });
-  // });
+
   describe('claim test case', function() {
     let UWarray = [
       underWriter1,
@@ -673,7 +659,7 @@ contract('Claim: Assessment 2', function([
       minVotingTime = await cd.minVotingTime();
 
       closingTime = minVotingTime.plus(now);
-      await increaseTimeTo(closingTime.minus(10));
+      await increaseTimeTo(closingTime.minus(2));
 
       // changing the claim status here
       await cr.changeClaimStatus(claimID);
@@ -1182,9 +1168,6 @@ contract('Claim: Assessment 2', function([
         parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
-
-      // cannot withdraw membership as it has not claimedPending reward
-      await assertRevert(mr.withdrawMembership({ from: member1 }));
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -4835,6 +4818,11 @@ contract('Claim: Assessment 2', function([
       member6Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member6)) / 1e18;
 
+      await increaseTimeTo(closingTime.plus(172800));
+
+      // cannot withdraw membership as it has not claimed Pending reward
+      await assertRevert(mr.withdrawMembership({ from: member1 }));
+
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
       await cr.claimAllPendingReward(proposalIds, { from: member3 });
@@ -4912,6 +4900,7 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
     });
+
     it('Unlocks token locked by coverholder and then does it again, but next time, no unlock', async function() {
       const coverID1 = (await qd.getAllCoversOfUser(coverHolder1))[0];
 
@@ -4930,20 +4919,27 @@ contract('Claim: Assessment 2', function([
       await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
     });
   });
-  // describe('Burning 0 tokens of a staker', function() {
-  //   it('successful', async function() {
-  //     await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
-  //     await mr.kycVerdict(underWriter6, true);
-  //     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
-  //     await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
-  //     tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
-  //     coverID = await qd.getAllCoversOfUser(coverHolder5);
+  describe('Burning 0 tokens of a staker', function() {
+    it('successful', async function() {
+      await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
+      await mr.kycVerdict(underWriter6, true);
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
+      await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
+      tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
+      coverID = await qd.getAllCoversOfUser(coverHolder5);
 
-  //     console.log('coverId is', coverID[0]);
-  //     await tf.burnStakerLockedToken(coverID[0], "ETH", 0);
-  //   });
-  // });
-  describe('Add all mebers in wehitelist', function() {
+      await tf.burnStakerLockedToken(SC1, 0);
+    });
+    it('when stakerStakedNXM = 0', async function() {
+      maxVotingTime = await cd.maxVotingTime();
+      let maxStakeTime = 21600000;
+      let now = await latestTime();
+      closingTime = maxVotingTime.plus(now + maxStakeTime);
+      await increaseTimeTo(closingTime);
+      await tf.burnStakerLockedToken(SC1, 10);
+    });
+  });
+  describe('Add all members in whitelist', function() {
     it('successful', async function() {
       await tf.addAllMembersInWhiteList({ from: owner });
     });

@@ -445,9 +445,16 @@ contract('Claim', function([
                 { from: coverHolder, value: coverDetails[1] }
               );
               coverID = await qd.getAllCoversOfUser(coverHolder);
+              var APIID = await pd.allAPIcall(
+                (await pd.getApilCallLength()) - 1
+              );
+
               const validity = await qd.getValidityOfCover(coverID[1]);
               await increaseTimeTo(validity.plus(2));
               qt.expireCover(coverID[1]);
+
+              APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+              await p2.delegateCallBack(APIID);
             });
             it('reverts', async function() {
               coverID = await qd.getAllCoversOfUser(coverHolder);

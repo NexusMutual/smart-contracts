@@ -1,4 +1,5 @@
 const Pool1 = artifacts.require('Pool1Mock');
+const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
@@ -32,6 +33,7 @@ const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
 
 let P1;
+let p2;
 let tk;
 let tf;
 let tc;
@@ -44,6 +46,7 @@ let cad;
 let mcr;
 let nxms;
 let mr;
+let pd;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -89,6 +92,8 @@ contract('Claim: Assessment', function([
     mcr = await MCR.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    p2 = await Pool2.deployed();
+
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await mr.payJoiningFee(member2, { from: member2, value: fee });
@@ -182,7 +187,13 @@ contract('Claim: Assessment', function([
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(1);
           });
           it('should be able to change claim status', async function() {
-            await cr.changeClaimStatus(claimId);
+            let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+            APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+            await p2.delegateCallBack(APIID);
+            // console.log(await pd.getApiIdTypeOf(APIID));
+
+            // await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(6);
           });

@@ -5,6 +5,12 @@ const DAI = artifacts.require('MockDAI');
 const testtt = artifacts.require('ExchangeMock');
 const MCR = artifacts.require('MCR');
 const DSValue = artifacts.require('DSValueMock');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
+const NXMToken = artifacts.require('NXMToken');
+const TokenController = artifacts.require('TokenController');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
+const MemberRoles = artifacts.require('MemberRoles');
+const NXMaster = artifacts.require('NXMaster');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { assertRevert } = require('./utils/assertRevert');
@@ -19,18 +25,42 @@ let cad;
 let emock;
 let mcr;
 let DSV;
+let qd;
+let tk;
+let tf;
+let tc;
+let mr;
+let nxms;
 
 const BigNumber = web3.BigNumber;
 const newAsset = '0x535253';
 const CA_DAI = '0x44414900';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NEW_ADDRESS = '0xb24919181daead6635e613576ca11c5aa5a4e133';
+const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
+const coverDetailsLess = [
+  5,
+  19671964915000000,
+  20000000000000000000,
+  3549627424
+];
+const coverPeriodLess = 50;
+const vrsLess = [
+  27,
+  '0x22d150b6e2d3f9ae98c67425d1224c87aed5f853487252875118352771b3ece2',
+  '0x0fb3f18fc2b8a74083b3cf8ca24bcf877a397836bd4fa1aba4c3ae96ca92873b'
+];
+const tokens = ether(200);
+const stakeTokens = ether(2);
+const fee = ether(0.002);
+const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
+const tokenDai = ether(4);
 
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Pool', function([owner, notOwner]) {
+contract('Pool', function([owner, notOwner, member1]) {
   before(async function() {
     await advanceBlock();
     p1 = await Pool1.deployed();
@@ -40,6 +70,18 @@ contract('Pool', function([owner, notOwner]) {
     emock = await testtt.deployed();
     mcr = await MCR.deployed();
     DSV = await DSValue.deployed();
+    qd = await QuotationDataMock.deployed();
+    nxms = await NXMaster.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    tk = await NXMToken.deployed();
+    tf = await TokenFunctions.deployed();
+    tc = await TokenController.deployed();
+
+    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.kycVerdict(member1, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+    await tk.transfer(member1, tokens);
+    await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
   });
 
   describe('PoolData', function() {
@@ -834,5 +876,36 @@ contract('Pool', function([owner, notOwner]) {
     //   it('should be able to', async function() {
 
     //   });
+  });
+
+  describe('Should be able to delegate callback for', function() {
+    it('Expire Cover ', async function() {
+      let coverID;
+
+      await cad.approve(p1.address, coverDetailsLess[1], {
+        from: member1
+      });
+      await cad.transfer(member1, tokenDai);
+
+      await p1.makeCoverUsingCA(
+        smartConAdd,
+        'DAI',
+        coverDetailsLess,
+        coverPeriodLess,
+        vrsLess[0],
+        vrsLess[1],
+        vrsLess[2],
+        { from: member1 }
+      );
+
+      coverID = await qd.getAllCoversOfUser(member1);
+
+      const validity = await qd.getValidityOfCover(coverID[0]);
+      await increaseTimeTo(validity.plus(2));
+
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      await p2.delegateCallBack(APIID);
+      assert.equal(parseFloat(await qd.getCoverStatusNo(coverID)), 3);
+    });
   });
 });

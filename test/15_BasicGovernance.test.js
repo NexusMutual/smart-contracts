@@ -61,7 +61,7 @@ contract(
       assert.equal(allowedToCategorize.toNumber(), 1);
     });
 
-    it('should not allow unauthorized to change master address', async function() {
+    it('Should not allow unauthorized to change master address', async function() {
       await assertRevert(
         gv.changeMasterAddress(nxms.address, { from: notMember })
       );
@@ -69,15 +69,29 @@ contract(
       await gv.changeMasterAddress(nxms.address);
     });
 
+    it('Should not allow unauthorized to create proposal', async function() {
+      await assertRevert(
+        gv.createProposal('Proposal', 'Description', 'Hash', 0, {
+          from: notMember
+        })
+      );
+      await assertRevert(
+        gv.createProposalwithSolution(
+          'Add new member',
+          'Add new member',
+          'hash',
+          9,
+          '',
+          '0x',
+          { from: notMember }
+        )
+      );
+    });
+
     it('Should create a proposal', async function() {
       let propLength = await gv.getProposalLength();
       proposalId = propLength.toNumber();
       await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
-      await assertRevert(
-        gv.createProposal('Add new member', 'Add new member', 'hash', 9, {
-          from: notMember
-        })
-      );
       let propLength2 = await gv.getProposalLength();
       assert.isAbove(
         propLength2.toNumber(),

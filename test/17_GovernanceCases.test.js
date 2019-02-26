@@ -203,7 +203,7 @@ contract(
                 }
               });
             });
-            describe('with Automatic action and valid parameters', function() {
+            describe('with Valid Automatic action', function() {
               it('Should create proposal', async function() {
                 await increaseTime(604800);
                 balance = await web3.eth.getBalance(notMember);
@@ -274,7 +274,7 @@ contract(
                 }
               });
             });
-            describe('with Automatic action and invalid parameters', function() {
+            describe('with in valid Automatic action', function() {
               it('Should create proposal', async function() {
                 await increaseTime(604800);
                 balance = await web3.eth.getBalance(notMember);
@@ -290,7 +290,11 @@ contract(
                 await gv.categorizeProposal(pId, 13, 130 * 1e18);
               });
               it('Should open for voting', async function() {
-                let actionHash = '0x';
+                let actionHash = encode(
+                  'transferEth(uint,address)',
+                  '10000000000000000',
+                  notMember
+                );
                 await gv.submitProposalWithSolution(
                   pId,
                   'Withdraw funds to Pay for Support Services',
@@ -644,6 +648,7 @@ contract(
           });
           it('should follow voting process', async function() {
             await gv.submitVote(pId, 1, { from: ab1 });
+            assert.equal(await gv.canCloseProposal(pId), 0);
             await gv.submitVote(pId, 0, { from: ab3 });
             await gv.submitVote(pId, 1, { from: ab4 });
             await gv.submitVote(pId, 1, { from: ab5 });

@@ -111,15 +111,22 @@ contract('MCR', function([owner, notOwner]) {
     it('single tranches 15 times Buy tokens', async function() {
       let x;
       let y;
-      for (let i = 0; i < 15; i++) {
+      let cost = 10 * 1e18;
+      for (let i = 0; cost < 180 * 1e18; i++) {
+        cost = cost + i * 10 * 1e18;
         console.log(
           'token rate 1ETH =  ',
           1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
         );
         x = await tk.balanceOf(notOwner);
-        await p1.buyToken({ from: notOwner, value: 10 * 1e18 });
+        await p1.buyToken({ from: notOwner, value: cost });
         y = await tk.balanceOf(notOwner);
-        console.log('single tranche 10ETH ==> ', parseFloat(y - x) / 1e18);
+        console.log(
+          'tranche ',
+          cost / 1e18,
+          ' ETH ==> ',
+          parseFloat(y - x) / 1e18
+        );
       }
     });
   });

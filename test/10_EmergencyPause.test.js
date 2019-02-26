@@ -84,6 +84,8 @@ contract('NXMaster: Emergency Pause', function([
     gv = await Governance.at(gvAddress);
     let address = await nxms.getLatestAddress('MR');
     mr = await MemberRoles.at(address);
+    await mr.payJoiningFee(owner, { from: owner, value: fee });
+    await mr.kycVerdict(owner, true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });

@@ -151,6 +151,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         );
         //AB count can't exceed maxABCount
         for (uint i = 0; i < abArray.length; i++) {
+            dAppToken.addToWhitelist(abArray[i]);
             _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
         }
     }

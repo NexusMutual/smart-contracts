@@ -60,7 +60,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Pool', function([owner, notOwner, member1]) {
+contract('Pool', function([owner, notOwner, member1, member2]) {
   before(async function() {
     await advanceBlock();
     p1 = await Pool1.deployed();
@@ -82,6 +82,11 @@ contract('Pool', function([owner, notOwner, member1]) {
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
     await tk.transfer(member1, tokens);
     await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
+
+    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.kycVerdict(member2, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tk.transfer(member2, tokens);
   });
 
   describe('PoolData', function() {
@@ -324,6 +329,10 @@ contract('Pool', function([owner, notOwner, member1]) {
       await p2.transferInvestmentAsset('ETH', owner, 5 * 1e18);
       await p1.sendTransaction({ from: owner, value: 20 * 1e18 });
       await cad.transfer(p1.address, 20 * 1e18);
+
+      // console.log(await nxms.getLastEmergencyPause());
+      // allMCRData.push(McrData(0, 0, 0, 0));
+
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -906,6 +915,39 @@ contract('Pool', function([owner, notOwner, member1]) {
       let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p2.delegateCallBack(APIID);
       assert.equal(parseFloat(await qd.getCoverStatusNo(coverID)), 3);
+    });
+    it('Empty string res for unknown id', async function() {
+      let lol_APIID = '0x6c6f6c'; // lol
+      await p2.delegateCallBack(lol_APIID);
+    });
+  });
+  describe('Trade Conditions checked', function() {
+    it('For iaRate = 0', async function() {
+      await p2.saveIADetails(['0x455448', '0x444149'], [0, 0], 20190125, true);
+    });
+  });
+  // describe('Calculate IARank where Investment Asset Status is false', function() {
+  //   it('Successful', async function() {
+  //     console.log('tony stark', await pd.getInvestmentAssetStatus("ETH"));
+  //     await pd.changeInvestmentAssetStatus(0X455448, false, {from: owner});
+  //     console.log('tony stark', await pd.getInvestmentAssetStatus("ETH"));
+  //     await p2.saveIADetails(
+  //       ['0x455448', '0x444149'],
+  //       [100, 1000],
+  //       20190125,
+  //       true
+  //     );
+  //   });
+  // });
+  describe('RBT for total risk balance 0', function() {
+    it('Successful', async function() {
+      pd.pushMCRData(0, 0, 0, 0);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190125,
+        true
+      );
     });
   });
 });

@@ -296,6 +296,13 @@ contract('NXMaster: Emergency Pause', function([
     it('should not be able to withdraw membership', async function() {
       await assertRevert(mr.withdrawMembership({ from: member4 }));
     });
+
+    it('Should not be able to save IA details', async function() {
+      await assertRevert(
+        p2.saveIADetails(['0x455448', '0x444149'], [100, 1000], 20190125, false)
+      );
+    });
+
     it('should extend CN EPOfff', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
       pendingTime = parseFloat((await cd.getPendingClaimDetailsByIndex(0))[1]);

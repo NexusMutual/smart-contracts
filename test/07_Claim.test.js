@@ -13,6 +13,7 @@ const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
 const NXMaster = artifacts.require('NXMaster');
 const MemberRoles = artifacts.require('MemberRoles');
+const MCR = artifacts.require('MCR');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -37,15 +38,16 @@ let tf;
 let tc;
 let td;
 let P1;
-let P3;
 let cr;
 let cl;
 let qd;
 let qt;
 let cad;
 let p2;
+let pd;
 let nxms;
 let mr;
+let mcr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -82,9 +84,22 @@ contract('Claim', function([
     qt = await Quotation.deployed();
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
+    mcr = await MCR.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
+    await mcr.addMCRData(
+      18000,
+      100 * 1e18,
+      2 * 1e18,
+      ['0x455448', '0x444149'],
+      [100, 65407],
+      20181011
+    );
+    (await pd.capReached()).should.be.bignumber.equal(1);
   });
+
   describe('Submit Claim', function() {
     before(async function() {
       await mr.payJoiningFee(member1, { from: member1, value: fee });

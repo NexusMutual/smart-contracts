@@ -41,6 +41,8 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
     td = await TokenData.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
     await mr.payJoiningFee(UW1, { from: UW1, value: fee });
     await mr.kycVerdict(UW1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: UW1 });

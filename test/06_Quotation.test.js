@@ -11,6 +11,7 @@ const DAI = artifacts.require('MockDAI');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const PoolData = artifacts.require('PoolData');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
@@ -56,6 +57,7 @@ const vrs_dai = [
 ];
 let P1;
 let P2;
+let pd;
 let cr;
 let tk;
 let tf;
@@ -107,13 +109,43 @@ contract('Quotation', function([
     qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
     P2 = await Pool2.deployed();
+    pd = await PoolData.deployed();
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
   });
+  describe('Initial cap not reached', function() {
+    it('should revert while buying cover', async function() {
+      await assertRevert(
+        P1.makeCoverBegin(
+          smartConAdd,
+          'ETH',
+          coverDetails,
+          coverPeriod,
+          vrs[0],
+          vrs[1],
+          vrs[2],
+          { from: member3, value: coverDetails[1] }
+        )
+      );
+    });
 
+    it('should return 1 if 100% mcr reached within 30 days of launch', async function() {
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        2 * 1e18,
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181011
+      );
+      (await pd.capReached()).should.be.bignumber.equal(1);
+    });
+  });
   describe('Cover Purchase', function() {
     describe('Details', function() {
       it('should return correct AuthQuoteEngine address', async function() {

@@ -20,6 +20,8 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
     nxms = await NXMaster.deployed();
     tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
   });
   describe('Buy membership', function() {
     describe('if paid joining fee', function() {

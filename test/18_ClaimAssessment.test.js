@@ -117,6 +117,8 @@ contract('Claim: Assessment 2', function([
 
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
     await DSV.setRate(25 * 1e18);
     await pd.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
     await p1.upgradeCapitalPool(owner);
@@ -659,7 +661,7 @@ contract('Claim: Assessment 2', function([
       minVotingTime = await cd.minVotingTime();
 
       closingTime = minVotingTime.plus(now);
-      await increaseTimeTo(closingTime.minus(2));
+      await increaseTimeTo(closingTime.minus(10));
 
       // changing the claim status here
       await cr.changeClaimStatus(claimID);
@@ -667,7 +669,7 @@ contract('Claim: Assessment 2', function([
       assert.equal(parseFloat((await cd.getClaimStatusNumber(claimID))[1]), 0);
 
       // check the CA vote not closing before the minimum time is reached even if the CA Vote is greater than 10*SA
-      await increaseTimeTo(closingTime.plus(2));
+      await increaseTimeTo(closingTime.plus(10));
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder5, coverID)

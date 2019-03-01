@@ -48,14 +48,21 @@ contract('MCR', function([owner, notOwner]) {
     let tp_dai;
 
     before(async function() {
+      await mr.addMembersBeforeLaunch([], []);
+      (await mr.launched()).should.be.equal(true);
       await mr.payJoiningFee(notOwner, {
         from: notOwner,
+        value: 2000000000000000
+      });
+      await mr.payJoiningFee(owner, {
+        from: owner,
         value: 2000000000000000
       });
       await p2.upgradeInvestmentPool(owner);
       await p1.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 90000000000000000000 });
       await mr.kycVerdict(notOwner, true);
+      await mr.kycVerdict(owner, true);
       await mcr.addMCRData(
         9000,
         100 * 1e18,
@@ -128,6 +135,125 @@ contract('MCR', function([owner, notOwner]) {
           parseFloat(y - x) / 1e18
         );
       }
+    });
+    it('tranches Buy more tokens', async function() {
+      await p2.upgradeInvestmentPool(owner);
+      await p1.upgradeCapitalPool(owner);
+      await p1.sendTransaction({ from: owner, value: 607740647349100000000 });
+      await mcr.addMCRData(
+        202,
+        30000 * 1e18,
+        607740647349100000000,
+        ['0x455448', '0x444149'],
+        [100, 15517],
+        20190219
+      );
+      let x;
+      let y;
+      let cost = 15 * 1e18;
+      console.log(
+        'token rate 1ETH =  ',
+        1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+      );
+      x = await tk.balanceOf(notOwner);
+      await p1.buyToken({ from: notOwner, value: cost });
+      y = await tk.balanceOf(notOwner);
+      console.log(
+        'tranche ',
+        cost / 1e18,
+        ' ETH ==> ',
+        parseFloat(y - x) / 1e18
+      );
+
+      cost = 35 * 1e18;
+      console.log(
+        'token rate 1ETH =  ',
+        1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+      );
+      x = await tk.balanceOf(notOwner);
+      await p1.buyToken({ from: notOwner, value: cost });
+      y = await tk.balanceOf(notOwner);
+      console.log(
+        'tranche ',
+        cost / 1e18,
+        ' ETH ==> ',
+        parseFloat(y - x) / 1e18
+      );
+
+      cost = 600 * 1e18;
+      console.log(
+        'token rate 1ETH =  ',
+        1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+      );
+      x = await tk.balanceOf(notOwner);
+      await p1.buyToken({ from: notOwner, value: cost });
+      y = await tk.balanceOf(notOwner);
+      console.log(
+        'tranche ',
+        cost / 1e18,
+        ' ETH ==> ',
+        parseFloat(y - x) / 1e18
+      );
+
+      cost = 5000 * 1e18;
+      console.log(
+        'token rate 1ETH =  ',
+        1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+      );
+      // x = await tk.balanceOf(notOwner);
+      // await p1.buyToken({ from: notOwner, value: cost });
+      // y = await tk.balanceOf(notOwner);
+      // console.log(
+      //   'tranche ',
+      //   cost / 1e18,
+      //   ' ETH ==> ',
+      //   parseFloat(y - x) / 1e18
+      // );
+
+      // cost = 10000 * 1e18;
+      // console.log(
+      //   'token rate 1ETH =  ',
+      //   1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+      // );
+      // x = await tk.balanceOf(owner);
+      // await p1.buyToken({ from: owner, value: cost });
+      // y = await tk.balanceOf(owner);
+      // console.log(
+      //   'tranche ',
+      //   cost / 1e18,
+      //   ' ETH ==> ',
+      //   parseFloat(y - x) / 1e18
+      // );
+
+      // cost = 15000 * 1e18;
+      // console.log(
+      //   'token rate 1ETH =  ',
+      //   1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+      // );
+      // x = await tk.balanceOf(owner);
+      // await p1.buyToken({ from: owner, value: cost });
+      // y = await tk.balanceOf(owner);
+      // console.log(
+      //   'tranche ',
+      //   cost / 1e18,
+      //   ' ETH ==> ',
+      //   parseFloat(y - x) / 1e18
+      // );
+
+      // cost = 300 * 1e18;
+      // console.log(
+      //   'token rate 1ETH =  ',
+      //   1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
+      // );
+      // x = await tk.balanceOf(owner);
+      // await p1.buyToken({ from: owner, value: cost });
+      // y = await tk.balanceOf(owner);
+      // console.log(
+      //   'tranche ',
+      //   cost / 1e18,
+      //   ' ETH ==> ',
+      //   parseFloat(y - x) / 1e18
+      // );
     });
   });
 });

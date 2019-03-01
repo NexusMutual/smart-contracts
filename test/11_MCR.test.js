@@ -3,10 +3,14 @@ const Pool1 = artifacts.require('Pool1Mock');
 const PoolData = artifacts.require('PoolData');
 const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
+const MemberRoles = artifacts.require('MemberRoles');
+const NXMaster = artifacts.require('NXMaster');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
+const { increaseTimeTo, duration } = require('./utils/increaseTime');
+const { latestTime } = require('./utils/latestTime');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
@@ -15,6 +19,8 @@ let mcr;
 let pd;
 let tk;
 let p1;
+let mr;
+let nxms;
 let balance_DAI;
 let balance_ETH;
 
@@ -31,6 +37,68 @@ contract('MCR', function([owner, notOwner]) {
     p1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     cad = await DAI.deployed();
+    nxms = await NXMaster.deployed();
+    mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+  });
+
+  describe('Initial MCR cap test cases', function() {
+    it('post mcr before launch should not affect initialMCRCap', async function() {
+      let cap = await pd.capReached();
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        2 * 1e18,
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181011
+      );
+      (await pd.capReached()).should.be.bignumber.equal(cap);
+    });
+    describe('After launch', function() {
+      before(async function() {
+        await mr.addMembersBeforeLaunch([], []);
+        (await mr.launched()).should.be.equal(true);
+      });
+
+      it('After launch cap should not be set until it reached 100 for 1st time', async function() {
+        await mcr.addMCRData(
+          1800,
+          100 * 1e18,
+          2 * 1e18,
+          ['0x455448', '0x444149'],
+          [100, 65407],
+          20181011
+        );
+        (await pd.capReached()).should.be.bignumber.equal(0);
+      });
+
+      it('After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
+        let time = await latestTime();
+        time = time + (await duration.days(30));
+        await increaseTimeTo(time);
+        await mcr.addMCRData(
+          1800,
+          100 * 1e18,
+          2 * 1e18,
+          ['0x455448', '0x444149'],
+          [100, 65407],
+          20181011
+        );
+        (await pd.capReached()).should.be.bignumber.equal(2);
+      });
+
+      it('After launch cap should not be set to 2 if reached 100% for 1st time on 30th day', async function() {
+        await mcr.addMCRData(
+          18000,
+          100 * 1e18,
+          2 * 1e18,
+          ['0x455448', '0x444149'],
+          [100, 65407],
+          20181011
+        );
+        (await pd.capReached()).should.be.bignumber.equal(1);
+      });
+    });
   });
 
   describe('Calculation of V(tp) and MCR(tp)', function() {
@@ -38,6 +106,14 @@ contract('MCR', function([owner, notOwner]) {
     let cal_mcrtp;
 
     before(async function() {
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        2 * 1e18,
+        ['0x455448', '0x444149'],
+        [100, 15517],
+        20190103
+      );
       await cad.transfer(p1.address, ether(600));
       balance_DAI = await cad.balanceOf(p1.address);
       balance_ETH = await web3.eth.getBalance(p1.address);
@@ -121,8 +197,8 @@ contract('MCR', function([owner, notOwner]) {
       it('should be able to add MCR data', async function() {
         await mcr.addMCRData(
           18000,
-          10000,
-          2,
+          100 * 1e18,
+          2 * 1e18,
           ['0x455448', '0x444149'],
           [100, 65407],
           20181011,

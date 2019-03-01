@@ -189,6 +189,7 @@ contract Quotation is Iupgradable {
         returns(bool)
     {
         require(smaratCA != address(0));
+        require(pd.capReached() == 1);
         bytes32 hash = getOrderHash(coverDetails, coverPeriod, curr, smaratCA);
         return isValidSignature(hash, _v, _r, _s);
     }

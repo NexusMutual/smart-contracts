@@ -84,6 +84,16 @@ contract('NXMaster: Emergency Pause', function([
     gv = await Governance.at(gvAddress);
     let address = await nxms.getLatestAddress('MR');
     mr = await MemberRoles.at(address);
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
+    await mcr.addMCRData(
+      18000,
+      100 * 1e18,
+      2 * 1e18,
+      ['0x455448', '0x444149'],
+      [100, 65407],
+      20181011
+    );
     await mr.payJoiningFee(owner, { from: owner, value: fee });
     await mr.kycVerdict(owner, true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });

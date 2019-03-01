@@ -131,6 +131,11 @@ contract('NXMaster', function([
       memberRoles = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     });
 
+    it('should set launch bit after adding initial members', async function() {
+      await memberRoles.addMembersBeforeLaunch([], []);
+      (await memberRoles.launched()).should.be.equal(true);
+    });
+
     it('should be able to reinitialize', async function() {
       this.timeout(0);
       await pl1.sendTransaction({ from: owner, value: poolEther });

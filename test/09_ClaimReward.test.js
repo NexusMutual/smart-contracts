@@ -10,6 +10,7 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const MCR = artifacts.require('MCR');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -41,6 +42,7 @@ let qt;
 let cad;
 let nxms;
 let mr;
+let mcr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -79,6 +81,18 @@ contract('ClaimsReward', function([
     qt = await Quotation.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    mcr = await MCR.deployed();
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
+    await mcr.addMCRData(
+      18000,
+      100 * 1e18,
+      2 * 1e18,
+      ['0x455448', '0x444149'],
+      [100, 65407],
+      20181011
+    );
+
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await mr.payJoiningFee(member2, { from: member2, value: fee });

@@ -54,6 +54,8 @@ contract('NXMToken', function([
     pd = await PoolData.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
   });
 
   describe('token details', function() {
@@ -378,7 +380,7 @@ contract('NXMToken', function([
         await mcr.addMCRData(
           180,
           0,
-          2,
+          2 * 1e18,
           ['0x455448', '0x444149'],
           [100, 15517],
           20190219

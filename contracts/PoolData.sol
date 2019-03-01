@@ -100,10 +100,11 @@ contract PoolData is Iupgradable {
     uint64 public growthStep;
     uint64 public mcrFailTime; 
     uint public ethVolumeLimit;
-
+    uint public capReached;
+    
     constructor() public {
-        growthStep = 1500000;
-        sfX100000 = 140;
+        growthStep = 5203349;
+        sfX100000 = 1948;
         mcrTime = 24 hours;
         mcrFailTime = 6 hours;
         minMCRReq = 0; //value in percentage e.g 60% = 60*100 
@@ -124,6 +125,10 @@ contract PoolData is Iupgradable {
         allInvestmentCurrencies.push("DAI");
         allInvestmentAssets["DAI"] = InvestmentAssets(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359, true, 500, 5000, 18);
     }
+
+    function setCapReached(uint val) external onlyInternal {
+        capReached = val;
+    }    
 
     /// @dev Changes address allowed to post MCR.
     function changeNotariseAddress(address _add) external onlyOwner {

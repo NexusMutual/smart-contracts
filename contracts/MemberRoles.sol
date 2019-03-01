@@ -48,6 +48,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     bool internal constructorCheck;
     uint public maxABCount;
     bool public launched;
+    uint public launchedOn;
     modifier checkRoleAuthority(uint _memberRoleId) {
         if (memberRoleData[_memberRoleId].authorized != address(0))
             require(msg.sender == memberRoleData[_memberRoleId].authorized);
@@ -129,6 +130,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             dAppToken.mint(userArray[i], tokens[i]);
         }
         launched = true;
+        launchedOn = now;
 
     }
 
@@ -352,6 +354,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             memberAuthority
         );
         _updateRole(_firstAB, uint(Role.AdvisoryBoard), true);
+        launchedOn = 0;
     }
 
 }

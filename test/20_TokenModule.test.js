@@ -40,6 +40,8 @@ contract('Token Module', function([owner, member1]) {
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     td = await TokenData.deployed();
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
 
     await p1.upgradeCapitalPool(owner);
     await p1.sendTransaction({ from: owner, value: 50 * 1e18 });

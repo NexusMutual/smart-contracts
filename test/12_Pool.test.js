@@ -76,6 +76,16 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     tc = await TokenController.deployed();
+    await mr.addMembersBeforeLaunch([], []);
+    (await mr.launched()).should.be.equal(true);
+    await mcr.addMCRData(
+      18000,
+      100 * 1e18,
+      2 * 1e18,
+      ['0x455448', '0x444149'],
+      [100, 65407],
+      20181011
+    );
 
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);

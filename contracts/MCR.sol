@@ -20,6 +20,7 @@ import "./Pool1.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./Iupgradable.sol";
+import "./MemberRoles.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
@@ -31,6 +32,7 @@ contract MCR is Iupgradable {
     PoolData internal pd;
     NXMToken internal tk;
     QuotationData internal qd;
+    MemberRoles internal mr;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint private constant DECIMAL1E16 = uint(10) ** 16;
@@ -107,6 +109,15 @@ contract MCR is Iupgradable {
         checkPause
     {
         require(pd.isnotarise(msg.sender));
+        uint _days = (uint(now).sub(mr.launchedOn())).div(1 days);
+        if(mr.launched() && pd.capReached() != 1 && _days <= 30){
+            
+            if(mcrP >= 10000)
+                pd.setCapReached(1);  
+            if(pd.capReached() != 1 && _days == 30)
+                pd.setCapReached(2);
+
+        }
         uint len = pd.getMCRDataLength();
         _addMCRData(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
     }
@@ -151,6 +162,7 @@ contract MCR is Iupgradable {
         p1 = Pool1(ms.getLatestAddress("P1"));
         pd = PoolData(ms.getLatestAddress("PD"));
         tk = NXMToken(ms.tokenAddress());
+        mr = MemberRoles(ms.getLatestAddress("MR"));
     }
 
     /** 

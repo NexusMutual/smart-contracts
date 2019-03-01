@@ -529,8 +529,10 @@ contract Pool2 is Iupgradable {
                 intermediaryEth = exchange.getEthToTokenInputPrice(amount);
                 trigger = true;
             }
-            if(intermediaryEth > erc20.balanceOf(address(this)))
-                intermediaryEth = erc20.balanceOf(address(this));
+            // if(intermediaryEth > erc20.balanceOf(address(this))){
+            //     intermediaryEth = erc20.balanceOf(address(this));
+                
+            // }
 
             erc20 = ERC20(pd.getCurrencyAssetAddress(maxIACurr));
             // erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));

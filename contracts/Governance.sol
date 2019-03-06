@@ -89,7 +89,6 @@ contract Governance is IGovernance, Iupgradable {
     mapping (uint => VoteTally) public proposalVoteTally;
 
     bool internal constructorCheck;
-    uint internal minVoteWeight;
     uint public tokenHoldingTime;
     uint internal roleIdAllowedToCatgorize;
     uint internal maxVoteWeigthPer;
@@ -131,13 +130,19 @@ contract Governance is IGovernance, Iupgradable {
         _;
     }
 
+    modifier onlyOwner() {
+        require (ms.isOwner(msg.sender));
+        _;
+    }
+
+
     event ProposalCategorized(
         uint indexed proposalId,
         address indexed categorizedBy,
         uint categoryId
     );
 
-    function changeTokenHoldingTime(uint time) external onlyInternal{
+    function changeTokenHoldingTime(uint time) external onlyOwner {
         tokenHoldingTime = time;
     }
  
@@ -157,7 +162,7 @@ contract Governance is IGovernance, Iupgradable {
         external isAllowed(_categoryId)
     {
         require (ms.isMember(msg.sender), "Not Member");
-        
+
         _createProposal(_proposalTitle, _proposalSD, _proposalDescHash, _categoryId);
     }
 
@@ -225,7 +230,7 @@ contract Governance is IGovernance, Iupgradable {
         _proposalSubmission(_proposalId, _solutionHash, _action);
     }
 
-    /// @dev Creates a new proposal with solution and votes for the solution
+    /// @dev Creates a new proposal with solution
     /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
     /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
@@ -249,6 +254,34 @@ contract Governance is IGovernance, Iupgradable {
             _solutionHash,
             _action
         );
+    }
+
+    /// @dev Creates a new proposal with solution and votes for the solution
+    /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
+    /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
+    /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
+    function createProposalwithVote(
+        string _proposalTitle, 
+        string _proposalSD, 
+        string _proposalDescHash,
+        uint _categoryId, 
+        string _solutionHash,
+        bytes _action
+    ) 
+        external isAllowed(_categoryId)
+    {
+
+        uint proposalId = allProposal.length;
+
+        _createProposal(_proposalTitle, _proposalSD, _proposalDescHash, _categoryId);
+
+        _proposalSubmission(
+            proposalId,
+            _solutionHash,
+            _action
+        );
+
+        _submitVote(proposalId, 1);
     }
 
     function submitVote(uint _proposalId, uint _solutionChosen) external {
@@ -659,16 +692,16 @@ contract Governance is IGovernance, Iupgradable {
         (, mrSequence, majority, , , closingTime, ) = proposalCategory.category(allProposalData[_proposalId].category);
 
         require (allProposal[_proposalId].dateUpd.add(closingTime) > now, "Closed");
-        
-        require(memberProposalVote[msg.sender][_proposalId] == 0);        
+
+        require(memberProposalVote[msg.sender][_proposalId] == 0);
         require((delegationId == 0) || (delegationId > 0 && allDelegation[delegationId].leader == address(0) && 
         _checkLastUpd(allDelegation[delegationId].lastUpd)));
-        
+
         require(memberRole.checkRole(msg.sender, mrSequence));
 
 
         uint totalVotes = allVotes.length;
-        
+
         allVotesByMember[msg.sender].push(totalVotes);
         memberProposalVote[msg.sender][_proposalId] = totalVotes;
 
@@ -679,7 +712,7 @@ contract Governance is IGovernance, Iupgradable {
         emit Vote(msg.sender, _proposalId, totalVotes - 1, now, _solution);
 
         uint numberOfMembers = memberRole.numberOfMembers(mrSequence);
-        
+
         if (mrSequence == uint(MemberRoles.Role.AdvisoryBoard)) {
             uint totalABVoted = proposalVoteTally[_proposalId].abVoteValue[1] + 
             proposalVoteTally[_proposalId].abVoteValue[0];

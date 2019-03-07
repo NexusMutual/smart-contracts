@@ -119,8 +119,6 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         50, 25, 1, 0);
         addInitialCategories("Edit category", "QmQmvfBiCLfe5jPdq69iRBRRdnSHSroJQ4SG8DhtkXcLfQ", 
         "PC", 50, 25, 1, 0);
-        addInitialCategories("Resume Proposal", "QmQPWVjmv2Gt2Dzt1rxmFkHCptFSdtX4VC5g7VVNUByLv1", "GV", 50, 25, 1, 0);
-        addInitialCategories("Pause Proposal", "QmWWoiRZCmi61LQKpGyGuKjasFVpq8JzbLPvDhU8TBS9tk", "GV", 50, 25, 1, 0);
         addInitialCategories(
             "Upgrade a contract Implementation",
             "Qme4hGas6RuDYk9LKE2XkK9E46LNeCBUzY12DdT5uQstvh",

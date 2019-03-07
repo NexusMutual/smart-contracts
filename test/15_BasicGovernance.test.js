@@ -184,42 +184,6 @@ contract(
       await assertRevert(gv.submitVote(proposalId, 1));
     });
 
-    it('Should pause proposal', async function() {
-      let p = await gv.getProposalLength();
-      p = p.toNumber();
-      await gv.createProposal('Pause', 'Pause proposal', 'Pause proposal', 0);
-      await gv.categorizeProposal(p, 6, 0);
-      let actionHash = encode('pauseProposal(uint)', proposalId);
-      await gv.submitProposalWithSolution(p, 'Pause proposal', actionHash);
-      await gv.submitVote(p, 1);
-      await gv.closeProposal(p);
-      let isPaused = await gv.proposalPaused(proposalId);
-      assert.equal(isPaused, true, 'Proposal not paused');
-    });
-
-    it('Should not close a paused proposal', async function() {
-      await assertRevert(gv.closeProposal(proposalId));
-    });
-
-    it('Should resume proposal', async function() {
-      let p = await gv.getProposalLength();
-      p = p.toNumber();
-      await gv.createProposal(
-        'Resume',
-        'Resume proposal',
-        'Resume proposal',
-        0
-      );
-      await gv.categorizeProposal(p, 5, 0);
-      let actionHash = encode('resumeProposal(uint)', proposalId);
-      await gv.submitProposalWithSolution(p, 'Resume proposal', actionHash);
-      await gv.submitVote(p, 1);
-      await gv.closeProposal(p);
-      let isPaused = await gv.proposalPaused(proposalId);
-      assert.equal(isPaused, false, 'Proposal not resumed');
-      await assertRevert(gv.resumeProposal(proposalId));
-    });
-
     it('Should not claim reward for an open proposal', async function() {
       await assertRevert(cr.claimAllPendingReward([proposalId]));
     });

@@ -81,7 +81,6 @@ contract Governance is IGovernance, Iupgradable {
     mapping(uint => ProposalData) internal allProposalData;
     mapping(uint => bytes[]) internal allProposalSolutions;
     mapping(address => uint[]) internal allVotesByMember;
-    mapping(uint => bool) public proposalPaused;
     mapping(uint => mapping(address => bool)) public rewardClaimed; //voteid->member->reward claimed
     mapping (address => mapping(uint => uint)) public memberProposalVote;
     mapping (address => uint) public followerDelegation;
@@ -517,16 +516,13 @@ contract Governance is IGovernance, Iupgradable {
     }
 
     /// @dev pause a proposal
-    function pauseProposal(uint _proposalId) public onlyInternal {
-        proposalPaused[_proposalId] = true;
-        allProposal[_proposalId].dateUpd = now;
+    //To implement govblocks interface
+    function pauseProposal(uint) public {
     }
 
     /// @dev resume a proposal
-    function resumeProposal(uint _proposalId) public onlyInternal {
-        require(proposalPaused[_proposalId]);
-        proposalPaused[_proposalId] = false;
-        allProposal[_proposalId].dateUpd = now;
+    //To implement govblocks interface
+    function resumeProposal(uint) public {
     }
 
     function getPendingReward(address _memberAddress)
@@ -569,7 +565,6 @@ contract Governance is IGovernance, Iupgradable {
         uint _closingTime;
         uint _roleId;
         uint majority;
-        require(!proposalPaused[_proposalId]);
         pStatus = allProposalData[_proposalId].propStatus;
         dateUpdate = allProposal[_proposalId].dateUpd;
         (, _roleId, majority, , , _closingTime, ) = proposalCategory.category(allProposalData[_proposalId].category);

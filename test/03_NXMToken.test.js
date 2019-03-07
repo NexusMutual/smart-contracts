@@ -376,7 +376,7 @@ contract('NXMToken', function([
   describe('Misc', function() {
     describe('Buy Tokens at zero price', function() {
       before(async function() {
-        await pd.changeSF(0, { from: owner });
+        await pd.changeA(0, { from: owner });
         await mcr.addMCRData(
           180,
           0,

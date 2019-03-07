@@ -13,6 +13,7 @@ const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const DAI = artifacts.require('MockDAI');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -31,6 +32,13 @@ const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
 const v = 28;
 const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
+
+const coverDetailsDai = [5, 16812229066849188, 5694231991898, 7972408607];
+const vrs_dai = [
+  27,
+  '0xdcaa177410672d90890f1c0a42a965b3af9026c04caedbce9731cb43827e8556',
+  '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
+];
 
 let P1;
 let p2;
@@ -59,6 +67,7 @@ contract('Claim: Assessment', function([
   member2,
   member3,
   member4,
+  member5,
   staker1,
   staker2,
   coverHolder,
@@ -93,6 +102,7 @@ contract('Claim: Assessment', function([
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     p2 = await Pool2.deployed();
+    cad = await DAI.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -177,25 +187,40 @@ contract('Claim: Assessment', function([
             await cl.getClaimFromNewStart(0, { from: member1 });
             await cl.getUserClaimByIndex(0, { from: coverHolder });
             await cl.getClaimbyIndex(1, { from: coverHolder });
-            await cl.getCATokensLockedAgainstClaim(member1, 1, {
-              from: owner
-            });
             claimId = (await cd.actualClaimLength()) - 1;
           });
           it('voting should be open', async function() {
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(0);
           });
           it('should let claim assessors to vote for claim assessment', async function() {
+            let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
             await cl.submitCAVote(claimId, -1, { from: member1 });
             await cl.submitCAVote(claimId, -1, { from: member2 });
             await cl.submitCAVote(claimId, -1, { from: member3 });
-            await cd.getAllVotesForClaim(claimId);
+            let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+            (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
+              tokens * 3
+            );
+            let all_votes = await cd.getAllVotesForClaim(claimId);
+            expectedVotes = all_votes[1].length;
+            expectedVotes.should.be.equal(3);
             let isBooked = await td.isCATokensBooked(member1);
             isBooked.should.be.equal(true);
+          });
+          it('should not let claim assessors to vote for 2nd time in same claim id', async function() {
+            await assertRevert(cl.submitCAVote(claimId, -1, { from: member2 }));
+          });
+          it('should not let member to vote for CA', async function() {
+            await assertRevert(
+              cl.submitMemberVote(claimId, -1, { from: member1 })
+            );
           });
           it('should close voting after min time', async function() {
             await increaseTimeTo(minTime.plus(2));
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(1);
+          });
+          it('should not able to vote after voting close', async function() {
+            await assertRevert(cl.submitCAVote(claimId, 1, { member1 }));
           });
           it('should be able to change claim status', async function() {
             let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -242,19 +267,19 @@ contract('Claim: Assessment', function([
             await cl.getClaimFromNewStart(1, { from: member1 });
             await cd.getVoteToken(claimId, 0, 1);
             await cd.getVoteVoter(claimId, 1, 1);
+            let verdict = await cd.getVoteVerdict(claimId, 1, 1);
+            parseFloat(verdict).should.be.equal(1);
             await cd.setpendingClaimStart(1);
             await assertRevert(cd.setpendingClaimStart(0));
           });
-          it('should be able to change claim status', async function() {
-            await cd.getCaClaimVotesToken(claimId);
-            await cd.getVoteVerdict(claimId, 1, 1);
-            // await cd.getVoteVerdict(claimId, 1, 0);
-            await cd.getClaimVoteLength(claimId, 1);
-            await cd.getClaimVoteLength(claimId, 1);
+          it('should not able to vote after voting closed', async function() {
             const now = await latestTime();
             const maxVotingTime = await cd.maxVotingTime();
             closingTime = maxVotingTime.plus(now);
             await increaseTimeTo(closingTime.plus(6));
+            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+          });
+          it('should be able to change claim status', async function() {
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(7);
@@ -279,18 +304,6 @@ contract('Claim: Assessment', function([
                   .toFixed(4)
               );
           });
-          // it('should burns tokens used for fraudulent voting against a claim', async function() {
-          //   const initialTB = await tc.tokensLocked(member1, CLA);
-          //   const initialTS = await tk.totalSupply();
-          //   await assertRevert(tf.burnCAToken(claimId, ether(1), notMember));
-          //   await tf.burnCAToken(claimId, ether(1), member1);
-          //   (await tc.tokensLocked(member1, CLA)).should.be.bignumber.equal(
-          //     initialTB.minus(ether(1))
-          //   );
-          //   (await tk.totalSupply()).should.be.bignumber.equal(
-          //     initialTS.minus(ether(1))
-          //   );
-          // });
         });
       });
       describe('CA not voted', function() {
@@ -356,7 +369,12 @@ contract('Claim: Assessment', function([
             await cl.submitMemberVote(claimId, -1, { from: member1 });
             await cl.submitMemberVote(claimId, -1, { from: member2 });
             await cl.submitMemberVote(claimId, -1, { from: member3 });
-            await cd.getVoteVerdict(claimId, 1, 0);
+            await cr.changeClaimStatus(claimId);
+            let claimed = await cr.getRewardAndClaimedStatus(0, claimId, {
+              from: member1
+            });
+            await cr.claimAllPendingReward([], { from: member1 });
+            claimed[1].should.be.equal(false);
             await cl.getClaimFromNewStart(0, { from: member1 });
             await cl.getClaimFromNewStart(1, { from: member1 });
             await cd.getVoteToken(claimId, 0, 0);
@@ -369,26 +387,33 @@ contract('Claim: Assessment', function([
             await cd.getVoteAddressMemberLength(member1);
             // await cr.getRewardToBeDistributedByUser(member1);
           });
-          // it('member should not be able to transfer any tokens', async function() {
-          //   await cd.getClaimVoteLength(claimId, 1);
-          //   await cd.getClaimLength();
-          //   await cd.getClaimVoteLength(claimId, 0);
-          //   await cd.getVoteVerdict(claimId, 1, 0);
-          //   await cd.getUserClaimCount(coverHolder);
-          //   await assertRevert(
-          //     tk.transfer(member2, tokens, { from: member1 })
-          //   );
-          //   await tk.approve(member2, tokens, { from: coverHolder });
-          //   await assertRevert(
-          //     tk.transferFrom(coverHolder, member3, tokens, {
-          //       from: member2
-          //     })
-          //   );
-          // });
-          it('should change claim status', async function() {
+          it('should not be able to cast vote by CA in member voting', async function() {
+            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+          });
+
+          it('should not let member to vote for 2nd time in same claim id', async function() {
+            await assertRevert(
+              cl.submitMemberVote(claimId, -1, { from: member1 })
+            );
+          });
+          it('member should not be able to transfer any tokens', async function() {
+            let claimCALen = await cd.getClaimVoteLength(claimId, 1);
+            let claimMemLen = await cd.getClaimVoteLength(claimId, 0);
+            let verdict = await cd.getVoteVerdict(claimId, 1, 0);
+            parseFloat(verdict).should.be.equal(-1);
+            let userClaimCount = await cd.getUserClaimCount(coverHolder);
+            await assertRevert(tk.transfer(member2, tokens, { from: member1 }));
+            await tk.approve(member2, tokens, { from: coverHolder });
+          });
+          it('should not able to vote after voting closed', async function() {
             const now = await latestTime();
             closingTime = maxVotingTime.plus(now);
             await increaseTimeTo(closingTime.plus(2));
+            await assertRevert(
+              cl.submitMemberVote(claimId, -1, { from: member1 })
+            );
+          });
+          it('should change claim status', async function() {
             await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(9);
@@ -406,7 +431,7 @@ contract('Claim: Assessment', function([
             closingTime = maxVotingTime.plus(now);
             await increaseTimeTo(closingTime.plus(2));
             await cr.changeClaimStatus(claimId);
-            await cd.getAllClaimsByAddress(coverHolder);
+            // await cd.getAllClaimsByAddress(coverHolder);
           });
           it('member should be able to cast vote', async function() {
             await cl.submitMemberVote(claimId, 1, { from: member1 });
@@ -479,6 +504,145 @@ contract('Claim: Assessment', function([
       let CSA = await qd.getTotalSumAssured('ETH');
       await qt.expireCover(coverID[1]);
       CSA.should.be.bignumber.equal(await qd.getTotalSumAssured('ETH'));
+    });
+  });
+
+  describe('CA Pool have insuffecient funds for payout', function() {
+    before(async function() {
+      await P1.makeCoverBegin(
+        smartConAdd,
+        'ETH',
+        coverDetails,
+        coverPeriod,
+        v,
+        r,
+        s,
+        { from: coverHolder, value: coverDetails[1] }
+      );
+
+      coverID = await qd.getAllCoversOfUser(coverHolder);
+
+      let now = await latestTime();
+      await increaseTimeTo(BOOK_TIME.plus(now));
+      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      let clid = (await cd.actualClaimLength()) - 1;
+      await tc.lock(CLA, tokens, duration.days(300), {
+        from: member4
+      });
+      await cl.submitCAVote(clid, 1, { from: member4 });
+      now = await latestTime();
+      let maxVoteTime = await cd.maxVotingTime();
+      await increaseTimeTo(now / 1 + maxVoteTime / 1);
+    });
+    it('Payout fails', async function() {
+      await P1.upgradeCapitalPool(member2);
+      let clid = (await cd.actualClaimLength()) - 1;
+      await cr.changeClaimStatus(clid);
+      let cStatus = await cd.getClaimStatusNumber(clid);
+      (12).should.be.equal(parseFloat(cStatus[1]));
+    });
+    it('Retry Payout 60 times and should not take action from 61st attempt', async function() {
+      await P1.upgradeCapitalPool(member2);
+      let clid = (await cd.actualClaimLength()) - 1;
+      let payOutRetry = await cd.payoutRetryTime();
+      for (var i = 0; i < 61; i++) {
+        let now = await latestTime();
+        await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
+        check = await cl.checkVoteClosing(clid);
+        // console.log(i);
+        // console.log(await cd.getClaimState12Count(clid));
+        if (i != 60) parseFloat(check).should.be.equal(1);
+        await cr.changeClaimStatus(clid);
+      }
+      check = await cl.checkVoteClosing(clid);
+      parseFloat(check).should.be.equal(-1);
+      let cStatus = await cd.getClaimStatusNumber(clid);
+      (13).should.be.equal(parseFloat(cStatus[1]));
+      await P1.sendTransaction({ from: owner, value: 10 * 1e18 });
+      await cr.changeClaimStatus(clid);
+      cStatus = await cd.getClaimStatusNumber(clid);
+      (13).should.be.equal(parseFloat(cStatus[1]));
+    });
+    it('Payout fails for 1st time and later complete', async function() {
+      await cad.transfer(coverHolder, 20 * 1e18);
+      await cad.approve(P1.address, coverDetailsDai[1], {
+        from: coverHolder
+      });
+      await P1.makeCoverUsingCA(
+        smartConAdd,
+        'DAI',
+        coverDetailsDai,
+        coverPeriod,
+        vrs_dai[0],
+        vrs_dai[1],
+        vrs_dai[2],
+        { from: coverHolder }
+      );
+      coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      let clid = (await cd.actualClaimLength()) - 1;
+      await cl.submitCAVote(clid, 1, { from: member4 });
+      let now = await latestTime();
+      let maxVoteTime = await cd.maxVotingTime();
+      await increaseTimeTo(now / 1 + maxVoteTime / 1);
+      cStatus = await cd.getClaimStatusNumber(clid);
+      await cr.changeClaimStatus(clid);
+      cStatus = await cd.getClaimStatusNumber(clid);
+      (12).should.be.equal(parseFloat(cStatus[1]));
+      await cad.transfer(P1.address, 20 * 1e18);
+      await cr.changeClaimStatus(clid);
+      cStatus = await cd.getClaimStatusNumber(clid);
+      (14).should.be.equal(parseFloat(cStatus[1]));
+    });
+  });
+  describe('More basic test cases', function() {
+    before(async function() {
+      // let now = await latestTime();
+      // await increaseTimeTo(BOOK_TIME.plus(now));
+      await mr.payJoiningFee(member5, { from: member5, value: fee });
+      await mr.kycVerdict(member5, true);
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member5 });
+      await tk.transfer(member5, ether(250));
+      await tc.lock(CLA, ether(200), duration.days(300), {
+        from: member5
+      });
+      await P1.makeCoverBegin(
+        smartConAdd,
+        'ETH',
+        coverDetails,
+        coverPeriod,
+        v,
+        r,
+        s,
+        { from: coverHolder, value: coverDetails[1] }
+      );
+      coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+    });
+    it('should close voting during casting vote as CA', async function() {
+      now = await latestTime();
+      let minVoteTime = await cd.minVotingTime();
+      await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
+      let clid = (await cd.actualClaimLength()) - 1;
+      await cl.submitCAVote(clid, -1, { from: member5 });
+      tokenVoted = await cd.getTokensClaim(member5, clid);
+      parseFloat(tokenVoted[1]).should.be.equal(parseFloat(ether(200)));
+      (await cl.checkVoteClosing(clid)).should.be.bignumber.equal(-1);
+    });
+
+    it('should close voting during casting vote as Member', async function() {
+      coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      let clid = (await cd.actualClaimLength()) - 1;
+      let now = await latestTime();
+      let maxVoteTime = await cd.maxVotingTime();
+      await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
+      await cr.changeClaimStatus(clid);
+      now = await latestTime();
+      let minVoteTime = await cd.minVotingTime();
+      await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
+      await cl.submitMemberVote(clid, -1, { from: member5 });
+      (await cl.checkVoteClosing(clid)).should.be.bignumber.equal(-1);
     });
   });
 });

@@ -142,19 +142,19 @@ contract ClaimsReward is Iupgradable {
                 if (check == 1) {
                     if (verdict == 1) {
                         (, totalTokens, ) = cd.getClaimsTokenCA(claimId);
-                    } else if (verdict == -1) {
+                    } else {
                         (, , totalTokens) = cd.getClaimsTokenCA(claimId);
                     }
                 } else {
                     if (verdict == 1) {
                         (, totalTokens, ) = cd.getClaimsTokenMV(claimId);
-                    }else if (verdict == -1) {
+                    }else {
                         (, , totalTokens) = cd.getClaimsTokenMV(claimId);
                     }
                 }
-                if (totalTokens > 0) {
-                    tokenCalculated = (perc.mul(tokens).mul(tokensToBeDist)).div(totalTokens.mul(100));
-                }
+                tokenCalculated = (perc.mul(tokens).mul(tokensToBeDist)).div(totalTokens.mul(100));
+                
+                
             }
         }
     }
@@ -163,7 +163,8 @@ contract ClaimsReward is Iupgradable {
     function upgrade(address _newAdd) public onlyInternal {
         uint amount = tk.balanceOf(address(this));
         if (amount > 0)
-            require(tk.transfer(_newAdd, amount));
+            tk.transfer(_newAdd, amount);
+        
     }
 
     /// @dev Total reward in token due for claim by a user.
@@ -260,10 +261,10 @@ contract ClaimsReward is Iupgradable {
             cd.changeFinalVerdict(claimid, -1);
             td.setDepositCN(coverid, false); // Unset flag
             tf.burnDepositCN(coverid); // burn Deposited CN
-            if (sumAssured <= pd.getCurrencyAssetVarMin(curr)) {
-                pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).sub(sumAssured));
-                p2.internalLiquiditySwap(curr);
-            }
+            
+            pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).sub(sumAssured));
+            p2.internalLiquiditySwap(curr);
+            
         } else if (status == 7 || status == 8 || status == 10) {
             cd.changeFinalVerdict(claimid, 1);
             td.setDepositCN(coverid, false); // Unset flag
@@ -428,7 +429,7 @@ contract ClaimsReward is Iupgradable {
                 total = tokenForVoteId.add(total);
         }
         if (total > 0)
-            require(tk.transfer(msg.sender, total)); 
+            tk.transfer(msg.sender, total); 
         cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
 
@@ -451,6 +452,7 @@ contract ClaimsReward is Iupgradable {
         }
 
         if (total > 0) 
-            require(tk.transfer(msg.sender, total)); //solhint-disable-line
+            tk.transfer(msg.sender, total); //solhint-disable-line
+        
     }
 }

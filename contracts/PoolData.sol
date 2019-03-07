@@ -94,20 +94,18 @@ contract PoolData is Iupgradable {
     uint64 public iaRatesTime;
     uint public minCap;
     uint64 public mcrTime;
-    uint64 public minMCRReq;
-    uint64 public sfX100000;
+    uint64 public A;
     uint public shockParameter;
-    uint64 public growthStep;
+    uint64 public C;
     uint64 public mcrFailTime; 
     uint public ethVolumeLimit;
     uint public capReached;
     
     constructor() public {
-        growthStep = 5203349;
-        sfX100000 = 1948;
+        C = 5203349;
+        A = 1948;
         mcrTime = 24 hours;
         mcrFailTime = 6 hours;
-        minMCRReq = 0; //value in percentage e.g 60% = 60*100 
         allMCRData.push(McrData(0, 0, 0, 0));
         minCap = DECIMAL1E18;
         shockParameter = 50;
@@ -146,8 +144,8 @@ contract PoolData is Iupgradable {
     }
 
     /// @dev Changes Growth Step
-    function changeGrowthStep(uint32 newGS) external onlyOwner {
-        growthStep = newGS;
+    function changeC(uint32 newGS) external onlyOwner {
+        C = newGS;
     }
     
     /// @dev Changes time period for obtaining new MCR data from external oracle query.
@@ -156,25 +154,19 @@ contract PoolData is Iupgradable {
     }
 
     /// @dev Sets MCR Fail time.
-    function changeMCRFailTime(uint64 _time) external onlyInternal {
+    function changeMCRFailTime(uint64 _time) external onlyOwner {
         mcrFailTime = _time;
-    }
-
-    /// @dev Changes minimum value of MCR required for the system to be working.
-    /// @param minMCR in percentage. e.g 76% = 76*100
-    function changeMinReqMCR(uint32 minMCR) external onlyInternal {
-        minMCRReq = minMCR;
     }
 
     /// @dev Stores name of currency accepted in the system.
     /// @param curr Currency Name.
     function addCurrency(bytes4 curr) external onlyInternal {
         allCurrencies.push(curr);
-    }
+    } //have to remove
 
     /// @dev Changes scaling factor.
-    function changeSF(uint32 val) external onlyInternal {
-        sfX100000 = val;
+    function changeA(uint32 val) external onlyInternal {
+        A = val;
     }
     
     /// @dev Updates the 3 day average rate of a IA currency.
@@ -206,11 +198,11 @@ contract PoolData is Iupgradable {
         daiFeedAddress = _add;
     }
 
-    function changeUniswapDeadlineTime(uint newDeadline) external onlyInternal {
+    function changeUniswapDeadlineTime(uint newDeadline) external onlyOwner {
         uniswapDeadline = newDeadline;
     }
 
-    function changeliquidityTradeCallbackTime(uint newTime) external onlyInternal {
+    function changeliquidityTradeCallbackTime(uint newTime) external onlyOwner {
         liquidityTradeCallbackTime = newTime;
     }
 
@@ -265,7 +257,7 @@ contract PoolData is Iupgradable {
     /**
      * @dev Changes time after which investment asset rates need to be fed.
      */  
-    function changeIARatesTime(uint64 _newTime) external onlyInternal {
+    function changeIARatesTime(uint64 _newTime) external onlyOwner {
         iaRatesTime = _newTime;
     }
 
@@ -320,7 +312,7 @@ contract PoolData is Iupgradable {
     /**
      * @dev Changes the variation range percentage.
      */  
-    function changeVariationPercX100(uint64 newPercX100) external onlyInternal {
+    function changeVariationPercX100(uint64 newPercX100) external onlyOwner {
         variationPercX100 = newPercX100;
     }
 
@@ -438,9 +430,9 @@ contract PoolData is Iupgradable {
     }
 
     /// @dev Gets details for token price calculation.
-    function getTokenPriceDetails(bytes4 curr) external view returns(uint sf, uint gs, uint rate) {
-        sf = sfX100000;
-        gs = growthStep;
+    function getTokenPriceDetails(bytes4 curr) external view returns(uint a, uint c, uint rate) {
+        a = A;
+        c = C;
         rate = _getAvgRate(curr, false);
     }
     

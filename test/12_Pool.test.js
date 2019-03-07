@@ -113,10 +113,10 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
           (await pd.shockParameter()).should.be.bignumber.equal(1);
         });
       });
-      describe('Change GrowthStep', function() {
-        it('should be able to change GrowthStep', async function() {
-          await pd.changeGrowthStep(1, { from: owner });
-          (await pd.growthStep()).should.be.bignumber.equal(1);
+      describe('Change C', function() {
+        it('should be able to change C', async function() {
+          await pd.changeC(1, { from: owner });
+          (await pd.C()).should.be.bignumber.equal(1);
         });
       });
       describe('Change MCRTime', function() {
@@ -129,12 +129,6 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
         it('should be able to change MCRFailTime', async function() {
           await pd.changeMCRFailTime(1, { from: owner });
           (await pd.mcrFailTime()).should.be.bignumber.equal(1);
-        });
-      });
-      describe('Change MinReqMCR', function() {
-        it('should be able to change MinReqMCR', async function() {
-          await pd.changeMinReqMCR(1, { from: owner });
-          (await pd.minMCRReq()).should.be.bignumber.equal(1);
         });
       });
     });
@@ -150,9 +144,9 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
           await assertRevert(pd.changeShockParameter(1, { from: notOwner }));
         });
       });
-      describe('Change GrowthStep', function() {
-        it('should not be able to change GrowthStep', async function() {
-          await assertRevert(pd.changeGrowthStep(1, { from: notOwner }));
+      describe('Change C', function() {
+        it('should not be able to change C', async function() {
+          await assertRevert(pd.changeC(1, { from: notOwner }));
         });
       });
       describe('Change MCRTime', function() {
@@ -163,11 +157,6 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       describe('Change MCRFailTime', function() {
         it('should not be able to change MCRFailTime', async function() {
           await assertRevert(pd.changeMCRFailTime(1, { from: notOwner }));
-        });
-      });
-      describe('Change MinReqMCR', function() {
-        it('should not be able to change MinReqMCR', async function() {
-          await assertRevert(pd.changeMinReqMCR(1, { from: notOwner }));
         });
       });
     });
@@ -186,9 +175,9 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       });
       it('should not be able to add Currency', async function() {
         await assertRevert(pd.addCurrency('0x4c4f4c', { from: notOwner }));
-        await pd.sfX100000();
-        await pd.getLastMCREther();
-        await pd.getLastVfull();
+        // await pd.A();
+        // await pd.getLastMCREther();
+        // await pd.getLastVfull();
       });
     });
 
@@ -297,19 +286,6 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       await p2.getCurrencyAssetDetails('0x444149');
     });
 
-    // it('should be able to change Investment Asset Status', async function() {
-    //   await pd.changeInvestmentAssetStatus(newAsset, true);
-    //   (await pd.getInvestmentAssetStatus(newAsset)).should.equal(true);
-    // });
-    // it('should be able to change Investment Asset Holding Percentage', async function() {
-    //   await pd.changeInvestmentAssetHoldingPerc(newAsset, 4500, 9000);
-    //   (await pd.getInvestmentAssetMinHoldingPerc(
-    //     newAsset
-    //   )).should.be.bignumber.equal(4500);
-    //   (await pd.getInvestmentAssetMaxHoldingPerc(
-    //     newAsset
-    //   )).should.be.bignumber.equal(9000);
-    // });
     it('should return Investment Asset Rank Details', async function() {
       const lastDate = await pd.getLastDate();
       await pd.getIARankDetailsByDate(lastDate);
@@ -860,41 +836,6 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-
-    // });
-
-    // describe('', function() {
-
-    //   it('should be able to', async function() {
-
-    //   });
-    //   it('should be able to', async function() {
-
-    //   });
-    //   it('should be able to', async function() {
-
-    //   });
-    //   it('should be able to', async function() {
-
-    //   });
-    // });
-
-    // describe('', function() {
-    //   it('should be able to', async function() {
-
-    //   });
-    //   it('should be able to', async function() {
-
-    //   });
-    //   it('should be able to', async function() {
-
-    //   });
-    //   it('should be able to', async function() {
-
-    //   });
-    //   it('should be able to', async function() {
-
-    //   });
   });
 
   describe('Should be able to delegate callback for', function() {
@@ -936,19 +877,6 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       await p2.saveIADetails(['0x455448', '0x444149'], [0, 0], 20190125, true);
     });
   });
-  // describe('Calculate IARank where Investment Asset Status is false', function() {
-  //   it('Successful', async function() {
-  //     console.log('tony stark', await pd.getInvestmentAssetStatus("ETH"));
-  //     await pd.changeInvestmentAssetStatus(0X455448, false, {from: owner});
-  //     console.log('tony stark', await pd.getInvestmentAssetStatus("ETH"));
-  //     await p2.saveIADetails(
-  //       ['0x455448', '0x444149'],
-  //       [100, 1000],
-  //       20190125,
-  //       true
-  //     );
-  //   });
-  // });
   describe('RBT for total risk balance 0', function() {
     it('Successful', async function() {
       pd.pushMCRData(0, 0, 0, 0);

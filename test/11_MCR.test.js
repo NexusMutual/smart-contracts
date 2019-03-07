@@ -146,14 +146,14 @@ contract('MCR', function([owner, notOwner]) {
       const tpd = await pd.getTokenPriceDetails(CA_ETH);
       const tc = (await tk.totalSupply()).div(1e18);
       const sf = tpd[0].div(1e5);
-      const growthStep = tpd[1];
+      const C = tpd[1];
       const Curr3DaysAvg = tpd[2];
       const mcrtp = (await mcr.calVtpAndMCRtp())[1];
       const mcrtpSquare = mcrtp.times(mcrtp).div(1e8);
       const mcrEth = (await pd.getLastMCREther()).div(1e18);
       const tp = sf.plus(
         mcrEth
-          .div(growthStep)
+          .div(C)
           .times(mcrtpSquare)
           .times(mcrtpSquare)
       );
@@ -182,15 +182,9 @@ contract('MCR', function([owner, notOwner]) {
         (await pd.mcrTime()).should.be.bignumber.equal(1);
       });
     });
-    describe('Change MinReqMCR', function() {
-      it('should be able to change MinReqMCR', async function() {
-        await mcr.changeMinReqMCR(1, { from: owner });
-        (await pd.minCap()).should.be.bignumber.equal(ether(1));
-      });
-    });
     describe('Change Scaling Factor', function() {
       it('should be able to change Scaling Factor', async function() {
-        await mcr.changeSF(1, { from: owner });
+        await mcr.changeA(1, { from: owner });
       });
     });
     describe('Add new MCR Data', function() {
@@ -217,16 +211,13 @@ contract('MCR', function([owner, notOwner]) {
   });
 
   describe('Misc', function() {
-    it('should be able to change MinReqMCR', async function() {
-      await assertRevert(mcr.changeMinReqMCR(1, { from: notOwner }));
-    });
     it('should be able to change MCRTime', async function() {
       await assertRevert(mcr.changeMCRTime(1, { from: notOwner }));
     });
     it('should be able to get all Sum Assurance', async function() {
-      await mcr.getAllSumAssurance();
+      // await mcr.getAllSumAssurance();
       await pd.updateCAAvgRate('0x44414900', 0, { from: owner });
-      await mcr.getAllSumAssurance();
+      // await mcr.getAllSumAssurance();
     });
     it('should not be able to change master address', async function() {
       await assertRevert(
@@ -235,10 +226,6 @@ contract('MCR', function([owner, notOwner]) {
     });
     it('should not be able to add currency', async function() {
       await assertRevert(mcr.addCurrency('0x4c4f4c', { from: notOwner }));
-    });
-    it('should return 1 if required MCR is more than last MCR percentage', async function() {
-      await pd.changeMinReqMCR(19000, { from: owner });
-      (await mcr.checkForMinMCR()).should.be.bignumber.equal(1);
     });
   });
 });

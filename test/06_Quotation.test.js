@@ -88,7 +88,8 @@ contract('Quotation', function([
   newMember2,
   newMember3,
   newMember4,
-  newMember5
+  newMember5,
+  newMember6
 ]) {
   const BN_100 = new BigNumber(100);
   const BN_10 = new BigNumber(10);
@@ -120,6 +121,11 @@ contract('Quotation', function([
   });
   describe('Initial cap not reached', function() {
     it('should revert while buying cover', async function() {
+      await mr.payJoiningFee(newMember6, {
+        from: newMember6,
+        value: fee
+      });
+      await mr.kycVerdict(newMember6, true);
       await assertRevert(
         P1.makeCoverBegin(
           smartConAdd,
@@ -129,7 +135,7 @@ contract('Quotation', function([
           vrs[0],
           vrs[1],
           vrs[2],
-          { from: member3, value: coverDetails[1] }
+          { from: newMember6, value: coverDetails[1] }
         )
       );
     });
@@ -955,10 +961,6 @@ contract('Quotation', function([
         });
 
         it('should get membership but not cover if quote expires for DAI', async function() {
-          //await cad.transfer(notMember, coverDetailsDai[1]);
-          /*await cad.approve(qt.address, coverDetailsDai[1], {
-            from: notMember
-          });*/
           await assertRevert(
             qt.initiateMembershipAndCover(
               smartConAdd,

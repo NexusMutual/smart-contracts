@@ -134,8 +134,8 @@ contract('Claim: Assessment 2', function([
       20190208
     );
     await p2.upgradeInvestmentPool(owner);
-    await pd.changeGrowthStep(400000);
-    await pd.changeSF(10);
+    await pd.changeC(400000);
+    await pd.changeA(10);
     await td.changeBookTime(60);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
     if ((await tk.totalSupply()) < 600000 * 1e18)

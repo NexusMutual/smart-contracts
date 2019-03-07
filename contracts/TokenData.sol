@@ -532,7 +532,7 @@ contract TokenData is Iupgradable {
      * @dev Changes lock CA days - number of days for which tokens 
      * are locked while submitting a vote.
      */ 
-    function changelockCADays(uint _val) public onlyInternal {
+    function changelockCADays(uint _val) public onlyOwner {
         lockCADays = _val;
     }
     
@@ -540,7 +540,7 @@ contract TokenData is Iupgradable {
      * @dev Changes lock MV days - number of days for which tokens are locked
      * while submitting a vote.
      */ 
-    function changelockMVDays(uint _val) public onlyInternal {
+    function changelockMVDays(uint _val) public onlyOwner {
         lockMVDays = _val;
     }
 
@@ -599,7 +599,7 @@ contract TokenData is Iupgradable {
     /**
      * @dev Changes extra lock period for a cover, post its expiry.
      */ 
-    function setLockTokenTimeAfterCoverExp(uint time) public onlyInternal {
+    function setLockTokenTimeAfterCoverExp(uint time) public onlyOwner {
         lockTokenTimeAfterCoverExp = time;
     }
 

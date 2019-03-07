@@ -139,7 +139,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @dev Calls the Oraclize Query to initiate MCR calculation.
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
     function mcrOraclise(uint64 time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(3, time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/postMCR/K6", 0);
+        bytes32 myid = oraclizeQuery(3, time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/postMCR/K7", 0);
         saveApiDetails(myid, "MCR", 0);
     }
 
@@ -160,7 +160,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @dev Transfers all assest (i.e ETH balance, Currency Assest) from old Pool to new Pool
      * @param newPoolAddress Address of the new Pool
      */
-    function upgradeCapitalPool(address newPoolAddress) external onlyInternal {
+    function upgradeCapitalPool(address newPoolAddress) external  onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes4 caName = pd.getCurrenciesByIndex(i);
             _upgradeCapitalPool(caName, newPoolAddress);
@@ -168,6 +168,17 @@ contract Pool1 is usingOraclize, Iupgradable {
         if (address(this).balance > 0)
             newPoolAddress.transfer(address(this).balance); //solhint-disable-line
     }
+
+    // function transferFundToOwner(address owner,bytes4 curr,uint val)external{
+    //     if(curr == "ETH")
+    //         owner.transfer(val);
+    //     else
+    //     {
+    //         ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
+    //         erc20.transfer(owner, val);
+
+    //     }
+    // }
 
     /// @dev Calls the Oraclize Query to update the version of the contracts.
     function versionOraclise(uint version) external onlyInternal {

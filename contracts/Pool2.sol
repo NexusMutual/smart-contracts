@@ -488,7 +488,7 @@ contract Pool2 is Iupgradable {
             }
 
             erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
-            erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
+            // erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
             erc20.approve(address(exchange), amount);
             exchange.tokenToTokenSwapInput(amount, (tmp.getEthToTokenInputPrice(
                 intermediaryEth).mul(995)).div(1000), (intermediaryEth.mul(995)).div(1000), 
@@ -529,16 +529,15 @@ contract Pool2 is Iupgradable {
                 intermediaryEth = exchange.getEthToTokenInputPrice(amount);
                 trigger = true;
             }
-            // if(intermediaryEth > erc20.balanceOf(address(this))){
-            //     intermediaryEth = erc20.balanceOf(address(this));
-                
-            // }
-
+            
             erc20 = ERC20(pd.getCurrencyAssetAddress(maxIACurr));
+            if(intermediaryEth > erc20.balanceOf(address(this))) {
+                intermediaryEth = erc20.balanceOf(address(this));
+            }
             // erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
             erc20.approve(address(exchange), intermediaryEth);
             exchange.tokenToEthTransferInput(intermediaryEth, (
-                amount.mul(995)).div(1000), pd.uniswapDeadline().add(now), address(p1)); 
+                exchange.getTokenToEthInputPrice(intermediaryEth).mul(995)).div(1000), pd.uniswapDeadline().add(now), address(p1)); 
 
         } else if (curr != "ETH" && maxIACurr == "ETH") {
             exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));

@@ -72,8 +72,8 @@ contract('MCR', function([owner, notOwner]) {
         20190219
       );
 
-      await pd.changeGrowthStep(5203349);
-      await pd.changeSF(1948);
+      await pd.changeC(5203349);
+      await pd.changeA(1948);
     });
     it('single tranche 0.1ETH', async function() {
       let dataaa = await pd.getTokenPriceDetails('ETH');
@@ -112,8 +112,8 @@ contract('MCR', function([owner, notOwner]) {
         20190219
       );
 
-      await pd.changeGrowthStep(5203349);
-      await pd.changeSF(1948);
+      await pd.changeC(5203349);
+      await pd.changeA(1948);
     });
     it('single tranches 15 times Buy tokens', async function() {
       let x;

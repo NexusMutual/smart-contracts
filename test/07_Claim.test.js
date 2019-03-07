@@ -178,11 +178,19 @@ contract('Claim', function([
                 CABalE2 = await web3.eth.getBalance(p2.address);
                 CABalD = await cad.balanceOf(P1.address);
                 CABalD2 = await cad.balanceOf(p2.address);
+                let initialUserClaimCount = await cd.getUserClaimCount(
+                  coverHolder
+                );
+                let initialClaimCount = await cd.getClaimLength();
                 await cl.submitClaim(coverID[0], { from: coverHolder });
-
-                // var disl = await pd.allAPIcall(await pd.getApilCallLength() - 1);
-                // var erd = await pd.getApiCallDetails(disl);
-                // console.log(erd);
+                initialUserClaimCount
+                  .add(1)
+                  .should.be.bignumber.equal(
+                    await cd.getUserClaimCount(coverHolder)
+                  );
+                initialClaimCount
+                  .add(1)
+                  .should.be.bignumber.equal(await cd.getClaimLength());
                 const CAdetails = await pd.getCurrencyAssetVarBase(coverCurr);
                 const rankDetails = await pd.getIARankDetailsByDate(
                   await pd.getLastDate()
@@ -236,98 +244,6 @@ contract('Claim', function([
                   );
                 }
               });
-              // it('should be able to submit claim for another cover', async function() {
-              //   coverID = await qd.getAllCoversOfUser(coverHolder);
-              //   coverCurr = await qd.getCurrencyOfCover(coverID[1]);
-              //   await P1.sendTransaction({ from: owner, value: 7*1e18 });
-              //   // initialCurrencyAssetVarMin = await pd.getCurrencyAssetVarMin(
-              //   //   coverCurr
-              //   // );
-              //   // await increaseTimeTo(parseFloat(await pd.lastLiquidityTradeTrigger()) + parseFloat(await pd.liquidityTradeCallbackTime()) + 1);
-              //   // let CABalE;
-              //   // let CABalD;
-              //   // let CABalE2;
-              //   // let CABalD2;
-
-              //   CABalE = await web3.eth.getBalance(P1.address);
-              //   CABalE2 = await web3.eth.getBalance(p2.address);
-              //   CABalD = await cad.balanceOf(P1.address);
-              //   CABalD2 = await cad.balanceOf(p2.address);
-              //   // console.log("CABalE",parseFloat(CABalE),'CABalE2',parseFloat(CABalE2),'CABalD',parseFloat(CABalD),'CABalD2',parseFloat(CABalD2));
-
-              //   await cl.submitClaim(coverID[1], { from: coverHolder });
-              //   let apiCallData;
-              //   let apiId;
-              //   // let testgg = parseFloat(await pd.lastLiquidityTradeTrigger()) + parseFloat(await pd.liquidityTradeCallbackTime());
-              //   // var date = new Date();
-              //   // var timestamp = date.getTime();
-              //   // console.log(timestamp , ' ',testgg);
-              //   let z=await pd.getApilCallLength()-1;
-              //   for(;z>=0;z--)
-              //   {
-              //     apiId = await pd.getApiCallIndex(z);
-              //     apiCallData = await pd.getApiCallDetails(apiId);
-              //     console.log(apiCallData);
-              //     console.log(apiId);
-              //     if(apiCallData[0] == 0x554c5400)
-              //       break;
-              //   }
-              //   // console.log("11122");
-              //   const CAdetails = await pd.getCurrencyAssetVarBase("ETH");
-              //   const rankDetails = await pd.getIARankDetailsByDate(await pd.getLastDate());
-              //   console.log(rankDetails[0],"<<---");
-              //   let amount = (parseFloat(await p2._getCurrencyAssetsBalance("ETH")))-(parseFloat(CAdetails[1])+parseFloat(CAdetails[2]))*3/2;
-              //   console.log("******",amount);
-              //   console.log(CAdetails[1].toNumber(),' ',CAdetails[2].toNumber(),' ',parseFloat(await p2._getCurrencyAssetsBalance("ETH")));
-              //   console.log(parseFloat(CABalE),"******",parseFloat(CABalE2));
-              //   // await P1.transferCurrencyAsset("ETH",p2.address,amount);
-              //   await p2._externalLiquidityTrade();
-              //   // console.log("hjhjhjh");
-              //   // await P1.__callback(apiId,"re");
-              //   // // var disl = await pd.allAPIcall(await pd.getApilCallLength() - 1);
-              //   // // var erd = await pd.getApiCallDetails(disl);
-              //   // // console.log(erd);
-              //   // console.log(rankDetails);
-              //   // let coverCurrCA;
-              //   // if(coverCurr == 0x45544800)
-              //   //   coverCurrCA = CABalE;
-              //   // else
-              //   //   coverCurrCA = CABalD;
-              //   // let amount;
-              //   // let typeOfTrade = 'noTradeReq';
-              //   // if(coverCurrCA > 2*(CAdetails[1].toNumber()+CAdetails[2].toNumber()))
-              //   //   typeOfTrade = 'ELT';
-              //   // if(coverCurrCA < (CAdetails[1].toNumber()+CAdetails[2].toNumber()))
-              //   //   typeOfTrade = 'ILT';
-              //   // if(typeOfTrade == 'noTradeReq')
-              //   //   amount = 0;
-              //   // // if(rankDetails[2] == coverCurr)
-              //   //   amount = coverCurrCA - ((CAdetails[1].toNumber()+CAdetails[2].toNumber())*1.5);
-
-              //   // let finalCABalE = await web3.eth.getBalance(P1.address);
-              //   // let finalCABalE2 = await web3.eth.getBalance(p2.address);
-              //   // let finalCABalD = await cad.balanceOf(P1.address);
-              //   // let finalCABalD2 = await cad.balanceOf(p2.address);
-              //   // let calCABalE;
-              //   // let calCABalE2;
-              //   // let calCABalD;
-              //   // let calCABalD2;
-              //   // if(coverCurr == 0x45544800)
-              //   // {
-              //   //   calCABalE = parseFloat(CABalE) - parseFloat(amount);
-              //   //   calCABalE2 = parseFloat(CABalE2) + parseFloat(amount);
-              //   //   parseFloat(finalCABalE).should.be.equal(parseFloat(calCABalE));
-              //   //   parseFloat(finalCABalE2).should.be.equal(parseFloat(calCABalE2));
-              //   // }
-              //   // else
-              //   // {
-              //   //   calCABalD = parseFloat(CABalD) - parseFloat(amount);
-              //   //   calCABalD2 = parseFloat(CABalD2) + parseFloat(amount);
-              //   //   parseFloat(finalCABalD).should.be.equal(parseFloat(calCABalD));
-              //   //   parseFloat(finalCABalD2).should.be.equal(parseFloat(calCABalD2));
-              //   // }
-
-              // });
               it('cover status should change', async function() {
                 const claimDetails = await cd.getAllClaimsByIndex(1);
                 claimDetails[0].should.be.bignumber.equal(coverID[0]);
@@ -354,71 +270,6 @@ contract('Claim', function([
               });
             });
           });
-
-          //TODO: fix covernote exhaust test case
-          // describe('if claim rejected 2 times', function() {
-          //   const newCoverHolder = member4;
-          //   let coverID;
-          //   before(async function() {
-          //     await P1.makeCoverBegin(
-          //       PID,
-          //       smartConAdd,
-          //       'ETH',
-          //       coverDetails,
-          //       coverPeriod,
-          //       v,
-          //       r,
-          //       s,
-          //       { from: newCoverHolder, value: coverDetails[1] }
-          //     );
-          //     coverID = await qd.getAllCoversOfUser(newCoverHolder);
-          //     let i;
-          //     let newCStatus;
-          //     let claimId;
-          //     let closingTime;
-          //     let now;
-
-          //     const maxVotingTime = await cd.maxVotingTime();
-          //     await tc.lock(CLA, tokens, validity, { from: member1 });
-          //     await tc.lock(CLA, tokens, validity, { from: member2 });
-          //     await tc.lock(CLA, tokens, validity, { from: member3 });
-
-          //     await cl.submitClaim(coverID[0], { from: newCoverHolder });
-
-          //     for (i = 0; i < 2; i++) {
-          //       await P1.buyToken({ from: member1, value: ether(0.7) });
-          //       await P1.buyToken({ from: member2, value: ether(0.8) });
-          //       await P1.buyToken({ from: member3, value: ether(0.9) });
-          //       if (i > 0) {
-          //         await nxmtk1.increaseLockAmount(CLA, tokens, {
-          //           from: member1
-          //         });
-          //         await nxmtk1.increaseLockAmount(CLA, tokens, {
-          //           from: member2
-          //         });
-          //         await nxmtk1.increaseLockAmount(CLA, tokens, {
-          //           from: member3
-          //         });
-
-          //         await cl.submitClaim(coverID[0], { from: newCoverHolder });
-          //       }
-          //       claimId = (await cd.actualClaimLength()) - 1;
-          //       await cl.submitCAVote(claimId, -1, { from: member1 });
-          //       await cl.submitCAVote(claimId, -1, { from: member2 });
-          //       await cl.submitCAVote(claimId, -1, { from: member3 });
-          //       now = await latestTime();
-          //       closingTime = maxVotingTime.plus(now);
-          //       await increaseTimeTo(closingTime.plus(1));
-          //       newCStatus = await cd.getClaimStatusNumber(claimId);
-          //       await cr.changeClaimStatus(claimId, { from: owner });
-          //     }
-          //   });
-          //   it('reverts', async function() {
-          //     await assertRevert(
-          //       cl.submitClaim(coverID[0], { from: newCoverHolder })
-          //     );
-          //   });
-          // });
 
           describe('if claim is already accepted', function() {
             const newCoverHolder = member4;
@@ -531,7 +382,7 @@ contract('Claim', function([
       });
     });
 
-    describe('internal contract address', function() {
+    describe('owner address', function() {
       it('should be able to set minTime voting', async function() {
         await cd.setMinVotingTime(0, { from: owner });
       });
@@ -549,6 +400,10 @@ contract('Claim', function([
       });
       it('should be able to set claim deposit time', async function() {
         await cd.setClaimDepositTime(1, { from: owner });
+      });
+
+      it('should be able to set claim reward percentage', async function() {
+        await cd.setClaimRewardPerc(20, { from: owner });
       });
     });
   });

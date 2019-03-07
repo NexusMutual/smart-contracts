@@ -149,7 +149,12 @@ contract('ClaimsReward', function([
       await cl.submitCAVote(claimId, -1, { from: member1 });
       await cl.submitCAVote(claimId, -1, { from: member2 });
       await cl.submitCAVote(claimId, -1, { from: member3 });
+      await cr.claimAllPendingReward([], { from: member1 });
       await increaseTimeTo(closingTime.plus(2));
+      let claimed = await cr.getRewardAndClaimedStatus(1, claimId, {
+        from: member1
+      });
+      claimed[1].should.be.equal(false);
       await cr.changeClaimStatus(claimId);
     });
     it('should be able to claim reward', async function() {
@@ -160,6 +165,7 @@ contract('ClaimsReward', function([
       await assertRevert(
         cr.claimAllPendingReward(proposalIds, { from: notMember })
       );
+      await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       (await cr.getAllPendingRewardOfUser(member1)).should.be.bignumber.equal(
         0
@@ -175,13 +181,13 @@ contract('ClaimsReward', function([
         initialTokenBalance.sub(rewardToGet)
       );
       let proposalIds = [];
-      await cr.getRewardAndClaimedStatus(1, claimId, { from: member1 });
-      await cr.getRewardAndClaimedStatus(1, 2, { from: member1 });
-      await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
-      await cr.getRewardAndClaimedStatus(0, 2, { from: member1 });
-      await cr.getRewardToBeDistributedByUser(member1);
+      // await cr.getRewardAndClaimedStatus(1, claimId, { from: member1 });
+      // await cr.getRewardAndClaimedStatus(1, 2, { from: member1 });
+      // await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
+      // await cr.getRewardAndClaimedStatus(0, 2, { from: member1 });
+      // await cr.getRewardToBeDistributedByUser(member1);
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
-      await cd.getVoteAddressMemberLength(member1);
+      // await cd.getVoteAddressMemberLength(member1);
     });
   });
   describe('Staker gets reward', function() {

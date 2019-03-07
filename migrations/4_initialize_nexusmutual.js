@@ -48,7 +48,25 @@ module.exports = function(deployer) {
     const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
     const eventCaller = await EventCaller.deployed();
+    let newCR = await ClaimsReward.new();
     let addr = [
+      qd.address,
+      td.address,
+      cd.address,
+      pd.address,
+      qt.address,
+      tf.address,
+      tc.address,
+      cl.address,
+      newCR.address,
+      pl1.address,
+      pl2.address,
+      mcr.address,
+      gov.address,
+      propCat.address,
+      mr.address
+    ];
+    let addr1 = [
       qd.address,
       td.address,
       cd.address,
@@ -68,6 +86,7 @@ module.exports = function(deployer) {
     await nxms.changeTokenAddress(tk.address);
     await nxms.setEventCallerAddress(eventCaller.address);
     await nxms.addNewVersion(addr);
+    await nxms.addNewVersion(addr1);
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
     await pd.changeInvestmentAssetAddress('0x444149', dai.address);

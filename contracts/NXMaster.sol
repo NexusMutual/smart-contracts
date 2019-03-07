@@ -96,7 +96,7 @@ contract NXMaster is Governed {
     }
 
     ///@dev update time in seconds for which emergency pause is applied.
-    function updatePauseTime(uint _time) public onlyInternal {
+    function updatePauseTime(uint _time) public onlyOwner {
         pauseTime = _time;
     }
 

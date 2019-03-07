@@ -100,7 +100,6 @@ contract ClaimsData is Iupgradable {
     uint32 public maxVotingTime;
     uint32 public minVotingTime;
     uint32 public payoutRetryTime;
-    uint32 public escalationTime;
     uint public claimRewardPerc;
    
     event ClaimRaise(
@@ -119,8 +118,12 @@ contract ClaimsData is Iupgradable {
         int8 verdict
     );
 
+    modifier onlyOwner {
+        require(ms.isOwner(msg.sender));
+        _;
+    }
+
     constructor() public {
-        escalationTime = 3600;
         pendingClaimStart = 0;
         maxVotingTime = 1800;
         minVotingTime = 1200;
@@ -135,21 +138,21 @@ contract ClaimsData is Iupgradable {
     /**
      * @dev Sets Maximum time(in seconds) for which claim assessment voting is open
      */ 
-    function setMaxVotingTime(uint32 _time) external onlyInternal {
+    function setMaxVotingTime(uint32 _time) external onlyOwner {
         maxVotingTime = _time;
     }
 
     /**
      *  @dev Sets Minimum time(in seconds) for which claim assessment voting is open
      */ 
-    function setMinVotingTime(uint32 _time) external onlyInternal {
+    function setMinVotingTime(uint32 _time) external onlyOwner {
         minVotingTime = _time;
     }
 
     /**
      * @dev Sets the payout retry time
      */ 
-    function setPayoutRetryTime(uint32 _time) external onlyInternal {
+    function setPayoutRetryTime(uint32 _time) external onlyOwner {
         payoutRetryTime = _time;
     }
 
@@ -180,7 +183,7 @@ contract ClaimsData is Iupgradable {
         voterVoteRewardReceived[_voter].lastMVvoteIndex = mvIndex;
     }
 
-    function setClaimRewardPerc(uint _val) external onlyInternal {
+    function setClaimRewardPerc(uint _val) external onlyOwner {
 
         claimRewardPerc = _val;
     }
@@ -443,7 +446,8 @@ contract ClaimsData is Iupgradable {
     /** 
      * @dev Sets the time for which claim is deposited.
      */ 
-    function setClaimDepositTime(uint _time) external onlyInternal {
+    function setClaimDepositTime(uint _time) external onlyOwner {
+
         claimDepositTime = _time;
     }
 

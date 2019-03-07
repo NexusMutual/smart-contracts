@@ -120,19 +120,6 @@ contract Claims is Iupgradable {
     }
 
     /**
-     * @dev Gets number of tokens used by a given address to assess a given claimId
-     * @param _of User's address.
-     * @param claimId Claim Id.
-     * @return value Number of tokens.
-     */ 
-    function getCATokensLockedAgainstClaim(address _of, uint claimId) external view returns(uint value) {
-        (, value) = cd.getTokensClaim(_of, claimId);
-        uint totalLockedCA = tc.tokensLockedAtTime(_of, "CLA", now);
-        if (totalLockedCA < value)
-            value = totalLockedCA;
-    }
-
-    /**
      * @dev Calculates total amount that has been used to assess a claim.
      * Computaion:Adds acceptCA(tokens used for voting in favor of a claim)
      * denyCA(tokens used for voting against a claim) *  current token price.
@@ -338,15 +325,16 @@ contract Claims is Iupgradable {
                 close = 1;
         } 
         
-        if (status > 5) {
+        if (status > 5 && status != 12) {
             close = -1;
-        }  else if (dateUpd.add(cd.maxVotingTime()) <= now) {
+        }  else if (dateUpd.add(cd.maxVotingTime()) <= now && status != 12) {
             close = 1;
-        } else if (dateUpd.add(cd.minVotingTime()) >= now) {
+        } else if (dateUpd.add(cd.minVotingTime()) >= now && status != 12) {
             close = 0;
         } else if (status == 0 || (status >= 1 && status <= 5)) {
             close = checkVoteClosingFinal(claimId, status);
         }
+        
     }
 
     /**
@@ -408,7 +396,7 @@ contract Claims is Iupgradable {
         }
 
         if (stat == 12 && (dateUpd.add(cd.payoutRetryTime()) <= now) && (state12Count < 60)) {
-            cr.changeClaimStatus(claimId);
+            p1.closeClaimsOraclise(claimId, cd.payoutRetryTime());
         } else if (stat == 12 && (dateUpd.add(cd.payoutRetryTime()) > now) && (state12Count < 60)) {
             uint64 timeLeft = uint64((dateUpd.add(cd.payoutRetryTime())).sub(now));
             p1.closeClaimsOraclise(claimId, timeLeft);
@@ -420,7 +408,7 @@ contract Claims is Iupgradable {
      * Set deposits flag against cover.
      */
     function addClaim(uint coverId, uint time, address add) internal {
-        require(tf.depositCN(coverId));
+        tf.depositCN(coverId);
         uint len = cd.actualClaimLength();
         cd.addClaim(len, coverId, add, now);
         cd.callClaimEvent(coverId, add, len, time);

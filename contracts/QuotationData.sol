@@ -46,7 +46,6 @@ contract QuotationData is Iupgradable {
     }
 
     address public authQuoteEngine;
-    uint public pendingCoverStart;
   
     mapping(bytes4 => uint) internal currencyCSA;
     mapping(address => uint[]) internal userCover;
@@ -78,7 +77,6 @@ contract QuotationData is Iupgradable {
     event CoverStatusEvent(uint indexed cid, uint8 statusNum);
 
     constructor() public {
-        pendingCoverStart = 0;
         stlp = 90;
         stl = 1000;
         pm = 13;

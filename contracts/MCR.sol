@@ -58,13 +58,6 @@ contract MCR is Iupgradable {
         require(ms.isPause() == false);
         _;
     }
-
-    /**
-     * @dev Changes minimum Capital Requirement for system to sustain.
-     */  
-    function changeMinReqMCR(uint32 minMCR) external onlyInternal {
-        pd.changeMinReqMCR(minMCR);
-    }
     
     /**
      * @dev Changes time period for obtaining new MCR data from external oracle query.
@@ -87,8 +80,8 @@ contract MCR is Iupgradable {
     /** 
      * @dev Changes scaling factor which determines token price.
      */  
-    function changeSF(uint32 val) external onlyOwner {
-        pd.changeSF(val);
+    function changeA(uint32 val) external onlyOwner {
+        pd.changeA(val);
     }
 
     /** 
@@ -144,17 +137,6 @@ contract MCR is Iupgradable {
             // Oraclize call for next MCR calculation
             callOracliseForMCR();
         }
-    }
-
-    /**
-     * @dev Checks if last notarised Minimum Capital Requirement(MCR) 
-     * percentage is less than minimum capital required or not.
-     * @return check 1 if last added MCR% < Minimum MCR value
-     */  
-    function checkForMinMCR() external view returns(uint8 check) {
-        check = 0;
-        if (pd.getLastMCRPerc() < pd.minMCRReq())
-            check = 1;
     }
 
     function changeDependentContractAddress() public onlyInternal {
@@ -279,15 +261,15 @@ contract MCR is Iupgradable {
         view
         returns(uint tokenPrice)
     {
-        uint getSFx100000;
-        uint getGrowthStep;
+        uint getA;
+        uint getC;
         uint getCAAvgRate;
         uint max = (mcrtp.mul(mcrtp).mul(mcrtp).mul(mcrtp)); 
-        (getSFx100000, getGrowthStep, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
+        (getA, getC, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
         uint mcrEth = pd.getLastMCREther();
-        getGrowthStep = getGrowthStep.mul(DECIMAL1E18);
-        tokenPrice = (mcrEth.mul(DECIMAL1E18).div(getGrowthStep).mul(max)).div(DECIMAL1E16);
-        tokenPrice = tokenPrice.add(getSFx100000.mul(DECIMAL1E18).div(DECIMAL1E05));
+        getC = getC.mul(DECIMAL1E18);
+        tokenPrice = (mcrEth.mul(DECIMAL1E18).div(getC).mul(max)).div(DECIMAL1E16);
+        tokenPrice = tokenPrice.add(getA.mul(DECIMAL1E18).div(DECIMAL1E05));
         tokenPrice = tokenPrice.mul(getCAAvgRate * 10); 
         tokenPrice = (tokenPrice).div(10**3);
     } 

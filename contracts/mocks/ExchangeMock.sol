@@ -16,7 +16,7 @@ contract ExchangeMock {
     function () public payable {}
  
     function sendEth(uint val) public {
-        (msg.sender).transfer(val*10**18);
+        (msg.sender).transfer(val);
     }
 
     function getEthToTokenInputPrice(uint256 ethSold) public pure returns(uint256) {

@@ -154,6 +154,9 @@ contract('ClaimsReward', function([
       let claimed = await cr.getRewardAndClaimedStatus(1, claimId, {
         from: member1
       });
+      let claimed1 = await cr.getRewardAndClaimedStatus(1, 0, {
+        from: member1
+      });
       claimed[1].should.be.equal(false);
       await cr.changeClaimStatus(claimId);
     });

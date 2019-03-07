@@ -373,6 +373,9 @@ contract('Claim: Assessment', function([
             let claimed = await cr.getRewardAndClaimedStatus(0, claimId, {
               from: member1
             });
+            let claimed1 = await cr.getRewardAndClaimedStatus(0, 0, {
+              from: member1
+            });
             await cr.claimAllPendingReward([], { from: member1 });
             claimed[1].should.be.equal(false);
             await cl.getClaimFromNewStart(0, { from: member1 });

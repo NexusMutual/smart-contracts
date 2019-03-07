@@ -836,6 +836,135 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
+
+    it('RBT DAI to ETH amount > price slippage', async function() {
+      console.log(
+        'emock---',
+        parseFloat(await web3.eth.getBalance(emock.address))
+      );
+      await emock.sendEth(2087960000000000000000);
+      console.log(
+        'emock---',
+        parseFloat(await web3.eth.getBalance(emock.address))
+      );
+      await cad.transfer(p2.address, 50 * 1e18, { from: owner });
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190129,
+        true
+      );
+      console.log(await pd.getIARankDetailsByDate(20190229));
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+      await p2.delegateCallBack(APIID);
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      console.log('CABalE', CABalE);
+      console.log('CABalD', CABalD);
+      console.log('CABalE2', CABalE2);
+      console.log('CABalD2', CABalD2);
+    });
+
+    it('Initial ELT(ETH->DAI) but at time of call back ELT(ETH->ETH)', async function() {
+      await p1.sendTransaction({ from: owner, value: 5 * 1e18 });
+      await p2.transferInvestmentAsset('DAI', owner, 50 * 1e18);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190129,
+        false
+      );
+      await p2.internalLiquiditySwap('ETH');
+      await p2.transferInvestmentAsset('ETH', owner, 5 * 1e18);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190307,
+        false
+      );
+
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
+      console.log(await pd.getApiIdTypeOf(APIID));
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      console.log('CABalE', CABalE);
+      console.log('CABalD', CABalD);
+      console.log('CABalE2', CABalE2);
+      console.log('CABalD2', CABalD2);
+      console.log(await pd.getIARankDetailsByDate(20190307));
+      await p2.delegateCallBack(APIID);
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      console.log('CABalE', CABalE);
+      console.log('CABalD', CABalD);
+      console.log('CABalE2', CABalE2);
+      console.log('CABalD2', CABalD2);
+    });
+    it('ELT(ETH->DAI) amount > price slippage', async function() {
+      await p1.sendTransaction({ from: owner, value: 10 * 1e18 });
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190308,
+        false
+      );
+      console.log(await pd.getIARankDetailsByDate(20190308));
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      console.log('CABalE', CABalE);
+      console.log('CABalD', CABalD);
+      console.log('CABalE2', CABalE2);
+      console.log('CABalD2', CABalD2);
+      await p2.internalLiquiditySwap('ETH');
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+      await p2.delegateCallBack(APIID);
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      console.log('CABalE', CABalE);
+      console.log('CABalD', CABalD);
+      console.log('CABalE2', CABalE2);
+      console.log('CABalD2', CABalD2);
+    });
+    it('ELT(DAI->ETH) amount > price slippage', async function() {
+      await emock.sendTransaction({ from: owner, value: 17400000000000000 });
+      console.log(
+        'emock---',
+        parseFloat(await web3.eth.getBalance(emock.address))
+      );
+      await p2.transferInvestmentAsset('ETH', owner, 5 * 1e18);
+      await p1.transferCurrencyAsset('ETH', owner, 10 * 1e18);
+      await cad.transfer(p1.address, 10 * 1e18, { from: owner });
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190309,
+        false
+      );
+      await p2.internalLiquiditySwap('DAI');
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+      await p2.delegateCallBack(APIID);
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      console.log('CABalE', CABalE);
+      console.log('CABalD', CABalD);
+      console.log('CABalE2', CABalE2);
+      console.log('CABalD2', CABalD2);
+    });
   });
 
   describe('Should be able to delegate callback for', function() {
@@ -868,8 +997,8 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       assert.equal(parseFloat(await qd.getCoverStatusNo(coverID)), 3);
     });
     it('Empty string res for unknown id', async function() {
-      let lol_APIID = '0x6c6f6c'; // lol
-      await p2.delegateCallBack(lol_APIID);
+      let APIID = '0x6c6f6c';
+      await p2.delegateCallBack(APIID);
     });
   });
   describe('Trade Conditions checked', function() {
@@ -877,15 +1006,15 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       await p2.saveIADetails(['0x455448', '0x444149'], [0, 0], 20190125, true);
     });
   });
-  describe('RBT for total risk balance 0', function() {
-    it('Successful', async function() {
-      pd.pushMCRData(0, 0, 0, 0);
-      await p2.saveIADetails(
-        ['0x455448', '0x444149'],
-        [100, 1000],
-        20190125,
-        true
-      );
-    });
-  });
+  // describe('RBT for total risk balance 0', function() {
+  //   it('Successful', async function() {
+  //     pd.pushMCRData(0, 0, 0, 0);
+  //     await p2.saveIADetails(
+  //       ['0x455448', '0x444149'],
+  //       [100, 1000],
+  //       20190125,
+  //       true
+  //     );
+  //   });
+  // });
 });

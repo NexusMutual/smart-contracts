@@ -75,7 +75,7 @@ contract('MCR', function([owner, notOwner]) {
       await pd.changeC(5203349);
       await pd.changeA(1948);
     });
-    it('single tranche 0.1ETH', async function() {
+    it('19.1 single tranche 0.1ETH', async function() {
       let dataaa = await pd.getTokenPriceDetails('ETH');
       let x = await tk.balanceOf(notOwner);
       await p1.buyToken({ from: notOwner, value: 100000000000000000 });
@@ -83,7 +83,7 @@ contract('MCR', function([owner, notOwner]) {
       console.log('single tranche 0.1ETH ==> ', parseFloat(y - x) / 1e18);
       ((y - x) / 1e18).toFixed(2).should.be.bignumber.equal(5.13);
     });
-    it('multiple tranches 100ETH', async function() {
+    it('19.2 multiple tranches 100ETH', async function() {
       let x = await tk.balanceOf(notOwner);
       await p1.buyToken({
         from: notOwner,
@@ -115,7 +115,7 @@ contract('MCR', function([owner, notOwner]) {
       await pd.changeC(5203349);
       await pd.changeA(1948);
     });
-    it('single tranches 15 times Buy tokens', async function() {
+    it('19.3 single tranches 15 times Buy tokens', async function() {
       let x;
       let y;
       let cost = 10 * 1e18;
@@ -136,7 +136,7 @@ contract('MCR', function([owner, notOwner]) {
         );
       }
     });
-    it('tranches Buy more tokens', async function() {
+    it('19.4 tranches Buy more tokens', async function() {
       await p2.upgradeInvestmentPool(owner);
       await p1.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 607740647349100000000 });
@@ -200,60 +200,6 @@ contract('MCR', function([owner, notOwner]) {
         'token rate 1ETH =  ',
         1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
       );
-      // x = await tk.balanceOf(notOwner);
-      // await p1.buyToken({ from: notOwner, value: cost });
-      // y = await tk.balanceOf(notOwner);
-      // console.log(
-      //   'tranche ',
-      //   cost / 1e18,
-      //   ' ETH ==> ',
-      //   parseFloat(y - x) / 1e18
-      // );
-
-      // cost = 10000 * 1e18;
-      // console.log(
-      //   'token rate 1ETH =  ',
-      //   1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
-      // );
-      // x = await tk.balanceOf(owner);
-      // await p1.buyToken({ from: owner, value: cost });
-      // y = await tk.balanceOf(owner);
-      // console.log(
-      //   'tranche ',
-      //   cost / 1e18,
-      //   ' ETH ==> ',
-      //   parseFloat(y - x) / 1e18
-      // );
-
-      // cost = 15000 * 1e18;
-      // console.log(
-      //   'token rate 1ETH =  ',
-      //   1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
-      // );
-      // x = await tk.balanceOf(owner);
-      // await p1.buyToken({ from: owner, value: cost });
-      // y = await tk.balanceOf(owner);
-      // console.log(
-      //   'tranche ',
-      //   cost / 1e18,
-      //   ' ETH ==> ',
-      //   parseFloat(y - x) / 1e18
-      // );
-
-      // cost = 300 * 1e18;
-      // console.log(
-      //   'token rate 1ETH =  ',
-      //   1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
-      // );
-      // x = await tk.balanceOf(owner);
-      // await p1.buyToken({ from: owner, value: cost });
-      // y = await tk.balanceOf(owner);
-      // console.log(
-      //   'tranche ',
-      //   cost / 1e18,
-      //   ' ETH ==> ',
-      //   parseFloat(y - x) / 1e18
-      // );
     });
   });
 });

@@ -25,14 +25,14 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
   });
   describe('Buy membership', function() {
     describe('if paid joining fee', function() {
-      it('should be able to join as member', async function() {
+      it('2.1 should be able to join as member', async function() {
         await mr.payJoiningFee(member1, { from: member1, value: fee });
         await mr.kycVerdict(member1, true, { from: owner });
         (await mr.checkRole(member1, 2)).should.equal(true);
       });
     });
     describe('if not paid joining fee', function() {
-      it('reverts', async function() {
+      it('2.2 reverts', async function() {
         await assertRevert(
           mr.payJoiningFee(member2, { from: member2, value: fee - 1e15 })
         );
@@ -43,13 +43,13 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
   // console.log('yoy', await mr.checkRole(member1, 2));
   describe('Withdraw membership', function() {
     describe('If met Withdraw membership conditions', function() {
-      it('should be able to withdraw membership', async function() {
+      it('2.3 should be able to withdraw membership', async function() {
         await mr.withdrawMembership({ from: member1 });
         (await mr.checkRole(member1, 2)).should.equal(false);
       });
     });
     describe('Cannot withdrawn if already withdrawn', function() {
-      it('reverts', async function() {
+      it('2.4 reverts', async function() {
         await assertRevert(mr.withdrawMembership({ from: member1 }));
       });
     });

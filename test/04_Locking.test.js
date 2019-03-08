@@ -61,26 +61,26 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
       let initialLockedTokens;
       let initialTokenBalance;
       //let eventlogs;
-      it('should have zero initialLockedTokens', async function() {
+      it('4.1 should have zero initialLockedTokens', async function() {
         initialLockedTokens = await tc.tokensLocked(member1, CLA);
         initialTokenBalance = await tk.balanceOf(member1);
         initialLockedTokens.should.be.bignumber.equal(0);
       });
-      it('should not be able to lock tokens more than balance', async function() {
+      it('4.2 should not be able to lock tokens more than balance', async function() {
         await assertRevert(
           tc.lock(CLA, initialTokenBalance.plus(1e18), validity, {
             from: member1
           })
         );
       });
-      it('should not be able to lock 0 tokens', async function() {
+      it('4.3 should not be able to lock 0 tokens', async function() {
         await assertRevert(
           tc.lock(CLA, 0, validity, {
             from: member1
           })
         );
       });
-      it('should be able to lock tokens', async function() {
+      it('4.4 should be able to lock tokens', async function() {
         await tc.lock(CLA, lockTokens, validity, {
           from: member1
         });
@@ -92,7 +92,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           await tc.tokensLocked(member1, CLA)
         );
       });
-      it('emits Lock event', async function() {
+      it('4.5 emits Lock event', async function() {
         const lockTokens = ether(2);
         const { logs } = await tc.lock(CLA, lockTokens, validity, {
           from: member2
@@ -105,12 +105,12 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           (await latestTime()) + validity
         );
       });
-      it('should not have locked tokens for other reason', async function() {
+      it('4.6 should not have locked tokens for other reason', async function() {
         (await tc.tokensLocked(member1, 'YOLO')).should.be.bignumber.equal(0);
       });
     });
     describe('Lock Tokens under CA more than once', function() {
-      it('reverts', async function() {
+      it('4.7 reverts', async function() {
         await assertRevert(
           tc.lock(CLA, 5000, await latestTime(), { from: member1 })
         );
@@ -122,11 +122,11 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
       const extendValidity2 = duration.days(5);
       let initialLockedTokens;
       describe('Before validity expires', function() {
-        it('should have some locked tokens', async function() {
+        it('4.8 should have some locked tokens', async function() {
           initialLockedTokens = await tc.tokensLocked(member1, CLA);
           initialLockedTokens.should.be.bignumber.not.equal(0);
         });
-        it('should be able to extend locked tokens validity', async function() {
+        it('4.9 should be able to extend locked tokens validity', async function() {
           const initialValidity = await tc.getLockedTokensValidity(
             member1,
             CLA
@@ -137,7 +137,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
             CLA
           )).should.be.bignumber.equal(initialValidity.plus(extendValidity));
         });
-        it('should not be able to extend lock if already unlocked all', async function() {
+        it('4.10 should not be able to extend lock if already unlocked all', async function() {
           await assertRevert(
             tc.extendLock(CLA2, extendValidity, { from: member1 })
           );
@@ -148,7 +148,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           const validity = await tc.getLockedTokensValidity(member1, CLA);
           await increaseTimeTo(validity.plus(2));
         });
-        it('increase validity', async function() {
+        it('4.11 increase validity', async function() {
           await tc.extendLock(CLA, extendValidity, { from: member1 });
         });
       });
@@ -175,12 +175,12 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         });
         let initialLockedTokens;
 
-        it('should have some locked tokens', async function() {
+        it('4.12 should have some locked tokens', async function() {
           initialLockedTokens = await tc.tokensLocked(member3, CLA);
           initialLockedTokens.should.be.bignumber.not.equal(0);
         });
 
-        it('should be able to increase amount of lock tokens of member', async function() {
+        it('4.13 should be able to increase amount of lock tokens of member', async function() {
           const initialTokenBalance = await tk.balanceOf(member3);
           await tc.increaseLockAmount(CLA, extendLockTokens, {
             from: member3
@@ -195,7 +195,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           );
         });
 
-        it('should be able to increase amount of lock tokens of "owner"by method 2', async function() {
+        it('4.14 should be able to increase amount of lock tokens of "owner"by method 2', async function() {
           const initialTokenBalance = await tk.balanceOf(owner);
           // the next method is onlyInternal and can be called by owner only
           await tc.increaseLockAmountOf(owner, CLA, extendLockTokens);
@@ -214,7 +214,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           await increaseTimeTo(validity.plus(2));
           await tc.unlock(member1);
         });
-        it('reverts', async function() {
+        it('4.15 reverts', async function() {
           await assertRevert(
             tc.increaseLockAmount(CLA, extendLockTokens, { from: member1 })
           );
@@ -232,7 +232,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         initialTokenBalance = await tk.balanceOf(member2);
         initialLockedTokens = await tc.tokensLocked(member2, CLA);
       });
-      it('should return unlockable tokens for a specific reason', async function() {
+      it('4.16 should return unlockable tokens for a specific reason', async function() {
         const tokensUnlockableForAReason = await tc.tokensUnlockable(
           member2,
           CLA
@@ -242,7 +242,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           parseFloat(initialLockedTokens)
         );
       });
-      it('should return 0 locked token', async function() {
+      it('4.17 should return 0 locked token', async function() {
         const tokensUnlockable = await tc.getUnlockableTokens(member2);
         assert.equal(
           parseFloat(tokensUnlockable),
@@ -256,7 +256,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         );
         lockedTokens.should.be.bignumber.equal(0);
       });
-      it('checking that 0 tokens is unlocked and unlockable for 0 lock tokens of member', async function() {
+      it('4.18 checking that 0 tokens is unlocked and unlockable for 0 lock tokens of member', async function() {
         const unlockTransaction = await tc.unlock(member2);
         // if no tokens unlocked, following array is empty
         assert.equal(unlockTransaction['receipt']['logs'].length, 0);
@@ -266,7 +266,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         // tokens unlockable for a specific reason CLA is also 0 for cross check and to pass branch of tokenController contract
         assert.equal(await tc.tokensUnlockable(member2, CLA), 0);
       });
-      it('balance of member should increase', async function() {
+      it('4.19 balance of member should increase', async function() {
         (await tk.balanceOf(member2)).should.be.bignumber.equal(
           initialTokenBalance.plus(initialLockedTokens)
         );
@@ -278,7 +278,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
     const lockTokens = ether(2);
     const validity = duration.days(30);
     describe('Zero locked tokens', function() {
-      it('reverts', async function() {
+      it('4.20 reverts', async function() {
         await assertRevert(tc.reduceLock(CLA, member1, await duration.days(1)));
       });
     });
@@ -288,26 +288,26 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           from: member1
         });
       });
-      it('Total locked balance of member at current time should not be 0', async function() {
+      it('4.21 Total locked balance of member at current time should not be 0', async function() {
         const now = await latestTime();
         const totalLockedBalanceCurrently = parseFloat(
           await tc.totalLockedBalance(member1, now)
         );
         totalLockedBalanceCurrently.should.not.be.equal(0);
       });
-      it('Reduce validity of locked tokens', async function() {
+      it('4.22 Reduce validity of locked tokens', async function() {
         await tc.reduceLock(member1, CLA, await duration.days(1));
         const newValidity = await tc.getLockedTokensValidity(member1, CLA);
         newValidity.should.be.bignumber.below((await latestTime()) + validity);
       });
     });
     describe('Try to burn more than locked tockens of owner for a specific reason', function() {
-      it('cannot burn, amount exceeded', async function() {
+      it('4.23 cannot burn, amount exceeded', async function() {
         await assertRevert(tc.burnLockedTokens(owner, CLA, lockTokens + 100));
       });
     });
     describe('Try to release more than locked tockens of owner for a specific reason', function() {
-      it('cannot release, amount exceeded', async function() {
+      it('4.24 cannot release, amount exceeded', async function() {
         await assertRevert(
           tc.releaseLockedTokens(owner, CLA, lockTokens + 100)
         );

@@ -55,7 +55,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
 
   describe('Stake Tokens', function() {
     describe('Staker is not member', function() {
-      it('reverts', async function() {
+      it('5.1 reverts', async function() {
         await assertRevert(
           tf.addStake(stakedContract, stakeTokens, { from: notMember })
         );
@@ -63,7 +63,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     });
     describe('Staker is member', function() {
       describe('Staker does not have enough tokens', function() {
-        it('reverts', async function() {
+        it('5.2 reverts', async function() {
           await assertRevert(
             tf.addStake(stakedContract, stakeTokens.plus(1e24), {
               from: member1
@@ -75,26 +75,26 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
       describe('Staker does have enough tokens', function() {
         let initialTokenBalance;
         let initialStakedTokens;
-        it('should have zero staked tokens before', async function() {
+        it('5.3 should have zero staked tokens before', async function() {
           initialTokenBalance = await tk.balanceOf(member1);
           initialStakedTokens = await tf.getStakerAllLockedTokens.call(member1);
           initialStakedTokens.should.be.bignumber.equal(0);
         });
 
-        it('should be able to add stake on Smart Contracts', async function() {
+        it('5.4 should be able to add stake on Smart Contracts', async function() {
           await tf.addStake(stakedContract, stakeTokens, { from: member1 });
           const newStakedTokens = initialStakedTokens.plus(stakeTokens);
           newStakedTokens.should.be.bignumber.equal(
             await tf.getStakerAllLockedTokens.call(member1)
           );
         });
-        it('should decrease balance of member', async function() {
+        it('5.5 should decrease balance of member', async function() {
           const newTokenBalance = initialTokenBalance.minus(stakeTokens);
           newTokenBalance.should.be.bignumber.equal(
             await tk.balanceOf(member1)
           );
         });
-        it('should return zero stake amt for non staker', async function() {
+        it('5.6 should return zero stake amt for non staker', async function() {
           initialStakedTokens = await tf.getStakerAllLockedTokens.call(member2);
           (await tf.getStakerAllLockedTokens.call(
             member2
@@ -108,13 +108,13 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             await increaseTimeTo(time);
             await tf.unlockStakerUnlockableTokens(member2);
           });
-          it('staker should have zero total locked nxm tokens against smart contract', async function() {
+          it('5.7 staker should have zero total locked nxm tokens against smart contract', async function() {
             const lockedTokens = await tf.getStakerAllLockedTokens.call(
               member2
             );
             lockedTokens.should.be.bignumber.equal(0);
           });
-          it('only owner should be able to set StakedContractCurrentCommissionIndex', async function() {
+          it('5.8 only owner should be able to set StakedContractCurrentCommissionIndex', async function() {
             await assertRevert(
               td.setStakedContractCurrentCommissionIndex(stakedContract, 1, {
                 from: member1
@@ -127,7 +127,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             );
           });
 
-          it('only owner should be able to set LastCompletedStakeCommissionIndex', async function() {
+          it('5.9 only owner should be able to set LastCompletedStakeCommissionIndex', async function() {
             await assertRevert(
               td.setLastCompletedStakeCommissionIndex(member1, 1, {
                 from: member1
@@ -138,7 +138,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             });
           });
 
-          it('only owner should be able to set StakedContractCurrentBurnIndex', async function() {
+          it('5.10 only owner should be able to set StakedContractCurrentBurnIndex', async function() {
             await assertRevert(
               td.setStakedContractCurrentBurnIndex(stakedContract, 1, {
                 from: member1

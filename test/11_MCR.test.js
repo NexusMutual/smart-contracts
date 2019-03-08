@@ -42,7 +42,7 @@ contract('MCR', function([owner, notOwner]) {
   });
 
   describe('Initial MCR cap test cases', function() {
-    it('post mcr before launch should not affect initialMCRCap', async function() {
+    it('11.1 post mcr before launch should not affect initialMCRCap', async function() {
       let cap = await pd.capReached();
       await mcr.addMCRData(
         18000,
@@ -60,7 +60,7 @@ contract('MCR', function([owner, notOwner]) {
         (await mr.launched()).should.be.equal(true);
       });
 
-      it('After launch cap should not be set until it reached 100 for 1st time', async function() {
+      it('11.2 After launch cap should not be set until it reached 100 for 1st time', async function() {
         await mcr.addMCRData(
           1800,
           100 * 1e18,
@@ -72,7 +72,7 @@ contract('MCR', function([owner, notOwner]) {
         (await pd.capReached()).should.be.bignumber.equal(0);
       });
 
-      it('After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
+      it('11.3 After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
         let time = await latestTime();
         time = time + (await duration.days(30));
         await increaseTimeTo(time);
@@ -87,7 +87,7 @@ contract('MCR', function([owner, notOwner]) {
         (await pd.capReached()).should.be.bignumber.equal(2);
       });
 
-      it('After launch cap should not be set to 2 if reached 100% for 1st time on 30th day', async function() {
+      it('11.4 After launch cap should not be set to 2 if reached 100% for 1st time on 30th day', async function() {
         await mcr.addMCRData(
           18000,
           100 * 1e18,
@@ -120,7 +120,7 @@ contract('MCR', function([owner, notOwner]) {
       balance_ETH = balance_ETH.plus(await p1.getInvestmentAssetBalance());
     });
 
-    it('should return correct V(tp) price', async function() {
+    it('11.5 should return correct V(tp) price', async function() {
       const price_dai = await pd.getCAAvgRate(CA_DAI);
       cal_vtp = balance_DAI.mul(100).div(price_dai);
       cal_vtp = cal_vtp.plus(balance_ETH);
@@ -129,7 +129,7 @@ contract('MCR', function([owner, notOwner]) {
         .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[0]);
     });
 
-    it('should return correct MCR(tp) price', async function() {
+    it('11.6 should return correct MCR(tp) price', async function() {
       const lastMCR = await pd.getLastMCR();
       cal_mcrtp = cal_vtp.mul(lastMCR[0]).div(lastMCR[2]);
       cal_mcrtp
@@ -160,14 +160,14 @@ contract('MCR', function([owner, notOwner]) {
       tp_eth = tp.times(Curr3DaysAvg.div(100));
       tp_dai = tp.times((await pd.getCAAvgRate(CA_DAI)).div(100));
     });
-    it('should return correct Token price in ETH', async function() {
+    it('11.7 should return correct Token price in ETH', async function() {
       tp_eth
         .toFixed(4)
         .should.be.bignumber.equal(
           (await mcr.calculateTokenPrice(CA_ETH)).div(1e18).toFixed(4)
         );
     });
-    it('should return correct Token price in DAI', async function() {
+    it('11.8 should return correct Token price in DAI', async function() {
       tp_dai
         .toFixed(4)
         .should.be.bignumber.equal(
@@ -177,18 +177,18 @@ contract('MCR', function([owner, notOwner]) {
   });
   describe('if owner/internal contract address', function() {
     describe('Change MCRTime', function() {
-      it('should be able to change MCRTime', async function() {
+      it('11.9 should be able to change MCRTime', async function() {
         await mcr.changeMCRTime(1, { from: owner });
         (await pd.mcrTime()).should.be.bignumber.equal(1);
       });
     });
     describe('Change Scaling Factor', function() {
-      it('should be able to change Scaling Factor', async function() {
+      it('11.10 should be able to change Scaling Factor', async function() {
         await mcr.changeA(1, { from: owner });
       });
     });
     describe('Add new MCR Data', function() {
-      it('should be able to add MCR data', async function() {
+      it('11.11 should be able to add MCR data', async function() {
         await mcr.addMCRData(
           18000,
           100 * 1e18,
@@ -202,7 +202,7 @@ contract('MCR', function([owner, notOwner]) {
     });
 
     describe('Adds MCR Data for last failed attempt', function() {
-      it('should be able to add MCR data', async function() {
+      it('11.12 should be able to add MCR data', async function() {
         await mcr.addLastMCRData(20181009, { from: owner });
         await mcr.addLastMCRData(20181011, { from: owner });
         await mcr.addLastMCRData(20181012, { from: owner });
@@ -211,20 +211,20 @@ contract('MCR', function([owner, notOwner]) {
   });
 
   describe('Misc', function() {
-    it('should be able to change MCRTime', async function() {
+    it('11.13 should be able to change MCRTime', async function() {
       await assertRevert(mcr.changeMCRTime(1, { from: notOwner }));
     });
-    it('should be able to get all Sum Assurance', async function() {
+    it('11.14 should be able to get all Sum Assurance', async function() {
       // await mcr.getAllSumAssurance();
       await pd.updateCAAvgRate('0x44414900', 0, { from: owner });
       // await mcr.getAllSumAssurance();
     });
-    it('should not be able to change master address', async function() {
+    it('11.15 should not be able to change master address', async function() {
       await assertRevert(
         mcr.changeMasterAddress(mcr.address, { from: notOwner })
       );
     });
-    it('should not be able to add currency', async function() {
+    it('11.16 should not be able to add currency', async function() {
       await assertRevert(mcr.addCurrency('0x4c4f4c', { from: notOwner }));
     });
   });

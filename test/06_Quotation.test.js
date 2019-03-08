@@ -120,7 +120,7 @@ contract('Quotation', function([
     (await mr.launched()).should.be.equal(true);
   });
   describe('Initial cap not reached', function() {
-    it('should revert while buying cover', async function() {
+    it('6.1 should revert while buying cover', async function() {
       await mr.payJoiningFee(newMember6, {
         from: newMember6,
         value: fee
@@ -140,7 +140,7 @@ contract('Quotation', function([
       );
     });
 
-    it('should return 1 if 100% mcr reached within 30 days of launch', async function() {
+    it('6.2 should return 1 if 100% mcr reached within 30 days of launch', async function() {
       await mcr.addMCRData(
         18000,
         100 * 1e18,
@@ -154,11 +154,11 @@ contract('Quotation', function([
   });
   describe('Cover Purchase', function() {
     describe('Details', function() {
-      it('should return correct AuthQuoteEngine address', async function() {
+      it('6.3 should return correct AuthQuoteEngine address', async function() {
         const authQE = await qd.getAuthQuoteEngine();
         authQE.should.equal(QE);
       });
-      it('should return correct Product Details', async function() {
+      it('6.4 should return correct Product Details', async function() {
         const productDetails = await qd.getProductDetails();
         parseFloat(productDetails[0]).should.equal(30);
         parseFloat(productDetails[1]).should.equal(13);
@@ -175,7 +175,7 @@ contract('Quotation', function([
       });
 
       describe('If user does not have sufficient funds', function() {
-        it('reverts', async function() {
+        it('6.5 reverts', async function() {
           await assertRevert(
             P1.makeCoverBegin(
               smartConAdd,
@@ -230,19 +230,19 @@ contract('Quotation', function([
               });
               await tk.transfer(coverHolder, tokens);
             });
-            it('should not have locked Cover Note initially', async function() {
+            it('6.6 should not have locked Cover Note initially', async function() {
               const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
               initialLockedCN.should.be.bignumber.equal(0);
             });
-            it('total sum assured should be 0 ETH initially', async function() {
+            it('6.7 total sum assured should be 0 ETH initially', async function() {
               const initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
               initialTotalSA.should.be.bignumber.equal(0);
             });
-            it('should not be able to purchase cover if premiumNXM is 0', async function() {
+            it('6.8 should not be able to purchase cover if premiumNXM is 0', async function() {
               initialTotalSupply = (await tk.totalSupply()).div(P_18);
-              let premiumNXM = coverDetails[2]; // to restore value at end of this it('')
+              let premiumNXM = coverDetails[2];
 
               // coverDetails[2](premiumNXM) is 0 (refer TokenFunctions.sol)
               coverDetails[2] = 0;
@@ -261,7 +261,7 @@ contract('Quotation', function([
 
               coverDetails[2] = premiumNXM; // restore the value
             });
-            it('should be able to purchase cover', async function() {
+            it('6.9 should be able to purchase cover', async function() {
               const initialPoolBalance = await web3.eth.getBalance(P1.address);
               const initialTokensOfCoverHolder = await tk.balanceOf(
                 coverHolder
@@ -303,7 +303,7 @@ contract('Quotation', function([
                 (await tk.totalSupply()).div(P_18).toFixed(0)
               );
             });
-            it('should be revert if smart contract address is null', async function() {
+            it('6.10 should be revert if smart contract address is null', async function() {
               await assertRevert(
                 P1.makeCoverBegin(
                   nullAddress,
@@ -317,7 +317,7 @@ contract('Quotation', function([
                 )
               );
             });
-            it('should return correct cover details', async function() {
+            it('6.11 should return correct cover details', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
@@ -347,17 +347,17 @@ contract('Quotation', function([
               });
               await tk.transfer(coverHolder, tokens);
             });
-            it('should not have locked Cover Note initially', async function() {
+            it('6.12 should not have locked Cover Note initially', async function() {
               const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
               initialLockedCN.should.be.bignumber.equal(0);
             });
-            it('total sum assured should be 1 ETH initially', async function() {
+            it('6.13 total sum assured should be 1 ETH initially', async function() {
               initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
               initialTotalSA.should.be.bignumber.equal(1);
             });
-            it('should be able to purchase cover', async function() {
+            it('6.14 should be able to purchase cover', async function() {
               const initialTokensOfCoverHolder = await tk.balanceOf(
                 coverHolder
               );
@@ -400,7 +400,7 @@ contract('Quotation', function([
                   .toFixed(0)
               );
             });
-            it('should return correct cover details', async function() {
+            it('6.15 should return correct cover details', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
@@ -435,17 +435,17 @@ contract('Quotation', function([
               });
               await cad.transfer(coverHolder, tokenDai);
             });
-            it('should not have locked Cover Note initially', async function() {
+            it('6.16 should not have locked Cover Note initially', async function() {
               const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
               initialLockedCN.should.be.bignumber.equal(0);
             });
-            it('total sum assured should be 2 ETH initially', async function() {
+            it('6.17 total sum assured should be 2 ETH initially', async function() {
               initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
               initialTotalSA.should.be.bignumber.equal(2);
             });
-            it('should able to purchase cover using currency assest i.e. DAI ', async function() {
+            it('6.18 should able to purchase cover using currency assest i.e. DAI ', async function() {
               const initialCAbalance = await cad.balanceOf(coverHolder);
               initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
               const initialTotalSupply = await tk.totalSupply();
@@ -481,7 +481,7 @@ contract('Quotation', function([
               newLockedCN.should.be.bignumber.equal(presentLockedCN);
               newTotalSupply.should.be.bignumber.equal(presentTotalSupply);
             });
-            it('currency assest balance should increase after cover purchase', async function() {
+            it('6.19 currency assest balance should increase after cover purchase', async function() {
               const presentPoolBalanceOfCA = new BigNumber(
                 coverDetailsDai[1].toString()
               );
@@ -489,7 +489,7 @@ contract('Quotation', function([
                 initialPoolBalanceOfCA.plus(presentPoolBalanceOfCA)
               );
             });
-            it('should return correct cover details purchased with DAI', async function() {
+            it('6.20 should return correct cover details purchased with DAI', async function() {
               const CID = await qd.getAllCoversOfUser(coverHolder);
               let checkd = false;
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
@@ -535,7 +535,7 @@ contract('Quotation', function([
             const coverHolder = member3;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
-            it('should be able to purchase cover ', async function() {
+            it('6.21 should be able to purchase cover ', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               );
@@ -554,7 +554,7 @@ contract('Quotation', function([
               );
             });
 
-            it('staker gets commission', async function() {
+            it('6.22 staker gets commission', async function() {
               const commission =
                 (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
               (await td.getStakerTotalEarnedStakeCommission.call(
@@ -573,7 +573,7 @@ contract('Quotation', function([
             const coverHolder = member4;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
-            it('should be able to purchase cover', async function() {
+            it('6.23 should be able to purchase cover', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               );
@@ -617,7 +617,7 @@ contract('Quotation', function([
                 { from: coverHolder }
               );
             });
-            it('staker gets commission', async function() {
+            it('6.24 staker gets commission', async function() {
               const commission =
                 (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
               (await td.getStakerTotalEarnedStakeCommission.call(
@@ -637,7 +637,7 @@ contract('Quotation', function([
             let initialPoolBalanceOfCA;
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
-            it('should able to purchase cover using currency assest i.e. DAI ', async function() {
+            it('6.25 should able to purchase cover using currency assest i.e. DAI ', async function() {
               initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker1
               );
@@ -658,7 +658,7 @@ contract('Quotation', function([
                 { from: coverHolder }
               );
             });
-            it('staker gets commission', async function() {
+            it('6.26 staker gets commission', async function() {
               const commission =
                 (coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
                 1;
@@ -671,7 +671,7 @@ contract('Quotation', function([
                 staker2
               )).should.be.bignumber.equal(initialStakeCommissionOfS2);
             });
-            it('should able to purchase cover with cover period less than 60 ', async function() {
+            it('6.27 should able to purchase cover with cover period less than 60 ', async function() {
               let coverLen = await qd.getCoverLength();
               let totalSASC = await qd.getTotalSumAssuredSC(smartConAdd, 'DAI');
               await cad.approve(P1.address, coverDetailsLess[1], {
@@ -705,11 +705,11 @@ contract('Quotation', function([
     });
 
     describe('If user is not a member', function() {
-      it('should return -1 if user have no holded Covers', async function() {
+      it('6.28 should return -1 if user have no holded Covers', async function() {
         let holdedId = await qt.getRecentHoldedCoverIdStatus(member1);
         holdedId.should.be.bignumber.equal(-1);
       });
-      it('should revert if member', async function() {
+      it('6.29 should revert if member', async function() {
         const totalFee = fee.plus(coverDetails[1].toString());
         await assertRevert(
           qt.initiateMembershipAndCover(
@@ -725,7 +725,7 @@ contract('Quotation', function([
         );
       });
       describe('if do not want to join membership', function() {
-        it('reverts', async function() {
+        it('6.30 reverts', async function() {
           await assertRevert(
             P1.makeCoverBegin(
               smartConAdd,
@@ -815,7 +815,7 @@ contract('Quotation', function([
         });
       });
       describe('if want to join membership', function() {
-        it('should be able to join membership and purchase cover with ETH', async function() {
+        it('6.31 should be able to join membership and purchase cover with ETH', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember1
           });
@@ -834,7 +834,7 @@ contract('Quotation', function([
           holdedId.should.be.bignumber.above(0);
           await qt.kycTrigger(true, newMember1);
         });
-        it('should be able to join membership and purchase cover with DAI', async function() {
+        it('6.32 should be able to join membership and purchase cover with DAI', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember2
           });
@@ -855,7 +855,7 @@ contract('Quotation', function([
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
           await qt.kycTrigger(true, newMember2);
         });
-        it('should refund full amount if user aks (DAI)', async function() {
+        it('6.33 should refund full amount if user aks (DAI)', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember3
           });
@@ -878,7 +878,7 @@ contract('Quotation', function([
           await qt.fullRefund({ from: newMember3 });
           initialDAI.should.be.bignumber.equal(await cad.balanceOf(member3));
         });
-        it('should refund full amount to new member', async function() {
+        it('6.34 should refund full amount to new member', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember3
           });
@@ -899,7 +899,7 @@ contract('Quotation', function([
           await assertRevert(qt.kycTrigger(true, newMember3));
         });
 
-        it('should revert if wallet address is not set', async function() {
+        it('6.34.2 should revert if wallet address is not set', async function() {
           await td.changeWalletAddress(nullAddress);
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember5
@@ -919,7 +919,7 @@ contract('Quotation', function([
           await td.changeWalletAddress(owner);
         });
 
-        it('should get membership but not cover if quote expires for ETH', async function() {
+        it('6.35 should get membership but not cover if quote expires for ETH', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember4
           });
@@ -941,7 +941,7 @@ contract('Quotation', function([
           await qt.kycTrigger(true, newMember4);
         });
 
-        it('should revert if quote validity expires', async function() {
+        it('6.36 should revert if quote validity expires', async function() {
           const newCoverDetails = coverDetails.slice();
           const validity = await latestTime();
           newCoverDetails[3] = validity - 2;
@@ -960,7 +960,7 @@ contract('Quotation', function([
           );
         });
 
-        it('should get membership but not cover if quote expires for DAI', async function() {
+        it('6.37 should get membership but not cover if quote expires for DAI', async function() {
           await assertRevert(
             qt.initiateMembershipAndCover(
               smartConAdd,
@@ -1006,29 +1006,29 @@ contract('Quotation', function([
       initialTokenBalance = await tk.balanceOf(member3);
       validityofCover = await qd.getValidityOfCover(1);
     });
-    it('cover should not expired before validity', async function() {
+    it('6.38 cover should not expired before validity', async function() {
       (await qt.checkCoverExpired(1)).should.be.equal(false);
       await increaseTimeTo(validityofCover.plus(1));
     });
 
-    it('cover should be expired after validity expires', async function() {
+    it('6.39 cover should be expired after validity expires', async function() {
       initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
       await qt.expireCover(1);
       (await qt.checkCoverExpired(1)).should.be.equal(true);
     });
 
-    it('Expired cover should not be expired again', async function() {
+    it('6.40 Expired cover should not be expired again', async function() {
       await assertRevert(qt.expireCover(1));
     });
 
-    it('decrease sum assured', async function() {
+    it('6.41 decrease sum assured', async function() {
       const newSumAssured = await qd.getTotalSumAssured(CA_ETH);
       newSumAssured.should.be.bignumber.equal(initialSumAssured.minus(1));
     });
-    it('should change cover status', async function() {
+    it('6.42 should change cover status', async function() {
       (await qd.getCoverStatusNo(1)).should.be.bignumber.equal(3);
     });
-    it('should unlock locked cover note tokens', async function() {
+    it('6.43 should unlock locked cover note tokens', async function() {
       const unLockedCN = BN_10.times(coverDetails[2])
         .div(BN_100)
         .toFixed(0);
@@ -1040,14 +1040,14 @@ contract('Quotation', function([
 
   describe('Transfer Assest', function() {
     describe('if authorized', function() {
-      it('should be able to transfer assest back', async function() {
+      it('6.44 should be able to transfer assest back', async function() {
         await qt.transferBackAssets({ from: owner });
         await cad.transfer(qt.address, tokenDai);
         await qt.transferBackAssets({ from: owner });
         await qt.sendTransaction({ from: owner, value: 1 });
         await qt.transferBackAssets({ from: owner });
       });
-      it('should be able to transfer assest to new contract', async function() {
+      it('6.45 should be able to transfer assest to new contract', async function() {
         const newqt = await Quotation.new();
         await qt.transferAssetsToNewContract(newqt.address, { from: owner });
         await qt.sendTransaction({ from: owner, value: 1 });
@@ -1056,7 +1056,7 @@ contract('Quotation', function([
       });
     });
     describe('if not authorized', function() {
-      it('reverts', async function() {
+      it('6.46 reverts', async function() {
         await assertRevert(qt.transferBackAssets({ from: notMember }));
         const newqt = await Quotation.new();
         await assertRevert(
@@ -1068,25 +1068,25 @@ contract('Quotation', function([
 
   describe('Misc', function() {
     describe('Change product params if owner', function() {
-      it('only owner should be able to change Profit Margin', async function() {
+      it('6.47 only owner should be able to change Profit Margin', async function() {
         await qd.changePM(4);
         await assertRevert(qd.changePM(4, { from: notMember }));
       });
-      it('only owner should be able to change STLP', async function() {
+      it('6.48 only owner should be able to change STLP', async function() {
         await qd.changeSTLP(5);
         await assertRevert(qd.changeSTLP(4, { from: notMember }));
       });
-      it('only owner should be able to change STL', async function() {
+      it('6.49 only owner should be able to change STL', async function() {
         await qd.changeSTL(1);
         await assertRevert(qd.changeSTL(4, { from: notMember }));
       });
-      it('only owner should be able to change minimum cover period', async function() {
+      it('6.50 only owner should be able to change minimum cover period', async function() {
         await qd.changeMinDays(31);
         await assertRevert(qd.changeMinDays(4, { from: notMember }));
       });
     });
     describe('if not internal contract address', function() {
-      it('should not be able to change master address', async function() {
+      it('6.51 should not be able to change master address', async function() {
         await assertRevert(
           qd.changeMasterAddress(qd.address, { from: notMember })
         );
@@ -1094,7 +1094,7 @@ contract('Quotation', function([
           qt.changeMasterAddress(qd.address, { from: notMember })
         );
       });
-      it('should not be able to change cover status number', async function() {
+      it('6.52 should not be able to change cover status number', async function() {
         const CID = await qd.getAllCoversOfUser(member3);
         await assertRevert(
           qd.changeCoverStatusNo(CID[0], 1, { from: notMember })

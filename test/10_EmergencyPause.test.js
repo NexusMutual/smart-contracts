@@ -167,27 +167,27 @@ contract('NXMaster: Emergency Pause', function([
       let proposalsIDs = [];
       await cr.claimAllPendingReward(proposalsIDs, { from: member4 });
     });
-    it('should return false for isPause', async function() {
+    it('10.1 should return false for isPause', async function() {
       (await nxms.isPause()).should.equal(false);
     });
-    it('should let submit claim', async function() {
+    it('10.2 should let submit claim', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
       await cl.submitClaim(coverID[0], { from: coverHolder1 });
       const claimId = (await cd.actualClaimLength()) - 1;
       claimId.should.be.bignumber.equal(1);
       (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
     });
-    it('should be able to do claim assessment or stake NXM for claim', async function() {
+    it('10.3 should be able to do claim assessment or stake NXM for claim', async function() {
       await tc.lock(CLA, ether(60), validity, { from: member3 });
     });
-    it('should be able to buy nxm token', async function() {
+    it('10.4 should be able to buy nxm token', async function() {
       await P1.buyToken({ value: ether(60), from: member1 });
     });
 
-    it('should be able to redeem NXM tokens', async function() {
+    it('10.5 should be able to redeem NXM tokens', async function() {
       await P1.sellNXMTokens(ether(0.01), { from: member1 });
     });
-    it('should be able to withdraw membership', async function() {
+    it('10.6 should be able to withdraw membership', async function() {
       await mr.withdrawMembership({ from: member4 });
     });
   });
@@ -236,41 +236,41 @@ contract('NXMaster: Emergency Pause', function([
         )
       );
     });
-    it('should return true for isPause', async function() {
+    it('10.7 should return true for isPause', async function() {
       (await nxms.isPause()).should.equal(true);
     });
-    it('should return emergency pause details', async function() {
+    it('10.8 should return emergency pause details', async function() {
       await nxms.getEmergencyPauseByIndex(0);
       const epd = await nxms.getLastEmergencyPause();
       epd[0].should.equal(true);
       epd[1].should.be.bignumber.equal(startTime);
       epd[2].should.equal(AdvisoryBoard);
     });
-    it('should not be able to pay joining fee', async function() {
+    it('10.9 should not be able to pay joining fee', async function() {
       await assertRevert(
         mr.payJoiningFee(member5, { from: member5, value: fee })
       );
     });
-    it('should not be able to trigger kyc', async function() {
+    it('10.10 should not be able to trigger kyc', async function() {
       await assertRevert(mr.kycVerdict(member5, true));
     });
-    it('add claim to queue', async function() {
+    it('10.11 add claim to queue', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder2);
       await cl.submitClaim(coverID[0], { from: coverHolder2 });
       (await qd.getCoverStatusNo(coverID[0])).should.be.bignumber.equal(5);
     });
-    it('should not let member vote for claim assessment', async function() {
+    it('10.12 should not let member vote for claim assessment', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
       await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
     });
-    it('should not be able to change claim status', async function() {
+    it('10.13 should not be able to change claim status', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
       await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
     });
-    it('should not be able to add currency', async function() {
+    it('10.14 should not be able to add currency', async function() {
       await assertRevert(mcr.addCurrency('0x4c4f4c', { from: owner }));
     });
-    it('should not be able to make cover', async function() {
+    it('10.15 should not be able to make cover', async function() {
       await assertRevert(
         P1.makeCoverBegin(
           smartConAdd,
@@ -284,45 +284,45 @@ contract('NXMaster: Emergency Pause', function([
         )
       );
     });
-    it('should not be able to assess risk', async function() {
+    it('10.16 should not be able to assess risk', async function() {
       await assertRevert(tf.addStake(smartConAdd, 1, { from: member1 }));
     });
-    it('should not be able to submit CA Vote', async function() {
+    it('10.17 should not be able to submit CA Vote', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
       await assertRevert(cl.submitCAVote(claimId, 0, { from: member1 }));
     });
 
-    it('should not be able to do claim assessment or stake NXM for claim', async function() {
+    it('10.18 should not be able to do claim assessment or stake NXM for claim', async function() {
       await assertRevert(tc.lock(CLA, ether(60), validity, { from: member3 }));
       // dont use member1 or member2 as they are already locked
     });
-    it('should not be able to buy nxm token', async function() {
+    it('10.19 should not be able to buy nxm token', async function() {
       await assertRevert(P1.buyToken({ value: ether(60), from: member1 }));
     });
-    it('should not be able to redeem NXM tokens', async function() {
+    it('10.20 should not be able to redeem NXM tokens', async function() {
       await assertRevert(P1.sellNXMTokens(ether(1), { from: member1 }));
     });
 
-    it('should not be able to withdraw membership', async function() {
+    it('10.21 should not be able to withdraw membership', async function() {
       await assertRevert(mr.withdrawMembership({ from: member4 }));
     });
 
-    it('Should not be able to save IA details', async function() {
+    it('10.22 Should not be able to save IA details', async function() {
       await assertRevert(
         p2.saveIADetails(['0x455448', '0x444149'], [100, 1000], 20190125, false)
       );
     });
 
-    it('should extend CN EPOfff', async function() {
+    it('10.23 should extend CN EPOfff', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
       pendingTime = parseFloat((await cd.getPendingClaimDetailsByIndex(0))[1]);
       await tf.extendCNEPOff(coverHolder1, coverID[0], pendingTime);
     });
     describe('Setting staker commission and max commision percentages when not authorized to govern', function() {
-      it('not allowed for set staker commission percentage', async function() {
+      it('10.24 not allowed for set staker commission percentage', async function() {
         await assertRevert(td.setStakerCommissionPer(newStakerPercentage));
       });
-      it('not allowed for set staker maximum commission percentage', async function() {
+      it('10.25 not allowed for set staker maximum commission percentage', async function() {
         await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
       });
     });
@@ -331,7 +331,6 @@ contract('NXMaster: Emergency Pause', function([
   describe('Emergency Pause: Inactive', function() {
     before(async function() {
       await tc.burnFrom(owner, await tk.balanceOf(owner));
-      // await nxms.addEmergencyPause(false, AdvisoryBoard);
       let p = await gv.getProposalLength();
       await gv.createProposal(
         'close Emergency Pause',
@@ -355,7 +354,7 @@ contract('NXMaster: Emergency Pause', function([
       await gv.closeProposal(p);
     });
     describe('Turning off emergency pause automatically', function() {
-      it('should be able to turn off automatically', async function() {
+      it('10.26 should be able to turn off automatically', async function() {
         let p = await gv.getProposalLength();
         await gv.createProposal(
           'Implement Emergency Pause',
@@ -377,30 +376,27 @@ contract('NXMaster: Emergency Pause', function([
       });
     });
     describe('Resume Everything', function() {
-      it('should return false for isPause', async function() {
+      it('10.27 should return false for isPause', async function() {
         (await nxms.isPause()).should.equal(false);
       });
-      it('should submit queued claims', async function() {
+      it('10.28 should submit queued claims', async function() {
         (await nxms.isPause()).should.equal(false);
         const claimId = (await cd.actualClaimLength()) - 1;
         claimId.should.be.bignumber.equal(2);
         (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
       });
-      it('should extend CN EPOfff', async function() {
+      it('10.29 should extend CN EPOfff', async function() {
         const coverID = await qd.getAllCoversOfUser(coverHolder1);
         pendingTime = parseFloat(
           (await cd.getPendingClaimDetailsByIndex(0))[1]
         );
-        // console.log('pending time is: ', pendingTime);
-        // console.log('coverValidUntil time is: ', parseFloat(await qd.getValidityOfCover(coverID[0])));
-        // console.log('latest tine', parseFloat(await latestTime()));
+
         await tf.extendCNEPOff(
           coverHolder1,
           coverID[0],
           pendingTime + 5270396,
           { from: owner }
         );
-        // the time passed is so that pendingTime + X + latestTime is greater than coverValidUntilTime
       });
     });
   });

@@ -64,12 +64,12 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
         let initialStakedTokens;
 
         describe('At day 0', function() {
-          it('UW1 to add stake on Smart Contracts', async function() {
+          it('16.1 UW1 to add stake on Smart Contracts', async function() {
             await tf.addStake(stakedContract, stakeTokens, { from: UW1 });
           });
         });
         describe('At day 10', function() {
-          it('UW2 to add stake on Smart Contracts, UW1 to Unlock 100 NXMs', async function() {
+          it('16.2 UW2 to add stake on Smart Contracts, UW1 to Unlock 100 NXMs', async function() {
             let initialBal = await tk.balanceOf(UW1);
             let time = await latestTime();
             time = time + (await duration.days(10));
@@ -86,7 +86,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
           });
         });
         describe('At day 20', function() {
-          it('UW3 to add stake on Smart Contracts,4000 NXMs burned from Stakers', async function() {
+          it('16.3 UW3 to add stake on Smart Contracts,4000 NXMs burned from Stakers', async function() {
             let time = await latestTime();
             time = time + (await duration.days(10));
             await increaseTimeTo(time + 10);
@@ -102,7 +102,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
           });
         });
         describe('At day 21', function() {
-          it('UW1 and UW2 unlockable Tokens are 100,UW3 Unlocked tokens 10', async function() {
+          it('16.4 UW1 and UW2 unlockable Tokens are 100,UW3 Unlocked tokens 10', async function() {
             let initialBalUW1 = await tk.balanceOf(UW1);
             let initialBalUW2 = await tk.balanceOf(UW2);
             let initialBalUW3 = await tk.balanceOf(UW3);
@@ -150,7 +150,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
           });
         });
         describe('At day 90', function() {
-          it('UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 690', async function() {
+          it('16.5 UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 690', async function() {
             let initialBalUW1 = await tk.balanceOf(UW1);
             let initialBalUW2 = await tk.balanceOf(UW2);
             let initialBalUW3 = await tk.balanceOf(UW3);
@@ -197,7 +197,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
           });
         });
         describe('At day 100', function() {
-          it('1000 NXMs burned from Stakers', async function() {
+          it('16.6 1000 NXMs burned from Stakers', async function() {
             let time = await latestTime();
             time = time + (await duration.days(10));
             await increaseTimeTo(time + 10);
@@ -212,7 +212,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
           });
         });
         describe('At day 101', function() {
-          it('UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 100', async function() {
+          it('16.7 UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 100', async function() {
             let initialBalUW1 = await tk.balanceOf(UW1);
             let initialBalUW2 = await tk.balanceOf(UW2);
             let initialBalUW3 = await tk.balanceOf(UW3);
@@ -260,7 +260,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
         });
 
         describe('At day 150', function() {
-          it('UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 200', async function() {
+          it('16.8 UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 200', async function() {
             let initialBalUW1 = await tk.balanceOf(UW1);
             let initialBalUW2 = await tk.balanceOf(UW2);
             let initialBalUW3 = await tk.balanceOf(UW3);
@@ -308,7 +308,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
         });
 
         describe('after 270 days', function() {
-          it('UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 1200', async function() {
+          it('16.9 UW1 and UW2 unlockable Tokens are 0,UW3 Unlocked tokens 1200', async function() {
             let initialBalUW1 = await tk.balanceOf(UW1);
             let initialBalUW2 = await tk.balanceOf(UW2);
             let initialBalUW3 = await tk.balanceOf(UW3);

@@ -126,7 +126,7 @@ contract('Claim', function([
     describe('if member', function() {
       let coverHolder = member1;
       describe('if does not purchased cover', function() {
-        it('reverts', async function() {
+        it('7.1 reverts', async function() {
           await assertRevert(cl.submitClaim(0, { from: member1 }));
         });
       });
@@ -162,7 +162,7 @@ contract('Claim', function([
               let initialCurrencyAssetVarMin;
               let coverID;
               let coverCurr;
-              it('should be able to submit claim', async function() {
+              it('7.2 should be able to submit claim', async function() {
                 coverID = await qd.getAllCoversOfUser(coverHolder);
                 coverCurr = await qd.getCurrencyOfCover(coverID[0]);
                 initialCurrencyAssetVarMin = await pd.getCurrencyAssetVarMin(
@@ -244,13 +244,13 @@ contract('Claim', function([
                   );
                 }
               });
-              it('cover status should change', async function() {
+              it('7.3 cover status should change', async function() {
                 const claimDetails = await cd.getAllClaimsByIndex(1);
                 claimDetails[0].should.be.bignumber.equal(coverID[0]);
                 const newCoverStatus = await qd.getCoverStatusNo(coverID[0]);
                 newCoverStatus.should.be.bignumber.equal(4);
               });
-              it('should increase CurrencyAssetVarMin', async function() {
+              it('7.4 should increase CurrencyAssetVarMin', async function() {
                 const sumAssured = await qd.getCoverSumAssured(coverID[0]);
                 // const sumAssured1 =sumAssured.plus(await qd.getCoverSumAssured(coverID[1]));
                 (await pd.getCurrencyAssetVarMin(
@@ -262,7 +262,7 @@ contract('Claim', function([
             });
 
             describe('if claim is already submitted', function() {
-              it('reverts', async function() {
+              it('7.5 reverts', async function() {
                 const coverID = await qd.getAllCoversOfUser(coverHolder);
                 await assertRevert(
                   cl.submitClaim(coverID[0], { from: coverHolder })
@@ -289,7 +289,7 @@ contract('Claim', function([
               const claimId = (await cd.actualClaimLength()) - 1;
               await cl.setClaimStatus(claimId, 1);
             });
-            it('should not be able to submit claim', async function() {
+            it('7.6 should not be able to submit claim', async function() {
               const coverID = await qd.getAllCoversOfUser(newCoverHolder);
               await assertRevert(
                 cl.submitClaim(coverID[0], { from: newCoverHolder })
@@ -322,7 +322,7 @@ contract('Claim', function([
               APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
               await p2.delegateCallBack(APIID);
             });
-            it('reverts', async function() {
+            it('7.7 reverts', async function() {
               coverID = await qd.getAllCoversOfUser(coverHolder);
               await assertRevert(
                 cl.submitClaim(coverID[1], { from: coverHolder })
@@ -344,7 +344,7 @@ contract('Claim', function([
               { from: coverHolder }
             );
           });
-          it('reverts', async function() {
+          it('7.8 reverts', async function() {
             coverID = await qd.getAllCoversOfUser(coverHolder);
             await assertRevert(
               cl.submitClaim(coverID[2], { from: notCoverHolder })
@@ -357,52 +357,52 @@ contract('Claim', function([
 
   describe('Misc', function() {
     describe('Not internal contract address', function() {
-      it('should not able to changeDependentContractAddress', async function() {
+      it('7.9 should not able to changeDependentContractAddress', async function() {
         await assertRevert(
           cl.changeDependentContractAddress({ from: notMember })
         );
       });
-      it('should not be able to set minTime voting', async function() {
+      it('7.10 should not be able to set minTime voting', async function() {
         await assertRevert(cd.setMinVotingTime(0, { from: notMember }));
       });
-      it('should not be able to set max voting Time', async function() {
+      it('7.11 should not be able to set max voting Time', async function() {
         await assertRevert(cd.setMaxVotingTime(1, { from: notMember }));
       });
-      it('should not be able to set Payout retry time', async function() {
+      it('7.12 should not be able to set Payout retry time', async function() {
         await assertRevert(cd.setPayoutRetryTime(1, { from: notMember }));
       });
-      it('should not be able to start pending claims', async function() {
+      it('7.13 should not be able to start pending claims', async function() {
         await assertRevert(cd.setpendingClaimStart(1, { from: notMember }));
       });
-      it('should not be able update claims date', async function() {
+      it('7.14 should not be able update claims date', async function() {
         await assertRevert(cd.setClaimDateUpd(0, 1, { from: notMember }));
       });
-      it('should not be able to set claim deposit time', async function() {
+      it('7.15 should not be able to set claim deposit time', async function() {
         await assertRevert(cd.setClaimDepositTime(1, { from: notMember }));
       });
     });
 
     describe('owner address', function() {
-      it('should be able to set minTime voting', async function() {
+      it('7.16 should be able to set minTime voting', async function() {
         await cd.setMinVotingTime(0, { from: owner });
       });
-      it('should be able to set max voting Time', async function() {
+      it('7.17 should be able to set max voting Time', async function() {
         await cd.setMaxVotingTime(1, { from: owner });
       });
-      it('should be able to set Payout retry time', async function() {
+      it('7.18 should be able to set Payout retry time', async function() {
         await cd.setPayoutRetryTime(1, { from: owner });
       });
-      it('should be able to start pending claims', async function() {
+      it('7.19 should be able to start pending claims', async function() {
         await cd.setpendingClaimStart(1, { from: owner });
       });
-      it('should be able update claims date', async function() {
+      it('7.20 should be able update claims date', async function() {
         await cd.setClaimDateUpd(0, 1, { from: owner });
       });
-      it('should be able to set claim deposit time', async function() {
+      it('7.21 should be able to set claim deposit time', async function() {
         await cd.setClaimDepositTime(1, { from: owner });
       });
 
-      it('should be able to set claim reward percentage', async function() {
+      it('7.22 should be able to set claim reward percentage', async function() {
         await cd.setClaimRewardPerc(20, { from: owner });
       });
     });

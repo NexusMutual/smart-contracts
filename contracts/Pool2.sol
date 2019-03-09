@@ -117,6 +117,7 @@ contract Pool2 is Iupgradable {
             _internalExcessLiquiditySwap(curr, baseMin, varMin, caBalance);
         } else if (caBalance < uint(baseMin).add(varMin)) {
             _internalInsufficientLiquiditySwap(curr, baseMin, varMin, caBalance);
+            
         }
     }
 
@@ -269,7 +270,7 @@ contract Pool2 is Iupgradable {
             }
         }
     }    
-    
+
     /** 
      * @dev Gets the investment asset rank.
      */ 
@@ -282,6 +283,7 @@ contract Pool2 is Iupgradable {
         view
         returns (int rhsh, int rhsl) //internal function
     {
+
         uint currentIAmaxHolding;
         uint currentIAminHolding;
         uint iaBalance = _getInvestmentAssetBalance(curr);
@@ -316,7 +318,7 @@ contract Pool2 is Iupgradable {
         int rhsh;
         int rhsl;
         uint totalRiskPoolBalance;
-        (totalRiskPoolBalance, ) = _totalRiskPoolBalance(curr, rate);
+        (totalRiskPoolBalance, ) = m1.calVtpAndMCRtp();
         uint len = curr.length;
         for (uint i = 0; i < len; i++) {
             rhsl = 0;
@@ -415,7 +417,10 @@ contract Pool2 is Iupgradable {
             amount = (((_baseMin.add(_varMin)).mul(3)).div(2)).sub(_caBalance);
             transferInvestmentAsset(_curr, ms.getLatestAddress("P1"), amount);
         } else {
-            p1.triggerExternalLiquidityTrade();
+            ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(maxIACurr));
+            if((maxIACurr == "ETH" && address(this).balance>0) || (maxIACurr != "ETH" && erc20.balanceOf(address(this)) > 0))
+                p1.triggerExternalLiquidityTrade();
+            
         }
     }
 

@@ -214,7 +214,7 @@ contract('NXMaster: Emergency Pause', function([
         'Implement Emergency Pause',
         0
       );
-      await gv.categorizeProposal(p.toNumber(), 8, 0);
+      await gv.categorizeProposal(p.toNumber(), 6, 0);
       await gv.submitProposalWithSolution(
         p,
         'Implement Emergency Pause',
@@ -338,7 +338,7 @@ contract('NXMaster: Emergency Pause', function([
         'close Emergency Pause',
         0
       );
-      await gv.categorizeProposal(p.toNumber(), 9, 0);
+      await gv.categorizeProposal(p.toNumber(), 7, 0);
       await gv.submitProposalWithSolution(
         p,
         'Implement Emergency Pause',
@@ -362,7 +362,7 @@ contract('NXMaster: Emergency Pause', function([
           'Implement Emergency Pause',
           0
         );
-        await gv.categorizeProposal(p.toNumber(), 8, 0);
+        await gv.categorizeProposal(p.toNumber(), 6, 0);
         await gv.submitProposalWithSolution(
           p,
           'Implement Emergency Pause',

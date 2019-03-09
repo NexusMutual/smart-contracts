@@ -91,7 +91,7 @@ contract(
     it('15.5 Should create a proposal', async function() {
       let propLength = await gv.getProposalLength();
       proposalId = propLength.toNumber();
-      await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
+      await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0); //Pid 1
       let propLength2 = await gv.getProposalLength();
       assert.isAbove(
         propLength2.toNumber(),
@@ -205,19 +205,19 @@ contract(
     });
 
     it('15.24 Should claim reward only through claimRewards contract', async function() {
-      await assertRevert(gv.claimReward(ab1, [1, 2, 3]));
+      await assertRevert(gv.claimReward(ab1, [1]));
     });
 
     it('15.25 Should claim rewards', async function() {
       await nxms.isMember(ab1);
       await nxmToken.balanceOf(cr.address);
-      await cr.claimAllPendingReward([1, 2, 3]);
+      await cr.claimAllPendingReward([1]);
       let pendingRewards = await gv.getPendingReward(ab1);
       assert.equal(pendingRewards.toNumber(), 0, 'Rewards not claimed');
     });
 
     it('15.26 Should not claim reward twice for same proposal', async function() {
-      await assertRevert(cr.claimAllPendingReward([1, 2, 3]));
+      await assertRevert(cr.claimAllPendingReward([1]));
     });
 
     describe('Delegation cases', function() {
@@ -275,7 +275,7 @@ contract(
       });
       it('15.39 Create a proposal', async function() {
         pId = (await gv.getProposalLength()).toNumber();
-        await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
+        await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0); //Pid 2
         await gv.categorizeProposal(pId, 12, 130 * 1e18);
         await gv.submitProposalWithSolution(
           pId,
@@ -312,7 +312,7 @@ contract(
       });
       it('15.47 Undelegated Follower cannot vote within 7 days since undelegation', async function() {
         pId = (await gv.getProposalLength()).toNumber();
-        await gv.createProposal('Proposal2', 'Proposal2', 'Proposal2', 0);
+        await gv.createProposal('Proposal2', 'Proposal2', 'Proposal2', 0); //Pid 3
         await gv.categorizeProposal(pId, 12, 130 * 1e18);
         await gv.submitProposalWithSolution(
           pId,

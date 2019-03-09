@@ -208,19 +208,21 @@ contract('NXMaster: Emergency Pause', function([
       );
 
       let p = await gv.getProposalLength();
-      await gv.createProposal(
+      await gv.createProposalwithVote(
         'Implement Emergency Pause',
         'Implement Emergency Pause',
         'Implement Emergency Pause',
-        0
-      );
-      await gv.categorizeProposal(p.toNumber(), 6, 0);
-      await gv.submitProposalWithSolution(
-        p,
+        6,
         'Implement Emergency Pause',
         '0x872f1eb3'
       );
-      await gv.submitVote(p, 1);
+      // await gv.categorizeProposal(p.toNumber(), 6, 0);
+      // await gv.submitProposalWithSolution(
+      //   p,
+      //   'Implement Emergency Pause',
+      //   '0x872f1eb3'
+      // );
+      // await gv.submitVote(p, 1);
       await gv.closeProposal(p);
       startTime = await latestTime();
       await assertRevert(
@@ -356,19 +358,21 @@ contract('NXMaster: Emergency Pause', function([
     describe('Turning off emergency pause automatically', function() {
       it('10.26 should be able to turn off automatically', async function() {
         let p = await gv.getProposalLength();
-        await gv.createProposal(
+        await gv.createProposalwithVote(
           'Implement Emergency Pause',
           'Implement Emergency Pause',
           'Implement Emergency Pause',
-          0
-        );
-        await gv.categorizeProposal(p.toNumber(), 6, 0);
-        await gv.submitProposalWithSolution(
-          p,
+          6,
           'Implement Emergency Pause',
           '0x872f1eb3'
         );
-        await gv.submitVote(p, 1);
+        // await gv.categorizeProposal(p.toNumber(), 6, 0);
+        // await gv.submitProposalWithSolution(
+        //   p,
+        //   'Implement Emergency Pause',
+        //   '0x872f1eb3'
+        // );
+        // await gv.submitVote(p, 1);
         await gv.closeProposal(p);
         startTime = await latestTime();
         var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);

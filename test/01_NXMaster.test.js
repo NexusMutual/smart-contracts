@@ -102,7 +102,7 @@ contract('NXMaster', function([
     addr.push(memberRoles.address);
   });
   describe('when called by Owner', function() {
-    it('should be able to add a new version', async function() {
+    it('1.1 should be able to add a new version', async function() {
       this.timeout(0);
       const version = await nxms.getCurrentVersion();
       await nxms.addNewVersion(addr, { from: owner });
@@ -111,7 +111,7 @@ contract('NXMaster', function([
       );
     });
 
-    it('should be able to change master address', async function() {
+    it('1.2 should be able to change master address', async function() {
       this.timeout(0);
       newMaster = await NXMaster.new();
       await nxms.changeMasterAddress(newMaster.address, { from: owner });
@@ -120,7 +120,7 @@ contract('NXMaster', function([
       nxms = newMaster;
     });
 
-    it('should be able to change single contract (proxy contracts)', async function() {
+    it('1.3 should be able to change single contract (proxy contracts)', async function() {
       this.timeout(0);
       let newMemberRoles = await MemberRoles.new();
       await nxms.upgradeContractImplementation(
@@ -131,12 +131,12 @@ contract('NXMaster', function([
       memberRoles = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     });
 
-    it('should set launch bit after adding initial members', async function() {
+    it('1.4 should set launch bit after adding initial members', async function() {
       await memberRoles.addMembersBeforeLaunch([], []);
       (await memberRoles.launched()).should.be.equal(true);
     });
 
-    it('should be able to reinitialize', async function() {
+    it('1.5 should be able to reinitialize', async function() {
       this.timeout(0);
       await pl1.sendTransaction({ from: owner, value: poolEther });
       await td.changeWalletAddress(owner);
@@ -161,94 +161,90 @@ contract('NXMaster', function([
       ); // for testing
     });
 
-    it('should be able to change token controller address', async function() {
+    it('1.6 should be able to change token controller address', async function() {
       await tc.changeOperator(tc.address);
     });
 
-    // it('should not be able to change to an invalid address', async function() {
-    // await assertRevert(tc.changeOperator('pokemon'));
-    // });
-
-    it('owner should be able to change owner address', async function() {
+    it('1.7 owner should be able to change owner address', async function() {
       await nxms.changeOwner(newOwner, { from: owner });
       newOwner.should.equal(await nxms.owner());
     });
 
-    it('new Owner should be able to change owner address back to original owner', async function() {
+    it('1.8 new Owner should be able to change owner address back to original owner', async function() {
       await nxms.changeOwner(owner, { from: newOwner });
       owner.should.equal(await nxms.owner());
     });
   });
 
   describe('when not called by Owner', function() {
-    it('should not be able to add a new version', async function() {
+    it('1.9 should not be able to add a new version', async function() {
       await assertRevert(nxms.addNewVersion(addr, { from: anotherAccount }));
     });
 
-    it('should not be able to change master address', async function() {
+    it('1.10 should not be able to change master address', async function() {
       newMaster = await NXMaster.new();
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
       );
     });
 
-    it('should not be able to change owner address', async function() {
+    it('1.11 should not be able to change owner address', async function() {
       await assertRevert(nxms.changeOwner(newOwner, { from: newOwner }));
       newOwner.should.not.equal(await nxms.owner());
     });
   });
 
   describe('modifiers', function() {
-    it('should return true if owner address', async function() {
+    it('1.12 should return true if owner address', async function() {
       const isOwner = await nxms.isOwner(owner);
       isOwner.should.equal(true);
     });
-    it('should return false if not owner address', async function() {
+    it('1.13 should return false if not owner address', async function() {
       const isOwner = await nxms.isOwner(newOwner);
       isOwner.should.equal(false);
     });
-    it('should return true if internal contract address', async function() {
+    it('1.14 should return true if internal contract address', async function() {
       const isInternal = await nxms.isInternal(nxms.address);
       isInternal.should.equal(true);
     });
-    it('should return false if not internal contract address', async function() {
+    it('1.15 should return false if not internal contract address', async function() {
       const isInternal = await nxms.isInternal(newOwner);
       isInternal.should.equal(false);
     });
-    it('should return true if member', async function() {
+    it('1.16 should return true if member', async function() {
       await memberRoles.payJoiningFee(member, { from: member, value: fee });
       await memberRoles.kycVerdict(member, true);
       const isMember = await nxms.isMember(member);
       isMember.should.equal(true);
     });
-    it('should return false if not member', async function() {
+    it('1.17 should return false if not member', async function() {
       const isMember = await nxms.isOwner(nonMember);
       isMember.should.equal(false);
     });
-    it('should return false for no Emergency Pause', async function() {
+    it('1.18 should return false for no Emergency Pause', async function() {
       const isPause = await nxms.isPause();
       isPause.should.equal(false);
     });
   });
 
   describe('emergency pause ', function() {
-    it('should return zero length for Emergency Pause', async function() {
+    it('1.19 should return zero length for Emergency Pause', async function() {
       const len = await nxms.getEmergencyPausedLength();
       len.should.be.bignumber.equal(new BigNumber(0));
     });
-    it('should return correct for last Emergency Pause', async function() {
+    it('1.20 should return correct for last Emergency Pause', async function() {
       let check = false;
       const lastEP = await nxms.getLastEmergencyPause();
       if (lastEP[0] == false && lastEP[1] == 0) check = true;
       check.should.equal(true);
     });
 
-    it('should return correct pasue time detail', async function() {
+    it('1.21 should return correct pasue time detail', async function() {
       const getPauseTime = await nxms.getPauseTime();
       pauseTime.should.be.bignumber.equal(getPauseTime);
     });
 
-    it('other address/contract should not be able to update pauseTime', async function() {
+    it('1.22 other address/contract should not be able to update pauseTime', async function() {
       const updatePauseTime = pauseTime.plus(new BigNumber(60));
       await assertRevert(
         nxms.updatePauseTime(updatePauseTime, { from: newOwner })
@@ -256,7 +252,7 @@ contract('NXMaster', function([
       updatePauseTime.should.be.bignumber.not.equal(await nxms.getPauseTime());
     });
 
-    it('internal contracts should be able to update pauseTime', async function() {
+    it('1.23 internal contracts should be able to update pauseTime', async function() {
       const updatePauseTime = pauseTime.plus(new BigNumber(60));
       await nxms.updatePauseTime(updatePauseTime);
       updatePauseTime.should.be.bignumber.equal(await nxms.getPauseTime());

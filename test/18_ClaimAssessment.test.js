@@ -350,7 +350,7 @@ contract('Claim: Assessment 2', function([
     //   var month = a.getMonth();
     //   return date + '/' + month;
     // }
-    it('Should buy cover and collect rewards', async function() {
+    it('18.1 Should buy cover and collect rewards', async function() {
       let allCoverPremiums = [100, 100, 200, 200, 300, 300, 400, 400, 500];
       let allLockCNDetails = []; // here all lockCN values
       let changeInUWBalance = [];
@@ -575,11 +575,11 @@ contract('Claim: Assessment 2', function([
       await lockCNFlag.should.equal(1);
     });
 
-    it('Should not be able to updateStakerCommission if premiumNXM is 0', async function() {
+    it('18.2 Should not be able to updateStakerCommission if premiumNXM is 0', async function() {
       await tf.updateStakerCommissions(SC1, 0, { from: owner });
     });
 
-    it('Calling updateStakerCommissions when max commission is reached which is in case of buying cover 7 for SC4', async function() {
+    it('18.3 Calling updateStakerCommissions when max commission is reached which is in case of buying cover 7 for SC4', async function() {
       // after calling make cover begin for SC4, all UW's recived 50% (max) of their staked as commission so calling the funtion in the next line has no effect
       await tf.updateStakerCommissions(SC4, 400000000000000000000, {
         from: owner
@@ -587,7 +587,7 @@ contract('Claim: Assessment 2', function([
       // the above function is simply run but has no effect for else part of if (maxCommission > commissionEarned)
     });
 
-    it('should pass for CA vote > 10 SA and majority > 70 % for reject(D1)', async function() {
+    it('18.4 should pass for CA vote > 10 SA and majority > 70 % for reject(D1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -800,7 +800,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 10 SA and majority > 70 % for accept(A1)', async function() {
+    it('18.5 should pass for CA vote > 10 SA and majority > 70 % for accept(A1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1016,7 +1016,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
+    it('18.6 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1258,7 +1258,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
+    it('18.7 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1497,7 +1497,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
+    it('18.8 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1797,7 +1797,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
+    it('18.9 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -2100,7 +2100,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
+    it('18.10 should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -2389,7 +2389,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
+    it('18.11 should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -2675,7 +2675,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 5* SA and <10 SA and majority > 70 % for reject(D1)', async function() {
+    it('18.12 should pass for CA vote > 5* SA and <10 SA and majority > 70 % for reject(D1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -2930,7 +2930,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 5* SA and <10 SA and majority > 70 % for accept(A1)', async function() {
+    it('18.13 should pass for CA vote > 5* SA and <10 SA and majority > 70 % for accept(A1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3187,7 +3187,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote < 5* SA and MV < 5 SA and CA majority reject(D4)', async function() {
+    it('18.14 should pass for CA vote < 5* SA and MV < 5 SA and CA majority reject(D4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3428,7 +3428,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote < 5* SA and MV < 5 SA and CA majority accept(A4)', async function() {
+    it('18.15 should pass for CA vote < 5* SA and MV < 5 SA and CA majority accept(A4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3670,7 +3670,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for 0 CA votes, MV < 5 SA(D4)', async function() {
+    it('18.16 should pass for 0 CA votes, MV < 5 SA(D4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3829,7 +3829,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 5 SA and CA<10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
+    it('18.17 should pass for CA vote > 5 SA and CA<10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -4126,7 +4126,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('should pass for CA vote > 5 SA and CA<10SA majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
+    it('18.18 should pass for CA vote > 5 SA and CA<10SA majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -4422,7 +4422,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('CA vote<5SA, open for member vote and majority reject(D3)', async function() {
+    it('18.19 CA vote<5SA, open for member vote and majority reject(D3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -4662,7 +4662,7 @@ contract('Claim: Assessment 2', function([
       else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
-    it('CA vote <5SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
+    it('18.20 CA vote <5SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -4903,7 +4903,7 @@ contract('Claim: Assessment 2', function([
       }
     });
 
-    it('Unlocks token locked by coverholder and then does it again, but next time, no unlock', async function() {
+    it('18.21 Unlocks token locked by coverholder and then does it again, but next time, no unlock', async function() {
       const coverID1 = (await qd.getAllCoversOfUser(coverHolder1))[0];
 
       // after this there are some locked CN, hence balance of CH1 increases
@@ -4914,15 +4914,15 @@ contract('Claim: Assessment 2', function([
     });
   });
   describe('Setting staker commission and max commision percentages when not authorized to govern', function() {
-    it('not allowed for set staker commission percentage', async function() {
+    it('18.22 not allowed for set staker commission percentage', async function() {
       await assertRevert(td.setStakerCommissionPer(newStakerPercentage));
     });
-    it('not allowed for set staker maximum commission percentage', async function() {
+    it('18.23 not allowed for set staker maximum commission percentage', async function() {
       await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
     });
   });
   describe('Burning 0 tokens of a staker', function() {
-    it('successful', async function() {
+    it('18.24 successful', async function() {
       await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
       await mr.kycVerdict(underWriter6, true);
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
@@ -4932,7 +4932,7 @@ contract('Claim: Assessment 2', function([
 
       await tf.burnStakerLockedToken(SC1, 0);
     });
-    it('when stakerStakedNXM = 0', async function() {
+    it('18.25 when stakerStakedNXM = 0', async function() {
       maxVotingTime = await cd.maxVotingTime();
       let maxStakeTime = 21600000;
       let now = await latestTime();
@@ -4942,7 +4942,7 @@ contract('Claim: Assessment 2', function([
     });
   });
   describe('Add all members in whitelist', function() {
-    it('successful', async function() {
+    it('18.26 successful', async function() {
       await tf.addAllMembersInWhiteList({ from: owner });
     });
   });

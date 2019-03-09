@@ -117,6 +117,7 @@ contract Pool2 is Iupgradable {
             _internalExcessLiquiditySwap(curr, baseMin, varMin, caBalance);
         } else if (caBalance < uint(baseMin).add(varMin)) {
             _internalInsufficientLiquiditySwap(curr, baseMin, varMin, caBalance);
+            
         }
     }
 
@@ -269,7 +270,7 @@ contract Pool2 is Iupgradable {
             }
         }
     }    
-    
+
     /** 
      * @dev Gets the investment asset rank.
      */ 
@@ -282,6 +283,7 @@ contract Pool2 is Iupgradable {
         view
         returns (int rhsh, int rhsl) //internal function
     {
+
         uint currentIAmaxHolding;
         uint currentIAminHolding;
         uint iaBalance = _getInvestmentAssetBalance(curr);
@@ -316,7 +318,7 @@ contract Pool2 is Iupgradable {
         int rhsh;
         int rhsl;
         uint totalRiskPoolBalance;
-        (totalRiskPoolBalance, ) = _totalRiskPoolBalance(curr, rate);
+        (totalRiskPoolBalance, ) = m1.calVtpAndMCRtp();
         uint len = curr.length;
         for (uint i = 0; i < len; i++) {
             rhsl = 0;
@@ -415,7 +417,10 @@ contract Pool2 is Iupgradable {
             amount = (((_baseMin.add(_varMin)).mul(3)).div(2)).sub(_caBalance);
             transferInvestmentAsset(_curr, ms.getLatestAddress("P1"), amount);
         } else {
-            p1.triggerExternalLiquidityTrade();
+            ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(maxIACurr));
+            if((maxIACurr == "ETH" && address(this).balance>0) || (maxIACurr != "ETH" && erc20.balanceOf(address(this)) > 0))
+                p1.triggerExternalLiquidityTrade();
+            
         }
     }
 
@@ -441,16 +446,17 @@ contract Pool2 is Iupgradable {
         if (curr == minIACurr) {
             p1.transferCurrencyAsset(curr, address(this), amount);
         } else if (curr == "ETH" && minIACurr != "ETH") {
-            p1.transferCurrencyAsset(curr, address(this), amount);
+            
             exchange = Exchange(factory.getExchange(pd.getInvestmentAssetAddress(minIACurr)));
             if (amount > (address(exchange).balance.mul(ethVol)).div(100)) { // 4% ETH volume limit 
                 amount = (address(exchange).balance.mul(ethVol)).div(100);
                 trigger = true;
             }
+            p1.transferCurrencyAsset(curr, address(this), amount);
             exchange.ethToTokenSwapInput.value(amount)
             (exchange.getEthToTokenInputPrice(amount).mul(995).div(1000), pd.uniswapDeadline().add(now));    
         } else if (curr != "ETH" && minIACurr == "ETH") {
-            p1.transferCurrencyAsset(curr, address(this), amount);
+            
             exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));
             erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
             intermediaryEth = exchange.getTokenToEthInputPrice(amount);
@@ -461,7 +467,7 @@ contract Pool2 is Iupgradable {
                 intermediaryEth = exchange.getTokenToEthInputPrice(amount);
                 trigger = true;
             }
-
+            p1.transferCurrencyAsset(curr, address(this), amount);
             // erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
             erc20.approve(address(exchange), amount);
             

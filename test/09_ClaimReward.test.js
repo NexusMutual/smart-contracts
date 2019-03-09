@@ -154,10 +154,13 @@ contract('ClaimsReward', function([
       let claimed = await cr.getRewardAndClaimedStatus(1, claimId, {
         from: member1
       });
+      let claimed1 = await cr.getRewardAndClaimedStatus(1, 0, {
+        from: member1
+      });
       claimed[1].should.be.equal(false);
       await cr.changeClaimStatus(claimId);
     });
-    it('should be able to claim reward', async function() {
+    it('9.1 should be able to claim reward', async function() {
       let proposalIds = [];
       initialTokenBalance = await tk.balanceOf(cr.address);
       initialBalance = await tk.balanceOf(member1);
@@ -171,23 +174,18 @@ contract('ClaimsReward', function([
         0
       );
     });
-    it('should increase balance of member', async function() {
+    it('9.2 should increase balance of member', async function() {
       (await tk.balanceOf(member1)).should.be.bignumber.equal(
         initialBalance.plus(rewardToGet)
       );
     });
-    it('should decrease token balance of this contract', async function() {
+    it('9.3 should decrease token balance of this contract', async function() {
       (await tk.balanceOf(cr.address)).should.be.bignumber.equal(
         initialTokenBalance.sub(rewardToGet)
       );
       let proposalIds = [];
-      // await cr.getRewardAndClaimedStatus(1, claimId, { from: member1 });
-      // await cr.getRewardAndClaimedStatus(1, 2, { from: member1 });
-      // await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
-      // await cr.getRewardAndClaimedStatus(0, 2, { from: member1 });
-      // await cr.getRewardToBeDistributedByUser(member1);
+
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
-      // await cd.getVoteAddressMemberLength(member1);
     });
   });
   describe('Staker gets reward', function() {
@@ -205,24 +203,24 @@ contract('ClaimsReward', function([
         staker1
       );
     });
-    it('should be able to claim reward', async function() {
+    it('9.4 should be able to claim reward', async function() {
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: staker1 });
       (await cr.getAllPendingRewardOfUser(staker1)).should.be.bignumber.equal(
         0
       );
     });
-    it('should increase balance of staker', async function() {
+    it('9.5 should increase balance of staker', async function() {
       (await tk.balanceOf(staker1)).should.be.bignumber.equal(
         initialBalance.plus(rewardToGet)
       );
     });
-    it('should decrease locked staked tokens of staker', async function() {
+    it('9.6 should decrease locked staked tokens of staker', async function() {
       (await tf.getStakerAllLockedTokens(staker1)).should.be.bignumber.equal(
         lockedStakedNXM.sub(unlockableStakedNXM)
       );
     });
-    it('should return zero unlockable staked tokens of staker', async function() {
+    it('9.7 should return zero unlockable staked tokens of staker', async function() {
       (await tf.getStakerAllUnlockableStakedTokens(
         staker1
       )).should.be.bignumber.equal(0);
@@ -230,15 +228,15 @@ contract('ClaimsReward', function([
   });
 
   describe('Misc', function() {
-    it('should not be able change claim status', async function() {
+    it('9.8 should not be able change claim status', async function() {
       await assertRevert(cr.changeClaimStatus(claimId, { from: notMember }));
     });
 
-    it('should not be able call upgrade function of this contract', async function() {
+    it('9.9 should not be able call upgrade function of this contract', async function() {
       await assertRevert(cr.upgrade(member1, { from: notMember }));
     });
 
-    it('should be able call upgrade function of this contract', async function() {
+    it('9.10 should be able call upgrade function of this contract', async function() {
       await tc.mint(cr.address, tokens);
       await cr.upgrade(member1, { from: owner });
     });

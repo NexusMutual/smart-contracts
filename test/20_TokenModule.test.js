@@ -56,17 +56,17 @@ contract('Token Module', function([owner, member1]) {
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
   });
   describe('NXMToken: ', function() {
-    it('onlyOperator "require" operator - else condition', async function() {
+    it('20.1 onlyOperator "require" operator - else condition', async function() {
       await assertRevert(tk.mint(owner, 1)); // tc.mint is changed to tk.mint hence it needs to assertRevert
     });
 
-    it('approve function "require" - else ZERO_ADDRESS condition is checked', async function() {
+    it('20.2 approve function "require" - else ZERO_ADDRESS condition is checked', async function() {
       await assertRevert(
         tk.approve(ZERO_ADDRESS, UNLIMITED_ALLOWANCE, { from: member1 })
       );
     });
 
-    it('decreaseAllowance function is called, ZERO_ADDRESS is also checked', async function() {
+    it('20.3 decreaseAllowance function is called, ZERO_ADDRESS is also checked', async function() {
       await tk.decreaseAllowance(tc.address, 0.1 * UNLIMITED_ALLOWANCE, {
         from: owner
       });
@@ -77,7 +77,7 @@ contract('Token Module', function([owner, member1]) {
       );
     });
 
-    it('increaseAllowance function is called, ZERO_ADDRESS is also checked', async function() {
+    it('20.4 increaseAllowance function is called, ZERO_ADDRESS is also checked', async function() {
       await assertRevert(
         tk.increaseAllowance(ZERO_ADDRESS, 0.1 * UNLIMITED_ALLOWANCE, {
           from: owner
@@ -88,7 +88,7 @@ contract('Token Module', function([owner, member1]) {
       });
     });
 
-    it('transfer function "require" - else conditions are checked', async function() {
+    it('20.5 transfer function "require" - else conditions are checked', async function() {
       // to check that transfer is not made to ZERO_ADDRESS
       await assertRevert(
         tk.transfer(ZERO_ADDRESS, 30000 * 1e18, { from: owner })
@@ -99,25 +99,14 @@ contract('Token Module', function([owner, member1]) {
       await assertRevert(tk.transfer(member1, 30000 * 1e18, { from: owner }));
     });
 
-    it('_mint function "require" - else ZERO_ADDRESS condition is checked', async function() {
+    it('20.6 _mint function "require" - else ZERO_ADDRESS condition is checked', async function() {
       await assertRevert(tc.mint(ZERO_ADDRESS, 1));
     });
-    it('_burnFrom function "require" - else of burning max allowed value and ZERO_ADDRESS condition is checked', async function() {
+    it('20.7 _burnFrom function "require" - else of burning max allowed value and ZERO_ADDRESS condition is checked', async function() {
       await assertRevert(tc.burnFrom(ZERO_ADDRESS, 1));
       await assertRevert(
         tc.burnFrom(owner, parseFloat(await tk.totalSupply()) + 1000)
       );
     });
-    // t
-    // it('_burn function "require" - else ZERO_ADDRESS condition is checked', async function() {
-    // await tk.burn(1, {from: owner});
-    // console.log('loki: ', await tk.totalSupply());
-    // await assertRevert(tk.burn(1, {from: ZERO_ADDRESS}));
-    // console.log('loki: ', await tk.totalSupply());
-    // });
   });
-
-  // describe('TokenController: ', function () {
-  //     it();
-  // });
 });

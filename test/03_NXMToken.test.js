@@ -59,22 +59,22 @@ contract('NXMToken', function([
   });
 
   describe('token details', function() {
-    it('should return correct symbol', async function() {
+    it('3.1 should return correct symbol', async function() {
       const symbol = 'NXM';
       symbol.should.equal(await tk.symbol());
     });
-    it('should return correct total Supply', async function() {
+    it('3.2 should return correct total Supply', async function() {
       const ts = await tk.totalSupply();
       ts.should.be.bignumber.equal(initialFounderTokens);
     });
-    it('should return non zero token price', async function() {
+    it('3.3 should return non zero token price', async function() {
       (await tf.getTokenPrice(ETH)).should.be.bignumber.not.equal(0);
     });
-    it('should return correct decimals', async function() {
+    it('3.4 should return correct decimals', async function() {
       const decimals = 18;
       decimals.should.be.bignumber.equal(await tk.decimals());
     });
-    it('should return zero available balance for non member', async function() {
+    it('3.5 should return zero available balance for non member', async function() {
       (await tk.balanceOf(notMember)).should.be.bignumber.equal(0);
     });
   });
@@ -84,10 +84,10 @@ contract('NXMToken', function([
       await mr.payJoiningFee(member1, { from: member1, value: fee });
       await mr.kycVerdict(member1, true);
     });
-    it('should not able to buy tokens if not member', async function() {
+    it('3.6 should not able to buy tokens if not member', async function() {
       await assertRevert(P1.buyToken({ from: notMember, value: tokenAmount }));
     });
-    it('should be able to buy tokens if member', async function() {
+    it('3.7 should be able to buy tokens if member', async function() {
       await P1.buyToken({ from: member1, value: tokenAmount });
       (await tk.balanceOf(member1)).should.be.bignumber.not.equal(0);
     });
@@ -95,7 +95,7 @@ contract('NXMToken', function([
 
   describe('balanceOf', function() {
     describe('when the requested account is a member and has no tokens', function() {
-      it('returns zero', async function() {
+      it('3.8 returns zero', async function() {
         await mr.payJoiningFee(member2, { from: member2, value: fee });
         await mr.kycVerdict(member2, true);
         (await tk.balanceOf(member2)).should.be.bignumber.equal(0);
@@ -103,12 +103,12 @@ contract('NXMToken', function([
     });
     describe('when the requested account is a member and has some tokens', function() {
       beforeEach(async function() {});
-      it('returns the non zero amount of tokens', async function() {
+      it('3.9 returns the non zero amount of tokens', async function() {
         (await tk.balanceOf(member1)).should.be.bignumber.not.equal(0);
       });
     });
     describe('when the requested account is not a member', function() {
-      it('returns zero', async function() {
+      it('3.10 returns zero', async function() {
         (await tk.balanceOf(notMember)).should.be.bignumber.equal(0);
       });
     });
@@ -125,7 +125,7 @@ contract('NXMToken', function([
 
       describe('when the sender is not a member', function() {
         const to = member1;
-        it('reverts', async function() {
+        it('3.11 reverts', async function() {
           await assertRevert(
             tk.transfer(to, transferTokens, { from: notMember })
           );
@@ -135,7 +135,7 @@ contract('NXMToken', function([
       describe('when the sender is a member', function() {
         const to = member2;
         describe('when the sender does not have enough balance', function() {
-          it('reverts', async function() {
+          it('3.12 reverts', async function() {
             await assertRevert(
               tk.transfer(to, await tk.totalSupply(), { from: member1 })
             );
@@ -143,12 +143,12 @@ contract('NXMToken', function([
         });
 
         describe('when the sender does have enough balance', function() {
-          it('transfers the requested amount', async function() {
+          it('3.13 transfers the requested amount', async function() {
             await tk.transfer(to, transferTokens, { from: member1 });
             (await tk.balanceOf(member2)).should.be.bignumber.not.equal(0);
           });
 
-          it('emits a transfer event', async function() {
+          it('3.14 emits a transfer event', async function() {
             const { logs } = await tk.transfer(to, transferTokens, {
               from: member1
             });
@@ -164,7 +164,7 @@ contract('NXMToken', function([
     });
 
     describe('when the recipient is not a member', function() {
-      it('reverts', async function() {
+      it('3.15 reverts', async function() {
         to = notMember;
         await assertRevert(tk.transfer(to, transferTokens, { from: member1 }));
       });
@@ -176,7 +176,7 @@ contract('NXMToken', function([
       const spender = member2;
       describe('when approve amount is less than balance of sender', function() {
         const approveTokens = ether(2);
-        it('approves the requested amount', async function() {
+        it('3.16 approves the requested amount', async function() {
           await tk.approve(spender, approveTokens, { from: member1 });
           (await tk.allowance(member1, spender)).should.be.bignumber.equal(
             approveTokens
@@ -184,7 +184,7 @@ contract('NXMToken', function([
         });
       });
       describe('when approve amount is more than balance of sender', function() {
-        it('approves the requested amount', async function() {
+        it('3.17 approves the requested amount', async function() {
           const approveTokens = (await tk.balanceOf(member1)).plus(1e18);
           tk.approve(spender2, approveTokens, { from: member1 });
           (await tk.allowance(member1, spender2)).should.be.bignumber.equal(
@@ -198,7 +198,7 @@ contract('NXMToken', function([
       const spender = member2;
       const approveTokens = ether(2);
 
-      it('approves the requested amount', async function() {
+      it('3.18 approves the requested amount', async function() {
         await tk.approve(spender, approveTokens, { from: notMember });
         (await tk.allowance(notMember, spender)).should.be.bignumber.equal(
           approveTokens
@@ -218,14 +218,14 @@ contract('NXMToken', function([
     });
 
     describe('when the spender is not a member', function() {
-      it('reverts', async function() {
+      it('3.19 reverts', async function() {
         await assertRevert(tk.transferFrom(sender, to, 1, { from: notMember }));
       });
     });
 
     describe('when the spender is a member', function() {
       describe('when the sender is not a member', function() {
-        it('reverts', async function() {
+        it('3.20 reverts', async function() {
           await assertRevert(
             tk.transferFrom(notMember, to, 1, { from: spender })
           );
@@ -234,7 +234,7 @@ contract('NXMToken', function([
 
       describe('when the sender is a member', function() {
         describe('when the recipient is not a member', function() {
-          it('reverts', async function() {
+          it('3.21 reverts', async function() {
             await assertRevert(
               tk.transferFrom(sender, notMember, 1, { from: spender })
             );
@@ -248,7 +248,7 @@ contract('NXMToken', function([
               await tk.transfer(sender, ether(50));
             });
 
-            it('transfers the requested amount', async function() {
+            it('3.22 transfers the requested amount', async function() {
               const initialTokenBalance = await tk.balanceOf(sender);
               await tk.transferFrom(sender, to, amount, { from: spender });
 
@@ -259,7 +259,7 @@ contract('NXMToken', function([
               (await tk.balanceOf(to)).should.be.bignumber.equal(amount);
             });
 
-            it('decreases the spender allowance', async function() {
+            it('3.23 decreases the spender allowance', async function() {
               await tk.transferFrom(sender, to, amount, { from: spender });
 
               (await tk.allowance(sender, spender)).should.be.bignumber.equal(
@@ -267,7 +267,7 @@ contract('NXMToken', function([
               );
             });
 
-            it('emits a transfer event', async function() {
+            it('3.24 emits a transfer event', async function() {
               const { logs } = await tk.transferFrom(sender, to, amount, {
                 from: spender
               });
@@ -281,7 +281,7 @@ contract('NXMToken', function([
           });
 
           describe('when the sender does not have enough balance', function() {
-            it('reverts', async function() {
+            it('3.25 reverts', async function() {
               const amount = await tk.balanceOf(sender);
               await assertRevert(
                 tk.transferFrom(sender, to, amount.plus(1e18), {
@@ -296,7 +296,7 @@ contract('NXMToken', function([
               await tk.approve(spender, ether(1.5), { from: owner });
             });
             const amount = ether(1.6);
-            it('reverts', async function() {
+            it('3.26 reverts', async function() {
               await assertRevert(
                 tk.transferFrom(sender, to, amount, { from: spender })
               );
@@ -310,7 +310,7 @@ contract('NXMToken', function([
             await tk.approve(spender, amount, { from: sender });
             await tk.transfer(sender, ether(50));
           });
-          it('reverts', async function() {
+          it('3.27 reverts', async function() {
             await assertRevert(
               tk.transferFrom(sender, ZERO_ADDRESS, amount, { from: spender })
             );
@@ -322,7 +322,7 @@ contract('NXMToken', function([
 
   describe('Sell Tokens', function() {
     const sellTokens = ether(0.02);
-    it('should able to sell tokens', async function() {
+    it('3.28 should able to sell tokens', async function() {
       await tk.approve(tc.address, sellTokens, { from: member1 });
       const initialTokenBalance = await tk.balanceOf(member1);
       const sellTokensWorth = await P1.getWei(sellTokens);
@@ -339,14 +339,14 @@ contract('NXMToken', function([
       );
     });
 
-    it('should not be to sell tokens more than balance', async function() {
+    it('3.29 should not be to sell tokens more than balance', async function() {
       const tokenBalance = await tk.balanceOf(member1);
       await assertRevert(
         P1.sellNXMTokens(tokenBalance.plus(1e18), { from: member1 })
       );
     });
 
-    it('should not be to sell tokens more than maxSellTokens', async function() {
+    it('3.30 should not be to sell tokens more than maxSellTokens', async function() {
       const maxSellTokens = await mcr.getMaxSellTokens({ from: member1 });
       await assertRevert(
         P1.sellNXMTokens(maxSellTokens.plus(1e18), { from: member1 })
@@ -356,7 +356,7 @@ contract('NXMToken', function([
 
   describe('Burn', function() {
     describe('Tokens Less than balance', function() {
-      it('should be able to burn tokens', async function() {
+      it('3.31 should be able to burn tokens', async function() {
         const { logs } = await tk.burn(tokens, { from: member1 });
         const event = expectEvent.inLogs(logs, 'Transfer', {
           from: member1
@@ -366,7 +366,7 @@ contract('NXMToken', function([
     });
 
     describe('Tokens more than balance', function() {
-      it('reverts', async function() {
+      it('3.32 reverts', async function() {
         const burnAmount = await tk.totalSupply();
         await assertRevert(tk.burn(burnAmount, { from: member1 }));
       });
@@ -386,7 +386,7 @@ contract('NXMToken', function([
           20190219
         );
       });
-      it('reverts', async function() {
+      it('3.33 reverts', async function() {
         const initialTokenBalance = await tk.balanceOf(member1);
         await assertRevert(P1.buyToken({ from: member1, value: tokenAmount }));
         (await tk.balanceOf(member1)).should.be.bignumber.equal(
@@ -399,49 +399,47 @@ contract('NXMToken', function([
       before(async function() {
         await nxms.addEmergencyPause(true, '0x4142');
       });
-      // it('should not be to call paused functions', async function() {
-      //   await assertRevert(tk.approve(member2, tokens, { from: member1 }));
-      // });  TODO: add pause modifier to critical functions
+
       after(async function() {
         await nxms.addEmergencyPause(false, '0x4142');
       });
     });
 
     describe('Setter functions', function() {
-      it('should be able to change joining fee', async function() {
+      it('3.34 should be able to change joining fee', async function() {
         await td.setJoiningFee(1);
         (await td.joiningFee()).should.be.bignumber.equal(1);
       });
-      it('should be able to change BookTime', async function() {
+      it('3.35 should be able to change BookTime', async function() {
         await td.changeBookTime(1, { from: owner });
         await increaseTimeTo((await latestTime()) + 3);
         (await td.bookTime()).should.be.bignumber.equal(1);
       });
-      it('should be able to change lockCADays', async function() {
+      it('3.36 should be able to change lockCADays', async function() {
         await td.changelockCADays(1);
         (await td.lockCADays()).should.be.bignumber.equal(1);
       });
-      it('should be able to change SCValidDays', async function() {
+      it('3.37 should be able to change SCValidDays', async function() {
         await td.changeSCValidDays(1);
         (await td.scValidDays()).should.be.bignumber.equal(1);
       });
-      it('should be able to change LockTokenTimeAfterCoverExp', async function() {
+      it('3.38 should be able to change LockTokenTimeAfterCoverExp', async function() {
         await td.setLockTokenTimeAfterCoverExp(1);
         (await td.lockTokenTimeAfterCoverExp()).should.be.bignumber.equal(1);
       });
-      it('should be able to change CanAddMemberAddress', async function() {
+      it('3.39 should be able to change CanAddMemberAddress', async function() {
         await assertRevert(
           tf.changeCanAddMemberAddress(member1, { from: member1 })
         );
         await tf.changeCanAddMemberAddress(member1, { from: owner });
       });
 
-      it('only owner should be able to change MVDays', async function() {
+      it('3.40 only owner should be able to change MVDays', async function() {
         await assertRevert(td.changelockMVDays(1, { from: member1 }));
         await td.changelockMVDays(await td.lockMVDays(), { from: owner });
       });
 
-      it('should not be able to change BookTime if not owner', async function() {
+      it('3.41 should not be able to change BookTime if not owner', async function() {
         await assertRevert(td.changeBookTime(1, { from: member1 }));
       });
     });

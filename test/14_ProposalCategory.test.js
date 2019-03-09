@@ -25,7 +25,7 @@ contract('Proposal Category', function([owner, other]) {
     await mr.kycVerdict(owner, true);
   });
 
-  it('Should be initialized', async function() {
+  it('14.1 Should be initialized', async function() {
     await assertRevert(pc.proposalCategoryInitiate());
     const g1 = await pc.totalCategories();
     const g2 = await pc.category(1);
@@ -36,12 +36,12 @@ contract('Proposal Category', function([owner, other]) {
     assert.equal(g6.toNumber(), 18);
   });
 
-  it('should not allow unauthorized to change master address', async function() {
+  it('14.2 should not allow unauthorized to change master address', async function() {
     await assertRevert(pc.changeMasterAddress(nxms.address, { from: other }));
     await pc.changeMasterAddress(nxms.address);
   });
 
-  it('Should add a proposal category', async function() {
+  it('14.3 Should add a proposal category', async function() {
     let c1 = await pc.totalCategories();
     await assertRevert(
       pc.addCategory('Yo', 1, 1, 0, [1], 1, '', nullAddress, 'EX', [0, 0, 0])
@@ -71,24 +71,11 @@ contract('Proposal Category', function([owner, other]) {
     );
     await gv.submitVote(p1.toNumber(), 1);
     await gv.closeProposal(p1.toNumber());
-    //proposal closed
-    // await pc.addCategory(
-    //   'Yo',
-    //   1,
-    //   1,
-    //   0,
-    //   [1],
-    //   1,
-    //   '',
-    //   nullAddress,
-    //   'EX',
-    //   [0, 0]
-    // );
     const c2 = await pc.totalCategories();
     assert.isAbove(c2.toNumber(), c1.toNumber(), 'category not added');
   });
 
-  it('Should update a proposal category', async function() {
+  it('14.4 Should update a proposal category', async function() {
     let c1 = await pc.totalCategories();
     c1 = c1.toNumber() - 1;
     const cat1 = await pc.category(c1);
@@ -125,21 +112,6 @@ contract('Proposal Category', function([owner, other]) {
     );
     await gv.submitVote(p1.toNumber(), 1);
     await gv.closeProposal(p1.toNumber());
-    //proposal closed
-    // will throw once owner's permissions are revoked
-    // await pc.updateCategory(
-    //   c1,
-    //   'YoYo',
-    //   3,
-    //   1,
-    //   20,
-    //   [1],
-    //   1,
-    //   '',
-    //   nullAddress,
-    //   'EX',
-    //   [0, 0]
-    // );
     let cat2 = await pc.category(c1);
     assert.notEqual(cat1[1], cat2[1], 'category not updated');
   });

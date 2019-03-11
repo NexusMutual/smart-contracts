@@ -38,8 +38,12 @@ contract(
       address = await nxms.getLatestAddress('MR');
       mr = await MemberRoles.at(address);
       tc = await TokenController.deployed();
+      //To cover functions in govblocks interface, which are not implemented by NexusMutual
       await gv.addSolution(0, '', '0x');
       await gv.openProposalForVoting(0);
+      await gv.pauseProposal(0);
+      await gv.resumeProposal(0);
+      //
       await mr.payJoiningFee(ab1, { value: 2000000000000000 });
       await mr.kycVerdict(ab1, true);
     });

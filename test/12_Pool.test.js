@@ -2,7 +2,7 @@ const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const DAI = artifacts.require('MockDAI');
-const testtt = artifacts.require('ExchangeMock');
+const exchangeMock = artifacts.require('ExchangeMock');
 const MCR = artifacts.require('MCR');
 const DSValue = artifacts.require('DSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
@@ -11,12 +11,16 @@ const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const MKR = artifacts.require('MockMKR');
+const Governance = artifacts.require('Governance');
+const FactoryMock = artifacts.require('FactoryMock');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { assertRevert } = require('./utils/assertRevert');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const encode = require('./utils/encoder.js').encode;
 
 let p1;
 let p2;
@@ -31,6 +35,9 @@ let tf;
 let tc;
 let mr;
 let nxms;
+let mkr;
+let gv;
+let fac;
 
 const BigNumber = web3.BigNumber;
 const newAsset = '0x535253';
@@ -60,14 +67,21 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Pool', function([owner, notOwner, member1, member2]) {
+contract('Pool', function([
+  owner,
+  notOwner,
+  member1,
+  member2,
+  member3,
+  member4
+]) {
   before(async function() {
     await advanceBlock();
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
     pd = await PoolData.deployed();
     cad = await DAI.deployed();
-    emock = await testtt.deployed();
+    emock = await exchangeMock.deployed();
     mcr = await MCR.deployed();
     DSV = await DSValue.deployed();
     qd = await QuotationDataMock.deployed();
@@ -76,6 +90,9 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     tc = await TokenController.deployed();
+    let address = await nxms.getLatestAddress('GV');
+    gv = await Governance.at(address);
+    fac = await FactoryMock.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -97,6 +114,16 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
     await mr.kycVerdict(member2, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tk.transfer(member2, tokens);
+
+    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.kycVerdict(member3, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+    await tk.transfer(member3, tokens);
+
+    await mr.payJoiningFee(member4, { from: member4, value: fee });
+    await mr.kycVerdict(member4, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+    await tk.transfer(member4, tokens);
   });
 
   describe('PoolData', function() {
@@ -374,6 +401,10 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       let FCABalD2;
 
       var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let exchangeDAI = await fac.getExchange(
+        await pd.getInvestmentAssetAddress('DAI')
+      );
+      emock = await exchangeMock.at(exchangeDAI);
       await emock.sendTransaction({ from: notOwner, value: 2000 * 1e18 });
       await cad.transfer(emock.address, 200000 * 1e18);
 
@@ -1163,14 +1194,284 @@ contract('Pool', function([owner, notOwner, member1, member2]) {
       await p2.saveIADetails(['0x455448', '0x444149'], [0, 0], 20190125, true);
     });
   });
-  // describe('RBT for total risk balance 0', function() {
-  //     pd.pushMCRData(0, 0, 0, 0);
-  //     await p2.saveIADetails(
-  //       ['0x455448', '0x444149'],
-  //       [100, 1000],
-  //       20190125,
-  //       true
-  //     );
-  //   });
-  // });
+  describe('Liquidity trade Token to Token', function() {
+    before(async function() {
+      mkr = await MKR.deployed();
+      let pId = (await gv.getProposalLength()).toNumber();
+      await gv.createProposal('Add new IA', 'Add new IA', 'Add new IA', 0, {
+        from: member1
+      });
+      await gv.categorizeProposal(pId, 12, 0);
+      let actionHash = encode(
+        'addInvestmentAssetCurrency(bytes4,address,bool,uint64,uint64,uint8)',
+        '0x4d4b52',
+        mkr.address,
+        true,
+        500,
+        5000,
+        18
+      );
+      await gv.submitProposalWithSolution(pId, 'Proposing new IA', actionHash, {
+        from: member1
+      });
+      await tk.transfer(member1, ether(75000));
+      await tk.transfer(member2, ether(75000));
+      await tk.transfer(member3, ether(75000));
+      await tk.transfer(member4, ether(75000));
+      await gv.submitVote(pId, 1, { from: member1 });
+      await gv.submitVote(pId, 1, { from: member2 });
+      await gv.submitVote(pId, 1, { from: member3 });
+      await gv.submitVote(pId, 1, { from: member4 });
+      let time = await latestTime();
+      await increaseTimeTo(time + 604800);
+      await gv.closeProposal(pId);
+    });
+    it('ELT(DAI->MKR)', async function() {
+      // console.log("hell yeah");
+      await pd.changeCurrencyAssetBaseMin('0x444149', 15 * 1e18);
+      // await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
+      // await p2.upgradeInvestmentPool(owner);
+      // await p1.upgradeCapitalPool(owner);
+      // await p1.sendTransaction({ from: owner, value: 13.06*1e18 });
+      await p2.sendTransaction({ from: owner, value: 5 * 1e18 });
+      // await cad.transfer(p1.address,31.5*1e18);
+      // await cad.transfer(p2.address,17.9*1e18);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149', '0x4d4b52'],
+        [100, 1000, 500],
+        20190311,
+        false
+      );
+      console.log(await pd.getIARankDetailsByDate(20190311));
+      await p2.internalLiquiditySwap('DAI');
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+      await p2.delegateCallBack(APIID);
+      let CABalE;
+      let CABalD;
+      let CABalE2;
+      let CABalD2;
+      let CAbalM;
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+    });
+    it('ILT(DAI->MKR)', async function() {
+      // console.log("hell yeah");
+      await pd.changeCurrencyAssetBaseMin('0x444149', 9 * 1e18);
+      // await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
+      await mkr.transfer(p2.address, 50 * 1e18);
+      await p2.transferInvestmentAsset('ETH', owner, 5 * 1e18);
+      await p1.transferCurrencyAsset('DAI', owner, 15 * 1e18);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149', '0x4d4b52'],
+        [100, 1000, 2000],
+        20190311,
+        false
+      );
+      console.log(await pd.getIARankDetailsByDate(20190311));
+      await p2.internalLiquiditySwap('DAI');
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+      let CABalE;
+      let CABalD;
+      let CABalE2;
+      let CABalD2;
+      let CAbalM;
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('DAI')));
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('ETH')));
+      await p2.delegateCallBack(APIID);
+
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+    });
+
+    it('ILT(DAI->MKR) IA dont have enough amount', async function() {
+      let emockM = await fac.getExchange(
+        await pd.getInvestmentAssetAddress('MKR')
+      );
+      emock = await exchangeMock.at(emockM);
+      await emock.sendTransaction({ from: owner, value: 1300 * 1e18 });
+      console.log(parseFloat(await web3.eth.getBalance(emock.address)));
+      let emockD = await fac.getExchange(
+        await pd.getInvestmentAssetAddress('DAI')
+      );
+      let emockDAI = await exchangeMock.at(emockD);
+      await emockDAI.sendTransaction({ from: owner, value: 1300 * 1e18 });
+      console.log(parseFloat(await web3.eth.getBalance(emockDAI.address)));
+      // console.log("hell yeah");
+      await pd.changeCurrencyAssetBaseMin('0x444149', 66 * 1e18);
+      // await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
+      await p2.transferInvestmentAsset('MKR', owner, 20 * 1e18);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149', '0x4d4b52'],
+        [100, 1000, 500],
+        20190311,
+        false
+      );
+      console.log(await pd.getIARankDetailsByDate(20190311));
+      let CABalE;
+      let CABalD;
+      let CABalE2;
+      let CABalD2;
+      let CAbalM;
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      await p2.internalLiquiditySwap('DAI');
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('DAI')));
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('ETH')));
+      await p2.delegateCallBack(APIID);
+
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      // console.log(parseFloat(await p2.a()));
+    });
+
+    it('ILT(DAI->MKR) amount > price slippage', async function() {
+      emock.sendEth(await web3.eth.getBalance(emock.address));
+      let emockD = await fac.getExchange(
+        await pd.getInvestmentAssetAddress('DAI')
+      );
+      emockDAI = exchangeMock.at(emockD);
+      emockDAI.sendEth(await web3.eth.getBalance(emockDAI.address));
+      await emockDAI.sendTransaction({ from: owner, value: 80 * 1e18 });
+      await emock.sendTransaction({ from: owner, value: 75 * 1e18 });
+      await p1.transferCurrencyAsset('DAI', owner, 12.5 * 1e18);
+      await mkr.transfer(p2.address, 50 * 1e18);
+      console.log(parseFloat(await web3.eth.getBalance(emockDAI.address)));
+      console.log(parseFloat(await web3.eth.getBalance(emock.address)));
+      await p2.saveIADetails(
+        ['0x455448', '0x444149', '0x4d4b52'],
+        [100, 1000, 500],
+        20190311,
+        false
+      );
+      console.log(await pd.getIARankDetailsByDate(20190311));
+      let CABalE;
+      let CABalD;
+      let CABalE2;
+      let CABalD2;
+      let CAbalM;
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      await p2.internalLiquiditySwap('DAI');
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('DAI')));
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('ETH')));
+      await p2.delegateCallBack(APIID);
+
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      // console.log(parseFloat(await p2.a()));
+    });
+
+    it('ELT(DAI->MKR) amount > price slippage', async function() {
+      await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
+      await p2.transferInvestmentAsset('MKR', owner, 30 * 1e18);
+      await p2.sendTransaction({ from: owner, value: 10 * 1e18 });
+      await emock.sendTransaction({ from: owner, value: 3 * 1e18 });
+      await p2.saveIADetails(
+        ['0x455448', '0x444149', '0x4d4b52'],
+        [100, 1000, 500],
+        20190311,
+        false
+      );
+      console.log(await pd.getIARankDetailsByDate(20190311));
+      let CABalE;
+      let CABalD;
+      let CABalE2;
+      let CABalD2;
+      let CAbalM;
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      await p2.internalLiquiditySwap('DAI');
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(APIID));
+
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('DAI')));
+      console.log(parseFloat(await pd.getCurrencyAssetBaseMin('ETH')));
+      await p2.delegateCallBack(APIID);
+
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+    });
+  });
 });

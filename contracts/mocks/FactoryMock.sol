@@ -8,6 +8,7 @@ contract FactoryMock {
     mapping (address => address) internal token;
     
     function getExchange(address _tokenAddress) public view returns (address) {
+
         return exchange[_tokenAddress];
     }
 

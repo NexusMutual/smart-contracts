@@ -15,6 +15,8 @@ import "../../math/SafeMath.sol";
 contract ERC20 is IERC20 {
     using SafeMath for uint256;
 
+    uint public id;
+
     mapping (address => uint256) private _balances;
 
     mapping (address => mapping (address => uint256)) private _allowed;

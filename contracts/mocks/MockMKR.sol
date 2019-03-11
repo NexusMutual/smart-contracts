@@ -4,12 +4,12 @@ import "../imports/openzeppelin-solidity/token/ERC20/IERC20.sol";
 import "../imports/openzeppelin-solidity/math/SafeMath.sol";
 
 
-contract MockDAI is IERC20 {
+contract MockMKR is IERC20 {
     using SafeMath for uint256;
 
-    string public name = "DAI";
-    uint public id = 1;
-    string public symbol = "DAI";
+    string public name = "MKR";
+    string public symbol = "MKR";
+    uint public id = 2;
     uint8 public decimals = 18;
     uint256 private _totalSupply;
 

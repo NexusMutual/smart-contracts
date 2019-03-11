@@ -138,7 +138,8 @@ contract(
                   'Proposal1',
                   'Proposal1',
                   'Proposal1',
-                  0
+                  0,
+                  { from: mem1 }
                 );
                 let proposalsStatus = await gv.getStatusOfProposals();
                 assert.equal(proposalsStatus[1].toNumber(), 2);
@@ -152,7 +153,8 @@ contract(
                 await gv.submitProposalWithSolution(
                   pId,
                   'changes to pricing model',
-                  '0x'
+                  '0x',
+                  { from: mem1 }
                 );
                 let proposalsStatus = await gv.getStatusOfProposals();
                 assert.equal(proposalsStatus[3].toNumber(), 1);

@@ -641,5 +641,8 @@ contract('Claim: Assessment', function([
       await cl.submitMemberVote(clid, -1, { from: member5 });
       (await cl.checkVoteClosing(clid)).should.be.bignumber.equal(-1);
     });
+    it('8.33 should revert while selling NXMs', async function() {
+      await assertRevert(P1.sellNXMTokens(2 * 1e18), { from: member5 });
+    });
   });
 });

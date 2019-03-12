@@ -186,12 +186,6 @@ contract Pool1 is usingOraclize, Iupgradable {
         saveApiDetails(myid, "VER", version);
     }
 
-    // update currency asset base min and var min
-    function updateCurrencyAssetDetails(bytes4 _curr, uint _baseMin, uint _varMin) external onlyInternal {
-        pd.changeCurrencyAssetBaseMin(_curr, _baseMin);
-        pd.changeCurrencyAssetVarMin(_curr, _varMin);
-    }
-
     function changeDependentContractAddress() public {
         m1 = MCR(ms.getLatestAddress("MC"));
         tk = NXMToken(ms.tokenAddress());
@@ -296,7 +290,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
         require(_amount <= m1.getMaxSellTokens(), "exceeds maximum token sell limit");
         uint sellingPrice = _getWei(_amount);
-        require(tc.burnFrom(msg.sender, _amount), "Burn not successfull");
+        tc.burnFrom(msg.sender, _amount);
         msg.sender.transfer(sellingPrice);
         success = true;
     }

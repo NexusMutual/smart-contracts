@@ -6,6 +6,7 @@ const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const TokenController = artifacts.require('TokenController');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -13,6 +14,7 @@ const { ether } = require('./utils/ether');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
+const UNLIMITED_ALLOWANCE = 4500 * 1e18;
 
 let mcr;
 let pd;
@@ -24,6 +26,7 @@ let nxms;
 let mr;
 let cad;
 let p2;
+let tc;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -41,6 +44,7 @@ contract('MCR', function([owner, notOwner]) {
     cad = await DAI.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    tc = await TokenController.deployed();
   });
 
   describe('Token Price Calculation', function() {
@@ -63,6 +67,8 @@ contract('MCR', function([owner, notOwner]) {
       await p1.sendTransaction({ from: owner, value: 90000000000000000000 });
       await mr.kycVerdict(notOwner, true);
       await mr.kycVerdict(owner, true);
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: notOwner });
       await mcr.addMCRData(
         9000,
         100 * 1e18,
@@ -78,6 +84,7 @@ contract('MCR', function([owner, notOwner]) {
     it('19.1 single tranche 0.1ETH', async function() {
       let dataaa = await pd.getTokenPriceDetails('ETH');
       let x = await tk.balanceOf(notOwner);
+      let expectedNXM = await p1.getToken(100000000000000000);
       await p1.buyToken({ from: notOwner, value: 100000000000000000 });
       let y = await tk.balanceOf(notOwner);
       console.log('single tranche 0.1ETH ==> ', parseFloat(y - x) / 1e18);
@@ -200,6 +207,35 @@ contract('MCR', function([owner, notOwner]) {
         'token rate 1ETH =  ',
         1e18 / parseFloat(await mcr.calculateTokenPrice('ETH'))
       );
+    });
+    it('19.5 Should revert while buying or 0  ETH', async function() {
+      await assertRevert(p1.buyToken({ value: 0 }));
+    });
+  });
+
+  describe('Token Selling', function() {
+    it('19.6 Max sellable token will 0 if mcr percentage is less than 100', async function() {
+      parseFloat(await mcr.getMaxSellTokens()).should.be.equal(0);
+    });
+    it('19.7 sell more than 1000 NXMs', async function() {
+      let poolBal = await mcr.calVtpAndMCRtp();
+      await mcr.addMCRData(
+        20000,
+        100 * 1e18,
+        poolBal[0],
+        ['0x455448', '0x444149'],
+        [100, 15517],
+        20190219
+      );
+      let initialBalNXM = await tk.balanceOf(owner);
+      await p1.sellNXMTokens(1500 * 1e18);
+      let finalBalNXM = await tk.balanceOf(owner);
+
+      (finalBalNXM / 1).should.be.equal(initialBalNXM / 1 - 1500 * 1e18);
+    });
+    it('19.6 Max sellable token will 0 if pool balance is less than 1.5 times of basemin', async function() {
+      await p1.upgradeCapitalPool(owner);
+      parseFloat(await mcr.getMaxSellTokens()).should.be.equal(0);
     });
   });
 });

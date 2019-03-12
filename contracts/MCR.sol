@@ -231,11 +231,16 @@ contract MCR is Iupgradable {
      * @dev Gets max numbers of tokens that can be sold at the moment.
      */ 
     function getMaxSellTokens() public view returns(uint maxTokens) {
-        uint maxTokensAccPoolBal  = address(p1).balance.sub(
-            (pd.getCurrencyAssetBaseMin("ETH").mul(50)).div(100));
+        uint baseMin = pd.getCurrencyAssetBaseMin("ETH");
+        if(address(p1).balance > baseMin.mul(50).div(100))
+            uint maxTokensAccPoolBal  = address(p1).balance.sub(
+            (baseMin.mul(50)).div(100));        
         maxTokensAccPoolBal = (maxTokensAccPoolBal.mul(DECIMAL1E18)).div(
             (calculateTokenPrice("ETH").mul(975)).div(1000));
-        maxTokens = (((uint(pd.getLastMCRPerc()).sub(10000)).mul(2000)).div(10000)).mul(DECIMAL1E18); 
+        uint lastMCRPerc = pd.getLastMCRPerc();
+        if(lastMCRPerc > 10000)
+            maxTokens = (((uint(lastMCRPerc).sub(10000)).mul(2000)).div(10000)).mul(DECIMAL1E18);
+        // require (false,'rofl'); 
         if (maxTokens > maxTokensAccPoolBal)
             maxTokens = maxTokensAccPoolBal;     
     }

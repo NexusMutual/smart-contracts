@@ -1226,7 +1226,7 @@ contract('Pool', function([
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
     });
-    it('ELT(DAI->MKR)', async function() {
+    it('12.62 ELT(DAI->MKR)', async function() {
       // console.log("hell yeah");
       await pd.changeCurrencyAssetBaseMin('0x444149', 15 * 1e18);
       // await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
@@ -1263,7 +1263,7 @@ contract('Pool', function([
       console.log('CABalD2', parseFloat(CABalD2));
       console.log('CABalM', parseFloat(CABalM));
     });
-    it('ILT(DAI->MKR)', async function() {
+    it('12.63 ILT(DAI->MKR)', async function() {
       // console.log("hell yeah");
       await pd.changeCurrencyAssetBaseMin('0x444149', 9 * 1e18);
       // await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
@@ -1311,7 +1311,7 @@ contract('Pool', function([
       console.log('CABalM', parseFloat(CABalM));
     });
 
-    it('ILT(DAI->MKR) IA dont have enough amount', async function() {
+    it('12.64 ILT(DAI->MKR) IA dont have enough amount', async function() {
       let emockM = await fac.getExchange(
         await pd.getInvestmentAssetAddress('MKR')
       );
@@ -1371,7 +1371,7 @@ contract('Pool', function([
       // console.log(parseFloat(await p2.a()));
     });
 
-    it('ILT(DAI->MKR) amount > price slippage', async function() {
+    it('12.65 ILT(DAI->MKR) amount > price slippage', async function() {
       emock.sendEth(await web3.eth.getBalance(emock.address));
       let emockD = await fac.getExchange(
         await pd.getInvestmentAssetAddress('DAI')
@@ -1427,7 +1427,7 @@ contract('Pool', function([
       // console.log(parseFloat(await p2.a()));
     });
 
-    it('ELT(DAI->MKR) amount > price slippage', async function() {
+    it('12.66 ELT(DAI->MKR) amount > price slippage', async function() {
       await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
       await p2.transferInvestmentAsset('MKR', owner, 30 * 1e18);
       await p2.sendTransaction({ from: owner, value: 10 * 1e18 });
@@ -1472,6 +1472,63 @@ contract('Pool', function([
       console.log('CABalD', parseFloat(CABalD));
       console.log('CABalD2', parseFloat(CABalD2));
       console.log('CABalM', parseFloat(CABalM));
+    });
+  });
+
+  describe('More basic cases', function() {
+    it('12.67 RBT For 0 balance in risk pool', async function() {
+      await p2.upgradeInvestmentPool(owner);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190129,
+        true
+      );
+      await p1.upgradeCapitalPool(owner);
+      await mcr.addMCRData(
+        18000,
+        0,
+        0,
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190129
+      );
+      let pId = (await gv.getProposalLength()).toNumber();
+      await gv.createProposal(
+        'Inactive MKR',
+        'Inactive MKR',
+        'Inactive MKR',
+        0,
+        {
+          from: member1
+        }
+      );
+      await gv.categorizeProposal(pId, 14, 0);
+      let actionHash = encode(
+        'changeInvestmentAssetStatus(bytes4,bool)',
+        '0x4d4b52',
+        false
+      );
+      await gv.submitProposalWithSolution(pId, 'Inactive IA', actionHash, {
+        from: member1
+      });
+      await gv.submitVote(pId, 1, { from: member1 });
+      await gv.submitVote(pId, 1, { from: member2 });
+      await gv.submitVote(pId, 1, { from: member3 });
+      await gv.submitVote(pId, 1, { from: member4 });
+      let time = await latestTime();
+      await increaseTimeTo(time + 604800);
+      await gv.closeProposal(pId);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190129,
+        true
+      );
+    });
+
+    it('12.68 TransferEther should revert when called by other than govern', async function() {
+      await assertRevert(p1.transferEther(1e18, owner));
     });
   });
 });

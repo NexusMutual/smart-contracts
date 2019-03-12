@@ -49,6 +49,7 @@ module.exports = function(deployer) {
     const factory = await FactoryMock.deployed();
     const eventCaller = await EventCaller.deployed();
     let newCR = await ClaimsReward.new();
+    let newPool1 = await Pool1.new();
     let addr = [
       qd.address,
       td.address,
@@ -85,8 +86,11 @@ module.exports = function(deployer) {
     ];
     await nxms.changeTokenAddress(tk.address);
     await nxms.setEventCallerAddress(eventCaller.address);
+    // console.log('1');
     await nxms.addNewVersion(addr);
+    // console.log('2');
     await nxms.addNewVersion(addr1);
+    // console.log('3');
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
     await pd.changeInvestmentAssetAddress('0x444149', dai.address);

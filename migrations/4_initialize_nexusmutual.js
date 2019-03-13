@@ -86,11 +86,8 @@ module.exports = function(deployer) {
     ];
     await nxms.changeTokenAddress(tk.address);
     await nxms.setEventCallerAddress(eventCaller.address);
-    // console.log('1');
     await nxms.addNewVersion(addr);
-    // console.log('2');
     await nxms.addNewVersion(addr1);
-    // console.log('3');
     const dai = await DAI.deployed();
     await pd.changeCurrencyAssetAddress('0x444149', dai.address);
     await pd.changeInvestmentAssetAddress('0x444149', dai.address);

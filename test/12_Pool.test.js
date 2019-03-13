@@ -200,15 +200,9 @@ contract('Pool', function([
           pd.changeMasterAddress(pd.address, { from: notOwner })
         );
       });
-      it('12.14 should not be able to add Currency', async function() {
-        await assertRevert(pd.addCurrency('0x4c4f4c', { from: notOwner }));
-        // await pd.A();
-        // await pd.getLastMCREther();
-        // await pd.getLastVfull();
-      });
     });
 
-    it('12.15 should return correct data', async function() {
+    it('12.14 should return correct data', async function() {
       await pd.getAllCurrencies();
       const caIndex = await pd.getAllCurrenciesLen();
       (await pd.getCurrenciesByIndex(caIndex - 1)).should.equal(CA_DAI);
@@ -216,12 +210,12 @@ contract('Pool', function([
       const iaIndex = await pd.getInvestmentCurrencyLen();
       (await pd.getInvestmentCurrencyByIndex(iaIndex - 1)).should.equal(CA_DAI);
     });
-    it('12.16 should not be able to add new Currency Asset', async function() {
+    it('12.15 should not be able to add new Currency Asset', async function() {
       await assertRevert(
         pd.addCurrencyAssetCurrency(newAsset, ZERO_ADDRESS, 1)
       );
     });
-    it('12.17 should not be able to add new Investment Asset', async function() {
+    it('12.16 should not be able to add new Investment Asset', async function() {
       await assertRevert(
         pd.addInvestmentAssetCurrency(
           newAsset,
@@ -234,64 +228,64 @@ contract('Pool', function([
       );
     });
 
-    it('12.18 should not be able to change UniswapFactoryAddress if not owner', async function() {
+    it('12.17 should not be able to change UniswapFactoryAddress if not owner', async function() {
       await assertRevert(
         p2.changeUniswapFactoryAddress(pd.address, { from: notOwner })
       );
     });
-    it('12.19 should be able to transfer all investment asset to new address if owner', async function() {
+    it('12.18 should be able to transfer all investment asset to new address if owner', async function() {
       await p2.upgradeInvestmentPool(owner);
       await p2.upgradeInvestmentPool(owner);
       await p2.sendTransaction({ from: owner, value: 10 * 1e18 });
     });
-    it('12.20 should be able to change Variation Percentage', async function() {
+    it('12.19 should be able to change Variation Percentage', async function() {
       await pd.changeVariationPercX100(400);
       (await pd.variationPercX100()).should.be.bignumber.equal(400);
     });
-    it('12.22 should be able to change Uniswap Deadline time', async function() {
+    it('12.20 should be able to change Uniswap Deadline time', async function() {
       await pd.changeUniswapDeadlineTime(duration.minutes(26));
       (await pd.uniswapDeadline()).should.be.bignumber.equal(
         duration.minutes(26)
       );
     });
-    it('12.23 should be able to change liquidity Trade Callback Time', async function() {
+    it('12.21 should be able to change liquidity Trade Callback Time', async function() {
       await pd.changeliquidityTradeCallbackTime(duration.hours(5));
       (await pd.liquidityTradeCallbackTime()).should.be.bignumber.equal(
         duration.hours(5)
       );
     });
-    it('12.24 should be able to change Investment Asset rate time', async function() {
+    it('12.22 should be able to change Investment Asset rate time', async function() {
       await pd.changeIARatesTime(duration.hours(26));
       (await pd.iaRatesTime()).should.be.bignumber.equal(duration.hours(26));
     });
-    it('12.25 should be able to set last Liquidity Trade Trigger', async function() {
+    it('12.23 should be able to set last Liquidity Trade Trigger', async function() {
       await pd.changeIARatesTime(duration.hours(26));
       (await pd.iaRatesTime()).should.be.bignumber.equal(duration.hours(26));
     });
-    it('12.26 should be able to change Currency Asset address', async function() {
+    it('12.24 should be able to change Currency Asset address', async function() {
       await pd.changeCurrencyAssetAddress(newAsset, NEW_ADDRESS);
       (await pd.getCurrencyAssetAddress(newAsset)).should.equal(NEW_ADDRESS);
     });
-    it('12.27 should be able to change Currency Asset Base Minimum', async function() {
+    it('12.25 should be able to change Currency Asset Base Minimum', async function() {
       await pd.changeCurrencyAssetBaseMin(newAsset, 2);
       (await pd.getCurrencyAssetBaseMin(newAsset)).should.be.bignumber.equal(2);
     });
-    it('12.28 should be able to change Currency Asset Var Minimum', async function() {
+    it('12.26 should be able to change Currency Asset Var Minimum', async function() {
       await pd.changeCurrencyAssetVarMin(newAsset, 1);
       (await pd.getCurrencyAssetVarMin(newAsset)).should.be.bignumber.equal(1);
     });
-    it('12.29 should be able to change Investment Asset address', async function() {
+    it('12.27 should be able to change Investment Asset address', async function() {
       await pd.changeInvestmentAssetAddress(newAsset, NEW_ADDRESS);
       (await pd.getInvestmentAssetAddress(newAsset)).should.equal(NEW_ADDRESS);
     });
-    it('12.30 should be able to update Investment Asset Decimals', async function() {
+    it('12.28 should be able to update Investment Asset Decimals', async function() {
       await pd.updateInvestmentAssetDecimals(newAsset, 19);
       (await pd.getInvestmentAssetDecimals(newAsset)).should.be.bignumber.equal(
         19
       );
     });
 
-    it('12.31 should not be able to call saveIADetails if not notarise', async function() {
+    it('12.29 should not be able to call saveIADetails if not notarise', async function() {
       await assertRevert(
         p2.saveIADetails(
           ['0x455448', '0x444149'],
@@ -305,19 +299,19 @@ contract('Pool', function([
       );
     }); // for testing
 
-    it('12.32 should be able to get Currency asset details in single call', async function() {
+    it('12.30 should be able to get Currency asset details in single call', async function() {
       await p2.getCurrencyAssetDetails('0x455448');
     });
 
-    it('12.33 should be able to get Currency asset details in single call', async function() {
+    it('12.31 should be able to get Currency asset details in single call', async function() {
       await p2.getCurrencyAssetDetails('0x444149');
     });
 
-    it('12.34 should return Investment Asset Rank Details', async function() {
+    it('12.32 should return Investment Asset Rank Details', async function() {
       const lastDate = await pd.getLastDate();
       await pd.getIARankDetailsByDate(lastDate);
     });
-    it('12.35 should return data', async function() {
+    it('12.33 should return data', async function() {
       const length = await pd.getApilCallLength();
       const myId = await pd.getApiCallIndex(length - 1);
       await pd.getApiCallDetails(myId);
@@ -330,7 +324,7 @@ contract('Pool', function([
   });
 
   describe('Liquidity', function() {
-    it('12.36 Setting the testing parameters', async function() {
+    it('12.34 Setting the testing parameters', async function() {
       await DSV.setRate(10 * 1e18);
       await pd.changeCurrencyAssetBaseMin('0x455448', 6 * 1e18);
       await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
@@ -360,7 +354,7 @@ contract('Pool', function([
       let holdMaxE = await pd.getInvestmentAssetMaxHoldingPerc('0x455448');
       let holdMaxD = await pd.getInvestmentAssetMaxHoldingPerc('0x444149');
     });
-    it('12.37 ELT ETH (No IA available at IA pool)', async function() {
+    it('12.35 ELT ETH (No IA available at IA pool)', async function() {
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -427,7 +421,7 @@ contract('Pool', function([
       FCABalD.should.be.bignumber.equal(CABalD - amount);
       FCABalD2.should.be.bignumber.equal(CABalD2);
     });
-    it('12.38 RBT (ETH to ETH)', async function() {
+    it('12.36 RBT (ETH to ETH)', async function() {
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -476,7 +470,7 @@ contract('Pool', function([
       CABalD.should.be.bignumber.equal(ICABalD);
       CABalD2.should.be.bignumber.equal(ICABalD2);
     });
-    it('12.39 ILT(ETH->ETH)', async function() {
+    it('12.37 ILT(ETH->ETH)', async function() {
       await pd.changeCurrencyAssetBaseMin(
         '0x455448',
         (await pd.getCurrencyAssetBaseMin('ETH')) * 1 + 5 * 1e18
@@ -517,7 +511,7 @@ contract('Pool', function([
       CABalD.should.be.bignumber.equal(ICABalD);
       CABalD2.should.be.bignumber.equal(ICABalD2);
     });
-    it('12.40 ELT(ETH->DAI)', async function() {
+    it('12.38 ELT(ETH->DAI)', async function() {
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -561,7 +555,7 @@ contract('Pool', function([
       );
     });
 
-    it('12.41 ILT(DAI->DAI)', async function() {
+    it('12.39 ILT(DAI->DAI)', async function() {
       await pd.changeCurrencyAssetBaseMin(
         'DAI',
         (await pd.getCurrencyAssetBaseMin('DAI')) * 1 + 5 * 1e18
@@ -594,7 +588,7 @@ contract('Pool', function([
       CABalD2.should.be.bignumber.equal(ICABalD2 - amount);
     });
 
-    it('12.42 ELT(DAI->DAI)', async function() {
+    it('12.40 ELT(DAI->DAI)', async function() {
       await p2.sendTransaction({ from: owner, value: 3 * 1e18 });
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -648,7 +642,7 @@ contract('Pool', function([
       CABalD2.should.be.bignumber.equal(ICABalD2 * 1 + amount * 1);
     });
 
-    it('12.43 RBT(DAI->ETH)', async function() {
+    it('12.41 RBT(DAI->ETH)', async function() {
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -690,7 +684,7 @@ contract('Pool', function([
       );
     });
 
-    it('12.44 ELT(DAI->ETH)', async function() {
+    it('12.42 ELT(DAI->ETH)', async function() {
       await cad.transfer(p1.address, 10 * 1e18);
       let CABalE;
       let CABalD;
@@ -729,7 +723,7 @@ contract('Pool', function([
       console.log('CABalD2', CABalD2);
     });
 
-    it('12.46 ILT DAI to ETH', async function() {
+    it('12.43 ILT DAI to ETH', async function() {
       await p2.sendTransaction({ from: owner, value: 5 * 1e18 });
       await p1.transferCurrencyAsset('DAI', owner, 5 * 1e18);
       let CABalE;
@@ -782,7 +776,7 @@ contract('Pool', function([
       console.log('CABalD2', CABalD2);
     });
 
-    it('12.47 ELT(ETH->ETH)', async function() {
+    it('12.44 ELT(ETH->ETH)', async function() {
       await p1.sendTransaction({ from: owner, value: 5 * 1e18 });
       await p2.transferInvestmentAsset('ETH', owner, 5 * 1e18);
       let CABalE;
@@ -823,7 +817,7 @@ contract('Pool', function([
       console.log('CABalD2', CABalD2);
     });
 
-    it('12.48 ILT ETH to DAI', async function() {
+    it('12.45 ILT ETH to DAI', async function() {
       await cad.transfer(p2.address, 50 * 1e18, { from: owner });
       await p1.transferCurrencyAsset('ETH', owner, 5 * 1e18);
       let CABalE;
@@ -868,7 +862,7 @@ contract('Pool', function([
       console.log('CABalD2', CABalD2);
     });
 
-    it('12.49 RBT DAI to ETH amount > price slippage', async function() {
+    it('12.46 RBT DAI to ETH amount > price slippage', async function() {
       console.log(
         'emock---',
         parseFloat(await web3.eth.getBalance(emock.address))
@@ -899,7 +893,7 @@ contract('Pool', function([
       console.log('CABalD2', CABalD2);
     });
 
-    it('12.50 Initial ELT(ETH->DAI) but at time of call back ELT(ETH->ETH)', async function() {
+    it('12.47 Initial ELT(ETH->DAI) but at time of call back ELT(ETH->ETH)', async function() {
       await p1.sendTransaction({ from: owner, value: 5 * 1e18 });
       await p2.transferInvestmentAsset('DAI', owner, 50 * 1e18);
       await p2.saveIADetails(
@@ -938,7 +932,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.51 ELT(ETH->DAI) amount > price slippage', async function() {
+    it('12.48 ELT(ETH->DAI) amount > price slippage', async function() {
       await p1.sendTransaction({ from: owner, value: 10 * 1e18 });
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -968,7 +962,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.52 ELT(DAI->ETH) amount > price slippage', async function() {
+    it('12.49 ELT(DAI->ETH) amount > price slippage', async function() {
       await emock.sendTransaction({ from: owner, value: 17400000000000000 });
       console.log(
         'emock---',
@@ -996,7 +990,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.53 ILT(ETH->DAI) amount > price slippage', async function() {
+    it('12.50 ILT(ETH->DAI) amount > price slippage', async function() {
       // await emock.sendTransaction({ from: owner, value:  });
       console.log(
         'emock---',
@@ -1024,7 +1018,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.54 ILT(DAI->ETH) amount > price slippage', async function() {
+    it('12.51 ILT(DAI->ETH) amount > price slippage', async function() {
       await emock.sendEth(1520000000000000000);
       await p2.sendTransaction({ from: owner, value: 5 * 1e18 });
       await p1.sendTransaction({
@@ -1055,7 +1049,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.55 ILT(ETH->DAI) IA dont have enough amount', async function() {
+    it('12.52 ILT(ETH->DAI) IA dont have enough amount', async function() {
       await emock.sendTransaction({ from: owner, value: 50000 * 1e18 });
 
       await p2.transferInvestmentAsset('ETH', owner, 5 * 1e18);
@@ -1080,7 +1074,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.56 ILT(DAI->ETH) IA dont have enough amount', async function() {
+    it('12.53 ILT(DAI->ETH) IA dont have enough amount', async function() {
       await p2.transferInvestmentAsset('ETH', owner, 5 * 1e18);
       await pd.changeCurrencyAssetBaseMin('DAI', 16 * 1e18);
 
@@ -1103,7 +1097,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.57 ILT(DAI->ETH) IA with 0 ETH balance', async function() {
+    it('12.54 ILT(DAI->ETH) IA with 0 ETH balance', async function() {
       await pd.changeCurrencyAssetBaseMin('DAI', 21 * 1e18);
 
       await p2.saveIADetails(
@@ -1125,7 +1119,7 @@ contract('Pool', function([
       console.log('CABalE2', CABalE2);
       console.log('CABalD2', CABalD2);
     });
-    it('12.58 Initial ILT(DAI->ETH) but at time of call back ILT(DAI->DAI)', async function() {
+    it('12.55 Initial ILT(DAI->ETH) but at time of call back ILT(DAI->DAI)', async function() {
       await p2.sendTransaction({ from: owner, value: 5 * 1e18 });
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1156,7 +1150,7 @@ contract('Pool', function([
     });
   });
   describe('Should be able to delegate callback for', function() {
-    it('12.59 Expire Cover ', async function() {
+    it('12.56 Expire Cover ', async function() {
       let coverID;
 
       await cad.approve(p1.address, coverDetailsLess[1], {
@@ -1184,13 +1178,13 @@ contract('Pool', function([
       await p2.delegateCallBack(APIID);
       assert.equal(parseFloat(await qd.getCoverStatusNo(coverID)), 3);
     });
-    it('12.60 Empty string res for unknown id', async function() {
+    it('12.57 Empty string res for unknown id', async function() {
       let APIID = '0x6c6f6c';
       await p2.delegateCallBack(APIID);
     });
   });
   describe('Trade Conditions checked', function() {
-    it('12.61 For iaRate = 0', async function() {
+    it('12.58 For iaRate = 0', async function() {
       await p2.saveIADetails(['0x455448', '0x444149'], [0, 0], 20190125, true);
     });
   });
@@ -1226,7 +1220,7 @@ contract('Pool', function([
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
     });
-    it('12.62 ELT(DAI->MKR)', async function() {
+    it('12.59 ELT(DAI->MKR)', async function() {
       // console.log("hell yeah");
       await pd.changeCurrencyAssetBaseMin('0x444149', 15 * 1e18);
       // await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
@@ -1263,7 +1257,7 @@ contract('Pool', function([
       console.log('CABalD2', parseFloat(CABalD2));
       console.log('CABalM', parseFloat(CABalM));
     });
-    it('12.63 ILT(DAI->MKR)', async function() {
+    it('12.60 ILT(DAI->MKR)', async function() {
       // console.log("hell yeah");
       await pd.changeCurrencyAssetBaseMin('0x444149', 9 * 1e18);
       // await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
@@ -1311,7 +1305,7 @@ contract('Pool', function([
       console.log('CABalM', parseFloat(CABalM));
     });
 
-    it('12.64 ILT(DAI->MKR) IA dont have enough amount', async function() {
+    it('12.61 ILT(DAI->MKR) IA dont have enough amount', async function() {
       let emockM = await fac.getExchange(
         await pd.getInvestmentAssetAddress('MKR')
       );
@@ -1371,7 +1365,7 @@ contract('Pool', function([
       // console.log(parseFloat(await p2.a()));
     });
 
-    it('12.65 ILT(DAI->MKR) amount > price slippage', async function() {
+    it('12.62 ILT(DAI->MKR) amount > price slippage', async function() {
       emock.sendEth(await web3.eth.getBalance(emock.address));
       let emockD = await fac.getExchange(
         await pd.getInvestmentAssetAddress('DAI')
@@ -1427,7 +1421,7 @@ contract('Pool', function([
       // console.log(parseFloat(await p2.a()));
     });
 
-    it('12.66 ELT(DAI->MKR) amount > price slippage', async function() {
+    it('12.63 ELT(DAI->MKR) amount > price slippage', async function() {
       await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
       await p2.transferInvestmentAsset('MKR', owner, 30 * 1e18);
       await p2.sendTransaction({ from: owner, value: 10 * 1e18 });
@@ -1476,12 +1470,12 @@ contract('Pool', function([
   });
 
   describe('More basic cases', function() {
-    it('12.67 RBT For 0 balance in risk pool', async function() {
+    it('12.64 RBT For 0 balance in risk pool', async function() {
       await p2.upgradeInvestmentPool(owner);
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
-        20190129,
+        20190311,
         true
       );
       await p1.upgradeCapitalPool(owner);
@@ -1495,9 +1489,9 @@ contract('Pool', function([
       );
       let pId = (await gv.getProposalLength()).toNumber();
       await gv.createProposal(
-        'Inactive MKR',
-        'Inactive MKR',
-        'Inactive MKR',
+        'Inactive DAI',
+        'Inactive DAI',
+        'Inactive DAI',
         0,
         {
           from: member1
@@ -1506,7 +1500,7 @@ contract('Pool', function([
       await gv.categorizeProposal(pId, 14, 0);
       let actionHash = encode(
         'changeInvestmentAssetStatus(bytes4,bool)',
-        '0x4d4b52',
+        '0x444149',
         false
       );
       await gv.submitProposalWithSolution(pId, 'Inactive IA', actionHash, {
@@ -1522,12 +1516,12 @@ contract('Pool', function([
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
-        20190129,
-        true
+        20190311,
+        false
       );
     });
 
-    it('12.68 TransferEther should revert when called by other than govern', async function() {
+    it('12.65 TransferEther should revert when called by other than govern', async function() {
       await assertRevert(p1.transferEther(1e18, owner));
     });
   });

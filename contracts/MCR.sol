@@ -68,16 +68,6 @@ contract MCR is Iupgradable {
     }
 
     /** 
-     * @dev Stores name of currencies accepted by the system.
-     * @param curr Currency Name.
-     */  
-    function addCurrency(bytes4 curr) external checkPause {
-
-        require(ms.isInternal(msg.sender) == true || ms.isOwner(msg.sender) == true);
-        pd.addCurrency(curr);
-    }
-
-    /** 
      * @dev Changes scaling factor which determines token price.
      */  
     function changeA(uint32 val) external onlyOwner {
@@ -278,7 +268,6 @@ contract MCR is Iupgradable {
         tokenPrice = tokenPrice.mul(getCAAvgRate * 10); 
         tokenPrice = (tokenPrice).div(10**3);
     } 
-
     /**
      * @dev Adds MCR Data. Checks if MCR is within valid 
      * thresholds in order to rule out any incorrect calculations 
@@ -301,16 +290,13 @@ contract MCR is Iupgradable {
         if (len > 1) {
             (vtp, ) = _calVtpAndMCRtp(address(p1).balance);
             if (vtp >= vF) {
-                upperThreshold = vtp.div(pd.minCap());
-                upperThreshold = upperThreshold.mul(100);
+                upperThreshold = vtp.mul(100).div(pd.minCap());
             } else {
-                upperThreshold = vF.div(pd.minCap());
-                upperThreshold = upperThreshold.mul(100);
+                upperThreshold = vF.mul(100).div(pd.minCap());
             }
 
             if (vtp > 0) {
-                lower = (getAllSumAssurance().mul(100)).div(pd.shockParameter());
-                lower = lower.mul(DECIMAL1E18);
+                lower = (getAllSumAssurance().mul(100).mul(DECIMAL1E18)).div(pd.shockParameter());
             }
             if (lower > 0) {
                 lowerThreshold = vtp.div(lower);

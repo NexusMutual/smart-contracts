@@ -158,12 +158,6 @@ contract PoolData is Iupgradable {
         mcrFailTime = _time;
     }
 
-    /// @dev Stores name of currency accepted in the system.
-    /// @param curr Currency Name.
-    function addCurrency(bytes4 curr) external onlyInternal {
-        allCurrencies.push(curr);
-    } //have to remove
-
     /// @dev Changes scaling factor.
     function changeA(uint32 val) external onlyInternal {
         A = val;

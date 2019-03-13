@@ -1,10 +1,13 @@
 const MCR = artifacts.require('MCR');
 const Pool1 = artifacts.require('Pool1Mock');
+const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolData');
 const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const DSValue = artifacts.require('DSValueMock');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -19,8 +22,11 @@ let mcr;
 let pd;
 let tk;
 let p1;
+let p2;
 let mr;
 let nxms;
+let DSV;
+let qd;
 let balance_DAI;
 let balance_ETH;
 
@@ -39,6 +45,9 @@ contract('MCR', function([owner, notOwner]) {
     cad = await DAI.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    p2 = await Pool2.deployed();
+    DSV = await DSValue.deployed();
+    qd = await QuotationDataMock.deployed();
   });
 
   describe('Initial MCR cap test cases', function() {
@@ -224,8 +233,68 @@ contract('MCR', function([owner, notOwner]) {
         mcr.changeMasterAddress(mcr.address, { from: notOwner })
       );
     });
-    it('11.16 should not be able to add currency', async function() {
-      await assertRevert(mcr.addCurrency('0x4c4f4c', { from: notOwner }));
+    it('11.16 should not be able to add mcr data if not notarise', async function() {
+      await assertRevert(
+        mcr.addMCRData(
+          18000,
+          100 * 1e18,
+          2 * 1e18,
+          ['0x455448', '0x444149'],
+          [100, 65407],
+          20181011,
+          { from: notOwner }
+        )
+      );
+    });
+    it('11.17 add mcr when vf > vtp', async function() {
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        35833333333333330000,
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181011,
+        { from: owner }
+      );
+    });
+    // it('11.18 mcr should fail if vtp is 0', async function() {
+    //   await p1.upgradeCapitalPool(owner);
+    //   await p2.upgradeInvestmentPool(owner);
+    //   await mcr.addMCRData(18000,
+    //       100 * 1e18,
+    //       35833333333333330000,
+    //       ['0x455448', '0x444149'],
+    //       [100, 65407],
+    //       20181011,
+    //       { from: owner }
+    //     );
+    //   var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+    //   console.log(await pd.getApiIdTypeOf(APIID));
+    // });
+    it('11.19 getAllSumAssurance function should skip calcualation for currency with rate 0', async function() {
+      await DSV.setRate(0);
+      let allSA = await mcr.getAllSumAssurance();
+      (await qd.getTotalSumAssured('ETH')).should.be.bignumber.equal(allSA);
+    });
+    it('11.20 calVtpAndMCRtp function should skip calcualation for currency with rate 0', async function() {
+      let vtp = await mcr.calVtpAndMCRtp();
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      vtp[0].should.be.bignumber.equal(CABalE.plus(CABalE2));
+    });
+    it('11.20 mcrTp should be 0 if vFull is 0', async function() {
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        0,
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181011,
+        { from: owner }
+      );
+      let vtp = await mcr.calVtpAndMCRtp();
+
+      (vtp[1] / 1).should.be.equal(0);
     });
   });
 });

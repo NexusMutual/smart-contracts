@@ -33,7 +33,7 @@ contract('Proposal Category', function([owner, other]) {
     const g5 = await pc.categoryAction(1);
     assert.equal(g5[2].toString(), '0x4d52');
     const g6 = await pc.totalCategories();
-    assert.equal(g6.toNumber(), 18);
+    assert.equal(g6.toNumber(), 19);
   });
 
   it('14.2 should not allow unauthorized to change master address', async function() {

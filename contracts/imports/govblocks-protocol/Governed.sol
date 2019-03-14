@@ -14,7 +14,7 @@ pragma solidity 0.4.24;
 
 
 contract IMaster {
-    function contractAddress(bytes2 _module) public view returns(address);
+    function getLatestAddress(bytes2 _module) public view returns(address);
     }
 
 
@@ -26,14 +26,14 @@ contract Governed {
     /// @dev modifier that allows only the authorized addresses to execute the function
     modifier onlyAuthorizedToGovern() {
         IMaster ms = IMaster(masterAddress);
-        require(ms.contractAddress('GV') == msg.sender, "Not authorized");
+        require(ms.getLatestAddress('GV') == msg.sender, "Not authorized");
         _;
     }
 
     /// @dev checks if an address is authorized to govern
     function isAuthorizedToGovern(address _toCheck) public view returns(bool) {
         IMaster ms = IMaster(masterAddress);
-        return (ms.contractAddress('GV') == _toCheck);
+        return (ms.getLatestAddress('GV') == _toCheck);
     } 
 
 }

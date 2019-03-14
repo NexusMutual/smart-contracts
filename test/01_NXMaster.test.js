@@ -116,6 +116,9 @@ contract('NXMaster', function([
       newMaster = await NXMaster.new();
       await nxms.changeMasterAddress(newMaster.address, { from: owner });
       await newMaster.changeTokenAddress(nxmtk.address);
+      addr[12] = await nxms.getLatestAddress('GV');
+      addr[13] = await nxms.getLatestAddress('PC');
+      addr[14] = await nxms.getLatestAddress('MR');
       await newMaster.addNewVersion(addr);
       nxms = newMaster;
     });
@@ -256,6 +259,18 @@ contract('NXMaster', function([
       const updatePauseTime = pauseTime.plus(new BigNumber(60));
       await nxms.updatePauseTime(updatePauseTime);
       updatePauseTime.should.be.bignumber.equal(await nxms.getPauseTime());
+    });
+  });
+
+  describe('more test cases', function() {
+    it('1.24 revert in case of upgrade implementation of non-proxy contract', async function() {
+      await assertRevert(
+        nxms.upgradeContractImplementation('TC', nxms.address)
+      );
+    });
+
+    it('1.25 revert in case of applying EP directly', async function() {
+      await assertRevert(nxms.addEmergencyPause(true, 'AB'));
     });
   });
 });

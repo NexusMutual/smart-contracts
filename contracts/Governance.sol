@@ -488,11 +488,11 @@ contract Governance is IGovernance, Iupgradable {
         if (!constructorCheck) {
             initiateGovernance();
         }
-        tokenInstance = TokenController(ms.getLatestAddress("TC"));
+        tokenInstance = TokenController(ms.dAppLocker());
         memberRole = MemberRoles(ms.getLatestAddress("MR"));
         proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));        
         eventCaller = EventCaller(ms.getEventCallerAddress());
-        nxmToken = NXMToken(ms.tokenAddress());
+        nxmToken = NXMToken(ms.dAppToken());
     }
 
     /// @dev checks if the msg.sender is allowed to create a proposal under certain category

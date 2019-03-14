@@ -1479,6 +1479,7 @@ contract('Pool', function([
         true
       );
       await p1.upgradeCapitalPool(owner);
+      await p1.upgradeCapitalPool(owner);
       await mcr.addMCRData(
         18000,
         0,
@@ -1523,6 +1524,102 @@ contract('Pool', function([
 
     it('12.65 TransferEther should revert when called by other than govern', async function() {
       await assertRevert(p1.transferEther(1e18, owner));
+    });
+    it('12.66 should able to propose change in holding percentages', async function() {
+      let pId = (await gv.getProposalLength()).toNumber();
+      await gv.createProposal(
+        'change holding perc',
+        'change holding perc',
+        'change holding perc',
+        0,
+        {
+          from: member1
+        }
+      );
+      await gv.categorizeProposal(pId, 13, 0);
+      let actionHash = encode(
+        'changeInvestmentAssetHoldingPerc(bytes4,uint64,uint64)',
+        '0x444149',
+        100,
+        1000
+      );
+      await gv.submitProposalWithSolution(
+        pId,
+        'change holding perc',
+        actionHash,
+        {
+          from: member1
+        }
+      );
+      // await tk.transfer(member1, ether(75000));
+      // await tk.transfer(member2, ether(75000));
+      // await tk.transfer(member3, ether(75000));
+      // await tk.transfer(member4, ether(75000));
+      await gv.submitVote(pId, 1, { from: member1 });
+      await gv.submitVote(pId, 1, { from: member2 });
+      await gv.submitVote(pId, 1, { from: member3 });
+      await gv.submitVote(pId, 1, { from: member4 });
+      let time = await latestTime();
+      await increaseTimeTo(time + 604800);
+      await gv.closeProposal(pId);
+      let initialPerc = await pd.getInvestmentAssetHoldingPerc('DAI');
+      (initialPerc[0] / 1).should.be.equal(100);
+      (initialPerc[1] / 1).should.be.equal(1000);
+    });
+    it('12.67 should not be able to change holding percentages directly', async function() {
+      let initialPerc = await pd.getInvestmentAssetHoldingPerc('DAI');
+      await assertRevert(
+        pd.changeInvestmentAssetHoldingPerc('0x444149', 200, 300)
+      );
+      let finalPerc = await pd.getInvestmentAssetHoldingPerc('DAI');
+      initialPerc[0].should.be.bignumber.equal(finalPerc[0]);
+      initialPerc[1].should.be.bignumber.equal(finalPerc[1]);
+    });
+    it('12.68 should able to change slippage percentage', async function() {
+      await pd.setEthVolumeLimit(10);
+      let finalSlippage = await pd.ethVolumeLimit();
+      (finalSlippage / 1).should.be.equal(10);
+    });
+    it('12.69 should not be able to change slippage percentage', async function() {
+      let initialSlippage = await pd.ethVolumeLimit();
+      await assertRevert(pd.setEthVolumeLimit(20, { from: notOwner }));
+      let finalSlippage = await pd.ethVolumeLimit();
+      initialSlippage.should.be.bignumber.equal(finalSlippage);
+    });
+
+    it('12.70 should able to propose new currency asset', async function() {
+      mkr = await MKR.deployed();
+      let pId = await gv.getProposalLength();
+      pId = pId.toNumber();
+      await gv.createProposal('add new CA', 'add new CA', 'add new CA', 0, {
+        from: member1
+      });
+      await gv.categorizeProposal(pId, 16, 0);
+      let actionHash = encode(
+        'addCurrencyAssetCurrency(bytes4,address,uint)',
+        'MKR',
+        mkr.address,
+        '10000000000000000000'
+      );
+      await gv.submitProposalWithSolution(pId, 'add CA', actionHash, {
+        from: member1
+      });
+      await gv.submitVote(pId, 1, { from: member1 });
+      await gv.submitVote(pId, 1, { from: member2 });
+      await gv.submitVote(pId, 1, { from: member3 });
+      await gv.submitVote(pId, 1, { from: member4 });
+      let time = await latestTime();
+      await increaseTimeTo(time + 604800);
+      await gv.closeProposal(pId);
+      let varbase = await pd.getCurrencyAssetVarBase('MKR');
+      (varbase[1] / 1).should.be.equal(10 * 1e18);
+      (varbase[2] / 1).should.be.equal(0);
+      (await pd.getCurrencyAssetAddress('MKR')).should.be.equal(mkr.address);
+    });
+    it('12.71 should not be able to add new currency asset directly', async function() {
+      await assertRevert(
+        pd.addCurrencyAssetCurrency('0x49434e', mkr.address, 11 * 1e18)
+      );
     });
   });
 });

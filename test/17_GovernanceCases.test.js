@@ -893,7 +893,7 @@ contract(
               await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
             });
             it('17.100 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 17, 160 * 1e18);
+              await gv.categorizeProposal(pId, 18, 160 * 1e18);
             });
             it('17.101 Should open for voting', async function() {
               await gv.submitProposalWithSolution(
@@ -960,7 +960,7 @@ contract(
               await gv.submitVote(pId, 1, { from: ab4 });
               await gv.submitVote(pId, 1, { from: ab5 });
               await gv.closeProposal(pId);
-              assert.equal((await pc.totalCategories()).toNumber(), 19);
+              assert.equal((await pc.totalCategories()).toNumber(), 20);
             });
             it('17.107 Should create proposal', async function() {
               await increaseTime(604800);
@@ -974,7 +974,7 @@ contract(
               );
             });
             it('17.108 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 18, 160 * 1e18);
+              await gv.categorizeProposal(pId, 19, 160 * 1e18);
             });
             it('17.109 Should open for voting', async function() {
               let actionHash = encode(
@@ -1021,7 +1021,7 @@ contract(
             await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
           });
           it('17.114 Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 17, 150 * 1e18);
+            await gv.categorizeProposal(pId, 18, 150 * 1e18);
           });
           it('17.115 Should open for voting', async function() {
             await gv.submitProposalWithSolution(

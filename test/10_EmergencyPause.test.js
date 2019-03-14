@@ -324,6 +324,19 @@ contract('NXMaster: Emergency Pause', function([
       it('10.24 not allowed for set staker maximum commission percentage', async function() {
         await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
       });
+      it('10.25 should not be able to post MCR', async function() {
+        await assertRevert(
+          mcr.addMCRData(
+            18000,
+            100 * 1e18,
+            2 * 1e18,
+            ['0x455448', '0x444149'],
+            [100, 65407],
+            20181011,
+            { from: owner }
+          )
+        );
+      });
     });
   });
 
@@ -353,7 +366,7 @@ contract('NXMaster: Emergency Pause', function([
       await gv.closeProposal(p);
     });
     describe('Turning off emergency pause automatically', function() {
-      it('10.25 should be able to turn off automatically', async function() {
+      it('10.26 should be able to turn off automatically', async function() {
         let p = await gv.getProposalLength();
         await gv.createProposalwithVote(
           'Implement Emergency Pause',
@@ -377,16 +390,16 @@ contract('NXMaster: Emergency Pause', function([
       });
     });
     describe('Resume Everything', function() {
-      it('10.26 should return false for isPause', async function() {
+      it('10.27 should return false for isPause', async function() {
         (await nxms.isPause()).should.equal(false);
       });
-      it('10.27 should submit queued claims', async function() {
+      it('10.28 should submit queued claims', async function() {
         (await nxms.isPause()).should.equal(false);
         const claimId = (await cd.actualClaimLength()) - 1;
         claimId.should.be.bignumber.equal(2);
         (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
       });
-      it('10.28 should extend CN EPOfff', async function() {
+      it('10.29 should extend CN EPOfff', async function() {
         const coverID = await qd.getAllCoversOfUser(coverHolder1);
         pendingTime = parseFloat(
           (await cd.getPendingClaimDetailsByIndex(0))[1]

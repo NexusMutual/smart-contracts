@@ -1100,6 +1100,18 @@ contract('Quotation', function([
           qd.changeCoverStatusNo(CID[0], 1, { from: notMember })
         );
       });
+      it('6.53 should fail add mcr if lower threshold not reached', async function() {
+        await mcr.addMCRData(
+          0,
+          100 * 1e18,
+          2 * 1e18,
+          ['0x455448', '0x444149'],
+          [100, 65407],
+          20181011
+        );
+        var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+        (await pd.getApiIdTypeOf(APIID)).should.be.equal('0x4d435246');
+      });
     });
   });
 });

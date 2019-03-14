@@ -59,11 +59,6 @@ contract NXMaster is Governed {
         _;
     }
 
-    modifier onlyInternal {
-        require((contractsActive[msg.sender] == true || owner == msg.sender));
-        _;
-    }
-
     constructor() public {
         owner = msg.sender;
         masterAddress = address(this);
@@ -206,6 +201,9 @@ contract NXMaster is Governed {
                 up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
                 up.changeMasterAddress(_masterAddress);
             }
+            if(allContractNames[i] == "MR" || 
+                    allContractNames[i] == "GV" || allContractNames[i] == "PC")
+                changeProxyOwnership(_masterAddress, allContractVersions[versionDates.length - 1][allContractNames[i]]);
             
         }
         
@@ -267,21 +265,11 @@ contract NXMaster is Governed {
             allContractVersions[versionDates.length - 1][_contractName];
     }
 
-    /// @dev Gets latest contract address
-    /// @param _contractName Contract name to fetch
-    function contractAddress(bytes2 _contractName) public view returns(address _contractAddress) {
-        if (_contractName == "TK")
-            _contractAddress = tokenAddress;
-        else
-            _contractAddress =
-                allContractVersions[versionDates.length - 1][_contractName];
-    }
-
     /// @dev Creates a new version of contract addresses
     /// @param _contractAddresses Array of contract addresses which will be generated
     function addNewVersion(address[] _contractAddresses) public onlyOwner {
 
-        MemberRoles mr = MemberRoles(_contractAddresses[14]);
+        MemberRoles mr = MemberRoles(_contractAddresses[14]);   // shoud send proxy address for proxy contracts (if not 1st time deploying) 
         bool newMasterCheck = mr.nxMasterAddress() != address(0);
 
         for (uint i = 0; i < allContractNames.length; i++) {
@@ -313,12 +301,12 @@ contract NXMaster is Governed {
     /// @dev transfers proxy ownership to new master.
     /// @param _contractAddress contract address of new master.
     /// @param _proxyContracts array of addresses of proxyContracts
-    function changeProxyOwnership(address _contractAddress, address[] _proxyContracts) public onlyOwner {
-        for (uint i = 0; i < _proxyContracts.length; i++) {
+    function changeProxyOwnership(address _contractAddress, address _proxyContracts) internal {
+        // for (uint i = 0; i < _proxyContracts.length; i++) {
             OwnedUpgradeabilityProxy tempInstance 
-            = OwnedUpgradeabilityProxy(_proxyContracts[i]);
+            = OwnedUpgradeabilityProxy(_proxyContracts);
             tempInstance.transferProxyOwnership(_contractAddress); 
-        }
+        // }
         
         
     }

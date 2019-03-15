@@ -1621,5 +1621,8 @@ contract('Pool', function([
         pd.addCurrencyAssetCurrency('0x49434e', mkr.address, 11 * 1e18)
       );
     });
+    it('12.72 should not be able to change IA status directly', async function() {
+      await assertRevert(pd.changeInvestmentAssetStatus('0x49434e', false));
+    });
   });
 });

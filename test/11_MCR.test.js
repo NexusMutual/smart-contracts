@@ -257,26 +257,12 @@ contract('MCR', function([owner, notOwner]) {
         { from: owner }
       );
     });
-    // it('11.18 mcr should fail if vtp is 0', async function() {
-    //   await p1.upgradeCapitalPool(owner);
-    //   await p2.upgradeInvestmentPool(owner);
-    //   await mcr.addMCRData(18000,
-    //       100 * 1e18,
-    //       35833333333333330000,
-    //       ['0x455448', '0x444149'],
-    //       [100, 65407],
-    //       20181011,
-    //       { from: owner }
-    //     );
-    //   var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-    //   console.log(await pd.getApiIdTypeOf(APIID));
-    // });
-    it('11.19 getAllSumAssurance function should skip calcualation for currency with rate 0', async function() {
+    it('11.18 getAllSumAssurance function should skip calcualation for currency with rate 0', async function() {
       await DSV.setRate(0);
       let allSA = await mcr.getAllSumAssurance();
       (await qd.getTotalSumAssured('ETH')).should.be.bignumber.equal(allSA);
     });
-    it('11.20 calVtpAndMCRtp function should skip calcualation for currency with rate 0', async function() {
+    it('11.19 calVtpAndMCRtp function should skip calcualation for currency with rate 0', async function() {
       let vtp = await mcr.calVtpAndMCRtp();
       CABalE = await web3.eth.getBalance(p1.address);
       CABalE2 = await web3.eth.getBalance(p2.address);
@@ -295,6 +281,29 @@ contract('MCR', function([owner, notOwner]) {
       let vtp = await mcr.calVtpAndMCRtp();
 
       (vtp[1] / 1).should.be.equal(0);
+    });
+    it('11.21 mcr if vtp is 0', async function() {
+      await p1.upgradeCapitalPool(owner);
+      await p2.upgradeInvestmentPool(owner);
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        0,
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181011,
+        { from: owner }
+      );
+    });
+    it('11.21 mcr if vtp is 0', async function() {
+      await p1.sendTransaction({ from: notOwner, value: 20 * 1e18 });
+      await p2.sendTransaction({ from: notOwner, value: 20 * 1e18 });
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 1000],
+        20190125,
+        true
+      );
     });
   });
 });

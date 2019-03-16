@@ -41,11 +41,6 @@ contract Pool2 is Iupgradable {
 
     event Rebalancing(bytes4 iaCurr, uint tokenAmount);
 
-    modifier checkPause {
-        require(!ms.isPause());
-        _;
-    }
-
     function () public payable {} 
 
     function changeUniswapFactoryAddress(address newFactoryAddress) external {
@@ -73,10 +68,10 @@ contract Pool2 is Iupgradable {
      * @dev Handles the Callback of the Oraclize Query.
      * @param myid Oraclize Query ID identifying the query for which the result is being received
      */ 
-    function delegateCallBack(bytes32 myid) external onlyInternal {
+    function delegateCallBack(bytes32 myid) external {
         
         bytes4 res = pd.getApiIdTypeOf(myid);
-
+        uint callTime = pd.getDateAddOfAPI(myid);
         if (!ms.isPause()) { // system is not in emergency pause
             uint id = pd.getIdOfApiId(myid);
             if (res == "COV") {
@@ -85,15 +80,19 @@ contract Pool2 is Iupgradable {
                 ClaimsReward cr = ClaimsReward(ms.getLatestAddress("CR"));
                 cr.changeClaimStatus(id);                
             } else if (res == "MCRF") {
-                m1.addLastMCRData(uint64(id));                
+                if(callTime.add(pd.mcrFailTime()) < now)
+                    m1.addLastMCRData(uint64(id));                
             } else if (res == "ULT") {
-                _externalLiquidityTrade();                
+                if(callTime.add(pd.liquidityTradeCallbackTime()) < now)
+                    _externalLiquidityTrade();                
             }
         } else if (res == "EP") {
-            bytes4 by;
-            (, , by) = ms.getLastEmergencyPause();
-            if (by == "AB") {
-                ms.addEmergencyPause(false, "AUT"); //set pause to false                
+            if(callTime.add(ms.pauseTime()) < now) {
+                bytes4 by;
+                (, , by) = ms.getLastEmergencyPause();
+                if (by == "AB") {
+                    ms.addEmergencyPause(false, "AUT"); //set pause to false                
+                }
             }
         }
 
@@ -146,30 +145,6 @@ contract Pool2 is Iupgradable {
         p1.saveIADetailsOracalise(pd.iaRatesTime());
     }
 
-    /**
-     * @dev Gets currency asset details for a given currency name.
-     * @return caBalance currency asset balance
-     * @return caRateX100 currency asset balance*100.
-     * @return baseMin minimum base amount required in Capital Pool.
-     * @return varMin  minimum variable amount required in Capital Pool.
-     */ 
-    function getCurrencyAssetDetails(
-        bytes4 curr
-    )
-        external
-        view
-        returns(
-            uint caBalance,
-            uint caRateX100,
-            uint baseMin,
-            uint varMin
-        )
-    {
-        caBalance = _getCurrencyAssetsBalance(curr);
-        (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-        caRateX100 = pd.getCAAvgRate(curr);
-    }
-
     function changeDependentContractAddress() public onlyInternal {
         m1 = MCR(ms.getLatestAddress("MC"));
         pd = PoolData(ms.getLatestAddress("PD"));
@@ -220,7 +195,7 @@ contract Pool2 is Iupgradable {
             amountToSell = (amountToSell.mul(
                 10**uint(pd.getInvestmentAssetDecimals(iaCurr)))).div(100); // amount of asset to sell
 
-            if (iaCurr != "ETH" && checkTradeConditions(iaCurr, iaRate, totalRiskBal)) { 
+            if (iaCurr != "ETH" && _checkTradeConditions(iaCurr, iaRate, totalRiskBal)) { 
                   
                 exchange = Exchange(factory.getExchange(pd.getInvestmentAssetAddress(iaCurr)));
                 intermediaryEth = exchange.getTokenToEthInputPrice(amountToSell);
@@ -233,7 +208,7 @@ contract Pool2 is Iupgradable {
                 erc20.approve(address(exchange), amountToSell);
                 exchange.tokenToEthSwapInput(amountToSell, (exchange.getTokenToEthInputPrice(
                     amountToSell).mul(995)).div(1000), pd.uniswapDeadline().add(now));
-            } else if (iaCurr == "ETH" && checkTradeConditions(iaCurr, iaRate, totalRiskBal)) {
+            } else if (iaCurr == "ETH" && _checkTradeConditions(iaCurr, iaRate, totalRiskBal)) {
                 transferInvestmentAsset(iaCurr, address(p1), amountToSell);
             }
             emit Rebalancing(iaCurr, amountToSell); 
@@ -244,7 +219,7 @@ contract Pool2 is Iupgradable {
      * @dev Checks whether trading is required for a  
      * given investment asset at a given exchange rate.
      */ 
-    function checkTradeConditions(
+    function _checkTradeConditions(
         bytes4 curr,
         uint64 iaRate,
         uint totalRiskBal
@@ -273,7 +248,7 @@ contract Pool2 is Iupgradable {
     /** 
      * @dev Gets the investment asset rank.
      */ 
-    function getIARank(
+    function _getIARank(
         bytes4 curr,
         uint64 rateX100,
         uint totalRiskPoolBalance
@@ -323,7 +298,7 @@ contract Pool2 is Iupgradable {
             rhsl = 0;
             rhsh = 0;
             if (pd.getInvestmentAssetStatus(curr[i])) {
-                (rhsh, rhsl) = getIARank(curr[i], rate[i], totalRiskPoolBalance);
+                (rhsh, rhsl) = _getIARank(curr[i], rate[i], totalRiskPoolBalance);
                 if (rhsh > max || i == 0) {
                     max = rhsh;
                     maxCurr = curr[i];
@@ -341,7 +316,7 @@ contract Pool2 is Iupgradable {
     /** 
      * @dev Gets currency asset balance for a given currency name.
      */   
-    function _getCurrencyAssetsBalance(bytes4 _curr) internal view returns(uint caBalance) {
+    function _getCurrencyAssetsBalance(bytes4 _curr) public view returns(uint caBalance) {
         if (_curr == "ETH") {
             caBalance = address(p1).balance;
         } else {
@@ -405,7 +380,7 @@ contract Pool2 is Iupgradable {
      * @param minIACurr Investment Asset to Buy  
      * @param amount Amount of Currency Asset to Sell
      */  
-    function externalExcessLiquiditySwap(
+    function _externalExcessLiquiditySwap(
         bytes4 curr,
         bytes4 minIACurr,
         uint256 amount
@@ -483,7 +458,7 @@ contract Pool2 is Iupgradable {
      * @param maxIACurr Investment Asset to sell
      * @param amount Amount of Investment Asset to sell
      */ 
-    function externalInsufficientLiquiditySwap(
+    function _externalInsufficientLiquiditySwap(
         bytes4 curr,
         bytes4 maxIACurr,
         uint256 amount
@@ -591,10 +566,10 @@ contract Pool2 is Iupgradable {
 
             if (caBalance > uint(baseMin).add(varMin).mul(2)) { //excess
                 amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
-                triggerTrade = externalExcessLiquiditySwap(curr, minIACurr, amount);
+                triggerTrade = _externalExcessLiquiditySwap(curr, minIACurr, amount);
             } else if (caBalance < uint(baseMin).add(varMin)) { // insufficient
                 amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
-                triggerTrade = externalInsufficientLiquiditySwap(curr, maxIACurr, amount);
+                triggerTrade = _externalInsufficientLiquiditySwap(curr, maxIACurr, amount);
             }
 
             if (triggerTrade) {

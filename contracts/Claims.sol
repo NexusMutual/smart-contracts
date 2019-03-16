@@ -42,11 +42,6 @@ contract Claims is Iupgradable {
     QuotationData internal qd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
-
-    modifier isMemberAndcheckPause {
-        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
-        _;
-    }
     
     /**
      * @dev Sets the status of claim using claim id.
@@ -191,7 +186,7 @@ contract Claims is Iupgradable {
         require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
         require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
         if (ms.isPause() == false) {
-            addClaim(coverId, now, qadd);
+            _addClaim(coverId, now, qadd);
         } else {
             cd.setClaimAtEmergencyPause(coverId, now, false);
             qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));
@@ -212,7 +207,7 @@ contract Claims is Iupgradable {
             (coverId, dateUpd, submit) = cd.getClaimOfEmergencyPauseByIndex(i);
             require(submit == false);
             qadd = qd.getCoverMemberAddress(coverId);
-            addClaim(coverId, dateUpd, qadd);
+            _addClaim(coverId, dateUpd, qadd);
             cd.setClaimSubmittedAtEPTrue(i, true);
         }
         cd.setFirstClaimIndexToSubmitAfterEP(lengthOfClaimSubmittedAtEP);
@@ -332,7 +327,7 @@ contract Claims is Iupgradable {
         } else if (dateUpd.add(cd.minVotingTime()) >= now && status != 12) {
             close = 0;
         } else if (status == 0 || (status >= 1 && status <= 5)) {
-            close = checkVoteClosingFinal(claimId, status);
+            close = _checkVoteClosingFinal(claimId, status);
         }
         
     }
@@ -346,7 +341,7 @@ contract Claims is Iupgradable {
      * @return close 1 if voting should be closed,0 in case voting should not be closed,
      * -1 if voting has already been closed.
      */
-    function checkVoteClosingFinal(uint claimId, uint status) internal view returns(int8 close) {
+    function _checkVoteClosingFinal(uint claimId, uint status) internal view returns(int8 close) {
         close = 0;
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
@@ -377,7 +372,8 @@ contract Claims is Iupgradable {
         uint origstat;
         uint state12Count;
         uint dateUpd;
-        (, , , origstat, dateUpd, state12Count) = cd.getClaim(claimId);
+        uint coverId;
+        (, coverId, , origstat, dateUpd, state12Count) = cd.getClaim(claimId);
         (, origstat) = cd.getClaimStatusNumber(claimId);
 
         if (stat == 12 && origstat == 12) {
@@ -385,9 +381,10 @@ contract Claims is Iupgradable {
         }
         cd.setClaimStatus(claimId, stat);
 
-        if (state12Count >= 60 && stat == 12)
-
+        if (state12Count >= 60 && stat == 12){
             cd.setClaimStatus(claimId, 13);
+            qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimDenied));
+        }
         uint time = now;
         cd.setClaimdateUpd(claimId, time);
 
@@ -407,7 +404,7 @@ contract Claims is Iupgradable {
      * @dev Submits a claim for a given cover note.
      * Set deposits flag against cover.
      */
-    function addClaim(uint coverId, uint time, address add) internal {
+    function _addClaim(uint coverId, uint time, address add) internal {
         tf.depositCN(coverId);
         uint len = cd.actualClaimLength();
         cd.addClaim(len, coverId, add, now);

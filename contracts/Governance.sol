@@ -23,6 +23,7 @@ import "./NXMToken.sol";
 import "./TokenController.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/interfaces/IGovernance.sol";
+import "./MemberRoles.sol";
 
 
 contract Governance is IGovernance, Iupgradable {
@@ -98,6 +99,7 @@ contract Governance is IGovernance, Iupgradable {
     TokenController internal tokenInstance;
     EventCaller internal eventCaller;
     NXMToken internal nxmToken;
+    MemberRoles internal mr;
 
     modifier onlyProposalOwner(uint _proposalId) {
         require(msg.sender == allProposal[_proposalId].owner, "Not authorized");
@@ -119,31 +121,16 @@ contract Governance is IGovernance, Iupgradable {
         _;
     }
 
-    modifier isMemberAndcheckPause {
-        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
-        _;
-    }
-
     modifier checkPendingRewards {
         require(getPendingReward(msg.sender) == 0, "Claim pending rewards");
         _;
     }
-
-    modifier onlyOwner() {
-        require (ms.isOwner(msg.sender));
-        _;
-    }
-
 
     event ProposalCategorized(
         uint indexed proposalId,
         address indexed categorizedBy,
         uint categoryId
     );
-
-    function changeTokenHoldingTime(uint time) external onlyOwner {
-        tokenHoldingTime = time;
-    }
  
     function removeDelegation(address _add) external onlyInternal {
         _unDelegate(_add);
@@ -361,6 +348,23 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    function updateUintParameters(bytes8 code, uint val) public {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if(code == "GOVHOLD")
+        {
+            _changeTokenHoldingTime(val);
+        } else if(code == "MAXAB"){
+
+            mr.changeMaxABCount(val);
+
+        } else if(code == "EPTIME") {
+            ms.updatePauseTime(val);
+
+        }
+
+    }
+
     function callRewardClaimedEvent(address _memberAddress, uint[] _proposals, uint pendingDAppReward) 
     external onlyInternal {
         emit RewardClaimed(
@@ -486,13 +490,14 @@ contract Governance is IGovernance, Iupgradable {
     /// @dev updates all dependency addresses to latest ones from Master
     function changeDependentContractAddress() public {
         if (!constructorCheck) {
-            initiateGovernance();
+            _initiateGovernance();
         }
         tokenInstance = TokenController(ms.dAppLocker());
         memberRole = MemberRoles(ms.getLatestAddress("MR"));
         proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));        
         eventCaller = EventCaller(ms.getEventCallerAddress());
         nxmToken = NXMToken(ms.dAppToken());
+        mr = MemberRoles(ms.getLatestAddress("MR"));
     }
 
     /// @dev checks if the msg.sender is allowed to create a proposal under certain category
@@ -734,7 +739,7 @@ contract Governance is IGovernance, Iupgradable {
             voteWeight = tokenBalance + 10**18;
         }
         else {
-            voteWeight = (minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))) + 10**18;
+            voteWeight = (_minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))) + 10**18;
         }
         if (memberRole.checkRole(msg.sender, 1) && (proposalCategory.categoryABReq(category) > 0) || 
             mrSequence == uint(MemberRoles.Role.AdvisoryBoard))
@@ -753,7 +758,7 @@ contract Governance is IGovernance, Iupgradable {
                     voteWeight += tokenBalance + 10**18;
                 }
                 else{
-                    voteWeight += (minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))) + 10**18;
+                    voteWeight += (_minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))) + 10**18;
                 }
                 voters++;
                 if ((proposalCategory.categoryABReq(category) > 0 || mrSequence==uint(MemberRoles.Role.AdvisoryBoard)) && 
@@ -771,7 +776,7 @@ contract Governance is IGovernance, Iupgradable {
         proposalVoteTally[_proposalId].abVoteValue[_solution] += voteWeightAB;
     }
 
-    function minOf(uint a, uint b) internal pure returns(uint res) {
+    function _minOf(uint a, uint b) internal pure returns(uint res) {
         res = a;
         if (res > b)
             res = b;
@@ -917,7 +922,7 @@ contract Governance is IGovernance, Iupgradable {
         eventCaller.callCloseProposalOnTimeAtAddress(_proposalId, address(this), SafeMath.add(closingTime, now));
     }
 
-    function initiateGovernance() internal {
+    function _initiateGovernance() internal {
         allVotes.push(ProposalVote(address(0), 0, 0));
         allProposal.push(ProposalStruct(address(0), now));
         allDelegation.push(DelegateVote(address(0), address(0), now));
@@ -926,6 +931,10 @@ contract Governance is IGovernance, Iupgradable {
         constructorCheck = true;
         roleIdAllowedToCatgorize = uint(MemberRoles.Role.AdvisoryBoard);
         specialResolutionMajPerc = 75;
+    }
+
+    function _changeTokenHoldingTime(uint time) internal {
+        tokenHoldingTime = time;
     }
 
 }

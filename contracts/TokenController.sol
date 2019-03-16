@@ -321,7 +321,7 @@ contract TokenController is IERC1132, Iupgradable {
     * @param _of member whose locked tokens are to be calculate
     * @param _time timestamp when the tokens should be locked
     */
-    function _totalLockedBalance(address _of, uint256 _time) public view returns (uint256 amount) {
+    function _totalLockedBalance(address _of, uint256 _time) internal view returns (uint256 amount) {
         for (uint256 i = 0; i < lockReason[_of].length; i++) {
             amount = amount.add(_tokensLockedAtTime(_of, lockReason[_of][i], _time));
         }

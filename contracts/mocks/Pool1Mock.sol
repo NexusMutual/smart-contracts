@@ -12,6 +12,7 @@ contract Pool1Mock is Pool1 {
         uint gasLimit
     ) 
         internal
+        pure
         returns (bytes32)
     {
         // To silence compiler warning :(
@@ -25,6 +26,11 @@ contract Pool1Mock is Pool1 {
             )
         ));
     }
+
+    function oraclize_cbAddress() oraclizeAPI internal returns (address){
+        return ms.owner();
+    }
+
     function transferFundToOtherAdd(address _add,uint amt) public {
 
         _add.transfer(amt);

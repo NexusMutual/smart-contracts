@@ -31,6 +31,8 @@ contract TokenData is Iupgradable {
     uint public joiningFee;
     uint public stakerCommissionPer;
     uint public stakerMaxCommissionPer;
+    uint public tokenExponent;
+    uint public priceStep;
 
     struct StakeCommission {
         uint commissionEarned;
@@ -55,11 +57,6 @@ contract TokenData is Iupgradable {
     struct CoverNote {
         uint amount;
         bool isDeposited;
-    }
-
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender) == true);
-        _;
     }
 
     /**
@@ -119,11 +116,9 @@ contract TokenData is Iupgradable {
         lockMVDays = 2 days;
         stakerCommissionPer = 20;
         stakerMaxCommissionPer = 50;
-    }
+        tokenExponent = 4;
+        priceStep = 1000;
 
-    modifier checkPause {
-        require(ms.isPause() == false, "In Emergency Pause state");
-        _;
     }
 
     /**
@@ -224,16 +219,6 @@ contract TokenData is Iupgradable {
     {
         amount = stakerStakedContracts[
             _stakerAddress][_stakerIndex].unlockedAmount;
-    }
-
-    function setStakerCommissionPer(uint _val) public checkPause {
-        require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
-        stakerCommissionPer = _val;
-    }
-
-    function setStakerMaxCommissionPer(uint _val) public checkPause {
-        require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
-        stakerMaxCommissionPer = _val;
     }
 
     /**
@@ -520,38 +505,6 @@ contract TokenData is Iupgradable {
     }
 
     /**
-     * @dev Changes the time period up to which tokens will be locked.
-     *      Used to generate the validity period of tokens booked by
-     *      a user for participating in claim's assessment/claim's voting.
-     */ 
-    function changeBookTime(uint _time) public onlyOwner {
-        bookTime = _time;
-    }
-
-    /**
-     * @dev Changes lock CA days - number of days for which tokens 
-     * are locked while submitting a vote.
-     */ 
-    function changelockCADays(uint _val) public onlyOwner {
-        lockCADays = _val;
-    }
-    
-    /**
-     * @dev Changes lock MV days - number of days for which tokens are locked
-     * while submitting a vote.
-     */ 
-    function changelockMVDays(uint _val) public onlyOwner {
-        lockMVDays = _val;
-    }
-
-    /**
-     * @dev Changes number of days for which NXM needs to staked in case of underwriting
-     */ 
-    function changeSCValidDays(uint _days) public onlyOwner {
-        scValidDays = _days;
-    }
-
-    /**
      * @dev Sets the index which will receive commission.
      * @param _stakedContractAddress smart contract address.
      * @param _index current index.
@@ -597,25 +550,56 @@ contract TokenData is Iupgradable {
     }
 
     /**
-     * @dev Changes extra lock period for a cover, post its expiry.
-     */ 
-    function setLockTokenTimeAfterCoverExp(uint time) public onlyOwner {
-        lockTokenTimeAfterCoverExp = time;
-    }
-
-    /**
      * @dev Change the wallet address which receive Joining Fee
      */
     function changeWalletAddress(address _address) public onlyOwner {
         walletAddress = _address;
     }
 
-    /**
-     * @dev Set the joining fee for membership
-     */
-    function setJoiningFee(uint _amount) public onlyOwner {
-        joiningFee = _amount;
-    }
+    function updateUintParameters(bytes8 code, uint val) public {
+      require(ms.checkIsAuthToGoverned(msg.sender));
+      if(code == "TOKEXP"){
+
+        _setTokenExponent(val); 
+
+      } else if(code == "TOKSTEP"){
+
+        _setPriceStep(val);
+
+      } else if(code == "RALOCKT"){
+
+        _changeSCValidDays(val);
+
+      } else if(code == "RACOMM"){
+
+        _setStakerCommissionPer(val);
+
+      } else if(code == "RAMAXC"){
+
+        _setStakerMaxCommissionPer(val);
+
+      } else if(code == "CABOOKT"){
+
+        _changeBookTime(val);
+
+        } else if(code == "CALOCKT"){
+
+        _changelockCADays(val);
+
+        } else if(code == "MVLOCKT"){
+
+        _changelockMVDays(val);
+
+        } else if(code == "QUOLOCKT"){
+
+            _setLockTokenTimeAfterCoverExp(val);
+
+        } else if(code == "JOINFEE"){
+
+            _setJoiningFee(val);
+
+        } 
+  }
 
     /**
      * @dev Internal function to get stake commission given to an 
@@ -663,5 +647,67 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].stakedContractIndex;
         amount = stakedContractStakeCommission[
             _stakedContractAddress][_stakedContractIndex].commissionRedeemed;
+    }
+
+    function _setStakerCommissionPer(uint _val) internal {
+        stakerCommissionPer = _val;
+    }
+
+    function _setStakerMaxCommissionPer(uint _val) internal {
+        stakerMaxCommissionPer = _val;
+    }
+
+    function _setTokenExponent(uint _val) internal {
+        tokenExponent = _val;
+    }
+
+    function _setPriceStep(uint _val) internal {
+        priceStep = _val;
+    }
+
+    /**
+     * @dev Changes number of days for which NXM needs to staked in case of underwriting
+     */ 
+    function _changeSCValidDays(uint _days) internal {
+        scValidDays = _days;
+    }
+
+    /**
+     * @dev Changes the time period up to which tokens will be locked.
+     *      Used to generate the validity period of tokens booked by
+     *      a user for participating in claim's assessment/claim's voting.
+     */ 
+    function _changeBookTime(uint _time) internal {
+        bookTime = _time;
+    }
+
+    /**
+     * @dev Changes lock CA days - number of days for which tokens 
+     * are locked while submitting a vote.
+     */ 
+    function _changelockCADays(uint _val) internal {
+        lockCADays = _val;
+    }
+    
+    /**
+     * @dev Changes lock MV days - number of days for which tokens are locked
+     * while submitting a vote.
+     */ 
+    function _changelockMVDays(uint _val) internal {
+        lockMVDays = _val;
+    }
+
+    /**
+     * @dev Changes extra lock period for a cover, post its expiry.
+     */ 
+    function _setLockTokenTimeAfterCoverExp(uint time) internal {
+        lockTokenTimeAfterCoverExp = time;
+    }
+
+    /**
+     * @dev Set the joining fee for membership
+     */
+    function _setJoiningFee(uint _amount) internal {
+        joiningFee = _amount;
     }
 }

@@ -110,16 +110,16 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     /// @dev Initiates Default settings for Proposal Category contract (Adding default categories)
     function proposalCategoryInitiate() external { //solhint-disable-line
         require(!constructorCheck);
-        addInitialCategories("Uncategorized", "", "MR", 50, 25, 1, 0);
-        addInitialCategories("Add new member role", "QmQFnBep7AyMYU3LJDuHSpTYatnw65XjHzzirrghtZoR8U", 
+        _addInitialCategories("Uncategorized", "", "MR", 50, 25, 1, 0);
+        _addInitialCategories("Add new member role", "QmQFnBep7AyMYU3LJDuHSpTYatnw65XjHzzirrghtZoR8U", 
         "MR", 50, 25, 1, 0);
-        addInitialCategories("Update member role", "QmXMzSViLBJ22P9oj51Zz7isKTRnXWPHZcQ5hzGvvWD3UV", 
+        _addInitialCategories("Update member role", "QmXMzSViLBJ22P9oj51Zz7isKTRnXWPHZcQ5hzGvvWD3UV", 
         "MR", 50, 25, 1, 0);
-        addInitialCategories("Add new category", "QmUq9Rb6rWFHZXjVtyzh7AWGDeyVFtDHKiP5fJpgnuinQ7", "PC", 
+        _addInitialCategories("Add new category", "QmUq9Rb6rWFHZXjVtyzh7AWGDeyVFtDHKiP5fJpgnuinQ7", "PC", 
         50, 25, 1, 0);
-        addInitialCategories("Edit category", "QmQmvfBiCLfe5jPdq69iRBRRdnSHSroJQ4SG8DhtkXcLfQ", 
+        _addInitialCategories("Edit category", "QmQmvfBiCLfe5jPdq69iRBRRdnSHSroJQ4SG8DhtkXcLfQ", 
         "PC", 50, 25, 1, 0);
-        addInitialCategories(
+        _addInitialCategories(
             "Upgrade a contract Implementation",
             "Qme4hGas6RuDYk9LKE2XkK9E46LNeCBUzY12DdT5uQstvh",
             "MS",
@@ -130,33 +130,33 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         );
         
         //  --------------------------------------------------------------------------------------------- //
-        addInitialCategories("Implement Emergency Pause", "QmZSaEsvTCpy357ZSrPYKqby1iaksBwPdKCGWzW1HpgSpe",
+        _addInitialCategories("Implement Emergency Pause", "QmZSaEsvTCpy357ZSrPYKqby1iaksBwPdKCGWzW1HpgSpe",
         "MS", 0, 15, 1, 0);
-        addInitialCategories("Extend or Switch Off Emergency Pause", "Qmao6dD8amq4kxsAheWn5gQX22ABucFFGRvnRuY1VqtEKy",
+        _addInitialCategories("Extend or Switch Off Emergency Pause", "Qmao6dD8amq4kxsAheWn5gQX22ABucFFGRvnRuY1VqtEKy",
         "MS", 50, 15, 2, 0);
-        addInitialCategories("Burn Claims Assessor Bond", "QmezNJUF2BM5Nv9EMnsEKUmuqjvdySzvQFvhEdvFJbau3k",
+        _addInitialCategories("Burn Claims Assessor Bond", "QmezNJUF2BM5Nv9EMnsEKUmuqjvdySzvQFvhEdvFJbau3k",
         "TF", 80, 15, 1, 0);
-        // addInitialCategories("Pause Claim Assessor Voting for 3 days", "", "EX", 60, 15, 1); //no func yet
-        addInitialCategories("Changes to Capital Model", "", "EX", 50, 15, 2, 60);
-        addInitialCategories("Changes to Pricing Model", "", "EX", 50, 15, 2, 60);
-        addInitialCategories("Withdraw funds to Pay for Support Services", 
+        // _addInitialCategories("Pause Claim Assessor Voting for 3 days", "", "EX", 60, 15, 1); //no func yet
+        _addInitialCategories("Changes to Capital Model", "", "EX", 50, 15, 2, 60);
+        _addInitialCategories("Changes to Pricing Model", "", "EX", 50, 15, 2, 60);
+        _addInitialCategories("Withdraw funds to Pay for Support Services", 
         "QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM", "P1", 50, 15, 2, 80);
-        // addInitialCategories("Release new smart contract code", "", "EX", 80, 15, 2); //no func yet
-        // addInitialCategories("Change to Authorities", "", "EX", 80, 15, 2); //no func yet
-        addInitialCategories("Add Investment Asset", "Qmd66GdYtn1BYmZTB1op1Fbfkq6uywMpow5LRmG2Twbzjb",
+        // _addInitialCategories("Release new smart contract code", "", "EX", 80, 15, 2); //no func yet
+        // _addInitialCategories("Change to Authorities", "", "EX", 80, 15, 2); //no func yet
+        _addInitialCategories("Add Investment Asset", "Qmd66GdYtn1BYmZTB1op1Fbfkq6uywMpow5LRmG2Twbzjb",
         "PD", 50, 15, 2, 60);
-        addInitialCategories("Edit Investment Asset", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
+        _addInitialCategories("Edit Investment Asset", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
         "PD", 50, 15, 2, 60);
-        addInitialCategories("Update Investment Asset Status", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
+        _addInitialCategories("Update Investment Asset Status", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
         "PD", 50, 15, 2, 60);
-        addInitialCategories("Change AB Member", "QmUBjPDdSiG3pRMqkVzZA2WaqiksT7ixNd3gPQwngGmF9x", 
+        _addInitialCategories("Change AB Member", "QmUBjPDdSiG3pRMqkVzZA2WaqiksT7ixNd3gPQwngGmF9x", 
             "MR", 50, 15, 2, 0); 
-        addInitialCategories("Add Currency Asset", "QmYtpNuTdProressqZwEmN7cFtyyJvhFBrqr6xnxQGWrPm", 
+        _addInitialCategories("Add Currency Asset", "QmYtpNuTdProressqZwEmN7cFtyyJvhFBrqr6xnxQGWrPm", 
             "PD", 50, 15, 2, 0);
-        // addInitialCategories("Edit Currency Asset", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
+        // _addInitialCategories("Edit Currency Asset", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
         // "PD", 50, 15, 2, 60);
-        addInitialCategories("Any other Item", "", "EX", 50, 15, 2, 80);
-        addInitialCategories("Special Resolution", "", "EX", 75, 0, 2, 0);
+        _addInitialCategories("Any other Item", "", "EX", 50, 15, 2, 80);
+        _addInitialCategories("Special Resolution", "", "EX", 75, 0, 2, 0);
         constructorCheck = true;
     }
 
@@ -254,7 +254,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         emit Category(categoryId, _name, _actionHash);
     }
 
-    function addInitialCategories(
+    function _addInitialCategories(
         string _name,
         string _actionHash,
         bytes2 _contractName,

@@ -49,16 +49,6 @@ contract ClaimsReward is Iupgradable {
     Governance internal gv;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
-
-    modifier checkPause {
-        require(ms.isPause() == false);
-        _;
-    }
-
-    modifier isMemberAndcheckPause {
-        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
-        _;
-    }
   
     function changeDependentContractAddress() public onlyInternal {
         c1 = Claims(ms.getLatestAddress("CL"));
@@ -87,9 +77,9 @@ contract ClaimsReward is Iupgradable {
         if (status == 0) {
             _changeClaimStatusCA(claimid, coverid, status);
         } else if (status >= 1 && status <= 5) { 
-            changeClaimStatusMV(claimid, coverid, status);
+            _changeClaimStatusMV(claimid, coverid, status);
         } else if (status == 12) { // when current status is "Claim Accepted Payout Pending"
-            bool succ = p1.sendClaimPayout(coverid, claimid);
+            bool succ = p1.sendClaimPayout(coverid, claimid, qd.getCoverSumAssured(coverid).mul(DECIMAL1E18), qd.getCoverMemberAddress(coverid), qd.getCurrencyOfCover(coverid));
             if (succ) 
                 c1.setClaimStatus(claimid, 14);
         }
@@ -220,8 +210,8 @@ contract ClaimsReward is Iupgradable {
     }
 
     function claimAllPendingReward(uint[] _proposals) public isMemberAndcheckPause {
-        claimRewardToBeDistributed();
-        claimStakeCommission();
+        _claimRewardToBeDistributed();
+        _claimStakeCommission();
         tf.unlockStakerUnlockableTokens(msg.sender); 
         uint gvReward = gv.claimReward(msg.sender, _proposals);
         if (gvReward > 0) {
@@ -269,7 +259,7 @@ contract ClaimsReward is Iupgradable {
             cd.changeFinalVerdict(claimid, 1);
             td.setDepositCN(coverid, false); // Unset flag
             tf.unlockCN(coverid);
-            p1.sendClaimPayout(coverid, claimid); //send payout
+            p1.sendClaimPayout(coverid, claimid, sumAssured, qd.getCoverMemberAddress(coverid), curr); //send payout
         } 
     }
 
@@ -327,7 +317,7 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Computes the result of Member Voting for a given claim id.
-    function changeClaimStatusMV(uint claimid, uint coverid, uint status) internal {
+    function _changeClaimStatusMV(uint claimid, uint coverid, uint status) internal {
 
         // Check if voting should be closed or not
         if (c1.checkVoteClosing(claimid) == 1) {
@@ -376,7 +366,7 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Allows a user to claim all pending  Claims assessment rewards.
-    function claimRewardToBeDistributed() internal {
+    function _claimRewardToBeDistributed() internal {
         uint lengthVote = cd.getVoteAddressCALength(msg.sender);
         uint lastIndexCA;
         uint lastIndexMV;
@@ -433,7 +423,7 @@ contract ClaimsReward is Iupgradable {
         cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
 
-    function claimStakeCommission() internal {
+    function _claimStakeCommission() internal {
         uint total=0;
         uint len = td.getStakerStakedContractLength(msg.sender);
         uint lastCompletedStakeCommission = td.lastCompletedStakeCommission(msg.sender);

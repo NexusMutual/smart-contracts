@@ -19,7 +19,7 @@ contract TokenFunctionMock is TokenFunctions {
                 uint stakerIndex = td.getStakedContractStakerIndex(
                 scAddress, i);
                 uint V;
-                (V, stakerStakedNXM) = unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
+                (V, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
                 td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, V);
                 // stakerStakedNXM =  _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, i);
                 if (stakerStakedNXM > 0) {

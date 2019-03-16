@@ -57,11 +57,6 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _;
     }
 
-    modifier onlyOwner() {
-        require(ms.isOwner(msg.sender));
-        _;
-    }
-
     function changeDependentContractAddress() public {
         td = TokenData(ms.getLatestAddress("TD"));
         cr = ClaimsReward(ms.getLatestAddress("CR"));
@@ -83,7 +78,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     function memberRolesInitiate (address _dAppToken, address _firstAB, address memberAuthority) public {
         require(!constructorCheck);
         dAppToken = TokenController(_dAppToken);
-        addInitialMemberRoles(_firstAB, memberAuthority);
+        _addInitialMemberRoles(_firstAB, memberAuthority);
         constructorCheck = true;
     }
 
@@ -158,7 +153,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         }
     }
 
-    function changeMaxABCount(uint _val) external onlyOwner{
+    function changeMaxABCount(uint _val) external onlyInternal {
         maxABCount = _val;
     }
 
@@ -182,6 +177,8 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     }
 
     function kycVerdict(address _userAddress, bool verdict) public {
+
+        require(msg.sender == qd.kycAuthAddress());
         require(!ms.isPause());
         require(_userAddress != address(0));
         require(!ms.isMember(_userAddress));
@@ -236,7 +233,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         memberArray = new address[](memberRoleData[_memberRoleId].memberCounter);
         for (i = 0; i < length; i++) {
             address member = memberRoleData[_memberRoleId].memberAddress[i];
-            if (memberRoleData[_memberRoleId].memberActive[member] && !checkMemberInArray(member, memberArray)) { //solhint-disable-line
+            if (memberRoleData[_memberRoleId].memberActive[member] && !_checkMemberInArray(member, memberArray)) { //solhint-disable-line
                 memberArray[j] = member;
                 j++;
             }
@@ -323,7 +320,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         memberRoleData.push(MemberRoleDetails(0, new address[](0), _authorized));
     }
 
-    function checkMemberInArray(
+    function _checkMemberInArray(
         address _memberAddress,
         address[] memberArray
     )
@@ -340,7 +337,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         }
     }
 
-    function addInitialMemberRoles(address _firstAB, address memberAuthority) internal {
+    function _addInitialMemberRoles(address _firstAB, address memberAuthority) internal {
         maxABCount = 5;
         _addRole("Unassigned", "Unassigned", address(0));
         _addRole(

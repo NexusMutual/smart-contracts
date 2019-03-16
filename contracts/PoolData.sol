@@ -63,11 +63,6 @@ contract PoolData is Iupgradable {
         uint vFull; //Pool funds
         uint64 date;
     }
-    
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender), "Not Owner");
-        _;
-    }
 
     IARankDetails[] internal allIARankDetails;
     McrData[] public allMCRData;
@@ -90,16 +85,17 @@ contract PoolData is Iupgradable {
     uint public liquidityTradeCallbackTime;
     uint public lastLiquidityTradeTrigger;
     uint64 internal lastDate;
-    uint64 public variationPercX100;
-    uint64 public iaRatesTime;
+    uint public variationPercX100;
+    uint public iaRatesTime;
     uint public minCap;
-    uint64 public mcrTime;
-    uint64 public A;
+    uint public mcrTime;
+    uint public A;
     uint public shockParameter;
-    uint64 public C;
-    uint64 public mcrFailTime; 
+    uint public C;
+    uint public mcrFailTime; 
     uint public ethVolumeLimit;
     uint public capReached;
+    uint public capacityLimit;
     
     constructor() public {
         C = 5203349;
@@ -114,6 +110,7 @@ contract PoolData is Iupgradable {
         uniswapDeadline = 20 minutes;
         liquidityTradeCallbackTime = 4 hours;
         ethVolumeLimit = 4;
+        capacityLimit = 10;
         allCurrencies.push("ETH");
         allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6 * DECIMAL1E18, 0);
         allCurrencies.push("DAI");
@@ -129,38 +126,9 @@ contract PoolData is Iupgradable {
     }    
 
     /// @dev Changes address allowed to post MCR.
-    function changeNotariseAddress(address _add) external onlyOwner {
+    function changeNotariseAddress(address _add) external {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         notariseMCR = _add;
-    }
-
-    /// @dev Sets minimum Cap.
-    function changeMinCap(uint newCap) external onlyOwner {
-        minCap = newCap;
-    }
-
-    /// @dev Sets Shock Parameter.
-    function changeShockParameter(uint16 newParam) external onlyOwner {
-        shockParameter = newParam;
-    }
-
-    /// @dev Changes Growth Step
-    function changeC(uint32 newGS) external onlyOwner {
-        C = newGS;
-    }
-    
-    /// @dev Changes time period for obtaining new MCR data from external oracle query.
-    function changeMCRTime(uint64 _time) external onlyInternal {
-        mcrTime = _time;
-    }
-
-    /// @dev Sets MCR Fail time.
-    function changeMCRFailTime(uint64 _time) external onlyOwner {
-        mcrFailTime = _time;
-    }
-
-    /// @dev Changes scaling factor.
-    function changeA(uint32 val) external onlyInternal {
-        A = val;
     }
     
     /// @dev Updates the 3 day average rate of a IA currency.
@@ -188,16 +156,9 @@ contract PoolData is Iupgradable {
 
     /// @dev updates daiFeedAddress address.
     /// @param _add address of DAI feed.
-    function changeDAIfeedAddress(address _add) external onlyOwner {
+    function changeDAIfeedAddress(address _add) external {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         daiFeedAddress = _add;
-    }
-
-    function changeUniswapDeadlineTime(uint newDeadline) external onlyOwner {
-        uniswapDeadline = newDeadline;
-    }
-
-    function changeliquidityTradeCallbackTime(uint newTime) external onlyOwner {
-        liquidityTradeCallbackTime = newTime;
     }
 
     /** 
@@ -248,13 +209,6 @@ contract PoolData is Iupgradable {
         datewiseId[date] = allIARankDetails.length.sub(1);
     }
 
-    /**
-     * @dev Changes time after which investment asset rates need to be fed.
-     */  
-    function changeIARatesTime(uint64 _newTime) external onlyOwner {
-        iaRatesTime = _newTime;
-    }
-
     function setLastLiquidityTradeTrigger() external onlyInternal {
         lastLiquidityTradeTrigger = now;
     }
@@ -264,6 +218,59 @@ contract PoolData is Iupgradable {
      */  
     function updatelastDate(uint64 newDate) external onlyInternal {
         lastDate = newDate;
+    }
+
+    function updateUintParameters(bytes8 code, uint val) public {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if(code == "MCRTIM")
+        {
+            _changeMCRTime(val);
+
+        } else if(code == "MCRFTIM"){
+
+            _changeMCRFailTime(val);
+
+        } else if(code == "MCRMIN"){
+
+            _changeMinCap(val);
+
+        } else if(code == "MCRSHOCK"){
+
+            _changeShockParameter(val);
+
+        } else if(code == "MCRCAPL"){
+
+            _changeCapacityLimit(val);
+
+        } else if(code == "IMZ"){
+
+            _changeVariationPercX100(val);
+
+        } else if(code == "IMRATET"){
+
+            _changeIARatesTime(val);
+
+        } else if(code == "IMUNIDL"){
+
+            _changeUniswapDeadlineTime(val);
+
+        } else if(code == "IMLIQT"){
+
+            _changeliquidityTradeCallbackTime(val);
+
+        } else if(code == "IMETHVL"){
+
+            _setEthVolumeLimit(val);
+
+        } else if(code == "C"){
+            _changeC(val);
+
+          } else if(code == "A"){
+
+            _changeA(val);
+
+          }
+            
     }
  
     /**
@@ -301,13 +308,6 @@ contract PoolData is Iupgradable {
         allInvestmentCurrencies.push(curr);
         allInvestmentAssets[curr] = InvestmentAssets(currAddress, status,
             minHoldingPercX100, maxHoldingPercX100, decimals);
-    }
-    
-    /**
-     * @dev Changes the variation range percentage.
-     */  
-    function changeVariationPercX100(uint64 newPercX100) external onlyOwner {
-        variationPercX100 = newPercX100;
     }
 
     /**
@@ -372,10 +372,6 @@ contract PoolData is Iupgradable {
         onlyInternal
     {
         allInvestmentAssets[curr].currAddress = currAdd;
-    }
-
-    function setEthVolumeLimit(uint val) external onlyOwner {
-        ethVolumeLimit = val;
     }
     
     /// @dev Checks whether a given address can notaise MCR data or not.
@@ -736,5 +732,65 @@ contract PoolData is Iupgradable {
         } else {
             rate = caAvgRate[curr];
         }
+    }
+
+    function _setEthVolumeLimit(uint val) internal {
+        ethVolumeLimit = val;
+    }
+
+    /// @dev Sets minimum Cap.
+    function _changeMinCap(uint newCap) internal {
+        minCap = newCap;
+    }
+
+    /// @dev Sets Shock Parameter.
+    function _changeShockParameter(uint newParam) internal {
+        shockParameter = newParam;
+    }
+    
+    /// @dev Changes time period for obtaining new MCR data from external oracle query.
+    function _changeMCRTime(uint _time) internal {
+        mcrTime = _time;
+    }
+
+    /// @dev Sets MCR Fail time.
+    function _changeMCRFailTime(uint _time) internal {
+        mcrFailTime = _time;
+    }
+
+    function _changeUniswapDeadlineTime(uint newDeadline) internal {
+        uniswapDeadline = newDeadline;
+    }
+
+    function _changeliquidityTradeCallbackTime(uint newTime) internal {
+        liquidityTradeCallbackTime = newTime;
+    }
+
+    /**
+     * @dev Changes time after which investment asset rates need to be fed.
+     */  
+    function _changeIARatesTime(uint _newTime) internal {
+        iaRatesTime = _newTime;
+    }
+    
+    /**
+     * @dev Changes the variation range percentage.
+     */  
+    function _changeVariationPercX100(uint newPercX100) internal {
+        variationPercX100 = newPercX100;
+    }
+
+    /// @dev Changes Growth Step
+    function _changeC(uint newC) internal {
+        C = newC;
+    }
+
+    /// @dev Changes scaling factor.
+    function _changeA(uint val) internal {
+        A = val;
+    }
+    
+    function _changeCapacityLimit(uint val) internal {
+        capacityLimit = val;
     }
 }

@@ -21,14 +21,23 @@ const INITIAL_SUPPLY = 1500000 * 1e18;
 
 module.exports = function(deployer) {
   deployer.then(async () => {
+    console.log('1');
     await deployer.deploy(Claims);
+    console.log('2');
     await deployer.deploy(ClaimsData);
+    console.log('3');
     await deployer.deploy(ClaimsReward);
+    console.log('4');
     await deployer.deploy(NXMaster);
+    console.log('5');
     await deployer.deploy(Pool1);
+    console.log('6');
     await deployer.deploy(Pool2);
+    console.log('7');
     await deployer.deploy(PoolData);
+    console.log('8');
     await deployer.deploy(MCR);
+    console.log('9');
     const tc = await deployer.deploy(TokenController);
     await deployer.deploy(NXMToken, tc.address, founderAddress, INITIAL_SUPPLY);
     await deployer.deploy(TokenData);

@@ -45,24 +45,6 @@ contract Quotation is Iupgradable {
 
     function () public payable {} //solhint-disable-line
 
-    modifier onlyOwner {
-
-        require(ms.isOwner(msg.sender) == true);
-        _;
-    }
-
-    modifier checkPause {
-
-        require(ms.isPause() == false);
-        _;
-    }
-
-    modifier isMemberAndcheckPause {
-
-        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
-        _;
-    }
-
     function changeDependentContractAddress() public onlyInternal {
         m1 = MCR(ms.getLatestAddress("MC"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
@@ -82,14 +64,14 @@ contract Quotation is Iupgradable {
      * @param _cid Cover Id.
      */ 
     function expireCover(uint _cid) public {
-        require(checkCoverExpired(_cid) && qd.getCoverStatusNo(_cid) != 3);
+        require(checkCoverExpired(_cid) && qd.getCoverStatusNo(_cid) != uint(QuotationData.CoverStatus.CoverExpired));
         
         tf.unlockCN(_cid);
         bytes4 curr;
         address scAddress;
         uint sumAssured;
         (, , scAddress, curr, sumAssured, ) = qd.getCoverDetailsByCoverID1(_cid);
-        if (qd.getCoverStatusNo(_cid) != 1)
+        if (qd.getCoverStatusNo(_cid) != uint(QuotationData.CoverStatus.ClaimAccepted))
             _removeSAFromCSA(_cid, sumAssured);
         qd.changeCoverStatusNo(_cid, uint8(QuotationData.CoverStatus.CoverExpired));       
     }
@@ -294,6 +276,7 @@ contract Quotation is Iupgradable {
         qd.setRefundEligible(userAdd, false);
         uint joinFee = td.joiningFee();
         if (status) {
+            require(msg.sender == qd.kycAuthAddress());
             mr.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
                 qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
@@ -305,7 +288,7 @@ contract Quotation is Iupgradable {
                     erc20.transfer(poolAdd, coverDetails[1]);
                 }
                 emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
-                makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
+                _makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
 
             } else {
                 qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPassNoCover));
@@ -377,12 +360,13 @@ contract Quotation is Iupgradable {
         }
     }
 
+
     /**
      * @dev Creates cover of the quotation, changes the status of the quotation ,
      * updates the total sum assured and locks the tokens of the cover against a quote.
      * @param from Quote member Ethereum address.
      */  
-    function makeCover(
+    function _makeCover(
         address from,
         address scAddress,
         bytes4 coverCurr,
@@ -398,7 +382,7 @@ contract Quotation is Iupgradable {
         if (coverPeriod <= 60) {
             p1.closeCoverOraclise(cid, uint64(coverPeriod * 1 days));
         }
-        uint coverNoteAmount = (coverDetails[2].mul(10)).div(100);
+        uint coverNoteAmount = (coverDetails[2].mul(qd.tokensRetained())).div(100);
         tc.mint(from, coverNoteAmount);
         tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
@@ -427,7 +411,7 @@ contract Quotation is Iupgradable {
     {
         require(coverDetails[3] > now);
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
-        makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
+        _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
 
     }
 

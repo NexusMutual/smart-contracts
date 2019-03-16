@@ -24,17 +24,16 @@ import "./Quotation.sol";
 import "./Pool2.sol";
 import "./MCR.sol";
 import "./Iupgradable.sol";
+import "./TokenData.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 import "./imports/oraclize/ethereum-api/usingOraclize.sol";
-import "./QuotationData.sol";
 
 
 contract Pool1 is usingOraclize, Iupgradable {
     using SafeMath for uint;
 
     Quotation internal q2;
-    QuotationData internal qd;
     NXMToken internal tk;
     TokenController internal tc;
     TokenFunctions internal tf;
@@ -42,24 +41,15 @@ contract Pool1 is usingOraclize, Iupgradable {
     PoolData internal pd;
     MCR internal m1;
     Claims public c1;
+    TokenData internal td;
 
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
-    uint internal constant PRICE_STEP = uint(1000) * DECIMAL1E18;
+    // uint internal constant PRICE_STEP = uint(1000) * DECIMAL1E18;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
     event Payout(address indexed to, uint coverId, uint tokens);
 
     function () public payable {} //solhint-disable-line
-
-    modifier checkPause {
-        require(ms.isPause() == false, "In Emergency Pause state");
-        _;
-    }
-
-    modifier isMember {
-        require(ms.isMember(msg.sender), "Not member");
-        _;
-    }
 
     /**
      * @dev Pays out the sum assured in case a claim is accepted
@@ -69,91 +59,91 @@ contract Pool1 is usingOraclize, Iupgradable {
      */ 
     function sendClaimPayout(
         uint coverid,
-        uint claimid
+        uint claimid,
+        uint sumAssured,
+        address coverHolder,
+        bytes4 coverCurr
     )
         external
         onlyInternal
         returns(bool succ)
     {
         
-        address _to = qd.getCoverMemberAddress(coverid);
-        bytes4 curr = qd.getCurrencyOfCover(coverid);
-        uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
+        uint sa = sumAssured.div(DECIMAL1E18);
         bool check;
-        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
+        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
 
         //Payout
-        if (curr == "ETH" && address(this).balance >= sumAssured) {
-            check = _transferCurrencyAsset(curr, _to, sumAssured);
-        } else if (curr == "DAI" && erc20.balanceOf(address(this)) >= sumAssured) {
+        if (coverCurr == "ETH" && address(this).balance >= sumAssured) {
+            check = _transferCurrencyAsset(coverCurr, coverHolder, sumAssured);
+        } else if (coverCurr == "DAI" && erc20.balanceOf(address(this)) >= sumAssured) {
             
-            check = _transferCurrencyAsset(curr, _to, sumAssured);
+            check = _transferCurrencyAsset(coverCurr, coverHolder, sumAssured);
         }
         
         if (check == true) {
-            q2.removeSAFromCSA(coverid, qd.getCoverSumAssured(coverid));
-            pd.changeCurrencyAssetVarMin(curr, 
-                pd.getCurrencyAssetVarMin(curr).sub(sumAssured));
-            p2.internalLiquiditySwap(curr);
-            emit Payout(_to, coverid, sumAssured);
+            q2.removeSAFromCSA(coverid, sa);
+            pd.changeCurrencyAssetVarMin(coverCurr, 
+                pd.getCurrencyAssetVarMin(coverCurr).sub(sumAssured));
+            emit Payout(coverHolder, coverid, sumAssured);
             succ = true;
         } else {
             c1.setClaimStatus(claimid, 12);
-            p2.internalLiquiditySwap(curr);
         }
+        p2.internalLiquiditySwap(coverCurr);
 
-        tf.burnStakerLockedToken(coverid, curr, sumAssured);
+        tf.burnStakerLockedToken(coverid, coverCurr, sumAssured);
     }
 
     function triggerExternalLiquidityTrade() external onlyInternal {
-        // if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
-        pd.setLastLiquidityTradeTrigger();
-        bytes32 myid = oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
-        saveApiDetails(myid, "ULT", 0);
-        // }
+        if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
+            pd.setLastLiquidityTradeTrigger();
+            bytes32 myid = _oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
+            _saveApiDetails(myid, "ULT", 0);
+        }
     }
 
     ///@dev Oraclize call to close emergency pause.
     function closeEmergencyPause(uint time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(4, time, "URL", "", 300000);
-        saveApiDetails(myid, "EP", 0);
+        bytes32 myid = _oraclizeQuery(4, time, "URL", "", 300000);
+        _saveApiDetails(myid, "EP", 0);
     }
 
     /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
     /// @param id Claim Id to be closed
     /// @param time Time (in seconds) after which Claims assessment voting needs to be closed
-    function closeClaimsOraclise(uint id, uint64 time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(4, time, "URL", "", 3000000);
-        saveApiDetails(myid, "CLA", id);
+    function closeClaimsOraclise(uint id, uint time) external onlyInternal {
+        bytes32 myid = _oraclizeQuery(4, time, "URL", "", 3000000);
+        _saveApiDetails(myid, "CLA", id);
     }
 
     /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
     /// @param id Quote Id to be expired
     /// @param time Time (in seconds) after which the cover should be expired
     function closeCoverOraclise(uint id, uint64 time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(4, time, "URL", strConcat(
+        bytes32 myid = _oraclizeQuery(4, time, "URL", strConcat(
             "http://a1.nexusmutual.io/api/Claims/closeClaim_hash/", uint2str(id)), 1000000);
-        saveApiDetails(myid, "COV", id);
+        _saveApiDetails(myid, "COV", id);
     }
 
     /// @dev Calls the Oraclize Query to initiate MCR calculation.
     /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
-    function mcrOraclise(uint64 time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(3, time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/postMCR/K7", 0);
-        saveApiDetails(myid, "MCR", 0);
+    function mcrOraclise(uint time) external onlyInternal {
+        bytes32 myid = _oraclizeQuery(3, time, "URL", "https://a2.nexusmutual.io/nxmmcr.js/postMCR/K7", 0);
+        _saveApiDetails(myid, "MCR", 0);
     }
 
     /// @dev Calls the Oraclize Query in case MCR calculation fails.
     /// @param time Time (in seconds) after which the next MCR calculation should be initiated
-    function mcrOracliseFail(uint id, uint64 time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(4, time, "URL", "", 1000000);
-        saveApiDetails(myid, "MCRF", id);
+    function mcrOracliseFail(uint id, uint time) external onlyInternal {
+        bytes32 myid = _oraclizeQuery(4, time, "URL", "", 1000000);
+        _saveApiDetails(myid, "MCRF", id);
     }
 
     /// @dev Oraclize call to update investment asset rates.
-    function saveIADetailsOracalise(uint64 time) external onlyInternal {
-        bytes32 myid = oraclizeQuery(3, time, "URL", "http://a3.nexusmutual.io", 0);
-        saveApiDetails(myid, "IARB", 0);
+    function saveIADetailsOracalise(uint time) external onlyInternal {
+        bytes32 myid = _oraclizeQuery(3, time, "URL", "http://a3.nexusmutual.io", 0);
+        _saveApiDetails(myid, "IARB", 0);
     }
     
     /**
@@ -182,8 +172,8 @@ contract Pool1 is usingOraclize, Iupgradable {
 
     /// @dev Calls the Oraclize Query to update the version of the contracts.
     function versionOraclise(uint version) external onlyInternal {
-        bytes32 myid = oraclizeQuery(2, 0, "URL", "http://a1.nexusmutual.io/api/MCR/setlatest/T", 0);
-        saveApiDetails(myid, "VER", version);
+        bytes32 myid = _oraclizeQuery(2, 0, "URL", "http://a1.nexusmutual.io/api/MCR/setlatest/T", 0);
+        _saveApiDetails(myid, "VER", version);
     }
 
     function changeDependentContractAddress() public {
@@ -193,10 +183,9 @@ contract Pool1 is usingOraclize, Iupgradable {
         tc = TokenController(ms.getLatestAddress("TC"));
         pd = PoolData(ms.getLatestAddress("PD"));
         q2 = Quotation(ms.getLatestAddress("QT"));
-        qd = QuotationData(ms.getLatestAddress("QD"));
         p2 = Pool2(ms.getLatestAddress("P2"));
         c1 = Claims(ms.getLatestAddress("CL"));
-        qd = QuotationData(ms.getLatestAddress("QD"));
+        td = TokenData(ms.getLatestAddress("TD"));
     }
 
     function transferCurrencyAsset(
@@ -216,7 +205,6 @@ contract Pool1 is usingOraclize, Iupgradable {
     function __callback(bytes32 myid, string result) public {
         result; //silence compiler warning
         // owner will be removed from production build
-        require(msg.sender == oraclize_cbAddress() || ms.isOwner(msg.sender) == true); 
         p2.delegateCallBack(myid);
     }
 
@@ -347,13 +335,13 @@ contract Pool1 is usingOraclize, Iupgradable {
             mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
             tokenPrice = m1.calculateStepTokenPrice("ETH", mcrtp);
             tokenPrice = (tokenPrice.mul(975)).div(1000); //97.5%
-            if (_amount <= PRICE_STEP) {
+            if (_amount <= td.priceStep().mul(DECIMAL1E18)) {
                 weiToPay = weiToPay.add((tokenPrice.mul(_amount)).div(DECIMAL1E18));
                 break;
             } else {
-                _amount = _amount.sub(PRICE_STEP);
-                tokenSupply = tokenSupply.sub(PRICE_STEP);
-                weiPaid = (tokenPrice.mul(PRICE_STEP)).div(DECIMAL1E18);
+                _amount = _amount.sub(td.priceStep().mul(DECIMAL1E18));
+                tokenSupply = tokenSupply.sub(td.priceStep().mul(DECIMAL1E18));
+                weiPaid = (tokenPrice.mul(td.priceStep().mul(DECIMAL1E18))).div(DECIMAL1E18);
                 vtp = vtp.sub(weiPaid);
                 weiToPay = weiToPay.add(weiPaid);
             }
@@ -378,15 +366,15 @@ contract Pool1 is usingOraclize, Iupgradable {
             mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
             tokenPrice = m1.calculateStepTokenPrice("ETH", mcrtp);            
             tempTokens = superWeiLeft.div(tokenPrice);
-            if (tempTokens <= PRICE_STEP) {
+            if (tempTokens <= td.priceStep().mul(DECIMAL1E18)) {
                 tokenToGet = tokenToGet.add(tempTokens);
                 break;
             } else {
-                tokenToGet = tokenToGet.add(PRICE_STEP);
-                tokenSupply = tokenSupply.add(PRICE_STEP);
-                superWeiSpent = PRICE_STEP.mul(tokenPrice);
+                tokenToGet = tokenToGet.add(td.priceStep().mul(DECIMAL1E18));
+                tokenSupply = tokenSupply.add(td.priceStep().mul(DECIMAL1E18));
+                superWeiSpent = td.priceStep().mul(DECIMAL1E18).mul(tokenPrice);
                 superWeiLeft = superWeiLeft.sub(superWeiSpent);
-                vtp = vtp.add((PRICE_STEP.mul(tokenPrice)).div(DECIMAL1E18));
+                vtp = vtp.add((td.priceStep().mul(DECIMAL1E18).mul(tokenPrice)).div(DECIMAL1E18));
             }
         }
     }
@@ -397,7 +385,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @param _typeof type of the query for which oraclize call is made.
      * @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
      */ 
-    function saveApiDetails(bytes32 myid, bytes4 _typeof, uint id) internal {
+    function _saveApiDetails(bytes32 myid, bytes4 _typeof, uint id) internal {
         pd.saveApiDetails(myid, _typeof, id);
         pd.addInAllApiCall(myid);
     }
@@ -432,7 +420,7 @@ contract Pool1 is usingOraclize, Iupgradable {
             erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }
 
-    function oraclizeQuery(
+    function _oraclizeQuery(
         uint paramCount,
         uint timestamp,
         string datasource,

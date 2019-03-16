@@ -59,10 +59,12 @@ contract QuotationData is Iupgradable {
     Cover[] internal allCovers;
     HoldCover[] internal allCoverHolded;
 
-    uint16 public stlp;
-    uint16 public stl;
-    uint16 public pm;
-    uint16 public minDays;
+    uint public stlp;
+    uint public stl;
+    uint public pm;
+    uint public minDays;
+    uint public tokensRetained;
+    address public kycAuthAddress;
 
     event CoverDetailsEvent(
         uint indexed cid,
@@ -81,40 +83,17 @@ contract QuotationData is Iupgradable {
         stl = 1000;
         pm = 13;
         minDays = 30;
+        tokensRetained = 10;
         allCovers.push(Cover(address(0), "0x00", 0, 0, 0, address(0), 0));
         uint[] memory arr = new uint[](1);
         allCoverHolded.push(HoldCover(0, address(0), address(0), 0x00, arr, 0));
 
     }
 
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender) == true);
-        _;
-    }
-
     /// @dev Changes authorised address for generating quote off chain.
-    function changeAuthQuoteEngine(address _add) external onlyOwner {
+    function changeAuthQuoteEngine(address _add) external {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         authQuoteEngine = _add;
-    }
-
-    /// @dev Changes the existing Profit Margin value
-    function changePM(uint16 _pm) external onlyOwner {
-        pm = _pm;
-    }
-
-    /// @dev Changes the existing Short Term Load Period (STLP) value.
-    function changeSTLP(uint16 _stlp) external onlyOwner {
-        stlp = _stlp;
-    }
-
-    /// @dev Changes the existing Short Term Load (STL) value.
-    function changeSTL(uint16 _stl) external onlyOwner {
-        stl = _stl;
-    }
-
-    /// @dev Changes the existing Minimum cover period (in days)
-    function changeMinDays(uint16 _days) external onlyOwner {
-        minDays = _days;
     }
     
     /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.
@@ -192,11 +171,43 @@ contract QuotationData is Iupgradable {
         refundEligible[_add] = status;
     }
 
+    function setKycAuthAddress(address _add) external {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        kycAuthAddress = _add;
+    }
+
     /// @dev to set current status of particular holded coverID (1 for not completed KYC,
     /// 2 for KYC passed, 3 for failed KYC or full refunded,
     /// 4 for KYC completed but cover not processed)
     function setHoldedCoverIDStatus(uint holdedCoverID, uint status) external onlyInternal {
         holdedCoverIDStatus[holdedCoverID] = status;
+    }
+
+    function updateUintParameters(bytes8 code, uint val) public {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if(code == "STLP")
+        {
+            _changeSTLP(val);
+
+        } else if(code == "STL"){
+            
+            _changeSTL(val);
+
+        } else if(code == "PM"){
+
+            _changePM(val);
+
+        } else if(code == "QUOMIND"){
+
+            _changeMinDays(val);
+
+        } else if(code == "QUOTOK"){
+
+           _setTokensRetained(val);
+
+        }
+        
     }
 
     /// @dev Gets Product details.
@@ -208,10 +219,10 @@ contract QuotationData is Iupgradable {
         external
         view
         returns (
-            uint64 _minDays,
-            uint16 _pm,
-            uint16 _stl,
-            uint16 _stlp
+            uint _minDays,
+            uint _pm,
+            uint _stl,
+            uint _stlp
         )
     {
 
@@ -419,5 +430,29 @@ contract QuotationData is Iupgradable {
     function changeCoverStatusNo(uint _cid, uint8 _stat) public onlyInternal {
         coverStatus[_cid] = _stat;
         emit CoverStatusEvent(_cid, _stat);
+    }
+
+    /// @dev Changes the existing Profit Margin value
+    function _changePM(uint _pm) internal {
+        pm = _pm;
+    }
+
+    /// @dev Changes the existing Short Term Load Period (STLP) value.
+    function _changeSTLP(uint _stlp) internal {
+        stlp = _stlp;
+    }
+
+    /// @dev Changes the existing Short Term Load (STL) value.
+    function _changeSTL(uint _stl) internal {
+        stl = _stl;
+    }
+
+    /// @dev Changes the existing Minimum cover period (in days)
+    function _changeMinDays(uint _days) internal {
+        minDays = _days;
+    }
+    
+    function _setTokensRetained(uint val) internal {
+        tokensRetained = val;
     }
 }

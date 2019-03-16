@@ -26,6 +26,7 @@ import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./MemberRoles.sol";
 import "./Iupgradable.sol";
 import "./Governance.sol";
+import "./PoolData.sol";
 
 
 contract TokenFunctions is Iupgradable {
@@ -39,18 +40,9 @@ contract TokenFunctions is Iupgradable {
     QuotationData internal qd;
     ClaimsReward internal cr;
     Governance internal gv;
+    PoolData internal pd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
-
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender) == true);
-        _;
-    }
-    
-    modifier isMemberAndcheckPause {
-        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
-        _;
-    }
 
     event BurnCATokens(uint claimId, address addr, uint amount);
     
@@ -116,7 +108,7 @@ contract TokenFunctions is Iupgradable {
                 uint stakerIndex = td.getStakedContractStakerIndex(
                 scAddress, i);
                 uint v;
-                (v, stakerStakedNXM) = unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
+                (v, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
                 td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, v);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= burnNXMAmount) {
@@ -159,7 +151,7 @@ contract TokenFunctions is Iupgradable {
             uint stakerIndex = td.getStakedContractStakerIndex(
             _stakedContractAddress, i);
             uint currentlyStaked;
-            (, currentlyStaked) = unlockableBeforeBurningAndCanBurn(stakerAddress, 
+            (, currentlyStaked) = _unlockableBeforeBurningAndCanBurn(stakerAddress, 
             _stakedContractAddress, stakerIndex);
             stakedAmount = stakedAmount.add(currentlyStaked);
         } 
@@ -201,7 +193,7 @@ contract TokenFunctions is Iupgradable {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
             uint currentlyStaked;
-            (, currentlyStaked) = unlockableBeforeBurningAndCanBurn(_stakerAddress, scAddress, i);
+            (, currentlyStaked) = _unlockableBeforeBurningAndCanBurn(_stakerAddress, scAddress, i);
             stakedAmount = stakedAmount.add(currentlyStaked);
         }
         amount = stakedAmount;
@@ -243,6 +235,7 @@ contract TokenFunctions is Iupgradable {
         m1 = MCR(ms.getLatestAddress("MC"));
         gv = Governance(ms.getLatestAddress("GV"));
         mr = MemberRoles(ms.getLatestAddress("MR"));
+        pd = PoolData(ms.getLatestAddress("PD"));
     }
 
     /**
@@ -428,7 +421,7 @@ contract TokenFunctions is Iupgradable {
         }
     }
 
-    function unlockableBeforeBurningAndCanBurn(
+    function _unlockableBeforeBurningAndCanBurn(
         address stakerAdd, 
         address stakedAdd, 
         uint stakerIndex
@@ -473,7 +466,7 @@ contract TokenFunctions is Iupgradable {
         (, , , initialStake, , burnt,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
         uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex);
         uint currentStakedTokens;
-        (, currentStakedTokens) = unlockableBeforeBurningAndCanBurn(_stakerAddress, 
+        (, currentStakedTokens) = _unlockableBeforeBurningAndCanBurn(_stakerAddress, 
             _stakedContractAddress, stakerIndex);
         amount = initialStake.sub(currentStakedTokens).sub(alreadyUnlocked).sub(burnt);
     }

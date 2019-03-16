@@ -21,6 +21,7 @@ import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./Iupgradable.sol";
 import "./MemberRoles.sol";
+import "./TokenData.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
@@ -33,9 +34,9 @@ contract MCR is Iupgradable {
     NXMToken internal tk;
     QuotationData internal qd;
     MemberRoles internal mr;
+    TokenData internal td;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
-    uint private constant DECIMAL1E16 = uint(10) ** 16;
     uint private constant DECIMAL1E05 = uint(10) ** 5;
     uint private constant DECIMAL1E19 = uint(10) ** 19;
 
@@ -48,31 +49,6 @@ contract MCR is Iupgradable {
         uint mcrPercx100,
         uint vFull
     );
-
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender) == true);
-        _;
-    }
-
-    modifier checkPause {
-        require(ms.isPause() == false);
-        _;
-    }
-    
-    /**
-     * @dev Changes time period for obtaining new MCR data from external oracle query.
-     */  
-    function changeMCRTime(uint64 _time) external onlyOwner {
-
-        pd.changeMCRTime(_time);
-    }
-
-    /** 
-     * @dev Changes scaling factor which determines token price.
-     */  
-    function changeA(uint32 val) external onlyOwner {
-        pd.changeA(val);
-    }
 
     /** 
      * @dev Adds new MCR data.
@@ -108,7 +84,7 @@ contract MCR is Iupgradable {
     /**
      * @dev Adds MCR Data for last failed attempt.
      */  
-    function addLastMCRData(uint64 date) external checkPause {
+    function addLastMCRData(uint64 date) external checkPause  onlyInternal {
         uint64 lastdate = uint64(pd.getLastMCRDate());
         uint64 failedDate = uint64(date);
         if (failedDate >= lastdate) {
@@ -125,7 +101,7 @@ contract MCR is Iupgradable {
 
             emit MCREvent(date, block.number, new bytes4[](0), new uint[](0), mcrE, mcrP, vF);
             // Oraclize call for next MCR calculation
-            callOracliseForMCR();
+           _callOracliseForMCR();
         }
     }
 
@@ -135,6 +111,7 @@ contract MCR is Iupgradable {
         pd = PoolData(ms.getLatestAddress("PD"));
         tk = NXMToken(ms.tokenAddress());
         mr = MemberRoles(ms.getLatestAddress("MR"));
+        td = TokenData(ms.getLatestAddress("TD"));
     }
 
     /** 
@@ -238,7 +215,7 @@ contract MCR is Iupgradable {
     /** 
      * @dev Calls oraclize query to calculate MCR details after 24 hours.
      */ 
-    function callOracliseForMCR() internal {
+    function _callOracliseForMCR() internal {
         p1.mcrOraclise(pd.mcrTime());
     }
 
@@ -259,11 +236,14 @@ contract MCR is Iupgradable {
         uint getA;
         uint getC;
         uint getCAAvgRate;
-        uint max = (mcrtp.mul(mcrtp).mul(mcrtp).mul(mcrtp)); 
+        uint tokenExponentValue = td.tokenExponent();
+        // uint max = (mcrtp.mul(mcrtp).mul(mcrtp).mul(mcrtp));
+        uint max = mcrtp ** tokenExponentValue;
+        uint dividingFactor = tokenExponentValue.mul(4); 
         (getA, getC, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
         uint mcrEth = pd.getLastMCREther();
         getC = getC.mul(DECIMAL1E18);
-        tokenPrice = (mcrEth.mul(DECIMAL1E18).div(getC).mul(max)).div(DECIMAL1E16);
+        tokenPrice = (mcrEth.mul(DECIMAL1E18).div(getC).mul(max)).div(10 ** dividingFactor);
         tokenPrice = tokenPrice.add(getA.mul(DECIMAL1E18).div(DECIMAL1E05));
         tokenPrice = tokenPrice.mul(getCAAvgRate * 10); 
         tokenPrice = (tokenPrice).div(10**3);
@@ -312,7 +292,7 @@ contract MCR is Iupgradable {
             emit MCREvent(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
             // Oraclize call for next MCR calculation
             if (vtp < newMCRDate) {
-                callOracliseForMCR();
+                _callOracliseForMCR();
             }
         } else {
             p1.mcrOracliseFail(newMCRDate, pd.mcrFailTime());

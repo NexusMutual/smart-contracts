@@ -66,13 +66,14 @@ contract NXMaster is Governed {
         pauseTime = 28 days; //4 weeks
         contractsActive[address(this)] = true;
         versionDates.push(now); //solhint-disable-line
-        addContractNames();
+        _addContractNames();
     }
 
     /// @dev upgrades a single contract
     function upgradeContractImplementation(bytes2 _contractsName, address _contractsAddress) 
-        external onlyOwner 
+        external  
     {
+        require(checkIsAuthToGoverned(msg.sender));
         require(_contractsName == "GV" || _contractsName == "MR" || _contractsName == "PC");
         _replaceImplementation(_contractsName, _contractsAddress);
     }
@@ -91,7 +92,9 @@ contract NXMaster is Governed {
     }
 
     ///@dev update time in seconds for which emergency pause is applied.
-    function updatePauseTime(uint _time) public onlyOwner {
+    function updatePauseTime(uint _time) public {
+
+        require(isInternal(msg.sender));
         pauseTime = _time;
     }
 
@@ -108,16 +111,18 @@ contract NXMaster is Governed {
     }
 
     /// @dev upgrades a single contract
-    function upgradeContract(bytes2 _contractsName, address _contractsAddress) public onlyOwner {
+    function upgradeContract(bytes2 _contractsName, address _contractsAddress) public {
+        require(checkIsAuthToGoverned(msg.sender));
+        // require(_contractsName == "");
         allContractVersions[versionDates.length - 1][_contractsName] = _contractsAddress;
         changeMasterAddress(address(this));
-        changeAllAddress();
+        _changeAllAddress();
     }
 
     /// @dev checks whether the address is a latest contract address.
     function isInternal(address _add) public view returns(bool check) {
         check = false; // should be 0
-        if ((contractsActive[_add] == true || owner == _add)) //remove owner for production release
+        if (contractsActive[_add] == true) //remove owner for production release
             check = true;
     }
 
@@ -143,7 +148,7 @@ contract NXMaster is Governed {
 
     ///@dev Changes owner of the contract.
     ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
-    function changeOwner(address to) public onlyOwner {
+    function changeOwner(address to) public onlyAuthorizedToGovern {
         owner = to;
     }
 
@@ -191,9 +196,9 @@ contract NXMaster is Governed {
 
     /// @dev Changes Master contract address
     function changeMasterAddress(address _masterAddress) public {
-        if (_masterAddress != address(this)) {
-            require(msg.sender == owner, "Neither master nor owner");
-        }
+        // if (_masterAddress != address(this)) {
+        //     require(msg.sender == owner, "Neither master nor owner");
+        // }
         
         for (uint i = 0; i < allContractNames.length; i++) {
             if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
@@ -203,17 +208,13 @@ contract NXMaster is Governed {
             }
             if(allContractNames[i] == "MR" || 
                     allContractNames[i] == "GV" || allContractNames[i] == "PC")
-                changeProxyOwnership(_masterAddress, allContractVersions[versionDates.length - 1][allContractNames[i]]);
+                _changeProxyOwnership(_masterAddress, allContractVersions[versionDates.length - 1][allContractNames[i]]);
             
         }
         
         contractsActive[address(this)] = false;
         contractsActive[_masterAddress] = true;
        
-    }
-
-    function setEventCallerAddress(address _add) public onlyOwner {
-        eventCallerAdd = _add;
     }
 
     /// @dev Gets current version amd its master address
@@ -293,21 +294,8 @@ contract NXMaster is Governed {
         
             
         changeMasterAddress(address(this));
-        changeAllAddress();
+        _changeAllAddress();
 
-        
-    }
-
-    /// @dev transfers proxy ownership to new master.
-    /// @param _contractAddress contract address of new master.
-    /// @param _proxyContracts array of addresses of proxyContracts
-    function changeProxyOwnership(address _contractAddress, address _proxyContracts) internal {
-        // for (uint i = 0; i < _proxyContracts.length; i++) {
-            OwnedUpgradeabilityProxy tempInstance 
-            = OwnedUpgradeabilityProxy(_proxyContracts);
-            tempInstance.transferProxyOwnership(_contractAddress); 
-        // }
-        
         
     }
 
@@ -322,6 +310,33 @@ contract NXMaster is Governed {
         p1.closeEmergencyPause(getPauseTime()); //oraclize callback of 4 weeks
         c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
+    }
+
+    function updateAddressParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
+        
+        if(code == "EVCALL"){
+
+            _setEventCallerAddress(val);
+
+        } else if(code == "MASTADD"){
+
+            changeMasterAddress(val);
+
+        }
+        
+    }
+
+    /// @dev transfers proxy ownership to new master.
+    /// @param _contractAddress contract address of new master.
+    /// @param _proxyContracts array of addresses of proxyContracts
+    function _changeProxyOwnership(address _contractAddress, address _proxyContracts) internal {
+        // for (uint i = 0; i < _proxyContracts.length; i++) {
+            OwnedUpgradeabilityProxy tempInstance 
+            = OwnedUpgradeabilityProxy(_proxyContracts);
+            tempInstance.transferProxyOwnership(_contractAddress); 
+        // }
+        
+        
     }
 
     function _replaceImplementation(bytes2 _contractsName, address _contractsAddress) internal {
@@ -344,7 +359,7 @@ contract NXMaster is Governed {
     }
 
     /// @dev Save the initials of all the contracts
-    function addContractNames() internal {
+    function _addContractNames() internal {
         allContractNames.push("QD");
         allContractNames.push("TD");
         allContractNames.push("CD");
@@ -363,7 +378,7 @@ contract NXMaster is Governed {
     }
 
     /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.
-    function changeAllAddress() internal {
+    function _changeAllAddress() internal {
         uint i;
         uint currentVersion = versionDates.length - 1;
         Pool1 p1;
@@ -408,5 +423,9 @@ contract NXMaster is Governed {
             p1 = Pool1(allContractVersions[currentVersion]["P1"]);
             p1.versionOraclise(currentVersion);
         }
+    }
+
+    function _setEventCallerAddress(address _add) internal {
+        eventCallerAdd = _add;
     }
 }

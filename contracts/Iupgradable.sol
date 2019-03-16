@@ -13,6 +13,26 @@ contract Iupgradable {
         _;
     }
 
+    modifier isMemberAndcheckPause {
+        require(ms.isPause() == false && ms.isMember(msg.sender) == true);
+        _;
+    }
+
+    modifier onlyOwner {
+        require(ms.isOwner(msg.sender));
+        _;
+    }
+
+    modifier checkPause {
+        require(ms.isPause() == false);
+        _;
+    }
+
+    modifier isMember {
+        require(ms.isMember(msg.sender), "Not member");
+        _;
+    }
+
     function  changeDependentContractAddress() public;
 
     function changeMasterAddress(address _masterAddress) public {

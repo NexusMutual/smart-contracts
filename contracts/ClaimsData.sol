@@ -97,10 +97,13 @@ contract ClaimsData is Iupgradable {
     uint internal claimStartVotingFirstIndex;
     uint public pendingClaimStart;
     uint public claimDepositTime;
-    uint32 public maxVotingTime;
-    uint32 public minVotingTime;
-    uint32 public payoutRetryTime;
+    uint public maxVotingTime;
+    uint public minVotingTime;
+    uint public payoutRetryTime;
     uint public claimRewardPerc;
+    uint public minVoteThreshold;
+    uint public maxVoteThreshold;
+    uint public majorityConsensus;
    
     event ClaimRaise(
         uint indexed coverId,
@@ -118,11 +121,6 @@ contract ClaimsData is Iupgradable {
         int8 verdict
     );
 
-    modifier onlyOwner {
-        require(ms.isOwner(msg.sender));
-        _;
-    }
-
     constructor() public {
         pendingClaimStart = 0;
         maxVotingTime = 1800;
@@ -132,28 +130,10 @@ contract ClaimsData is Iupgradable {
         allClaims.push(Claim(0, 0));
         claimDepositTime = 7 days;
         claimRewardPerc = 20;
+        minVoteThreshold = 5;
+        maxVoteThreshold = 10;
+        majorityConsensus = 70;
         addRewardIncentive();
-    }
-
-    /**
-     * @dev Sets Maximum time(in seconds) for which claim assessment voting is open
-     */ 
-    function setMaxVotingTime(uint32 _time) external onlyOwner {
-        maxVotingTime = _time;
-    }
-
-    /**
-     *  @dev Sets Minimum time(in seconds) for which claim assessment voting is open
-     */ 
-    function setMinVotingTime(uint32 _time) external onlyOwner {
-        minVotingTime = _time;
-    }
-
-    /**
-     * @dev Sets the payout retry time
-     */ 
-    function setPayoutRetryTime(uint32 _time) external onlyOwner {
-        payoutRetryTime = _time;
     }
 
     /**
@@ -181,11 +161,6 @@ contract ClaimsData is Iupgradable {
     function setRewardDistributedIndexMV(address _voter, uint mvIndex) external onlyInternal {
 
         voterVoteRewardReceived[_voter].lastMVvoteIndex = mvIndex;
-    }
-
-    function setClaimRewardPerc(uint _val) external onlyOwner {
-
-        claimRewardPerc = _val;
     }
 
     /**
@@ -442,14 +417,6 @@ contract ClaimsData is Iupgradable {
     {
         claimStartVotingFirstIndex = _claimStartVotingFirstIndex;
     }
-  
-    /** 
-     * @dev Sets the time for which claim is deposited.
-     */ 
-    function setClaimDepositTime(uint _time) external onlyOwner {
-
-        claimDepositTime = _time;
-    }
 
     /** 
      * @dev Calls Vote Event.
@@ -488,6 +455,44 @@ contract ClaimsData is Iupgradable {
         onlyInternal
     {
         emit ClaimRaise(_coverId, _userAddress, _claimId, _datesubmit);
+    }
+
+    function updateUintParameters(bytes8 code, uint val) public {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if(code == "CAMAXVT")
+        {
+            _setMaxVotingTime(val);
+
+        } else if(code == "CAMINVT"){
+
+            _setMinVotingTime(val);
+
+        } else if(code == "CAPRETRY"){
+
+            _setPayoutRetryTime(val);
+
+        } else if(code == "CADEPT"){
+
+            _setClaimDepositTime(val);
+
+        } else if(code == "CAREWPER"){
+
+            _setClaimRewardPerc(val);
+
+        } else if(code == "CAMINTH"){
+
+            _setMinVoteThreshold(val);
+
+        } else if(code == "CAMAXTH"){
+
+            _setMaxVoteThreshold(val);
+
+        } else if(code == "CACONPER"){
+
+            _setMajorityConsensus(val);
+
+        }
+    
     }
 
     /**
@@ -1126,25 +1131,71 @@ contract ClaimsData is Iupgradable {
      * @param percCA reward percentage for claim assessor
      * @param percMV reward percentage for members
      */
-    function pushStatus(uint percCA, uint percMV) internal {
+    function _pushStatus(uint percCA, uint percMV) internal {
         rewardStatus.push(ClaimRewardStatus(percCA, percMV));
     }
 
     function addRewardIncentive() internal {
-        pushStatus(0, 0); //0  Pending-Claim Assessor Vote
-        pushStatus(0, 0); //1 Pending-Claim Assessor Vote Denied, Pending Member Vote
-        pushStatus(0, 0); //2 Pending-CA Vote Threshold not Reached Accept, Pending Member Vote
-        pushStatus(0, 0); //3 Pending-CA Vote Threshold not Reached Deny, Pending Member Vote
-        pushStatus(0, 0); //4 Pending-CA Consensus not reached Accept, Pending Member Vote
-        pushStatus(0, 0); //5 Pending-CA Consensus not reached Deny, Pending Member Vote
-        pushStatus(100, 0); //6 Final-Claim Assessor Vote Denied
-        pushStatus(100, 0); //7 Final-Claim Assessor Vote Accepted
-        pushStatus(0, 100); //8 Final-Claim Assessor Vote Denied, MV Accepted
-        pushStatus(0, 100); //9 Final-Claim Assessor Vote Denied, MV Denied
-        pushStatus(0, 0); //10 Final-Claim Assessor Vote Accept, MV Nodecision
-        pushStatus(0, 0); //11 Final-Claim Assessor Vote Denied, MV Nodecision
-        pushStatus(0, 0); //12 Claim Accepted Payout Pending
-        pushStatus(0, 0); //13 Claim Accepted No Payout 
-        pushStatus(0, 0); //14 Claim Accepted Payout Done
+        _pushStatus(0, 0); //0  Pending-Claim Assessor Vote
+        _pushStatus(0, 0); //1 Pending-Claim Assessor Vote Denied, Pending Member Vote
+        _pushStatus(0, 0); //2 Pending-CA Vote Threshold not Reached Accept, Pending Member Vote
+        _pushStatus(0, 0); //3 Pending-CA Vote Threshold not Reached Deny, Pending Member Vote
+        _pushStatus(0, 0); //4 Pending-CA Consensus not reached Accept, Pending Member Vote
+        _pushStatus(0, 0); //5 Pending-CA Consensus not reached Deny, Pending Member Vote
+        _pushStatus(100, 0); //6 Final-Claim Assessor Vote Denied
+        _pushStatus(100, 0); //7 Final-Claim Assessor Vote Accepted
+        _pushStatus(0, 100); //8 Final-Claim Assessor Vote Denied, MV Accepted
+        _pushStatus(0, 100); //9 Final-Claim Assessor Vote Denied, MV Denied
+        _pushStatus(0, 0); //10 Final-Claim Assessor Vote Accept, MV Nodecision
+        _pushStatus(0, 0); //11 Final-Claim Assessor Vote Denied, MV Nodecision
+        _pushStatus(0, 0); //12 Claim Accepted Payout Pending
+        _pushStatus(0, 0); //13 Claim Accepted No Payout 
+        _pushStatus(0, 0); //14 Claim Accepted Payout Done
+    }
+
+    /**
+     * @dev Sets Maximum time(in seconds) for which claim assessment voting is open
+     */ 
+    function _setMaxVotingTime(uint _time) internal {
+        maxVotingTime = _time;
+    }
+
+    /**
+     *  @dev Sets Minimum time(in seconds) for which claim assessment voting is open
+     */ 
+    function _setMinVotingTime(uint _time) internal {
+        minVotingTime = _time;
+    }
+
+    function _setMinVoteThreshold(uint val) internal {
+        minVoteThreshold = val;
+    }
+
+    function _setMaxVoteThreshold(uint val) internal {
+        maxVoteThreshold = val;
+    }
+    
+    function _setMajorityConsensus(uint val) internal {
+        majorityConsensus = val;
+    }
+
+    /**
+     * @dev Sets the payout retry time
+     */ 
+    function _setPayoutRetryTime(uint _time) internal {
+        payoutRetryTime = _time;
+    }
+
+    function _setClaimRewardPerc(uint _val) internal {
+
+        claimRewardPerc = _val;
+    }
+  
+    /** 
+     * @dev Sets the time for which claim is deposited.
+     */ 
+    function _setClaimDepositTime(uint _time) internal {
+
+        claimDepositTime = _time;
     }
 }

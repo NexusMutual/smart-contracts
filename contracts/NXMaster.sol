@@ -148,7 +148,7 @@ contract NXMaster is Governed {
 
     ///@dev Changes owner of the contract.
     ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
-    function changeOwner(address to) public onlyAuthorizedToGovern {
+    function _changeOwner(address to) internal {
         owner = to;
     }
 
@@ -321,6 +321,15 @@ contract NXMaster is Governed {
         } else if(code == "MASTADD"){
 
             changeMasterAddress(val);
+
+        } else if(code == "OWNER"){
+
+            _changeOwner(val);
+
+        } else if(code == "UNISWADD"){
+            Pool2 p2;
+            p2 = Pool2(getLatestAddress("P2"));
+            p2.changeUniswapFactoryAddress(val);
 
         }
         

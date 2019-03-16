@@ -549,13 +549,6 @@ contract TokenData is Iupgradable {
         stakedContractCurrentBurnIndex[_stakedContractAddress] = _index;
     }
 
-    /**
-     * @dev Change the wallet address which receive Joining Fee
-     */
-    function changeWalletAddress(address _address) public onlyOwner {
-        walletAddress = _address;
-    }
-
     function updateUintParameters(bytes8 code, uint val) public {
       require(ms.checkIsAuthToGoverned(msg.sender));
       if(code == "TOKEXP"){
@@ -599,7 +592,18 @@ contract TokenData is Iupgradable {
             _setJoiningFee(val);
 
         } 
-  }
+    }
+
+    function updateOwnerParameters(bytes8 code, address val) public {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if(code == "MSWALLET"){
+
+            _changeWalletAddress(val);
+
+        }
+        
+    }
 
     /**
      * @dev Internal function to get stake commission given to an 
@@ -709,5 +713,12 @@ contract TokenData is Iupgradable {
      */
     function _setJoiningFee(uint _amount) internal {
         joiningFee = _amount;
+    }
+
+    /**
+     * @dev Change the wallet address which receive Joining Fee
+     */
+    function _changeWalletAddress(address _address) internal {
+        walletAddress = _address;
     }
 }

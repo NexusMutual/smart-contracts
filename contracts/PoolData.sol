@@ -123,12 +123,6 @@ contract PoolData is Iupgradable {
 
     function setCapReached(uint val) external onlyInternal {
         capReached = val;
-    }    
-
-    /// @dev Changes address allowed to post MCR.
-    function changeNotariseAddress(address _add) external {
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        notariseMCR = _add;
     }
     
     /// @dev Updates the 3 day average rate of a IA currency.
@@ -152,13 +146,6 @@ contract PoolData is Iupgradable {
     /// @param vf Pool fund value in Ether used in the last full daily calculation from the Capital model.
     function pushMCRData(uint mcrp, uint mcre, uint vf, uint64 time) external onlyInternal {
         allMCRData.push(McrData(mcrp, mcre, vf, time));
-    }
-
-    /// @dev updates daiFeedAddress address.
-    /// @param _add address of DAI feed.
-    function changeDAIfeedAddress(address _add) external {
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        daiFeedAddress = _add;
     }
 
     /** 
@@ -271,6 +258,21 @@ contract PoolData is Iupgradable {
 
           }
             
+    }
+
+    function updateOwnerParameters(bytes8 code, address val) public {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if(code == "MCRNOTA"){
+
+            _changeNotariseAddress(val);
+
+        } else if(code == "DAIFEED"){
+
+            _changeDAIfeedAddress(val);
+
+        }
+        
     }
  
     /**
@@ -792,5 +794,16 @@ contract PoolData is Iupgradable {
     
     function _changeCapacityLimit(uint val) internal {
         capacityLimit = val;
+    }    
+
+    /// @dev Changes address allowed to post MCR.
+    function _changeNotariseAddress(address _add) internal {
+        notariseMCR = _add;
+    }
+
+    /// @dev updates daiFeedAddress address.
+    /// @param _add address of DAI feed.
+    function _changeDAIfeedAddress(address _add) internal {
+        daiFeedAddress = _add;
     }
 }

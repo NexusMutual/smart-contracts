@@ -43,8 +43,8 @@ contract Pool2 is Iupgradable {
 
     function () public payable {} 
 
-    function changeUniswapFactoryAddress(address newFactoryAddress) external {
-        require(ms.isOwner(msg.sender) || ms.checkIsAuthToGoverned(msg.sender));
+    function changeUniswapFactoryAddress(address newFactoryAddress) external onlyInternal {
+        // require(ms.isOwner(msg.sender) || ms.checkIsAuthToGoverned(msg.sender));
         uniswapFactoryAddress = newFactoryAddress;
         factory = Factory(uniswapFactoryAddress);
     }

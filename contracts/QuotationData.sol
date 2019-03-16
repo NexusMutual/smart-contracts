@@ -89,12 +89,6 @@ contract QuotationData is Iupgradable {
         allCoverHolded.push(HoldCover(0, address(0), address(0), 0x00, arr, 0));
 
     }
-
-    /// @dev Changes authorised address for generating quote off chain.
-    function changeAuthQuoteEngine(address _add) external {
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        authQuoteEngine = _add;
-    }
     
     /// @dev Adds the amount in Total Sum Assured of a given currency of a given smart contract address.
     /// @param _add Smart Contract Address.
@@ -171,11 +165,6 @@ contract QuotationData is Iupgradable {
         refundEligible[_add] = status;
     }
 
-    function setKycAuthAddress(address _add) external {
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        kycAuthAddress = _add;
-    }
-
     /// @dev to set current status of particular holded coverID (1 for not completed KYC,
     /// 2 for KYC passed, 3 for failed KYC or full refunded,
     /// 4 for KYC completed but cover not processed)
@@ -205,6 +194,21 @@ contract QuotationData is Iupgradable {
         } else if(code == "QUOTOK"){
 
            _setTokensRetained(val);
+
+        }
+        
+    }
+
+    function updateOwnerParameters(bytes8 code, address val) public {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if(code == "QUOAUTH"){
+
+            _changeAuthQuoteEngine(val);
+
+        } else if(code == "KYCAUTH"){
+
+            _setKycAuthAddress(val);
 
         }
         
@@ -454,5 +458,14 @@ contract QuotationData is Iupgradable {
     
     function _setTokensRetained(uint val) internal {
         tokensRetained = val;
+    }
+
+    function _setKycAuthAddress(address _add) internal {
+        kycAuthAddress = _add;
+    }
+
+    /// @dev Changes authorised address for generating quote off chain.
+    function _changeAuthQuoteEngine(address _add) internal {
+        authQuoteEngine = _add;
     }
 }

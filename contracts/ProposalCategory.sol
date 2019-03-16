@@ -157,6 +157,24 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         // "PD", 50, 15, 2, 60);
         _addInitialCategories("Any other Item", "", "EX", 50, 15, 2, 80);
         _addInitialCategories("Special Resolution", "", "EX", 75, 0, 2, 0);
+        _addInitialCategories("Update Token Parameters", "QmbfJTXyLTDsq41U4dukHbagcXef8bRfyMdMqcqLd9aKNM", 
+            "TD", 50, 15, 2, 60);
+        _addInitialCategories("Update Risk Assessment Parameters", "QmUHvBShLpDwPWAsWcZvbUJfVGyXYscybi5ASmF6ectxSo", 
+            "TD", 50, 15, 2, 60);
+        _addInitialCategories("Update Governance Parameters", "QmdFDVEaZnJxXncFczTW6EvrcgR3jBfuPWftR7PfkPfqqT", 
+            "GV", 50, 15, 2, 60);
+        _addInitialCategories("Update Quotation Parameters", "QmTtSbBp2Cxaz8HzB4TingUozr9AW91siCfMjjyzf8qqAb", 
+            "QD", 50, 15, 2, 60);
+        _addInitialCategories("Update Claims Assessment Parameters", "QmPo6HPydwXEeoVdwBpwGeZasFnmFwZoTsQ93Bg5pFtQg6", 
+            "CD", 50, 15, 2, 60);
+        _addInitialCategories("Update Investment Module Parameters", "QmYSUJBJD9hUevydfdF34rGFG7bBQhMrxh2ga9XfeAkdEM", 
+            "PD", 50, 15, 2, 60);
+        _addInitialCategories("Update Capital Model Parameters", "QmaQH6AdvBdgrW4xdzcMHa7gNyYSGa2fz7gBuuic2hLkZQ", 
+            "PD", 50, 15, 2, 60);
+        _addInitialCategories("Update Address Parameters", "QmPfXySkeDFbdMvZyD35y1hiB4g6ZXLSEHfS7JjS6e1VKL", 
+            "MS", 50, 15, 2, 60);
+        _addInitialCategories("Update Owner Parameters", "QmPfXySkeDFbdMvZyD35y1hiB4g6ZXLSEHfS7JjS6e1VKL", 
+            "MS", 50, 15, 3, 60);
         constructorCheck = true;
     }
 
@@ -267,7 +285,12 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     {
         uint[] memory allowedToCreateProposal = new uint[](1);
         uint[] memory stakeIncentive = new uint[](4);
-        allowedToCreateProposal[0] = 2;
+        if(_memberRoleToVote == 3) {
+            allowedToCreateProposal[0] = 3;
+        }
+        else {
+            allowedToCreateProposal[0] = 2;
+        }
         stakeIncentive[0] = 0;
         stakeIncentive[1] = 0;
         stakeIncentive[2] = _categoryABReq;

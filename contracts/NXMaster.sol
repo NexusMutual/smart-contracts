@@ -353,8 +353,7 @@ contract NXMaster is Governed {
         contractsActive[address(tempInstance)] = true;
         if (_contractName == "MR") {
             MemberRoles mr = MemberRoles(address(tempInstance));
-            mr.memberRolesInitiate(allContractVersions[currentVersion]["TC"], 
-                owner, allContractVersions[currentVersion]["TF"]);
+            mr.memberRolesInitiate(owner, allContractVersions[currentVersion]["TF"]);
         }
     }
 

@@ -42,7 +42,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         address authorized;
     }
 
-    enum Role {UnAssigned, AdvisoryBoard, Member}
+    enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
     MemberRoleDetails[] internal memberRoleData;
     bool internal constructorCheck;
@@ -64,6 +64,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         gv = Governance(ms.getLatestAddress("GV"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         tk = NXMToken(ms.tokenAddress());
+        dAppToken = TokenController(ms.getLatestAddress("TC"));
     }
 
     function changeMasterAddress(address _masterAddress) public {
@@ -75,15 +76,10 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         
     }
     
-    function memberRolesInitiate (address _dAppToken, address _firstAB, address memberAuthority) public {
+    function memberRolesInitiate (address _firstAB, address memberAuthority) public {
         require(!constructorCheck);
-        dAppToken = TokenController(_dAppToken);
         _addInitialMemberRoles(_firstAB, memberAuthority);
         constructorCheck = true;
-    }
-
-    function setDApp(address _dAppToken) public onlyOwner {
-        dAppToken = TokenController(_dAppToken);
     }
 
     /// @dev Adds new member role
@@ -350,7 +346,13 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             "Represents all users of Mutual.", //solhint-disable-line
             memberAuthority
         );
+        _addRole(
+            "Owner",
+            "Represents Owner of Mutual.", //solhint-disable-line
+            address(0)
+        );
         _updateRole(_firstAB, uint(Role.AdvisoryBoard), true);
+        _updateRole(_firstAB, uint(Role.Owner), true);
         launchedOn = 0;
     }
 

@@ -59,7 +59,8 @@ contract NXMaster is Governed {
         _;
     }
 
-    constructor() public {
+    constructor(address _eventCallerAdd) public {
+        eventCallerAdd = _eventCallerAdd;
         owner = msg.sender;
         masterAddress = address(this);
         contractsActive[address(this)] = true; //1
@@ -101,13 +102,6 @@ contract NXMaster is Governed {
     ///@dev get time in seconds for which emergency pause is applied.
     function getPauseTime() public view returns(uint _time) {
         return pauseTime;
-    }
-
-    /// @dev Changes the NXMToken address.
-    /// and can be found in the imports folder
-    /// The access modifier needs to be changed in onlyAuthorizedToGovern in future
-    function changeTokenAddress(address _newTokenAddress) public onlyOwner {
-        tokenAddress = _newTokenAddress;
     }
 
     /// @dev upgrades a single contract

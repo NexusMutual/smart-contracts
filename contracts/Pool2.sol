@@ -37,6 +37,11 @@ contract Pool2 is Iupgradable {
     address public uniswapFactoryAddress;
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
 
+    constructor(address _uniswapFactoryAdd) public {
+       
+        uniswapFactoryAddress = _uniswapFactoryAdd;
+    }
+
     event Liquidity(bytes16 typeOf, bytes16 functionName);
 
     event Rebalancing(bytes4 iaCurr, uint tokenAmount);

@@ -107,7 +107,8 @@ contract TokenData is Iupgradable {
         uint commissionAmount
     );
 
-    constructor() public {
+    constructor(address _walletAdd) public {
+        walletAddress = _walletAdd;
         bookTime = 12 hours;
         joiningFee = 2000000000000000; // 0.002 Ether
         lockTokenTimeAfterCoverExp = 35 days;

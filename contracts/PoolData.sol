@@ -97,7 +97,9 @@ contract PoolData is Iupgradable {
     uint public capReached;
     uint public capacityLimit;
     
-    constructor() public {
+    constructor(address _notariseAdd, address _daiFeedAdd) public {
+        notariseMCR = _notariseAdd;
+        daiFeedAddress = _daiFeedAdd;
         C = 5203349;
         A = 1948;
         mcrTime = 24 hours;

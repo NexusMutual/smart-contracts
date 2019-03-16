@@ -78,7 +78,9 @@ contract QuotationData is Iupgradable {
 
     event CoverStatusEvent(uint indexed cid, uint8 statusNum);
 
-    constructor() public {
+    constructor(address _authQuoteAdd, address _kycAuthAdd) public {
+        authQuoteEngine = _authQuoteAdd;
+        kycAuthAddress = _kycAuthAdd;
         stlp = 90;
         stl = 1000;
         pm = 13;

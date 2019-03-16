@@ -78,7 +78,7 @@ contract PoolData is Iupgradable {
     mapping(bytes4 => uint) internal caAvgRate;
     mapping(bytes4 => uint) internal iaAvgRate;
 
-    address internal notariseMCR;
+    address public notariseMCR;
     address public daiFeedAddress;
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint public uniswapDeadline;

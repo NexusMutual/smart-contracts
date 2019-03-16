@@ -84,20 +84,20 @@ module.exports = function(deployer) {
       propCat.address,
       mr.address
     ];
-    await nxms.changeTokenAddress(tk.address);
-    await nxms.setEventCallerAddress(eventCaller.address);
+    // await nxms.changeTokenAddress(tk.address);
+    // await nxms.setEventCallerAddress(eventCaller.address);
     await nxms.addNewVersion(addr);
     await nxms.addNewVersion(addr1);
     const dai = await DAI.deployed();
-    await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-    await pd.changeInvestmentAssetAddress('0x444149', dai.address);
+    await qd.changeCurrencyAssetAddress('0x444149', dai.address);
+    await qd.changeInvestmentAssetAddress('0x444149', dai.address);
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
     await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
-    await td.changeWalletAddress(Owner);
-    await qd.changeAuthQuoteEngine(QE);
-    await pd.changeNotariseAddress(Owner);
+    // await td.changeWalletAddress(Owner);
+    // await qd.changeAuthQuoteEngine(QE);
+    // await pd.changeNotariseAddress(Owner);
     await dai.transfer(pl1.address, POOL_ASSET);
-    await pd.changeDAIfeedAddress(dsv.address);
+    // await pd.changeDAIfeedAddress(dsv.address);
     await mcr.addMCRData(
       18000,
       100 * 1e18,
@@ -113,7 +113,7 @@ module.exports = function(deployer) {
       true
     ); //testing
     await dai.transfer(pl2.address, POOL_ASSET);
-    await pl2.changeUniswapFactoryAddress(factory.address);
+    // await pl2.changeUniswapFactoryAddress(factory.address);
     let pcAddress = await nxms.getLatestAddress('PC');
     pc = await ProposalCategory.at(pcAddress);
     await pc.proposalCategoryInitiate();

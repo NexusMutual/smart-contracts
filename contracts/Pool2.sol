@@ -165,8 +165,7 @@ contract Pool2 is Iupgradable {
         address _transferTo,
         uint _amount
     ) 
-        public
-        onlyInternal
+        internal
     {
         if (_curr == "ETH") {
             if (_amount > address(this).balance)
@@ -201,7 +200,6 @@ contract Pool2 is Iupgradable {
                 10**uint(pd.getInvestmentAssetDecimals(iaCurr)))).div(100); // amount of asset to sell
 
             if (iaCurr != "ETH" && _checkTradeConditions(iaCurr, iaRate, totalRiskBal)) { 
-                  
                 exchange = Exchange(factory.getExchange(pd.getInvestmentAssetAddress(iaCurr)));
                 intermediaryEth = exchange.getTokenToEthInputPrice(amountToSell);
                 if (intermediaryEth > (address(exchange).balance.mul(ethVol)).div(100)) { 
@@ -214,6 +212,7 @@ contract Pool2 is Iupgradable {
                 exchange.tokenToEthSwapInput(amountToSell, (exchange.getTokenToEthInputPrice(
                     amountToSell).mul(995)).div(1000), pd.uniswapDeadline().add(now));
             } else if (iaCurr == "ETH" && _checkTradeConditions(iaCurr, iaRate, totalRiskBal)) {
+
                 transferInvestmentAsset(iaCurr, address(p1), amountToSell);
             }
             emit Rebalancing(iaCurr, amountToSell); 

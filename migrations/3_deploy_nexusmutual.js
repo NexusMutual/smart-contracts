@@ -16,37 +16,38 @@ const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const EventCaller = artifacts.require('EventCaller');
+const FactoryMock = artifacts.require('FactoryMock');
+const DSValue = artifacts.require('DSValueMock');
 const founderAddress = web3.eth.accounts[0];
 const INITIAL_SUPPLY = 1500000 * 1e18;
+const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 
 module.exports = function(deployer) {
   deployer.then(async () => {
-    console.log('1');
+    let factory = await FactoryMock.deployed();
+    let dsv = await DSValue.deployed();
     await deployer.deploy(Claims);
-    console.log('2');
     await deployer.deploy(ClaimsData);
-    console.log('3');
     await deployer.deploy(ClaimsReward);
-    console.log('4');
-    await deployer.deploy(NXMaster);
-    console.log('5');
     await deployer.deploy(Pool1);
-    console.log('6');
-    await deployer.deploy(Pool2);
-    console.log('7');
-    await deployer.deploy(PoolData);
-    console.log('8');
+    await deployer.deploy(Pool2, factory.address);
+    await deployer.deploy(PoolData, founderAddress, dsv.address);
     await deployer.deploy(MCR);
-    console.log('9');
     const tc = await deployer.deploy(TokenController);
-    await deployer.deploy(NXMToken, tc.address, founderAddress, INITIAL_SUPPLY);
-    await deployer.deploy(TokenData);
+    const tk = await deployer.deploy(
+      NXMToken,
+      tc.address,
+      founderAddress,
+      INITIAL_SUPPLY
+    );
+    await deployer.deploy(TokenData, founderAddress);
     await deployer.deploy(TokenFunctions);
     await deployer.deploy(Quotation);
-    await deployer.deploy(QuotationDataMock);
+    await deployer.deploy(QuotationDataMock, QE, founderAddress);
     await deployer.deploy(Governance);
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
-    await deployer.deploy(EventCaller);
+    const ec = await deployer.deploy(EventCaller);
+    await deployer.deploy(NXMaster, ec.address, tk.address);
   });
 };

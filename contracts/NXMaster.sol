@@ -59,7 +59,8 @@ contract NXMaster is Governed {
         _;
     }
 
-    constructor(address _eventCallerAdd) public {
+    constructor(address _eventCallerAdd, address _tokenAdd) public {
+        tokenAddress = _tokenAdd;
         eventCallerAdd = _eventCallerAdd;
         owner = msg.sender;
         masterAddress = address(this);

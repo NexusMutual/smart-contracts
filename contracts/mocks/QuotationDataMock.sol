@@ -1,11 +1,12 @@
 pragma solidity ^0.4.24;
 
 import "../QuotationData.sol";
+import "../PoolData.sol";
 
 contract QuotationDataMock is QuotationData {
-
-	constructor() public QuotationData() {
-		  
+	PoolData pd;
+	constructor(address _authQuoteAdd, address _kycAuthAdd) public QuotationData(_authQuoteAdd, _kycAuthAdd) {
+		
 	}
 	
 	function changeHoldedCoverDetails (uint index, uint[] newcoverDetails) public {
@@ -19,5 +20,15 @@ contract QuotationDataMock is QuotationData {
 
 	function changeHoldedCoverCurrency (uint index, bytes4 newCurr) public {
 		allCoverHolded[index].coverCurr = newCurr;
+	}
+
+	function changeCurrencyAssetAddress(bytes4 curr, address currAdd) public {
+		pd = PoolData(ms.getLatestAddress("PD"));
+		pd.changeCurrencyAssetAddress(curr, currAdd);
+	}
+
+	function changeInvestmentAssetAddress(bytes4 curr, address currAdd) public {
+		pd = PoolData(ms.getLatestAddress("PD"));
+		pd.changeInvestmentAssetAddress(curr, currAdd);
 	}
 }

@@ -17,6 +17,8 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
+const FactoryMock = artifacts.require('FactoryMock');
+const EventCaller = artifacts.require('EventCaller');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -51,6 +53,7 @@ let newMaster;
 let memberRoles;
 let gov;
 let propCat;
+let ec;
 
 contract('NXMaster', function([
   owner,
@@ -66,25 +69,27 @@ contract('NXMaster', function([
   const pauseTime = new BigNumber(2419200);
 
   before(async function() {
+    let dsv = await DSValue.deployed();
+    let factory = await FactoryMock.deployed();
     nxms = await NXMaster.deployed();
-    qd = await QuotationDataMock.new();
-    td = await TokenData.new();
+    qd = await QuotationDataMock.new(QE, owner);
+    td = await TokenData.new(owner);
     tf = await TokenFunctions.new();
     tc = await TokenController.new();
     cd = await ClaimsData.new();
-    pd = await PoolData.new();
+    pd = await PoolData.new(owner, dsv.address);
     qt = await Quotation.new();
     nxmtk = await NXMToken.new(tc.address, founderAddress, INITIAL_SUPPLY);
     cl = await Claims.new();
     cr = await ClaimsReward.new();
     pl1 = await Pool1.new();
-    pl2 = await Pool2.new();
+    pl2 = await Pool2.new(factory.address);
     mcr = await MCR.new();
     dai = await DAI.new();
-    dsv = await DSValue.deployed();
     gov = await Governance.new();
     propCat = await ProposalCategory.new();
     memberRoles = await MemberRoles.new();
+    ec = EventCaller.deployed();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -113,9 +118,9 @@ contract('NXMaster', function([
 
     it('1.2 should be able to change master address', async function() {
       this.timeout(0);
-      newMaster = await NXMaster.new();
+      newMaster = await NXMaster.new(ec.address, nxmtk.address);
       await nxms.changeMasterAddress(newMaster.address, { from: owner });
-      await newMaster.changeTokenAddress(nxmtk.address);
+      // await newMaster.changeTokenAddress(nxmtk.address);
       addr[12] = await nxms.getLatestAddress('GV');
       addr[13] = await nxms.getLatestAddress('PC');
       addr[14] = await nxms.getLatestAddress('MR');
@@ -185,7 +190,7 @@ contract('NXMaster', function([
     });
 
     it('1.10 should not be able to change master address', async function() {
-      newMaster = await NXMaster.new();
+      newMaster = await NXMaster.new(ec.address, nxmtk.address);
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
       );

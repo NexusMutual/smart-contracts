@@ -191,9 +191,9 @@ contract NXMaster is Governed {
 
     /// @dev Changes Master contract address
     function changeMasterAddress(address _masterAddress) public {
-        // if (_masterAddress != address(this)) {
-        //     require(msg.sender == owner, "Neither master nor owner");
-        // }
+        if (_masterAddress != address(this)) {
+            require(msg.sender == owner, "Neither master nor owner");
+        }
         
         for (uint i = 0; i < allContractNames.length; i++) {
             if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 

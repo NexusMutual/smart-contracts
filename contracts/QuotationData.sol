@@ -201,21 +201,6 @@ contract QuotationData is Iupgradable {
         
     }
 
-    function updateOwnerParameters(bytes8 code, address val) public {
-
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        if(code == "QUOAUTH"){
-
-            _changeAuthQuoteEngine(val);
-
-        } else if(code == "KYCAUTH"){
-
-            _setKycAuthAddress(val);
-
-        }
-        
-    }
-
     /// @dev Gets Product details.
     /// @return  _minDays minimum cover period.
     /// @return  _PM Profit margin.
@@ -462,12 +447,12 @@ contract QuotationData is Iupgradable {
         tokensRetained = val;
     }
 
-    function _setKycAuthAddress(address _add) internal {
+    function setKycAuthAddress(address _add) external onlyInternal {
         kycAuthAddress = _add;
     }
 
     /// @dev Changes authorised address for generating quote off chain.
-    function _changeAuthQuoteEngine(address _add) internal {
+    function changeAuthQuoteEngine(address _add) external onlyInternal {
         authQuoteEngine = _add;
     }
 }

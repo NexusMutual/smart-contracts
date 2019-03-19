@@ -7,6 +7,7 @@ const TokenData = artifacts.require('TokenData');
 const NXMaster = artifacts.require('NXMaster');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
+const Governance = artifacts.require('Governance');
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
@@ -14,6 +15,8 @@ const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const CA_ETH = '0x45544800';
 const expectEvent = require('./utils/expectEvent');
+const gvProp = require('./utils/gvProposal.js').gvProposal;
+const encode = require('./utils/encoder.js').encode;
 
 const ETH = '0x455448';
 
@@ -37,7 +40,11 @@ contract('NXMToken', function([
   member2,
   member3,
   notMember,
-  spender2
+  spender2,
+  govVoter1,
+  govVoter2,
+  govVoter3,
+  govVoter4
 ]) {
   const fee = ether(0.002);
   const tokenAmount = ether(2);
@@ -56,6 +63,22 @@ contract('NXMToken', function([
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
+    await mr.payJoiningFee(web3.eth.accounts[0], {
+      from: web3.eth.accounts[0],
+      value: fee
+    });
+    await mr.kycVerdict(web3.eth.accounts[0], true);
+    for (let itr = 6; itr < 9; itr++) {
+      await mr.payJoiningFee(web3.eth.accounts[itr], {
+        from: web3.eth.accounts[itr],
+        value: fee
+      });
+      await mr.kycVerdict(web3.eth.accounts[itr], true);
+      let isMember = await nxms.isMember(web3.eth.accounts[itr]);
+      isMember.should.equal(true);
+
+      await tk.transfer(web3.eth.accounts[itr], 375000000000000000000000);
+    }
   });
 
   describe('token details', function() {
@@ -117,7 +140,7 @@ contract('NXMToken', function([
   describe('transfer', function() {
     const transferTokens = ether(1);
     before(async function() {
-      tk.transfer(member1, ether(26), { from: owner });
+      tk.transfer(member1, ether(26), { from: govVoter1 });
     });
 
     describe('when the recipient is a member', function() {
@@ -245,7 +268,7 @@ contract('NXMToken', function([
             const amount = ether(1.6);
             beforeEach(async function() {
               await tk.approve(spender, amount, { from: sender });
-              await tk.transfer(sender, ether(50));
+              await tk.transfer(sender, ether(50), { from: govVoter1 });
             });
 
             it('3.22 transfers the requested amount', async function() {
@@ -308,7 +331,7 @@ contract('NXMToken', function([
           let ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
           beforeEach(async function() {
             await tk.approve(spender, amount, { from: sender });
-            await tk.transfer(sender, ether(50));
+            await tk.transfer(sender, ether(50), { from: govVoter1 });
           });
           it('3.27 reverts', async function() {
             await assertRevert(
@@ -376,7 +399,12 @@ contract('NXMToken', function([
   describe('Misc', function() {
     describe('Buy Tokens at zero price', function() {
       before(async function() {
-        await pd.changeA(0, { from: owner });
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'A', 0);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        ((await pd.A()) / 1).should.be.equal(0);
+        // await pd.changeA(0, { from: owner });
         await mcr.addMCRData(
           180,
           0,
@@ -407,40 +435,53 @@ contract('NXMToken', function([
 
     describe('Setter functions', function() {
       it('3.34 should be able to change joining fee', async function() {
-        await td.setJoiningFee(1);
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'JOINFEE', 1);
+        await gvProp(20, actionHash, oldMR, oldGv, 2);
         (await td.joiningFee()).should.be.bignumber.equal(1);
       });
       it('3.35 should be able to change BookTime', async function() {
-        await td.changeBookTime(1, { from: owner });
-        await increaseTimeTo((await latestTime()) + 3);
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'CABOOKT', 1);
+        await gvProp(20, actionHash, oldMR, oldGv, 2);
         (await td.bookTime()).should.be.bignumber.equal(1);
       });
       it('3.36 should be able to change lockCADays', async function() {
-        await td.changelockCADays(1);
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'CALOCKT', 1);
+        await gvProp(20, actionHash, oldMR, oldGv, 2);
         (await td.lockCADays()).should.be.bignumber.equal(1);
       });
       it('3.37 should be able to change SCValidDays', async function() {
-        await td.changeSCValidDays(1);
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'RALOCKT', 1);
+        await gvProp(20, actionHash, oldMR, oldGv, 2);
         (await td.scValidDays()).should.be.bignumber.equal(1);
       });
       it('3.38 should be able to change LockTokenTimeAfterCoverExp', async function() {
-        await td.setLockTokenTimeAfterCoverExp(1);
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOLOCKT', 1);
+        await gvProp(19, actionHash, oldMR, oldGv, 2);
         (await td.lockTokenTimeAfterCoverExp()).should.be.bignumber.equal(1);
       });
-      it('3.39 should be able to change CanAddMemberAddress', async function() {
-        await assertRevert(
-          tf.changeCanAddMemberAddress(member1, { from: member1 })
-        );
-        await tf.changeCanAddMemberAddress(member1, { from: owner });
-      });
+      // it('3.39 should be able to change CanAddMemberAddress', async function() {
+      //   await assertRevert(
+      //     tf.changeCanAddMemberAddress(member1, { from: member1 })
+      //   );
+      //   await tf.changeCanAddMemberAddress(member1, { from: owner });
+      // });
 
-      it('3.40 only owner should be able to change MVDays', async function() {
-        await assertRevert(td.changelockMVDays(1, { from: member1 }));
-        await td.changelockMVDays(await td.lockMVDays(), { from: owner });
-      });
-
-      it('3.41 should not be able to change BookTime if not owner', async function() {
-        await assertRevert(td.changeBookTime(1, { from: member1 }));
+      it('3.40 only governance call should be able to change MVDays', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'MVLOCKT', 1);
+        await gvProp(20, actionHash, oldMR, oldGv, 2);
+        (await td.lockMVDays()).should.be.bignumber.equal(1);
       });
     });
   });

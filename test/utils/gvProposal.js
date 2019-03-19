@@ -15,7 +15,7 @@ async function gvProposal(...args) {
       from: members[1][iteration]
     });
   // console.log(await gv.proposalDetails(p));
-  await gv.closeProposal(p);
+  if (seq != 3) await gv.closeProposal(p);
   let proposal = await gv.proposal(p);
   assert.equal(proposal[2].toNumber(), 3);
 }

@@ -10,6 +10,7 @@ const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
+const Governance = artifacts.require('Governance');
 const NXMaster = artifacts.require('NXMaster');
 const PoolData = artifacts.require('PoolData');
 const { assertRevert } = require('./utils/assertRevert');
@@ -18,6 +19,8 @@ const { ether } = require('./utils/ether');
 const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const expectEvent = require('./utils/expectEvent');
+const gvProp = require('./utils/gvProposal.js').gvProposal;
+const encode = require('./utils/encoder.js').encode;
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
@@ -118,6 +121,11 @@ contract('Quotation', function([
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
+    await mr.payJoiningFee(owner, {
+      from: owner,
+      value: fee
+    });
+    await mr.kycVerdict(owner, true);
   });
   describe('Initial cap not reached', function() {
     it('6.1 should revert while buying cover', async function() {
@@ -900,7 +908,15 @@ contract('Quotation', function([
         });
 
         it('6.34.2 should revert if wallet address is not set', async function() {
-          await td.changeWalletAddress(nullAddress);
+          let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+          let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+          actionHash = encode(
+            'updateOwnerParameters(bytes8,address)',
+            'MSWALLET',
+            nullAddress
+          );
+          await gvProp(27, actionHash, oldMR, oldGv, 3);
+          (await td.walletAddress()).should.be.equal(nullAddress);
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember5
           });
@@ -916,7 +932,13 @@ contract('Quotation', function([
             { from: newMember5, value: totalFee }
           );
           await assertRevert(qt.kycTrigger(true, newMember5));
-          await td.changeWalletAddress(owner);
+          actionHash = encode(
+            'updateOwnerParameters(bytes8,address)',
+            'MSWALLET',
+            owner
+          );
+          await gvProp(27, actionHash, oldMR, oldGv, 3);
+          (await td.walletAddress()).should.be.equal(owner);
         });
 
         it('6.35 should get membership but not cover if quote expires for ETH', async function() {
@@ -1047,13 +1069,6 @@ contract('Quotation', function([
         await qt.sendTransaction({ from: owner, value: 1 });
         await qt.transferBackAssets({ from: owner });
       });
-      it('6.45 should be able to transfer assest to new contract', async function() {
-        const newqt = await Quotation.new();
-        await qt.transferAssetsToNewContract(newqt.address, { from: owner });
-        await qt.sendTransaction({ from: owner, value: 1 });
-        await cad.transfer(qt.address, tokenDai);
-        await qt.transferAssetsToNewContract(newqt.address, { from: owner });
-      });
     });
     describe('if not authorized', function() {
       it('6.46 reverts', async function() {
@@ -1068,21 +1083,33 @@ contract('Quotation', function([
 
   describe('Misc', function() {
     describe('Change product params if owner', function() {
-      it('6.47 only owner should be able to change Profit Margin', async function() {
-        await qd.changePM(4);
-        await assertRevert(qd.changePM(4, { from: notMember }));
+      it('6.47 only governance call should be able to change Profit Margin', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'PM', 4);
+        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        ((await qd.pm()) / 1).should.be.equal(4);
       });
-      it('6.48 only owner should be able to change STLP', async function() {
-        await qd.changeSTLP(5);
-        await assertRevert(qd.changeSTLP(4, { from: notMember }));
+      it('6.48 only governance call should be able to change STLP', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'STLP', 4);
+        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        ((await qd.stlp()) / 1).should.be.equal(4);
       });
-      it('6.49 only owner should be able to change STL', async function() {
-        await qd.changeSTL(1);
-        await assertRevert(qd.changeSTL(4, { from: notMember }));
+      it('6.49 only governance call should be able to change STL', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'STL', 4);
+        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        ((await qd.stl()) / 1).should.be.equal(4);
       });
-      it('6.50 only owner should be able to change minimum cover period', async function() {
-        await qd.changeMinDays(31);
-        await assertRevert(qd.changeMinDays(4, { from: notMember }));
+      it('6.50 only governance call should be able to change minimum cover period', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOMIND', 4);
+        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        ((await qd.minDays()) / 1).should.be.equal(4);
       });
     });
     describe('if not internal contract address', function() {

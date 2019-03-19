@@ -137,6 +137,18 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     }
 
+    function swapOwner(
+        address _newOwnerAddress
+    )
+    external {
+
+        require (msg.sender == address(ms));
+        _updateRole(ms.owner(), uint(Role.Owner), false);
+        _updateRole(_newOwnerAddress, uint(Role.Owner), true);
+        
+
+    }
+
     function addInitialABMembers(address[] abArray) external onlyOwner {
 
         require(maxABCount >= 

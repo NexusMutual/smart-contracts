@@ -24,6 +24,9 @@ import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./MemberRoles.sol";
+import "./TokenData.sol";
+import "./PoolData.sol";
+import "./QuotationData.sol";
 import "./imports/proxy/OwnedUpgradeabilityProxy.sol";
 
 
@@ -144,6 +147,8 @@ contract NXMaster is Governed {
     ///@dev Changes owner of the contract.
     ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
     function _changeOwner(address to) internal {
+        MemberRoles mr = MemberRoles(getLatestAddress("MR"));
+        mr.swapOwner(to);
         owner = to;
     }
 
@@ -317,14 +322,43 @@ contract NXMaster is Governed {
 
             changeMasterAddress(val);
 
-        } else if(code == "OWNER"){
+        }  
+        
+    }
+    
+    function updateOwnerParameters(bytes8 code, address val) public  {
+        QuotationData qd;
+        if(code == "MSWALLET"){
+            TokenData td;
+            td = TokenData(getLatestAddress("TD"));
+            td.changeWalletAddress(val);
 
-            _changeOwner(val);
+        } else if(code == "MCRNOTA"){
+            PoolData pd;
+            pd = PoolData(getLatestAddress("PD"));
+            pd.changeNotariseAddress(val);
+
+        } else if(code == "DAIFEED"){
+
+            pd.changeDAIfeedAddress(val);
 
         } else if(code == "UNISWADD"){
             Pool2 p2;
             p2 = Pool2(getLatestAddress("P2"));
             p2.changeUniswapFactoryAddress(val);
+
+        } else if(code == "OWNER"){
+
+            _changeOwner(val);
+
+        } else if(code == "QUOAUTH"){
+            
+            qd = QuotationData(getLatestAddress("QD"));
+            qd.changeAuthQuoteEngine(val);
+
+        } else if(code == "KYCAUTH"){
+            qd = QuotationData(getLatestAddress("QD"));
+            qd.setKycAuthAddress(val);
 
         }
         

@@ -131,7 +131,7 @@ contract('NXMaster', function([
       await oldTk.transfer(web3.eth.accounts[itr], 375000000000000000000000);
     }
   });
-  describe('when called by Owner', function() {
+  describe('Updating state', function() {
     it('1.1 should be able to add a new version', async function() {
       this.timeout(0);
       const version = await nxms.getCurrentVersion();
@@ -185,14 +185,15 @@ contract('NXMaster', function([
       let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
       await pl1.sendTransaction({ from: owner, value: poolEther });
       let actionHash = encode(
-        'updateAddressParameters(bytes8,address)',
+        'updateOwnerParameters(bytes8,address)',
         'OWNER',
         nonMember
       );
       await gvProp(27, actionHash, oldMR, oldGv, 3);
       (await nxms.owner()).should.be.equal(nonMember);
+      (await oldMR.checkRole(nonMember, 3)).should.be.equal(true);
       actionHash = encode(
-        'updateAddressParameters(bytes8,address)',
+        'updateOwnerParameters(bytes8,address)',
         'OWNER',
         owner
       );
@@ -205,34 +206,51 @@ contract('NXMaster', function([
       );
       await gvProp(27, actionHash, oldMR, oldGv, 3);
       (await qd.authQuoteEngine()).should.be.equal(owner);
-      // await qd.changeAuthQuoteEngine(QE);
+      actionHash = encode(
+        'updateOwnerParameters(bytes8,address)',
+        'QUOAUTH',
+        QE
+      );
+      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      (await qd.authQuoteEngine()).should.be.equal(QE);
+
       // await pd.changeCurrencyAssetAddress('0x444149', dai.address);
       // await pd.changeInvestmentAssetAddress('0x444149', dai.address);
-      // await pd.changeNotariseAddress(owner);
-      // await pd.changeDAIfeedAddress(dsv.address);
-      // await mcr.addMCRData(
-      //   18000,
-      //   100 * 1e18,
-      //   2 * 1e18,
-      //   ['0x455448', '0x444149'],
-      //   [100, 15517],
-      //   20190103
-      // );
-      // await pl2.saveIADetails(
-      //   ['0x455448', '0x444149'],
-      //   [100, 15517],
-      //   20190103,
-      //   true
-      // ); // for testing
+      actionHash = encode(
+        'updateOwnerParameters(bytes8,address)',
+        'MCRNOTA',
+        QE
+      );
+      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      (await pd.notariseMCR()).should.be.equal(QE);
+
+      actionHash = encode(
+        'updateOwnerParameters(bytes8,address)',
+        'MCRNOTA',
+        owner
+      );
+      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      (await pd.notariseMCR()).should.be.equal(owner);
+      await qd.changeCurrencyAssetAddress('0x444149', dai.address);
+      await qd.changeInvestmentAssetAddress('0x444149', dai.address);
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        2 * 1e18,
+        ['0x455448', '0x444149'],
+        [100, 15517],
+        20190103
+      );
+      await pl2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 15517],
+        20190103,
+        true
+      ); // for testing
     });
 
     // it('1.6 should be able to change token controller address', async function() {
     //   await tc.changeOperator(tc.address);
-    // });
-
-    // it('1.7 owner should be able to change owner address', async function() {
-    //   await nxms.changeOwner(newOwner, { from: owner });
-    //   newOwner.should.equal(await nxms.owner());
     // });
 
     // it('1.8 new Owner should be able to change owner address back to original owner', async function() {
@@ -241,7 +259,7 @@ contract('NXMaster', function([
     // });
   });
 
-  describe('when not called by Owner', function() {
+  describe('when called by unauthorised source', function() {
     it('1.9 should not be able to add a new version', async function() {
       await assertRevert(nxms.addNewVersion(addr, { from: anotherAccount }));
     });
@@ -252,11 +270,6 @@ contract('NXMaster', function([
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
       );
     });
-
-    // it('1.11 should not be able to change owner address', async function() {
-    //   await assertRevert(nxms.changeOwner(newOwner, { from: newOwner }));
-    //   newOwner.should.not.equal(await nxms.owner());
-    // });
   });
 
   describe('modifiers', function() {
@@ -317,11 +330,13 @@ contract('NXMaster', function([
       updatePauseTime.should.be.bignumber.not.equal(await nxms.getPauseTime());
     });
 
-    // it('1.23 internal contracts should be able to update pauseTime', async function() {
-    //   const updatePauseTime = pauseTime.plus(new BigNumber(60));
-    //   await nxms.updatePauseTime(updatePauseTime);
-    //   updatePauseTime.should.be.bignumber.equal(await nxms.getPauseTime());
-    // });
+    it('1.23 governance call should be able to update pauseTime', async function() {
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      actionHash = encode('updateUintParameters(bytes8,uint)', 'EPTIME', 12000);
+      await gvProp(21, actionHash, oldMR, oldGv, 2);
+      ((await nxms.pauseTime()) / 1).should.be.equal(12000);
+    });
   });
 
   describe('more test cases', function() {

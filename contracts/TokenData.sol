@@ -595,17 +595,6 @@ contract TokenData is Iupgradable {
         } 
     }
 
-    function updateOwnerParameters(bytes8 code, address val) public {
-
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        if(code == "MSWALLET"){
-
-            _changeWalletAddress(val);
-
-        }
-        
-    }
-
     /**
      * @dev Internal function to get stake commission given to an 
      * underwriter for particular stakedcontract on given index.
@@ -719,7 +708,7 @@ contract TokenData is Iupgradable {
     /**
      * @dev Change the wallet address which receive Joining Fee
      */
-    function _changeWalletAddress(address _address) internal {
+    function changeWalletAddress(address _address) external onlyInternal {
         walletAddress = _address;
     }
 }

@@ -5,6 +5,7 @@ const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const ClaimsReward = artifacts.require('ClaimsReward');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -21,6 +22,7 @@ let td;
 let P1;
 let mr;
 let nxms;
+let cr;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -41,6 +43,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     td = await TokenData.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    cr = await ClaimsReward.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
@@ -106,47 +109,13 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             let time = await latestTime();
             time = time + (await duration.days(251));
             await increaseTimeTo(time);
-            await tf.unlockStakerUnlockableTokens(member2);
+            await cr.claimAllPendingReward([], { from: member2 });
           });
           it('5.7 staker should have zero total locked nxm tokens against smart contract', async function() {
             const lockedTokens = await tf.getStakerAllLockedTokens.call(
               member2
             );
             lockedTokens.should.be.bignumber.equal(0);
-          });
-          it('5.8 only owner should be able to set StakedContractCurrentCommissionIndex', async function() {
-            await assertRevert(
-              td.setStakedContractCurrentCommissionIndex(stakedContract, 1, {
-                from: member1
-              })
-            );
-            await td.setStakedContractCurrentCommissionIndex(
-              stakedContract,
-              1,
-              { from: owner }
-            );
-          });
-
-          it('5.9 only owner should be able to set LastCompletedStakeCommissionIndex', async function() {
-            await assertRevert(
-              td.setLastCompletedStakeCommissionIndex(member1, 1, {
-                from: member1
-              })
-            );
-            await td.setLastCompletedStakeCommissionIndex(member1, 1, {
-              from: owner
-            });
-          });
-
-          it('5.10 only owner should be able to set StakedContractCurrentBurnIndex', async function() {
-            await assertRevert(
-              td.setStakedContractCurrentBurnIndex(stakedContract, 1, {
-                from: member1
-              })
-            );
-            await td.setStakedContractCurrentBurnIndex(stakedContract, 1, {
-              from: owner
-            });
           });
         });
       });

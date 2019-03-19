@@ -261,21 +261,6 @@ contract PoolData is Iupgradable {
           }
             
     }
-
-    function updateOwnerParameters(bytes8 code, address val) public {
-
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        if(code == "MCRNOTA"){
-
-            _changeNotariseAddress(val);
-
-        } else if(code == "DAIFEED"){
-
-            _changeDAIfeedAddress(val);
-
-        }
-        
-    }
  
     /**
      * @dev Adds currency asset currency. 
@@ -799,13 +784,13 @@ contract PoolData is Iupgradable {
     }    
 
     /// @dev Changes address allowed to post MCR.
-    function _changeNotariseAddress(address _add) internal {
+    function changeNotariseAddress(address _add) external onlyInternal {
         notariseMCR = _add;
     }
 
     /// @dev updates daiFeedAddress address.
     /// @param _add address of DAI feed.
-    function _changeDAIfeedAddress(address _add) internal {
+    function changeDAIfeedAddress(address _add) external onlyInternal {
         daiFeedAddress = _add;
     }
 }

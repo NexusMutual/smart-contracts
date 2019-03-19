@@ -40,7 +40,6 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
       });
     });
   });
-  // console.log('yoy', await mr.checkRole(member1, 2));
   describe('Withdraw membership', function() {
     describe('If met Withdraw membership conditions', function() {
       it('2.3 should be able to withdraw membership', async function() {

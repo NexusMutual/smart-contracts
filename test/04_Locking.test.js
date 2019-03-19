@@ -194,18 +194,6 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
             await tk.balanceOf(member3)
           );
         });
-
-        it('4.14 should be able to increase amount of lock tokens of "owner"by method 2', async function() {
-          const initialTokenBalance = await tk.balanceOf(owner);
-          // the next method is onlyInternal and can be called by owner only
-          await tc.increaseLockAmountOf(owner, CLA, extendLockTokens);
-          const newTokenBalance = initialTokenBalance.minus(extendLockTokens);
-          const newLockedTokens = initialLockedTokens.plus(extendLockTokens);
-          newLockedTokens.should.be.bignumber.equal(
-            await tc.tokensLocked(owner, CLA)
-          );
-          newTokenBalance.should.be.bignumber.equal(await tk.balanceOf(owner));
-        });
       });
 
       describe('After claiming tokens on validity expire', function() {
@@ -294,11 +282,6 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           await tc.totalLockedBalance(member1, now)
         );
         totalLockedBalanceCurrently.should.not.be.equal(0);
-      });
-      it('4.22 Reduce validity of locked tokens', async function() {
-        await tc.reduceLock(member1, CLA, await duration.days(1));
-        const newValidity = await tc.getLockedTokensValidity(member1, CLA);
-        newValidity.should.be.bignumber.below((await latestTime()) + validity);
       });
     });
     describe('Try to burn more than locked tockens of owner for a specific reason', function() {

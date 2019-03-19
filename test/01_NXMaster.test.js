@@ -26,6 +26,8 @@ const Exchange_0x = web3.eth.accounts[17];
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
+const gvProp = require('./utils/gvProposal.js').gvProposal;
+const encode = require('./utils/encoder.js').encode;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -60,7 +62,11 @@ contract('NXMaster', function([
   newOwner,
   member,
   nonMember,
-  anotherAccount
+  anotherAccount,
+  govVoter1,
+  govVoter2,
+  govVoter3,
+  govVoter4
 ]) {
   const fee = ether(0.002);
   const poolEther = ether(2);
@@ -89,7 +95,10 @@ contract('NXMaster', function([
     gov = await Governance.new();
     propCat = await ProposalCategory.new();
     memberRoles = await MemberRoles.new();
-    ec = EventCaller.deployed();
+    let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+    let oldTk = await NXMToken.deployed();
+    let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+    ec = await EventCaller.deployed();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -102,9 +111,25 @@ contract('NXMaster', function([
     addr.push(pl1.address);
     addr.push(pl2.address);
     addr.push(mcr.address);
-    addr.push(gov.address);
+    addr.push(oldGv.address);
     addr.push(propCat.address);
-    addr.push(memberRoles.address);
+    addr.push(oldMR.address);
+    await oldMR.payJoiningFee(web3.eth.accounts[0], {
+      from: web3.eth.accounts[0],
+      value: fee
+    });
+    await oldMR.kycVerdict(web3.eth.accounts[0], true);
+    for (let itr = 5; itr < 9; itr++) {
+      await oldMR.payJoiningFee(web3.eth.accounts[itr], {
+        from: web3.eth.accounts[itr],
+        value: fee
+      });
+      await oldMR.kycVerdict(web3.eth.accounts[itr], true);
+      let isMember = await nxms.isMember(web3.eth.accounts[itr]);
+      isMember.should.equal(true);
+
+      await oldTk.transfer(web3.eth.accounts[itr], 375000000000000000000000);
+    }
   });
   describe('when called by Owner', function() {
     it('1.1 should be able to add a new version', async function() {
@@ -131,8 +156,17 @@ contract('NXMaster', function([
     it('1.3 should be able to change single contract (proxy contracts)', async function() {
       this.timeout(0);
       let newMemberRoles = await MemberRoles.new();
-      await nxms.upgradeContractImplementation(
-        '0x4d52',
+      let actionHash = encode(
+        'upgradeContractImplementation(bytes2,address)',
+        'MR',
+        newMemberRoles.address
+      );
+      pId = (await gov.getProposalLength()).toNumber();
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      // await oldGv.changeDependentContractAddress();
+      await gvProp(5, actionHash, oldMR, oldGv, 1);
+      (await qd.getImplementationAdd('MR')).should.be.equal(
         newMemberRoles.address
       );
       memberRoles = newMemberRoles;
@@ -140,48 +174,71 @@ contract('NXMaster', function([
     });
 
     it('1.4 should set launch bit after adding initial members', async function() {
+      memberRoles = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
       await memberRoles.addMembersBeforeLaunch([], []);
       (await memberRoles.launched()).should.be.equal(true);
     });
 
     it('1.5 should be able to reinitialize', async function() {
       this.timeout(0);
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
       await pl1.sendTransaction({ from: owner, value: poolEther });
-      await td.changeWalletAddress(owner);
-      await qd.changeAuthQuoteEngine(QE);
-      await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-      await pd.changeInvestmentAssetAddress('0x444149', dai.address);
-      await pd.changeNotariseAddress(owner);
-      await pd.changeDAIfeedAddress(dsv.address);
-      await mcr.addMCRData(
-        18000,
-        100 * 1e18,
-        2 * 1e18,
-        ['0x455448', '0x444149'],
-        [100, 15517],
-        20190103
+      let actionHash = encode(
+        'updateAddressParameters(bytes8,address)',
+        'OWNER',
+        nonMember
       );
-      await pl2.saveIADetails(
-        ['0x455448', '0x444149'],
-        [100, 15517],
-        20190103,
-        true
-      ); // for testing
+      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      (await nxms.owner()).should.be.equal(nonMember);
+      actionHash = encode(
+        'updateAddressParameters(bytes8,address)',
+        'OWNER',
+        owner
+      );
+      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      (await nxms.owner()).should.be.equal(owner);
+      actionHash = encode(
+        'updateOwnerParameters(bytes8,address)',
+        'QUOAUTH',
+        owner
+      );
+      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      (await qd.authQuoteEngine()).should.be.equal(owner);
+      // await qd.changeAuthQuoteEngine(QE);
+      // await pd.changeCurrencyAssetAddress('0x444149', dai.address);
+      // await pd.changeInvestmentAssetAddress('0x444149', dai.address);
+      // await pd.changeNotariseAddress(owner);
+      // await pd.changeDAIfeedAddress(dsv.address);
+      // await mcr.addMCRData(
+      //   18000,
+      //   100 * 1e18,
+      //   2 * 1e18,
+      //   ['0x455448', '0x444149'],
+      //   [100, 15517],
+      //   20190103
+      // );
+      // await pl2.saveIADetails(
+      //   ['0x455448', '0x444149'],
+      //   [100, 15517],
+      //   20190103,
+      //   true
+      // ); // for testing
     });
 
-    it('1.6 should be able to change token controller address', async function() {
-      await tc.changeOperator(tc.address);
-    });
+    // it('1.6 should be able to change token controller address', async function() {
+    //   await tc.changeOperator(tc.address);
+    // });
 
-    it('1.7 owner should be able to change owner address', async function() {
-      await nxms.changeOwner(newOwner, { from: owner });
-      newOwner.should.equal(await nxms.owner());
-    });
+    // it('1.7 owner should be able to change owner address', async function() {
+    //   await nxms.changeOwner(newOwner, { from: owner });
+    //   newOwner.should.equal(await nxms.owner());
+    // });
 
-    it('1.8 new Owner should be able to change owner address back to original owner', async function() {
-      await nxms.changeOwner(owner, { from: newOwner });
-      owner.should.equal(await nxms.owner());
-    });
+    // it('1.8 new Owner should be able to change owner address back to original owner', async function() {
+    //   await nxms.changeOwner(owner, { from: newOwner });
+    //   owner.should.equal(await nxms.owner());
+    // });
   });
 
   describe('when not called by Owner', function() {
@@ -196,10 +253,10 @@ contract('NXMaster', function([
       );
     });
 
-    it('1.11 should not be able to change owner address', async function() {
-      await assertRevert(nxms.changeOwner(newOwner, { from: newOwner }));
-      newOwner.should.not.equal(await nxms.owner());
-    });
+    // it('1.11 should not be able to change owner address', async function() {
+    //   await assertRevert(nxms.changeOwner(newOwner, { from: newOwner }));
+    //   newOwner.should.not.equal(await nxms.owner());
+    // });
   });
 
   describe('modifiers', function() {
@@ -260,11 +317,11 @@ contract('NXMaster', function([
       updatePauseTime.should.be.bignumber.not.equal(await nxms.getPauseTime());
     });
 
-    it('1.23 internal contracts should be able to update pauseTime', async function() {
-      const updatePauseTime = pauseTime.plus(new BigNumber(60));
-      await nxms.updatePauseTime(updatePauseTime);
-      updatePauseTime.should.be.bignumber.equal(await nxms.getPauseTime());
-    });
+    // it('1.23 internal contracts should be able to update pauseTime', async function() {
+    //   const updatePauseTime = pauseTime.plus(new BigNumber(60));
+    //   await nxms.updatePauseTime(updatePauseTime);
+    //   updatePauseTime.should.be.bignumber.equal(await nxms.getPauseTime());
+    // });
   });
 
   describe('more test cases', function() {

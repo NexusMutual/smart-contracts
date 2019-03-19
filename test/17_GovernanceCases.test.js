@@ -103,7 +103,7 @@ contract(
           from: web3.eth.accounts[i]
         });
         await mr.kycVerdict(web3.eth.accounts[i], true, {
-          from: web3.eth.accounts[i]
+          from: web3.eth.accounts[0]
         });
         await tc.mint(web3.eth.accounts[i], balances[i] * 1e18);
       }

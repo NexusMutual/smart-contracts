@@ -67,6 +67,9 @@ module.exports = function(deployer) {
       propCat.address,
       mr.address
     ];
+    // let gvAdd = await nxms.getLatestAddress("GV");
+    // let mrAdd = await nxms.getLatestAddress("MR");
+    // let pcAdd = await nxms.getLatestAddress("PC");
     let addr1 = [
       qd.address,
       td.address,
@@ -92,11 +95,11 @@ module.exports = function(deployer) {
     await qd.changeCurrencyAssetAddress('0x444149', dai.address);
     await qd.changeInvestmentAssetAddress('0x444149', dai.address);
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
-    await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });
+    // await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });//
     // await td.changeWalletAddress(Owner);
     // await qd.changeAuthQuoteEngine(QE);
     // await pd.changeNotariseAddress(Owner);
-    await dai.transfer(pl1.address, POOL_ASSET);
+    // await dai.transfer(pl1.address, POOL_ASSET);//
     // await pd.changeDAIfeedAddress(dsv.address);
     await mcr.addMCRData(
       18000,

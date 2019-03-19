@@ -297,7 +297,7 @@ contract Governance is IGovernance, Iupgradable {
         // uint maxVote = proposalVoteTally[_proposalId].memberVoteValue[0];
         // if(maxVote < proposalVoteTally[_proposalId].memberVoteValue[1])
         //     maxVote = proposalVoteTally[_proposalId].memberVoteValue[1];
-        if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard)) {
+        if (_memberRole == uint(MemberRoles.Role.AdvisoryBoard) || _memberRole == uint(MemberRoles.Role.Owner)) {
             _closeABVote(_proposalId, category, _memberRole);
         } else {
             _closeMemberVote(_proposalId, category);
@@ -693,11 +693,11 @@ contract Governance is IGovernance, Iupgradable {
 
         require (allProposal[_proposalId].dateUpd.add(closingTime) > now, "Closed");
 
-        require(memberProposalVote[msg.sender][_proposalId] == 0);
+        require(memberProposalVote[msg.sender][_proposalId] == 0,'Voted');
         require((delegationId == 0) || (delegationId > 0 && allDelegation[delegationId].leader == address(0) && 
         _checkLastUpd(allDelegation[delegationId].lastUpd)));
 
-        require(memberRole.checkRole(msg.sender, mrSequence));
+        require(memberRole.checkRole(msg.sender, mrSequence),'Invalid Memebr Sequence');
 
 
         uint totalVotes = allVotes.length;
@@ -769,7 +769,7 @@ contract Governance is IGovernance, Iupgradable {
             
 
         }
-        if (mrSequence == uint(MemberRoles.Role.Member)) {
+        if (mrSequence == uint(MemberRoles.Role.Member) || mrSequence == uint(MemberRoles.Role.Owner)) {
             proposalVoteTally[_proposalId].memberVoteValue[_solution] += voteWeight;
             proposalVoteTally[_proposalId].voters += voters;
         }

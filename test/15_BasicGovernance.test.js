@@ -6,10 +6,12 @@ const NXMaster = artifacts.require('NXMaster');
 const EventCaller = artifacts.require('EventCaller');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMToken = artifacts.require('NXMToken');
+const TokenData = artifacts.require('TokenData');
 const expectEvent = require('./utils/expectEvent');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const encode = require('./utils/encoder.js').encode;
+const gvProp = require('./utils/gvProposal.js').gvProposal;
 const AdvisoryBoard = '0x41420000';
 let maxAllowance =
   '115792089237316195423570985008687907853269984665640564039457584007913129639935';
@@ -23,6 +25,7 @@ let pId;
 let mr;
 let nxmToken;
 let tc;
+let td;
 
 contract(
   'Governance',
@@ -38,6 +41,7 @@ contract(
       address = await nxms.getLatestAddress('MR');
       mr = await MemberRoles.at(address);
       tc = await TokenController.deployed();
+      td = await TokenData.deployed();
       //To cover functions in govblocks interface, which are not implemented by NexusMutual
       await gv.addSolution(0, '', '0x');
       await gv.openProposalForVoting(0);
@@ -235,124 +239,174 @@ contract(
             from: web3.eth.accounts[i]
           });
           await mr.kycVerdict(web3.eth.accounts[i], true, {
-            from: web3.eth.accounts[i]
+            from: web3.eth.accounts[0]
           });
         }
       });
-      it('15.25 AB member can delegate vote to AB who is non follower', async function() {
-        await gv.delegateVote(ab1, { from: ab2 });
-      });
-      it('15.26 Leader cannot delegate vote', async function() {
-        await assertRevert(gv.delegateVote(ab3, { from: ab1 }));
-      });
-      it('15.27 AB member cannot delegate vote to Member', async function() {
-        await assertRevert(gv.delegateVote(mem1, { from: ab4 }));
-      });
-      it('15.28 AB member cannot delegate vote to Non-Member', async function() {
-        await assertRevert(gv.delegateVote(notMember, { from: ab4 }));
-      });
-      it('15.29 Non-Member cannot delegate vote', async function() {
-        await assertRevert(gv.delegateVote(ab1, { from: notMember }));
-      });
-      it('15.30 AB member cannot delegate vote to AB who is follower', async function() {
-        await assertRevert(gv.delegateVote(ab2, { from: ab4 }));
-      });
-      it('15.31 Member can delegate vote to AB who is not a follower', async function() {
-        await gv.delegateVote(ab1, { from: mem1 });
-        let alreadyDelegated = await gv.alreadyDelegated(ab1);
-        assert.equal(alreadyDelegated, true);
-      });
-      it('15.32 Member cannot delegate vote to AB who is a follower', async function() {
-        await assertRevert(gv.delegateVote(ab2, { from: mem2 }));
-      });
-      it('15.33 Member can delegate vote to Member who is not follower', async function() {
-        await gv.delegateVote(mem3, { from: mem5 });
-        let followers = await gv.getFollowers(mem3);
-        let delegationData = await gv.allDelegation(followers[0].toNumber());
-        assert.equal(delegationData[0], mem5);
-      });
-      it('15.34 Member cannot delegate vote to Non-Member', async function() {
-        await assertRevert(gv.delegateVote(notMember, { from: mem2 }));
-      });
-      it('15.35 Member cannot delegate vote to member who is follower', async function() {
-        await assertRevert(gv.delegateVote(mem5, { from: mem2 }));
-      });
-      it('15.36 Create a proposal', async function() {
+      it('17.10 Should create proposal', async function() {
         pId = (await gv.getProposalLength()).toNumber();
-        await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0); //Pid 2
-        await gv.categorizeProposal(pId, 12, 130 * 1e18);
+        await gv.createProposal('Proposal2', 'Proposal2', 'Proposal2', 0);
+      });
+      it('17.11 Should whitelist proposal and set Incentives', async function() {
+        await gv.categorizeProposal(pId, 21, 0);
+      });
+      it('17.12 Should open for voting', async function() {
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'GOVHOLD',
+          5620
+        );
         await gv.submitProposalWithSolution(
           pId,
-          'changes to pricing model',
-          '0x'
+          'Withdraw funds to Pay for Support Services',
+          actionHash
         );
       });
-      it('15.37 Ab cannot vote twice on a same proposal', async function() {
-        await gv.submitVote(pId, 1, { from: ab3 });
-        await assertRevert(gv.submitVote(pId, 1, { from: ab3 }));
-      });
-      it('15.38 Member cannot vote twice on a same proposal', async function() {
-        await gv.submitVote(pId, 1, { from: mem4 });
-        await assertRevert(gv.submitVote(pId, 1, { from: mem4 }));
-      });
-      it('15.39 Member cannot assign proxy if voted within 7 days', async function() {
-        await assertRevert(gv.delegateVote(ab1, { from: mem4 }));
-      });
-      it('15.40 Follower cannot vote on a proposal', async function() {
-        await assertRevert(gv.submitVote(pId, 1, { from: ab2 }));
-      });
-      it('15.41 Member can assign proxy if voted more than 7 days earlier', async function() {
-        await increaseTime(604805);
-        await gv.delegateVote(ab1, { from: mem4 });
-      });
-      it('15.42 Follower can undelegate vote if not voted since 7 days', async function() {
-        await increaseTime(604800);
-        await gv.unDelegate({ from: mem5 });
-        await gv.alreadyDelegated(mem3);
-        await increaseTime(259200);
-      });
-      it('15.43 Follower cannot assign new proxy if revoked proxy within 7 days', async function() {
-        await assertRevert(gv.delegateVote(ab1, { from: mem5 }));
-      });
-      it('15.44 Undelegated Follower cannot vote within 7 days since undelegation', async function() {
-        pId = (await gv.getProposalLength()).toNumber();
-        await gv.createProposal('Proposal2', 'Proposal2', 'Proposal2', 0); //Pid 3
-        await gv.categorizeProposal(pId, 12, 130 * 1e18);
-        await gv.submitProposalWithSolution(
-          pId,
-          'changes to pricing model',
-          '0x'
-        );
-        await assertRevert(gv.submitVote(pId, 1, { from: mem5 }));
-        await increaseTime(432000); //7 days will be completed since revoking proxy
-        await gv.delegateVote(ab1, { from: ab4 });
-      });
-      it('15.45 Undelegated Follower can vote after 7 days', async function() {
-        let lockedTime = await nxmToken.isLockedForMV(mem2);
+      it('17.13 should follow voting process', async function() {
         await gv.submitVote(pId, 1, { from: ab1 });
         await gv.submitVote(pId, 1, { from: ab3 });
+        await gv.submitVote(pId, 1, { from: ab4 });
+        await gv.submitVote(pId, 1, { from: mem1 });
         await gv.submitVote(pId, 1, { from: mem2 });
         await gv.submitVote(pId, 1, { from: mem3 });
+        await gv.submitVote(pId, 1, { from: mem4 });
         await gv.submitVote(pId, 1, { from: mem5 });
       });
-      it('15.46 Tokens should be locked for 7 days after voting', async function() {
-        let lockedTime = await nxmToken.isLockedForMV(mem2);
-        assert.isAbove(lockedTime.toNumber(), Date.now() / 1000);
-      });
-      it('15.47 Follower cannot undelegate if there are rewards pending to be claimed', async function() {
-        await increaseTime(604810);
+      it('17.14 Should close vote', async function() {
+        await increaseTime(604800);
         await gv.closeProposal(pId);
-        await assertRevert(gv.unDelegate({ from: mem5 }));
-        await cr.claimAllPendingReward([pId], { from: mem5 });
       });
-      it('15.48 Follower should not get reward if delegated within 7days', async function() {
-        let pendingReward = await gv.getPendingReward(ab4);
-        assert.equal(pendingReward.toNumber(), 0);
+      it('17.15 Proposal should be accepted', async function() {
+        let proposal = await gv.proposal(pId);
+        assert.equal(proposal[2].toNumber(), 3);
       });
-      it('15.49 Follower can assign new proxy if revoked proxy more than 7 days earlier', async function() {
-        await increaseTime(604810);
-        await gv.delegateVote(ab1, { from: mem5 });
+      it('17.16 Should execute defined automatic action', async function() {
+        console.log(await gv.tokenHoldingTime());
       });
+      it('17.17 Should execute defined automatic action', async function() {
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'GOVHOLD',
+          123
+        );
+        let h = await gvProp(21, actionHash, mr, gv, 2);
+
+        console.log(await gv.tokenHoldingTime());
+      });
+      // it('15.25 AB member can delegate vote to AB who is non follower', async function() {
+      //   await gv.delegateVote(ab1, { from: ab2 });
+      // });
+      // it('15.26 Leader cannot delegate vote', async function() {
+      //   await assertRevert(gv.delegateVote(ab3, { from: ab1 }));
+      // });
+      // it('15.27 AB member cannot delegate vote to Member', async function() {
+      //   await assertRevert(gv.delegateVote(mem1, { from: ab4 }));
+      // });
+      // it('15.28 AB member cannot delegate vote to Non-Member', async function() {
+      //   await assertRevert(gv.delegateVote(notMember, { from: ab4 }));
+      // });
+      // it('15.29 Non-Member cannot delegate vote', async function() {
+      //   await assertRevert(gv.delegateVote(ab1, { from: notMember }));
+      // });
+      // it('15.30 AB member cannot delegate vote to AB who is follower', async function() {
+      //   await assertRevert(gv.delegateVote(ab2, { from: ab4 }));
+      // });
+      // it('15.31 Member can delegate vote to AB who is not a follower', async function() {
+      //   await gv.delegateVote(ab1, { from: mem1 });
+      //   let alreadyDelegated = await gv.alreadyDelegated(ab1);
+      //   assert.equal(alreadyDelegated, true);
+      // });
+      // it('15.32 Member cannot delegate vote to AB who is a follower', async function() {
+      //   await assertRevert(gv.delegateVote(ab2, { from: mem2 }));
+      // });
+      // it('15.33 Member can delegate vote to Member who is not follower', async function() {
+      //   await gv.delegateVote(mem3, { from: mem5 });
+      //   let followers = await gv.getFollowers(mem3);
+      //   let delegationData = await gv.allDelegation(followers[0].toNumber());
+      //   assert.equal(delegationData[0], mem5);
+      // });
+      // it('15.34 Member cannot delegate vote to Non-Member', async function() {
+      //   await assertRevert(gv.delegateVote(notMember, { from: mem2 }));
+      // });
+      // it('15.35 Member cannot delegate vote to member who is follower', async function() {
+      //   await assertRevert(gv.delegateVote(mem5, { from: mem2 }));
+      // });
+      // it('15.36 Create a proposal', async function() {
+      //   pId = (await gv.getProposalLength()).toNumber();
+      //   await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0); //Pid 2
+      //   await gv.categorizeProposal(pId, 12, 130 * 1e18);
+      //   await gv.submitProposalWithSolution(
+      //     pId,
+      //     'changes to pricing model',
+      //     '0x'
+      //   );
+      // });
+      // it('15.37 Ab cannot vote twice on a same proposal', async function() {
+      //   await gv.submitVote(pId, 1, { from: ab3 });
+      //   await assertRevert(gv.submitVote(pId, 1, { from: ab3 }));
+      // });
+      // it('15.38 Member cannot vote twice on a same proposal', async function() {
+      //   await gv.submitVote(pId, 1, { from: mem4 });
+      //   await assertRevert(gv.submitVote(pId, 1, { from: mem4 }));
+      // });
+      // it('15.39 Member cannot assign proxy if voted within 7 days', async function() {
+      //   await assertRevert(gv.delegateVote(ab1, { from: mem4 }));
+      // });
+      // it('15.40 Follower cannot vote on a proposal', async function() {
+      //   await assertRevert(gv.submitVote(pId, 1, { from: ab2 }));
+      // });
+      // it('15.41 Member can assign proxy if voted more than 7 days earlier', async function() {
+      //   await increaseTime(604805);
+      //   await gv.delegateVote(ab1, { from: mem4 });
+      // });
+      // it('15.42 Follower can undelegate vote if not voted since 7 days', async function() {
+      //   await increaseTime(604800);
+      //   await gv.unDelegate({ from: mem5 });
+      //   await gv.alreadyDelegated(mem3);
+      //   await increaseTime(259200);
+      // });
+      // it('15.43 Follower cannot assign new proxy if revoked proxy within 7 days', async function() {
+      //   await assertRevert(gv.delegateVote(ab1, { from: mem5 }));
+      // });
+      // it('15.44 Undelegated Follower cannot vote within 7 days since undelegation', async function() {
+      //   pId = (await gv.getProposalLength()).toNumber();
+      //   await gv.createProposal('Proposal2', 'Proposal2', 'Proposal2', 0); //Pid 3
+      //   await gv.categorizeProposal(pId, 12, 130 * 1e18);
+      //   await gv.submitProposalWithSolution(
+      //     pId,
+      //     'changes to pricing model',
+      //     '0x'
+      //   );
+      //   await assertRevert(gv.submitVote(pId, 1, { from: mem5 }));
+      //   await increaseTime(432000); //7 days will be completed since revoking proxy
+      //   await gv.delegateVote(ab1, { from: ab4 });
+      // });
+      // it('15.45 Undelegated Follower can vote after 7 days', async function() {
+      //   let lockedTime = await nxmToken.isLockedForMV(mem2);
+      //   await gv.submitVote(pId, 1, { from: ab1 });
+      //   await gv.submitVote(pId, 1, { from: ab3 });
+      //   await gv.submitVote(pId, 1, { from: mem2 });
+      //   await gv.submitVote(pId, 1, { from: mem3 });
+      //   await gv.submitVote(pId, 1, { from: mem5 });
+      // });
+      // it('15.46 Tokens should be locked for 7 days after voting', async function() {
+      //   let lockedTime = await nxmToken.isLockedForMV(mem2);
+      //   assert.isAbove(lockedTime.toNumber(), Date.now() / 1000);
+      // });
+      // it('15.47 Follower cannot undelegate if there are rewards pending to be claimed', async function() {
+      //   await increaseTime(604810);
+      //   await gv.closeProposal(pId);
+      //   await assertRevert(gv.unDelegate({ from: mem5 }));
+      //   await cr.claimAllPendingReward([pId], { from: mem5 });
+      // });
+      // it('15.48 Follower should not get reward if delegated within 7days', async function() {
+      //   let pendingReward = await gv.getPendingReward(ab4);
+      //   assert.equal(pendingReward.toNumber(), 0);
+      // });
+      // it('15.49 Follower can assign new proxy if revoked proxy more than 7 days earlier', async function() {
+      //   await increaseTime(604810);
+      //   await gv.delegateVote(ab1, { from: mem5 });
+      // });
     });
   }
 );

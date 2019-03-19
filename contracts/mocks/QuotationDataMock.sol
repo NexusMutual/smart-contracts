@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "../QuotationData.sol";
 import "../PoolData.sol";
+import "../imports/proxy/OwnedUpgradeabilityProxy.sol";
 
 contract QuotationDataMock is QuotationData {
 	PoolData pd;
@@ -30,5 +31,12 @@ contract QuotationDataMock is QuotationData {
 	function changeInvestmentAssetAddress(bytes4 curr, address currAdd) public {
 		pd = PoolData(ms.getLatestAddress("PD"));
 		pd.changeInvestmentAssetAddress(curr, currAdd);
+	}
+
+	function getImplementationAdd(bytes2 _contract) public view returns(address){
+
+		UpgradeabilityProxy up = UpgradeabilityProxy(ms.getLatestAddress(_contract));
+		return up.implementation();
+
 	}
 }

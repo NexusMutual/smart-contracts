@@ -201,6 +201,33 @@ contract QuotationData is Iupgradable {
         
     }
 
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+        codeVal = code;
+
+        if(code == "STLP")
+        {
+            val = stlp;
+
+        } else if(code == "STL"){
+            
+            val = stl;
+
+        } else if(code == "PM"){
+
+            val = pm;
+
+        } else if(code == "QUOMIND"){
+
+            val = minDays;
+
+        } else if(code == "QUOTOK"){
+
+           val = tokensRetained;
+
+        }
+        
+    }
+
     /// @dev Gets Product details.
     /// @return  _minDays minimum cover period.
     /// @return  _PM Profit margin.

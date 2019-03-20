@@ -366,6 +366,25 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+
+        codeVal = code;
+
+        if(code == "GOVHOLD")
+        {
+            val = tokenHoldingTime;
+
+        } else if(code == "MAXAB"){
+
+            val =  mr.maxABCount();
+
+        } else if(code == "EPTIME") {
+            val = ms.pauseTime();
+
+        }
+
+    }
+
     function callRewardClaimedEvent(address _memberAddress, uint[] _proposals, uint pendingDAppReward) 
     external onlyInternal {
         emit RewardClaimed(

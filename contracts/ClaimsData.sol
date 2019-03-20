@@ -495,6 +495,44 @@ contract ClaimsData is Iupgradable {
     
     }
 
+    function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
+        codeVal = code;
+        if(code == "CAMAXVT")
+        {
+            val = maxVotingTime;
+
+        } else if(code == "CAMINVT"){
+
+            val = minVotingTime;
+
+        } else if(code == "CAPRETRY"){
+
+            val = payoutRetryTime;
+
+        } else if(code == "CADEPT"){
+
+            val = claimDepositTime;
+
+        } else if(code == "CAREWPER"){
+
+            val = claimRewardPerc;
+
+        } else if(code == "CAMINTH"){
+
+            val = minVoteThreshold;
+
+        } else if(code == "CAMAXTH"){
+
+            val = maxVoteThreshold;
+
+        } else if(code == "CACONPER"){
+
+            val = majorityConsensus;
+
+        }
+    
+    }
+
     /**
      * @dev Get claim queued during emergency pause by index.
      */ 

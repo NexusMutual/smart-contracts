@@ -325,21 +325,38 @@ contract NXMaster is Governed {
         }  
         
     }
+
+    function getAddressParameters(bytes8 code) external view returns(bytes8 codeVal, address val) {
+
+        codeVal = code;
+        
+        if(code == "EVCALL") {
+
+            val = eventCallerAdd;
+
+        } else if(code == "MASTADD"){
+
+            val = masterAddress;
+
+        }  
+        
+    }
     
     function updateOwnerParameters(bytes8 code, address val) public  {
         QuotationData qd;
+        PoolData pd;
         if(code == "MSWALLET"){
             TokenData td;
             td = TokenData(getLatestAddress("TD"));
             td.changeWalletAddress(val);
 
         } else if(code == "MCRNOTA"){
-            PoolData pd;
+            
             pd = PoolData(getLatestAddress("PD"));
             pd.changeNotariseAddress(val);
 
         } else if(code == "DAIFEED"){
-
+            pd = PoolData(getLatestAddress("PD"));
             pd.changeDAIfeedAddress(val);
 
         } else if(code == "UNISWADD"){
@@ -359,6 +376,46 @@ contract NXMaster is Governed {
         } else if(code == "KYCAUTH"){
             qd = QuotationData(getLatestAddress("QD"));
             qd.setKycAuthAddress(val);
+
+        }
+        
+    }
+
+    function getOwnerParameters(bytes8 code) external view returns(bytes8 codeVal, address val)  {
+        codeVal = code;
+        QuotationData qd;
+        PoolData pd;
+        if(code == "MSWALLET"){
+            TokenData td;
+            td = TokenData(getLatestAddress("TD"));
+            val = td.walletAddress();
+
+        } else if(code == "MCRNOTA"){
+            
+            pd = PoolData(getLatestAddress("PD"));
+            val = pd.notariseMCR();
+
+        } else if(code == "DAIFEED"){
+            pd = PoolData(getLatestAddress("PD"));
+            val = pd.daiFeedAddress();
+
+        } else if(code == "UNISWADD"){
+            Pool2 p2;
+            p2 = Pool2(getLatestAddress("P2"));
+            val = p2.uniswapFactoryAddress();
+
+        } else if(code == "OWNER"){
+
+            val = owner;
+
+        } else if(code == "QUOAUTH"){
+            
+            qd = QuotationData(getLatestAddress("QD"));
+            val = qd.authQuoteEngine();
+
+        } else if(code == "KYCAUTH"){
+            qd = QuotationData(getLatestAddress("QD"));
+            val = qd.kycAuthAddress();
 
         }
         

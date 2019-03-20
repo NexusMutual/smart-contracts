@@ -69,6 +69,7 @@ contract Pool2 is Iupgradable {
             newPoolAddress.transfer(address(this).balance);
     }
 
+
     /**
      * @dev Handles the Callback of the Oraclize Query.
      * @param myid Oraclize Query ID identifying the query for which the result is being received

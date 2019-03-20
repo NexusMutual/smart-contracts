@@ -14,12 +14,15 @@ const DAI = artifacts.require('MockDAI');
 const NXMaster = artifacts.require('NXMaster');
 const MemberRoles = artifacts.require('MemberRoles');
 const MCR = artifacts.require('MCR');
+const Governance = artifacts.require('Governance');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const gvProp = require('./utils/gvProposal.js').gvProposal;
+const encode = require('./utils/encoder.js').encode;
 
 const CLA = '0x434c41';
 const CA_ETH = '0x455448';
@@ -61,7 +64,11 @@ contract('Claim', function([
   member3,
   member4,
   notCoverHolder,
-  notMember
+  notMember,
+  govVoter1,
+  govVoter2,
+  govVoter3,
+  govVoter4
 ]) {
   const P_18 = new BigNumber(1e18);
   const stakeTokens = ether(2);
@@ -98,6 +105,22 @@ contract('Claim', function([
       20181011
     );
     (await pd.capReached()).should.be.bignumber.equal(1);
+    await mr.payJoiningFee(web3.eth.accounts[0], {
+      from: web3.eth.accounts[0],
+      value: fee
+    });
+    await mr.kycVerdict(web3.eth.accounts[0], true);
+    for (let itr = 7; itr < 11; itr++) {
+      await mr.payJoiningFee(web3.eth.accounts[itr], {
+        from: web3.eth.accounts[itr],
+        value: fee
+      });
+      await mr.kycVerdict(web3.eth.accounts[itr], true);
+      let isMember = await nxms.isMember(web3.eth.accounts[itr]);
+      isMember.should.equal(true);
+
+      await tk.transfer(web3.eth.accounts[itr], 275000000000000000000000);
+    }
   });
 
   describe('Submit Claim', function() {
@@ -133,7 +156,6 @@ contract('Claim', function([
 
       describe('if holds a cover', function() {
         before(async function() {
-          // console.log('helll');
           await P1.makeCoverBegin(
             smartConAdd,
             'ETH',
@@ -169,15 +191,7 @@ contract('Claim', function([
                   coverCurr
                 );
                 await P1.transferFundToOtherAdd(owner, 5 * 1e18); // To check insufficientTrade condition
-                let CABalE;
-                let CABalD;
-                let CABalE2;
-                let CABalD2;
 
-                CABalE = await web3.eth.getBalance(P1.address);
-                CABalE2 = await web3.eth.getBalance(p2.address);
-                CABalD = await cad.balanceOf(P1.address);
-                CABalD2 = await cad.balanceOf(p2.address);
                 let initialUserClaimCount = await cd.getUserClaimCount(
                   coverHolder
                 );
@@ -191,58 +205,6 @@ contract('Claim', function([
                 initialClaimCount
                   .add(1)
                   .should.be.bignumber.equal(await cd.getClaimLength());
-                const CAdetails = await pd.getCurrencyAssetVarBase(coverCurr);
-                const rankDetails = await pd.getIARankDetailsByDate(
-                  await pd.getLastDate()
-                );
-                let coverCurrCA;
-                if (coverCurr == 0x45544800) coverCurrCA = CABalE;
-                else coverCurrCA = CABalD;
-                let amount;
-                let typeOfTrade = 'noTradeReq';
-                if (
-                  coverCurrCA >
-                  2 * (CAdetails[1].toNumber() + CAdetails[2].toNumber())
-                )
-                  typeOfTrade = 'ELT';
-                if (
-                  coverCurrCA <
-                  CAdetails[1].toNumber() + CAdetails[2].toNumber()
-                )
-                  typeOfTrade = 'ILT';
-                if (typeOfTrade == 'noTradeReq') amount = 0;
-                // if(rankDetails[2] == coverCurr)
-                amount =
-                  coverCurrCA -
-                  (CAdetails[1].toNumber() + CAdetails[2].toNumber()) * 1.5;
-
-                let finalCABalE = await web3.eth.getBalance(P1.address);
-                let finalCABalE2 = await web3.eth.getBalance(p2.address);
-                let finalCABalD = await cad.balanceOf(P1.address);
-                let finalCABalD2 = await cad.balanceOf(p2.address);
-                let calCABalE;
-                let calCABalE2;
-                let calCABalD;
-                let calCABalD2;
-                if (coverCurr == 0x45544800) {
-                  calCABalE = parseFloat(CABalE) - parseFloat(amount);
-                  calCABalE2 = parseFloat(CABalE2) + parseFloat(amount);
-                  parseFloat(finalCABalE).should.be.equal(
-                    parseFloat(calCABalE)
-                  );
-                  parseFloat(finalCABalE2).should.be.equal(
-                    parseFloat(calCABalE2)
-                  );
-                } else {
-                  calCABalD = parseFloat(CABalD) - parseFloat(amount);
-                  calCABalD2 = parseFloat(CABalD2) + parseFloat(amount);
-                  parseFloat(finalCABalD).should.be.equal(
-                    parseFloat(calCABalD)
-                  );
-                  parseFloat(finalCABalD2).should.be.equal(
-                    parseFloat(calCABalD2)
-                  );
-                }
               });
               it('7.3 cover status should change', async function() {
                 const claimDetails = await cd.getAllClaimsByIndex(1);
@@ -271,31 +233,25 @@ contract('Claim', function([
             });
           });
 
-          describe('if claim is already accepted', function() {
-            const newCoverHolder = member4;
-            before(async function() {
-              await P1.makeCoverBegin(
-                smartConAdd,
-                'ETH',
-                coverDetails,
-                coverPeriod,
-                v,
-                r,
-                s,
-                { from: newCoverHolder, value: coverDetails[1] }
-              );
-              const coverID = await qd.getAllCoversOfUser(newCoverHolder);
-              await cl.submitClaim(coverID[0], { from: newCoverHolder });
-              const claimId = (await cd.actualClaimLength()) - 1;
-              await cl.setClaimStatus(claimId, 1);
-            });
-            it('7.6 should not be able to submit claim', async function() {
-              const coverID = await qd.getAllCoversOfUser(newCoverHolder);
-              await assertRevert(
-                cl.submitClaim(coverID[0], { from: newCoverHolder })
-              );
-            });
-          });
+          // describe('if claim is already accepted', function() {
+          //   const newCoverHolder = member4;
+          //   before(async function() {
+          //     await P1.makeCoverBegin(
+          //       smartConAdd,
+          //       'ETH',
+          //       coverDetails,
+          //       coverPeriod,
+          //       v,
+          //       r,
+          //       s,
+          //       { from: newCoverHolder, value: coverDetails[1] }
+          //     );
+          //     const coverID = await qd.getAllCoversOfUser(newCoverHolder);
+          //     await cl.submitClaim(coverID[0], { from: newCoverHolder });
+          //     const claimId = (await cd.actualClaimLength()) - 1;
+          //     // await cl.setClaimStatus(claimId, 1);
+          //   });
+          // });
 
           describe('if cover expires', function() {
             let coverID;
@@ -320,7 +276,7 @@ contract('Claim', function([
               qt.expireCover(coverID[1]);
 
               APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-              await p2.delegateCallBack(APIID);
+              await P1.__callback(APIID, '');
             });
             it('7.7 reverts', async function() {
               coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -356,54 +312,62 @@ contract('Claim', function([
   });
 
   describe('Misc', function() {
-    describe('Not internal contract address', function() {
-      it('7.9 should not able to changeDependentContractAddress', async function() {
-        await assertRevert(
-          cl.changeDependentContractAddress({ from: notMember })
-        );
-      });
-      it('7.10 should not be able to set minTime voting', async function() {
-        await assertRevert(cd.setMinVotingTime(0, { from: notMember }));
-      });
-      it('7.11 should not be able to set max voting Time', async function() {
-        await assertRevert(cd.setMaxVotingTime(1, { from: notMember }));
-      });
-      it('7.12 should not be able to set Payout retry time', async function() {
-        await assertRevert(cd.setPayoutRetryTime(1, { from: notMember }));
-      });
-      it('7.13 should not be able to start pending claims', async function() {
-        await assertRevert(cd.setpendingClaimStart(1, { from: notMember }));
-      });
-      it('7.14 should not be able update claims date', async function() {
-        await assertRevert(cd.setClaimDateUpd(0, 1, { from: notMember }));
-      });
-      it('7.15 should not be able to set claim deposit time', async function() {
-        await assertRevert(cd.setClaimDepositTime(1, { from: notMember }));
-      });
-    });
-
     describe('owner address', function() {
-      it('7.16 should be able to set minTime voting', async function() {
-        await cd.setMinVotingTime(0, { from: owner });
+      it('7.16 should be able to propose new minTime voting', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'CAMINVT',
+          0
+        );
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
+        ((await cd.minVotingTime()) / 1).should.be.equal(0);
       });
-      it('7.17 should be able to set max voting Time', async function() {
-        await cd.setMaxVotingTime(1, { from: owner });
+      it('7.17 should be able to propose new max voting Time', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'CAMAXVT',
+          10
+        );
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
+        ((await cd.maxVotingTime()) / 1).should.be.equal(10);
       });
-      it('7.18 should be able to set Payout retry time', async function() {
-        await cd.setPayoutRetryTime(1, { from: owner });
+      it('7.18 should be able to propose new Payout retry time', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'CAPRETRY',
+          120
+        );
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
+        ((await cd.payoutRetryTime()) / 1).should.be.equal(120);
       });
-      it('7.19 should be able to start pending claims', async function() {
-        await cd.setpendingClaimStart(1, { from: owner });
-      });
-      it('7.20 should be able update claims date', async function() {
-        await cd.setClaimDateUpd(0, 1, { from: owner });
-      });
-      it('7.21 should be able to set claim deposit time', async function() {
-        await cd.setClaimDepositTime(1, { from: owner });
+      it('7.21 should be able to propose new claim deposit time', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'CADEPT',
+          12
+        );
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
+        ((await cd.claimDepositTime()) / 1).should.be.equal(12);
       });
 
-      it('7.22 should be able to set claim reward percentage', async function() {
-        await cd.setClaimRewardPerc(20, { from: owner });
+      it('7.22 should be able to propose new claim reward percentage', async function() {
+        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'CAREWPER',
+          36
+        );
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
+        ((await cd.claimRewardPerc()) / 1).should.be.equal(36);
       });
     });
   });

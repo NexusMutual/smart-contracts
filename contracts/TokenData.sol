@@ -595,6 +595,51 @@ contract TokenData is Iupgradable {
         } 
     }
 
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+      codeVal = code;
+      if(code == "TOKEXP"){
+
+        val = tokenExponent; 
+
+      } else if(code == "TOKSTEP"){
+
+        val = priceStep;
+
+      } else if(code == "RALOCKT"){
+
+            val = scValidDays;
+
+      } else if(code == "RACOMM"){
+
+            val = stakerCommissionPer;
+
+      } else if(code == "RAMAXC"){
+
+            val = stakerMaxCommissionPer;
+
+      } else if(code == "CABOOKT"){
+
+            val = bookTime;
+
+        } else if(code == "CALOCKT"){
+
+            val = lockCADays;
+
+        } else if(code == "MVLOCKT"){
+
+            val = lockMVDays;
+
+        } else if(code == "QUOLOCKT"){
+
+            val = lockTokenTimeAfterCoverExp;
+
+        } else if(code == "JOINFEE"){
+
+            val = joiningFee;
+
+        } 
+    }
+
     /**
      * @dev Internal function to get stake commission given to an 
      * underwriter for particular stakedcontract on given index.

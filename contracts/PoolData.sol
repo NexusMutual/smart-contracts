@@ -261,6 +261,59 @@ contract PoolData is Iupgradable {
           }
             
     }
+
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+        codeVal = code;
+        if(code == "MCRTIM")
+        {
+            val = mcrTime;
+
+        } else if(code == "MCRFTIM"){
+
+            val = mcrFailTime;
+
+        } else if(code == "MCRMIN"){
+
+            val = minCap;
+
+        } else if(code == "MCRSHOCK"){
+
+            val = shockParameter;
+
+        } else if(code == "MCRCAPL"){
+
+            val = capacityLimit;
+
+        } else if(code == "IMZ"){
+
+            val = variationPercX100;
+
+        } else if(code == "IMRATET"){
+
+            val = iaRatesTime;
+
+        } else if(code == "IMUNIDL"){
+
+            val = uniswapDeadline;
+
+        } else if(code == "IMLIQT"){
+
+            val = liquidityTradeCallbackTime;
+
+        } else if(code == "IMETHVL"){
+
+            val = ethVolumeLimit;
+
+        } else if(code == "C"){
+            val = C;
+
+          } else if(code == "A"){
+
+            val = A;
+
+          }
+            
+    }
  
     /**
      * @dev Adds currency asset currency. 

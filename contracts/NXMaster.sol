@@ -28,6 +28,7 @@ import "./TokenData.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./Quotation.sol";
+import "./TokenController.sol";
 import "./imports/proxy/OwnedUpgradeabilityProxy.sol";
 
 
@@ -82,7 +83,7 @@ contract NXMaster is Governed {
         external  
     {
         require(checkIsAuthToGoverned(msg.sender));
-        require(_contractsName == "GV" || _contractsName == "MR" || _contractsName == "PC" || allContractNames[i] == "TC");
+        require(_contractsName == "GV" || _contractsName == "MR" || _contractsName == "PC" || _contractsName == "TC");
         _replaceImplementation(_contractsName, _contractsAddress);
     }
 
@@ -225,8 +226,9 @@ contract NXMaster is Governed {
         if (_masterAddress != address(this)) {
             require(checkIsAuthToGoverned(msg.sender), "Neither master nor Authorised");
         }
-        address[] newConAdd;
+        address[] memory newConAdd = new address[](allContractNames.length);
         for (uint i = 0; i < allContractNames.length; i++) {
+            newConAdd[i] = allContractVersions[versionDates.length - 1][allContractNames[i]];
             if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
                 allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
                 up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
@@ -236,19 +238,18 @@ contract NXMaster is Governed {
                     allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")
                 _changeProxyOwnership(_masterAddress, allContractVersions[versionDates.length - 1][allContractNames[i]]);
 
-                newConAdd.push(allContractVersions[versionDates.length - 1][allContractNames[i]]);
             
         }
-
         NXMaster nxms = NXMaster(_masterAddress);
-        if (_masterAddress != address(this))
+        if (_masterAddress != address(this)) {
             nxms.addNewVersion(newConAdd);
+        }
         
         contractsActive[address(this)] = false;
         contractsActive[_masterAddress] = true;
        
     }
-
+    
     /// @dev Gets current version amd its master address
     /// @return versionNo Current version number that is active
     function getCurrentVersion() public view returns(uint versionNo) {
@@ -324,13 +325,12 @@ contract NXMaster is Governed {
 
         }
 
-            
+       
         versionDates.push(now); //solhint-disable-line
-        
-            
         changeMasterAddress(address(this));
         _changeAllAddress();
-
+        TokenController tc = TokenController(getLatestAddress("TC"));
+        tc.changeOperator(getLatestAddress("TC"));
         
     }
 
@@ -350,11 +350,9 @@ contract NXMaster is Governed {
     function updateAddressParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
         
         if(code == "EVCALL"){
-
             _setEventCallerAddress(val);
 
         } else if(code == "MASTADD"){
-
             changeMasterAddress(val);
 
         }  
@@ -377,7 +375,7 @@ contract NXMaster is Governed {
         
     }
     
-    function updateOwnerParameters(bytes8 code, address val) public  {
+    function updateOwnerParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
         QuotationData qd;
         PoolData pd;
         if(code == "MSWALLET"){

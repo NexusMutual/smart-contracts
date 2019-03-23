@@ -48,29 +48,10 @@ module.exports = function(deployer) {
     const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
     const eventCaller = await EventCaller.deployed();
-    let newCR = await ClaimsReward.new();
-    let newPool1 = await Pool1.new();
-    let addr = [
-      qd.address,
-      td.address,
-      cd.address,
-      pd.address,
-      qt.address,
-      tf.address,
-      tc.address,
-      cl.address,
-      newCR.address,
-      pl1.address,
-      pl2.address,
-      mcr.address,
-      gov.address,
-      propCat.address,
-      mr.address
-    ];
     // let gvAdd = await nxms.getLatestAddress("GV");
     // let mrAdd = await nxms.getLatestAddress("MR");
     // let pcAdd = await nxms.getLatestAddress("PC");
-    let addr1 = [
+    let addr = [
       qd.address,
       td.address,
       cd.address,
@@ -87,20 +68,13 @@ module.exports = function(deployer) {
       propCat.address,
       mr.address
     ];
-    // await nxms.changeTokenAddress(tk.address);
-    // await nxms.setEventCallerAddress(eventCaller.address);
+
     await nxms.addNewVersion(addr);
-    await nxms.addNewVersion(addr1);
     const dai = await DAI.deployed();
-    await qd.changeCurrencyAssetAddress('0x444149', dai.address);
-    await qd.changeInvestmentAssetAddress('0x444149', dai.address);
+    // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
+    // await qd.changeInvestmentAssetAddress('0x444149', dai.address);
     await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
-    // await pl2.sendTransaction({ from: Owner, value: POOL_ETHER });//
-    // await td.changeWalletAddress(Owner);
-    // await qd.changeAuthQuoteEngine(QE);
-    // await pd.changeNotariseAddress(Owner);
-    // await dai.transfer(pl1.address, POOL_ASSET);//
-    // await pd.changeDAIfeedAddress(dsv.address);
+    await pl2.sendTransaction({ from: Owner, value: POOL_ETHER }); //
     await mcr.addMCRData(
       18000,
       100 * 1e18,
@@ -116,7 +90,6 @@ module.exports = function(deployer) {
       true
     ); //testing
     await dai.transfer(pl2.address, POOL_ASSET);
-    // await pl2.changeUniswapFactoryAddress(factory.address);
     let pcAddress = await nxms.getLatestAddress('PC');
     pc = await ProposalCategory.at(pcAddress);
     await pc.proposalCategoryInitiate();

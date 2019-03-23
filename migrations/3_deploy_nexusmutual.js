@@ -18,6 +18,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const EventCaller = artifacts.require('EventCaller');
 const FactoryMock = artifacts.require('FactoryMock');
 const DSValue = artifacts.require('DSValueMock');
+const DAI = artifacts.require('MockDAI');
 const founderAddress = web3.eth.accounts[0];
 const INITIAL_SUPPLY = 1500000 * 1e18;
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
@@ -26,12 +27,13 @@ module.exports = function(deployer) {
   deployer.then(async () => {
     let factory = await FactoryMock.deployed();
     let dsv = await DSValue.deployed();
+    let cad = await DAI.deployed();
     await deployer.deploy(Claims);
     await deployer.deploy(ClaimsData);
     await deployer.deploy(ClaimsReward);
     await deployer.deploy(Pool1);
     await deployer.deploy(Pool2, factory.address);
-    await deployer.deploy(PoolData, founderAddress, dsv.address);
+    await deployer.deploy(PoolData, founderAddress, dsv.address, cad.address);
     await deployer.deploy(MCR);
     const tc = await deployer.deploy(TokenController);
     const tk = await deployer.deploy(NXMToken, founderAddress, INITIAL_SUPPLY);

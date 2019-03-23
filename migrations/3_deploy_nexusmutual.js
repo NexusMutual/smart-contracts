@@ -34,12 +34,7 @@ module.exports = function(deployer) {
     await deployer.deploy(PoolData, founderAddress, dsv.address);
     await deployer.deploy(MCR);
     const tc = await deployer.deploy(TokenController);
-    const tk = await deployer.deploy(
-      NXMToken,
-      tc.address,
-      founderAddress,
-      INITIAL_SUPPLY
-    );
+    const tk = await deployer.deploy(NXMToken, founderAddress, INITIAL_SUPPLY);
     await deployer.deploy(TokenData, founderAddress);
     await deployer.deploy(TokenFunctions);
     await deployer.deploy(Quotation);

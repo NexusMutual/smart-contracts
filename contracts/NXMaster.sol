@@ -27,6 +27,8 @@ import "./MemberRoles.sol";
 import "./TokenData.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
+import "./Quotation.sol";
+import "./TokenController.sol";
 import "./imports/proxy/OwnedUpgradeabilityProxy.sol";
 
 
@@ -54,6 +56,8 @@ contract NXMaster is Governed {
     TokenFunctions internal tf;
     Iupgradable internal up;
 
+
+    bool constructorCheck;
     address public owner;
     uint public pauseTime;
 
@@ -79,7 +83,7 @@ contract NXMaster is Governed {
         external  
     {
         require(checkIsAuthToGoverned(msg.sender));
-        require(_contractsName == "GV" || _contractsName == "MR" || _contractsName == "PC");
+        require(_contractsName == "GV" || _contractsName == "MR" || _contractsName == "PC" || _contractsName == "TC");
         _replaceImplementation(_contractsName, _contractsAddress);
     }
 
@@ -111,7 +115,30 @@ contract NXMaster is Governed {
     /// @dev upgrades a single contract
     function upgradeContract(bytes2 _contractsName, address _contractsAddress) public {
         require(checkIsAuthToGoverned(msg.sender));
-        // require(_contractsName == "");
+        require(_contractsName == "QT" || _contractsName == "TF" || _contractsName == "CL" || _contractsName == "CR" || _contractsName == "P1" || _contractsName == "P2" || _contractsName == "MC","Not upgradable contract");
+        if(_contractsName == "QT")
+        {
+            Quotation qt = Quotation(allContractVersions[versionDates.length - 1]["QT"]);
+            qt.transferAssetsToNewContract(_contractsAddress);
+
+
+        } else if(_contractsName == "CR") {
+
+            cr = ClaimsReward(allContractVersions[versionDates.length - 1]["CR"]);
+            cr.upgrade(_contractsAddress);
+            
+
+        } else if(_contractsName == "P1") {
+
+            Pool1 p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
+            p1.upgradeCapitalPool(_contractsAddress);
+
+        } else if(_contractsName == "P2") {
+
+            Pool2 p2 = Pool2(allContractVersions[versionDates.length - 1]["P2"]);
+            p2.upgradeInvestmentPool(_contractsAddress);
+
+        }
         allContractVersions[versionDates.length - 1][_contractsName] = _contractsAddress;
         changeMasterAddress(address(this));
         _changeAllAddress();
@@ -197,26 +224,32 @@ contract NXMaster is Governed {
     /// @dev Changes Master contract address
     function changeMasterAddress(address _masterAddress) public {
         if (_masterAddress != address(this)) {
-            require(msg.sender == owner, "Neither master nor owner");
+            require(checkIsAuthToGoverned(msg.sender), "Neither master nor Authorised");
         }
-        
+        address[] memory newConAdd = new address[](allContractNames.length);
         for (uint i = 0; i < allContractNames.length; i++) {
+            newConAdd[i] = allContractVersions[versionDates.length - 1][allContractNames[i]];
             if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
-                allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+                allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
                 up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
                 up.changeMasterAddress(_masterAddress);
             }
             if(allContractNames[i] == "MR" || 
-                    allContractNames[i] == "GV" || allContractNames[i] == "PC")
+                    allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")
                 _changeProxyOwnership(_masterAddress, allContractVersions[versionDates.length - 1][allContractNames[i]]);
+
             
+        }
+        NXMaster nxms = NXMaster(_masterAddress);
+        if (_masterAddress != address(this)) {
+            nxms.addNewVersion(newConAdd);
         }
         
         contractsActive[address(this)] = false;
         contractsActive[_masterAddress] = true;
        
     }
-
+    
     /// @dev Gets current version amd its master address
     /// @return versionNo Current version number that is active
     function getCurrentVersion() public view returns(uint versionNo) {
@@ -268,19 +301,22 @@ contract NXMaster is Governed {
 
     /// @dev Creates a new version of contract addresses
     /// @param _contractAddresses Array of contract addresses which will be generated
-    function addNewVersion(address[] _contractAddresses) public onlyOwner {
+    function addNewVersion(address[] _contractAddresses) public {
+
+        require((msg.sender == owner || checkIsAuthToGoverned(msg.sender)) && !constructorCheck);
+        constructorCheck = true;
 
         MemberRoles mr = MemberRoles(_contractAddresses[14]);   // shoud send proxy address for proxy contracts (if not 1st time deploying) 
         bool newMasterCheck = mr.nxMasterAddress() != address(0);
 
         for (uint i = 0; i < allContractNames.length; i++) {
             if ((allContractNames[i] == "MR" || allContractNames[i] == "GV" || 
-                allContractNames[i] == "PC") && versionDates.length == 1) {
+                allContractNames[i] == "PC" || allContractNames[i] == "TC") && versionDates.length == 1) {
                 if (newMasterCheck)
                     allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
                 else
                     _generateProxy(allContractNames[i], _contractAddresses[i]);
-            } else if (!(allContractNames[i] == "MR" || allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+            } else if (!(allContractNames[i] == "MR" || allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
                 allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
             } else {
                 allContractVersions[versionDates.length][allContractNames[i]] = 
@@ -289,13 +325,12 @@ contract NXMaster is Governed {
 
         }
 
-            
+       
         versionDates.push(now); //solhint-disable-line
-        
-            
         changeMasterAddress(address(this));
         _changeAllAddress();
-
+        TokenController tc = TokenController(getLatestAddress("TC"));
+        tc.changeOperator(getLatestAddress("TC"));
         
     }
 
@@ -315,11 +350,9 @@ contract NXMaster is Governed {
     function updateAddressParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
         
         if(code == "EVCALL"){
-
             _setEventCallerAddress(val);
 
         } else if(code == "MASTADD"){
-
             changeMasterAddress(val);
 
         }  
@@ -342,7 +375,7 @@ contract NXMaster is Governed {
         
     }
     
-    function updateOwnerParameters(bytes8 code, address val) public  {
+    function updateOwnerParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
         QuotationData qd;
         PoolData pd;
         if(code == "MSWALLET"){
@@ -481,7 +514,7 @@ contract NXMaster is Governed {
         if (versionDates.length < 3) {
             for (i = 0; i < allContractNames.length; i++) {
                 if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
-                    allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+                    allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
                     contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
                     up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
                     up.changeDependentContractAddress();
@@ -490,7 +523,7 @@ contract NXMaster is Governed {
         } else {
             for (i = 0; i < allContractNames.length; i++) {
                 if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
-                    allContractNames[i] == "GV" || allContractNames[i] == "PC")) {
+                    allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
                     contractsActive[allContractVersions[currentVersion - 1][allContractNames[i]]] = false;
                     contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
                     up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
@@ -521,5 +554,6 @@ contract NXMaster is Governed {
 
     function _setEventCallerAddress(address _add) internal {
         eventCallerAdd = _add;
+        _changeAllAddress();
     }
 }

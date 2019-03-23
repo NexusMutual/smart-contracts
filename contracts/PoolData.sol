@@ -97,7 +97,7 @@ contract PoolData is Iupgradable {
     uint public capReached;
     uint public capacityLimit;
     
-    constructor(address _notariseAdd, address _daiFeedAdd) public {
+    constructor(address _notariseAdd, address _daiFeedAdd, address _daiAdd) public {
         notariseMCR = _notariseAdd;
         daiFeedAddress = _daiFeedAdd;
         C = 5203349;
@@ -116,11 +116,11 @@ contract PoolData is Iupgradable {
         allCurrencies.push("ETH");
         allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6 * DECIMAL1E18, 0);
         allCurrencies.push("DAI");
-        allCurrencyAssets["DAI"] = CurrencyAssets(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359, 7 * DECIMAL1E18, 0);
+        allCurrencyAssets["DAI"] = CurrencyAssets(_daiAdd, 7 * DECIMAL1E18, 0);
         allInvestmentCurrencies.push("ETH");
         allInvestmentAssets["ETH"] = InvestmentAssets(address(0), true, 500, 5000, 18);
         allInvestmentCurrencies.push("DAI");
-        allInvestmentAssets["DAI"] = InvestmentAssets(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359, true, 500, 5000, 18);
+        allInvestmentAssets["DAI"] = InvestmentAssets(_daiAdd, true, 500, 5000, 18);
     }
 
     function setCapReached(uint val) external onlyInternal {

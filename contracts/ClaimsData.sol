@@ -66,7 +66,6 @@ contract ClaimsData is Iupgradable {
     }
 
     struct ClaimRewardStatus {
-        // string claimStatusDesc;
         uint percCA;
         uint percMV;
     }
@@ -92,6 +91,7 @@ contract ClaimsData is Iupgradable {
     mapping(address => uint[]) internal allClaimsByAddress;
     mapping(address => mapping(uint => uint)) internal userClaimVoteCA;
     mapping(address => mapping(uint => uint)) internal userClaimVoteMember;
+    mapping(address => uint) public userClaimVotePausedOn;
 
     uint internal claimPauseLastsubmit;
     uint internal claimStartVotingFirstIndex;
@@ -104,6 +104,7 @@ contract ClaimsData is Iupgradable {
     uint public minVoteThreshold;
     uint public maxVoteThreshold;
     uint public majorityConsensus;
+    uint public pauseDaysCA;
    
     event ClaimRaise(
         uint indexed coverId,
@@ -133,7 +134,8 @@ contract ClaimsData is Iupgradable {
         minVoteThreshold = 5;
         maxVoteThreshold = 10;
         majorityConsensus = 70;
-        addRewardIncentive();
+        pauseDaysCA = 3 days;
+        _addRewardIncentive();
     }
 
     /**
@@ -152,6 +154,11 @@ contract ClaimsData is Iupgradable {
     function setRewardDistributedIndexCA(address _voter, uint caIndex) external onlyInternal {
         voterVoteRewardReceived[_voter].lastCAvoteIndex = caIndex;
 
+    }
+
+    function setUserClaimVotePausedOn(address user) external {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        userClaimVotePausedOn[user] = now;
     }
 
     /**
@@ -491,6 +498,8 @@ contract ClaimsData is Iupgradable {
 
             _setMajorityConsensus(val);
 
+        } else if(code == "PCAD"){
+            _setPauseDaysCA(val);
         }
     
     }
@@ -529,6 +538,8 @@ contract ClaimsData is Iupgradable {
 
             val = majorityConsensus;
 
+        } else if(code == "PCAD"){
+            val = pauseDaysCA;
         }
     
     }
@@ -1173,7 +1184,7 @@ contract ClaimsData is Iupgradable {
         rewardStatus.push(ClaimRewardStatus(percCA, percMV));
     }
 
-    function addRewardIncentive() internal {
+    function _addRewardIncentive() internal {
         _pushStatus(0, 0); //0  Pending-Claim Assessor Vote
         _pushStatus(0, 0); //1 Pending-Claim Assessor Vote Denied, Pending Member Vote
         _pushStatus(0, 0); //2 Pending-CA Vote Threshold not Reached Accept, Pending Member Vote
@@ -1235,5 +1246,9 @@ contract ClaimsData is Iupgradable {
     function _setClaimDepositTime(uint _time) internal {
 
         claimDepositTime = _time;
+    }
+
+    function _setPauseDaysCA(uint val) internal {
+        pauseDaysCA = val;
     }
 }

@@ -171,14 +171,6 @@ contract NXMaster is Governed {
         return mr.checkRole(_add, uint(MemberRoles.Role.Member));
     }
 
-    ///@dev Changes owner of the contract.
-    ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
-    function _changeOwner(address to) internal {
-        MemberRoles mr = MemberRoles(getLatestAddress("MR"));
-        mr.swapOwner(to);
-        owner = to;
-    }
-
     function getEventCallerAddress() public view returns(address) {
         return eventCallerAdd;
     }
@@ -555,5 +547,13 @@ contract NXMaster is Governed {
     function _setEventCallerAddress(address _add) internal {
         eventCallerAdd = _add;
         _changeAllAddress();
+    }
+
+    ///@dev Changes owner of the contract.
+    ///     In future, in most places onlyOwner to be replaced by onlyAuthorizedToGovern
+    function _changeOwner(address to) internal {
+        MemberRoles mr = MemberRoles(getLatestAddress("MR"));
+        mr.swapOwner(to);
+        owner = to;
     }
 }

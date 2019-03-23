@@ -307,15 +307,6 @@ contract TokenFunctions is Iupgradable {
         emit BurnCATokens(claimid, _of, _value);
     }
 
-    /**
-     * @dev Change the address who can update GovBlocks member role.
-     * Called when updating to a new version.
-     * Need to remove onlyOwner to onlyInternal and update automatically at version change
-     */
-    function changeCanAddMemberAddress(address _newAdd) public onlyOwner {
-        mr.changeAuthorized(uint(MemberRoles.Role.Member), _newAdd);
-    }
-
     function lockCN(
         uint coverNoteAmount,
         uint coverPeriod,
@@ -329,18 +320,6 @@ contract TokenFunctions is Iupgradable {
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
         td.setDepositCNAmount(coverId, coverNoteAmount);
         tc.lockOf(_of, reason, coverNoteAmount, validity);
-    }
-
-    /**
-     * @dev In case of new NXMToken we have to add all members in Whitelist again. 
-     */ 
-    function addAllMembersInWhiteList() public onlyOwner {
-        address[] memory allMemebrs = new address[](mr.numberOfMembers(uint(MemberRoles.Role.Member)));
-        (, allMemebrs) = mr.members(uint(MemberRoles.Role.Member));
-        for (uint i = 0; i < allMemebrs.length; i++) {
-            tc.addToWhitelist(allMemebrs[i]);
-        }
-
     }
 
     /**

@@ -219,7 +219,8 @@ contract Claims is Iupgradable {
      * @param verdict 1 for Accept,-1 for Deny.
      */ 
     function submitCAVote(uint claimId, int8 verdict) public isMemberAndcheckPause {
-        require(checkVoteClosing(claimId) != 1);   
+        require(checkVoteClosing(claimId) != 1); 
+        require(cd.userClaimVotePausedOn(msg.sender).add(cd.pauseDaysCA()) < now);  
         uint tokens = tc.tokensLockedAtTime(msg.sender, "CLA", now.add(cd.claimDepositTime()));
         require(tokens > 0);
         uint stat;

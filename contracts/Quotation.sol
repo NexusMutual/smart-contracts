@@ -259,85 +259,13 @@ contract Quotation is Iupgradable {
         qd.setRefundEligible(msg.sender, true);
     }
 
-    function kycTrigger(bool status, address _add) public checkPause {
-
-        uint holdedCoverLen = qd.getUserHoldedCoverLength(_add) - 1;
-        uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
-        address userAdd;
-        address scAddress;
-        bytes4 coverCurr;
-        uint16 coverPeriod;
-        uint[]  memory coverDetails = new uint[](4);
-        ERC20 erc20;
-
-        (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
-        (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
-        require(qd.refundEligible(userAdd));
-        qd.setRefundEligible(userAdd, false);
-        uint joinFee = td.joiningFee();
-        if (status) {
-            require(msg.sender == qd.kycAuthAddress());
-            mr.payJoiningFee.value(joinFee)(userAdd);
-            if (coverDetails[3] > now) { 
-                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
-                address poolAdd = ms.getLatestAddress("P1");
-                if (coverCurr == "ETH") {
-                    poolAdd.transfer(coverDetails[1]);
-                } else {
-                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
-                    erc20.transfer(poolAdd, coverDetails[1]);
-                }
-                emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
-                _makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
-
-            } else {
-                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPassNoCover));
-                if (coverCurr == "ETH") {
-                    userAdd.transfer(coverDetails[1]);
-                } else {
-                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
-                    erc20.transfer(userAdd, coverDetails[1]);
-                }
-                emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
-            }
-        } else {
-            qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
-            uint totalRefund = joinFee;
-            if (coverCurr == "ETH") {
-                totalRefund = coverDetails[1] + joinFee;
-            } else {
-                erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
-                erc20.transfer(userAdd, coverDetails[1]);
-            }
-            userAdd.transfer(totalRefund);
-            emit RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
-        }
-              
-    }
-
     function fullRefund() public checkPause {
-        kycTrigger(false, msg.sender);
+        _kycTrigger(false, msg.sender);
     }
 
-    /**
-     * @dev Transfers back the given amount to the owner.
-     */  
-    function transferBackAssets() public onlyOwner {
-        uint amount = address(this).balance;
-        address walletAdd = td.walletAddress();
-        ERC20 erc20;
-        if (amount > 0) {
-            walletAdd.transfer(amount);   
-        }
-        uint currAssetLen = pd.getAllCurrenciesLen();
-        for (uint i = 1; i < currAssetLen; i++) {
-            bytes4 currName = pd.getCurrenciesByIndex(i);
-            address currAddr = pd.getCurrencyAssetAddress(currName);
-            erc20 = ERC20(currAddr); //solhint-disable-line
-            if (erc20.balanceOf(this) > 0) {
-                erc20.transfer(walletAdd, erc20.balanceOf(this));
-            }
-        }
+    function kycCall(bool status, address _add) public checkPause {
+        require(msg.sender == qd.kycAuthAddress());
+        _kycTrigger(status, _add);
     }
 
     /**
@@ -427,5 +355,60 @@ contract Quotation is Iupgradable {
         (, , _add, coverCurr, , ) = qd.getCoverDetailsByCoverID1(_cid);
         qd.subFromTotalSumAssured(coverCurr, _amount);        
         qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
+    }
+
+    function _kycTrigger(bool status, address _add) internal {
+
+        uint holdedCoverLen = qd.getUserHoldedCoverLength(_add) - 1;
+        uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
+        address userAdd;
+        address scAddress;
+        bytes4 coverCurr;
+        uint16 coverPeriod;
+        uint[]  memory coverDetails = new uint[](4);
+        ERC20 erc20;
+
+        (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
+        (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
+        require(qd.refundEligible(userAdd));
+        qd.setRefundEligible(userAdd, false);
+        uint joinFee = td.joiningFee();
+        if (status) {
+            mr.payJoiningFee.value(joinFee)(userAdd);
+            if (coverDetails[3] > now) { 
+                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
+                address poolAdd = ms.getLatestAddress("P1");
+                if (coverCurr == "ETH") {
+                    poolAdd.transfer(coverDetails[1]);
+                } else {
+                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                    erc20.transfer(poolAdd, coverDetails[1]);
+                }
+                emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
+                _makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
+
+            } else {
+                qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPassNoCover));
+                if (coverCurr == "ETH") {
+                    userAdd.transfer(coverDetails[1]);
+                } else {
+                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                    erc20.transfer(userAdd, coverDetails[1]);
+                }
+                emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
+            }
+        } else {
+            qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
+            uint totalRefund = joinFee;
+            if (coverCurr == "ETH") {
+                totalRefund = coverDetails[1] + joinFee;
+            } else {
+                erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                erc20.transfer(userAdd, coverDetails[1]);
+            }
+            userAdd.transfer(totalRefund);
+            emit RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");
+        }
+              
     }
 }

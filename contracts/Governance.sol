@@ -335,7 +335,7 @@ contract Governance is IGovernance, Iupgradable {
             // finalVerdict = allProposalData[_proposals[i]].finalVerdict;
             require(
                 allProposalData[_proposals[i]].propStatus > uint(ProposalStatus.VotingStarted),
-                "Reward can be claimed only after the proposal is closed"
+                "Proposal not closed"
             );
             if ((allVotes[voteId].dateAdd > (lastUpd + tokenHoldingTime) || leader == _memberAddress) && 
                 allVotes[voteId].voter == leader && proposalVoteTally[_proposals[i]].voters > 0) {
@@ -476,6 +476,9 @@ contract Governance is IGovernance, Iupgradable {
 
     function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
 
+        require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)));
+        require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.Owner)));
+
         //Check if given address is not a follower
         require(allDelegation[followerDelegation[_add]].leader == address(0));
 
@@ -489,9 +492,6 @@ contract Governance is IGovernance, Iupgradable {
             uint memberLastVoteId = SafeMath.sub(allVotesByMember[msg.sender].length, 1);
             require(SafeMath.add(allVotes[allVotesByMember[msg.sender][memberLastVoteId]].dateAdd, tokenHoldingTime) < now);
         }
-
-        if (memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)))
-            require(memberRole.checkRole(_add, uint(MemberRoles.Role.AdvisoryBoard)));
 
         // require(getPendingReward(msg.sender) == 0);
 
@@ -583,7 +583,7 @@ contract Governance is IGovernance, Iupgradable {
     function canCloseProposal(uint _proposalId) 
         public 
         view 
-        returns(uint closeValue)
+        returns(uint)
     {
         uint dateUpdate;
         uint pStatus;
@@ -603,17 +603,17 @@ contract Governance is IGovernance, Iupgradable {
                 if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(numberOfMembers) >= majority  
                 || totalABVoted == numberOfMembers || dateUpdate.add(_closingTime) <= now) {
 
-                    closeValue = 1;
+                    return 1;
                 }
             } else {
                 if (numberOfMembers == proposalVoteTally[_proposalId].voters 
                 || dateUpdate.add(_closingTime) <= now)
-                    closeValue = 1;
+                    return  1;
             }
         } else if (pStatus > uint(ProposalStatus.VotingStarted)) {
-            closeValue = 2;
+            return  2;
         } else {
-            closeValue = 0;
+            return  0;
         }
     }
 
@@ -717,7 +717,7 @@ contract Governance is IGovernance, Iupgradable {
         require((delegationId == 0) || (delegationId > 0 && allDelegation[delegationId].leader == address(0) && 
         _checkLastUpd(allDelegation[delegationId].lastUpd)));
 
-        require(memberRole.checkRole(msg.sender, mrSequence),'Not in Memebr Sequence');
+        require(memberRole.checkRole(msg.sender, mrSequence),'Not Authorized');
         uint totalVotes = allVotes.length;
 
         allVotesByMember[msg.sender].push(totalVotes);
@@ -942,7 +942,7 @@ contract Governance is IGovernance, Iupgradable {
 
     function _openProposalForVoting(uint _proposalId) internal {
 
-        require(allProposalData[_proposalId].category != 0, "Categorize the proposal");        
+        require(allProposalData[_proposalId].category != 0, "Proposal not categorized");        
         _updateProposalStatus(_proposalId, uint(ProposalStatus.VotingStarted));
         uint closingTime;
         (, , , , , closingTime, ) = proposalCategory.category(allProposalData[_proposalId].category);

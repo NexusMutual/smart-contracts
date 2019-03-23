@@ -67,34 +67,45 @@ contract(
       pc = await ProposalCategory.at(address);
       address = await nxms.getLatestAddress('MR');
       mr = await MemberRoles.at(address);
-      tc = await TokenController.deployed();
+      tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+      // tc = await TokenController.deployed();
       pd = await PoolData.deployed();
       await mr.addInitialABMembers([ab2, ab3, ab4, ab5]);
       await nxmToken.approve(tc.address, maxAllowance);
       let bal = await nxmToken.balanceOf(ab1);
-      await tc.burnFrom(ab1, 1500000 * 1e18);
+      // await tc.burnFrom(ab1, 1100000 * 1e18);
       // await nxmToken.transfer(notMember, 267600*1e18);
       let balances = [
-        24000,
-        16000,
-        8000,
-        8000,
-        8000,
-        400,
-        1200,
-        2000,
-        24000,
-        20000,
-        800,
+        90000,
+        60000,
+        30000,
+        30000,
+        30000,
+        1500,
+        4500,
+        7500,
+        90000,
+        75000,
+        3000,
         0,
         0,
-        20000,
-        40000,
-        64000,
-        100000,
-        63600
+        75000,
+        150000,
+        240000,
+        375000,
+        238500
       ];
-      for (let i = 0; i < 18; i++) {
+      await nxmToken.approve(cr.address, maxAllowance, {
+        from: web3.eth.accounts[0]
+      });
+      await mr.payJoiningFee(web3.eth.accounts[0], {
+        value: 2000000000000000,
+        from: web3.eth.accounts[0]
+      });
+      await mr.kycVerdict(web3.eth.accounts[0], true, {
+        from: web3.eth.accounts[0]
+      });
+      for (let i = 1; i < 18; i++) {
         await nxmToken.approve(cr.address, maxAllowance, {
           from: web3.eth.accounts[i]
         });
@@ -105,9 +116,9 @@ contract(
         await mr.kycVerdict(web3.eth.accounts[i], true, {
           from: web3.eth.accounts[0]
         });
-        await tc.mint(web3.eth.accounts[i], balances[i] * 1e18);
+        await nxmToken.transfer(web3.eth.accounts[i], balances[i] * 1e18);
       }
-      await gv.delegateVote(ab1, { from: ab2 });
+      // await gv.delegateVote(ab1, { from: ab2 });
       await gv.delegateVote(ab1, { from: mem1 });
       await gv.delegateVote(ab1, { from: mem2 });
       await gv.delegateVote(ab3, { from: mem3 });
@@ -129,7 +140,7 @@ contract(
                     'Proposal',
                     'Proposal',
                     'Proposal',
-                    10,
+                    11,
                     'Changes to pricing model',
                     '0x'
                   )
@@ -145,7 +156,7 @@ contract(
                 assert.equal(proposalsStatus[1].toNumber(), 2);
               });
               it('17.2 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 10, 130 * 1e18);
+                await gv.categorizeProposal(pId, 11, 130 * 1e18);
                 let proposalsStatus = await gv.getStatusOfProposals();
                 assert.equal(proposalsStatus[2].toNumber(), 1);
               });
@@ -164,7 +175,8 @@ contract(
               it('17.4 should follow voting process', async function() {
                 await gv.submitVote(pId, 1, { from: ab1 });
                 let voteWeight = await gv.voteTallyData(pId, 1);
-                assert.equal(voteWeight[1].toNumber(), 2);
+                assert.equal(voteWeight[1].toNumber(), 1);
+                await gv.submitVote(pId, 1, { from: ab2 });
                 await gv.submitVote(pId, 1, { from: ab3 });
                 await gv.submitVote(pId, 1, { from: ab4 });
                 await gv.submitVote(pId, 1, { from: ab5 });
@@ -218,7 +230,7 @@ contract(
                 );
               });
               it('17.11 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 11, 130 * 1e18);
+                await gv.categorizeProposal(pId, 12, 130 * 1e18);
               });
               it('17.12 Should open for voting', async function() {
                 let actionHash = encode(
@@ -234,6 +246,7 @@ contract(
               });
               it('17.13 should follow voting process', async function() {
                 await gv.submitVote(pId, 1, { from: ab1 });
+                await gv.submitVote(pId, 1, { from: ab2 });
                 await gv.submitVote(pId, 1, { from: ab3 });
                 await gv.submitVote(pId, 1, { from: ab4 });
                 await gv.submitVote(pId, 1, { from: ab5 });
@@ -289,7 +302,7 @@ contract(
                 );
               });
               it('17.20 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 11, 130 * 1e18);
+                await gv.categorizeProposal(pId, 12, 130 * 1e18);
               });
               it('17.21 Should open for voting', async function() {
                 let actionHash = encode(
@@ -305,6 +318,7 @@ contract(
               });
               it('17.22 should follow voting process', async function() {
                 await gv.submitVote(pId, 1, { from: ab1 });
+                await gv.submitVote(pId, 1, { from: ab2 });
                 await gv.submitVote(pId, 1, { from: ab3 });
                 await gv.submitVote(pId, 1, { from: ab4 });
                 await gv.submitVote(pId, 1, { from: ab5 });
@@ -356,7 +370,7 @@ contract(
               await gv.createProposal('Proposal3', 'Proposal3', 'Proposal3', 0);
             });
             it('17.29 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 11, 130 * 1e18);
+              await gv.categorizeProposal(pId, 12, 130 * 1e18);
             });
             it('17.30 Should open for voting', async function() {
               let actionHash = encode(
@@ -372,6 +386,7 @@ contract(
             });
             it('17.31 should follow voting process', async function() {
               await gv.submitVote(pId, 0, { from: ab1 });
+              await gv.submitVote(pId, 0, { from: ab2 });
               await gv.submitVote(pId, 1, { from: ab3 });
               await gv.submitVote(pId, 1, { from: ab4 });
               await gv.submitVote(pId, 0, { from: ab5 });
@@ -421,7 +436,7 @@ contract(
                   );
                 });
                 it('17.37 Should whitelist proposal and set Incentives', async function() {
-                  await gv.categorizeProposal(pId, 9, 140 * 1e18);
+                  await gv.categorizeProposal(pId, 10, 140 * 1e18);
                 });
                 it('17.38 Should open for voting', async function() {
                   await gv.submitProposalWithSolution(
@@ -432,6 +447,7 @@ contract(
                 });
                 it('17.39 Should follow voting process', async function() {
                   await gv.submitVote(pId, 1, { from: ab1 });
+                  await gv.submitVote(pId, 1, { from: ab2 });
                   await gv.submitVote(pId, 1, { from: ab3 });
                   await gv.submitVote(pId, 1, { from: mem7 });
                 });
@@ -474,7 +490,7 @@ contract(
                   );
                 });
                 it('17.45 Should whitelist proposal and set Incentives', async function() {
-                  await gv.categorizeProposal(pId, 14, 140 * 1e18);
+                  await gv.categorizeProposal(pId, 15, 140 * 1e18);
                 });
                 it('17.46 Should open for voting', async function() {
                   let actionHash = encode(
@@ -537,7 +553,7 @@ contract(
                 );
               });
               it('17.54 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 9, 140 * 1e18);
+                await gv.categorizeProposal(pId, 10, 140 * 1e18);
               });
               it('17.55 Should open for voting', async function() {
                 await gv.submitProposalWithSolution(
@@ -548,6 +564,7 @@ contract(
               });
               it('17.56 should follow voting process', async function() {
                 await gv.submitVote(pId, 1, { from: ab1 });
+                await gv.submitVote(pId, 1, { from: ab2 });
                 await gv.submitVote(pId, 1, { from: ab3 });
                 await gv.submitVote(pId, 1, { from: mem7 });
               });
@@ -588,7 +605,7 @@ contract(
             );
           });
           it('17.62 Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 9, 0);
+            await gv.categorizeProposal(pId, 10, 0);
           });
           it('17.63 Should not close proposal before opening for vote', async function() {
             let canClose = await gv.canCloseProposal(pId);
@@ -650,6 +667,7 @@ contract(
           });
           it('17.70 should follow voting process', async function() {
             await gv.submitVote(pId, 1, { from: ab1 });
+            await gv.submitVote(pId, 1, { from: ab2 });
             assert.equal(await gv.canCloseProposal(pId), 0);
             await gv.submitVote(pId, 0, { from: ab3 });
             await gv.submitVote(pId, 1, { from: ab4 });
@@ -711,6 +729,7 @@ contract(
           });
           it('17.78 Should follow voting process', async function() {
             await gv.submitVote(pId, 1, { from: ab1 });
+            await gv.submitVote(pId, 1, { from: ab2 });
             await gv.submitVote(pId, 0, { from: ab3 });
           });
           it('17.79 Should close vote', async function() {
@@ -760,7 +779,7 @@ contract(
               'Proposal9',
               'Proposal9',
               'Proposal9',
-              15,
+              16,
               'Swap AB Member',
               actionHash,
               { from: mem1 }
@@ -814,7 +833,7 @@ contract(
               'Proposal9',
               'Proposal9',
               'Proposal9',
-              15,
+              16,
               'Swap AB Member',
               actionHash,
               { from: mem1 }
@@ -859,7 +878,7 @@ contract(
               'Proposal11',
               'Proposal11',
               'Proposal11',
-              15,
+              16,
               'Swap AB Member',
               actionHash,
               { from: mem1 }
@@ -893,7 +912,7 @@ contract(
               await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
             });
             it('17.100 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 18, 160 * 1e18);
+              await gv.categorizeProposal(pId, 19, 160 * 1e18);
             });
             it('17.101 Should open for voting', async function() {
               await gv.submitProposalWithSolution(
@@ -904,6 +923,7 @@ contract(
             });
             it('17.102 should follow voting process', async function() {
               await gv.submitVote(pId, 1, { from: ab1 });
+              await gv.submitVote(pId, 1, { from: ab2 });
               await gv.submitVote(pId, 1, { from: ab3 });
               await gv.submitVote(pId, 1, { from: ab4 });
               await gv.submitVote(pId, 1, { from: ab5 });
@@ -956,11 +976,12 @@ contract(
                 actionHash
               );
               await gv.submitVote(pId, 1, { from: ab1 });
+              await gv.submitVote(pId, 1, { from: ab2 });
               await gv.submitVote(pId, 1, { from: ab3 });
               await gv.submitVote(pId, 1, { from: ab4 });
               await gv.submitVote(pId, 1, { from: ab5 });
               await gv.closeProposal(pId);
-              assert.equal((await pc.totalCategories()).toNumber(), 20);
+              assert.equal((await pc.totalCategories()).toNumber(), 30);
             });
             it('17.107 Should create proposal', async function() {
               await increaseTime(604800);
@@ -974,7 +995,7 @@ contract(
               );
             });
             it('17.108 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 19, 160 * 1e18);
+              await gv.categorizeProposal(pId, 29, 160 * 1e18);
             });
             it('17.109 Should open for voting', async function() {
               let actionHash = encode(
@@ -990,6 +1011,7 @@ contract(
             });
             it('17.110 should follow voting process', async function() {
               await gv.submitVote(pId, 1, { from: ab1 });
+              await gv.submitVote(pId, 1, { from: ab2 });
               await gv.submitVote(pId, 1, { from: ab3 });
               await gv.submitVote(pId, 1, { from: ab4 });
               await gv.submitVote(pId, 1, { from: ab5 });
@@ -1021,7 +1043,7 @@ contract(
             await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
           });
           it('17.114 Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 18, 150 * 1e18);
+            await gv.categorizeProposal(pId, 19, 150 * 1e18);
           });
           it('17.115 Should open for voting', async function() {
             await gv.submitProposalWithSolution(
@@ -1032,6 +1054,7 @@ contract(
           });
           it('17.116 should follow voting process', async function() {
             await gv.submitVote(pId, 1, { from: ab1 });
+            await gv.submitVote(pId, 1, { from: ab2 });
             await gv.submitVote(pId, 1, { from: ab3 });
             await gv.submitVote(pId, 1, { from: ab4 });
             await gv.submitVote(pId, 1, { from: ab5 });

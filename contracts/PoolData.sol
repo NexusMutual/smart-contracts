@@ -213,11 +213,11 @@ contract PoolData is Iupgradable {
         require(ms.checkIsAuthToGoverned(msg.sender));
         if(code == "MCRTIM")
         {
-            _changeMCRTime(val);
+            _changeMCRTime(val * 1 hours);
 
         } else if(code == "MCRFTIM"){
 
-            _changeMCRFailTime(val);
+            _changeMCRFailTime(val * 1 hours);
 
         } else if(code == "MCRMIN"){
 
@@ -237,15 +237,15 @@ contract PoolData is Iupgradable {
 
         } else if(code == "IMRATET"){
 
-            _changeIARatesTime(val);
+            _changeIARatesTime(val * 1 hours);
 
         } else if(code == "IMUNIDL"){
 
-            _changeUniswapDeadlineTime(val);
+            _changeUniswapDeadlineTime(val * 1 minutes);
 
         } else if(code == "IMLIQT"){
 
-            _changeliquidityTradeCallbackTime(val);
+            _changeliquidityTradeCallbackTime(val * 1 hours);
 
         } else if(code == "IMETHVL"){
 
@@ -266,11 +266,11 @@ contract PoolData is Iupgradable {
         codeVal = code;
         if(code == "MCRTIM")
         {
-            val = mcrTime;
+            val = mcrTime / (1 hours);
 
         } else if(code == "MCRFTIM"){
 
-            val = mcrFailTime;
+            val = mcrFailTime / (1 hours);
 
         } else if(code == "MCRMIN"){
 
@@ -290,15 +290,15 @@ contract PoolData is Iupgradable {
 
         } else if(code == "IMRATET"){
 
-            val = iaRatesTime;
+            val = iaRatesTime / (1 hours);
 
         } else if(code == "IMUNIDL"){
 
-            val = uniswapDeadline;
+            val = uniswapDeadline / (1 minutes);
 
         } else if(code == "IMLIQT"){
 
-            val = liquidityTradeCallbackTime;
+            val = liquidityTradeCallbackTime / (1 hours);
 
         } else if(code == "IMETHVL"){
 

@@ -574,19 +574,19 @@ contract TokenData is Iupgradable {
 
       } else if(code == "CABOOKT"){
 
-        _changeBookTime(val);
+        _changeBookTime(val * 1 hours);
 
         } else if(code == "CALOCKT"){
 
-        _changelockCADays(val);
+        _changelockCADays(val * 1 days);
 
         } else if(code == "MVLOCKT"){
 
-        _changelockMVDays(val);
+        _changelockMVDays(val * 1 days);
 
         } else if(code == "QUOLOCKT"){
 
-            _setLockTokenTimeAfterCoverExp(val);
+            _setLockTokenTimeAfterCoverExp(val * 1 days);
 
         } else if(code == "JOINFEE"){
 
@@ -619,19 +619,19 @@ contract TokenData is Iupgradable {
 
       } else if(code == "CABOOKT"){
 
-            val = bookTime;
+            val = bookTime / (1 hours);
 
         } else if(code == "CALOCKT"){
 
-            val = lockCADays;
+            val = lockCADays / (1 days);
 
         } else if(code == "MVLOCKT"){
 
-            val = lockMVDays;
+            val = lockMVDays / (1 days);
 
         } else if(code == "QUOLOCKT"){
 
-            val = lockTokenTimeAfterCoverExp;
+            val = lockTokenTimeAfterCoverExp / (1 days);
 
         } else if(code == "JOINFEE"){
 

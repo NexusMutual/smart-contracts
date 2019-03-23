@@ -468,19 +468,19 @@ contract ClaimsData is Iupgradable {
         require(ms.checkIsAuthToGoverned(msg.sender));
         if(code == "CAMAXVT")
         {
-            _setMaxVotingTime(val);
+            _setMaxVotingTime(val * 1 hours);
 
         } else if(code == "CAMINVT"){
 
-            _setMinVotingTime(val);
+            _setMinVotingTime(val * 1 hours);
 
         } else if(code == "CAPRETRY"){
 
-            _setPayoutRetryTime(val);
+            _setPayoutRetryTime(val * 1 hours);
 
         } else if(code == "CADEPT"){
 
-            _setClaimDepositTime(val);
+            _setClaimDepositTime(val * 1 days);
 
         } else if(code == "CAREWPER"){
 
@@ -498,8 +498,8 @@ contract ClaimsData is Iupgradable {
 
             _setMajorityConsensus(val);
 
-        } else if(code == "PCAD"){
-            _setPauseDaysCA(val);
+        } else if(code == "CAPAUSET"){
+            _setPauseDaysCA(val * 1 days);
         }
     
     }
@@ -508,19 +508,19 @@ contract ClaimsData is Iupgradable {
         codeVal = code;
         if(code == "CAMAXVT")
         {
-            val = maxVotingTime;
+            val = maxVotingTime / (1 hours);
 
         } else if(code == "CAMINVT"){
 
-            val = minVotingTime;
+            val = minVotingTime / (1 hours);
 
         } else if(code == "CAPRETRY"){
 
-            val = payoutRetryTime;
+            val = payoutRetryTime / (1 hours);
 
         } else if(code == "CADEPT"){
 
-            val = claimDepositTime;
+            val = claimDepositTime / (1 days);
 
         } else if(code == "CAREWPER"){
 
@@ -538,8 +538,8 @@ contract ClaimsData is Iupgradable {
 
             val = majorityConsensus;
 
-        } else if(code == "PCAD"){
-            val = pauseDaysCA;
+        } else if(code == "CAPAUSET"){
+            val = pauseDaysCA / (1 days);
         }
     
     }

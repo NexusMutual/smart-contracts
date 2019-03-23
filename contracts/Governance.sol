@@ -354,13 +354,13 @@ contract Governance is IGovernance, Iupgradable {
         require(ms.checkIsAuthToGoverned(msg.sender));
         if(code == "GOVHOLD")
         {
-            _changeTokenHoldingTime(val);
+            _changeTokenHoldingTime(val * 1 days);
         } else if(code == "MAXAB"){
 
             mr.changeMaxABCount(val);
 
         } else if(code == "EPTIME") {
-            ms.updatePauseTime(val);
+            ms.updatePauseTime(val * 1 days);
 
         }
 
@@ -372,14 +372,14 @@ contract Governance is IGovernance, Iupgradable {
 
         if(code == "GOVHOLD")
         {
-            val = tokenHoldingTime;
+            val = tokenHoldingTime / (1 days);
 
         } else if(code == "MAXAB"){
 
             val =  mr.maxABCount();
 
         } else if(code == "EPTIME") {
-            val = ms.pauseTime();
+            val = ms.pauseTime() / (1 days);
 
         }
 

@@ -89,7 +89,6 @@ contract('Claim: Assessment', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     td = await TokenData.deployed();
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
@@ -100,6 +99,7 @@ contract('Claim: Assessment', function([
     qt = await Quotation.deployed();
     mcr = await MCR.deployed();
     nxms = await NXMaster.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
@@ -227,9 +227,6 @@ contract('Claim: Assessment', function([
 
             APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             await p2.delegateCallBack(APIID);
-            // console.log(await pd.getApiIdTypeOf(APIID));
-
-            // await cr.changeClaimStatus(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(6);
           });
@@ -241,6 +238,7 @@ contract('Claim: Assessment', function([
         describe('All CAs accept claim', function() {
           let initialStakedTokens1;
           let initialStakedTokens2;
+          let priceinEther;
           before(async function() {
             const now = await latestTime();
             await increaseTimeTo(BOOK_TIME.plus(now));
@@ -279,31 +277,13 @@ contract('Claim: Assessment', function([
           });
           it('8.11 orcalise call should be able to change claim status', async function() {
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+            priceinEther = await mcr.calculateTokenPrice(CA_ETH);
             await P1.__callback(apiid, '');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(7);
           });
           it('8.12 voting should be closed', async function() {
             (await cl.checkVoteClosing(claimId)).should.be.bignumber.equal(-1);
-          });
-          it('8.13 should burn stakers staked tokens', async function() {
-            const priceinEther = await mcr.calculateTokenPrice(CA_ETH);
-            let burnedAmount = ether(1).mul(ether(1).div(priceinEther));
-            if (burnedAmount > initialStakedTokens1)
-              burnedAmount = initialStakedTokens1;
-            (await tf.getStakerLockedTokensOnSmartContract(
-              staker1,
-              smartConAdd,
-              0
-            ))
-              .div(ether(1))
-              .toFixed(4)
-              .should.be.bignumber.equal(
-                initialStakedTokens1
-                  .minus(burnedAmount)
-                  .div(ether(1))
-                  .toFixed(4)
-              );
           });
         });
       });
@@ -533,7 +513,7 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
     });
     it('8.28 Payout fails', async function() {
-      await P1.transferFundToOtherAdd(member2, 7000000000000000000);
+      await P1.upgradeCapitalPool(member2);
       let clid = (await cd.actualClaimLength()) - 1;
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(apiid, '');
@@ -541,7 +521,7 @@ contract('Claim: Assessment', function([
       (12).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.29 Retry Payout 60 times and should not take action from 61st attempt', async function() {
-      // await P1.upgradeCapitalPool(member2);
+      await P1.upgradeCapitalPool(member2);
       let apiid;
       let clid = (await cd.actualClaimLength()) - 1;
       let payOutRetry = await cd.payoutRetryTime();
@@ -549,11 +529,10 @@ contract('Claim: Assessment', function([
         let now = await latestTime();
         await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
         check = await cl.checkVoteClosing(clid);
-        // console.log(i);
-        // console.log(await cd.getClaimState12Count(clid));
+
         if (i != 60) parseFloat(check).should.be.equal(1);
+        let cStatus = await cd.getClaimStatusNumber(clid);
         apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-        console.log(await pd.getApiIdTypeOf(apiid));
         await P1.__callback(apiid, '');
       }
       check = await cl.checkVoteClosing(clid);
@@ -562,7 +541,6 @@ contract('Claim: Assessment', function([
       (13).should.be.equal(parseFloat(cStatus[1]));
       await P1.sendTransaction({ from: owner, value: 10 * 1e18 });
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      console.log(await pd.getApiIdTypeOf(apiid));
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (13).should.be.equal(parseFloat(cStatus[1]));
@@ -591,13 +569,11 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1);
       cStatus = await cd.getClaimStatusNumber(clid);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      console.log(await pd.getApiIdTypeOf(apiid));
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
       await cad.transfer(P1.address, 20 * 1e18);
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      console.log(await pd.getApiIdTypeOf(apiid));
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (14).should.be.equal(parseFloat(cStatus[1]));
@@ -646,7 +622,6 @@ contract('Claim: Assessment', function([
       let maxVoteTime = await cd.maxVotingTime();
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      console.log(await pd.getApiIdTypeOf(apiid));
       await P1.__callback(apiid, '');
       now = await latestTime();
       let minVoteTime = await cd.minVotingTime();

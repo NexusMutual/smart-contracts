@@ -39,9 +39,9 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     P1 = await Pool1.deployed();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     td = await TokenData.deployed();
     nxms = await NXMaster.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     cr = await ClaimsReward.deployed();
     await mr.addMembersBeforeLaunch([], []);

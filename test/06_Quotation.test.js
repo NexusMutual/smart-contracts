@@ -107,7 +107,6 @@ contract('Quotation', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     td = await TokenData.deployed();
     cr = await ClaimsReward.deployed();
     qd = await QuotationDataMock.deployed();
@@ -118,6 +117,7 @@ contract('Quotation', function([
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
     nxms = await NXMaster.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -819,7 +819,7 @@ contract('Quotation', function([
             )
           );
           let hcl = await qd.getUserHoldedCoverLength(notMember);
-          await qt.kycTrigger(false, notMember);
+          await qt.kycVerdict(false, notMember);
         });
       });
       describe('if want to join membership', function() {
@@ -840,7 +840,7 @@ contract('Quotation', function([
           );
           let holdedId = await qt.getRecentHoldedCoverIdStatus(newMember1);
           holdedId.should.be.bignumber.above(0);
-          await qt.kycTrigger(true, newMember1);
+          await qt.kycVerdict(true, newMember1);
         });
         it('6.32 should be able to join membership and purchase cover with DAI', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
@@ -861,7 +861,7 @@ contract('Quotation', function([
             { from: newMember2, value: fee }
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
-          await qt.kycTrigger(true, newMember2);
+          await qt.kycVerdict(true, newMember2);
         });
         it('6.33 should refund full amount if user aks (DAI)', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
@@ -904,7 +904,7 @@ contract('Quotation', function([
           const hcid = await qd.getUserHoldedCoverByIndex(newMember3, 0);
           await assertRevert(qt.fullRefund({ from: owner }));
           await qt.fullRefund({ from: newMember3 });
-          await assertRevert(qt.kycTrigger(true, newMember3));
+          await assertRevert(qt.kycVerdict(true, newMember3));
         });
 
         it('6.34.2 should revert if wallet address is not set', async function() {
@@ -915,7 +915,7 @@ contract('Quotation', function([
             'MSWALLET',
             nullAddress
           );
-          await gvProp(27, actionHash, oldMR, oldGv, 3);
+          await gvProp(28, actionHash, oldMR, oldGv, 3);
           (await td.walletAddress()).should.be.equal(nullAddress);
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
             from: newMember5
@@ -931,13 +931,13 @@ contract('Quotation', function([
             vrs[2],
             { from: newMember5, value: totalFee }
           );
-          await assertRevert(qt.kycTrigger(true, newMember5));
+          await assertRevert(qt.kycVerdict(true, newMember5));
           actionHash = encode(
             'updateOwnerParameters(bytes8,address)',
             'MSWALLET',
             owner
           );
-          await gvProp(27, actionHash, oldMR, oldGv, 3);
+          await gvProp(28, actionHash, oldMR, oldGv, 3);
           (await td.walletAddress()).should.be.equal(owner);
         });
 
@@ -960,7 +960,7 @@ contract('Quotation', function([
           const newCoverDetails = coverDetails.slice();
           newCoverDetails[3] = (await latestTime()) - 3;
           await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          await qt.kycTrigger(true, newMember4);
+          await qt.kycVerdict(true, newMember4);
         });
 
         it('6.36 should revert if quote validity expires', async function() {
@@ -1014,7 +1014,7 @@ contract('Quotation', function([
           const newCoverDetails = coverDetailsDai.slice();
           newCoverDetails[3] = (await latestTime()) - 3;
           await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          await qt.kycTrigger(true, notMember);
+          await qt.kycVerdict(true, notMember);
         });
       });
     });
@@ -1060,55 +1060,34 @@ contract('Quotation', function([
     });
   });
 
-  describe('Transfer Assest', function() {
-    describe('if authorized', function() {
-      it('6.44 should be able to transfer assest back', async function() {
-        await qt.transferBackAssets({ from: owner });
-        await cad.transfer(qt.address, tokenDai);
-        await qt.transferBackAssets({ from: owner });
-        await qt.sendTransaction({ from: owner, value: 1 });
-        await qt.transferBackAssets({ from: owner });
-      });
-    });
-    describe('if not authorized', function() {
-      it('6.46 reverts', async function() {
-        await assertRevert(qt.transferBackAssets({ from: notMember }));
-        const newqt = await Quotation.new();
-        await assertRevert(
-          qt.transferAssetsToNewContract(newqt.address, { from: notMember })
-        );
-      });
-    });
-  });
-
   describe('Misc', function() {
     describe('Change product params if owner', function() {
       it('6.47 only governance call should be able to change Profit Margin', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'PM', 4);
-        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.pm()) / 1).should.be.equal(4);
       });
       it('6.48 only governance call should be able to change STLP', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'STLP', 4);
-        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.stlp()) / 1).should.be.equal(4);
       });
       it('6.49 only governance call should be able to change STL', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'STL', 4);
-        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.stl()) / 1).should.be.equal(4);
       });
       it('6.50 only governance call should be able to change minimum cover period', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOMIND', 4);
-        await gvProp(22, actionHash, oldMR, oldGv, 2);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.minDays()) / 1).should.be.equal(4);
       });
     });

@@ -80,7 +80,6 @@ contract('Claim', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     td = await TokenData.deployed();
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
@@ -93,6 +92,7 @@ contract('Claim', function([
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
     nxms = await NXMaster.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -321,8 +321,9 @@ contract('Claim', function([
           'CAMINVT',
           0
         );
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await cd.minVotingTime()) / 1).should.be.equal(0);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        let val = await cd.getUintParameters('CAMINVT');
+        (val[1] / 1).should.be.equal(0);
       });
       it('7.17 should be able to propose new max voting Time', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
@@ -332,8 +333,9 @@ contract('Claim', function([
           'CAMAXVT',
           10
         );
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await cd.maxVotingTime()) / 1).should.be.equal(10);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        let val = await cd.getUintParameters('CAMAXVT');
+        (val[1] / 1).should.be.equal(10);
       });
       it('7.18 should be able to propose new Payout retry time', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
@@ -343,8 +345,9 @@ contract('Claim', function([
           'CAPRETRY',
           120
         );
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await cd.payoutRetryTime()) / 1).should.be.equal(120);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        let val = await cd.getUintParameters('CAPRETRY');
+        (val[1] / 1).should.be.equal(120);
       });
       it('7.21 should be able to propose new claim deposit time', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
@@ -354,8 +357,9 @@ contract('Claim', function([
           'CADEPT',
           12
         );
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await cd.claimDepositTime()) / 1).should.be.equal(12);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        let val = await cd.getUintParameters('CADEPT');
+        (val[1] / 1).should.be.equal(12);
       });
 
       it('7.22 should be able to propose new claim reward percentage', async function() {
@@ -366,7 +370,7 @@ contract('Claim', function([
           'CAREWPER',
           36
         );
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
         ((await cd.claimRewardPerc()) / 1).should.be.equal(36);
       });
     });

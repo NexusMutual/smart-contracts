@@ -4,7 +4,7 @@ import "../Pool1.sol";
 
 contract Pool1Mock is Pool1 {
 
-	function oraclizeQuery(
+	function _oraclizeQuery(
         uint paramCount,
         uint timestamp,
         string datasource,
@@ -12,7 +12,7 @@ contract Pool1Mock is Pool1 {
         uint gasLimit
     ) 
         internal
-        pure
+        
         returns (bytes32)
     {
         // To silence compiler warning :(
@@ -35,6 +35,15 @@ contract Pool1Mock is Pool1 {
 
         _add.transfer(amt);
         
+    }
+
+    function upgradeCapitalPool(address newPoolAddress) external  {
+        // for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
+        //     bytes4 caName = pd.getCurrenciesByIndex(i);
+        //     _upgradeCapitalPool(caName, newPoolAddress);
+        // }
+        if (address(this).balance > 0)
+            newPoolAddress.transfer(address(this).balance); //solhint-disable-line
     }
     
 }

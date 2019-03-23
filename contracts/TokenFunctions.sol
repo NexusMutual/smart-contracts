@@ -88,7 +88,7 @@ contract TokenFunctions is Iupgradable {
         if (commissionToBePaid > 0 && stakeLength > 0)
             td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
     }
-    
+
      /**
      * @dev Burns tokens staked against a Smart Contract Cover.
      * Called when a claim submitted against this cover is accepted.

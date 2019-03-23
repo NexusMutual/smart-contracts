@@ -143,7 +143,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM", "P1", 50, 15, 2, 80);
         // _addInitialCategories("Release new smart contract code", "", "EX", 80, 15, 2); //no func yet
         // _addInitialCategories("Change to Authorities", "", "EX", 80, 15, 2); //no func yet
-        _addInitialCategories("Add Investment Asset", "Qmd66GdYtn1BYmZTB1op1Fbfkq6uywMpow5LRmG2Twbzjb", //12
+        _addInitialCategories("Add Investment Asset", "Qmd66GdYtn1BYmZTB1op1Fbfkq6uywMpow5LRmG2Twbzjb", //13
         "PD", 50, 15, 2, 60);
         _addInitialCategories("Edit Investment Asset", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
         "PD", 50, 15, 2, 60);
@@ -151,7 +151,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "PD", 50, 15, 2, 60);
         _addInitialCategories("Change AB Member", "QmUBjPDdSiG3pRMqkVzZA2WaqiksT7ixNd3gPQwngGmF9x", 
             "MR", 50, 15, 2, 0); 
-        _addInitialCategories("Add Currency Asset", "QmYtpNuTdProressqZwEmN7cFtyyJvhFBrqr6xnxQGWrPm", //16
+        _addInitialCategories("Add Currency Asset", "QmYtpNuTdProressqZwEmN7cFtyyJvhFBrqr6xnxQGWrPm", //17
             "PD", 50, 15, 2, 0);
         // _addInitialCategories("Edit Currency Asset", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
         // "PD", 50, 15, 2, 60);
@@ -159,7 +159,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         _addInitialCategories("Special Resolution", "", "EX", 75, 0, 2, 0);
         _addInitialCategories("Update Token Parameters", "QmbfJTXyLTDsq41U4dukHbagcXef8bRfyMdMqcqLd9aKNM", 
             "TD", 50, 15, 2, 60);
-        _addInitialCategories("Update Risk Assessment Parameters", "QmUHvBShLpDwPWAsWcZvbUJfVGyXYscybi5ASmF6ectxSo", //20
+        _addInitialCategories("Update Risk Assessment Parameters", "QmUHvBShLpDwPWAsWcZvbUJfVGyXYscybi5ASmF6ectxSo", //21
             "TD", 50, 15, 2, 60);
         _addInitialCategories("Update Governance Parameters", "QmdFDVEaZnJxXncFczTW6EvrcgR3jBfuPWftR7PfkPfqqT", 
             "GV", 50, 15, 2, 60);
@@ -167,13 +167,13 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             "QD", 50, 15, 2, 60);
         _addInitialCategories("Update Claims Assessment Parameters", "QmPo6HPydwXEeoVdwBpwGeZasFnmFwZoTsQ93Bg5pFtQg6", 
             "CD", 50, 15, 2, 60);
-        _addInitialCategories("Update Investment Module Parameters", "QmYSUJBJD9hUevydfdF34rGFG7bBQhMrxh2ga9XfeAkdEM", //24
+        _addInitialCategories("Update Investment Module Parameters", "QmYSUJBJD9hUevydfdF34rGFG7bBQhMrxh2ga9XfeAkdEM", //25
             "PD", 50, 15, 2, 60);
         _addInitialCategories("Update Capital Model Parameters", "QmaQH6AdvBdgrW4xdzcMHa7gNyYSGa2fz7gBuuic2hLkZQ", 
             "PD", 50, 15, 2, 60);
         _addInitialCategories("Update Address Parameters", "QmPfXySkeDFbdMvZyD35y1hiB4g6ZXLSEHfS7JjS6e1VKL", 
             "MS", 50, 15, 2, 60);
-        _addInitialCategories("Update Owner Parameters", "QmTEmDA1ECmGPfh5x3co1GmjXQCp3zisUP6rnLQjWmW8nu", //27
+        _addInitialCategories("Update Owner Parameters", "QmTEmDA1ECmGPfh5x3co1GmjXQCp3zisUP6rnLQjWmW8nu", //28
             "MS", 50, 15, 3, 0);
         constructorCheck = true;
     }

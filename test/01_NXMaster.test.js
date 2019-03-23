@@ -6,7 +6,7 @@ const DSValue = artifacts.require('DSValueMock');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
-const TokenFunctions = artifacts.require('TokenFunctions');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenData');
 const Pool1 = artifacts.require('Pool1Mock');
@@ -78,21 +78,20 @@ contract('NXMaster', function([
     let dsv = await DSValue.deployed();
     let factory = await FactoryMock.deployed();
     nxms = await NXMaster.deployed();
-    qd = await QuotationDataMock.new(QE, owner);
-    td = await TokenData.new(owner);
-    tf = await TokenFunctions.new();
+    qd = await QuotationDataMock.deployed();
+    td = await TokenData.deployed();
+    tf = await TokenFunctions.deployed();
     tc = await TokenController.new();
-    cd = await ClaimsData.new();
-    pd = await PoolData.new(owner, dsv.address);
-    qt = await Quotation.new();
-    nxmtk = await NXMToken.new(tc.address, founderAddress, INITIAL_SUPPLY);
-    cl = await Claims.new();
-    cr = await ClaimsReward.new();
-    pl1 = await Pool1.new();
-    pl2 = await Pool2.new(factory.address);
-    mcr = await MCR.new();
-    dai = await DAI.new();
-    gov = await Governance.new();
+    cd = await ClaimsData.deployed();
+    pd = await PoolData.deployed();
+    qt = await Quotation.deployed();
+    nxmtk = await NXMToken.deployed();
+    cl = await Claims.deployed();
+    cr = await ClaimsReward.deployed();
+    pl1 = await Pool1.deployed();
+    pl2 = await Pool2.deployed();
+    mcr = await MCR.deployed();
+    dai = await DAI.deployed();
     propCat = await ProposalCategory.new();
     memberRoles = await MemberRoles.new();
     let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
@@ -132,26 +131,17 @@ contract('NXMaster', function([
     }
   });
   describe('Updating state', function() {
-    it('1.1 should be able to add a new version', async function() {
-      this.timeout(0);
-      const version = await nxms.getCurrentVersion();
-      await nxms.addNewVersion(addr, { from: owner });
-      (await nxms.getCurrentVersion()).should.be.bignumber.equal(
-        version.plus(1)
-      );
-    });
-
-    it('1.2 should be able to change master address', async function() {
-      this.timeout(0);
-      newMaster = await NXMaster.new(ec.address, nxmtk.address);
-      await nxms.changeMasterAddress(newMaster.address, { from: owner });
-      // await newMaster.changeTokenAddress(nxmtk.address);
-      addr[12] = await nxms.getLatestAddress('GV');
-      addr[13] = await nxms.getLatestAddress('PC');
-      addr[14] = await nxms.getLatestAddress('MR');
-      await newMaster.addNewVersion(addr);
-      nxms = newMaster;
-    });
+    // it('1.2 should be able to change master address', async function() {
+    //   this.timeout(0);
+    //   newMaster = await NXMaster.new(ec.address, nxmtk.address);
+    //   await nxms.changeMasterAddress(newMaster.address, { from: owner });
+    //   // await newMaster.changeTokenAddress(nxmtk.address);
+    //   addr[12] = await nxms.getLatestAddress('GV');
+    //   addr[13] = await nxms.getLatestAddress('PC');
+    //   addr[14] = await nxms.getLatestAddress('MR');
+    //   await newMaster.addNewVersion(addr);
+    //   nxms = newMaster;
+    // });
 
     it('1.3 should be able to change single contract (proxy contracts)', async function() {
       this.timeout(0);
@@ -161,7 +151,6 @@ contract('NXMaster', function([
         'MR',
         newMemberRoles.address
       );
-      pId = (await gov.getProposalLength()).toNumber();
       let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
       let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
       // await oldGv.changeDependentContractAddress();
@@ -189,7 +178,7 @@ contract('NXMaster', function([
         'OWNER',
         nonMember
       );
-      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await nxms.owner()).should.be.equal(nonMember);
       (await oldMR.checkRole(nonMember, 3)).should.be.equal(true);
       actionHash = encode(
@@ -197,21 +186,21 @@ contract('NXMaster', function([
         'OWNER',
         owner
       );
-      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await nxms.owner()).should.be.equal(owner);
       actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'QUOAUTH',
         owner
       );
-      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await qd.authQuoteEngine()).should.be.equal(owner);
       actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'QUOAUTH',
         QE
       );
-      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await qd.authQuoteEngine()).should.be.equal(QE);
 
       // await pd.changeCurrencyAssetAddress('0x444149', dai.address);
@@ -221,7 +210,7 @@ contract('NXMaster', function([
         'MCRNOTA',
         QE
       );
-      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await pd.notariseMCR()).should.be.equal(QE);
 
       actionHash = encode(
@@ -229,10 +218,8 @@ contract('NXMaster', function([
         'MCRNOTA',
         owner
       );
-      await gvProp(27, actionHash, oldMR, oldGv, 3);
+      await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await pd.notariseMCR()).should.be.equal(owner);
-      await qd.changeCurrencyAssetAddress('0x444149', dai.address);
-      await qd.changeInvestmentAssetAddress('0x444149', dai.address);
       await mcr.addMCRData(
         18000,
         100 * 1e18,
@@ -333,9 +320,10 @@ contract('NXMaster', function([
     it('1.23 governance call should be able to update pauseTime', async function() {
       let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
       let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
-      actionHash = encode('updateUintParameters(bytes8,uint)', 'EPTIME', 12000);
-      await gvProp(21, actionHash, oldMR, oldGv, 2);
-      ((await nxms.pauseTime()) / 1).should.be.equal(12000);
+      actionHash = encode('updateUintParameters(bytes8,uint)', 'EPTIME', 12);
+      await gvProp(22, actionHash, oldMR, oldGv, 2);
+      let val = await oldGv.getUintParameters('EPTIME');
+      (val[1] / 1).should.be.equal(12);
     });
   });
 

@@ -54,12 +54,12 @@ contract('NXMToken', function([
   before(async function() {
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     td = await TokenData.deployed();
     P1 = await Pool1.deployed();
     mcr = await MCR.deployed();
     pd = await PoolData.deployed();
     nxms = await NXMaster.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -402,8 +402,9 @@ contract('NXMToken', function([
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'A', 0);
-        await gvProp(24, actionHash, oldMR, oldGv, 2);
-        ((await pd.A()) / 1).should.be.equal(0);
+        await gvProp(25, actionHash, oldMR, oldGv, 2);
+        let val = await pd.getUintParameters('A');
+        (val[1] / 1).should.be.equal(0);
         // await pd.changeA(0, { from: owner });
         await mcr.addMCRData(
           180,
@@ -438,36 +439,41 @@ contract('NXMToken', function([
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'JOINFEE', 1);
-        await gvProp(20, actionHash, oldMR, oldGv, 2);
-        (await td.joiningFee()).should.be.bignumber.equal(1);
+        await gvProp(21, actionHash, oldMR, oldGv, 2);
+        let val = await td.getUintParameters('JOINFEE');
+        val[1].should.be.bignumber.equal(1);
       });
       it('3.35 should be able to change BookTime', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'CABOOKT', 1);
-        await gvProp(20, actionHash, oldMR, oldGv, 2);
-        (await td.bookTime()).should.be.bignumber.equal(1);
+        await gvProp(21, actionHash, oldMR, oldGv, 2);
+        let val = await td.getUintParameters('CABOOKT');
+        val[1].should.be.bignumber.equal(1);
       });
       it('3.36 should be able to change lockCADays', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'CALOCKT', 1);
-        await gvProp(20, actionHash, oldMR, oldGv, 2);
-        (await td.lockCADays()).should.be.bignumber.equal(1);
+        await gvProp(21, actionHash, oldMR, oldGv, 2);
+        let val = await td.getUintParameters('CALOCKT');
+        val[1].should.be.bignumber.equal(1);
       });
       it('3.37 should be able to change SCValidDays', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'RALOCKT', 1);
-        await gvProp(20, actionHash, oldMR, oldGv, 2);
-        (await td.scValidDays()).should.be.bignumber.equal(1);
+        await gvProp(21, actionHash, oldMR, oldGv, 2);
+        let val = await td.getUintParameters('RALOCKT');
+        val[1].should.be.bignumber.equal(1);
       });
       it('3.38 should be able to change LockTokenTimeAfterCoverExp', async function() {
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOLOCKT', 1);
-        await gvProp(19, actionHash, oldMR, oldGv, 2);
-        (await td.lockTokenTimeAfterCoverExp()).should.be.bignumber.equal(1);
+        await gvProp(20, actionHash, oldMR, oldGv, 2);
+        let val = await td.getUintParameters('QUOLOCKT');
+        val[1].should.be.bignumber.equal(1);
       });
       // it('3.39 should be able to change CanAddMemberAddress', async function() {
       //   await assertRevert(
@@ -480,8 +486,9 @@ contract('NXMToken', function([
         let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
         let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
         actionHash = encode('updateUintParameters(bytes8,uint)', 'MVLOCKT', 1);
-        await gvProp(20, actionHash, oldMR, oldGv, 2);
-        (await td.lockMVDays()).should.be.bignumber.equal(1);
+        await gvProp(21, actionHash, oldMR, oldGv, 2);
+        let val = await td.getUintParameters('MVLOCKT');
+        val[1].should.be.bignumber.equal(1);
       });
     });
   });

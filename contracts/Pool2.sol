@@ -161,7 +161,7 @@ contract Pool2 is Iupgradable {
     /** 
      * @dev Transfers ERC20 investment asset from this Pool to another Pool.
      */ 
-    function transferInvestmentAsset(
+    function _transferInvestmentAsset(
         bytes4 _curr,
         address _transferTo,
         uint _amount
@@ -214,7 +214,7 @@ contract Pool2 is Iupgradable {
                     amountToSell).mul(995)).div(1000), pd.uniswapDeadline().add(now));
             } else if (iaCurr == "ETH" && _checkTradeConditions(iaCurr, iaRate, totalRiskBal)) {
 
-                transferInvestmentAsset(iaCurr, address(p1), amountToSell);
+                _transferInvestmentAsset(iaCurr, address(p1), amountToSell);
             }
             emit Rebalancing(iaCurr, amountToSell); 
         }
@@ -369,7 +369,7 @@ contract Pool2 is Iupgradable {
         
         if (_curr == maxIACurr) {
             amount = (((_baseMin.add(_varMin)).mul(3)).div(2)).sub(_caBalance);
-            transferInvestmentAsset(_curr, ms.getLatestAddress("P1"), amount);
+            _transferInvestmentAsset(_curr, ms.getLatestAddress("P1"), amount);
         } else {
             ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(maxIACurr));
             if((maxIACurr == "ETH" && address(this).balance>0) || (maxIACurr != "ETH" && erc20.balanceOf(address(this)) > 0))
@@ -477,7 +477,7 @@ contract Pool2 is Iupgradable {
         uint intermediaryEth;
         // uint ethVol = pd.ethVolumeLimit();
         if (curr == maxIACurr) {
-            transferInvestmentAsset(curr, address(p1), amount);
+            _transferInvestmentAsset(curr, address(p1), amount);
         } else if (curr == "ETH" && maxIACurr != "ETH") { 
             exchange = Exchange(factory.getExchange(pd.getInvestmentAssetAddress(maxIACurr)));
             intermediaryEth = exchange.getEthToTokenInputPrice(amount);

@@ -263,7 +263,7 @@ contract Quotation is Iupgradable {
         _kycTrigger(false, msg.sender);
     }
 
-    function kycCall(bool status, address _add) public checkPause {
+    function kycVerdict(bool status, address _add) public checkPause {
         require(msg.sender == qd.kycAuthAddress());
         _kycTrigger(status, _add);
     }

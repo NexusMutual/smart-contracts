@@ -82,8 +82,8 @@ contract QuotationData is Iupgradable {
         authQuoteEngine = _authQuoteAdd;
         kycAuthAddress = _kycAuthAdd;
         stlp = 90;
-        stl = 1000;
-        pm = 13;
+        stl = 100;
+        pm = 30;
         minDays = 30;
         tokensRetained = 10;
         allCovers.push(Cover(address(0), "0x00", 0, 0, 0, address(0), 0));

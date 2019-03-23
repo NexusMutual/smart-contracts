@@ -31,6 +31,7 @@ let td;
 let qd;
 let cd;
 let nxms;
+let eventCaller;
 let proposalId;
 let pId;
 let nxmToken;
@@ -57,11 +58,12 @@ contract(
       pc = await ProposalCategory.at(address);
       address = await nxms.getLatestAddress('MR');
       mr = await MemberRoles.at(address);
-      tc = await TokenController.deployed();
+      tc = await TokenController.at(await nxms.getLatestAddress('TC'));
       pd = await PoolData.deployed();
       td = await TokenData.deployed();
       qd = await QuotationData.deployed();
       cd = await ClaimsData.deployed();
+      eventCaller = await EventCaller.deployed();
       await nxmToken.approve(tc.address, maxAllowance);
       let bal = await nxmToken.balanceOf(ab1);
       await nxmToken.approve(cr.address, maxAllowance, {
@@ -112,142 +114,152 @@ contract(
       // console.log(proposedValue);
       let actionHash = encode(action, code, proposedValue);
       await gvProposal(cId, actionHash, mr, gv, mrSequence);
+      if (code == 'MASTADD') {
+        let newMaster = await NXMaster.at(proposedValue);
+        contractInst = newMaster;
+      }
       let parameter = await contractInst[getterFunction](code);
+      try {
+        parameter[1] = parameter[1].toNumber();
+      } catch (err) {}
       assert.equal(parameter[1], proposedValue);
     }
 
     describe('Update Token Parameters', function() {
       it('Should update Exponent in Token Price', async function() {
-        await updateParameter(19, 2, 'TOKEXP', td, 'uint', '7000000000000000');
+        await updateParameter(20, 2, 'TOKEXP', td, 'uint', '7000000000000000');
       });
       it('Should update Token Step', async function() {
-        await updateParameter(19, 2, 'TOKSTEP', td, 'uint', '10000');
+        await updateParameter(20, 2, 'TOKSTEP', td, 'uint', '10000');
       });
       it('Should update Token Step', async function() {
-        await updateParameter(19, 2, 'QUOLOCKT', td, 'uint', '7000');
+        await updateParameter(20, 2, 'QUOLOCKT', td, 'uint', '7000');
       });
     });
 
     describe('Update Risk Assessment Parameters', function() {
       it('Should update Stake Period', async function() {
-        await updateParameter(20, 2, 'RALOCKT', td, 'uint', '86400');
+        await updateParameter(21, 2, 'RALOCKT', td, 'uint', '86400');
       });
       it('Should update Commission%', async function() {
-        await updateParameter(20, 2, 'RACOMM', td, 'uint', '90');
+        await updateParameter(21, 2, 'RACOMM', td, 'uint', '90');
       });
       it('Should update Max Commission%', async function() {
-        await updateParameter(20, 2, 'RAMAXC', td, 'uint', '40');
+        await updateParameter(21, 2, 'RAMAXC', td, 'uint', '40');
       });
       it('Should update Extra CA Lock Period', async function() {
-        await updateParameter(20, 2, 'CALOCKT', td, 'uint', '86400');
+        await updateParameter(21, 2, 'CALOCKT', td, 'uint', '86400');
       });
       it('Should update Extra Member Lock Period', async function() {
-        await updateParameter(20, 2, 'MVLOCKT', td, 'uint', '86400');
+        await updateParameter(21, 2, 'MVLOCKT', td, 'uint', '86400');
       });
       it('Should update Claim  Assessor Velocity', async function() {
-        await updateParameter(20, 2, 'CABOOKT', td, 'uint', '7000');
+        await updateParameter(21, 2, 'CABOOKT', td, 'uint', '7000');
       });
       it('Should update Membership joining fee', async function() {
-        await updateParameter(20, 2, 'JOINFEE', td, 'uint', '6000000000000000');
+        await updateParameter(21, 2, 'JOINFEE', td, 'uint', '6000000000000000');
       });
     });
 
     describe('Update Governance Parameters', function() {
       it('Should update Governance Token Holding Time', async function() {
-        await updateParameter(21, 2, 'GOVHOLD', gv, 'uint', '86400');
+        await updateParameter(22, 2, 'GOVHOLD', gv, 'uint', '86400');
       });
       it('Should update Max Advisory Board Members', async function() {
-        await updateParameter(21, 2, 'MAXAB', gv, 'uint', '10');
+        await updateParameter(22, 2, 'MAXAB', gv, 'uint', '10');
       });
       it('Should update Emergency Pause Time', async function() {
-        await updateParameter(21, 2, 'EPTIME', gv, 'uint', '86400');
+        await updateParameter(22, 2, 'EPTIME', gv, 'uint', '86400');
       });
     });
 
     describe('Update Quotation Parameters', function() {
       it('Should update Short Term Load Period', async function() {
-        await updateParameter(22, 2, 'STLP', qd, 'uint', '40');
+        await updateParameter(23, 2, 'STLP', qd, 'uint', '40');
       });
       it('Should update Short Term Load', async function() {
-        await updateParameter(22, 2, 'STL', qd, 'uint', '1000');
+        await updateParameter(23, 2, 'STL', qd, 'uint', '1000');
       });
       it('Should update Profit Margin', async function() {
-        await updateParameter(22, 2, 'PM', qd, 'uint', '60');
+        await updateParameter(23, 2, 'PM', qd, 'uint', '60');
       });
       it('Should update Minimum Cover Period', async function() {
-        await updateParameter(22, 2, 'QUOMIND', qd, 'uint', '86400');
+        await updateParameter(23, 2, 'QUOMIND', qd, 'uint', '86400');
       });
       it('Should update Tokens Retained', async function() {
-        await updateParameter(22, 2, 'QUOTOK', qd, 'uint', '10000');
+        await updateParameter(23, 2, 'QUOTOK', qd, 'uint', '10000');
       });
     });
 
     describe('Update Claims Assessment Parameters', function() {
       it('Should update Max Vote Period', async function() {
-        await updateParameter(23, 2, 'CAMAXVT', cd, 'uint', '3600');
+        await updateParameter(24, 2, 'CAMAXVT', cd, 'uint', '3600');
       });
       it('Should update Min Vote Period', async function() {
-        await updateParameter(23, 2, 'CAMINVT', cd, 'uint', '3600');
+        await updateParameter(24, 2, 'CAMINVT', cd, 'uint', '3600');
       });
       it('Should update Payout Retry Time', async function() {
-        await updateParameter(23, 2, 'CAPRETRY', cd, 'uint', '3600');
+        await updateParameter(24, 2, 'CAPRETRY', cd, 'uint', '3600');
       });
       it('Should update Min Lock Period', async function() {
-        await updateParameter(23, 2, 'CADEPT', cd, 'uint', '86400');
+        await updateParameter(24, 2, 'CADEPT', cd, 'uint', '86400');
       });
       it('Should update Reward%', async function() {
-        await updateParameter(23, 2, 'CAREWPER', cd, 'uint', '40');
+        await updateParameter(24, 2, 'CAREWPER', cd, 'uint', '40');
       });
       it('Should update Min Vote Threshold', async function() {
-        await updateParameter(23, 2, 'CAMINTH', cd, 'uint', '30');
+        await updateParameter(24, 2, 'CAMINTH', cd, 'uint', '30');
       });
       it('Should update Max Vote Threshold', async function() {
-        await updateParameter(23, 2, 'CAMAXTH', cd, 'uint', '30');
+        await updateParameter(24, 2, 'CAMAXTH', cd, 'uint', '30');
       });
       it('Should update CA Consensus%', async function() {
-        await updateParameter(23, 2, 'CACONPER', cd, 'uint', '40');
+        await updateParameter(24, 2, 'CACONPER', cd, 'uint', '40');
+      });
+      it('Should update Pause Claim Assessor Voting Time', async function() {
+        await updateParameter(24, 2, 'CAPAUSET', cd, 'uint', '86400');
       });
     });
 
     describe('Update Investment module Parameters', function() {
       it('Should update IA  Variation%', async function() {
-        await updateParameter(24, 2, 'IMZ', pd, 'uint', '40');
+        await updateParameter(25, 2, 'IMZ', pd, 'uint', '40');
       });
       it('Should update IA Exchange Rate Feed', async function() {
-        await updateParameter(24, 2, 'IMRATET', pd, 'uint', '3600');
+        await updateParameter(25, 2, 'IMRATET', pd, 'uint', '3600');
       });
       it('Should update Uniswap Order Deadline', async function() {
-        await updateParameter(24, 2, 'IMUNIDL', pd, 'uint', '60');
+        await updateParameter(25, 2, 'IMUNIDL', pd, 'uint', '60');
       });
       it('Should update Liquidity Trade Callback', async function() {
-        await updateParameter(24, 2, 'IMLIQT', pd, 'uint', '3600');
+        await updateParameter(25, 2, 'IMLIQT', pd, 'uint', '3600');
       });
       it('Should update Uniswap Exchange Min Liquidity', async function() {
-        await updateParameter(24, 2, 'IMETHVL', pd, 'uint', '40');
+        await updateParameter(25, 2, 'IMETHVL', pd, 'uint', '40');
       });
     });
 
     describe('Update Capital Model Parameters', function() {
       it('Should update MCR Post Time', async function() {
-        await updateParameter(25, 2, 'IMZ', pd, 'uint', '3600');
+        await updateParameter(26, 2, 'IMZ', pd, 'uint', '3600');
       });
       it('Should update MCR Fail Post Time', async function() {
-        await updateParameter(25, 2, 'IMRATET', pd, 'uint', '3600');
+        await updateParameter(26, 2, 'IMRATET', pd, 'uint', '3600');
       });
       it('Should update Min Capital Required', async function() {
-        await updateParameter(25, 2, 'IMUNIDL', pd, 'uint', '60');
+        await updateParameter(26, 2, 'IMUNIDL', pd, 'uint', '60');
       });
       it('Should update Shock Parameter', async function() {
-        await updateParameter(25, 2, 'IMLIQT', pd, 'uint', '60');
+        await updateParameter(26, 2, 'IMLIQT', pd, 'uint', '60');
       });
       it('Should update Capacity Limit%', async function() {
-        await updateParameter(25, 2, 'IMETHVL', pd, 'uint', '40');
+        await updateParameter(26, 2, 'IMETHVL', pd, 'uint', '40');
       });
       it('Should update Factor C', async function() {
-        await updateParameter(25, 2, 'C', pd, 'uint', '40');
+        await updateParameter(26, 2, 'C', pd, 'uint', '40');
       });
       it('Should update Factor A', async function() {
-        await updateParameter(25, 2, 'A', pd, 'uint', '40');
+        await updateParameter(26, 2, 'A', pd, 'uint', '40');
       });
     });
 
@@ -255,7 +267,7 @@ contract(
       it('Should update Event Caller Address', async function() {
         let newEventCaller = await EventCaller.new();
         await updateParameter(
-          26,
+          27,
           2,
           'EVCALL',
           nxms,
@@ -270,12 +282,13 @@ contract(
           nxmToken.address
         );
         await updateParameter(
-          26,
+          27,
           2,
           'MASTADD',
           nxms,
           'address',
-          newMaster.address
+          newMaster.address,
+          newMaster
         );
       });
     });
@@ -283,7 +296,7 @@ contract(
     describe('Update Owner Parameters', function() {
       it('Should update Multi sig Wallet Address', async function() {
         await updateParameter(
-          27,
+          28,
           3,
           'MSWALLET',
           nxms,
@@ -293,7 +306,7 @@ contract(
       });
       it('Should update MCR Notarise Address', async function() {
         await updateParameter(
-          27,
+          28,
           3,
           'MCRNOTA',
           nxms,
@@ -303,12 +316,12 @@ contract(
       });
       it('Should updateDAI Feed Address', async function() {
         let newDai = await DAI.new();
-        await updateParameter(27, 3, 'DAIFEED', nxms, 'owner', newDai.address);
+        await updateParameter(28, 3, 'DAIFEED', nxms, 'owner', newDai.address);
       });
       it('Should update Uniswap Factory Address', async function() {
         var newUniswap = await FactoryMock.new();
         await updateParameter(
-          27,
+          28,
           3,
           'UNISWADD',
           nxms,
@@ -318,7 +331,7 @@ contract(
       });
       it('Should update Owner Address', async function() {
         await updateParameter(
-          27,
+          28,
           3,
           'OWNER',
           nxms,
@@ -328,7 +341,7 @@ contract(
       });
       it('Should update Quote Engine Address', async function() {
         await updateParameter(
-          27,
+          28,
           3,
           'QUOAUTH',
           nxms,
@@ -338,7 +351,7 @@ contract(
       });
       it('Should update KYC Authorised Address', async function() {
         await updateParameter(
-          27,
+          28,
           3,
           'KYCAUTH',
           nxms,

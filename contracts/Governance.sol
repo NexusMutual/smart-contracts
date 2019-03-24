@@ -307,7 +307,7 @@ contract Governance is IGovernance, Iupgradable {
     }
 
     function claimReward(address _memberAddress, uint[] _proposals) 
-        external onlyInternal returns(uint pendingDAppReward) 
+        external returns(uint pendingDAppReward) 
     {
         
         uint voteId;

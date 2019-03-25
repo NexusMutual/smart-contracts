@@ -3,7 +3,7 @@ const Pool2 = artifacts.require('Pool2');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
-const TokenData = artifacts.require('TokenData');
+const TokenData = artifacts.require('TokenDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
@@ -169,8 +169,8 @@ contract('Quotation', function([
       it('6.4 should return correct Product Details', async function() {
         const productDetails = await qd.getProductDetails();
         parseFloat(productDetails[0]).should.equal(30);
-        parseFloat(productDetails[1]).should.equal(13);
-        parseFloat(productDetails[2]).should.equal(1000);
+        parseFloat(productDetails[1]).should.equal(30);
+        parseFloat(productDetails[2]).should.equal(100);
         parseFloat(productDetails[3]).should.equal(90);
       });
     });

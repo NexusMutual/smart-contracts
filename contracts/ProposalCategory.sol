@@ -141,7 +141,6 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         _addInitialCategories("Changes to Pricing Model", "", "EX", 50, 15, 2, 60);
         _addInitialCategories("Withdraw funds to Pay for Support Services", 
         "QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM", "P1", 50, 15, 2, 80);
-        // _addInitialCategories("Release new smart contract code", "", "EX", 80, 15, 2); //no func yet
         // _addInitialCategories("Change to Authorities", "", "EX", 80, 15, 2); //no func yet
         _addInitialCategories("Add Investment Asset", "Qmd66GdYtn1BYmZTB1op1Fbfkq6uywMpow5LRmG2Twbzjb", //13
         "PD", 50, 15, 2, 60);
@@ -175,6 +174,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             "MS", 50, 15, 2, 60);
         _addInitialCategories("Update Owner Parameters", "QmTEmDA1ECmGPfh5x3co1GmjXQCp3zisUP6rnLQjWmW8nu", //28
             "MS", 50, 15, 3, 0);
+        _addInitialCategories("Release new smart contract code", "", "MS", 50, 15, 2, 80);
         constructorCheck = true;
     }
 

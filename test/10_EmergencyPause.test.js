@@ -10,7 +10,7 @@ const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
-const TokenData = artifacts.require('TokenData');
+const TokenData = artifacts.require('TokenDataMock');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
@@ -18,7 +18,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
-const { duration } = require('./utils/increaseTime');
+const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 
 const CLA = '0x434c41';
@@ -68,7 +68,6 @@ contract('NXMaster: Emergency Pause', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     nxms = await NXMaster.deployed();
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
@@ -84,6 +83,7 @@ contract('NXMaster: Emergency Pause', function([
     gv = await Governance.at(gvAddress);
     let address = await nxms.getLatestAddress('MR');
     mr = await MemberRoles.at(address);
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -311,38 +311,11 @@ contract('NXMaster: Emergency Pause', function([
         p2.saveIADetails(['0x455448', '0x444149'], [100, 1000], 20190125, false)
       );
     });
-
-    it('10.22 should extend CN EPOfff', async function() {
-      const coverID = await qd.getAllCoversOfUser(coverHolder1);
-      pendingTime = parseFloat((await cd.getPendingClaimDetailsByIndex(0))[1]);
-      await tf.extendCNEPOff(coverHolder1, coverID[0], pendingTime);
-    });
-    describe('Setting staker commission and max commision percentages when not authorized to govern', function() {
-      it('10.23 not allowed for set staker commission percentage', async function() {
-        await assertRevert(td.setStakerCommissionPer(newStakerPercentage));
-      });
-      it('10.24 not allowed for set staker maximum commission percentage', async function() {
-        await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
-      });
-      it('10.25 should not be able to post MCR', async function() {
-        await assertRevert(
-          mcr.addMCRData(
-            18000,
-            100 * 1e18,
-            2 * 1e18,
-            ['0x455448', '0x444149'],
-            [100, 65407],
-            20181011,
-            { from: owner }
-          )
-        );
-      });
-    });
   });
 
   describe('Emergency Pause: Inactive', function() {
     before(async function() {
-      await tc.burnFrom(owner, await tk.balanceOf(owner));
+      // await tc.burnFrom(owner, await tk.balanceOf(owner));
       let p = await gv.getProposalLength();
       await gv.createProposal(
         'close Emergency Pause',
@@ -376,15 +349,10 @@ contract('NXMaster: Emergency Pause', function([
           'Implement Emergency Pause',
           '0x872f1eb3'
         );
-        // await gv.categorizeProposal(p.toNumber(), 6, 0);
-        // await gv.submitProposalWithSolution(
-        //   p,
-        //   'Implement Emergency Pause',
-        //   '0x872f1eb3'
-        // );
-        // await gv.submitVote(p, 1);
+
         await gv.closeProposal(p);
         startTime = await latestTime();
+        await increaseTimeTo(startTime + 2419300);
         var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
         await p2.delegateCallBack(APIID);
       });
@@ -398,19 +366,6 @@ contract('NXMaster: Emergency Pause', function([
         const claimId = (await cd.actualClaimLength()) - 1;
         claimId.should.be.bignumber.equal(2);
         (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
-      });
-      it('10.29 should extend CN EPOfff', async function() {
-        const coverID = await qd.getAllCoversOfUser(coverHolder1);
-        pendingTime = parseFloat(
-          (await cd.getPendingClaimDetailsByIndex(0))[1]
-        );
-
-        await tf.extendCNEPOff(
-          coverHolder1,
-          coverID[0],
-          pendingTime + 5270396,
-          { from: owner }
-        );
       });
     });
   });

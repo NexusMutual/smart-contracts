@@ -2,7 +2,8 @@ const Pool1 = artifacts.require('Pool1Mock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
-const TokenData = artifacts.require('TokenData');
+const PoolData = artifacts.require('PoolData');
+const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
@@ -42,6 +43,7 @@ let qt;
 let cad;
 let nxms;
 let mr;
+let pd;
 let mcr;
 
 const BigNumber = web3.BigNumber;
@@ -71,15 +73,16 @@ contract('ClaimsReward', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     td = await TokenData.deployed();
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
     qd = await QuotationDataMock.deployed();
     P1 = await Pool1.deployed();
+    pd = await PoolData.deployed();
     qt = await Quotation.deployed();
     nxms = await NXMaster.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     mcr = await MCR.deployed();
     await mr.addMembersBeforeLaunch([], []);
@@ -158,7 +161,9 @@ contract('ClaimsReward', function([
         from: member1
       });
       claimed[1].should.be.equal(false);
-      await cr.changeClaimStatus(claimId);
+      let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log(await pd.getApiIdTypeOf(apiid));
+      await P1.__callback(apiid, '');
     });
     it('9.1 should be able to claim reward', async function() {
       let proposalIds = [];
@@ -234,11 +239,6 @@ contract('ClaimsReward', function([
 
     it('9.9 should not be able call upgrade function of this contract', async function() {
       await assertRevert(cr.upgrade(member1, { from: notMember }));
-    });
-
-    it('9.10 should be able call upgrade function of this contract', async function() {
-      await tc.mint(cr.address, tokens);
-      await cr.upgrade(member1, { from: owner });
     });
   });
 });

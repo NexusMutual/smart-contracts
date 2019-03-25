@@ -8,7 +8,7 @@ contract TokenFunctionMock is TokenFunctions {
      * @dev Burns tokens staked against a Smart Contract Cover.
      * Called when a claim submitted against this cover is accepted.
      */
-    function burnStakerLockedToken(address scAddress, uint burnNXMAmount) external onlyInternal {
+    function burnStakerLockedToken(address scAddress, uint burnNXMAmount) external {
         uint totalStaker = td.getStakedContractStakersLength(scAddress);
         address stakerAddress;
         uint stakerStakedNXM;

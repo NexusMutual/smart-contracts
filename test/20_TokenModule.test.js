@@ -4,7 +4,7 @@ const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const TokenData = artifacts.require('TokenData');
+const TokenData = artifacts.require('TokenDataMock');
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
@@ -34,18 +34,18 @@ contract('Token Module', function([owner, member1]) {
   before(async function() {
     await advanceBlock();
     tk = await NXMToken.deployed();
-    tc = await TokenController.deployed();
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     td = await TokenData.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
 
     await p1.upgradeCapitalPool(owner);
     await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
-    await p2.upgradeInvestmentPool(owner);
+    await p1.upgradeInvestmentPool(owner);
 
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
@@ -95,18 +95,12 @@ contract('Token Module', function([owner, member1]) {
       );
 
       // to check that owner is not locked for MV
-      await tc.lockForMemberVote(owner, 2); // lock the owner, so that it cannot transfer
-      await assertRevert(tk.transfer(member1, 30000 * 1e18, { from: owner }));
+      // await tc.lockForMemberVote(owner, 2); // lock the owner, so that it cannot transfer
+      // await assertRevert(tk.transfer(member1, 30000 * 1e18, { from: owner }));
     });
 
     it('20.6 _mint function "require" - else ZERO_ADDRESS condition is checked', async function() {
       await assertRevert(tc.mint(ZERO_ADDRESS, 1));
-    });
-    it('20.7 _burnFrom function "require" - else of burning max allowed value and ZERO_ADDRESS condition is checked', async function() {
-      await assertRevert(tc.burnFrom(ZERO_ADDRESS, 1));
-      await assertRevert(
-        tc.burnFrom(owner, parseFloat(await tk.totalSupply()) + 1000)
-      );
     });
   });
 });

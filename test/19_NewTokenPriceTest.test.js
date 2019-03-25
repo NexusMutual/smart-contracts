@@ -44,7 +44,7 @@ contract('MCR', function([owner, notOwner]) {
     cad = await DAI.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
-    tc = await TokenController.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
   });
 
   describe('Token Price Calculation', function() {
@@ -62,7 +62,7 @@ contract('MCR', function([owner, notOwner]) {
         from: owner,
         value: 2000000000000000
       });
-      await p2.upgradeInvestmentPool(owner);
+      await p1.upgradeInvestmentPool(owner);
       await p1.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 90000000000000000000 });
       await mr.kycVerdict(notOwner, true);
@@ -78,8 +78,10 @@ contract('MCR', function([owner, notOwner]) {
         20190219
       );
 
-      await pd.changeC(5203349);
-      await pd.changeA(1948);
+      // await pd.changeC(5203349);
+      // await pd.changeA(1948);
+      console.log(await pd.C());
+      console.log(await pd.A());
     });
     it('19.1 single tranche 0.1ETH', async function() {
       let dataaa = await pd.getTokenPriceDetails('ETH');
@@ -107,7 +109,7 @@ contract('MCR', function([owner, notOwner]) {
     let tp_dai;
 
     before(async function() {
-      await p2.upgradeInvestmentPool(owner);
+      await p1.upgradeInvestmentPool(owner);
       await p1.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 10 * 1e18 });
       await mcr.addMCRData(
@@ -119,8 +121,8 @@ contract('MCR', function([owner, notOwner]) {
         20190219
       );
 
-      await pd.changeC(5203349);
-      await pd.changeA(1948);
+      console.log(await pd.C());
+      console.log(await pd.A());
     });
     it('19.3 single tranches 15 times Buy tokens', async function() {
       let x;
@@ -144,7 +146,7 @@ contract('MCR', function([owner, notOwner]) {
       }
     });
     it('19.4 tranches Buy more tokens', async function() {
-      await p2.upgradeInvestmentPool(owner);
+      await p1.upgradeInvestmentPool(owner);
       await p1.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 607740647349100000000 });
       await mcr.addMCRData(

@@ -4,7 +4,7 @@ const PoolData = artifacts.require('PoolData');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
-const TokenData = artifacts.require('TokenData');
+const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsData');
 const ClaimsReward = artifacts.require('ClaimsReward');
@@ -15,12 +15,15 @@ const MCR = artifacts.require('MCR');
 const DAI = artifacts.require('MockDAI');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const Governance = artifacts.require('Governance');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const gvProp = require('./utils/gvProposal.js').gvProposal;
+const encode = require('./utils/encoder.js').encode;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -51,6 +54,8 @@ let mcr;
 let DSV;
 let nxms;
 let mr;
+let gv;
+let APIID;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -102,7 +107,6 @@ contract('Claim: Assessment 2', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    tc = await TokenController.deployed();
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
     pd = await PoolData.deployed();
@@ -116,14 +120,16 @@ contract('Claim: Assessment 2', function([
     DSV = await DSValue.deployed();
 
     nxms = await NXMaster.deployed();
+    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    gv = await Governance.at(await nxms.getLatestAddress('GV'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await DSV.setRate(25 * 1e18);
-    await pd.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
+    await p1.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
     await p1.upgradeCapitalPool(owner);
     await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
-    await pd.changeCurrencyAssetBaseMin(dai_string, 750 * 1e18);
+    await p1.changeCurrencyAssetBaseMin(dai_string, 750 * 1e18);
     await dai.transfer(p1.address, 1250 * 1e18);
     await mcr.addMCRData(
       10000,
@@ -133,14 +139,16 @@ contract('Claim: Assessment 2', function([
       [100, 2500],
       20190208
     );
-    await p2.upgradeInvestmentPool(owner);
-    await pd.changeC(400000);
-    await pd.changeA(10);
-    await td.changeBookTime(60);
+    await p1.upgradeInvestmentPool(owner);
+    // await pd.changeC(400000);
+    // await pd.changeA(10);
+    // await td.changeBookTime(60);
+    await mr.payJoiningFee(owner, { from: owner, value: fee });
+    await mr.kycVerdict(owner, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
-    if ((await tk.totalSupply()) < 600000 * 1e18)
-      await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-    else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+    // if ((await tk.totalSupply()) < 600000 * 1e18)
+    //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+    // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
     // const BASE_MIN_ETH = await pd.getCurrencyAssetBaseMin(ethereum_string);
     // const BASE_MIN_DAI = await pd.getCurrencyAssetBaseMin(dai_string);
@@ -167,6 +175,10 @@ contract('Claim: Assessment 2', function([
     await mr.payJoiningFee(underWriter5, { from: underWriter5, value: fee });
     await mr.kycVerdict(underWriter5, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter5 });
+
+    await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
+    await mr.kycVerdict(underWriter6, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
 
     await mr.payJoiningFee(claimAssessor1, {
       from: claimAssessor1,
@@ -268,6 +280,7 @@ contract('Claim: Assessment 2', function([
     await tk.transfer(underWriter3, 15050 * 1e18, { from: owner });
     await tk.transfer(underWriter4, 18035 * 1e18, { from: owner });
     await tk.transfer(underWriter5, 17065 * 1e18, { from: owner });
+    await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
 
     await tk.transfer(claimAssessor1, 50000 * 1e18, { from: owner });
     await tk.transfer(claimAssessor2, 30000 * 1e18, { from: owner });
@@ -327,6 +340,16 @@ contract('Claim: Assessment 2', function([
     tf.addStake(SC5, 15 * 1e18, { from: underWriter5 });
     tf.addStake(SC5, 20 * 1e18, { from: underWriter2 });
     tf.addStake(SC5, 25 * 1e18, { from: underWriter1 });
+
+    actionHash = encode('updateUintParameters(bytes8,uint)', 'A', 10);
+    await gvProp(26, actionHash, mr, gv, 2);
+    val = await pd.getUintParameters('A');
+    (val[1] / 1).should.be.equal(10);
+
+    actionHash = encode('updateUintParameters(bytes8,uint)', 'C', 400000);
+    await gvProp(26, actionHash, mr, gv, 2);
+    val = await pd.getUintParameters('C');
+    (val[1] / 1).should.be.equal(400000);
   });
 
   describe('claim test case', function() {
@@ -394,8 +417,8 @@ contract('Claim: Assessment 2', function([
       updateUWDetails([20, 0, 0, 0, 0]);
 
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 2
       await dai.transfer(coverHolder3, 164271047228000000);
@@ -415,8 +438,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([20, 0, 0, 0, 0]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 3
       await p1.makeCoverBegin(
@@ -434,8 +457,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 40, 0, 0]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 4
       await dai.transfer(coverHolder2, 657084188912000000);
@@ -455,8 +478,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 40, 0, 0]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 5
       await p1.makeCoverBegin(
@@ -474,8 +497,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 0, 0, 60]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 6
       await dai.transfer(coverHolder6, 1478439425051000000);
@@ -497,8 +520,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 0, 0, 60]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 7
       await p1.makeCoverBegin(
@@ -516,8 +539,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 20, 20, 15, 25]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 8
       await dai.transfer(coverHolder8, 2628336755647000000);
@@ -540,8 +563,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([35, 10, 0, 0, 0]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 9
       await p1.makeCoverBegin(
@@ -560,8 +583,8 @@ contract('Claim: Assessment 2', function([
       allLockCNDetails.push(lockedCN);
       updateUWDetails([12.5, 10, 5, 2.5, 7.5]);
       if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       await p1.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
@@ -575,17 +598,17 @@ contract('Claim: Assessment 2', function([
       await lockCNFlag.should.equal(1);
     });
 
-    it('18.2 Should not be able to updateStakerCommission if premiumNXM is 0', async function() {
-      await tf.updateStakerCommissions(SC1, 0, { from: owner });
-    });
+    // it('18.2 Should not be able to updateStakerCommission if premiumNXM is 0', async function() {
+    //   await tf.updateStakerCommissions(SC1, 0, { from: owner });
+    // });
 
-    it('18.3 Calling updateStakerCommissions when max commission is reached which is in case of buying cover 7 for SC4', async function() {
-      // after calling make cover begin for SC4, all UW's recived 50% (max) of their staked as commission so calling the funtion in the next line has no effect
-      await tf.updateStakerCommissions(SC4, 400000000000000000000, {
-        from: owner
-      });
-      // the above function is simply run but has no effect for else part of if (maxCommission > commissionEarned)
-    });
+    // it('18.3 Calling updateStakerCommissions when max commission is reached which is in case of buying cover 7 for SC4', async function() {
+    //   // after calling make cover begin for SC4, all UW's recived 50% (max) of their staked as commission so calling the funtion in the next line has no effect
+    //   await tf.updateStakerCommissions(SC4, 400000000000000000000, {
+    //     from: owner
+    //   });
+    //   // the above function is simply run but has no effect for else part of if (maxCommission > commissionEarned)
+    // });
 
     it('18.4 should pass for CA vote > 10 SA and majority > 70 % for reject(D1)', async function() {
       // (await nxms.isPause()).should.equal(false);
@@ -623,6 +646,7 @@ contract('Claim: Assessment 2', function([
       await assertRevert(tf.depositCN(46, { from: owner }));
 
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
       // await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
@@ -663,8 +687,7 @@ contract('Claim: Assessment 2', function([
       closingTime = minVotingTime.plus(now);
       await increaseTimeTo(closingTime.minus(10));
 
-      // changing the claim status here
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       assert.equal(parseFloat((await cd.getClaimStatusNumber(claimID))[1]), 0);
 
@@ -681,7 +704,7 @@ contract('Claim: Assessment 2', function([
       let balanceBefore = parseFloat(await web3.eth.getBalance(coverHolder5));
 
       // changing the claim status here
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder5));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder5));
@@ -701,8 +724,8 @@ contract('Claim: Assessment 2', function([
           parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
       }
 
-      now = await latestTime();
-
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
         1e18;
@@ -712,8 +735,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
         1e18;
-      // let x = await cd.getClaimStatusNumber(claimID);
-      // console.log('dsafda:::', x)
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -747,9 +768,6 @@ contract('Claim: Assessment 2', function([
         );
         UWTokensBurned[i] = UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i];
       }
-
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       assert.equal(
         claimAssessor1Object.newLockDate - claimAssessor1Object.initialDate,
@@ -795,9 +813,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
     });
 
     it('18.5 should pass for CA vote > 10 SA and majority > 70 % for accept(A1)', async function() {
@@ -832,6 +850,7 @@ contract('Claim: Assessment 2', function([
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimID = (await cd.actualClaimLength()) - 1;
 
@@ -890,7 +909,7 @@ contract('Claim: Assessment 2', function([
         );
       }
       // changing the claim status here
-      let tx = await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let balanceAfter = await web3.eth.getBalance(coverHolder5);
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder5));
@@ -920,8 +939,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
         1e18;
-      // let x = await cd.getClaimStatusNumber(claimID);
-      // console.log('dsafda:::', x)
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -1011,9 +1028,12 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.6 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
@@ -1075,6 +1095,7 @@ contract('Claim: Assessment 2', function([
       coverID = await qd.getAllCoversOfUser(coverHolder3);
       await cl.submitClaim(coverID[0], { from: coverHolder3 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1115,11 +1136,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -1130,8 +1147,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, -1, { from: member1 });
@@ -1147,7 +1162,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -1191,8 +1206,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         ((tokenBalanceAfter - tokenBalanceBefore) / 1e18).toFixed(2)
       );
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -1253,9 +1266,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.7 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
@@ -1317,6 +1332,7 @@ contract('Claim: Assessment 2', function([
       coverID = await qd.getAllCoversOfUser(coverHolder3);
       await cl.submitClaim(coverID[0], { from: coverHolder3 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1357,11 +1373,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -1372,8 +1384,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -1387,7 +1397,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -1431,8 +1441,7 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         ((tokenBalanceAfter - tokenBalanceBefore) / 1e18).toFixed(2)
       );
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
+
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
           parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
@@ -1492,9 +1501,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.8 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
@@ -1569,6 +1580,7 @@ contract('Claim: Assessment 2', function([
       coverID = await qd.getAllCoversOfUser(coverHolder1);
       await cl.submitClaim(coverID[0], { from: coverHolder1 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1622,11 +1634,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -1643,8 +1651,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -1658,7 +1664,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -1708,9 +1714,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -1792,9 +1795,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.9 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
@@ -1869,6 +1874,7 @@ contract('Claim: Assessment 2', function([
       coverID = await qd.getAllCoversOfUser(coverHolder1);
       await cl.submitClaim(coverID[0], { from: coverHolder1 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1922,11 +1928,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -1943,8 +1945,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -1958,7 +1958,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -2005,8 +2005,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = (tokenBalanceAfter - tokenBalanceBefore) / 1e18;
       coverTokensBurned =
         (coverTokensLockedBefore - coverTokensLockedAfter) / 1e18;
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       coverTokensBurned = Number(
         (totalBalanceBefore - totalBalanceAfter) / 1e18
@@ -2095,9 +2093,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.10 should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
@@ -2175,6 +2175,7 @@ contract('Claim: Assessment 2', function([
       coverID = await qd.getAllCoversOfUser(coverHolder2);
       await cl.submitClaim(coverID[0], { from: coverHolder2 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2222,11 +2223,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -2240,8 +2237,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, -1, { from: member1 });
@@ -2257,7 +2252,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -2309,9 +2304,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -2384,9 +2376,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.11 should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
@@ -2462,6 +2456,7 @@ contract('Claim: Assessment 2', function([
       coverID = await qd.getAllCoversOfUser(coverHolder2);
       await cl.submitClaim(coverID[0], { from: coverHolder2 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2509,11 +2504,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -2527,8 +2518,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -2544,7 +2533,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -2596,8 +2585,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -2670,9 +2657,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.12 should pass for CA vote > 5* SA and <10 SA and majority > 70 % for reject(D1)', async function() {
@@ -2733,6 +2722,7 @@ contract('Claim: Assessment 2', function([
       coverID = await qd.getAllCoversOfUser(coverHolder4);
       await cl.submitClaim(coverID[0], { from: coverHolder4 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2787,7 +2777,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // changing the claim status here
-      let tx = await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let balanceAfter = await web3.eth.getBalance(coverHolder4);
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder4));
@@ -2820,8 +2810,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
         1e18;
-      // let x = await cd.getClaimStatusNumber(claimID);
-      // console.log('dsafda:::', x)
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -2845,9 +2833,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
-
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -2925,9 +2910,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.13 should pass for CA vote > 5* SA and <10 SA and majority > 70 % for accept(A1)', async function() {
@@ -2984,14 +2971,10 @@ contract('Claim: Assessment 2', function([
         );
       }
 
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
-
       coverID = await qd.getAllCoversOfUser(coverHolder4);
       await cl.submitClaim(coverID[0], { from: coverHolder4 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3046,7 +3029,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // changing the claim status here
-      let tx = await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let balanceAfter = await web3.eth.getBalance(coverHolder4);
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder4));
@@ -3079,8 +3062,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
         1e18;
-      // let x = await cd.getClaimStatusNumber(claimID);
-      // console.log('dsafda:::', x)
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -3105,8 +3086,6 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
 
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
           parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
@@ -3182,9 +3161,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.14 should pass for CA vote < 5* SA and MV < 5 SA and CA majority reject(D4)', async function() {
@@ -3246,14 +3227,10 @@ contract('Claim: Assessment 2', function([
         );
       }
 
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
-
       coverID = await qd.getAllCoversOfUser(coverHolder6);
       await cl.submitClaim(coverID[0], { from: coverHolder6 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3294,11 +3271,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -3309,8 +3282,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -3323,7 +3294,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -3362,8 +3333,7 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
+
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
           parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
@@ -3423,9 +3393,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.15 should pass for CA vote < 5* SA and MV < 5 SA and CA majority accept(A4)', async function() {
@@ -3487,14 +3459,10 @@ contract('Claim: Assessment 2', function([
         );
       }
 
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
-
       coverID = await qd.getAllCoversOfUser(coverHolder6);
       await cl.submitClaim(coverID[0], { from: coverHolder6 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3535,11 +3503,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -3550,8 +3514,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -3564,7 +3526,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -3603,8 +3565,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -3665,9 +3625,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.16 should pass for 0 CA votes, MV < 5 SA(D4)', async function() {
@@ -3725,14 +3687,10 @@ contract('Claim: Assessment 2', function([
         );
       }
 
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
-
       coverID = await qd.getAllCoversOfUser(coverHolder7);
       await cl.submitClaim(coverID[0], { from: coverHolder7 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
@@ -3749,14 +3707,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
-
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
+      await p1.__callback(APIID, '');
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -3769,7 +3720,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
 
@@ -3795,8 +3746,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -3824,9 +3773,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.17 should pass for CA vote > 5 SA and CA<10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
@@ -3891,14 +3842,10 @@ contract('Claim: Assessment 2', function([
         );
       }
 
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
-
       coverID = await qd.getAllCoversOfUser(coverHolder7);
       await cl.submitClaim(coverID[0], { from: coverHolder7 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3952,11 +3899,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -3973,8 +3916,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -3988,7 +3929,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -4038,8 +3979,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -4121,9 +4060,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.18 should pass for CA vote > 5 SA and CA<10SA majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
@@ -4187,14 +4128,10 @@ contract('Claim: Assessment 2', function([
         );
       }
 
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
-
       coverID = await qd.getAllCoversOfUser(coverHolder8);
       await cl.submitClaim(coverID[0], { from: coverHolder8 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4248,11 +4185,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -4269,8 +4202,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
         1e18;
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -4284,7 +4215,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -4334,8 +4265,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -4417,9 +4346,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.19 CA vote<5SA, open for member vote and majority reject(D3)', async function() {
@@ -4483,14 +4414,10 @@ contract('Claim: Assessment 2', function([
         );
       }
 
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
-
       coverID = await qd.getAllCoversOfUser(coverHolder9);
       await cl.submitClaim(coverID[0], { from: coverHolder9 });
       claimID = (await cd.actualClaimLength()) - 1;
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimAssessor1Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4523,11 +4450,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -4535,9 +4458,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
         1e18;
-
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, -1, { from: member1 });
@@ -4554,7 +4474,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -4601,8 +4521,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -4657,9 +4575,11 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * 1e18)
+      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.20 CA vote <5SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
@@ -4722,13 +4642,10 @@ contract('Claim: Assessment 2', function([
           ).toFixed(2)
         );
       }
-      // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
 
       coverID = await qd.getAllCoversOfUser(coverHolder9);
       await cl.submitClaim(coverID[0], { from: coverHolder9 });
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimID = (await cd.actualClaimLength()) - 1;
       claimAssessor1Object.initialDate = parseFloat(
@@ -4763,11 +4680,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
-      await cr.changeClaimStatus(claimID);
-
-      // console.log('before:: ', balanceBefore);
-      // console.log('after:: ', balanceAfter);
-      // now = await latestTime();
+      await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
@@ -4775,9 +4688,6 @@ contract('Claim: Assessment 2', function([
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
         1e18;
-
-      // // let x = await cd.getClaimStatusNumber(claimID);
-      // // console.log('dsafda:::', x)
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -4794,7 +4704,7 @@ contract('Claim: Assessment 2', function([
       await increaseTimeTo(closingTime.plus(2));
 
       // now member voting will be closed
-      await cr.changeClaimStatus(claimID);
+      await p1.__callback(APIID, '');
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -4846,8 +4756,6 @@ contract('Claim: Assessment 2', function([
       coverTokensUnlockable = Number(
         (tokenBalanceAfter - tokenBalanceBefore) / 1e18
       ).toFixed(2);
-      // console.log(1 * 1e18 / (await mcr.calculateTokenPrice(ethereum_string)));
-      // console.log(await cd.getCaClaimVotesToken(claimID));
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
@@ -4901,32 +4809,12 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
-    });
-
-    it('18.21 Unlocks token locked by coverholder and then does it again, but next time, no unlock', async function() {
-      const coverID1 = (await qd.getAllCoversOfUser(coverHolder1))[0];
-
-      // after this there are some locked CN, hence balance of CH1 increases
-      await tf.unlockCN(coverID1, { from: owner });
-
-      // locked CN already unlocked hence, balance remains same after next statement
-      await tf.unlockCN(coverID1, { from: owner });
-    });
-  });
-  describe('Setting staker commission and max commision percentages when not authorized to govern', function() {
-    it('18.22 not allowed for set staker commission percentage', async function() {
-      await assertRevert(td.setStakerCommissionPer(newStakerPercentage));
-    });
-    it('18.23 not allowed for set staker maximum commission percentage', async function() {
-      await assertRevert(td.setStakerMaxCommissionPer(newStakerPercentage));
+      // now = await latestTime();
+      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
   });
   describe('Burning 0 tokens of a staker', function() {
     it('18.24 successful', async function() {
-      await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
-      await mr.kycVerdict(underWriter6, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
-      await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
       tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
       coverID = await qd.getAllCoversOfUser(coverHolder5);
 
@@ -4939,11 +4827,6 @@ contract('Claim: Assessment 2', function([
       closingTime = maxVotingTime.plus(now + maxStakeTime);
       await increaseTimeTo(closingTime);
       await tf.burnStakerLockedToken(SC1, 10);
-    });
-  });
-  describe('Add all members in whitelist', function() {
-    it('18.26 successful', async function() {
-      await tf.addAllMembersInWhiteList({ from: owner });
     });
   });
 });

@@ -184,50 +184,8 @@ contract('MCR', function([owner, notOwner]) {
         );
     });
   });
-  describe('if owner/internal contract address', function() {
-    describe('Change MCRTime', function() {
-      it('11.9 should be able to change MCRTime', async function() {
-        await mcr.changeMCRTime(1, { from: owner });
-        (await pd.mcrTime()).should.be.bignumber.equal(1);
-      });
-    });
-    describe('Change Scaling Factor', function() {
-      it('11.10 should be able to change Scaling Factor', async function() {
-        await mcr.changeA(1, { from: owner });
-      });
-    });
-    describe('Add new MCR Data', function() {
-      it('11.11 should be able to add MCR data', async function() {
-        await mcr.addMCRData(
-          18000,
-          100 * 1e18,
-          2 * 1e18,
-          ['0x455448', '0x444149'],
-          [100, 65407],
-          20181011,
-          { from: owner }
-        );
-      });
-    });
-
-    describe('Adds MCR Data for last failed attempt', function() {
-      it('11.12 should be able to add MCR data', async function() {
-        await mcr.addLastMCRData(20181009, { from: owner });
-        await mcr.addLastMCRData(20181011, { from: owner });
-        await mcr.addLastMCRData(20181012, { from: owner });
-      });
-    });
-  });
 
   describe('Misc', function() {
-    it('11.13 should be able to change MCRTime', async function() {
-      await assertRevert(mcr.changeMCRTime(1, { from: notOwner }));
-    });
-    it('11.14 should be able to get all Sum Assurance', async function() {
-      // await mcr.getAllSumAssurance();
-      await pd.updateCAAvgRate('0x44414900', 0, { from: owner });
-      // await mcr.getAllSumAssurance();
-    });
     it('11.15 should not be able to change master address', async function() {
       await assertRevert(
         mcr.changeMasterAddress(mcr.address, { from: notOwner })
@@ -284,7 +242,7 @@ contract('MCR', function([owner, notOwner]) {
     });
     it('11.21 mcr if vtp is 0', async function() {
       await p1.upgradeCapitalPool(owner);
-      await p2.upgradeInvestmentPool(owner);
+      await p1.upgradeInvestmentPool(owner);
       await mcr.addMCRData(
         18000,
         100 * 1e18,
@@ -293,16 +251,6 @@ contract('MCR', function([owner, notOwner]) {
         [100, 65407],
         20181011,
         { from: owner }
-      );
-    });
-    it('11.21 mcr if vtp is 0', async function() {
-      await p1.sendTransaction({ from: notOwner, value: 20 * 1e18 });
-      await p2.sendTransaction({ from: notOwner, value: 20 * 1e18 });
-      await p2.saveIADetails(
-        ['0x455448', '0x444149'],
-        [100, 1000],
-        20190125,
-        true
       );
     });
   });

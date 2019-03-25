@@ -40,6 +40,7 @@ contract Pool2 is Iupgradable {
     constructor(address _uniswapFactoryAdd) public {
        
         uniswapFactoryAddress = _uniswapFactoryAdd;
+        factory = Factory(_uniswapFactoryAdd);
     }
 
     event Liquidity(bytes16 typeOf, bytes16 functionName);
@@ -89,8 +90,9 @@ contract Pool2 is Iupgradable {
                 if(callTime.add(pd.mcrFailTime()) < now)
                     m1.addLastMCRData(uint64(id));                
             } else if (res == "ULT") {
-                if(callTime.add(pd.liquidityTradeCallbackTime()) < now)
+                if(callTime.add(pd.liquidityTradeCallbackTime()) < now) {
                     _externalLiquidityTrade();                
+                }
             }
         } else if (res == "EP") {
             if(callTime.add(ms.pauseTime()) < now) {
@@ -410,7 +412,6 @@ contract Pool2 is Iupgradable {
             exchange.ethToTokenSwapInput.value(amount)
             (exchange.getEthToTokenInputPrice(amount).mul(995).div(1000), pd.uniswapDeadline().add(now));    
         } else if (curr != "ETH" && minIACurr == "ETH") {
-            
             exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));
             erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
             intermediaryEth = exchange.getTokenToEthInputPrice(amount);

@@ -981,7 +981,7 @@ contract(
               await gv.submitVote(pId, 1, { from: ab4 });
               await gv.submitVote(pId, 1, { from: ab5 });
               await gv.closeProposal(pId);
-              assert.equal((await pc.totalCategories()).toNumber(), 30);
+              assert.equal((await pc.totalCategories()).toNumber(), 31);
             });
             it('17.107 Should create proposal', async function() {
               await increaseTime(604800);
@@ -995,7 +995,7 @@ contract(
               );
             });
             it('17.108 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 29, 160 * 1e18);
+              await gv.categorizeProposal(pId, 30, 160 * 1e18);
             });
             it('17.109 Should open for voting', async function() {
               let actionHash = encode(

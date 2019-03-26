@@ -5,7 +5,7 @@ const Pool2 = artifacts.require('Pool2');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const TokenData = artifacts.require('TokenDataMock');
-
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
 const { increaseTimeTo } = require('./utils/increaseTime');
@@ -23,6 +23,7 @@ let p2;
 let mr;
 let nxms;
 let td;
+let tf;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -37,6 +38,7 @@ contract('Token Module', function([owner, member1]) {
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
     nxms = await NXMaster.deployed();
+    tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     td = await TokenData.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
@@ -100,7 +102,13 @@ contract('Token Module', function([owner, member1]) {
     });
 
     it('20.6 _mint function "require" - else ZERO_ADDRESS condition is checked', async function() {
-      await assertRevert(tc.mint(ZERO_ADDRESS, 1));
+      await assertRevert(tf.mint(ZERO_ADDRESS, 1));
+    });
+
+    it('20.7 should not able to burn more than user balance', async function() {
+      await assertRevert(
+        tf.burnFrom(member1, (await tk.balanceOf(member1)) / 1 + 1)
+      );
     });
   });
 });

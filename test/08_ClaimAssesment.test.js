@@ -13,6 +13,7 @@ const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
+const Governance = artifacts.require('Governance');
 const DAI = artifacts.require('MockDAI');
 
 const { assertRevert } = require('./utils/assertRevert');
@@ -20,6 +21,8 @@ const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const gvProp = require('./utils/gvProposal.js').gvProposal;
+const encode = require('./utils/encoder.js').encode;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -55,6 +58,7 @@ let mcr;
 let nxms;
 let mr;
 let pd;
+let gv;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -101,6 +105,7 @@ contract('Claim: Assessment', function([
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    gv = await Governance.at(await nxms.getLatestAddress('GV'));
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     await mr.addMembersBeforeLaunch([], []);
@@ -114,7 +119,8 @@ contract('Claim: Assessment', function([
       20181011
     );
     (await pd.capReached()).should.be.bignumber.equal(1);
-
+    await mr.payJoiningFee(owner, { from: owner, value: fee });
+    await mr.kycVerdict(owner, true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await mr.payJoiningFee(member2, { from: member2, value: fee });
@@ -541,8 +547,12 @@ contract('Claim: Assessment', function([
       (13).should.be.equal(parseFloat(cStatus[1]));
       await P1.sendTransaction({ from: owner, value: 10 * 1e18 });
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
+      coverID = await qd.getAllCoversOfUser(coverHolder);
+      let coveStatus = await qd.getCoverStatusNo(coverID[coverID.length - 1]);
+      (2).should.be.equal(parseFloat(coveStatus));
       (13).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.30 Payout fails for 1st time and later complete', async function() {
@@ -603,7 +613,37 @@ contract('Claim: Assessment', function([
       coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
     });
-    it('8.31 should close voting during casting vote as CA', async function() {
+    it('8.31 should not allow to cast CA vote if not locked under CA', async function() {
+      let clid = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(clid, -1, { from: staker1 }));
+    });
+    it('8.32 should not be able to CAs right to cast CA vote for 3 days', async function() {
+      await assertRevert(cd.setUserClaimVotePausedOn(member1));
+    });
+    it('8.33 should not be able to update uint parameter directly', async function() {
+      await assertRevert(cd.updateUintParameters('A', 12));
+    });
+    it('8.34 should get 0 for wrong code', async function() {
+      let val = await cd.getUintParameters('EPTIME');
+      (val[1] / 1).should.be.equal(0);
+    });
+    it('8.35 even if passed by governance should not trigger action for wrong code', async function() {
+      actionHash = encode('updateUintParameters(bytes8,uint)', 'asd', 12);
+      await gvProp(24, actionHash, mr, gv, 2);
+    });
+    it('8.36 should able to propose to block CAs right to cast CA vote for 3 days', async function() {
+      let val = await cd.userClaimVotePausedOn(member1);
+      (val / 1).should.be.equal(0);
+      actionHash = encode('setUserClaimVotePausedOn(address)', member1);
+      await gvProp(9, actionHash, mr, gv, 1);
+      val = await cd.userClaimVotePausedOn(member1);
+      (val / 1).should.not.be.equal(0);
+    });
+    it('8.37 should not able to vote as CA if blocked', async function() {
+      let clid = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(clid, -1, { from: member1 }));
+    });
+    it('8.38 should close voting during casting vote as CA', async function() {
       now = await latestTime();
       let minVoteTime = await cd.minVotingTime();
       await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
@@ -614,7 +654,7 @@ contract('Claim: Assessment', function([
       (await cl.checkVoteClosing(clid)).should.be.bignumber.equal(-1);
     });
 
-    it('8.32 should close voting during casting vote as Member', async function() {
+    it('8.39 should close voting during casting vote as Member', async function() {
       coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
       let clid = (await cd.actualClaimLength()) - 1;
@@ -629,7 +669,7 @@ contract('Claim: Assessment', function([
       await cl.submitMemberVote(clid, -1, { from: member5 });
       (await cl.checkVoteClosing(clid)).should.be.bignumber.equal(-1);
     });
-    it('8.33 should revert while selling NXMs', async function() {
+    it('8.40 should revert while selling NXMs', async function() {
       await assertRevert(P1.sellNXMTokens(2 * 1e18, { from: member5 }));
     });
   });

@@ -252,6 +252,43 @@ contract('MCR', function([owner, notOwner]) {
         20181011,
         { from: owner }
       );
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let timeINC =
+        (await pd.getDateAddOfAPI(APIID)) / 1 +
+        (await pd.mcrFailTime()) / 1 +
+        100;
+      await increaseTimeTo(timeINC);
+      await p1.__callback(APIID, '');
+    });
+    it('11.21 if mcr fails and retry after new mcr posted', async function() {
+      await p1.upgradeCapitalPool(owner);
+      await p1.upgradeInvestmentPool(owner);
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        0,
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181012,
+        { from: owner }
+      );
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      await mcr.addMCRData(
+        18000,
+        100 * 1e18,
+        100 * 1e18,
+        ['0x455448', '0x444149'],
+        [100, 65407],
+        20181013,
+        { from: owner }
+      );
+
+      let timeINC =
+        (await pd.getDateAddOfAPI(APIID)) / 1 +
+        (await pd.mcrFailTime()) / 1 +
+        100;
+      await increaseTimeTo(timeINC);
+      await p1.__callback(APIID, '');
     });
   });
 });

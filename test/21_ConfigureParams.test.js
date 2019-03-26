@@ -124,6 +124,37 @@ contract(
       } catch (err) {}
       assert.equal(parameter[1], proposedValue);
     }
+    async function updateInvalidParameter(
+      cId,
+      mrSequence,
+      code,
+      contractInst,
+      type,
+      proposedValue
+    ) {
+      let getterFunction;
+      if (type == 'uint') {
+        action = 'updateUintParameters(bytes8,uint)';
+        getterFunction = 'getUintParameters';
+      } else if (type == 'address') {
+        action = 'updateAddressParameters(bytes8,address)';
+        getterFunction = 'getAddressParameters';
+      } else if (type == 'owner') {
+        action = 'updateOwnerParameters(bytes8,address)';
+        getterFunction = 'getOwnerParameters';
+      }
+      let actionHash = encode(action, code, proposedValue);
+      await gvProposal(cId, actionHash, mr, gv, mrSequence);
+      if (code == 'MASTADD') {
+        let newMaster = await NXMaster.at(proposedValue);
+        contractInst = newMaster;
+      }
+      let parameter = await contractInst[getterFunction](code);
+      try {
+        parameter[1] = parameter[1].toNumber();
+      } catch (err) {}
+      assert.notEqual(parameter[1], proposedValue);
+    }
 
     describe('Update Token Parameters', function() {
       it('Should update Exponent in Token Price', async function() {
@@ -170,6 +201,9 @@ contract(
       });
       it('Should update Emergency Pause Time', async function() {
         await updateParameter(22, 2, 'EPTIME', gv, 'uint', '86400');
+      });
+      it('Should not update if parameter code is incorrect', async function() {
+        await updateInvalidParameter(22, 2, 'EPTIM', gv, 'uint', '86400');
       });
     });
 

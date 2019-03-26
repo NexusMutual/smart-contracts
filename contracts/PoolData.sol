@@ -258,7 +258,9 @@ contract PoolData is Iupgradable {
 
             _changeA(val);
 
-          }
+          } else{
+            revert("Invalid param code");
+        }
             
     }
 

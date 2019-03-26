@@ -592,6 +592,8 @@ contract TokenData is Iupgradable {
 
             _setJoiningFee(val);
 
+        } else{
+            revert("Invalid param code");
         } 
     }
 

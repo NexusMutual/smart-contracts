@@ -42,5 +42,13 @@ contract TokenFunctionMock is TokenFunctions {
         if (toBurn > 0 && totalStaker > 0)
             td.setStakedContractCurrentBurnIndex(scAddress, totalStaker.sub(1));
     }
+
+    function mint(address _member, uint _amount) external {
+        tc.mint(_member, _amount);
+    }
+
+    function burnFrom(address _of, uint amount) external {
+        tc.burnFrom(_of, amount);
+    }
     
 }

@@ -123,7 +123,7 @@ contract ClaimsData is Iupgradable {
     );
 
     constructor() public {
-        pendingClaimStart = 0;
+        pendingClaimStart = 1;
         maxVotingTime = 1800;
         minVotingTime = 1200;
         payoutRetryTime = 86400;
@@ -206,13 +206,6 @@ contract ClaimsData is Iupgradable {
      */ 
     function changeFinalVerdict(uint _claimId, int8 _verdict) external onlyInternal {
         claimVote[_claimId] = _verdict;
-    }
-
-    /**
-     * @dev Gets last timestamp at which claim has been updated.
-     */ 
-    function setClaimDateUpd(uint _claimId, uint _time) external onlyInternal {
-        allClaims[_claimId].dateUpd = _time;
     }
     
     /**
@@ -500,6 +493,9 @@ contract ClaimsData is Iupgradable {
 
         } else if(code == "CAPAUSET"){
             _setPauseDaysCA(val * 1 days);
+        } else{
+
+            revert("Invalid param code");
         }
     
     }

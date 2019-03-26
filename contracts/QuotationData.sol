@@ -224,6 +224,9 @@ contract QuotationData is Iupgradable {
 
            val = tokensRetained;
 
+        } else{
+
+            revert("Invalid param code");
         }
         
     }

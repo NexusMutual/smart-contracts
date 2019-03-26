@@ -347,6 +347,8 @@ contract NXMaster is Governed {
         } else if(code == "MASTADD"){
             changeMasterAddress(val);
 
+        } else{
+            revert("Invalid param code");
         }  
         
     }
@@ -402,6 +404,8 @@ contract NXMaster is Governed {
             qd = QuotationData(getLatestAddress("QD"));
             qd.setKycAuthAddress(val);
 
+        } else{
+            revert("Invalid param code");
         }
         
     }

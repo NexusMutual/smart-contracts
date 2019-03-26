@@ -136,7 +136,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "MS", 50, 15, 2, 0);
         _addInitialCategories("Burn Claims Assessor Bond", "QmezNJUF2BM5Nv9EMnsEKUmuqjvdySzvQFvhEdvFJbau3k", //8
         "TF", 80, 15, 1, 0);
-        _addInitialCategories("Pause Claim Assessor Voting for 3 days", "", "EX", 60, 15, 1, 0);
+        _addInitialCategories("Pause Claim Assessor Voting for 3 days", "", "CD", 60, 15, 1, 0);
         _addInitialCategories("Changes to Capital Model", "", "EX", 50, 15, 2, 60);
         _addInitialCategories("Changes to Pricing Model", "", "EX", 50, 15, 2, 60);
         _addInitialCategories("Withdraw funds to Pay for Support Services", 

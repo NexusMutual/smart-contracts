@@ -362,6 +362,9 @@ contract Governance is IGovernance, Iupgradable {
         } else if(code == "EPTIME") {
             ms.updatePauseTime(val * 1 days);
 
+        } else{
+            
+            revert("Invalid param code");
         }
 
     }

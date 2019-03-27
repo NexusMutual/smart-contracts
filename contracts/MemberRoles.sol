@@ -49,12 +49,50 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     uint public maxABCount;
     bool public launched;
     uint public launchedOn;
+
     modifier checkRoleAuthority(uint _memberRoleId) {
         if (memberRoleData[_memberRoleId].authorized != address(0))
             require(msg.sender == memberRoleData[_memberRoleId].authorized);
         else
             require(isAuthorizedToGovern(msg.sender), "Not Authorized");
         _;
+    }
+
+    function swapABMember (
+        address _newABAddress,
+        address _removeAB
+    )
+    external
+    checkRoleAuthority(uint(Role.AdvisoryBoard)) {
+
+        _updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
+        _updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
+
+    }
+
+    function swapOwner (
+        address _newOwnerAddress
+    )
+    external {
+        require(msg.sender == address(ms));
+        _updateRole(ms.owner(), uint(Role.Owner), false);
+        _updateRole(_newOwnerAddress, uint(Role.Owner), true);
+    }
+    
+    function addInitialABMembers(address[] abArray) external onlyOwner {
+
+        require(maxABCount >= 
+            SafeMath.add(numberOfMembers(uint(Role.AdvisoryBoard)), abArray.length)
+        );
+        //AB count can't exceed maxABCount
+        for (uint i = 0; i < abArray.length; i++) {
+            dAppToken.addToWhitelist(abArray[i]);
+            _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
+        }
+    }
+
+    function changeMaxABCount(uint _val) external onlyInternal {
+        maxABCount = _val;
     }
 
     function changeDependentContractAddress() public {
@@ -113,8 +151,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     function addMembersBeforeLaunch(address[] userArray, uint[] tokens) public onlyOwner {
         require(!launched);
 
-        for(uint i=0;i<userArray.length;i++)
-        {
+        for (uint i=0; i < userArray.length; i++) {
             require(!ms.isMember(userArray[i]));
             dAppToken.addToWhitelist(userArray[i]);
             _updateRole(userArray[i], uint(Role.Member), true);
@@ -125,47 +162,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     }
 
-    function swapABMember(
-        address _newABAddress,
-        address _removeAB
-    )
-    external
-    checkRoleAuthority(uint(Role.AdvisoryBoard)) {
-
-        _updateRole(_newABAddress, uint(Role.AdvisoryBoard), true);
-        _updateRole(_removeAB, uint(Role.AdvisoryBoard), false);
-
-    }
-
-    function swapOwner(
-        address _newOwnerAddress
-    )
-    external {
-
-        require (msg.sender == address(ms));
-        _updateRole(ms.owner(), uint(Role.Owner), false);
-        _updateRole(_newOwnerAddress, uint(Role.Owner), true);
-        
-
-    }
-
-    function addInitialABMembers(address[] abArray) external onlyOwner {
-
-        require(maxABCount >= 
-            SafeMath.add(numberOfMembers(uint(Role.AdvisoryBoard)), abArray.length)
-        );
-        //AB count can't exceed maxABCount
-        for (uint i = 0; i < abArray.length; i++) {
-            dAppToken.addToWhitelist(abArray[i]);
-            _updateRole(abArray[i], uint(Role.AdvisoryBoard), true);   
-        }
-    }
-
-    function changeMaxABCount(uint _val) external onlyInternal {
-        maxABCount = _val;
-    }
-
-    /** 
+   /** 
      * @dev Called by user to pay joining membership fee
      */ 
     function payJoiningFee(address _userAddress) public payable {

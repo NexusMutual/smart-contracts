@@ -79,7 +79,8 @@ contract ClaimsReward is Iupgradable {
         } else if (status >= 1 && status <= 5) { 
             _changeClaimStatusMV(claimid, coverid, status);
         } else if (status == 12) { // when current status is "Claim Accepted Payout Pending"
-            bool succ = p1.sendClaimPayout(coverid, claimid, qd.getCoverSumAssured(coverid).mul(DECIMAL1E18), qd.getCoverMemberAddress(coverid), qd.getCurrencyOfCover(coverid));
+            bool succ = p1.sendClaimPayout(coverid, claimid, qd.getCoverSumAssured(coverid).mul(DECIMAL1E18), 
+            qd.getCoverMemberAddress(coverid), qd.getCurrencyOfCover(coverid));
             if (succ) 
                 c1.setClaimStatus(claimid, 14);
         }

@@ -2,12 +2,13 @@ pragma solidity 0.4.24;
 
 import "../Pool1.sol";
 
+
 contract TokenFunctionMock is TokenFunctions {
 
-	 /**
-     * @dev Burns tokens staked against a Smart Contract Cover.
-     * Called when a claim submitted against this cover is accepted.
-     */
+    /**
+        * @dev Burns tokens staked against a Smart Contract Cover.
+        * Called when a claim submitted against this cover is accepted.
+    */
     function burnStakerLockedToken(address scAddress, uint burnNXMAmount) external {
         uint totalStaker = td.getStakedContractStakersLength(scAddress);
         address stakerAddress;
@@ -18,9 +19,9 @@ contract TokenFunctionMock is TokenFunctions {
                 stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
                 uint stakerIndex = td.getStakedContractStakerIndex(
                 scAddress, i);
-                uint V;
-                (V, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
-                td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, V);
+                uint v;
+                (v, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
+                td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, v);
                 // stakerStakedNXM =  _getStakerStakedTokensOnSmartContract(stakerAddress, scAddress, i);
                 if (stakerStakedNXM > 0) {
                     if (stakerStakedNXM >= toBurn) {

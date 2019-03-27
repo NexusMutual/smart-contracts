@@ -2,9 +2,10 @@ pragma solidity 0.4.24;
 
 import "../TokenData.sol";
 
+
 contract TokenDataMock is TokenData {
 
-	constructor(address _walletAdd) public TokenData(_walletAdd){
+    constructor(address _walletAdd) public TokenData(_walletAdd) {
         walletAddress = _walletAdd;
         bookTime = 60;
         joiningFee = 2000000000000000; // 0.002 Ether

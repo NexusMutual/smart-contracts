@@ -457,84 +457,40 @@ contract ClaimsData is Iupgradable {
         emit ClaimRaise(_coverId, _userAddress, _claimId, _datesubmit);
     }
 
-    function updateUintParameters(bytes8 code, uint val) public {
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        if(code == "CAMAXVT")
-        {
-            _setMaxVotingTime(val * 1 hours);
-
-        } else if(code == "CAMINVT"){
-
-            _setMinVotingTime(val * 1 hours);
-
-        } else if(code == "CAPRETRY"){
-
-            _setPayoutRetryTime(val * 1 hours);
-
-        } else if(code == "CADEPT"){
-
-            _setClaimDepositTime(val * 1 days);
-
-        } else if(code == "CAREWPER"){
-
-            _setClaimRewardPerc(val);
-
-        } else if(code == "CAMINTH"){
-
-            _setMinVoteThreshold(val);
-
-        } else if(code == "CAMAXTH"){
-
-            _setMaxVoteThreshold(val);
-
-        } else if(code == "CACONPER"){
-
-            _setMajorityConsensus(val);
-
-        } else if(code == "CAPAUSET"){
-            _setPauseDaysCA(val * 1 days);
-        } else{
-
-            revert("Invalid param code");
-        }
-    
-    }
-
     function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
         codeVal = code;
-        if(code == "CAMAXVT")
-        {
+        if (code == "CAMAXVT") {
             val = maxVotingTime / (1 hours);
 
-        } else if(code == "CAMINVT"){
+        } else if (code == "CAMINVT") {
 
             val = minVotingTime / (1 hours);
 
-        } else if(code == "CAPRETRY"){
+        } else if (code == "CAPRETRY") {
 
             val = payoutRetryTime / (1 hours);
 
-        } else if(code == "CADEPT"){
+        } else if (code == "CADEPT") {
 
             val = claimDepositTime / (1 days);
 
-        } else if(code == "CAREWPER"){
+        } else if (code == "CAREWPER") {
 
             val = claimRewardPerc;
 
-        } else if(code == "CAMINTH"){
+        } else if (code == "CAMINTH") {
 
             val = minVoteThreshold;
 
-        } else if(code == "CAMAXTH"){
+        } else if (code == "CAMAXTH") {
 
             val = maxVoteThreshold;
 
-        } else if(code == "CACONPER"){
+        } else if (code == "CACONPER") {
 
             val = majorityConsensus;
 
-        } else if(code == "CAPAUSET"){
+        } else if (code == "CAPAUSET") {
             val = pauseDaysCA / (1 days);
         }
     
@@ -1167,6 +1123,48 @@ contract ClaimsData is Iupgradable {
      */ 
     function getFirstClaimIndexToStartVotingAfterEP() external view returns(uint firstindex) {
         firstindex = claimStartVotingFirstIndex;
+    }
+
+    function updateUintParameters(bytes8 code, uint val) public {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if (code == "CAMAXVT") {
+            _setMaxVotingTime(val * 1 hours);
+
+        } else if (code == "CAMINVT") {
+
+            _setMinVotingTime(val * 1 hours);
+
+        } else if (code == "CAPRETRY") {
+
+            _setPayoutRetryTime(val * 1 hours);
+
+        } else if (code == "CADEPT") {
+
+            _setClaimDepositTime(val * 1 days);
+
+        } else if (code == "CAREWPER") {
+
+            _setClaimRewardPerc(val);
+
+        } else if (code == "CAMINTH") {
+
+            _setMinVoteThreshold(val);
+
+        } else if (code == "CAMAXTH") {
+
+            _setMaxVoteThreshold(val);
+
+        } else if (code == "CACONPER") {
+
+            _setMajorityConsensus(val);
+
+        } else if (code == "CAPAUSET") {
+            _setPauseDaysCA(val * 1 days);
+        } else {
+
+            revert("Invalid param code");
+        }
+    
     }
 
     function changeDependentContractAddress() public onlyInternal {}

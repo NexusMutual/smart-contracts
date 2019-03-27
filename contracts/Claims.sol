@@ -382,7 +382,7 @@ contract Claims is Iupgradable {
         }
         cd.setClaimStatus(claimId, stat);
 
-        if (state12Count >= 60 && stat == 12){
+        if (state12Count >= 60 && stat == 12) {
             cd.setClaimStatus(claimId, 13);
             qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimDenied));
         }

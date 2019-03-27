@@ -171,7 +171,7 @@ contract Quotation is Iupgradable {
         returns(bool)
     {
         require(smaratCA != address(0));
-        require(pd.capReached() == 1,"Can not buy cover until cap reached for 1st time");
+        require(pd.capReached() == 1, "Can not buy cover until cap reached for 1st time");
         bytes32 hash = getOrderHash(coverDetails, coverPeriod, curr, smaratCA);
         return isValidSignature(hash, _v, _r, _s);
     }
@@ -294,7 +294,8 @@ contract Quotation is Iupgradable {
      * updates the total sum assured and locks the tokens of the cover against a quote.
      * @param from Quote member Ethereum address.
      */  
-    function _makeCover(
+
+    function _makeCover ( //solhint-disable-line
         address from,
         address scAddress,
         bytes4 coverCurr,

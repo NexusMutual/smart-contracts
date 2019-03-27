@@ -9,7 +9,7 @@ contract ExchangeMock {
     ERC20 internal token;
     FactoryMock internal factory;
 
-    constructor (address tokenAddress,address factoryAddress) public {
+    constructor (address tokenAddress, address factoryAddress) public {
         token = ERC20(tokenAddress);
         factory = FactoryMock(factoryAddress);
     }
@@ -21,10 +21,9 @@ contract ExchangeMock {
     }
 
     function rateFactor() public view returns(uint256) {
-        if(token.id() == 1){
+        if (token.id() == 1) {
             return 10;
-        }
-        else
+        } else
             return 5;
     }
 
@@ -202,13 +201,13 @@ contract ExchangeMock {
         returns (uint256)
     {
 
-        require((deadline >= block.timestamp && tokensSold > 0) && (minTokensBought > 0 && minEthBought > 0),'1');
-        require(exchangeAddress != address(this) && exchangeAddress != address(0),'2');
+        require((deadline >= block.timestamp && tokensSold > 0) && (minTokensBought > 0 && minEthBought > 0), "1");
+        require(exchangeAddress != address(this) && exchangeAddress != address(0), "1");
         // uint256 tokenReserve = token.balanceOf(address(this));
         uint256 ethBought = tokensSold/rateFactor();
         uint256 weiBought = (ethBought);
-        require(weiBought >= minEthBought,'3');
-        require(token.transferFrom(buyer, address(this), tokensSold),'4');
+        require(weiBought >= minEthBought, "3");
+        require(token.transferFrom(buyer, address(this), tokensSold), "4");
 
         
         
@@ -231,7 +230,7 @@ contract ExchangeMock {
         require(deadline >= block.timestamp && tokensSold > 0 && minEth > 0);
         // uint256 tokenReserve = token.balanceOf(address(this));
         uint256 ethBought = tokensSold/rateFactor();
-        uint256 weiBought = ethBought ;
+        uint256 weiBought = ethBought;
         require(weiBought >= minEth);
         recipient.transfer(weiBought);
         require(token.transferFrom(buyer, address(this), tokensSold));

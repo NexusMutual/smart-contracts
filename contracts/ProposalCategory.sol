@@ -158,7 +158,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         _addInitialCategories("Special Resolution", "", "EX", 75, 0, 2, 0);
         _addInitialCategories("Update Token Parameters", "QmbfJTXyLTDsq41U4dukHbagcXef8bRfyMdMqcqLd9aKNM", 
             "TD", 50, 15, 2, 60);
-        _addInitialCategories("Update Risk Assessment Parameters", "QmUHvBShLpDwPWAsWcZvbUJfVGyXYscybi5ASmF6ectxSo", //21
+        _addInitialCategories("Update Risk Assessment Parameters", "QmUHvBShLpDwPWAsWcZvbUJfVGyXYscybi5ASmF6ectxSo",
+        //21
             "TD", 50, 15, 2, 60);
         _addInitialCategories("Update Governance Parameters", "QmdFDVEaZnJxXncFczTW6EvrcgR3jBfuPWftR7PfkPfqqT", 
             "GV", 50, 15, 2, 60);
@@ -166,7 +167,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             "QD", 50, 15, 2, 60);
         _addInitialCategories("Update Claims Assessment Parameters", "QmPo6HPydwXEeoVdwBpwGeZasFnmFwZoTsQ93Bg5pFtQg6", 
             "CD", 50, 15, 2, 60);
-        _addInitialCategories("Update Investment Module Parameters", "QmYSUJBJD9hUevydfdF34rGFG7bBQhMrxh2ga9XfeAkdEM", //25
+        _addInitialCategories("Update Investment Module Parameters", "QmYSUJBJD9hUevydfdF34rGFG7bBQhMrxh2ga9XfeAkdEM", 
+        //25
             "PD", 50, 15, 2, 60);
         _addInitialCategories("Update Capital Model Parameters", "QmaQH6AdvBdgrW4xdzcMHa7gNyYSGa2fz7gBuuic2hLkZQ", 
             "PD", 50, 15, 2, 60);
@@ -285,19 +287,17 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     {
         uint[] memory allowedToCreateProposal = new uint[](1);
         uint[] memory stakeIncentive = new uint[](4);
-        if(_memberRoleToVote == 3) {
+        if (_memberRoleToVote == 3) {
             allowedToCreateProposal[0] = 3;
-        }
-        else {
+        } else {
             allowedToCreateProposal[0] = 2;
         }
         stakeIncentive[0] = 0;
         stakeIncentive[1] = 0;
         stakeIncentive[2] = _categoryABReq;
-        if(_quorumPerc == 0){//For special resolutions
+        if (_quorumPerc == 0) {//For special resolutions
             stakeIncentive[3] = 1;
-        }
-        else{
+        } else {
             stakeIncentive[3] = 0;
         }
         _addCategory(

@@ -123,6 +123,58 @@ contract TokenData is Iupgradable {
     }
 
     /**
+     * @dev Change the wallet address which receive Joining Fee
+     */
+    function changeWalletAddress(address _address) external onlyInternal {
+        walletAddress = _address;
+    }
+
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+        codeVal = code;
+        if (code == "TOKEXP") {
+
+            val = tokenExponent; 
+
+        } else if (code == "TOKSTEP") {
+
+            val = priceStep;
+
+        } else if (code == "RALOCKT") {
+
+            val = scValidDays;
+
+        } else if (code == "RACOMM") {
+
+            val = stakerCommissionPer;
+
+        } else if (code == "RAMAXC") {
+
+            val = stakerMaxCommissionPer;
+
+        } else if (code == "CABOOKT") {
+
+            val = bookTime / (1 hours);
+
+        } else if (code == "CALOCKT") {
+
+            val = lockCADays / (1 days);
+
+        } else if (code == "MVLOCKT") {
+
+            val = lockMVDays / (1 days);
+
+        } else if (code == "QUOLOCKT") {
+
+            val = lockTokenTimeAfterCoverExp / (1 days);
+
+        } else if (code == "JOINFEE") {
+
+            val = joiningFee;
+
+        } 
+    }
+
+    /**
     * @dev Just for interface
     */
     function changeDependentContractAddress() public { //solhint-disable-line
@@ -551,94 +603,49 @@ contract TokenData is Iupgradable {
     }
 
     function updateUintParameters(bytes8 code, uint val) public {
-      require(ms.checkIsAuthToGoverned(msg.sender));
-      if(code == "TOKEXP"){
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if (code == "TOKEXP") {
 
-        _setTokenExponent(val); 
+            _setTokenExponent(val); 
 
-      } else if(code == "TOKSTEP"){
+        } else if (code == "TOKSTEP") {
 
-        _setPriceStep(val);
+            _setPriceStep(val);
 
-      } else if(code == "RALOCKT"){
+        } else if (code == "RALOCKT") {
 
-        _changeSCValidDays(val);
+            _changeSCValidDays(val);
 
-      } else if(code == "RACOMM"){
+        } else if (code == "RACOMM") {
 
-        _setStakerCommissionPer(val);
+            _setStakerCommissionPer(val);
 
-      } else if(code == "RAMAXC"){
+        } else if (code == "RAMAXC") {
 
-        _setStakerMaxCommissionPer(val);
+            _setStakerMaxCommissionPer(val);
 
-      } else if(code == "CABOOKT"){
+        } else if (code == "CABOOKT") {
 
-        _changeBookTime(val * 1 hours);
+            _changeBookTime(val * 1 hours);
 
-        } else if(code == "CALOCKT"){
+        } else if (code == "CALOCKT") {
 
-        _changelockCADays(val * 1 days);
+            _changelockCADays(val * 1 days);
 
-        } else if(code == "MVLOCKT"){
+        } else if (code == "MVLOCKT") {
 
-        _changelockMVDays(val * 1 days);
+            _changelockMVDays(val * 1 days);
 
-        } else if(code == "QUOLOCKT"){
+        } else if (code == "QUOLOCKT") {
 
             _setLockTokenTimeAfterCoverExp(val * 1 days);
 
-        } else if(code == "JOINFEE"){
+        } else if (code == "JOINFEE") {
 
             _setJoiningFee(val);
 
-        } else{
+        } else {
             revert("Invalid param code");
-        } 
-    }
-
-    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
-      codeVal = code;
-      if(code == "TOKEXP"){
-
-        val = tokenExponent; 
-
-      } else if(code == "TOKSTEP"){
-
-        val = priceStep;
-
-      } else if(code == "RALOCKT"){
-
-            val = scValidDays;
-
-      } else if(code == "RACOMM"){
-
-            val = stakerCommissionPer;
-
-      } else if(code == "RAMAXC"){
-
-            val = stakerMaxCommissionPer;
-
-      } else if(code == "CABOOKT"){
-
-            val = bookTime / (1 hours);
-
-        } else if(code == "CALOCKT"){
-
-            val = lockCADays / (1 days);
-
-        } else if(code == "MVLOCKT"){
-
-            val = lockMVDays / (1 days);
-
-        } else if(code == "QUOLOCKT"){
-
-            val = lockTokenTimeAfterCoverExp / (1 days);
-
-        } else if(code == "JOINFEE"){
-
-            val = joiningFee;
-
         } 
     }
 
@@ -750,12 +757,5 @@ contract TokenData is Iupgradable {
      */
     function _setJoiningFee(uint _amount) internal {
         joiningFee = _amount;
-    }
-
-    /**
-     * @dev Change the wallet address which receive Joining Fee
-     */
-    function changeWalletAddress(address _address) external onlyInternal {
-        walletAddress = _address;
     }
 }

@@ -174,57 +174,38 @@ contract QuotationData is Iupgradable {
         holdedCoverIDStatus[holdedCoverID] = status;
     }
 
-    function updateUintParameters(bytes8 code, uint val) public {
+    function setKycAuthAddress(address _add) external onlyInternal {
+        kycAuthAddress = _add;
+    }
 
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        if(code == "STLP")
-        {
-            _changeSTLP(val);
-
-        } else if(code == "STL"){
-            
-            _changeSTL(val);
-
-        } else if(code == "PM"){
-
-            _changePM(val);
-
-        } else if(code == "QUOMIND"){
-
-            _changeMinDays(val);
-
-        } else if(code == "QUOTOK"){
-
-           _setTokensRetained(val);
-
-        }
-        
+    /// @dev Changes authorised address for generating quote off chain.
+    function changeAuthQuoteEngine(address _add) external onlyInternal {
+        authQuoteEngine = _add;
     }
 
     function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
         codeVal = code;
 
-        if(code == "STLP")
-        {
+        if (code == "STLP") {
             val = stlp;
 
-        } else if(code == "STL"){
+        } else if (code == "STL") {
             
             val = stl;
 
-        } else if(code == "PM"){
+        } else if (code == "PM") {
 
             val = pm;
 
-        } else if(code == "QUOMIND"){
+        } else if (code == "QUOMIND") {
 
             val = minDays;
 
-        } else if(code == "QUOTOK"){
+        } else if (code == "QUOTOK") {
 
-           val = tokensRetained;
+            val = tokensRetained;
 
-        } else{
+        } else {
 
             revert("Invalid param code");
         }
@@ -453,6 +434,32 @@ contract QuotationData is Iupgradable {
         emit CoverStatusEvent(_cid, _stat);
     }
 
+    function updateUintParameters(bytes8 code, uint val) public {
+
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if (code == "STLP") {
+            _changeSTLP(val);
+
+        } else if (code == "STL") {
+            
+            _changeSTL(val);
+
+        } else if (code == "PM") {
+
+            _changePM(val);
+
+        } else if (code == "QUOMIND") {
+
+            _changeMinDays(val);
+
+        } else if (code == "QUOTOK") {
+
+            _setTokensRetained(val);
+
+        }
+        
+    }
+    
     /// @dev Changes the existing Profit Margin value
     function _changePM(uint _pm) internal {
         pm = _pm;
@@ -475,14 +482,5 @@ contract QuotationData is Iupgradable {
     
     function _setTokensRetained(uint val) internal {
         tokensRetained = val;
-    }
-
-    function setKycAuthAddress(address _add) external onlyInternal {
-        kycAuthAddress = _add;
-    }
-
-    /// @dev Changes authorised address for generating quote off chain.
-    function changeAuthQuoteEngine(address _add) external onlyInternal {
-        authQuoteEngine = _add;
     }
 }

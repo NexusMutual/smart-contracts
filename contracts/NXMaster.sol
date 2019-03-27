@@ -61,11 +61,6 @@ contract NXMaster is Governed {
     address public owner;
     uint public pauseTime;
 
-    modifier onlyOwner {
-        require(isOwner(msg.sender) == true);
-        _;
-    }
-
     constructor(address _eventCallerAdd, address _tokenAdd) public {
         tokenAddress = _tokenAdd;
         eventCallerAdd = _eventCallerAdd;

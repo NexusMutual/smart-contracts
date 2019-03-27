@@ -328,7 +328,7 @@ contract('NXMaster', function([
   });
 
   describe('more test cases', function() {
-    it('1.24 revert in case of upgrade implementation of non-proxy contract', async function() {
+    it('1.24 revert in case of upgrade implementation by non governance contract', async function() {
       await assertRevert(
         nxms.upgradeContractImplementation('TC', nxms.address)
       );
@@ -336,6 +336,21 @@ contract('NXMaster', function([
 
     it('1.25 revert in case of applying EP directly', async function() {
       await assertRevert(nxms.addEmergencyPause(true, 'AB'));
+    });
+    it('1.26 even if passed by governance should not trigger action for wrong contrcat code', async function() {
+      this.timeout(0);
+      let actionHash = encode(
+        'upgradeContractImplementation(bytes2,address)',
+        'AS',
+        nxms.address
+      );
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      // await oldGv.changeDependentContractAddress();
+      await gvProp(5, actionHash, oldMR, oldGv, 1);
+    });
+    it('1.27 revert in case of upgrade contract by non governance contract', async function() {
+      await assertRevert(nxms.upgradeContract('TF', nxms.address));
     });
   });
 });

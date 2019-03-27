@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 NexusMutual.io
+/* Copyright (C) 2017 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -7,7 +7,7 @@
 
   This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR a PARTICULAR PURPOSE.  See the
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
@@ -89,9 +89,9 @@ contract PoolData is Iupgradable {
     uint public iaRatesTime;
     uint public minCap;
     uint public mcrTime;
-    uint public a;
+    uint public A;
     uint public shockParameter;
-    uint public c;
+    uint public C;
     uint public mcrFailTime; 
     uint public ethVolumeLimit;
     uint public capReached;
@@ -100,8 +100,8 @@ contract PoolData is Iupgradable {
     constructor(address _notariseAdd, address _daiFeedAdd, address _daiAdd) public {
         notariseMCR = _notariseAdd;
         daiFeedAddress = _daiFeedAdd;
-        c = 5203349;
-        a = 1948;
+        C = 5203349;
+        A = 1948;
         mcrTime = 24 hours;
         mcrFailTime = 6 hours;
         allMCRData.push(McrData(0, 0, 0, 0));
@@ -251,10 +251,10 @@ contract PoolData is Iupgradable {
 
             _setEthVolumeLimit(val);
 
-        } else if(code == "c"){
+        } else if(code == "C"){
             _changeC(val);
 
-          } else if(code == "a"){
+          } else if(code == "A"){
 
             _changeA(val);
 
@@ -306,12 +306,12 @@ contract PoolData is Iupgradable {
 
             val = ethVolumeLimit;
 
-        } else if(code == "c"){
-            val = c;
+        } else if(code == "C"){
+            val = C;
 
-          } else if(code == "a"){
+          } else if(code == "A"){
 
-            val = a;
+            val = A;
 
           }
             
@@ -464,9 +464,9 @@ contract PoolData is Iupgradable {
     }
 
     /// @dev Gets details for token price calculation.
-    function getTokenPriceDetails(bytes4 curr) external view returns(uint _a, uint _c, uint rate) {
-        _a = a;
-        _c = c;
+    function getTokenPriceDetails(bytes4 curr) external view returns(uint a, uint c, uint rate) {
+        a = A;
+        c = C;
         rate = _getAvgRate(curr, false);
     }
     
@@ -826,12 +826,12 @@ contract PoolData is Iupgradable {
 
     /// @dev Changes Growth Step
     function _changeC(uint newC) internal {
-        c = newC;
+        C = newC;
     }
 
     /// @dev Changes scaling factor.
     function _changeA(uint val) internal {
-        a = val;
+        A = val;
     }
     
     function _changeCapacityLimit(uint val) internal {

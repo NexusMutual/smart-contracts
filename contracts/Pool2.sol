@@ -60,9 +60,9 @@ contract Pool2 is Iupgradable {
      * @param newPoolAddress New Investment Assest Pool address
      */
     function upgradeInvestmentPool(address newPoolAddress) external onlyInternal {
-        uint len = pd.getAllCurrenciesLen();
+        uint len = pd.getInvestmentCurrencyLen();
         for (uint64 i = 1; i < len; i++) {
-            bytes4 iaName = pd.getCurrenciesByIndex(i);
+            bytes4 iaName = pd.getInvestmentCurrencyByIndex(i);
             _upgradeInvestmentPool(iaName, newPoolAddress);
         }
 

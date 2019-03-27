@@ -27,10 +27,6 @@ contract Pool1Mock is Pool1 {
         ));
     }
 
-    function oraclize_cbAddress() oraclizeAPI internal returns (address){
-        return ms.owner();
-    }
-
     function transferFundToOtherAdd(address _add,uint amt) public {
 
         _add.transfer(amt);
@@ -52,18 +48,6 @@ contract Pool1Mock is Pool1 {
 
     function changeCurrencyAssetBaseMin(bytes4 curr, uint baseMin) external {
         pd.changeCurrencyAssetBaseMin(curr, baseMin);
-    }
-
-    function transferCurrencyAsset(
-        bytes4 curr,
-        address transferTo,
-        uint amount
-    )
-        public
-        returns(bool)
-    {
-    
-        return _transferCurrencyAsset(curr, transferTo, amount);
     }
 
     function internalLiquiditySwap(bytes4 curr) external {

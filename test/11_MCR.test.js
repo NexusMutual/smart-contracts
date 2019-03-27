@@ -282,13 +282,21 @@ contract('MCR', function([owner, notOwner]) {
         20181013,
         { from: owner }
       );
-
+      await p1.__callback(APIID, ''); // to cover else branch (if call comes before callback time)
       let timeINC =
         (await pd.getDateAddOfAPI(APIID)) / 1 +
         (await pd.mcrFailTime()) / 1 +
         100;
       await increaseTimeTo(timeINC);
       await p1.__callback(APIID, '');
+    });
+
+    it('11.22 get orcalise call details', async function() {
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let curr = await pd.getCurrOfApiId(APIID);
+      let id = await pd.getApiCallIndex(1);
+      let dateUPD = await pd.getDateUpdOfAPI(APIID);
+      let details = await pd.getApiCallDetails(APIID);
     });
   });
 });

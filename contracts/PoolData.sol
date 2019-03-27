@@ -378,7 +378,7 @@ contract PoolData is Iupgradable {
     /** 
      * @dev Changes the investment asset status.
      */ 
-    function changeInvestmentAssetStatus(bytes4 curr, bool status) external onlyInternal {
+    function changeInvestmentAssetStatus(bytes4 curr, bool status) external {
         require(ms.checkIsAuthToGoverned(msg.sender));
         allInvestmentAssets[curr].status = status;
     }

@@ -50,5 +50,18 @@ contract TokenFunctionMock is TokenFunctions {
     function burnFrom(address _of, uint amount) external {
         tc.burnFrom(_of, amount);
     }
+
+    function transferCurrencyAsset(
+        bytes4 curr,
+        address transferTo,
+        uint amount
+    )
+        public
+        returns(bool)
+    {
+        Pool1 p1 = Pool1(ms.getLatestAddress("P1"));
+    
+        return p1.transferCurrencyAsset(curr, transferTo, amount);
+    }
     
 }

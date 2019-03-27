@@ -241,19 +241,19 @@ contract(
 
     describe('Update Capital Model Parameters', function() {
       it('Should update MCR Post Time', async function() {
-        await updateParameter(26, 2, 'IMZ', pd, 'uint', '3600');
+        await updateParameter(26, 2, 'MCRTIM', pd, 'uint', '3600');
       });
       it('Should update MCR Fail Post Time', async function() {
-        await updateParameter(26, 2, 'IMRATET', pd, 'uint', '3600');
+        await updateParameter(26, 2, 'MCRFTIM', pd, 'uint', '3600');
       });
       it('Should update Min Capital Required', async function() {
-        await updateParameter(26, 2, 'IMUNIDL', pd, 'uint', '60');
+        await updateParameter(26, 2, 'MCRMIN', pd, 'uint', '60');
       });
       it('Should update Shock Parameter', async function() {
-        await updateParameter(26, 2, 'IMLIQT', pd, 'uint', '60');
+        await updateParameter(26, 2, 'MCRSHOCK', pd, 'uint', '60');
       });
       it('Should update Capacity Limit%', async function() {
-        await updateParameter(26, 2, 'IMETHVL', pd, 'uint', '40');
+        await updateParameter(26, 2, 'MCRCAPL', pd, 'uint', '40');
       });
       it('Should update Factor C', async function() {
         await updateParameter(26, 2, 'C', pd, 'uint', '40');

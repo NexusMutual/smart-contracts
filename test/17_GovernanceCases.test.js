@@ -8,6 +8,7 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const TokenController = artifacts.require('TokenController');
 const NXMToken = artifacts.require('NXMToken');
 const expectEvent = require('./utils/expectEvent');
+const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const encode = require('./utils/encoder.js').encode;
@@ -1083,6 +1084,61 @@ contract(
               }
             }
           });
+        });
+      });
+    });
+
+    describe('Proposals which requires Owner voting', function() {
+      describe('If Rejected', function() {
+        it('17.120 Should create proposal', async function() {
+          await increaseTime(604800);
+          balance = await web3.eth.getBalance(notMember);
+          pId = (await gv.getProposalLength()).toNumber();
+          let actionHash = encode(
+            'updateOwnerParameters(bytes8,address)',
+            'OWNER',
+            web3.eth.accounts[1]
+          );
+          await gv.createProposalwithSolution(
+            'Proposal14',
+            'Proposal14',
+            'Proposal14',
+            28,
+            'Update owner parameters',
+            actionHash
+          );
+        });
+        it('17.121 Should Reject the proposal', async function() {
+          await gv.submitVote(pId, 0);
+        });
+        it('17.122 Should execute defined automatic action', async function() {
+          let isOwner = await nxms.isOwner(web3.eth.accounts[1]);
+          assert.equal(isOwner, false, 'Action executed');
+        });
+      });
+      describe('If Accepted', function() {
+        it('17.123 Should create proposal', async function() {
+          await increaseTime(604800);
+          balance = await web3.eth.getBalance(notMember);
+          pId = (await gv.getProposalLength()).toNumber();
+          let actionHash = encode(
+            'updateOwnerParameters(bytes8,address)',
+            'OWNER',
+            web3.eth.accounts[1]
+          );
+          await gv.createProposalwithVote(
+            'Proposal14',
+            'Proposal14',
+            'Proposal14',
+            28,
+            'Update owner parameters',
+            actionHash
+          );
+        });
+        it('17.124 Should execute defined automatic action', async function() {
+          await increaseTime(1000);
+          let owner = await nxms.getOwnerParameters('OWNER');
+          assert.equal(owner[1], web3.eth.accounts[1], 'Action not executed');
         });
       });
     });

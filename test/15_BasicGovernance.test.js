@@ -269,14 +269,14 @@ contract(
         let alreadyDelegated = await gv.alreadyDelegated(ab1);
         assert.equal(alreadyDelegated, true);
       });
-      it('15.32 Leader cannot delegate vote', async function() {
-        await assertRevert(gv.delegateVote(ab3, { from: ab1 }));
-      });
-      it('15.33 Member can delegate vote to Member who is not follower', async function() {
+      it('15.32 Member can delegate vote to Member who is not follower', async function() {
         await gv.delegateVote(mem3, { from: mem5 });
         let followers = await gv.getFollowers(mem3);
         let delegationData = await gv.allDelegation(followers[0].toNumber());
         assert.equal(delegationData[0], mem5);
+      });
+      it('15.33 Leader cannot delegate vote', async function() {
+        await assertRevert(gv.delegateVote(ab3, { from: mem3 }));
       });
       it('15.34 Member cannot delegate vote to Non-Member', async function() {
         await assertRevert(gv.delegateVote(notMember, { from: mem2 }));

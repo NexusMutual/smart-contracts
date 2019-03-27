@@ -479,8 +479,6 @@ contract Governance is IGovernance, Iupgradable {
 
     function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
 
-        require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)));
-        require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.Owner)));
 
         //Check if given address is not a follower
         require(allDelegation[followerDelegation[_add]].leader == address(0));
@@ -490,6 +488,9 @@ contract Governance is IGovernance, Iupgradable {
         }
 
         require(!alreadyDelegated(msg.sender), "already delegated by someone");
+
+        require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.Owner)));
+        require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)));
 
         if (allVotesByMember[msg.sender].length>0) {
             uint memberLastVoteId = SafeMath.sub(allVotesByMember[msg.sender].length, 1);
@@ -791,13 +792,7 @@ contract Governance is IGovernance, Iupgradable {
                     voteWeight += (_minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))) + 10**18;
                 }
                 voters++;
-                if ((proposalCategory.categoryABReq(category) > 0 || mrSequence==uint(MemberRoles.Role.AdvisoryBoard)) && 
-                memberRole.checkRole(allDelegation[delegationId].follower, 1)) {
-                    voteWeightAB += 1;
-                }
             }
-            
-
         }
         if (mrSequence == uint(MemberRoles.Role.Member) || mrSequence == uint(MemberRoles.Role.Owner)) {
             proposalVoteTally[_proposalId].memberVoteValue[_solution] += voteWeight;

@@ -278,4 +278,10 @@ contract('MemberRoles', function([
       )
     );
   });
+  it('13.32 Should not be able to swap owner manually', async () => {
+    await assertRevert(mr.swapOwner(member));
+  });
+  it('13.33 Should not allow unauthorized address to set kyc status', async function() {
+    await assertRevert(mr.kycVerdict(member2, true, { from: member }));
+  });
 });

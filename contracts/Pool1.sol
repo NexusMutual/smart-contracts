@@ -159,17 +159,6 @@ contract Pool1 is usingOraclize, Iupgradable {
             newPoolAddress.transfer(address(this).balance); //solhint-disable-line
     }
 
-    // function transferFundToOwner(address owner,bytes4 curr,uint val)external{
-    //     if(curr == "ETH")
-    //         owner.transfer(val);
-    //     else
-    //     {
-    //         ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(curr));
-    //         erc20.transfer(owner, val);
-
-    //     }
-    // }
-
     /// @dev Calls the Oraclize Query to update the version of the contracts.
     function versionOraclise(uint version) external onlyInternal {
         bytes32 myid = _oraclizeQuery(2, 0, "URL", "http://a1.nexusmutual.io/api/MCR/setlatest/T", 0);

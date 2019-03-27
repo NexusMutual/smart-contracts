@@ -70,7 +70,6 @@ contract Pool2 is Iupgradable {
             newPoolAddress.transfer(address(this).balance);
     }
 
-
     /**
      * @dev Handles the Callback of the Oraclize Query.
      * @param myid Oraclize Query ID identifying the query for which the result is being received
@@ -87,15 +86,15 @@ contract Pool2 is Iupgradable {
                 ClaimsReward cr = ClaimsReward(ms.getLatestAddress("CR"));
                 cr.changeClaimStatus(id);                
             } else if (res == "MCRF") {
-                if(callTime.add(pd.mcrFailTime()) < now)
+                if (callTime.add(pd.mcrFailTime()) < now)
                     m1.addLastMCRData(uint64(id));                
             } else if (res == "ULT") {
-                if(callTime.add(pd.liquidityTradeCallbackTime()) < now) {
+                if (callTime.add(pd.liquidityTradeCallbackTime()) < now) {
                     _externalLiquidityTrade();                
                 }
             }
         } else if (res == "EP") {
-            if(callTime.add(ms.pauseTime()) < now) {
+            if (callTime.add(ms.pauseTime()) < now) {
                 bytes4 by;
                 (, , by) = ms.getLastEmergencyPause();
                 if (by == "AB") {
@@ -158,6 +157,18 @@ contract Pool2 is Iupgradable {
         pd = PoolData(ms.getLatestAddress("PD"));
         p1 = Pool1(ms.getLatestAddress("P1"));
         q2 = Quotation(ms.getLatestAddress("QT")); 
+    }
+
+    /** 
+     * @dev Gets currency asset balance for a given currency name.
+     */   
+    function _getCurrencyAssetsBalance(bytes4 _curr) public view returns(uint caBalance) {
+        if (_curr == "ETH") {
+            caBalance = address(p1).balance;
+        } else {
+            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
+            caBalance = erc20.balanceOf(address(p1));
+        }
     }
 
     /** 
@@ -320,18 +331,6 @@ contract Pool2 is Iupgradable {
         }
     }
 
-    /** 
-     * @dev Gets currency asset balance for a given currency name.
-     */   
-    function _getCurrencyAssetsBalance(bytes4 _curr) public view returns(uint caBalance) {
-        if (_curr == "ETH") {
-            caBalance = address(p1).balance;
-        } else {
-            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
-            caBalance = erc20.balanceOf(address(p1));
-        }
-    }
-
     function _getInvestmentAssetBalance(bytes4 _curr) internal view returns (uint balance) {
         if (_curr == "ETH") {
             balance = address(this).balance;
@@ -374,7 +373,8 @@ contract Pool2 is Iupgradable {
             _transferInvestmentAsset(_curr, ms.getLatestAddress("P1"), amount);
         } else {
             ERC20 erc20 = ERC20(pd.getInvestmentAssetAddress(maxIACurr));
-            if((maxIACurr == "ETH" && address(this).balance>0) || (maxIACurr != "ETH" && erc20.balanceOf(address(this)) > 0))
+            if ((maxIACurr == "ETH" && address(this).balance > 0) || 
+            (maxIACurr != "ETH" && erc20.balanceOf(address(this)) > 0))
                 p1.triggerExternalLiquidityTrade();
             
         }
@@ -492,18 +492,19 @@ contract Pool2 is Iupgradable {
             }
             
             erc20 = ERC20(pd.getCurrencyAssetAddress(maxIACurr));
-            if(intermediaryEth > erc20.balanceOf(address(this))) {
+            if (intermediaryEth > erc20.balanceOf(address(this))) {
                 intermediaryEth = erc20.balanceOf(address(this));
             }
             // erc20.decreaseAllowance(address(exchange), erc20.allowance(address(this), address(exchange)));
             erc20.approve(address(exchange), intermediaryEth);
             exchange.tokenToEthTransferInput(intermediaryEth, (
-                exchange.getTokenToEthInputPrice(intermediaryEth).mul(995)).div(1000), pd.uniswapDeadline().add(now), address(p1)); 
+                exchange.getTokenToEthInputPrice(intermediaryEth).mul(995)).div(1000), 
+                pd.uniswapDeadline().add(now), address(p1)); 
 
         } else if (curr != "ETH" && maxIACurr == "ETH") {
             exchange = Exchange(factory.getExchange(pd.getCurrencyAssetAddress(curr)));
             intermediaryEth = exchange.getTokenToEthInputPrice(amount);
-            if(intermediaryEth > address(this).balance)
+            if (intermediaryEth > address(this).balance)
                 intermediaryEth = address(this).balance;
             if (intermediaryEth > (address(exchange).balance.mul
             (pd.ethVolumeLimit())).div(100)) { // 4% ETH volume limit 
@@ -532,8 +533,7 @@ contract Pool2 is Iupgradable {
 
             erc20 = ERC20(pd.getInvestmentAssetAddress(maxIACurr));
             uint maxIABal = erc20.balanceOf(address(this));
-            if(maxIAToSell > maxIABal)
-            {
+            if (maxIAToSell > maxIABal) {
                 maxIAToSell = maxIABal;
                 intermediaryEth = tmp.getTokenToEthInputPrice(maxIAToSell);
                 // amount = exchange.getEthToTokenInputPrice(intermediaryEth);

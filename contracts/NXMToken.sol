@@ -47,10 +47,10 @@ contract NXMToken is IERC20 {
     }
 
     modifier onlyOperator() {
-        if(operator != address(0))
+        if (operator != address(0))
             require(msg.sender == operator);
         _;
-   }
+    }
 
     constructor(address _founderAddress, uint _initialSupply) public {
         _mint(_founderAddress, _initialSupply);

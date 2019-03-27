@@ -69,11 +69,11 @@ contract MCR is Iupgradable {
     {
         require(pd.isnotarise(msg.sender));
         uint _days = (uint(now).sub(mr.launchedOn())).div(1 days);
-        if(mr.launched() && pd.capReached() != 1 && _days <= 30){
+        if (mr.launched() && pd.capReached() != 1 && _days <= 30) {
             
-            if(mcrP >= 10000)
+            if (mcrP >= 10000)
                 pd.setCapReached(1);  
-            if(pd.capReached() != 1 && _days == 30)
+            if (pd.capReached() != 1 && _days == 30)
                 pd.setCapReached(2);
 
         }
@@ -101,7 +101,7 @@ contract MCR is Iupgradable {
 
             emit MCREvent(date, block.number, new bytes4[](0), new uint[](0), mcrE, mcrP, vF);
             // Oraclize call for next MCR calculation
-           _callOracliseForMCR();
+            _callOracliseForMCR();
         }
     }
 
@@ -199,13 +199,13 @@ contract MCR is Iupgradable {
      */ 
     function getMaxSellTokens() public view returns(uint maxTokens) {
         uint baseMin = pd.getCurrencyAssetBaseMin("ETH");
-        if(address(p1).balance > baseMin.mul(50).div(100))
+        if (address(p1).balance > baseMin.mul(50).div(100))
             uint maxTokensAccPoolBal  = address(p1).balance.sub(
             (baseMin.mul(50)).div(100));        
         maxTokensAccPoolBal = (maxTokensAccPoolBal.mul(DECIMAL1E18)).div(
             (calculateTokenPrice("ETH").mul(975)).div(1000));
         uint lastMCRPerc = pd.getLastMCRPerc();
-        if(lastMCRPerc > 10000)
+        if (lastMCRPerc > 10000)
             maxTokens = (((uint(lastMCRPerc).sub(10000)).mul(2000)).div(10000)).mul(DECIMAL1E18);
         // require (false,'rofl'); 
         if (maxTokens > maxTokensAccPoolBal)
@@ -248,6 +248,7 @@ contract MCR is Iupgradable {
         tokenPrice = tokenPrice.mul(getCAAvgRate * 10); 
         tokenPrice = (tokenPrice).div(10**3);
     } 
+    
     /**
      * @dev Adds MCR Data. Checks if MCR is within valid 
      * thresholds in order to rule out any incorrect calculations 

@@ -58,6 +58,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _;
     }
 
+    /**
+     * @dev to swap advisory board member
+     * @param _newABAddress is address of new AB member
+     * @param _removeAB is advisory board member to be removed
+     */
     function swapABMember (
         address _newABAddress,
         address _removeAB
@@ -70,6 +75,10 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     }
 
+    /**
+     * @dev to swap the owner address
+     * @param _newOwnerAddress is the new owner address
+     */
     function swapOwner (
         address _newOwnerAddress
     )
@@ -78,7 +87,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _updateRole(ms.owner(), uint(Role.Owner), false);
         _updateRole(_newOwnerAddress, uint(Role.Owner), true);
     }
-    
+
+    /**
+     * @dev is used to add initital advisory board members
+     * @param abArray is the list of initial advisory board members
+     */
     function addInitialABMembers(address[] abArray) external onlyOwner {
 
         require(maxABCount >= 
@@ -91,10 +104,17 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         }
     }
 
+    /**
+     * @dev to change max number of AB members allowed
+     * @param _val is the new value to be set
+     */
     function changeMaxABCount(uint _val) external onlyInternal {
         maxABCount = _val;
     }
 
+    /**
+     * @dev Iupgradable Interface to update dependent contract address
+     */
     function changeDependentContractAddress() public {
         td = TokenData(ms.getLatestAddress("TD"));
         cr = ClaimsReward(ms.getLatestAddress("CR"));
@@ -105,6 +125,10 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         dAppToken = TokenController(ms.getLatestAddress("TC"));
     }
 
+    /**
+     * @dev to change the master address
+     * @param _masterAddress is the new master address
+     */
     function changeMasterAddress(address _masterAddress) public {
         if (masterAddress != address(0))
             require(masterAddress == msg.sender || ms.isInternal(msg.sender));
@@ -114,6 +138,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         
     }
     
+    /**
+     * @dev to initiate the member roles
+     * @param _firstAB is the address of the first AB member
+     * @param memberAuthority is the authority (role) of the member
+     */
     function memberRolesInitiate (address _firstAB, address memberAuthority) public {
         require(!constructorCheck);
         _addInitialMemberRoles(_firstAB, memberAuthority);
@@ -148,6 +177,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         _updateRole(_memberAddress, _roleId, _active);
     }
 
+    /**
+     * @dev to add members before launch
+     * @param userArray is list of addresses of members
+     * @param tokens is list of tokens minted for each array element
+     */
     function addMembersBeforeLaunch(address[] userArray, uint[] tokens) public onlyOwner {
         require(!launched);
 
@@ -181,6 +215,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         }
     }
 
+    /**
+     * @dev to perform kyc verdict
+     * @param _userAddress whose kyc is being performed
+     * @param verdict of kyc process
+     */
     function kycVerdict(address _userAddress, bool verdict) public {
 
         require(msg.sender == qd.kycAuthAddress());
@@ -296,6 +335,12 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         }
     }
 
+    /**
+     * @dev to update the member roles
+     * @param _memberAddress in concern
+     * @param _roleId the id of role
+     * @param _active if active is true, add the member, else remove it 
+     */
     function _updateRole(address _memberAddress,
         uint _roleId,
         bool _active) internal {
@@ -325,6 +370,12 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         memberRoleData.push(MemberRoleDetails(0, new address[](0), _authorized));
     }
 
+    /**
+     * @dev to check if member is in the given member array
+     * @param _memberAddress in concern
+     * @param memberArray in concern
+     * @return boolean to represent the presence
+     */
     function _checkMemberInArray(
         address _memberAddress,
         address[] memberArray
@@ -342,6 +393,11 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         }
     }
 
+    /**
+     * @dev to add initial member roles
+     * @param _firstAB is the member address to be added
+     * @param memberAuthority is the member authority(role) to be added for
+     */
     function _addInitialMemberRoles(address _firstAB, address memberAuthority) internal {
         maxABCount = 5;
         _addRole("Unassigned", "Unassigned", address(0));

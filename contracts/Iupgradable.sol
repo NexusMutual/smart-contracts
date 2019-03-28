@@ -33,8 +33,15 @@ contract Iupgradable {
         _;
     }
 
+    /**
+     * @dev Iupgradable Interface to update dependent contract address
+     */
     function  changeDependentContractAddress() public;
 
+    /**
+     * @dev change master address
+     * @param _masterAddress is the new address
+     */
     function changeMasterAddress(address _masterAddress) public {
         if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender), "Not internal");

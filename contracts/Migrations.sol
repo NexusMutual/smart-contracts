@@ -15,10 +15,18 @@ contract Migrations {
         }
     }
 
+    /**
+     * @dev to keep a record of migration being completed 
+     * @param completed to represent completed migration
+     */
     function setCompleted(uint completed) public restricted {
         last_completed_migration = completed;
     }
 
+    /**
+     * @dev to upgrade the migrations
+     * @param newAddress represents the updated migrations address
+     */
     function upgrade(address newAddress) public restricted {
         Migrations upgraded = Migrations(newAddress);
         upgraded.setCompleted(last_completed_migration);

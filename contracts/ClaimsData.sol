@@ -156,6 +156,9 @@ contract ClaimsData is Iupgradable {
 
     }
 
+    /** 
+     * @param user address of the user whose claim voting ability can be set
+     */ 
     function setUserClaimVotePausedOn(address user) external {
         require(ms.checkIsAuthToGoverned(msg.sender));
         userClaimVotePausedOn[user] = now;
@@ -457,6 +460,12 @@ contract ClaimsData is Iupgradable {
         emit ClaimRaise(_coverId, _userAddress, _claimId, _datesubmit);
     }
 
+    /**
+     * @dev Gets Uint Parameters of a code
+     * @param code whose details we want
+     * @return string value of the code
+     * @return associated amount (time or perc or value) to the code
+     */
     function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
         codeVal = code;
         if (code == "CAMAXVT") {
@@ -1167,6 +1176,9 @@ contract ClaimsData is Iupgradable {
     
     }
 
+    /**
+     * @dev Iupgradable Interface to update dependent contract address
+     */
     function changeDependentContractAddress() public onlyInternal {}
 
     /**
@@ -1178,6 +1190,9 @@ contract ClaimsData is Iupgradable {
         rewardStatus.push(ClaimRewardStatus(percCA, percMV));
     }
 
+    /**
+     * @dev adds reward incentive for all possible claim status for Claim assessors and members
+     */
     function _addRewardIncentive() internal {
         _pushStatus(0, 0); //0  Pending-Claim Assessor Vote
         _pushStatus(0, 0); //1 Pending-Claim Assessor Vote Denied, Pending Member Vote
@@ -1210,14 +1225,23 @@ contract ClaimsData is Iupgradable {
         minVotingTime = _time;
     }
 
+    /**
+     *  @dev Sets Minimum vote threshold required
+     */ 
     function _setMinVoteThreshold(uint val) internal {
         minVoteThreshold = val;
     }
 
+    /**
+     *  @dev Sets Maximum vote threshold required
+     */ 
     function _setMaxVoteThreshold(uint val) internal {
         maxVoteThreshold = val;
     }
     
+    /**
+     *  @dev Sets the value considered as Majority Consenus in voting
+     */ 
     function _setMajorityConsensus(uint val) internal {
         majorityConsensus = val;
     }
@@ -1229,6 +1253,9 @@ contract ClaimsData is Iupgradable {
         payoutRetryTime = _time;
     }
 
+    /**
+     *  @dev Sets percentage of reward given for claim assessment
+     */ 
     function _setClaimRewardPerc(uint _val) internal {
 
         claimRewardPerc = _val;
@@ -1242,6 +1269,9 @@ contract ClaimsData is Iupgradable {
         claimDepositTime = _time;
     }
 
+    /**
+     *  @dev Sets number of days claim assessment will be paused
+     */ 
     function _setPauseDaysCA(uint val) internal {
         pauseDaysCA = val;
     }

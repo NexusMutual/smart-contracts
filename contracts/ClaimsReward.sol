@@ -210,6 +210,10 @@ contract ClaimsReward is Iupgradable {
 
     }
 
+    /**
+     * @dev Function used to claim all pending rewards on a list of proposals.
+     * @param _proposals List of proposals to claim reward of.
+     */
     function claimAllPendingReward(uint[] _proposals) public isMemberAndcheckPause {
         _claimRewardToBeDistributed();
         _claimStakeCommission();
@@ -221,6 +225,11 @@ contract ClaimsReward is Iupgradable {
         }
     }
 
+    /**
+     * @dev Function used to get pending rewards of a particular user address.
+     * @param _add user address.
+     * @return total reward amount of the user
+     */
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint commissionEarned = td.getStakerTotalEarnedStakeCommission(_add);
@@ -424,6 +433,9 @@ contract ClaimsReward is Iupgradable {
         cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
 
+    /**
+     * @dev Function used to claim the commission earned by the staker.
+     */
     function _claimStakeCommission() internal {
         uint total=0;
         uint len = td.getStakerStakedContractLength(msg.sender);

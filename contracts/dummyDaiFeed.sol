@@ -7,6 +7,10 @@ contract DSValue1 {
 
     function () public payable {} 
 
+    /**
+     * @dev to get the exchange rate of eth to token.
+     * @return exchange return
+     */
     function read() public view returns (bytes32) {
 
         Exchange exchange;

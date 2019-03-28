@@ -105,6 +105,9 @@ contract MCR is Iupgradable {
         }
     }
 
+    /**
+     * @dev Iupgradable Interface to update dependent contract address
+     */
     function changeDependentContractAddress() public onlyInternal {
         qd = QuotationData(ms.getLatestAddress("QD"));
         p1 = Pool1(ms.getLatestAddress("P1"));
@@ -116,6 +119,7 @@ contract MCR is Iupgradable {
 
     /** 
      * @dev Gets total sum assured(in ETH).
+     * @return amount of sum assured
      */  
     function getAllSumAssurance() public view returns(uint amount) {
         uint len = pd.getAllCurrenciesLen();

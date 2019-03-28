@@ -131,7 +131,11 @@ contract Governance is IGovernance, Iupgradable {
         address indexed categorizedBy,
         uint categoryId
     );
- 
+    
+    /**
+     * @dev to remove delegation of an address.
+     * @param _add address to undelegate.
+     */
     function removeDelegation(address _add) external onlyInternal {
         _unDelegate(_add);
     }
@@ -270,6 +274,11 @@ contract Governance is IGovernance, Iupgradable {
         _submitVote(proposalId, 1);
     }
 
+    /**
+     * @dev used to submit vote on a proposal.
+     * @param _proposalId to vote upon.
+     * @param _solutionChosen is the chosen vote.
+     */
     function submitVote(uint _proposalId, uint _solutionChosen) external {
         // require(addressProposalVote[msg.sender][_proposalId] == 0, "Already voted");
 
@@ -282,6 +291,10 @@ contract Governance is IGovernance, Iupgradable {
         _submitVote(_proposalId, _solutionChosen);
     }
 
+    /**
+     * @dev used to close a proposal.
+     * @param _proposalId of proposal to be closed.
+     */
     function closeProposal(uint _proposalId) external {
         uint category = allProposalData[_proposalId].category;
         
@@ -306,6 +319,12 @@ contract Governance is IGovernance, Iupgradable {
         
     }
 
+    /**
+     * @dev to claim reward on a list of proposal.
+     * @param _memberAddress to claim reward of.
+     * @param _proposals list of proposals of which reward will be claimed.
+     * @return amount of pending reward.
+     */
     function claimReward(address _memberAddress, uint[] _proposals) 
         external returns(uint pendingDAppReward) 
     {
@@ -349,6 +368,10 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    /**
+     * @dev to delegate vote to an address.
+     * @param _add is the address to delegate vote to.
+     */
     function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
 
 
@@ -380,6 +403,12 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    /**
+     * @dev calls the reward claimed event.
+     * @param _memberAddress whose reward is claimed.
+     * @param _proposals a list of proposals to claim reward on.
+     * @param pendingDAppReward is the left over reward.
+     */
     function callRewardClaimedEvent(address _memberAddress, uint[] _proposals, uint pendingDAppReward) 
     external onlyInternal {
         emit RewardClaimed(
@@ -389,10 +418,19 @@ contract Governance is IGovernance, Iupgradable {
             );
     }
 
+    /**
+     * @dev Undelegates the sender
+     */
     function unDelegate() external isMemberAndcheckPause checkPendingRewards {
         _unDelegate(msg.sender);
     }
 
+    /**
+     * @dev Gets Uint Parameters of a code
+     * @param code whose details we want
+     * @return string value of the code
+     * @return associated amount (time or perc or value) to the code
+     */
     function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
 
         codeVal = code;
@@ -411,6 +449,15 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    /**
+     * @dev Gets all details of a propsal
+     * @param _proposalId whose details we want
+     * @return proposalId
+     * @return category
+     * @return status
+     * @return finalVerdict
+     * @return totalReward
+     */
     function proposal(uint _proposalId)
         external
         view
@@ -431,6 +478,13 @@ contract Governance is IGovernance, Iupgradable {
         );
     }
 
+    /**
+     * @dev Gets some details of a propsal
+     * @param _proposalId whose details we want
+     * @return proposalId
+     * @return number of all proposal solutions
+     * @return amount of votes 
+     */
     function proposalDetails(uint _proposalId) external view returns(uint, uint, uint) {
         return(
             _proposalId,
@@ -439,6 +493,12 @@ contract Governance is IGovernance, Iupgradable {
         );
     }
 
+    /**
+     * @dev Gets solution action on a proposal
+     * @param _proposalId whose details we want
+     * @param _solution whose details we want
+     * @return action of a solution on a proposal
+     */
     function getSolutionAction(uint _proposalId, uint _solution) external view returns(uint, bytes) {
         return (
             _solution,
@@ -482,15 +542,27 @@ contract Governance is IGovernance, Iupgradable {
             }
         }
     }
-
+    /**
+     * @dev get length of propsal
+     * @return length of propsal
+     */
     function getProposalLength() external view returns(uint) {
         return (allProposal.length);
     }
 
+    /**
+     * @dev get followers of an address
+     * @return get followers of an address
+     */
     function getFollowers(address _add) external view returns(uint[]) {
         return leaderDelegation[_add];
     }
 
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
     function updateUintParameters(bytes8 code, uint val) public {
 
         require(ms.checkIsAuthToGoverned(msg.sender));
@@ -533,6 +605,11 @@ contract Governance is IGovernance, Iupgradable {
         }
     }
 
+    /**
+     * @dev to know if an address is already delegated
+     * @param _add in concern
+     * @return bool value if the address is delegated or not
+     */
     function alreadyDelegated(address _add) public view returns(bool delegated) {
         for (uint i=0; i < leaderDelegation[_add].length; i++) {
             if (allDelegation[leaderDelegation[_add][i]].leader == _add) {
@@ -551,6 +628,11 @@ contract Governance is IGovernance, Iupgradable {
     function resumeProposal(uint) public {
     }
 
+    /**
+     * @dev get pending reward of a member
+     * @param _memberAddress in concern
+     * @return amount of pending reward
+     */
     function getPendingReward(address _memberAddress)
         public view returns(uint pendingDAppReward)
     {
@@ -619,15 +701,34 @@ contract Governance is IGovernance, Iupgradable {
         }
     }
 
+    /**
+     * @dev get roleId of member allowed to categorize the proposal
+     * @return roleId
+     */
     function allowedToCatgorize() public view returns(uint roleId) {
         return roleIdAllowedToCatgorize;
     }
 
+    /**
+     * @dev get vote tally data
+     * @param _proposalId in concern
+     * @param _solution of a proposal id
+     * @return member vote value
+     * @return advisory board vote value
+     * @return amount of votes
+     */
     function voteTallyData(uint _proposalId, uint _solution) public constant returns(uint, uint, uint) {
         return (proposalVoteTally[_proposalId].memberVoteValue[_solution],
             proposalVoteTally[_proposalId].abVoteValue[_solution], proposalVoteTally[_proposalId].voters);
     }
 
+    /**
+     * @dev to create a proposal
+     * @param _proposalTitle of proposal
+     * @param _proposalSD is short description of proposal
+     * @param _proposalDescHash IPFS hash value of propsal
+     * @param _categoryId of proposal
+     */
     function _createProposal(
         string _proposalTitle,
         string _proposalSD,
@@ -660,6 +761,12 @@ contract Governance is IGovernance, Iupgradable {
         );
     }
 
+    /**
+     * @dev to categorize a proposal
+     * @param _proposalId of proposal
+     * @param _categoryId of proposal
+     * @param _incentive is commonIncentive
+     */
     function _categorizeProposal(
         uint _proposalId,
         uint _categoryId,
@@ -678,6 +785,12 @@ contract Governance is IGovernance, Iupgradable {
         emit ProposalCategorized(_proposalId, msg.sender, _categoryId);
     }
 
+    /**
+     * @dev add solution to a proposalId
+     * @param _proposalId in concern
+     * @param _action on that solution
+     * @param _solutionHash string value
+     */
     function _addSolution(uint _proposalId, bytes _action, string _solutionHash)
         internal
     {
@@ -705,6 +818,11 @@ contract Governance is IGovernance, Iupgradable {
         );
     }
 
+    /**
+     * @dev for submitting vote on a proposal
+     * @param _proposalId of proposal in concern
+     * @param _solution for that proposal
+     */
     function _submitVote(uint _proposalId, uint _solution) internal {
 
         uint delegationId = followerDelegation[msg.sender];
@@ -754,6 +872,12 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    /**
+     * @dev to set vote tally of a proposal
+     * @param _proposalId of proposal in concern
+     * @param _solution of proposal in concern
+     * @param mrSequence number of members for a role
+     */
     function _setVoteTally(uint _proposalId, uint _solution, uint mrSequence) internal
     {
         uint category = allProposalData[_proposalId].category;
@@ -796,12 +920,23 @@ contract Governance is IGovernance, Iupgradable {
         proposalVoteTally[_proposalId].abVoteValue[_solution] += voteWeightAB;
     }
 
+    /**
+     * @dev get minimum of two numbers
+     * @param a one of the two numbers
+     * @param b one of the two numbers
+     * @return minimum number out of the two
+     */
     function _minOf(uint a, uint b) internal pure returns(uint res) {
         res = a;
         if (res > b)
             res = b;
     }
     
+    /**
+     * @dev check the time since last update has exceeded token holding time or not
+     * @param _lastUpd is last update time
+     * @return the bool which tells if the time since last update has exceeded token holding time or not
+     */
     function _checkLastUpd(uint _lastUpd) internal view returns(bool) {
         return (now - _lastUpd) > tokenHoldingTime;
     }
@@ -818,6 +953,13 @@ contract Governance is IGovernance, Iupgradable {
         memberRole.numberOfMembers(uint(MemberRoles.Role.Member))) > categoryQuorumPerc;
     }
     
+    /**
+     * @dev this function is called when vote majority is reached
+     * @param _proposalId of proposal in concern
+     * @param _status of proposal in concern
+     * @param category of proposal in concern
+     * @param max vote value of proposal in concern
+     */
     function _callIfMajReach (uint _proposalId, uint _status, uint category, uint max) internal {
         bytes2 contractName;
         address actionAddress;
@@ -835,11 +977,20 @@ contract Governance is IGovernance, Iupgradable {
         eventCaller.callProposalAccepted(_proposalId);
     }
 
+    /**
+     * @dev to update proposal status
+     * @param _proposalId of proposal in concern
+     * @param _status of proposal to set
+     */
     function _updateProposalStatus(uint _proposalId, uint _status) internal {
         allProposal[_proposalId].dateUpd = now;
         allProposalData[_proposalId].propStatus = _status;
     }
 
+    /**
+     * @dev to undelegate a follower
+     * @param _follower is address of follower to undelegate
+     */
     function _unDelegate(address _follower) internal {
         uint followerId = followerDelegation[_follower];
         if (followerId > 0) {
@@ -848,6 +999,11 @@ contract Governance is IGovernance, Iupgradable {
         }
     }
 
+    /**
+     * @dev to close member voting
+     * @param _proposalId of proposal in concern
+     * @param category of proposal in concern
+     */
     function _closeMemberVote(uint _proposalId, uint category) internal {
         uint totalVoteValue;
         uint majorityVote;
@@ -887,6 +1043,12 @@ contract Governance is IGovernance, Iupgradable {
         }
     }
 
+    /**
+     * @dev to close advisory board voting
+     * @param _proposalId of proposal in concern
+     * @param category of proposal in concern
+     * @param _roleId of group of members involved in voting
+     */
     function _closeABVote(uint _proposalId, uint category, uint _roleId) internal {
         uint _majorityVote;
         uint abMem = memberRole.numberOfMembers(_roleId);
@@ -900,6 +1062,10 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    /**
+     * @dev to open proposal for voting
+     * @param _proposalId of proposal in concern
+     */
     function _openProposalForVoting(uint _proposalId) internal {
 
         require(allProposalData[_proposalId].category != 0, "Proposal not categorized");        
@@ -909,6 +1075,9 @@ contract Governance is IGovernance, Iupgradable {
         eventCaller.callCloseProposalOnTimeAtAddress(_proposalId, address(this), SafeMath.add(closingTime, now));
     }
 
+    /**
+     * @dev to initiate the governance process
+     */
     function _initiateGovernance() internal {
         allVotes.push(ProposalVote(address(0), 0, 0));
         allProposal.push(ProposalStruct(address(0), now));
@@ -920,6 +1089,10 @@ contract Governance is IGovernance, Iupgradable {
         specialResolutionMajPerc = 75;
     }
 
+    /**
+     * @dev to change the token holding time
+     * @param time is the new time to be set
+     */
     function _changeTokenHoldingTime(uint time) internal {
         tokenHoldingTime = time;
     }

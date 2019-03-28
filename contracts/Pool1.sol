@@ -42,12 +42,20 @@ contract Pool1 is usingOraclize, Iupgradable {
     MCR internal m1;
     Claims public c1;
     TokenData internal td;
+    bool internal locked;
 
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
     // uint internal constant PRICE_STEP = uint(1000) * DECIMAL1E18;
 
     event Apiresult(address indexed sender, string msg, bytes32 myid);
     event Payout(address indexed to, uint coverId, uint tokens);
+
+    modifier noReentrancy() {
+        require(!locked, "Reentrant call.");
+        locked = true;
+        _;
+        locked = false;
+    }
 
     function () public payable {} //solhint-disable-line
 
@@ -66,6 +74,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     )
         external
         onlyInternal
+        noReentrancy
         returns(bool succ)
     {
         
@@ -150,7 +159,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @dev Transfers all assest (i.e ETH balance, Currency Assest) from old Pool to new Pool
      * @param newPoolAddress Address of the new Pool
      */
-    function upgradeCapitalPool(address newPoolAddress) external  onlyInternal {
+    function upgradeCapitalPool(address newPoolAddress) external noReentrancy onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes4 caName = pd.getCurrenciesByIndex(i);
             _upgradeCapitalPool(caName, newPoolAddress);
@@ -184,6 +193,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     )
         public
         onlyInternal
+        noReentrancy
         returns(bool)
     {
     
@@ -250,7 +260,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
-    function transferEther(uint amount, address _add) public checkPause returns(bool succ) {
+    function transferEther(uint amount, address _add) public noReentrancy checkPause returns(bool succ) {
         require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
         succ = _add.send(amount);
     }
@@ -262,7 +272,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @param  _amount Amount of NXM to sell
      * @return success returns true on successfull sale
      */
-    function sellNXMTokens(uint _amount) public isMember checkPause returns(bool success) {
+    function sellNXMTokens(uint _amount) public isMember noReentrancy checkPause returns(bool success) {
         require(tk.balanceOf(msg.sender) >= _amount, "Not enough balance");
         require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
         require(_amount <= m1.getMaxSellTokens(), "exceeds maximum token sell limit");

@@ -36,6 +36,7 @@ contract Pool2 is Iupgradable {
     Factory internal factory;
     address public uniswapFactoryAddress;
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
+    bool internal locked;
 
     constructor(address _uniswapFactoryAdd) public {
        
@@ -46,6 +47,13 @@ contract Pool2 is Iupgradable {
     event Liquidity(bytes16 typeOf, bytes16 functionName);
 
     event Rebalancing(bytes4 iaCurr, uint tokenAmount);
+
+    modifier noReentrancy() {
+        require(!locked, "Reentrant call.");
+        locked = true;
+        _;
+        locked = false;
+    }
 
     function () public payable {} 
 
@@ -59,7 +67,7 @@ contract Pool2 is Iupgradable {
      * @dev On upgrade transfer all investment assets and ether to new Investment Pool
      * @param newPoolAddress New Investment Assest Pool address
      */
-    function upgradeInvestmentPool(address newPoolAddress) external onlyInternal {
+    function upgradeInvestmentPool(address newPoolAddress) external onlyInternal noReentrancy {
         uint len = pd.getInvestmentCurrencyLen();
         for (uint64 i = 1; i < len; i++) {
             bytes4 iaName = pd.getInvestmentCurrencyByIndex(i);
@@ -74,7 +82,7 @@ contract Pool2 is Iupgradable {
      * @dev Handles the Callback of the Oraclize Query.
      * @param myid Oraclize Query ID identifying the query for which the result is being received
      */ 
-    function delegateCallBack(bytes32 myid) external {
+    function delegateCallBack(bytes32 myid) external noReentrancy{
         
         bytes4 res = pd.getApiIdTypeOf(myid);
         uint callTime = pd.getDateAddOfAPI(myid);
@@ -112,7 +120,7 @@ contract Pool2 is Iupgradable {
      * and Investment Sub pool for excess or insufficient  
      * liquidity conditions of a given currency.
      */ 
-    function internalLiquiditySwap(bytes4 curr) external onlyInternal {
+    function internalLiquiditySwap(bytes4 curr) external onlyInternal noReentrancy {
         uint caBalance;
         uint baseMin;
         uint varMin;
@@ -133,7 +141,7 @@ contract Pool2 is Iupgradable {
      * @param rate array of investment asset exchange rate.
      * @param date current date in yyyymmdd.
      */ 
-    function saveIADetails(bytes4[] curr, uint64[] rate, uint64 date, bool bit) external checkPause {
+    function saveIADetails(bytes4[] curr, uint64[] rate, uint64 date, bool bit) external checkPause noReentrancy{
         bytes4 maxCurr;
         bytes4 minCurr;
         uint64 maxRate;

@@ -110,6 +110,8 @@ contract NXMaster is Governed {
     /// @dev upgrades a single contract
     function upgradeContract(bytes2 _contractsName, address _contractsAddress) public {
         require(checkIsAuthToGoverned(msg.sender));
+        require(_contractsAddress != address(0));
+
         require(_contractsName == "QT" || _contractsName == "TF" || _contractsName == "CL" || _contractsName == "CR" || _contractsName == "P1" || _contractsName == "P2" || _contractsName == "MC","Not upgradable contract");
         if(_contractsName == "QT")
         {
@@ -291,6 +293,7 @@ contract NXMaster is Governed {
         bool newMasterCheck = mr.nxMasterAddress() != address(0);
 
         for (uint i = 0; i < allContractNames.length; i++) {
+            require(_contractAddresses[i] != address(0));
             if ((allContractNames[i] == "MR" || allContractNames[i] == "GV" || 
                 allContractNames[i] == "PC" || allContractNames[i] == "TC") && versionDates.length == 1) {
                 if (newMasterCheck)
@@ -333,7 +336,7 @@ contract NXMaster is Governed {
     }
 
     function updateAddressParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
-        
+        require(val != address(0));
         if(code == "EVCALL"){
             _setEventCallerAddress(val);
 

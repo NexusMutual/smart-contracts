@@ -40,8 +40,16 @@ contract Quotation is Iupgradable {
     QuotationData internal qd;
     MCR internal m1;
     MemberRoles internal mr;
+    bool internal locked;
 
     event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
+
+    modifier noReentrancy() {
+        require(!locked, "Reentrant call.");
+        locked = true;
+        _;
+        locked = false;
+    }
 
     function () public payable {} //solhint-disable-line
 
@@ -259,11 +267,11 @@ contract Quotation is Iupgradable {
         qd.setRefundEligible(msg.sender, true);
     }
 
-    function fullRefund() public checkPause {
+    function fullRefund() public checkPause noReentrancy {
         _kycTrigger(false, msg.sender);
     }
 
-    function kycVerdict(bool status, address _add) public checkPause {
+    function kycVerdict(bool status, address _add) public checkPause noReentrancy {
         require(msg.sender == qd.kycAuthAddress());
         _kycTrigger(status, _add);
     }
@@ -271,7 +279,7 @@ contract Quotation is Iupgradable {
     /**
      * @dev transfering Ethers to newly created quotation contract.
      */  
-    function transferAssetsToNewContract(address newAdd) public onlyInternal {
+    function transferAssetsToNewContract(address newAdd) public onlyInternal noReentrancy {
         uint amount = address(this).balance;
         ERC20 erc20;
         if (amount > 0) {

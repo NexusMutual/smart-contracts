@@ -204,9 +204,9 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         require(!ms.isPause(), "Emergency Pause Applied");
         if (msg.sender == address(ms.getLatestAddress("QT"))) {
             require(td.walletAddress() != address(0), "No walletAddress present");
-            td.walletAddress().transfer(msg.value); 
             dAppToken.addToWhitelist(_userAddress);
-            _updateRole(_userAddress, uint(Role.Member), true);
+            _updateRole(_userAddress, uint(Role.Member), true);            
+            td.walletAddress().transfer(msg.value); 
         } else {
             require(!qd.refundEligible(_userAddress));
             require(!ms.isMember(_userAddress));
@@ -230,9 +230,10 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         if (verdict) {
             qd.setRefundEligible(_userAddress, false);
             uint fee = td.joiningFee();
-            td.walletAddress().transfer(fee); //solhint-disable-line
             dAppToken.addToWhitelist(_userAddress);
             _updateRole(_userAddress, uint(Role.Member), true);
+            td.walletAddress().transfer(fee); //solhint-disable-line
+            
         } else {
             qd.setRefundEligible(_userAddress, false);
             _userAddress.transfer(td.joiningFee()); //solhint-disable-line

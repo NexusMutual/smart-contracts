@@ -213,9 +213,7 @@ contract NXMaster is Governed {
         if (_masterAddress != address(this)) {
             require(checkIsAuthToGoverned(msg.sender), "Neither master nor Authorised");
         }
-        address[] memory newConAdd = new address[](allContractNames.length);
         for (uint i = 0; i < allContractNames.length; i++) {
-            newConAdd[i] = allContractVersions[versionDates.length - 1][allContractNames[i]];
             if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
                 allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
                 up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
@@ -227,11 +225,7 @@ contract NXMaster is Governed {
 
             
         }
-        NXMaster nxms = NXMaster(_masterAddress);
-        if (_masterAddress != address(this)) {
-            nxms.addNewVersion(newConAdd);
-        }
-        
+        // _changeAllAddress();
         contractsActive[address(this)] = false;
         contractsActive[_masterAddress] = true;
        
@@ -290,7 +284,7 @@ contract NXMaster is Governed {
     /// @param _contractAddresses Array of contract addresses which will be generated
     function addNewVersion(address[] _contractAddresses) public {
 
-        require((msg.sender == owner || checkIsAuthToGoverned(msg.sender)) && !constructorCheck);
+        require(msg.sender == owner  && !constructorCheck);
         constructorCheck = true;
 
         MemberRoles mr = MemberRoles(_contractAddresses[14]);   // shoud send proxy address for proxy contracts (if not 1st time deploying) 
@@ -314,10 +308,14 @@ contract NXMaster is Governed {
 
        
         versionDates.push(now); //solhint-disable-line
-        changeMasterAddress(address(this));
-        _changeAllAddress();
-        TokenController tc = TokenController(getLatestAddress("TC"));
-        tc.changeOperator(getLatestAddress("TC"));
+        if(!newMasterCheck){
+            changeMasterAddress(address(this));
+            _changeAllAddress();
+            TokenController tc = TokenController(getLatestAddress("TC"));
+            tc.changeOperator(getLatestAddress("TC"));
+        }
+        
+        
         
     }
 

@@ -205,9 +205,6 @@ contract QuotationData is Iupgradable {
 
             val = tokensRetained;
 
-        } else {
-
-            revert("Invalid param code");
         }
         
     }
@@ -456,6 +453,9 @@ contract QuotationData is Iupgradable {
 
             _setTokensRetained(val);
 
+        } else {
+
+            revert("Invalid param code");
         }
         
     }

@@ -166,6 +166,9 @@ contract(
       it('Should update Token Step', async function() {
         await updateParameter(20, 2, 'QUOLOCKT', td, 'uint', '7000');
       });
+      it('Should update Token Step', async function() {
+        await updateInvalidParameter(20, 2, 'QUOLOC12', td, 'uint', '7000');
+      });
     });
 
     describe('Update Risk Assessment Parameters', function() {
@@ -222,6 +225,9 @@ contract(
       });
       it('Should update Tokens Retained', async function() {
         await updateParameter(23, 2, 'QUOTOK', qd, 'uint', '10000');
+      });
+      it('Should not trigger action if wrong code is passed', async function() {
+        await updateInvalidParameter(23, 2, 'QUOTO1', qd, 'uint', '10000');
       });
     });
 
@@ -295,6 +301,9 @@ contract(
       it('Should update Factor A', async function() {
         await updateParameter(26, 2, 'A', pd, 'uint', '40');
       });
+      it('Should update Factor A', async function() {
+        await updateInvalidParameter(26, 2, 'Z', pd, 'uint', '40');
+      });
     });
 
     describe('Update Address Parameters', function() {
@@ -309,20 +318,38 @@ contract(
           newEventCaller.address
         );
       });
-      it('Should update Master Contract Address', async function() {
-        let eventCaller = EventCaller.deployed();
-        let newMaster = await NXMaster.new(
-          eventCaller.address,
-          nxmToken.address
-        );
-        await updateParameter(
+      // it('Should update Master Contract Address', async function() {
+      //   // let eventCaller = EventCaller.deployed();
+      //   let newMaster = await NXMaster.new(
+      //     eventCaller.address,
+      //     nxmToken.address
+      //   );
+      //   console.log(1);
+      //   addressCon = await nxms.getVersionData(await nxms.getCurrentVersion());
+      //   console.log(1);
+      //   await newMaster.addNewVersion(addressCon[2]);
+      //   console.log(1);
+      //   await updateParameter(
+      //     27,
+      //     2,
+      //     'MASTADD',
+      //     nxms,
+      //     'address',
+      //     newMaster.address,
+      //     newMaster
+      //   );
+      //   console.log(1);
+      //   (await gv.nxMasterAddress()).should.be.equal(newMaster.address);
+      //   console.log(1);
+      // });
+      it('Should not trigger action if wrong code is passed', async function() {
+        await updateInvalidParameter(
           27,
           2,
-          'MASTADD',
+          'ASD',
           nxms,
           'address',
-          newMaster.address,
-          newMaster
+          web3.eth.accounts[1]
         );
       });
     });
@@ -388,6 +415,16 @@ contract(
           28,
           3,
           'KYCAUTH',
+          nxms,
+          'owner',
+          web3.eth.accounts[1]
+        );
+      });
+      it('Should not trigger action if wrong code is passed', async function() {
+        await updateInvalidParameter(
+          28,
+          3,
+          'ASD',
           nxms,
           'owner',
           web3.eth.accounts[1]

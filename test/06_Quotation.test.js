@@ -806,6 +806,18 @@ contract('Quotation', function([
             vrs[2],
             { from: notMember, value: totalFee }
           );
+          await cad.transfer(qt.address, 10 * 1e18);
+          let newQt = await Quotation.new();
+          let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+          let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+          actionHash = encode(
+            'upgradeContract(bytes2,address)',
+            'QT',
+            newQt.address
+          );
+          await gvProp(29, actionHash, oldMR, oldGv, 2);
+          (await nxms.getLatestAddress('QT')).should.be.equal(newQt.address);
+          qt = newQt;
           await assertRevert(
             qt.initiateMembershipAndCover(
               smartConAdd,
@@ -1117,6 +1129,12 @@ contract('Quotation', function([
         );
         var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
         (await pd.getApiIdTypeOf(APIID)).should.be.equal('0x4d435246');
+      });
+      it('6.54 should throw if call kycVerdict with non authorised address', async function() {
+        await assertRevert(qt.kycVerdict(true, member1, { from: member1 }));
+      });
+      it('6.54 should not able to update quoatation parameters directly', async function() {
+        await assertRevert(qd.updateUintParameters('STLP', 1));
       });
     });
   });

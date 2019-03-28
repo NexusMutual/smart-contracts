@@ -56,6 +56,7 @@ let memberRoles;
 let gov;
 let propCat;
 let ec;
+let factory;
 
 contract('NXMaster', function([
   owner,
@@ -76,7 +77,7 @@ contract('NXMaster', function([
 
   before(async function() {
     let dsv = await DSValue.deployed();
-    let factory = await FactoryMock.deployed();
+    factory = await FactoryMock.deployed();
     nxms = await NXMaster.deployed();
     qd = await QuotationDataMock.deployed();
     td = await TokenData.deployed();
@@ -324,6 +325,69 @@ contract('NXMaster', function([
       await gvProp(22, actionHash, oldMR, oldGv, 2);
       let val = await oldGv.getUintParameters('EPTIME');
       (val[1] / 1).should.be.equal(12);
+    });
+  });
+
+  describe('upgrade single non-proxy contracts', function() {
+    it('1.24 should able to propose new contract code for quotation', async function() {
+      let newQt = await Quotation.new();
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'QT',
+        newQt.address
+      );
+      await gvProp(29, actionHash, oldMR, oldGv, 2);
+      (await nxms.getLatestAddress('QT')).should.be.equal(newQt.address);
+    });
+    it('1.25 should able to propose new contract code for claimsReward', async function() {
+      let newCr = await ClaimsReward.new();
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'CR',
+        newCr.address
+      );
+      await gvProp(29, actionHash, oldMR, oldGv, 2);
+      (await nxms.getLatestAddress('CR')).should.be.equal(newCr.address);
+    });
+    it('1.26 should able to propose new contract code for Pool1', async function() {
+      let newP1 = await Pool1.new();
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'P1',
+        newP1.address
+      );
+      await gvProp(29, actionHash, oldMR, oldGv, 2);
+      (await nxms.getLatestAddress('P1')).should.be.equal(newP1.address);
+    });
+    it('1.27 should able to propose new contract code for Pool2', async function() {
+      let newP2 = await Pool2.new(factory.address);
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'P2',
+        newP2.address
+      );
+      await gvProp(29, actionHash, oldMR, oldGv, 2);
+      (await nxms.getLatestAddress('P2')).should.be.equal(newP2.address);
+    });
+    it('1.28 should able to propose new contract code for mcr', async function() {
+      let newMcr = await MCR.new();
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'MC',
+        newMcr.address
+      );
+      await gvProp(29, actionHash, oldMR, oldGv, 2);
+      (await nxms.getLatestAddress('MC')).should.be.equal(newMcr.address);
     });
   });
 

@@ -346,9 +346,12 @@ contract(
         let lockedTime = await nxmToken.isLockedForMV(mem2);
         assert.isAbove(lockedTime.toNumber(), Date.now() / 1000);
       });
-      it('15.47 Follower cannot undelegate if there are rewards pending to be claimed', async function() {
+      it('15.47 should not withdraw membership if he have pending rewads to claim', async function() {
         await increaseTime(604810);
         await gv.closeProposal(pId);
+        await assertRevert(mr.withdrawMembership({ from: mem5 }));
+      });
+      it('15.48 Follower cannot undelegate if there are rewards pending to be claimed', async function() {
         await assertRevert(gv.unDelegate({ from: mem5 }));
         await cr.claimAllPendingReward([pId], { from: mem5 });
       });

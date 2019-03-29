@@ -558,47 +558,12 @@ contract NXMaster is Governed {
     function _changeAllAddress() internal {
         uint i;
         uint currentVersion = versionDates.length - 1;
-        Pool1 p1;
-        Pool2 p2;
-
-        if (versionDates.length < 3) {
-            for (i = 0; i < allContractNames.length; i++) {
-                if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
-                    allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
-                    contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
-                    up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
-                    up.changeDependentContractAddress();
-                }
-            }
-        } else {
-            for (i = 0; i < allContractNames.length; i++) {
-                if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
-                    allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
-                    contractsActive[allContractVersions[currentVersion - 1][allContractNames[i]]] = false;
-                    contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
-                    up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
-                    up.changeDependentContractAddress();
-                }
-            }
-
-            if (allContractVersions[currentVersion]["CR"] != allContractVersions[currentVersion - 1]["CR"] 
-                && allContractVersions[currentVersion]["TD"] == allContractVersions[currentVersion - 1]["TD"]) {
-                cr = ClaimsReward(allContractVersions[currentVersion - 1]["CR"]);
-                cr.upgrade(allContractVersions[currentVersion]["CR"]);
-            }
-
-            if (allContractVersions[currentVersion]["P1"] != allContractVersions[currentVersion - 1]["P1"]) {
-                p1 = Pool1(allContractVersions[currentVersion - 1]["P1"]);
-                p1.upgradeCapitalPool(allContractVersions[currentVersion]["P1"]);
-            }
-
-            if (allContractVersions[currentVersion]["P2"] != allContractVersions[currentVersion - 1]["P2"]) {
-                p2 = Pool2(allContractVersions[currentVersion - 1]["P2"]);
-                p2.upgradeInvestmentPool(allContractVersions[currentVersion]["P2"]);
-            }
-
-            p1 = Pool1(allContractVersions[currentVersion]["P1"]);
-            p1.versionOraclise(currentVersion);
+        for (i = 0; i < allContractNames.length; i++) {
+            
+            contractsActive[allContractVersions[currentVersion][allContractNames[i]]] = true;
+            up = Iupgradable(allContractVersions[currentVersion][allContractNames[i]]);
+            up.changeDependentContractAddress();
+            
         }
     }
 

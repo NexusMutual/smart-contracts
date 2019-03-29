@@ -168,12 +168,6 @@ contract Pool1 is usingOraclize, Iupgradable {
             newPoolAddress.transfer(address(this).balance); //solhint-disable-line
     }
 
-    /// @dev Calls the Oraclize Query to update the version of the contracts.
-    function versionOraclise(uint version) external onlyInternal {
-        bytes32 myid = _oraclizeQuery(2, 0, "URL", "http://a1.nexusmutual.io/api/MCR/setlatest/T", 0);
-        _saveApiDetails(myid, "VER", version);
-    }
-
     /**
      * @dev Iupgradable Interface to update dependent contract address
      */

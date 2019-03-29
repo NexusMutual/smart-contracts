@@ -148,6 +148,7 @@ contract ClaimsData is Iupgradable {
     }
 
     /** 
+     * @dev Updates the max vote index for which claim assessor has received reward 
      * @param _voter address of the voter.
      * @param caIndex last index till which reward was distributed for CA
      */ 
@@ -157,7 +158,8 @@ contract ClaimsData is Iupgradable {
     }
 
     /** 
-     * @param user address of the user whose claim voting ability can be set
+     * @dev Used to pause claim assessor activity for 3 days 
+     * @param Member address whose claim voting ability needs to be paused
      */ 
     function setUserClaimVotePausedOn(address user) external {
         require(ms.checkIsAuthToGoverned(msg.sender));
@@ -165,6 +167,7 @@ contract ClaimsData is Iupgradable {
     }
 
     /**
+     * @dev Updates the max vote index for which member has received reward 
      * @param _voter address of the voter.
      * @param mvIndex last index till which reward was distributed for member 
      */ 
@@ -175,8 +178,8 @@ contract ClaimsData is Iupgradable {
 
     /**
      * @param claimid claim id.
-     * @param percCA reward Percentage for claim assessor
-     * @param percMV reward Percentage for members
+     * @param percCA reward Percentage reward for claim assessor
+     * @param percMV reward Percentage reward for members
      * @param tokens total tokens to be rewarded
      */ 
     function setClaimRewardDetail(
@@ -271,7 +274,7 @@ contract ClaimsData is Iupgradable {
     }
 
     /**
-     * @dev Stores the tokens given by the Claim Assessors during voting of a given claim.
+     * @dev Stores the tokens locked by the Claim Assessors during voting of a given claim.
      * @param _claimId Claim Id.
      * @param _vote 1 for accept and increases the tokens of claim as accept,
      * -1 for deny and increases the tokens of claim as deny.
@@ -285,7 +288,7 @@ contract ClaimsData is Iupgradable {
     }
 
     /** 
-     * @dev Stores the tokens given by the Members during voting of a given claim.
+     * @dev Stores the tokens locked by the Members during voting of a given claim.
      * @param _claimId Claim Id.
      * @param _vote 1 for accept and increases the tokens of claim as accept,
      * -1 for deny and increases the tokens of claim as deny.
@@ -353,7 +356,7 @@ contract ClaimsData is Iupgradable {
     }
 
     /** 
-     @dev Ques Claims during Emergency Pause.
+     @dev Queues Claims during Emergency Pause.
      */ 
     function setClaimAtEmergencyPause(
         uint _coverId,
@@ -461,9 +464,9 @@ contract ClaimsData is Iupgradable {
     }
 
     /**
-     * @dev Gets Uint Parameters of a code
+     * @dev Gets Uint Parameters by parameter code
      * @param code whose details we want
-     * @return string value of the code
+     * @return string value of the parameter
      * @return associated amount (time or perc or value) to the code
      */
     function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {

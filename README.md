@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/somish/NexusMutual.svg?branch=revise-token-module)](https://travis-ci.org/somish/NexusMutual?branch=intermediate)
+[![Build Status](https://travis-ci.org/somish/NexusMutual.svg?branch=preaudit-2019)](https://travis-ci.org/somish/NexusMutual?branch=preaudit-2019)
 
-[![Coverage Status](https://coveralls.io/repos/github/somish/NexusMutual/badge.svg?branch=unit-test)](https://coveralls.io/github/somish/NexusMutual?branch=intermediate)
+[![Coverage Status](https://coveralls.io/repos/github/somish/NexusMutual/badge.svg?branch=preaudit-2019)](https://coveralls.io/github/somish/NexusMutual?branch=preaudit-2019)
 
 <h1><a id="NEXUS_MUTUAL_0"></a>NEXUS MUTUAL</h1>
 <p>Nexus Mutual uses blockchain technology to bring the mutual ethos back to insurance by creating aligned incentives through smart contract code on the Ethereum blockchain.</p>

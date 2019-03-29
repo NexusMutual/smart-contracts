@@ -89,9 +89,9 @@ contract PoolData is Iupgradable {
     uint public iaRatesTime;
     uint public minCap;
     uint public mcrTime;
-    uint public A;
+    uint public a;
     uint public shockParameter;
-    uint public C;
+    uint public c;
     uint public mcrFailTime; 
     uint public ethVolumeLimit;
     uint public capReached;
@@ -100,8 +100,8 @@ contract PoolData is Iupgradable {
     constructor(address _notariseAdd, address _daiFeedAdd, address _daiAdd) public {
         notariseMCR = _notariseAdd;
         daiFeedAddress = _daiFeedAdd;
-        C = 5203349;
-        A = 1948;
+        c = 5203349;
+        a = 1948;
         mcrTime = 24 hours;
         mcrFailTime = 6 hours;
         allMCRData.push(McrData(0, 0, 0, 0));
@@ -123,6 +123,10 @@ contract PoolData is Iupgradable {
         allInvestmentAssets["DAI"] = InvestmentAssets(_daiAdd, true, 500, 5000, 18);
     }
 
+    /**
+     * @dev to set the maximum cap allowed 
+     * @param val is the new value
+     */
     function setCapReached(uint val) external onlyInternal {
         capReached = val;
     }
@@ -198,6 +202,9 @@ contract PoolData is Iupgradable {
         datewiseId[date] = allIARankDetails.length.sub(1);
     }
 
+    /**
+     * @dev to get the time for the laste liquidity trade trigger
+     */
     function setLastLiquidityTradeTrigger() external onlyInternal {
         lastLiquidityTradeTrigger = now;
     }
@@ -209,119 +216,6 @@ contract PoolData is Iupgradable {
         lastDate = newDate;
     }
 
-    /**
-     * @dev Updates Uint Parameters of a code
-     * @param code whose details we want to update
-     * @param val value to set
-     */
-    function updateUintParameters(bytes8 code, uint val) public {
-        require(ms.checkIsAuthToGoverned(msg.sender));
-        if(code == "MCRTIM")
-        {
-            _changeMCRTime(val * 1 hours);
-
-        } else if(code == "MCRFTIM"){
-
-            _changeMCRFailTime(val * 1 hours);
-
-        } else if(code == "MCRMIN"){
-
-            _changeMinCap(val);
-
-        } else if(code == "MCRSHOCK"){
-
-            _changeShockParameter(val);
-
-        } else if(code == "MCRCAPL"){
-
-            _changeCapacityLimit(val);
-
-        } else if(code == "IMZ"){
-
-            _changeVariationPercX100(val);
-
-        } else if(code == "IMRATET"){
-
-            _changeIARatesTime(val * 1 hours);
-
-        } else if(code == "IMUNIDL"){
-
-            _changeUniswapDeadlineTime(val * 1 minutes);
-
-        } else if(code == "IMLIQT"){
-
-            _changeliquidityTradeCallbackTime(val * 1 hours);
-
-        } else if(code == "IMETHVL"){
-
-            _setEthVolumeLimit(val);
-
-        } else if(code == "C"){
-            _changeC(val);
-
-          } else if(code == "A"){
-
-            _changeA(val);
-
-          } else{
-            revert("Invalid param code");
-        }
-            
-    }
-
-    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
-        codeVal = code;
-        if(code == "MCRTIM")
-        {
-            val = mcrTime / (1 hours);
-
-        } else if(code == "MCRFTIM"){
-
-            val = mcrFailTime / (1 hours);
-
-        } else if(code == "MCRMIN"){
-
-            val = minCap;
-
-        } else if(code == "MCRSHOCK"){
-
-            val = shockParameter;
-
-        } else if(code == "MCRCAPL"){
-
-            val = capacityLimit;
-
-        } else if(code == "IMZ"){
-
-            val = variationPercX100;
-
-        } else if(code == "IMRATET"){
-
-            val = iaRatesTime / (1 hours);
-
-        } else if(code == "IMUNIDL"){
-
-            val = uniswapDeadline / (1 minutes);
-
-        } else if(code == "IMLIQT"){
-
-            val = liquidityTradeCallbackTime / (1 hours);
-
-        } else if(code == "IMETHVL"){
-
-            val = ethVolumeLimit;
-
-        } else if(code == "C"){
-            val = C;
-
-          } else if(code == "A"){
-
-            val = A;
-
-          }
-            
-    }
- 
     /**
      * @dev Adds currency asset currency. 
      * @param curr currency of the asset
@@ -417,7 +311,76 @@ contract PoolData is Iupgradable {
         allInvestmentAssets[curr].currAddress = currAdd;
         allInvestmentAssets[curr].decimals = newDecimal;
     }
-    
+
+    /// @dev Changes address allowed to post MCR.
+    function changeNotariseAddress(address _add) external onlyInternal {
+        notariseMCR = _add;
+    }
+
+    /// @dev updates daiFeedAddress address.
+    /// @param _add address of DAI feed.
+    function changeDAIfeedAddress(address _add) external onlyInternal {
+        daiFeedAddress = _add;
+    }
+
+    /**
+     * @dev Gets Uint Parameters of a code
+     * @param code whose details we want
+     * @return string value of the code
+     * @return associated amount (time or perc or value) to the code
+     */
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+        codeVal = code;
+        if (code == "MCRTIM") {
+            val = mcrTime / (1 hours);
+
+        } else if (code == "MCRFTIM") {
+
+            val = mcrFailTime / (1 hours);
+
+        } else if (code == "MCRMIN") {
+
+            val = minCap;
+
+        } else if (code == "MCRSHOCK") {
+
+            val = shockParameter;
+
+        } else if (code == "MCRCAPL") {
+
+            val = capacityLimit;
+
+        } else if (code == "IMZ") {
+
+            val = variationPercX100;
+
+        } else if (code == "IMRATET") {
+
+            val = iaRatesTime / (1 hours);
+
+        } else if (code == "IMUNIDL") {
+
+            val = uniswapDeadline / (1 minutes);
+
+        } else if (code == "IMLIQT") {
+
+            val = liquidityTradeCallbackTime / (1 hours);
+
+        } else if (code == "IMETHVL") {
+
+            val = ethVolumeLimit;
+
+        } else if (code == "C") {
+            val = c;
+
+        } else if (code == "A") {
+
+            val = a;
+
+        }
+            
+    }
+ 
     /// @dev Checks whether a given address can notaise MCR data or not.
     /// @param _add Address.
     /// @return res Returns 0 if address is not authorized, else 1.
@@ -464,9 +427,9 @@ contract PoolData is Iupgradable {
     }
 
     /// @dev Gets details for token price calculation.
-    function getTokenPriceDetails(bytes4 curr) external view returns(uint a, uint c, uint rate) {
-        a = A;
-        c = C;
+    function getTokenPriceDetails(bytes4 curr) external view returns(uint _a, uint _c, uint rate) {
+        _a = a;
+        _c = c;
         rate = _getAvgRate(curr, false);
     }
     
@@ -754,10 +717,79 @@ contract PoolData is Iupgradable {
         );
     }
 
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
+    function updateUintParameters(bytes8 code, uint val) public {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if (code == "MCRTIM") {
+            _changeMCRTime(val * 1 hours);
+
+        } else if (code == "MCRFTIM") {
+
+            _changeMCRFailTime(val * 1 hours);
+
+        } else if (code == "MCRMIN") {
+
+            _changeMinCap(val);
+
+        } else if (code == "MCRSHOCK") {
+
+            _changeShockParameter(val);
+
+        } else if (code == "MCRCAPL") {
+
+            _changeCapacityLimit(val);
+
+        } else if (code == "IMZ") {
+
+            _changeVariationPercX100(val);
+
+        } else if (code == "IMRATET") {
+
+            _changeIARatesTime(val * 1 hours);
+
+        } else if (code == "IMUNIDL") {
+
+            _changeUniswapDeadlineTime(val * 1 minutes);
+
+        } else if (code == "IMLIQT") {
+
+            _changeliquidityTradeCallbackTime(val * 1 hours);
+
+        } else if (code == "IMETHVL") {
+
+            _setEthVolumeLimit(val);
+
+        } else if (code == "C") {
+            _changeC(val);
+
+        } else if (code == "A") {
+
+            _changeA(val);
+
+        } else {
+            revert("Invalid param code");
+        }
+            
+    }
+
+    /**
+     * @dev to get the average rate of currency rate 
+     * @param curr is the currency in concern
+     * @return required rate
+     */
     function getCAAvgRate(bytes4 curr) public view returns(uint rate) {
         return _getAvgRate(curr, false);
     }
 
+    /**
+     * @dev to get the average rate of investment rate 
+     * @param curr is the investment in concern
+     * @return required rate
+     */
     function getIAAvgRate(bytes4 curr) public view returns(uint rate) {
         return _getAvgRate(curr, true);
     }
@@ -778,6 +810,10 @@ contract PoolData is Iupgradable {
         }
     }
 
+    /**
+     * @dev to set the ethereum volume limit 
+     * @param val is the new limit value
+     */
     function _setEthVolumeLimit(uint val) internal {
         ethVolumeLimit = val;
     }
@@ -802,10 +838,18 @@ contract PoolData is Iupgradable {
         mcrFailTime = _time;
     }
 
+    /**
+     * @dev to change the uniswap deadline time 
+     * @param newDeadline is the value
+     */
     function _changeUniswapDeadlineTime(uint newDeadline) internal {
         uniswapDeadline = newDeadline;
     }
 
+    /**
+     * @dev to change the liquidity trade call back time 
+     * @param newTime is the new value to be set
+     */
     function _changeliquidityTradeCallbackTime(uint newTime) internal {
         liquidityTradeCallbackTime = newTime;
     }
@@ -826,26 +870,19 @@ contract PoolData is Iupgradable {
 
     /// @dev Changes Growth Step
     function _changeC(uint newC) internal {
-        C = newC;
+        c = newC;
     }
 
     /// @dev Changes scaling factor.
     function _changeA(uint val) internal {
-        A = val;
+        a = val;
     }
     
+    /**
+     * @dev to change the capacity limit 
+     * @param val is the new value
+     */
     function _changeCapacityLimit(uint val) internal {
         capacityLimit = val;
     }    
-
-    /// @dev Changes address allowed to post MCR.
-    function changeNotariseAddress(address _add) external onlyInternal {
-        notariseMCR = _add;
-    }
-
-    /// @dev updates daiFeedAddress address.
-    /// @param _add address of DAI feed.
-    function changeDAIfeedAddress(address _add) external onlyInternal {
-        daiFeedAddress = _add;
-    }
 }

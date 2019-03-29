@@ -542,6 +542,7 @@ contract Governance is IGovernance, Iupgradable {
             }
         }
     }
+    
     /**
      * @dev get length of propsal
      * @return length of propsal

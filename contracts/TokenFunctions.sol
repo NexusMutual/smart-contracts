@@ -167,7 +167,11 @@ contract TokenFunctions is Iupgradable {
         return _getUserLockedCNTokens(_of, _coverId);
     } 
 
-
+    /**
+     * @dev to get the all the cover locked tokens of a user 
+     * @param _of is the user address in concern
+     * @return amount locked
+     */
     function getUserAllLockedCNTokens(address _of) external view returns(uint amount) {
         for (uint i = 0; i < qd.getUserCoverLength(_of); i++) {
             amount = amount.add(_getUserLockedCNTokens(_of, qd.getAllCoversOfUser(_of)[i]));
@@ -272,6 +276,11 @@ contract TokenFunctions is Iupgradable {
         } 
     }
 
+    /**
+     * @dev to burn the deposited cover tokens 
+     * @param coverId is id of cover whose tokens have to be burned
+     * @return the status of the successful burning
+     */
     function burnDepositCN(uint coverId) public onlyInternal returns (bool success) {
         address _of = qd.getCoverMemberAddress(coverId);
         uint amount;
@@ -308,6 +317,13 @@ contract TokenFunctions is Iupgradable {
         emit BurnCATokens(claimid, _of, _value);
     }
 
+    /**
+     * @dev to lock cover note tokens
+     * @param coverNoteAmount is number of tokens to be locked
+     * @param coverPeriod is cover period in concern
+     * @param coverId is the cover id of cover in concern
+     * @param _of address whose tokens are to be locked
+     */
     function lockCN(
         uint coverNoteAmount,
         uint coverPeriod,
@@ -335,6 +351,11 @@ contract TokenFunctions is Iupgradable {
         tc.lockOf(msg.sender, reason, _amount, validity);
     }
 
+    /**
+     * @dev to check if a  member is locked for member vote 
+     * @param _of is the member address in concern
+     * @return the boolean status
+     */
     function isLockedForMemberVote(address _of) public view returns(bool) {
         return now < tk.isLockedForMV(_of);
     }
@@ -401,6 +422,14 @@ contract TokenFunctions is Iupgradable {
         }
     }
 
+    /**
+     * @dev to get tokens of staker locked before burning that are allowed to burn 
+     * @param stakerAdd is the address of the staker 
+     * @param stakedAdd is the address of staked contract in concern 
+     * @param stakerIndex is the staker index in concern
+     * @return amount of unlockable tokens
+     * @return amount of tokens that can burn
+     */
     function _unlockableBeforeBurningAndCanBurn(
         address stakerAdd, 
         address stakedAdd, 
@@ -429,6 +458,13 @@ contract TokenFunctions is Iupgradable {
             canBurn = currentLockedTokens.sub(amount).sub(ub);
     }
 
+    /**
+     * @dev to get tokens of staker that are unlockable
+     * @param _stakerAddress is the address of the staker 
+     * @param _stakedContractAddress is the address of staked contract in concern 
+     * @param _stakedContractIndex is the staked contract index in concern
+     * @return amount of unlockable tokens
+     */
     function _getStakerUnlockableTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,

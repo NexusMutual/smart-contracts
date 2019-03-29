@@ -57,6 +57,11 @@ contract Pool2 is Iupgradable {
 
     function () public payable {} 
 
+    /**
+     * @dev to change the uniswap factory address 
+     * @param newFactoryAddress is the new factory address in concern
+     * @return the status of the concerned coverId
+     */
     function changeUniswapFactoryAddress(address newFactoryAddress) external onlyInternal {
         // require(ms.isOwner(msg.sender) || ms.checkIsAuthToGoverned(msg.sender));
         uniswapFactoryAddress = newFactoryAddress;
@@ -104,7 +109,7 @@ contract Pool2 is Iupgradable {
      * @param rate array of investment asset exchange rate.
      * @param date current date in yyyymmdd.
      */ 
-    function saveIADetails(bytes4[] curr, uint64[] rate, uint64 date, bool bit) external checkPause noReentrancy{
+    function saveIADetails(bytes4[] curr, uint64[] rate, uint64 date, bool bit) external checkPause noReentrancy {
         bytes4 maxCurr;
         bytes4 minCurr;
         uint64 maxRate;
@@ -123,6 +128,47 @@ contract Pool2 is Iupgradable {
         p1.saveIADetailsOracalise(pd.iaRatesTime());
     }
 
+    /**
+     * @dev External Trade for excess or insufficient  
+     * liquidity conditions of a given currency.
+     */ 
+    function externalLiquidityTrade() external onlyInternal {
+        
+        bool triggerTrade;
+        bytes4 curr;
+        bytes4 minIACurr;
+        bytes4 maxIACurr;
+        uint amount;
+        uint minIARate;
+        uint maxIARate;
+        uint baseMin;
+        uint varMin;
+        uint caBalance;
+
+        (maxIACurr, maxIARate, minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
+        uint len = pd.getAllCurrenciesLen();
+        for (uint64 i = 0; i < len; i++) {
+            curr = pd.getCurrenciesByIndex(i);
+            (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
+            caBalance = _getCurrencyAssetsBalance(curr);
+
+            if (caBalance > uint(baseMin).add(varMin).mul(2)) { //excess
+                amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
+                triggerTrade = _externalExcessLiquiditySwap(curr, minIACurr, amount);
+            } else if (caBalance < uint(baseMin).add(varMin)) { // insufficient
+                amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
+                triggerTrade = _externalInsufficientLiquiditySwap(curr, maxIACurr, amount);
+            }
+
+            if (triggerTrade) {
+                p1.triggerExternalLiquidityTrade();
+            }
+        }
+    }
+
+    /**
+     * Iupgradable Interface to update dependent contract address
+     */
     function changeDependentContractAddress() public onlyInternal {
         m1 = MCR(ms.getLatestAddress("MC"));
         pd = PoolData(ms.getLatestAddress("PD"));
@@ -164,6 +210,11 @@ contract Pool2 is Iupgradable {
         }
     }
 
+    /**
+     * @dev to perform rebalancing 
+     * @param iaCurr is the investment asset currency
+     * @param iaRate is the investment asset rate
+     */
     function _rebalancingLiquidityTrading(
         bytes4 iaCurr,
         uint64 iaRate
@@ -302,6 +353,11 @@ contract Pool2 is Iupgradable {
         }
     }
 
+    /**
+     * @dev to get balance of an investment asset 
+     * @param _curr is the investment asset in concern
+     * @return the balance
+     */
     function _getInvestmentAssetBalance(bytes4 _curr) internal view returns (uint balance) {
         if (_curr == "ETH") {
             balance = address(this).balance;
@@ -514,44 +570,6 @@ contract Pool2 is Iupgradable {
             tmp.tokenToTokenTransferInput(maxIAToSell, (
                 amount.mul(995)).div(1000), (
                     intermediaryEth), pd.uniswapDeadline().add(now), address(p1), currAdd);
-        }
-    }
-
-    /**
-     * @dev External Trade for excess or insufficient  
-     * liquidity conditions of a given currency.
-     */ 
-    function externalLiquidityTrade() external onlyInternal {
-        
-        bool triggerTrade;
-        bytes4 curr;
-        bytes4 minIACurr;
-        bytes4 maxIACurr;
-        uint amount;
-        uint minIARate;
-        uint maxIARate;
-        uint baseMin;
-        uint varMin;
-        uint caBalance;
-
-        (maxIACurr, maxIARate, minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
-        uint len = pd.getAllCurrenciesLen();
-        for (uint64 i = 0; i < len; i++) {
-            curr = pd.getCurrenciesByIndex(i);
-            (, baseMin, varMin) = pd.getCurrencyAssetVarBase(curr);
-            caBalance = _getCurrencyAssetsBalance(curr);
-
-            if (caBalance > uint(baseMin).add(varMin).mul(2)) { //excess
-                amount = caBalance.sub(((uint(baseMin).add(varMin)).mul(3)).div(2)); //*10**18;
-                triggerTrade = _externalExcessLiquiditySwap(curr, minIACurr, amount);
-            } else if (caBalance < uint(baseMin).add(varMin)) { // insufficient
-                amount = (((uint(baseMin).add(varMin)).mul(3)).div(2)).sub(caBalance);
-                triggerTrade = _externalInsufficientLiquiditySwap(curr, maxIACurr, amount);
-            }
-
-            if (triggerTrade) {
-                p1.triggerExternalLiquidityTrade();
-            }
         }
     }
 

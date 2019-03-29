@@ -373,13 +373,6 @@ contract PoolData is Iupgradable {
         allCurrencyAssets[curr].varMin = varMin;
     }
 
-    /**
-     * @dev Updates investment asset decimals.
-     */  
-    function updateInvestmentAssetDecimals(bytes4 curr, uint8 newDecimal) external onlyInternal {
-        allInvestmentAssets[curr].decimals = newDecimal;
-    }
-
     /** 
      * @dev Changes the investment asset status.
      */ 
@@ -413,14 +406,16 @@ contract PoolData is Iupgradable {
     /**
      * @dev Changes Investment asset token address.
      */ 
-    function changeInvestmentAssetAddress(
+    function changeInvestmentAssetAddressAndDecimal(
         bytes4 curr,
-        address currAdd
+        address currAdd,
+        uint8 newDecimal
     )
         external
         onlyInternal
     {
         allInvestmentAssets[curr].currAddress = currAdd;
+        allInvestmentAssets[curr].decimals = newDecimal;
     }
     
     /// @dev Checks whether a given address can notaise MCR data or not.

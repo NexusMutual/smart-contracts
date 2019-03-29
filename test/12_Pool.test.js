@@ -104,6 +104,8 @@ contract('Pool', function([
       [100, 65407],
       20181011
     );
+    await mr.payJoiningFee(owner, { from: owner, value: fee });
+    await mr.kycVerdict(owner, true);
 
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
@@ -1633,6 +1635,29 @@ contract('Pool', function([
     });
     it('12.70 should not be able to change IA status directly', async function() {
       await assertRevert(pd.changeInvestmentAssetStatus('0x49434e', false));
+    });
+    it('12.71 should not be able to update pool parameters directly', async function() {
+      await assertRevert(pd.updateUintParameters('0x49434e', 12));
+    });
+    it('12.72 should be able to propose new currency address by owner', async function() {
+      let actionHash = encode(
+        'changeCurrencyAssetAddress(bytes4,address)',
+        'DAI',
+        member4
+      );
+      await gvProp(30, actionHash, mr, gv, 3);
+      (await pd.getCurrencyAssetAddress('DAI')).should.be.equal(member4);
+    });
+    it('12.73 should be able to propose new IA address and decimal by owner', async function() {
+      let actionHash = encode(
+        'changeInvestmentAssetAddressAndDecimal(bytes4,address,uint8)',
+        'DAI',
+        member3,
+        16
+      );
+      await gvProp(32, actionHash, mr, gv, 3);
+      (await pd.getInvestmentAssetAddress('DAI')).should.be.equal(member3);
+      ((await pd.getInvestmentAssetDecimals('DAI')) / 1).should.be.equal(16);
     });
   });
 });

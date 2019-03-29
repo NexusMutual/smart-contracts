@@ -131,6 +131,9 @@ contract NXMaster is Governed {
 
         } else if(_contractsName == "CR") {
 
+            TokenController tc = TokenController(getLatestAddress("TC"));
+            tc.addToWhitelist(_contractsAddress);
+            tc.removeFromWhitelist(allContractVersions[versionDates.length - 1]["CR"]);
             cr = ClaimsReward(allContractVersions[versionDates.length - 1]["CR"]);
             cr.upgrade(_contractsAddress);
             
@@ -306,16 +309,19 @@ contract NXMaster is Governed {
             require(_contractAddresses[i] != address(0));
             if ((allContractNames[i] == "MR" || allContractNames[i] == "GV" || 
                 allContractNames[i] == "PC" || allContractNames[i] == "TC") && versionDates.length == 1) {
-                if (newMasterCheck)
+                if (newMasterCheck){
                     allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
+                    contractsActive[allContractVersions[versionDates.length][allContractNames[i]]] = true;
+                }
                 else
                     _generateProxy(allContractNames[i], _contractAddresses[i]);
-            } else if (!(allContractNames[i] == "MR" || allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
-                allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
             } else {
-                allContractVersions[versionDates.length][allContractNames[i]] = 
-                allContractVersions[versionDates.length - 1][allContractNames[i]];
+                allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
             }
+            //  else {
+            //     allContractVersions[versionDates.length][allContractNames[i]] = 
+            //     allContractVersions[versionDates.length - 1][allContractNames[i]];
+            // }
 
         }
 

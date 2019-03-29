@@ -57,6 +57,7 @@ contract('NXMaster: Emergency Pause', function([
   member5,
   coverHolder1,
   coverHolder2,
+  coverHolder3,
   newMember
 ]) {
   const stakeTokens = ether(1);
@@ -123,6 +124,12 @@ contract('NXMaster: Emergency Pause', function([
     });
     await mr.kycVerdict(coverHolder2, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder2 });
+    await mr.payJoiningFee(coverHolder3, {
+      from: coverHolder3,
+      value: fee
+    });
+    await mr.kycVerdict(coverHolder3, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder3 });
     await tk.transfer(member1, tokens);
     await tk.transfer(member2, tokens);
     await tk.transfer(member3, tokens);
@@ -158,6 +165,17 @@ contract('NXMaster: Emergency Pause', function([
         { from: coverHolder2, value: coverDetails[1] }
       );
 
+      await P1.makeCoverBegin(
+        smartConAdd,
+        'ETH',
+        coverDetails,
+        coverPeriod,
+        v,
+        r,
+        s,
+        { from: coverHolder3, value: coverDetails[1] }
+      );
+
       await tc.lock(CLA, ether(60), validity, {
         from: member1
       });
@@ -170,12 +188,27 @@ contract('NXMaster: Emergency Pause', function([
     it('10.1 should return false for isPause', async function() {
       (await nxms.isPause()).should.equal(false);
     });
+    it('10.2 should let deny claim', async function() {
+      const coverID = await qd.getAllCoversOfUser(coverHolder3);
+      await cl.submitClaim(coverID[0], { from: coverHolder3 });
+      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      const claimId = (await cd.actualClaimLength()) - 1;
+      let nowTime = await latestTime();
+      await increaseTimeTo(nowTime / 1 + (await cd.maxVotingTime()) / 1 + 100);
+      await P1.__callback(APIID, '');
+      nowTime = await latestTime();
+      await increaseTimeTo(nowTime / 1 + (await cd.maxVotingTime()) / 1 + 100);
+      await P1.__callback(APIID, '');
+      let cid = await cd.getAllClaimsByIndex(claimId);
+      ((await qd.getCoverStatusNo(cid[0])) / 1).should.be.bignumber.equal(2);
+    });
     it('10.2 should let submit claim', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
       await cl.submitClaim(coverID[0], { from: coverHolder1 });
       const claimId = (await cd.actualClaimLength()) - 1;
-      claimId.should.be.bignumber.equal(1);
-      (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
+      claimId.should.be.bignumber.equal(2);
+      let cid = await cd.getAllClaimsByIndex(claimId);
+      ((await qd.getCoverStatusNo(cid[0])) / 1).should.be.bignumber.equal(4);
     });
     it('10.3 should be able to do claim assessment or stake NXM for claim', async function() {
       await tc.lock(CLA, ether(60), validity, { from: member3 });
@@ -364,8 +397,9 @@ contract('NXMaster: Emergency Pause', function([
       it('10.28 should submit queued claims', async function() {
         (await nxms.isPause()).should.equal(false);
         const claimId = (await cd.actualClaimLength()) - 1;
-        claimId.should.be.bignumber.equal(2);
-        (await qd.getCoverStatusNo(claimId)).should.be.bignumber.equal(4);
+        claimId.should.be.bignumber.equal(3);
+        let cid = await cd.getAllClaimsByIndex(claimId);
+        ((await qd.getCoverStatusNo(cid[0])) / 1).should.be.bignumber.equal(4);
       });
     });
   });

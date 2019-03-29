@@ -373,6 +373,11 @@ contract('Claim', function([
         await gvProp(24, actionHash, oldMR, oldGv, 2);
         ((await cd.claimRewardPerc()) / 1).should.be.equal(36);
       });
+      it('7.23 should revert if trying to update pendingClaimStart with low value', async function() {
+        await assertRevert(
+          tf.setpendingClaimStart((await cd.pendingClaimStart()) - 1)
+        );
+      });
     });
   });
 });

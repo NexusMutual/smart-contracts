@@ -105,10 +105,22 @@ contract('Token Module', function([owner, member1]) {
       await assertRevert(tf.mint(ZERO_ADDRESS, 1));
     });
 
-    it('20.7 should not able to burn more than user balance', async function() {
+    it('20.7 should not be able to burn more than user balance', async function() {
       await assertRevert(
         tf.burnFrom(member1, (await tk.balanceOf(member1)) / 1 + 1)
       );
+    });
+
+    it('20.8 should not be able to reduce lock if no locked tokens', async function() {
+      await assertRevert(tf.reduceLock(member1, 'random', await latestTime()));
+    });
+
+    it('20.9 should not be able to burn if no locked tokens', async function() {
+      await assertRevert(tf.burnLockedTokens(member1, 'random', 10e18));
+    });
+
+    it('20.10 should not be able to release tokens more than he have locked', async function() {
+      await assertRevert(tf.releaseLockedTokens(member1, 'random', 10e18));
     });
   });
 });

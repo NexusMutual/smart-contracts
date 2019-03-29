@@ -12,12 +12,14 @@ const Quotation = artifacts.require('Quotation');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
-
+const Governance = artifacts.require('Governance');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const gvProp = require('./utils/gvProposal.js').gvProposal;
+const encode = require('./utils/encoder.js').encode;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -45,6 +47,7 @@ let nxms;
 let mr;
 let pd;
 let mcr;
+let gv;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -84,6 +87,7 @@ contract('ClaimsReward', function([
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    gv = await Governance.at(await nxms.getLatestAddress('GV'));
     mcr = await MCR.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -96,6 +100,8 @@ contract('ClaimsReward', function([
       20181011
     );
 
+    await mr.payJoiningFee(owner, { from: owner, value: fee });
+    await mr.kycVerdict(owner, true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await mr.payJoiningFee(member2, { from: member2, value: fee });
@@ -164,6 +170,17 @@ contract('ClaimsReward', function([
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       console.log(await pd.getApiIdTypeOf(apiid));
       await P1.__callback(apiid, '');
+    });
+    it('9.1 should change claim reward contract', async function() {
+      let newCr = await ClaimsReward.new();
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'CR',
+        newCr.address
+      );
+      await gvProp(29, actionHash, mr, gv, 2);
+      (await nxms.getLatestAddress('CR')).should.be.equal(newCr.address);
+      cr = newCr;
     });
     it('9.1 should be able to claim reward', async function() {
       let proposalIds = [];

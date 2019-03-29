@@ -175,12 +175,12 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         _addInitialCategories("Update Owner Parameters", "QmTEmDA1ECmGPfh5x3co1GmjXQCp3zisUP6rnLQjWmW8nu", //28
             "MS", 50, 15, 3, 0);
         _addInitialCategories("Release new smart contract code", "", "MS", 50, 15, 2, 80);
-        // _addInitialCategories("Edit Currency Asset Address", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
-        // "PD", 50, 15, 3, 60);
-        // _addInitialCategories("Edit Currency Asset baseMin", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
-        // "PD", 50, 15, 2, 60);
-        // _addInitialCategories("Edit Investment Asset Address and decimal", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
-        // "PD", 50, 15, 3, 60);
+        _addInitialCategories("Edit Currency Asset Address", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
+        "PD", 50, 15, 3, 60);
+        _addInitialCategories("Edit Currency Asset baseMin", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
+        "PD", 50, 15, 2, 60);
+        _addInitialCategories("Edit Investment Asset Address and decimal", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
+        "PD", 50, 15, 3, 60);
         constructorCheck = true;
     }
 

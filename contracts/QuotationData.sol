@@ -174,6 +174,10 @@ contract QuotationData is Iupgradable {
         holdedCoverIDStatus[holdedCoverID] = status;
     }
 
+    /**
+     * @dev to set address of kyc authentication 
+     * @param _add is the new address
+     */
     function setKycAuthAddress(address _add) external onlyInternal {
         kycAuthAddress = _add;
     }
@@ -183,6 +187,12 @@ contract QuotationData is Iupgradable {
         authQuoteEngine = _add;
     }
 
+    /**
+     * @dev Gets Uint Parameters of a code
+     * @param code whose details we want
+     * @return string value of the code
+     * @return associated amount (time or perc or value) to the code
+     */
     function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
         codeVal = code;
 
@@ -485,6 +495,10 @@ contract QuotationData is Iupgradable {
         minDays = _days;
     }
     
+    /**
+     * @dev to set the the amount of tokens retained 
+     * @param val is the amount retained
+     */
     function _setTokensRetained(uint val) internal {
         tokensRetained = val;
     }

@@ -98,6 +98,14 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         );
     }
 
+    /**
+     * @dev to get the category acion details of a category id 
+     * @param _categoryId is the category id in concern
+     * @return the category id
+     * @return the contract address
+     * @return the contract name
+     * @return the default incentive
+     */
     function categoryAction(uint _categoryId) external view returns(uint, address, bytes2, uint) {
         return(
             _categoryId,
@@ -144,7 +152,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         // _addInitialCategories("Change to Authorities", "", "EX", 80, 15, 2); //no func yet
         _addInitialCategories("Add Investment Asset", "Qmd66GdYtn1BYmZTB1op1Fbfkq6uywMpow5LRmG2Twbzjb", //13
         "PD", 50, 15, 2, 60);
-        _addInitialCategories("Edit Investment Asset min and max holding percentages", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
+        _addInitialCategories("Edit Investment Asset min and max holding percentages", 
+        "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
         "PD", 50, 15, 2, 60);
         _addInitialCategories("Update Investment Asset Status", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
         "PD", 50, 15, 2, 60);
@@ -179,13 +188,18 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "PD", 50, 15, 3, 60);
         _addInitialCategories("Edit Currency Asset baseMin", "QmZkxcC82WFRvnBahLT3eQ95ZSGMxuAyCYqxvR3tSyhFmB",
         "PD", 50, 15, 2, 60);
-        _addInitialCategories("Edit Investment Asset Address and decimal", "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
+        _addInitialCategories("Edit Investment Asset Address and decimal", 
+        "QmXwyffmk7rYGHE7p4g3oroJkmyEYAn6EffhZu2MCNcJGA",
         "PD", 50, 15, 3, 60);
         constructorCheck = true;
     }
 
     function changeDependentContractAddress() public {}
 
+    /**
+     * @dev to change the master address
+     * @param _masterAddress is the new master address
+     */
     function changeMasterAddress(address _masterAddress) public {
         if (masterAddress != address(0))
             require(masterAddress == msg.sender || ms.isInternal(msg.sender));
@@ -278,6 +292,16 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         emit Category(categoryId, _name, _actionHash);
     }
 
+    /**
+     * @dev to add the initial categories 
+     * @param _name is category name
+     * @param _actionHash hash of category action
+     * @param _contractName is the name of contract
+     * @param _majorityVotePerc percentage of majority vote
+     * @param _quorumPerc is the quorom percentage
+     * @param _memberRoleToVote is the member role the category can vote on
+     * @param _categoryABReq is majority percentage required by advisory board 
+     */
     function _addInitialCategories(
         string _name,
         string _actionHash,

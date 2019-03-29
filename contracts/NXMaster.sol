@@ -59,7 +59,7 @@ contract NXMaster is Governed {
     bool internal locked;
 
 
-    bool constructorCheck;
+    bool internal constructorCheck;
     address public owner;
     uint public pauseTime;
 
@@ -69,7 +69,6 @@ contract NXMaster is Governed {
         _;
         locked = false;
     }
-
 
     constructor(address _eventCallerAdd, address _tokenAdd) public {
         tokenAddress = _tokenAdd;
@@ -90,6 +89,115 @@ contract NXMaster is Governed {
         require(checkIsAuthToGoverned(msg.sender));
         require(_contractsName == "GV" || _contractsName == "MR" || _contractsName == "PC" || _contractsName == "TC");
         _replaceImplementation(_contractsName, _contractsAddress);
+    }
+
+    /**
+     * @dev Handles the Callback of the Oraclize Query.
+     * @param myid Oraclize Query ID identifying the query for which the result is being received
+     */ 
+    function delegateCallBack(bytes32 myid) external noReentrancy {
+        PoolData pd = PoolData(getLatestAddress("PD"));
+        bytes4 res = pd.getApiIdTypeOf(myid);
+        uint callTime = pd.getDateAddOfAPI(myid);
+        if (!isPause()) { // system is not in emergency pause
+            uint id = pd.getIdOfApiId(myid);
+            if (res == "COV") {
+                Quotation qt = Quotation(getLatestAddress("QT"));
+                qt.expireCover(id);                
+            } else if (res == "CLA") {
+                cr = ClaimsReward(getLatestAddress("CR"));
+                cr.changeClaimStatus(id);                
+            } else if (res == "MCRF") {
+                if (callTime.add(pd.mcrFailTime()) < now) {
+                    MCR m1 = MCR(getLatestAddress("MC"));
+                    m1.addLastMCRData(uint64(id));                
+                }
+            } else if (res == "ULT") {
+                if (callTime.add(pd.liquidityTradeCallbackTime()) < now) {
+                    Pool2 p2 = Pool2(getLatestAddress("P2"));
+                    p2.externalLiquidityTrade();        
+                }
+            }
+        } else if (res == "EP") {
+            if (callTime.add(pauseTime) < now) {
+                bytes4 by;
+                (, , by) = getLastEmergencyPause();
+                if (by == "AB") {
+                    addEmergencyPause(false, "AUT"); //set pause to false                
+                }
+            }
+        }
+
+        if (res != "") 
+            pd.updateDateUpdOfAPI(myid);
+    }
+    
+    /**
+     * @dev to get the address parameters 
+     * @param code is the code associated in concern
+     * @return codeVal which is given as input
+     * @return the value that is required
+     */
+    function getAddressParameters(bytes8 code) external view returns(bytes8 codeVal, address val) {
+
+        codeVal = code;
+        
+        if (code == "EVCALL") {
+
+            val = eventCallerAdd;
+
+        } else if (code == "MASTADD") {
+
+            val = masterAddress;
+
+        }  
+        
+    }
+
+    /**
+     * @dev to get the address parameters 
+     * @param code is the code associated in concern
+     * @return codeVal which is given as input
+     * @return the value that is required
+     */
+    function getOwnerParameters(bytes8 code) external view returns(bytes8 codeVal, address val) {
+        codeVal = code;
+        QuotationData qd;
+        PoolData pd;
+        if (code == "MSWALLET") {
+            TokenData td;
+            td = TokenData(getLatestAddress("TD"));
+            val = td.walletAddress();
+
+        } else if (code == "MCRNOTA") {
+            
+            pd = PoolData(getLatestAddress("PD"));
+            val = pd.notariseMCR();
+
+        } else if (code == "DAIFEED") {
+            pd = PoolData(getLatestAddress("PD"));
+            val = pd.daiFeedAddress();
+
+        } else if (code == "UNISWADD") {
+            Pool2 p2;
+            p2 = Pool2(getLatestAddress("P2"));
+            val = p2.uniswapFactoryAddress();
+
+        } else if (code == "OWNER") {
+
+            val = owner;
+
+        } else if (code == "QUOAUTH") {
+            
+            qd = QuotationData(getLatestAddress("QD"));
+            val = qd.authQuoteEngine();
+
+        } else if (code == "KYCAUTH") {
+            qd = QuotationData(getLatestAddress("QD"));
+            val = qd.kycAuthAddress();
+
+        }
+        
     }
 
     /// @dev Add Emergency pause
@@ -122,14 +230,14 @@ contract NXMaster is Governed {
         require(checkIsAuthToGoverned(msg.sender));
         require(_contractsAddress != address(0));
 
-        require(_contractsName == "QT" || _contractsName == "TF" || _contractsName == "CL" || _contractsName == "CR" || _contractsName == "P1" || _contractsName == "P2" || _contractsName == "MC","Not upgradable contract");
-        if(_contractsName == "QT")
-        {
+        require(_contractsName == "QT" || _contractsName == "TF" || _contractsName == "CL" || _contractsName == "CR" 
+        || _contractsName == "P1" || _contractsName == "P2" || _contractsName == "MC", "Not upgradable contract");
+        if (_contractsName == "QT") {
             Quotation qt = Quotation(allContractVersions[versionDates.length - 1]["QT"]);
             qt.transferAssetsToNewContract(_contractsAddress);
 
 
-        } else if(_contractsName == "CR") {
+        } else if (_contractsName == "CR") {
 
             TokenController tc = TokenController(getLatestAddress("TC"));
             tc.addToWhitelist(_contractsAddress);
@@ -138,12 +246,12 @@ contract NXMaster is Governed {
             cr.upgrade(_contractsAddress);
             
 
-        } else if(_contractsName == "P1") {
+        } else if (_contractsName == "P1") {
 
             Pool1 p1 = Pool1(allContractVersions[versionDates.length - 1]["P1"]);
             p1.upgradeCapitalPool(_contractsAddress);
 
-        } else if(_contractsName == "P2") {
+        } else if (_contractsName == "P2") {
 
             Pool2 p2 = Pool2(allContractVersions[versionDates.length - 1]["P2"]);
             p2.upgradeInvestmentPool(_contractsAddress);
@@ -234,9 +342,10 @@ contract NXMaster is Governed {
                 up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
                 up.changeMasterAddress(_masterAddress);
             }
-            if(allContractNames[i] == "MR" || 
+            if (allContractNames[i] == "MR" || 
                     allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")
-                _changeProxyOwnership(_masterAddress, allContractVersions[versionDates.length - 1][allContractNames[i]]);
+                _changeProxyOwnership(_masterAddress, 
+                allContractVersions[versionDates.length - 1][allContractNames[i]]);
 
             
         }
@@ -278,12 +387,20 @@ contract NXMaster is Governed {
         }
     }
 
+    /**
+     * @dev returns the address of token controller 
+     * @return address is returned
+     */
     function dAppLocker() public view returns(address _add) {
 
         _add = getLatestAddress("TC");
 
     }
 
+    /**
+     * @dev returns the address of nxm token 
+     * @return address is returned
+     */
     function dAppToken() public view returns(address _add) {
         _add = tokenAddress;
     }
@@ -299,21 +416,21 @@ contract NXMaster is Governed {
     /// @param _contractAddresses Array of contract addresses which will be generated
     function addNewVersion(address[] _contractAddresses) public {
 
-        require(msg.sender == owner  && !constructorCheck);
+        require(msg.sender == owner && !constructorCheck);
         constructorCheck = true;
 
-        MemberRoles mr = MemberRoles(_contractAddresses[14]);   // shoud send proxy address for proxy contracts (if not 1st time deploying) 
+        MemberRoles mr = MemberRoles(_contractAddresses[14]);   
+        // shoud send proxy address for proxy contracts (if not 1st time deploying) 
         bool newMasterCheck = mr.nxMasterAddress() != address(0);
 
         for (uint i = 0; i < allContractNames.length; i++) {
             require(_contractAddresses[i] != address(0));
             if ((allContractNames[i] == "MR" || allContractNames[i] == "GV" || 
                 allContractNames[i] == "PC" || allContractNames[i] == "TC") && versionDates.length == 1) {
-                if (newMasterCheck){
+                if (newMasterCheck) {
                     allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
                     contractsActive[allContractVersions[versionDates.length][allContractNames[i]]] = true;
-                }
-                else
+                } else
                     _generateProxy(allContractNames[i], _contractAddresses[i]);
             } else {
                 allContractVersions[versionDates.length][allContractNames[i]] = _contractAddresses[i];
@@ -327,7 +444,7 @@ contract NXMaster is Governed {
 
        
         versionDates.push(now); //solhint-disable-line
-        if(!newMasterCheck){
+        if (!newMasterCheck) {
             changeMasterAddress(address(this));
             _changeAllAddress();
             TokenController tc = TokenController(getLatestAddress("TC"));
@@ -338,6 +455,11 @@ contract NXMaster is Governed {
         
     }
 
+    /**
+     * @dev to check if the address is authorized to govern or not 
+     * @param _add is the address in concern
+     * @return the boolean status status for the check
+     */
     function checkIsAuthToGoverned(address _add) public view returns(bool) {
         return isAuthorizedToGovern(_add);
     }
@@ -351,157 +473,69 @@ contract NXMaster is Governed {
         c1.pauseAllPendingClaimsVoting(); //Pause Voting of all pending Claims
     }
 
+    /**
+     * @dev to update the address parameters 
+     * @param code is the associated code 
+     * @param val is value to be set
+     */
     function updateAddressParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
         require(val != address(0));
-        if(code == "EVCALL"){
+        if (code == "EVCALL") {
             _setEventCallerAddress(val);
 
-        } else if(code == "MASTADD"){
+        } else if (code == "MASTADD") {
             changeMasterAddress(val);
 
-        } else{
+        } else {
             revert("Invalid param code");
-        }  
-        
-    }
-
-    function getAddressParameters(bytes8 code) external view returns(bytes8 codeVal, address val) {
-
-        codeVal = code;
-        
-        if(code == "EVCALL") {
-
-            val = eventCallerAdd;
-
-        } else if(code == "MASTADD"){
-
-            val = masterAddress;
-
         }  
         
     }
     
+    /**
+     * @dev to update the owner parameters 
+     * @param code is the associated code 
+     * @param val is value to be set
+     */
     function updateOwnerParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
         QuotationData qd;
         PoolData pd;
-        if(code == "MSWALLET"){
+        if (code == "MSWALLET") {
             TokenData td;
             td = TokenData(getLatestAddress("TD"));
             td.changeWalletAddress(val);
 
-        } else if(code == "MCRNOTA"){
+        } else if (code == "MCRNOTA") {
             
             pd = PoolData(getLatestAddress("PD"));
             pd.changeNotariseAddress(val);
 
-        } else if(code == "DAIFEED"){
+        } else if (code == "DAIFEED") {
             pd = PoolData(getLatestAddress("PD"));
             pd.changeDAIfeedAddress(val);
 
-        } else if(code == "UNISWADD"){
+        } else if (code == "UNISWADD") {
             Pool2 p2;
             p2 = Pool2(getLatestAddress("P2"));
             p2.changeUniswapFactoryAddress(val);
 
-        } else if(code == "OWNER"){
+        } else if (code == "OWNER") {
 
             _changeOwner(val);
 
-        } else if(code == "QUOAUTH"){
+        } else if (code == "QUOAUTH") {
             
             qd = QuotationData(getLatestAddress("QD"));
             qd.changeAuthQuoteEngine(val);
 
-        } else if(code == "KYCAUTH"){
+        } else if (code == "KYCAUTH") {
             qd = QuotationData(getLatestAddress("QD"));
             qd.setKycAuthAddress(val);
 
-        } else{
+        } else {
             revert("Invalid param code");
         }
         
-    }
-
-    function getOwnerParameters(bytes8 code) external view returns(bytes8 codeVal, address val)  {
-        codeVal = code;
-        QuotationData qd;
-        PoolData pd;
-        if(code == "MSWALLET"){
-            TokenData td;
-            td = TokenData(getLatestAddress("TD"));
-            val = td.walletAddress();
-
-        } else if(code == "MCRNOTA"){
-            
-            pd = PoolData(getLatestAddress("PD"));
-            val = pd.notariseMCR();
-
-        } else if(code == "DAIFEED"){
-            pd = PoolData(getLatestAddress("PD"));
-            val = pd.daiFeedAddress();
-
-        } else if(code == "UNISWADD"){
-            Pool2 p2;
-            p2 = Pool2(getLatestAddress("P2"));
-            val = p2.uniswapFactoryAddress();
-
-        } else if(code == "OWNER"){
-
-            val = owner;
-
-        } else if(code == "QUOAUTH"){
-            
-            qd = QuotationData(getLatestAddress("QD"));
-            val = qd.authQuoteEngine();
-
-        } else if(code == "KYCAUTH"){
-            qd = QuotationData(getLatestAddress("QD"));
-            val = qd.kycAuthAddress();
-
-        }
-        
-    }
-
-    /**
-     * @dev Handles the Callback of the Oraclize Query.
-     * @param myid Oraclize Query ID identifying the query for which the result is being received
-     */ 
-    function delegateCallBack(bytes32 myid) external noReentrancy {
-        PoolData pd = PoolData(getLatestAddress("PD"));
-        bytes4 res = pd.getApiIdTypeOf(myid);
-        uint callTime = pd.getDateAddOfAPI(myid);
-        if (!isPause()) { // system is not in emergency pause
-            uint id = pd.getIdOfApiId(myid);
-            if (res == "COV") {
-                Quotation qt = Quotation(getLatestAddress("QT"));
-                qt.expireCover(id);                
-            } else if (res == "CLA") {
-                cr = ClaimsReward(getLatestAddress("CR"));
-                cr.changeClaimStatus(id);                
-            } else if (res == "MCRF") {
-                if (callTime.add(pd.mcrFailTime()) < now)
-                {
-                    MCR m1 = MCR(getLatestAddress("MC"));
-                    m1.addLastMCRData(uint64(id));                
-                }
-            } else if (res == "ULT") {
-                if (callTime.add(pd.liquidityTradeCallbackTime()) < now) {
-                    Pool2 p2 = Pool2(getLatestAddress("P2"));
-                    p2.externalLiquidityTrade();        
-                }
-            }
-        } else if (res == "EP") {
-            if (callTime.add(pauseTime) < now) {
-                bytes4 by;
-                (, , by) = getLastEmergencyPause();
-                if (by == "AB") {
-                    addEmergencyPause(false, "AUT"); //set pause to false                
-                }
-            }
-        }
-
-        if (res != "") 
-            pd.updateDateUpdOfAPI(myid);
     }
 
     /// @dev transfers proxy ownership to new master.
@@ -509,14 +543,19 @@ contract NXMaster is Governed {
     /// @param _proxyContracts array of addresses of proxyContracts
     function _changeProxyOwnership(address _contractAddress, address _proxyContracts) internal {
         // for (uint i = 0; i < _proxyContracts.length; i++) {
-            OwnedUpgradeabilityProxy tempInstance 
-            = OwnedUpgradeabilityProxy(_proxyContracts);
-            tempInstance.transferProxyOwnership(_contractAddress); 
+        OwnedUpgradeabilityProxy tempInstance 
+        = OwnedUpgradeabilityProxy(_proxyContracts);
+        tempInstance.transferProxyOwnership(_contractAddress); 
         // }
         
         
     }
 
+    /**
+     * @dev to replace implementation of proxy generated 
+     * @param _contractsName to be replaced
+     * @param _contractsAddress to be replaced
+     */
     function _replaceImplementation(bytes2 _contractsName, address _contractsAddress) internal {
         uint currentVersion = versionDates.length - 1;
         OwnedUpgradeabilityProxy tempInstance 
@@ -524,6 +563,11 @@ contract NXMaster is Governed {
         tempInstance.upgradeTo(_contractsAddress);
     }
 
+    /**
+     * @dev to generater proxy 
+     * @param _contractName of the proxy
+     * @param _contractAddress of the proxy
+     */
     function _generateProxy(bytes2 _contractName, address _contractAddress) internal {
         uint currentVersion = versionDates.length;
         OwnedUpgradeabilityProxy tempInstance = new OwnedUpgradeabilityProxy(_contractAddress);
@@ -567,6 +611,10 @@ contract NXMaster is Governed {
         }
     }
 
+    /**
+     * @dev to set the address of event caller 
+     * @param _add is the new user address
+     */
     function _setEventCallerAddress(address _add) internal {
         eventCallerAdd = _add;
         _changeAllAddress();

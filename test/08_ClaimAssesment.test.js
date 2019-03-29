@@ -540,7 +540,7 @@ contract('Claim: Assessment', function([
         // console.log(parseFloat(cStatus[1]));
         if (i != 60) parseFloat(check).should.be.equal(1);
 
-        apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+        apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
         await P1.__callback(apiid, '');
       }
       check = await cl.checkVoteClosing(clid);

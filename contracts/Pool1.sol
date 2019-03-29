@@ -105,6 +105,9 @@ contract Pool1 is usingOraclize, Iupgradable {
         tf.burnStakerLockedToken(coverid, coverCurr, sumAssured);
     }
 
+    /**
+     * @dev to trigger external liquidity trade
+     */
     function triggerExternalLiquidityTrade() external onlyInternal {
         _triggerExternalLiquidityTrade();
     }
@@ -171,6 +174,9 @@ contract Pool1 is usingOraclize, Iupgradable {
         _saveApiDetails(myid, "VER", version);
     }
 
+    /**
+     * @dev Iupgradable Interface to update dependent contract address
+     */
     function changeDependentContractAddress() public {
         m1 = MCR(ms.getLatestAddress("MC"));
         tk = NXMToken(ms.tokenAddress());
@@ -183,6 +189,13 @@ contract Pool1 is usingOraclize, Iupgradable {
         td = TokenData(ms.getLatestAddress("TD"));
     }
 
+    /**
+     * @dev transfers currency asset to an address
+     * @param curr is the currency of currency asset to transfer
+     * @param transferTo is address to transfer currency asset to
+     * @param amount is amount of currency asset to transfer
+     * @return boolean to represent success or failure
+     */
     function transferCurrencyAsset(
         bytes4 curr,
         address transferTo,
@@ -279,6 +292,10 @@ contract Pool1 is usingOraclize, Iupgradable {
         success = true;
     }
 
+    /**
+     * @dev gives the investment asset balance
+     * @return investment asset balance
+     */
     function getInvestmentAssetBalance() public view returns (uint balance) {
         ERC20 erc20;
         uint currTokens;
@@ -311,6 +328,9 @@ contract Pool1 is usingOraclize, Iupgradable {
         return _getToken((address(this).balance).add(weiPaid), weiPaid);
     }
 
+    /**
+     * @dev to trigger external liquidity trade
+     */
     function _triggerExternalLiquidityTrade() internal {
         if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
             pd.setLastLiquidityTradeTrigger();
@@ -352,6 +372,12 @@ contract Pool1 is usingOraclize, Iupgradable {
         }
     }
 
+    /**
+     * @dev gives the token
+     * @param _poolBalance is the pool balance
+     * @param _weiPaid is the amount paid in wei
+     * @return the token to get
+     */
     function _getToken(uint _poolBalance, uint _weiPaid) internal view returns(uint tokenToGet) {
         uint tokenPrice;
         uint superWeiLeft = (_weiPaid).mul(DECIMAL1E18);
@@ -394,6 +420,13 @@ contract Pool1 is usingOraclize, Iupgradable {
         pd.addInAllApiCall(myid);
     }
 
+    /**
+     * @dev transfers currency asset
+     * @param _curr is currency of asset to transfer
+     * @param _transferTo address that recieves currency assets
+     * @param _amount is the amount to be transferred
+     * @return boolean representing the success of transfer
+     */
     function _transferCurrencyAsset(bytes4 _curr, address _transferTo, uint _amount) internal returns(bool succ) {
         if (_curr == "ETH") {
             if (address(this).balance < _amount)
@@ -424,6 +457,15 @@ contract Pool1 is usingOraclize, Iupgradable {
             erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }
 
+    /**
+     * @dev oraclize query
+     * @param paramCount is number of paramters passed
+     * @param timestamp is the current timestamp
+     * @param datasource in concern
+     * @param arg in concern
+     * @param gasLimit required for query
+     * @return id of oraclize query
+     */
     function _oraclizeQuery(
         uint paramCount,
         uint timestamp,

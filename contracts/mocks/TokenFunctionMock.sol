@@ -1,6 +1,7 @@
 pragma solidity 0.4.24;
 
 import "../Pool1.sol";
+import "../ClaimsData.sol";
 
 
 contract TokenFunctionMock is TokenFunctions {
@@ -64,5 +65,24 @@ contract TokenFunctionMock is TokenFunctions {
     
         return p1.transferCurrencyAsset(curr, transferTo, amount);
     }
-    
+
+    function setpendingClaimStart(uint _start) external {
+        ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
+        cd.setpendingClaimStart(_start);
+    }
+
+    function reduceLock(address _of, bytes32 _reason, uint256 _time) external {
+        tc.reduceLock(_of, _reason, _time);
+    }
+
+    function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) external {
+        tc.burnLockedTokens(_of, _reason, _amount);
+    }
+
+    function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) 
+        external 
+     
+    {
+        tc.releaseLockedTokens(_of, _reason, _amount);
+    }
 }

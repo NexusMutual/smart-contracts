@@ -32,7 +32,7 @@ contract QuotationDataMock is QuotationData {
 
     function changeInvestmentAssetAddress(bytes4 curr, address currAdd) public {
         pd = PoolData(ms.getLatestAddress("PD"));
-        pd.changeInvestmentAssetAddress(curr, currAdd);
+        pd.changeInvestmentAssetAddressAndDecimal(curr, currAdd, 18);
     }
 
     function getImplementationAdd(bytes2 _contract) public view returns(address) {

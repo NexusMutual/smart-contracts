@@ -15,12 +15,9 @@
 
 pragma solidity 0.4.24;
 
+
+
 import "./TokenFunctions.sol";
-import "./QuotationData.sol";
-import "./Pool1.sol";
-import "./Pool2.sol";
-import "./PoolData.sol";
-import "./ClaimsReward.sol";
 import "./ClaimsData.sol";
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
@@ -31,7 +28,6 @@ contract Claims is Iupgradable {
 
     
     TokenFunctions internal tf;
-    NXMToken internal tk;
     TokenController internal tc;
     ClaimsReward internal cr;
     Pool1 internal p1;
@@ -69,7 +65,6 @@ contract Claims is Iupgradable {
         ) 
     {
         (coverId, claimId, voteCA, voteMV, statusnumber) = cd.getClaimFromNewStart(index, msg.sender);
-        // status = rewardStatus[statusnumber].claimStatusDesc;
     }
 
     /**
@@ -141,7 +136,6 @@ contract Claims is Iupgradable {
      * Iupgradable Interface to update dependent contract address
      */
     function changeDependentContractAddress() public onlyInternal {
-        tk = NXMToken(ms.tokenAddress());
         td = TokenData(ms.getLatestAddress("TD"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
         tc = TokenController(ms.getLatestAddress("TC"));
@@ -269,7 +263,7 @@ contract Claims is Iupgradable {
     }
 
     /**
-    * @dev Pause Voting of All Pending Claims when Emergency Pause Start.
+    * @dev Pause Voting of All Pending Claims when Emergency Pause starts.
     */ 
     function pauseAllPendingClaimsVoting() public onlyInternal {
         uint firstIndex = cd.pendingClaimStart();
@@ -404,6 +398,7 @@ contract Claims is Iupgradable {
     /**
      * @dev Submits a claim for a given cover note.
      * Set deposits flag against cover.
+     * Triggers liquidity check to check if pool has enough funds if claim passes.
      */
     function _addClaim(uint coverId, uint time, address add) internal {
         tf.depositCN(coverId);

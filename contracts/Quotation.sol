@@ -53,6 +53,9 @@ contract Quotation is Iupgradable {
 
     function () public payable {} //solhint-disable-line
 
+    /**
+     * @dev Iupgradable Interface to update dependent contract address
+     */
     function changeDependentContractAddress() public onlyInternal {
         m1 = MCR(ms.getLatestAddress("MC"));
         tf = TokenFunctions(ms.getLatestAddress("TF"));
@@ -226,6 +229,11 @@ contract Quotation is Iupgradable {
         return (a == qd.getAuthQuoteEngine());
     }
 
+    /**
+     * @dev to get the status of recently holded coverID 
+     * @param userAdd is the user address in concern
+     * @return the status of the concerned coverId
+     */
     function getRecentHoldedCoverIdStatus(address userAdd) public view returns(int) {
 
         uint holdedCoverLen = qd.getUserHoldedCoverLength(userAdd);
@@ -237,6 +245,16 @@ contract Quotation is Iupgradable {
         }
     }
     
+    /**
+     * @dev to initiate the membership and the cover 
+     * @param smartCAdd is the smart contract address to make cover on
+     * @param coverCurr is the currency used to make cover
+     * @param coverDetails list of details related to cover like cover amount, expire time, coverCurrPrice and priceNXM
+     * @param coverPeriod is cover period for which cover is being bought
+     * @param _v argument from vrs hash 
+     * @param _r argument from vrs hash 
+     * @param _s argument from vrs hash 
+     */
     function initiateMembershipAndCover(
         address smartCAdd,
         bytes4 coverCurr,
@@ -267,10 +285,18 @@ contract Quotation is Iupgradable {
         qd.setRefundEligible(msg.sender, true);
     }
 
+    /**
+     * @dev to get the full refund 
+     */
     function fullRefund() public checkPause noReentrancy {
         _kycTrigger(false, msg.sender);
     }
 
+    /**
+     * @dev to get the verdict of kyc process 
+     * @param status is the kyc status
+     * @param _add is the address of member
+     */
     function kycVerdict(bool status, address _add) public checkPause noReentrancy {
         require(msg.sender == qd.kycAuthAddress());
         _kycTrigger(status, _add);
@@ -366,6 +392,11 @@ contract Quotation is Iupgradable {
         qd.subFromTotalSumAssuredSC(_add, coverCurr, _amount);
     }
 
+    /**
+     * @dev to trigger the kyc process 
+     * @param status is the kyc status
+     * @param _add is the address of member
+     */
     function _kycTrigger(bool status, address _add) internal {
 
         uint holdedCoverLen = qd.getUserHoldedCoverLength(_add) - 1;

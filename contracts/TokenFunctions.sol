@@ -167,6 +167,7 @@ contract TokenFunctions is Iupgradable {
         return _getUserLockedCNTokens(_of, _coverId);
     } 
 
+
     function getUserAllLockedCNTokens(address _of) external view returns(uint amount) {
         for (uint i = 0; i < qd.getUserCoverLength(_of); i++) {
             amount = amount.add(_getUserLockedCNTokens(_of, qd.getAllCoversOfUser(_of)[i]));

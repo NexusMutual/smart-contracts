@@ -79,43 +79,6 @@ contract Pool2 is Iupgradable {
     }
 
     /**
-     * @dev Handles the Callback of the Oraclize Query.
-     * @param myid Oraclize Query ID identifying the query for which the result is being received
-     */ 
-    function delegateCallBack(bytes32 myid) external noReentrancy{
-        
-        bytes4 res = pd.getApiIdTypeOf(myid);
-        uint callTime = pd.getDateAddOfAPI(myid);
-        if (!ms.isPause()) { // system is not in emergency pause
-            uint id = pd.getIdOfApiId(myid);
-            if (res == "COV") {
-                q2.expireCover(id);                
-            } else if (res == "CLA") {
-                ClaimsReward cr = ClaimsReward(ms.getLatestAddress("CR"));
-                cr.changeClaimStatus(id);                
-            } else if (res == "MCRF") {
-                if (callTime.add(pd.mcrFailTime()) < now)
-                    m1.addLastMCRData(uint64(id));                
-            } else if (res == "ULT") {
-                if (callTime.add(pd.liquidityTradeCallbackTime()) < now) {
-                    _externalLiquidityTrade();                
-                }
-            }
-        } else if (res == "EP") {
-            if (callTime.add(ms.pauseTime()) < now) {
-                bytes4 by;
-                (, , by) = ms.getLastEmergencyPause();
-                if (by == "AB") {
-                    ms.addEmergencyPause(false, "AUT"); //set pause to false                
-                }
-            }
-        }
-
-        if (res != "") 
-            pd.updateDateUpdOfAPI(myid);
-    }
-
-    /**
      * @dev Internal Swap of assets between Capital 
      * and Investment Sub pool for excess or insufficient  
      * liquidity conditions of a given currency.
@@ -558,7 +521,7 @@ contract Pool2 is Iupgradable {
      * @dev External Trade for excess or insufficient  
      * liquidity conditions of a given currency.
      */ 
-    function _externalLiquidityTrade() internal {
+    function externalLiquidityTrade() external onlyInternal {
         
         bool triggerTrade;
         bytes4 curr;

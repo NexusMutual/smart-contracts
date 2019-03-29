@@ -209,6 +209,11 @@ contract PoolData is Iupgradable {
         lastDate = newDate;
     }
 
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
     function updateUintParameters(bytes8 code, uint val) public {
         require(ms.checkIsAuthToGoverned(msg.sender));
         if(code == "MCRTIM")

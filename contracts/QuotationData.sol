@@ -431,6 +431,11 @@ contract QuotationData is Iupgradable {
         emit CoverStatusEvent(_cid, _stat);
     }
 
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
     function updateUintParameters(bytes8 code, uint val) public {
 
         require(ms.checkIsAuthToGoverned(msg.sender));

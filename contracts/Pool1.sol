@@ -99,17 +99,14 @@ contract Pool1 is usingOraclize, Iupgradable {
         } else {
             c1.setClaimStatus(claimid, 12);
         }
-        p2.internalLiquiditySwap(coverCurr);
+        _triggerExternalLiquidityTrade();
+        // p2.internalLiquiditySwap(coverCurr);
 
         tf.burnStakerLockedToken(coverid, coverCurr, sumAssured);
     }
 
     function triggerExternalLiquidityTrade() external onlyInternal {
-        if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
-            pd.setLastLiquidityTradeTrigger();
-            bytes32 myid = _oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
-            _saveApiDetails(myid, "ULT", 0);
-        }
+        _triggerExternalLiquidityTrade();
     }
 
     ///@dev Oraclize call to close emergency pause.
@@ -204,7 +201,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     function __callback(bytes32 myid, string result) public {
         result; //silence compiler warning
         // owner will be removed from production build
-        p2.delegateCallBack(myid);
+        ms.delegateCallBack(myid);
     }
 
     /// @dev Enables user to purchase cover with funding in ETH.
@@ -312,6 +309,14 @@ contract Pool1 is usingOraclize, Iupgradable {
      */
     function getToken(uint weiPaid) public view returns(uint tokenToGet) {
         return _getToken((address(this).balance).add(weiPaid), weiPaid);
+    }
+
+    function _triggerExternalLiquidityTrade() internal {
+        if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
+            pd.setLastLiquidityTradeTrigger();
+            bytes32 myid = _oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
+            _saveApiDetails(myid, "ULT", 0);
+        }
     }
 
     /**

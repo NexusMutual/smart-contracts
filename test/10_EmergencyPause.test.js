@@ -352,9 +352,9 @@ contract('NXMaster: Emergency Pause', function([
 
         await gv.closeProposal(p);
         startTime = await latestTime();
-        await increaseTimeTo(startTime + 2419300);
+        await increaseTimeTo(startTime / 1 + 2419300 + 100);
         var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-        await p2.delegateCallBack(APIID);
+        await P1.__callback(APIID, '');
       });
     });
     describe('Resume Everything', function() {

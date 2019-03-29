@@ -129,6 +129,12 @@ contract TokenData is Iupgradable {
         walletAddress = _address;
     }
 
+    /**
+     * @dev Gets Uint Parameters of a code
+     * @param code whose details we want
+     * @return string value of the code
+     * @return associated amount (time or perc or value) to the code
+     */
     function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
         codeVal = code;
         if (code == "TOKEXP") {
@@ -180,6 +186,12 @@ contract TokenData is Iupgradable {
     function changeDependentContractAddress() public { //solhint-disable-line
     }
     
+    /**
+     * @dev to get the contract staked by a staker 
+     * @param _stakerAddress is the address of the staker
+     * @param _stakerIndex is the index of staker
+     * @return the address of staked contract
+     */
     function getStakerStakedContractByIndex(
         address _stakerAddress,
         uint _stakerIndex
@@ -192,6 +204,12 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].stakedContractAddress;
     }
 
+    /**
+     * @dev to get the staker's staked burned 
+     * @param _stakerAddress is the address of the staker
+     * @param _stakerIndex is the index of staker
+     * @return amount burned
+     */
     function getStakerStakedBurnedByIndex(
         address _stakerAddress,
         uint _stakerIndex
@@ -204,6 +222,12 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].burnedAmount;
     }
 
+    /**
+     * @dev to get the staker's staked unlockable before the last burn 
+     * @param _stakerAddress is the address of the staker
+     * @param _stakerIndex is the index of staker
+     * @return unlockable staked tokens
+     */
     function getStakerStakedUnlockableBeforeLastBurnByIndex(
         address _stakerAddress,
         uint _stakerIndex
@@ -216,6 +240,12 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].unLockableBeforeLastBurn;
     }
 
+    /**
+     * @dev to get the staker's staked contract index 
+     * @param _stakerAddress is the address of the staker
+     * @param _stakerIndex is the index of staker
+     * @return is the index of the smart contract address
+     */
     function getStakerStakedContractIndex(
         address _stakerAddress,
         uint _stakerIndex
@@ -228,6 +258,12 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].stakedContractIndex;
     }
 
+    /**
+     * @dev to get the staker index of the staked contract
+     * @param _stakedContractAddress is the address of the staked contract
+     * @param _stakedContractIndex is the index of staked contract
+     * @return is the index of the staker
+     */
     function getStakedContractStakerIndex(
         address _stakedContractAddress,
         uint _stakedContractIndex
@@ -240,6 +276,12 @@ contract TokenData is Iupgradable {
             _stakedContractAddress][_stakedContractIndex].stakerIndex;
     }
 
+    /**
+     * @dev to get the staker's initial staked amount on the contract 
+     * @param _stakerAddress is the address of the staker
+     * @param _stakerIndex is the index of staker
+     * @return staked amount
+     */
     function getStakerInitialStakedAmountOnContract(
         address _stakerAddress,
         uint _stakerIndex
@@ -252,6 +294,11 @@ contract TokenData is Iupgradable {
             _stakerAddress][_stakerIndex].stakeAmount;
     }
 
+    /**
+     * @dev to get the staker's staked contract length 
+     * @param _stakerAddress is the address of the staker
+     * @return length of staked contract
+     */
     function getStakerStakedContractLength(
         address _stakerAddress
     ) 
@@ -262,6 +309,12 @@ contract TokenData is Iupgradable {
         length = stakerStakedContracts[_stakerAddress].length;
     }
 
+    /**
+     * @dev to get the staker's unlocked tokens which were staked 
+     * @param _stakerAddress is the address of the staker
+     * @param _stakerIndex is the index of staker
+     * @return amount
+     */
     function getStakerUnlockedStakedTokens(
         address _stakerAddress,
         uint _stakerIndex
@@ -499,6 +552,12 @@ contract TokenData is Iupgradable {
         depositedCN[coverId].amount = amount;
     }
 
+    /**
+     * @dev to get the staker address on a staked contract 
+     * @param _stakedContractAddress is the address of the staked contract in concern
+     * @param _stakedContractIndex is the index of staked contract's index
+     * @return address of staker
+     */
     function getStakedContractStakerByIndex(
         address _stakedContractAddress,
         uint _stakedContractIndex
@@ -511,6 +570,11 @@ contract TokenData is Iupgradable {
             _stakedContractAddress][_stakedContractIndex].stakerAddress;
     }
 
+    /**
+     * @dev to get the length of stakers on a staked contract 
+     * @param _stakedContractAddress is the address of the staked contract in concern
+     * @return length in concern
+     */
     function getStakedContractStakersLength(
         address _stakedContractAddress
     ) 
@@ -552,6 +616,11 @@ contract TokenData is Iupgradable {
         isBookedTokens[_of] = now.add(bookTime);
     }
 
+    /**
+     * @dev to know if claim assessor's tokens are booked or not 
+     * @param _of is the claim assessor's address in concern
+     * @return boolean representing the status of tokens booked
+     */
     function isCATokensBooked(address _of) public view returns(bool res) {
         if (now < isBookedTokens[_of])
             res = true;
@@ -602,6 +671,11 @@ contract TokenData is Iupgradable {
         stakedContractCurrentBurnIndex[_stakedContractAddress] = _index;
     }
 
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
     function updateUintParameters(bytes8 code, uint val) public {
         require(ms.checkIsAuthToGoverned(msg.sender));
         if (code == "TOKEXP") {
@@ -697,18 +771,34 @@ contract TokenData is Iupgradable {
             _stakedContractAddress][_stakedContractIndex].commissionRedeemed;
     }
 
+    /**
+     * @dev to set the percentage of staker commission 
+     * @param _val is new percentage value
+     */
     function _setStakerCommissionPer(uint _val) internal {
         stakerCommissionPer = _val;
     }
 
+    /**
+     * @dev to set the max percentage of staker commission 
+     * @param _val is new percentage value
+     */
     function _setStakerMaxCommissionPer(uint _val) internal {
         stakerMaxCommissionPer = _val;
     }
 
+    /**
+     * @dev to set the token exponent value 
+     * @param _val is new value
+     */
     function _setTokenExponent(uint _val) internal {
         tokenExponent = _val;
     }
 
+    /**
+     * @dev to set the price step 
+     * @param _val is new value
+     */
     function _setPriceStep(uint _val) internal {
         priceStep = _val;
     }

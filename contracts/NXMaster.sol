@@ -29,6 +29,7 @@ import "./PoolData.sol";
 import "./QuotationData.sol";
 import "./Quotation.sol";
 import "./TokenController.sol";
+import "./MCR.sol";
 import "./imports/proxy/OwnedUpgradeabilityProxy.sol";
 
 
@@ -55,11 +56,20 @@ contract NXMaster is Governed {
     ClaimsReward internal cr;
     TokenFunctions internal tf;
     Iupgradable internal up;
+    bool internal locked;
 
 
     bool constructorCheck;
     address public owner;
     uint public pauseTime;
+
+    modifier noReentrancy() {
+        require(!locked, "Reentrant call.");
+        locked = true;
+        _;
+        locked = false;
+    }
+
 
     constructor(address _eventCallerAdd, address _tokenAdd) public {
         tokenAddress = _tokenAdd;
@@ -86,7 +96,7 @@ contract NXMaster is Governed {
     /// @param _pause to set Emergency Pause ON/OFF
     /// @param _by to set who Start/Stop EP
     function addEmergencyPause(bool _pause, bytes4 _by) public {
-        require(msg.sender == getLatestAddress("P2") || msg.sender == getLatestAddress("GV"));
+        require(msg.sender == getLatestAddress("P1") || msg.sender == getLatestAddress("GV"));
         emergencyPaused.push(EmergencyPause(_pause, now, _by));
         if (_pause == false) {
             c1 = Claims(allContractVersions[versionDates.length - 1]["CL"]);
@@ -444,6 +454,48 @@ contract NXMaster is Governed {
 
         }
         
+    }
+
+    /**
+     * @dev Handles the Callback of the Oraclize Query.
+     * @param myid Oraclize Query ID identifying the query for which the result is being received
+     */ 
+    function delegateCallBack(bytes32 myid) external noReentrancy {
+        PoolData pd = PoolData(getLatestAddress("PD"));
+        bytes4 res = pd.getApiIdTypeOf(myid);
+        uint callTime = pd.getDateAddOfAPI(myid);
+        if (!isPause()) { // system is not in emergency pause
+            uint id = pd.getIdOfApiId(myid);
+            if (res == "COV") {
+                Quotation qt = Quotation(getLatestAddress("QT"));
+                qt.expireCover(id);                
+            } else if (res == "CLA") {
+                cr = ClaimsReward(getLatestAddress("CR"));
+                cr.changeClaimStatus(id);                
+            } else if (res == "MCRF") {
+                if (callTime.add(pd.mcrFailTime()) < now)
+                {
+                    MCR m1 = MCR(getLatestAddress("MC"));
+                    m1.addLastMCRData(uint64(id));                
+                }
+            } else if (res == "ULT") {
+                if (callTime.add(pd.liquidityTradeCallbackTime()) < now) {
+                    Pool2 p2 = Pool2(getLatestAddress("P2"));
+                    p2.externalLiquidityTrade();        
+                }
+            }
+        } else if (res == "EP") {
+            if (callTime.add(pauseTime) < now) {
+                bytes4 by;
+                (, , by) = getLastEmergencyPause();
+                if (by == "AB") {
+                    addEmergencyPause(false, "AUT"); //set pause to false                
+                }
+            }
+        }
+
+        if (res != "") 
+            pd.updateDateUpdOfAPI(myid);
     }
 
     /// @dev transfers proxy ownership to new master.

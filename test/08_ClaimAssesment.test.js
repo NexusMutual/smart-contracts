@@ -232,7 +232,7 @@ contract('Claim: Assessment', function([
             let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
             APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await p2.delegateCallBack(APIID);
+            await P1.__callback(APIID, '');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].should.be.bignumber.equal(6);
           });
@@ -532,12 +532,14 @@ contract('Claim: Assessment', function([
       let clid = (await cd.actualClaimLength()) - 1;
       let payOutRetry = await cd.payoutRetryTime();
       for (var i = 0; i < 61; i++) {
+        // console.log(i);
         let now = await latestTime();
         await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
         check = await cl.checkVoteClosing(clid);
-
-        if (i != 60) parseFloat(check).should.be.equal(1);
         let cStatus = await cd.getClaimStatusNumber(clid);
+        // console.log(parseFloat(cStatus[1]));
+        if (i != 60) parseFloat(check).should.be.equal(1);
+
         apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
         await P1.__callback(apiid, '');
       }
@@ -576,7 +578,7 @@ contract('Claim: Assessment', function([
       await cl.submitCAVote(clid, 1, { from: member4 });
       let now = await latestTime();
       let maxVoteTime = await cd.maxVotingTime();
-      await increaseTimeTo(now / 1 + maxVoteTime / 1);
+      await increaseTimeTo(now / 1 + maxVoteTime / 1 + 100);
       cStatus = await cd.getClaimStatusNumber(clid);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(apiid, '');

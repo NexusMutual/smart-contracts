@@ -35,6 +35,10 @@ contract TokenController is IERC1132, Iupgradable {
         token = NXMToken(ms.tokenAddress());
     }
 
+    /**
+     * @dev to change the operator address 
+     * @param _newOperator is the new address of operator
+     */
     function changeOperator(address _newOperator) public onlyInternal {
         token.changeOperator(_newOperator);
     }
@@ -127,6 +131,12 @@ contract TokenController is IERC1132, Iupgradable {
         return true;
     }
 
+    /**
+     * @dev burns tokens of an address 
+     * @param _of is the address to burn tokens of
+     * @param amount is the amount to burn
+     * @return the boolean status of the burning process
+     */
     function burnFrom (address _of, uint amount) public onlyInternal returns (bool) {
         return token.burnFrom(_of, amount);
     }

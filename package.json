@@ -8,7 +8,6 @@
   ],
   "scripts": {
     "test": "scripts/test.sh",
-    "coverage": "scripts/coverage.sh",
     "pretty": "prettier --write --single-quote --tab-width 2 \"**/*.js\"",
     "precommit": "lint-staged"
   },

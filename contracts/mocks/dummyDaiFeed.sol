@@ -1,5 +1,5 @@
 pragma solidity 0.4.24;
-import "./imports/uniswap/solidity-interface.sol";
+import "../imports/uniswap/solidity-interface.sol";
 
 
 contract DSValue1 {

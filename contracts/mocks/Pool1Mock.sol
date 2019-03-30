@@ -67,7 +67,8 @@ contract Pool1Mock is Pool1 {
                 timestamp,
                 datasource,
                 arg,
-                gasLimit
+                gasLimit,
+                now
             )
         ));
     }

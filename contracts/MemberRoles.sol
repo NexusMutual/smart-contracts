@@ -271,7 +271,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     function members(uint _memberRoleId) public view returns(uint, address[] memberArray) { //solhint-disable-line
         uint length = memberRoleData[_memberRoleId].memberAddress.length;
         uint i;
-        uint j;
+        uint j = 0;
         memberArray = new address[](memberRoleData[_memberRoleId].memberCounter);
         for (i = 0; i < length; i++) {
             address member = memberRoleData[_memberRoleId].memberAddress[i];

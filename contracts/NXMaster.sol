@@ -16,20 +16,8 @@
 pragma solidity 0.4.24;
 
 
-import "./Iupgradable.sol";
-import "./TokenFunctions.sol";
-import "./ClaimsReward.sol";
-import "./Pool1.sol";
 import "./Pool2.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/Governed.sol";
-import "./MemberRoles.sol";
-import "./TokenData.sol";
-import "./PoolData.sol";
-import "./QuotationData.sol";
-import "./Quotation.sol";
-import "./TokenController.sol";
-import "./MCR.sol";
 import "./Claims.sol";
 import "./imports/proxy/OwnedUpgradeabilityProxy.sol";
 

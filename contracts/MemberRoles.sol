@@ -11,19 +11,14 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
 pragma solidity 0.4.24;
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
+import "./TokenFunctions.sol";
 import "./imports/govblocks-protocol/interfaces/IMemberRoles.sol";
 import "./imports/govblocks-protocol/Governed.sol";
 import "./TokenController.sol";
-import "./Iupgradable.sol";
 import "./ClaimsReward.sol";
 import "./TokenData.sol";
-import "./QuotationData.sol";
 import "./Governance.sol";
-import "./TokenFunctions.sol";
-import "./NXMToken.sol";
-
+import "./QuotationData.sol";
 
 contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
@@ -134,7 +129,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         if (masterAddress != address(0))
             require(masterAddress == msg.sender || ms.isInternal(msg.sender));
         masterAddress = _masterAddress;
-        ms = NXMaster(_masterAddress);
+        ms = INXMMaster(_masterAddress);
         nxMasterAddress = _masterAddress;
         
     }

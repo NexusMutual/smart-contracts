@@ -1,11 +1,10 @@
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
-
+import "./INXMMaster.sol";
 
 contract Iupgradable {
 
-    NXMaster public ms;
+    INXMMaster public ms;
     address public nxMasterAddress;
 
     modifier onlyInternal {
@@ -46,7 +45,7 @@ contract Iupgradable {
         if (address(ms) != address(0)) {
             require(ms.isInternal(msg.sender), "Not internal");
         }
-        ms = NXMaster(_masterAddress);
+        ms = INXMMaster(_masterAddress);
         nxMasterAddress = _masterAddress;
     }
 

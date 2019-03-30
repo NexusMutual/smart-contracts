@@ -15,12 +15,9 @@
 
 pragma solidity 0.4.24;
 
-import "./Iupgradable.sol";
 import "./EventCaller.sol";
 import "./ProposalCategory.sol";
 import "./MemberRoles.sol";
-import "./TokenController.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/interfaces/IGovernance.sol";
 
 

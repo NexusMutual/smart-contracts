@@ -15,18 +15,14 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMToken.sol";
-import "./TokenData.sol";
+import "./QuotationData.sol";
 import "./TokenFunctions.sol";
 import "./TokenController.sol";
-import "./Pool1.sol";
+import "./TokenData.sol";
 import "./PoolData.sol";
-import "./QuotationData.sol";
 import "./MCR.sol";
-import "./Iupgradable.sol";
 import "./MemberRoles.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
+import "./Pool1.sol";
 
 
 contract Quotation is Iupgradable {
@@ -276,7 +272,7 @@ contract Quotation is Iupgradable {
         if (coverCurr == "ETH") {
             totalFee = joinFee + coverDetails[1];
         } else {
-            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
+            IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
             require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]));
         }
         require(msg.value == totalFee);
@@ -307,7 +303,7 @@ contract Quotation is Iupgradable {
      */  
     function transferAssetsToNewContract(address newAdd) public onlyInternal noReentrancy {
         uint amount = address(this).balance;
-        ERC20 erc20;
+        IERC20 erc20;
         if (amount > 0) {
             newAdd.transfer(amount);   
         }
@@ -315,7 +311,7 @@ contract Quotation is Iupgradable {
         for (uint64 i = 1; i < currAssetLen; i++) {
             bytes4 currName = pd.getCurrenciesByIndex(i);
             address currAddr = pd.getCurrencyAssetAddress(currName);
-            erc20 = ERC20(currAddr); //solhint-disable-line
+            erc20 = IERC20(currAddr); //solhint-disable-line
             if (erc20.balanceOf(this) > 0) {
                 erc20.transfer(newAdd, erc20.balanceOf(this));
             }
@@ -406,7 +402,7 @@ contract Quotation is Iupgradable {
         bytes4 coverCurr;
         uint16 coverPeriod;
         uint[]  memory coverDetails = new uint[](4);
-        ERC20 erc20;
+        IERC20 erc20;
 
         (, userAdd, coverDetails) = qd.getHoldedCoverDetailsByID2(holdedCoverID);
         (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
@@ -421,7 +417,7 @@ contract Quotation is Iupgradable {
                 if (coverCurr == "ETH") {
                     poolAdd.transfer(coverDetails[1]);
                 } else {
-                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                    erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                     erc20.transfer(poolAdd, coverDetails[1]);
                 }
                 emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
@@ -432,7 +428,7 @@ contract Quotation is Iupgradable {
                 if (coverCurr == "ETH") {
                     userAdd.transfer(coverDetails[1]);
                 } else {
-                    erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                    erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                     erc20.transfer(userAdd, coverDetails[1]);
                 }
                 emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
@@ -443,7 +439,7 @@ contract Quotation is Iupgradable {
             if (coverCurr == "ETH") {
                 totalRefund = coverDetails[1] + joinFee;
             } else {
-                erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
+                erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                 erc20.transfer(userAdd, coverDetails[1]);
             }
             userAdd.transfer(totalRefund);

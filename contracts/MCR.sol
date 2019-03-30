@@ -15,15 +15,12 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMToken.sol";
-import "./Pool1.sol";
 import "./PoolData.sol";
 import "./QuotationData.sol";
-import "./Iupgradable.sol";
-import "./MemberRoles.sol";
 import "./TokenData.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
+import "./NXMToken.sol";
+import "./Pool1.sol";
+import "./MemberRoles.sol";
 
 
 contract MCR is Iupgradable {
@@ -142,12 +139,12 @@ contract MCR is Iupgradable {
      */ 
     function _calVtpAndMCRtp(uint poolBalance) public view returns(uint vtp, uint mcrtp) {
         vtp = 0;
-        ERC20 erc20;
+        IERC20 erc20;
         uint currTokens = 0;
         uint i;
         for (i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes4 currency = pd.getCurrenciesByIndex(i);
-            erc20 = ERC20(pd.getCurrencyAssetAddress(currency));
+            erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
             currTokens = erc20.balanceOf(address(p1));
             if (pd.getCAAvgRate(currency) > 0)
                 vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));

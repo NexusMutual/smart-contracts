@@ -15,19 +15,12 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMToken.sol";
-import "./Claims.sol";
-import "./TokenFunctions.sol";
-import "./TokenController.sol";
 import "./PoolData.sol";
+import "./imports/oraclize/ethereum-api/usingOraclize.sol";
+import "./Claims.sol";
 import "./Quotation.sol";
 import "./Pool2.sol";
 import "./MCR.sol";
-import "./Iupgradable.sol";
-import "./TokenData.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
-import "./imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
-import "./imports/oraclize/ethereum-api/usingOraclize.sol";
 
 
 contract Pool1 is usingOraclize, Iupgradable {
@@ -80,7 +73,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         
         uint sa = sumAssured.div(DECIMAL1E18);
         bool check;
-        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
+        IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
 
         //Payout
         if (coverCurr == "ETH" && address(this).balance >= sumAssured) {
@@ -247,7 +240,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         isMember
         checkPause
     {
-        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(coverCurr));
+        IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
         require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]), "Transfer failed");
         q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     }
@@ -291,11 +284,11 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @return investment asset balance
      */
     function getInvestmentAssetBalance() public view returns (uint balance) {
-        ERC20 erc20;
+        IERC20 erc20;
         uint currTokens;
         for (uint i = 1; i < pd.getInvestmentCurrencyLen(); i++) {
             bytes4 currency = pd.getInvestmentCurrencyByIndex(i);
-            erc20 = ERC20(pd.getInvestmentAssetAddress(currency));
+            erc20 = IERC20(pd.getInvestmentAssetAddress(currency));
             currTokens = erc20.balanceOf(address(p2));
             if (pd.getIAAvgRate(currency) > 0)
                 balance = balance.add((currTokens.mul(100)).div(pd.getIAAvgRate(currency)));
@@ -428,7 +421,7 @@ contract Pool1 is usingOraclize, Iupgradable {
             _transferTo.transfer(_amount);
             succ = true;
         } else {
-            ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr)); //solhint-disable-line
+            IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(_curr)); //solhint-disable-line
             if (erc20.balanceOf(address(this)) < _amount) 
                 _amount = erc20.balanceOf(address(this));
             erc20.transfer(_transferTo, _amount); 
@@ -446,7 +439,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     ) 
         internal
     {
-        ERC20 erc20 = ERC20(pd.getCurrencyAssetAddress(_curr));
+        IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(_curr));
         if (erc20.balanceOf(address(this)) > 0)
             erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
     }

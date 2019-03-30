@@ -15,18 +15,8 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMaster.sol";
 import "./NXMToken.sol";
-import "./MCR.sol";
-import "./TokenController.sol";
-import "./ClaimsReward.sol";
-import "./TokenData.sol";
-import "./QuotationData.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
-import "./MemberRoles.sol";
-import "./Iupgradable.sol";
 import "./Governance.sol";
-import "./PoolData.sol";
 
 
 contract TokenFunctions is Iupgradable {

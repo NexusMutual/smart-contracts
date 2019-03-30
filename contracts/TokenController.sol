@@ -15,10 +15,9 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMToken.sol";
 import "./Iupgradable.sol";
 import "./imports/ERC1132/IERC1132.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./NXMToken.sol";
 
 
 contract TokenController is IERC1132, Iupgradable {

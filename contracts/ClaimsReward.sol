@@ -18,19 +18,10 @@
 
 pragma solidity 0.4.24;
 
-import "./NXMToken.sol";
-import "./TokenFunctions.sol";
-import "./TokenController.sol";
-import "./TokenData.sol";
-import "./Claims.sol";
 import "./ClaimsData.sol";
-import "./Pool1.sol";
-import "./Pool2.sol";
-import "./PoolData.sol";
-import "./QuotationData.sol";
-import "./Iupgradable.sol";
 import "./Governance.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./Claims.sol";
+import "./Pool1.sol";
 
 
 contract ClaimsReward is Iupgradable {

@@ -15,7 +15,7 @@ const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
 const EventCaller = artifacts.require('EventCaller');
@@ -114,11 +114,11 @@ contract('NXMaster', function([
     addr.push(oldGv.address);
     addr.push(propCat.address);
     addr.push(oldMR.address);
-    await oldMR.payJoiningFee(web3.eth.accounts[0], {
-      from: web3.eth.accounts[0],
-      value: fee
-    });
-    await oldMR.kycVerdict(web3.eth.accounts[0], true);
+    // await oldMR.payJoiningFee(web3.eth.accounts[0], {
+    //   from: web3.eth.accounts[0],
+    //   value: fee
+    // });
+    // await oldMR.kycVerdict(web3.eth.accounts[0], true);
     for (let itr = 5; itr < 9; itr++) {
       await oldMR.payJoiningFee(web3.eth.accounts[itr], {
         from: web3.eth.accounts[itr],
@@ -388,6 +388,29 @@ contract('NXMaster', function([
       );
       await gvProp(29, actionHash, oldMR, oldGv, 2);
       (await nxms.getLatestAddress('MC')).should.be.equal(newMcr.address);
+    });
+    it('1.29 should not trigger action if passed invalid address', async function() {
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      let mcrOld = await nxms.getLatestAddress('MC');
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'MC',
+        ZERO_ADDRESS
+      );
+      await gvProp(29, actionHash, oldMR, oldGv, 2);
+      (await nxms.getLatestAddress('MC')).should.be.equal(mcrOld);
+    });
+    it('1.30 should not trigger action if passed invalid contrcat code', async function() {
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
+      let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+      let mcrOld = await nxms.getLatestAddress('MC');
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'P4',
+        oldMR.address
+      );
+      await gvProp(29, actionHash, oldMR, oldGv, 2);
     });
   });
 

@@ -1,4 +1,4 @@
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
@@ -99,24 +99,26 @@ contract(
       await nxmToken.approve(cr.address, maxAllowance, {
         from: web3.eth.accounts[0]
       });
-      await mr.payJoiningFee(web3.eth.accounts[0], {
-        value: 2000000000000000,
-        from: web3.eth.accounts[0]
-      });
-      await mr.kycVerdict(web3.eth.accounts[0], true, {
-        from: web3.eth.accounts[0]
-      });
+      // await mr.payJoiningFee(web3.eth.accounts[0], {
+      //   value: 2000000000000000,
+      //   from: web3.eth.accounts[0]
+      // });
+      // await mr.kycVerdict(web3.eth.accounts[0], true, {
+      //   from: web3.eth.accounts[0]
+      // });
       for (let i = 1; i < 18; i++) {
         await nxmToken.approve(cr.address, maxAllowance, {
           from: web3.eth.accounts[i]
         });
-        await mr.payJoiningFee(web3.eth.accounts[i], {
-          value: 2000000000000000,
-          from: web3.eth.accounts[i]
-        });
-        await mr.kycVerdict(web3.eth.accounts[i], true, {
-          from: web3.eth.accounts[0]
-        });
+        if (i > 4) {
+          await mr.payJoiningFee(web3.eth.accounts[i], {
+            value: 2000000000000000,
+            from: web3.eth.accounts[i]
+          });
+          await mr.kycVerdict(web3.eth.accounts[i], true, {
+            from: web3.eth.accounts[0]
+          });
+        }
         await nxmToken.transfer(web3.eth.accounts[i], balances[i] * 1e18);
       }
       // await gv.delegateVote(ab1, { from: ab2 });

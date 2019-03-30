@@ -12,7 +12,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const MKR = artifacts.require('MockMKR');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const FactoryMock = artifacts.require('FactoryMock');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -104,8 +104,8 @@ contract('Pool', function([
       [100, 65407],
       20181011
     );
-    await mr.payJoiningFee(owner, { from: owner, value: fee });
-    await mr.kycVerdict(owner, true);
+    // await mr.payJoiningFee(owner, { from: owner, value: fee });
+    // await mr.kycVerdict(owner, true);
 
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
@@ -199,9 +199,9 @@ contract('Pool', function([
   describe('Liquidity', function() {
     it('12.32 Setting the testing parameters', async function() {
       await DSV.setRate(10 * 1e18);
-      await p1.changeCurrencyAssetBaseMin('0x455448', 6 * 1e18);
-      await p1.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
-      await p1.upgradeCapitalPool(owner);
+      await gv.changeCurrencyAssetBaseMin('0x455448', 6 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
+      await tf.upgradeCapitalPool(owner);
       await p1.upgradeInvestmentPool(owner);
       await tf.transferCurrencyAsset('DAI', owner, 5 * 1e18);
       await tf.transferCurrencyAsset('ETH', owner, 5 * 1e18);
@@ -345,7 +345,7 @@ contract('Pool', function([
       CABalD2.should.be.bignumber.equal(ICABalD2);
     });
     it('12.35 ILT(ETH->ETH)', async function() {
-      await p1.changeCurrencyAssetBaseMin(
+      await gv.changeCurrencyAssetBaseMin(
         '0x455448',
         (await pd.getCurrencyAssetBaseMin('ETH')) * 1 + 5 * 1e18
       );
@@ -395,7 +395,7 @@ contract('Pool', function([
       ICABalD = await cad.balanceOf(p1.address);
       ICABalD2 = await cad.balanceOf(p2.address);
 
-      await p1.changeCurrencyAssetBaseMin(
+      await gv.changeCurrencyAssetBaseMin(
         '0x455448',
         (await pd.getCurrencyAssetBaseMin('ETH')) * 1 - 5 * 1e18
       );
@@ -434,7 +434,7 @@ contract('Pool', function([
     });
 
     it('12.37 ILT(DAI->DAI)', async function() {
-      await p1.changeCurrencyAssetBaseMin(
+      await gv.changeCurrencyAssetBaseMin(
         'DAI',
         (await pd.getCurrencyAssetBaseMin('DAI')) * 1 + 5 * 1e18
       );
@@ -474,7 +474,7 @@ contract('Pool', function([
         20190129,
         false
       );
-      await p1.changeCurrencyAssetBaseMin(
+      await gv.changeCurrencyAssetBaseMin(
         'DAI',
         (await pd.getCurrencyAssetBaseMin('DAI')) * 1 - 5 * 1e18
       );
@@ -1027,7 +1027,7 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(owner);
       await p2.sendTransaction({ from: owner, value: CABalE2 / 1 - 5 * 1e18 });
       await cad.transfer(p2.address, CABalD2);
-      await p1.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1060,7 +1060,7 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(owner);
       await p2.sendTransaction({ from: owner, value: CABalE2 / 1 - 5 * 1e18 });
       await cad.transfer(p2.address, CABalD2);
-      await p1.changeCurrencyAssetBaseMin('DAI', 16 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('DAI', 16 * 1e18);
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1090,7 +1090,7 @@ contract('Pool', function([
       console.log('CABalD2', CABalD2);
     });
     it('12.52 ILT(DAI->ETH) IA with 0 ETH balance', async function() {
-      await p1.changeCurrencyAssetBaseMin('DAI', 21 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('DAI', 21 * 1e18);
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1243,7 +1243,7 @@ contract('Pool', function([
       (newAssetRate / 1).should.be.equal(500);
     });
     it('12.57 ELT(DAI->MKR)', async function() {
-      await p1.changeCurrencyAssetBaseMin('0x444149', 15 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('0x444149', 15 * 1e18);
       await p2.sendTransaction({ from: owner, value: 5 * 1e18 });
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
@@ -1282,7 +1282,7 @@ contract('Pool', function([
       console.log('CABalM', parseFloat(CABalM));
     });
     it('12.58 ILT(DAI->MKR)', async function() {
-      await p1.changeCurrencyAssetBaseMin('0x444149', 9 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('0x444149', 9 * 1e18);
       let mkrBal = await mkr.balanceOf(p2.address);
       await p1.upgradeInvestmentPool(owner);
       // await p2.sendTransaction({ from: owner, value: (CABalE2/1 - 5 * 1e18) });
@@ -1340,7 +1340,7 @@ contract('Pool', function([
       let emockDAI = await exchangeMock.at(emockD);
       await emockDAI.sendTransaction({ from: owner, value: 1300 * 1e18 });
       console.log(parseFloat(await web3.eth.getBalance(emockDAI.address)));
-      await p1.changeCurrencyAssetBaseMin('0x444149', 66 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('0x444149', 66 * 1e18);
       await p1.upgradeInvestmentPool(owner);
       await cad.transfer(p2.address, CABalD2);
       await mkr.transfer(p2.address, CABalM / 1 - 20 * 1e18);
@@ -1446,7 +1446,7 @@ contract('Pool', function([
     });
 
     it('12.61 ELT(DAI->MKR) amount > price slippage', async function() {
-      await p1.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
+      await gv.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
       await p1.upgradeInvestmentPool(owner);
       await p2.sendTransaction({ from: owner, value: CABalE2 });
       await cad.transfer(p2.address, CABalD2);
@@ -1499,6 +1499,73 @@ contract('Pool', function([
       console.log('CABalD2', parseFloat(CABalD2));
       console.log('CABalM', parseFloat(CABalM));
     });
+    it('12.61 ILT(ETH->ETH) IA dont have sufficeint ETH', async function() {
+      await gv.changeCurrencyAssetBaseMin('ETH', 21 * 1e18);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149', '0x4d4b52'],
+        [100, 1000, 500],
+        20190311,
+        false
+      );
+      console.log(await pd.getIARankDetailsByDate(20190311));
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      await p1.internalLiquiditySwap('ETH');
+
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+    });
+    it('12.61 ILT(DAI->DAI) IA dont have sufficeint ETH', async function() {
+      await gv.changeCurrencyAssetBaseMin('DAI', 36 * 1e18);
+      await tf.transferCurrencyAsset('DAI', owner, 50 * 1e18);
+      await p1.upgradeInvestmentPool(owner);
+      await cad.transfer(p2.address, CABalD2);
+      await p2.saveIADetails(
+        ['0x455448', '0x444149', '0x4d4b52'],
+        [100, 1000, 500],
+        20190311,
+        false
+      );
+
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+      await p1.internalLiquiditySwap('DAI');
+
+      CABalE = await web3.eth.getBalance(p1.address);
+      CABalE2 = await web3.eth.getBalance(p2.address);
+      CABalD = await cad.balanceOf(p1.address);
+      CABalD2 = await cad.balanceOf(p2.address);
+      CABalM = await mkr.balanceOf(p2.address);
+      console.log('CABalE', parseFloat(CABalE));
+      console.log('CABalE2', parseFloat(CABalE2));
+      console.log('CABalD', parseFloat(CABalD));
+      console.log('CABalD2', parseFloat(CABalD2));
+      console.log('CABalM', parseFloat(CABalM));
+    });
   });
 
   describe('More basic cases', function() {
@@ -1510,8 +1577,8 @@ contract('Pool', function([
         20190311,
         true
       );
-      await p1.upgradeCapitalPool(owner);
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       await mcr.addMCRData(
         18000,
         0,
@@ -1547,6 +1614,13 @@ contract('Pool', function([
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
       (await pd.getInvestmentAssetStatus('DAI')).should.be.equal(false);
+      await p1.sendTransaction({ from: owner, value: 2 * 1e18 });
+      await p2.saveIADetails(
+        ['0x444149', '0x455448'],
+        [100, 15517],
+        20190103,
+        false
+      );
     });
 
     it('12.63 TransferEther should revert when called by other than govern', async function() {

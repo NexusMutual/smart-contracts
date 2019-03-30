@@ -1,4 +1,4 @@
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const TokenController = artifacts.require('TokenController');
@@ -61,8 +61,8 @@ contract(
       await gv.pauseProposal(0);
       await gv.resumeProposal(0);
       //
-      await mr.payJoiningFee(ab1, { value: 2000000000000000 });
-      await mr.kycVerdict(ab1, true);
+      // await mr.payJoiningFee(ab1, { value: 2000000000000000 });
+      // await mr.kycVerdict(ab1, true);
     });
 
     it('15.1 Should be able to change tokenHoldingTime manually', async function() {
@@ -236,7 +236,7 @@ contract(
       it('15.24 Initialising Members', async function() {
         await assertRevert(mr.changeMaxABCount(4, { from: ab2 }));
         await mr.addInitialABMembers([ab2, ab3, ab4]);
-        for (let i = 1; i < 11; i++) {
+        for (let i = 4; i < 11; i++) {
           await mr.payJoiningFee(web3.eth.accounts[i], {
             value: 2000000000000000,
             from: web3.eth.accounts[i]

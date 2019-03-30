@@ -15,7 +15,7 @@ const MCR = artifacts.require('MCR');
 const DAI = artifacts.require('MockDAI');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -126,10 +126,10 @@ contract('Claim: Assessment 2', function([
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await DSV.setRate(25 * 1e18);
-    await p1.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
-    await p1.upgradeCapitalPool(owner);
+    await gv.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
+    await tf.upgradeCapitalPool(owner);
     await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
-    await p1.changeCurrencyAssetBaseMin(dai_string, 750 * 1e18);
+    await gv.changeCurrencyAssetBaseMin(dai_string, 750 * 1e18);
     await dai.transfer(p1.address, 1250 * 1e18);
     await mcr.addMCRData(
       10000,
@@ -143,8 +143,8 @@ contract('Claim: Assessment 2', function([
     // await pd.changeC(400000);
     // await pd.changeA(10);
     // await td.changeBookTime(60);
-    await mr.payJoiningFee(owner, { from: owner, value: fee });
-    await mr.kycVerdict(owner, true);
+    // await mr.payJoiningFee(owner, { from: owner, value: fee });
+    // await mr.kycVerdict(owner, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
     // if ((await tk.totalSupply()) < 600000 * 1e18)
     //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
@@ -586,7 +586,7 @@ contract('Claim: Assessment 2', function([
         await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
       else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
       await dai.transfer(p1.address, 1250 * 1e18);
       let lockCNFlag = 1;
@@ -4827,6 +4827,14 @@ contract('Claim: Assessment 2', function([
       closingTime = maxVotingTime.plus(now + maxStakeTime);
       await increaseTimeTo(closingTime);
       await tf.burnStakerLockedToken(SC1, 10);
+    });
+    it('18.26 when stakerStakedNXM = 0', async function() {
+      await assertRevert(p1.depositCN(0));
+    });
+    it('18.26 when stakerStakedNXM = 0', async function() {
+      console.log(parseFloat(await qd.getValidityOfCover(1)));
+      console.log(parseFloat(await latestTime()));
+      // await assertRevert(p1.depositCN(0));
     });
   });
 });

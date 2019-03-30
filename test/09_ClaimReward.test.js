@@ -12,7 +12,7 @@ const Quotation = artifacts.require('Quotation');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
@@ -100,8 +100,8 @@ contract('ClaimsReward', function([
       20181011
     );
 
-    await mr.payJoiningFee(owner, { from: owner, value: fee });
-    await mr.kycVerdict(owner, true);
+    // await mr.payJoiningFee(owner, { from: owner, value: fee });
+    // await mr.kycVerdict(owner, true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await mr.payJoiningFee(member2, { from: member2, value: fee });

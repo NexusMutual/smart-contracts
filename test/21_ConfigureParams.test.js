@@ -1,4 +1,4 @@
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
@@ -40,7 +40,7 @@ let status;
 let voters;
 let maxAllowance =
   '115792089237316195423570985008687907853269984665640564039457584007913129639935';
-
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const CLA = '0x434c41';
 const validity = 2592000;
 
@@ -69,13 +69,13 @@ contract(
       await nxmToken.approve(cr.address, maxAllowance, {
         from: web3.eth.accounts[0]
       });
-      await mr.payJoiningFee(web3.eth.accounts[0], {
-        value: 2000000000000000,
-        from: web3.eth.accounts[0]
-      });
-      await mr.kycVerdict(web3.eth.accounts[0], true, {
-        from: web3.eth.accounts[0]
-      });
+      // await mr.payJoiningFee(web3.eth.accounts[0], {
+      //   value: 2000000000000000,
+      //   from: web3.eth.accounts[0]
+      // });
+      // await mr.kycVerdict(web3.eth.accounts[0], true, {
+      //   from: web3.eth.accounts[0]
+      // });
       // await nxmToken.transfer(notMember, 267600*1e18);
       let balances = [150000, 150000, 150000, 150000];
       for (let i = 1; i < 4; i++) {
@@ -318,30 +318,31 @@ contract(
           newEventCaller.address
         );
       });
-      // it('Should update Master Contract Address', async function() {
-      //   // let eventCaller = EventCaller.deployed();
-      //   let newMaster = await NXMaster.new(
-      //     eventCaller.address,
-      //     nxmToken.address
-      //   );
-      //   console.log(1);
-      //   addressCon = await nxms.getVersionData(await nxms.getCurrentVersion());
-      //   console.log(1);
-      //   await newMaster.addNewVersion(addressCon[2]);
-      //   console.log(1);
-      //   await updateParameter(
-      //     27,
-      //     2,
-      //     'MASTADD',
-      //     nxms,
-      //     'address',
-      //     newMaster.address,
-      //     newMaster
-      //   );
-      //   console.log(1);
-      //   (await gv.nxMasterAddress()).should.be.equal(newMaster.address);
-      //   console.log(1);
-      // });
+      it('Should update Master Contract Address', async function() {
+        // let eventCaller = EventCaller.deployed();
+        let newMaster = await NXMaster.new(
+          eventCaller.address,
+          nxmToken.address
+        );
+        addressCon = await nxms.getVersionData(await nxms.getCurrentVersion());
+        addressIncorrect = await nxms.getVersionData(
+          await nxms.getCurrentVersion()
+        );
+        addressIncorrect[2][0] = ZERO_ADDRESS;
+        await assertRevert(newMaster.addNewVersion(addressIncorrect[2]));
+        await newMaster.addNewVersion(addressCon[2]);
+        await updateParameter(
+          27,
+          2,
+          'MASTADD',
+          nxms,
+          'address',
+          newMaster.address,
+          newMaster
+        );
+        (await gv.nxMasterAddress()).should.be.equal(newMaster.address);
+        nxms = newMaster;
+      });
       it('Should not trigger action if wrong code is passed', async function() {
         await updateInvalidParameter(
           27,
@@ -350,6 +351,16 @@ contract(
           nxms,
           'address',
           web3.eth.accounts[1]
+        );
+      });
+      it('Should not trigger action if null address is passed', async function() {
+        await updateInvalidParameter(
+          27,
+          2,
+          'EVCALL',
+          nxms,
+          'address',
+          ZERO_ADDRESS
         );
       });
     });

@@ -7,7 +7,7 @@ const TokenData = artifacts.require('TokenDataMock');
 const NXMaster = artifacts.require('NXMaster');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');
@@ -63,11 +63,11 @@ contract('NXMToken', function([
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await mr.payJoiningFee(web3.eth.accounts[0], {
-      from: web3.eth.accounts[0],
-      value: fee
-    });
-    await mr.kycVerdict(web3.eth.accounts[0], true);
+    // await mr.payJoiningFee(web3.eth.accounts[0], {
+    //   from: web3.eth.accounts[0],
+    //   value: fee
+    // });
+    // await mr.kycVerdict(web3.eth.accounts[0], true);
     for (let itr = 6; itr < 9; itr++) {
       await mr.payJoiningFee(web3.eth.accounts[itr], {
         from: web3.eth.accounts[itr],

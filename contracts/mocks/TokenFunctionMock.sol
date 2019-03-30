@@ -66,11 +66,6 @@ contract TokenFunctionMock is TokenFunctions {
         return p1.transferCurrencyAsset(curr, transferTo, amount);
     }
 
-    function setpendingClaimStart(uint _start) external {
-        ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
-        cd.setpendingClaimStart(_start);
-    }
-
     function reduceLock(address _of, bytes32 _reason, uint256 _time) external {
         tc.reduceLock(_of, _reason, _time);
     }
@@ -84,5 +79,15 @@ contract TokenFunctionMock is TokenFunctions {
      
     {
         tc.releaseLockedTokens(_of, _reason, _amount);
+    }    
+
+    function upgradeCapitalPool(address newPoolAddress) external {
+        Pool1 p1 = Pool1(ms.getLatestAddress("P1"));
+        p1.upgradeCapitalPool(newPoolAddress);
+    }
+
+    function setClaimSubmittedAtEPTrue(uint _index, bool _submit) external {
+        ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
+        cd.setClaimSubmittedAtEPTrue(_index, _submit);
     }
 }

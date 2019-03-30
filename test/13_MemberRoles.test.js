@@ -1,5 +1,5 @@
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
@@ -44,8 +44,6 @@ contract('MemberRoles', function([
     tf = await TokenFunctions.deployed();
     tk = await NXMToken.deployed();
     qd = await QuotationDataMock.deployed();
-    await mr.payJoiningFee(owner, { value: 2000000000000000 });
-    await mr.kycVerdict(owner, true);
   });
   it('13.1 Should not be able to pay joining fee using ZERO_ADDRESS', async function() {
     await assertRevert(

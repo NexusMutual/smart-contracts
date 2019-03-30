@@ -165,8 +165,6 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           await tc.lock(CLA, lockTokens, validity, {
             from: member3
           });
-          await mr.payJoiningFee(owner, { from: owner, value: fee });
-          await mr.kycVerdict(owner, true);
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
           await tk.transfer(owner, tokens);
           await tc.lock(CLA, lockTokens, validity, {

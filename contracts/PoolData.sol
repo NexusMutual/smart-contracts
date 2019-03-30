@@ -256,7 +256,8 @@ contract PoolData is Iupgradable {
     /**
      * @dev Changes base minimum of a given currency asset.
      */ 
-    function changeCurrencyAssetBaseMin(bytes4 curr, uint baseMin) external onlyInternal {
+    function changeCurrencyAssetBaseMin(bytes4 curr, uint baseMin) external {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         allCurrencyAssets[curr].baseMin = baseMin;
     }
 
@@ -293,7 +294,8 @@ contract PoolData is Iupgradable {
     /**
      * @dev Gets Currency asset token address. 
      */  
-    function changeCurrencyAssetAddress(bytes4 curr, address currAdd) external onlyInternal {
+    function changeCurrencyAssetAddress(bytes4 curr, address currAdd) external {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         allCurrencyAssets[curr].currAddress = currAdd;
     }
 
@@ -306,8 +308,8 @@ contract PoolData is Iupgradable {
         uint8 newDecimal
     )
         external
-        onlyInternal
     {
+        require(ms.checkIsAuthToGoverned(msg.sender));
         allInvestmentAssets[curr].currAddress = currAdd;
         allInvestmentAssets[curr].decimals = newDecimal;
     }

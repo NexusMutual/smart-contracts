@@ -159,7 +159,7 @@ contract ClaimsData is Iupgradable {
 
     /** 
      * @dev Used to pause claim assessor activity for 3 days 
-     * @param Member address whose claim voting ability needs to be paused
+     * @param user Member address whose claim voting ability needs to be paused
      */ 
     function setUserClaimVotePausedOn(address user) external {
         require(ms.checkIsAuthToGoverned(msg.sender));

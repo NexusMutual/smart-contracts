@@ -1,22 +1,11 @@
 pragma solidity 0.4.24;
 
 import "../Pool1.sol";
+import "../ClaimsData.sol";
 
 
 contract Pool1Mock is Pool1 {
 
-    function upgradeCapitalPool (address newPoolAddress) external {
-        for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
-            bytes4 caName = pd.getCurrenciesByIndex(i);
-            _upgradeCapitalPool(caName, newPoolAddress);
-        }
-        if (address(this).balance > 0)
-            newPoolAddress.transfer(address(this).balance); //solhint-disable-line
-    }
-
-    function changeCurrencyAssetBaseMin(bytes4 curr, uint baseMin) external {
-        pd.changeCurrencyAssetBaseMin(curr, baseMin);
-    }
 
     function internalLiquiditySwap(bytes4 curr) external {
         p2.internalLiquiditySwap(curr);
@@ -61,6 +50,26 @@ contract Pool1Mock is Pool1 {
                 gasLimit
             )
         ));
+    }
+
+    function setpendingClaimStart(uint _start) external {
+        ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
+        cd.setpendingClaimStart(_start);
+    }
+
+    function updateStakerCommissions(address _scAddress, uint _premiumNXM) external {
+        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tf.updateStakerCommissions(_scAddress, _premiumNXM);
+    }
+
+    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external  {
+        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tf.burnStakerLockedToken(coverid, curr, sumAssured);
+    }
+
+    function depositCN(uint coverId) public {
+        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tf.depositCN(coverId);   
     }
 
 }

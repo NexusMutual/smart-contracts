@@ -13,7 +13,7 @@ const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const DAI = artifacts.require('MockDAI');
 
 const { assertRevert } = require('./utils/assertRevert');
@@ -119,8 +119,8 @@ contract('Claim: Assessment', function([
       20181011
     );
     (await pd.capReached()).should.be.bignumber.equal(1);
-    await mr.payJoiningFee(owner, { from: owner, value: fee });
-    await mr.kycVerdict(owner, true);
+    // await mr.payJoiningFee(owner, { from: owner, value: fee });
+    // await mr.kycVerdict(owner, true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await mr.payJoiningFee(member2, { from: member2, value: fee });
@@ -519,7 +519,7 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
     });
     it('8.28 Payout fails', async function() {
-      await P1.upgradeCapitalPool(member2);
+      await tf.upgradeCapitalPool(member2);
       let clid = (await cd.actualClaimLength()) - 1;
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(apiid, '');
@@ -527,7 +527,7 @@ contract('Claim: Assessment', function([
       (12).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.29 Retry Payout 60 times and should not take action from 61st attempt', async function() {
-      await P1.upgradeCapitalPool(member2);
+      await tf.upgradeCapitalPool(member2);
       let apiid;
       let clid = (await cd.actualClaimLength()) - 1;
       let payOutRetry = await cd.payoutRetryTime();
@@ -548,8 +548,7 @@ contract('Claim: Assessment', function([
       let cStatus = await cd.getClaimStatusNumber(clid);
       (13).should.be.equal(parseFloat(cStatus[1]));
       await P1.sendTransaction({ from: owner, value: 10 * 1e18 });
-      apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-
+      console.log(await pd.getApiIdTypeOf(apiid));
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -673,6 +672,12 @@ contract('Claim: Assessment', function([
     });
     it('8.40 should revert while selling NXMs', async function() {
       await assertRevert(P1.sellNXMTokens(2 * 1e18, { from: member5 }));
+    });
+    it('8.41 should handle if commissionToBePaid is 0', async function() {
+      await P1.updateStakerCommissions(smartConAdd, 0);
+    });
+    it('8.41 should handle if burnNXMAmount is 0', async function() {
+      await P1.burnStakerLockedToken(1, 'ETH', 0);
     });
   });
 });

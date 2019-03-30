@@ -1,5 +1,5 @@
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -21,8 +21,6 @@ contract('Proposal Category', function([owner, other]) {
     tf = await TokenFunctions.deployed();
     address = await nxms.getLatestAddress('MR');
     mr = await MemberRoles.at(address);
-    await mr.payJoiningFee(owner, { value: 2000000000000000 });
-    await mr.kycVerdict(owner, true);
   });
 
   it('14.1 Should be initialized', async function() {

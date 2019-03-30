@@ -45,7 +45,7 @@ contract('Token Module', function([owner, member1]) {
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
 
-    await p1.upgradeCapitalPool(owner);
+    await tf.upgradeCapitalPool(owner);
     await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
     await p1.upgradeInvestmentPool(owner);
 

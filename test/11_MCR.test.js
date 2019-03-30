@@ -8,6 +8,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const DSValue = artifacts.require('DSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -27,6 +28,7 @@ let mr;
 let nxms;
 let DSV;
 let qd;
+let tf;
 let balance_DAI;
 let balance_ETH;
 
@@ -48,6 +50,7 @@ contract('MCR', function([owner, notOwner]) {
     p2 = await Pool2.deployed();
     DSV = await DSValue.deployed();
     qd = await QuotationDataMock.deployed();
+    tf = await TokenFunctions.deployed();
   });
 
   describe('Initial MCR cap test cases', function() {
@@ -241,7 +244,7 @@ contract('MCR', function([owner, notOwner]) {
       (vtp[1] / 1).should.be.equal(0);
     });
     it('11.21 mcr if vtp is 0', async function() {
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       await p1.upgradeInvestmentPool(owner);
       await mcr.addMCRData(
         18000,
@@ -260,8 +263,18 @@ contract('MCR', function([owner, notOwner]) {
       await increaseTimeTo(timeINC);
       await p1.__callback(APIID, '');
     });
+    it('11.21 rebalancing trade if total risk balance is 0', async function() {
+      await p1.sendTransaction({ from: owner, value: 2 * 1e18 });
+
+      await p2.saveIADetails(
+        ['0x455448', '0x444149'],
+        [100, 15517],
+        20190103,
+        true
+      );
+    });
     it('11.21 if mcr fails and retry after new mcr posted', async function() {
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       await p1.upgradeInvestmentPool(owner);
       await mcr.addMCRData(
         18000,

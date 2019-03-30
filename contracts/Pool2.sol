@@ -17,8 +17,6 @@ pragma solidity 0.4.24;
 
 import "./MCR.sol";
 import "./Pool1.sol";
-import "./Quotation.sol";
-import "./ClaimsReward.sol";
 import "./PoolData.sol";
 import "./Iupgradable.sol";
 import "./imports/uniswap/solidity-interface.sol";
@@ -32,7 +30,6 @@ contract Pool2 is Iupgradable {
     MCR internal m1;
     Pool1 internal p1;
     PoolData internal pd;
-    Quotation internal q2;
     Factory internal factory;
     address public uniswapFactoryAddress;
     uint internal constant DECIMAL1E18 = uint(10) ** 18;
@@ -173,7 +170,6 @@ contract Pool2 is Iupgradable {
         m1 = MCR(ms.getLatestAddress("MC"));
         pd = PoolData(ms.getLatestAddress("PD"));
         p1 = Pool1(ms.getLatestAddress("P1"));
-        q2 = Quotation(ms.getLatestAddress("QT")); 
     }
 
     /** 

@@ -14,7 +14,7 @@ const DAI = artifacts.require('MockDAI');
 const NXMaster = artifacts.require('NXMaster');
 const MemberRoles = artifacts.require('MemberRoles');
 const MCR = artifacts.require('MCR');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -105,11 +105,11 @@ contract('Claim', function([
       20181011
     );
     (await pd.capReached()).should.be.bignumber.equal(1);
-    await mr.payJoiningFee(web3.eth.accounts[0], {
-      from: web3.eth.accounts[0],
-      value: fee
-    });
-    await mr.kycVerdict(web3.eth.accounts[0], true);
+    // await mr.payJoiningFee(web3.eth.accounts[0], {
+    //   from: web3.eth.accounts[0],
+    //   value: fee
+    // });
+    // await mr.kycVerdict(web3.eth.accounts[0], true);
     for (let itr = 7; itr < 11; itr++) {
       await mr.payJoiningFee(web3.eth.accounts[itr], {
         from: web3.eth.accounts[itr],
@@ -375,7 +375,7 @@ contract('Claim', function([
       });
       it('7.23 should revert if trying to update pendingClaimStart with low value', async function() {
         await assertRevert(
-          tf.setpendingClaimStart((await cd.pendingClaimStart()) - 1)
+          P1.setpendingClaimStart((await cd.pendingClaimStart()) - 1)
         );
       });
     });

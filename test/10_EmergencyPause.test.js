@@ -12,7 +12,7 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const TokenData = artifacts.require('TokenDataMock');
 const MCR = artifacts.require('MCR');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const { assertRevert } = require('./utils/assertRevert');
@@ -95,8 +95,8 @@ contract('NXMaster: Emergency Pause', function([
       [100, 65407],
       20181011
     );
-    await mr.payJoiningFee(owner, { from: owner, value: fee });
-    await mr.kycVerdict(owner, true);
+    // await mr.payJoiningFee(owner, { from: owner, value: fee });
+    // await mr.kycVerdict(owner, true);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
@@ -387,6 +387,9 @@ contract('NXMaster: Emergency Pause', function([
         startTime = await latestTime();
         await increaseTimeTo(startTime / 1 + 2419300 + 100);
         var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+        await tf.setClaimSubmittedAtEPTrue(0, true);
+        await assertRevert(P1.__callback(APIID, ''));
+        await tf.setClaimSubmittedAtEPTrue(0, false);
         await P1.__callback(APIID, '');
       });
     });

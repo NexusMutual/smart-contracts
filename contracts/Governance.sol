@@ -19,11 +19,9 @@ import "./Iupgradable.sol";
 import "./EventCaller.sol";
 import "./ProposalCategory.sol";
 import "./MemberRoles.sol";
-import "./NXMToken.sol";
 import "./TokenController.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./imports/govblocks-protocol/interfaces/IGovernance.sol";
-import "./MemberRoles.sol";
 
 
 contract Governance is IGovernance, Iupgradable {
@@ -98,7 +96,6 @@ contract Governance is IGovernance, Iupgradable {
     ProposalCategory internal proposalCategory;
     TokenController internal tokenInstance;
     EventCaller internal eventCaller;
-    NXMToken internal nxmToken;
     MemberRoles internal mr;
 
     modifier onlyProposalOwner(uint _proposalId) {
@@ -590,7 +587,6 @@ contract Governance is IGovernance, Iupgradable {
         memberRole = MemberRoles(ms.getLatestAddress("MR"));
         proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));        
         eventCaller = EventCaller(ms.getEventCallerAddress());
-        nxmToken = NXMToken(ms.dAppToken());
         mr = MemberRoles(ms.getLatestAddress("MR"));
     }
 
@@ -887,7 +883,7 @@ contract Governance is IGovernance, Iupgradable {
         uint voters = 1;
         uint isSpecialResolution = proposalCategory.isSpecialResolution(category);
         uint tokenBalance = tokenInstance.totalBalanceOf(msg.sender);
-        uint totalSupply = nxmToken.totalSupply();
+        uint totalSupply = tokenInstance.totalSupply();
         if (isSpecialResolution == 1) {
             voteWeight = tokenBalance + 10**18;
         } else {
@@ -950,7 +946,7 @@ contract Governance is IGovernance, Iupgradable {
         (, roleId, , categoryQuorumPerc, , , ) = proposalCategory.category(_category);
         uint totalTokenVoted = proposalVoteTally[_proposalId].memberVoteValue[0]
         +proposalVoteTally[_proposalId].memberVoteValue[1];
-        check = totalTokenVoted.mul(100).div(nxmToken.totalSupply() + 
+        check = totalTokenVoted.mul(100).div(tokenInstance.totalSupply() + 
         memberRole.numberOfMembers(uint(MemberRoles.Role.Member))) > categoryQuorumPerc;
     }
     
@@ -1010,7 +1006,7 @@ contract Governance is IGovernance, Iupgradable {
         uint majorityVote;
         if (proposalCategory.isSpecialResolution(category) == 1) {
             uint acceptedVotePerc = proposalVoteTally[_proposalId].memberVoteValue[1].mul(100)
-            .div(nxmToken.totalSupply()
+            .div(tokenInstance.totalSupply()
             + (memberRole.numberOfMembers(uint(MemberRoles.Role.Member))) * 10**18);
             if (acceptedVotePerc >= specialResolutionMajPerc) {
                 _callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);

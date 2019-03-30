@@ -7,6 +7,7 @@ const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const TokenController = artifacts.require('TokenController');
+const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -27,6 +28,7 @@ let mr;
 let cad;
 let p2;
 let tc;
+let tf;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -43,6 +45,7 @@ contract('MCR', function([owner, notOwner]) {
     pd = await PoolData.deployed();
     cad = await DAI.deployed();
     nxms = await NXMaster.deployed();
+    tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
   });
@@ -58,15 +61,10 @@ contract('MCR', function([owner, notOwner]) {
         from: notOwner,
         value: 2000000000000000
       });
-      await mr.payJoiningFee(owner, {
-        from: owner,
-        value: 2000000000000000
-      });
       await p1.upgradeInvestmentPool(owner);
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 90000000000000000000 });
       await mr.kycVerdict(notOwner, true);
-      await mr.kycVerdict(owner, true);
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: notOwner });
       await mcr.addMCRData(
@@ -110,7 +108,7 @@ contract('MCR', function([owner, notOwner]) {
 
     before(async function() {
       await p1.upgradeInvestmentPool(owner);
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 10 * 1e18 });
       await mcr.addMCRData(
         1000,
@@ -147,7 +145,7 @@ contract('MCR', function([owner, notOwner]) {
     });
     it('19.4 tranches Buy more tokens', async function() {
       await p1.upgradeInvestmentPool(owner);
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       await p1.sendTransaction({ from: owner, value: 607740647349100000000 });
       await mcr.addMCRData(
         202,
@@ -236,7 +234,7 @@ contract('MCR', function([owner, notOwner]) {
       (finalBalNXM / 1).should.be.equal(initialBalNXM / 1 - 1500 * 1e18);
     });
     it('19.6 Max sellable token will 0 if pool balance is less than 1.5 times of basemin', async function() {
-      await p1.upgradeCapitalPool(owner);
+      await tf.upgradeCapitalPool(owner);
       parseFloat(await mcr.getMaxSellTokens()).should.be.equal(0);
     });
   });

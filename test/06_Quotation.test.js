@@ -10,7 +10,7 @@ const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('Governance');
+const Governance = artifacts.require('GovernanceMock');
 const NXMaster = artifacts.require('NXMaster');
 const PoolData = artifacts.require('PoolData');
 const { assertRevert } = require('./utils/assertRevert');
@@ -121,11 +121,11 @@ contract('Quotation', function([
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await mr.payJoiningFee(owner, {
-      from: owner,
-      value: fee
-    });
-    await mr.kycVerdict(owner, true);
+    // await mr.payJoiningFee(owner, {
+    //   from: owner,
+    //   value: fee
+    // });
+    // await mr.kycVerdict(owner, true);
   });
   describe('Initial cap not reached', function() {
     it('6.1 should revert while buying cover', async function() {

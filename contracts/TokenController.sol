@@ -118,20 +118,6 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-    * @dev Increase number of tokens locked for a specified reason
-    * @param _reason The reason to lock tokens
-    * @param _amount Number of tokens to be increased
-    */
-    function increaseLockAmountOf(address _of, bytes32 _reason, uint256 _amount)
-        public
-        onlyInternal
-        returns (bool)
-    {
-        _increaseLockAmount(_of, _reason, _amount);
-        return true;
-    }
-
-    /**
      * @dev burns tokens of an address 
      * @param _of is the address to burn tokens of
      * @param amount is the amount to burn
@@ -283,6 +269,11 @@ contract TokenController is IERC1132, Iupgradable {
         returns (uint256 amount)
     {
         return _tokensUnlockable(_of, _reason);
+    }
+
+    function totalSupply() public view returns (uint256)
+    {
+        return token.totalSupply();
     }
 
     /**

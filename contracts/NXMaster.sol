@@ -338,11 +338,9 @@ contract NXMaster is Governed {
             require(checkIsAuthToGoverned(msg.sender), "Neither master nor Authorised");
         }
         for (uint i = 0; i < allContractNames.length; i++) {
-            if ((versionDates.length == 2) || !(allContractNames[i] == "MR" || 
-                allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")) {
-                up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
-                up.changeMasterAddress(_masterAddress);
-            }
+            
+            up = Iupgradable(allContractVersions[versionDates.length - 1][allContractNames[i]]);
+            up.changeMasterAddress(_masterAddress);
             if (allContractNames[i] == "MR" || 
                     allContractNames[i] == "GV" || allContractNames[i] == "PC" || allContractNames[i] == "TC")
                 _changeProxyOwnership(_masterAddress, 
@@ -450,6 +448,7 @@ contract NXMaster is Governed {
             _changeAllAddress();
             TokenController tc = TokenController(getLatestAddress("TC"));
             tc.changeOperator(getLatestAddress("TC"));
+            tc.addToWhitelist(owner);
         }
         
         

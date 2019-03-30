@@ -15,15 +15,18 @@
 
 pragma solidity 0.4.24;
 
+
 contract INXMMaster {
 
-	address public tokenAddress;
+    address public tokenAddress;
 
-	address public owner;
+    address public owner;
 
 
     uint public pauseTime;
 
+    function delegateCallBack(bytes32 myid) external;
+    
     function isInternal(address _add) public view returns(bool);
 
     function isPause() public view returns(bool check);
@@ -34,8 +37,6 @@ contract INXMMaster {
     
     function checkIsAuthToGoverned(address _add) public view returns(bool);
 
-    function delegateCallBack(bytes32 myid);
-
     function updatePauseTime(uint _time) public;
 
     function dAppLocker() public view returns(address _add);
@@ -44,5 +45,5 @@ contract INXMMaster {
 
     function getEventCallerAddress() public view returns(address);
 
-    function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress) ;
-    }
+    function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress);
+}

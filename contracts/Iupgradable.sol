@@ -2,6 +2,7 @@ pragma solidity 0.4.24;
 
 import "./INXMMaster.sol";
 
+
 contract Iupgradable {
 
     INXMMaster public ms;

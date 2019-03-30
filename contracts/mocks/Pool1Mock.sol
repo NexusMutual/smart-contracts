@@ -19,6 +19,26 @@ contract Pool1Mock is Pool1 {
         tc.burnFrom(_from, _amount);   
     }
 
+    function setpendingClaimStart(uint _start) external {
+        ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
+        cd.setpendingClaimStart(_start);
+    }
+
+    function updateStakerCommissions(address _scAddress, uint _premiumNXM) external {
+        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tf.updateStakerCommissions(_scAddress, _premiumNXM);
+    }
+
+    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external {
+        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tf.burnStakerLockedToken(coverid, curr, sumAssured);
+    }
+
+    function depositCN(uint coverId) public {
+        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
+        tf.depositCN(coverId);   
+    }
+
     function transferFundToOtherAdd(address _add, uint amt) public {
 
         _add.transfer(amt);
@@ -51,25 +71,4 @@ contract Pool1Mock is Pool1 {
             )
         ));
     }
-
-    function setpendingClaimStart(uint _start) external {
-        ClaimsData cd = ClaimsData(ms.getLatestAddress("CD"));
-        cd.setpendingClaimStart(_start);
-    }
-
-    function updateStakerCommissions(address _scAddress, uint _premiumNXM) external {
-        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
-        tf.updateStakerCommissions(_scAddress, _premiumNXM);
-    }
-
-    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external  {
-        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
-        tf.burnStakerLockedToken(coverid, curr, sumAssured);
-    }
-
-    function depositCN(uint coverId) public {
-        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
-        tf.depositCN(coverId);   
-    }
-
 }

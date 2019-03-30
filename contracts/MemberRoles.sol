@@ -20,6 +20,7 @@ import "./TokenData.sol";
 import "./Governance.sol";
 import "./QuotationData.sol";
 
+
 contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     TokenController public dAppToken;

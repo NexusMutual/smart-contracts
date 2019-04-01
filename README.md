@@ -25,7 +25,6 @@
 <li>lock: Locks a specified amount of tokens against an address for a specified purpose and time</li>
 <li>addStake: Add amount of token for staking on a smart contract.</li>
 </ul>
-<img src="https://nexusmutual.io/img/readme/Token.png" style="height: 300px;"> 
 
 <h3><a id="Quotation_Module_28"></a>Quotation Module</h3>
 <p>Quotation contracts contain all logic associated with creating and expiring covers. Smart contract cover is the first insurance product supported by the mutual. A member can generate a quotation offchain , and fund the same via NXM tokens / currency assets(currently ETH and DAI). This creates a cover on-chain. Quotation contracts interact with Token Contracts to lock NXM tokens against a cover which are then used at the time of claim submission.</p>
@@ -52,7 +51,6 @@
 <li>submitCAVote : Members who have tokens locked under Claims Assessment, can assess a claim, i.e., accept/deny a claim while  the locked tokens.</li>
 <li>submitMemberVote: Submits a member vote for assessing a claim.</li>
 </ul>
-<img src="https://nexusmutual.io/img/readme/Claim.png" style="height: 300px;">
 
 <h3><a id="Claim_Reward_Module_64"></a>Claim Reward Module</h3>
 <p>Claims Reward Contract contains the methods for rewarding or punishing the Claim assessors/Members based on the vote cast and the final verdict. All rewards in Nexus Mutual, commission to stakers, rewards to Cliams assessors/members for claims assessment, participants in governance are given via this module.</p>
@@ -66,7 +64,6 @@
 <li>rewardAgainstClaim: Rewards/Punishes users who participated in claims assessment. NXM tokens are allocated as a reward for assessors who voted with the consensus. NXM tokens are locked as a punishment for assessors who voted against the consensus.</li>
 <li>claimAllPendingReward: Allows member to claim all pending rewards, claims assessment + underwriting commission + participation in governance</li>
 </ul>
-<img src="https://nexusmutual.io/img/readme/ClaimsReward.png" style="height: 300px;">
 
 <h3><a id="Pool_Module_78"></a>Pool Module</h3>
 <p>Pool contracts contain all logic associated with calling External oracles through <a href="manages the entire claim lifecycle">Oraclize</a> and processing the results retrieved from the same. The module also encompasses on-chain investment asset management using <a href="https://0xproject.com/">0x-protocol</a>.</p>

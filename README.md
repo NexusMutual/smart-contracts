@@ -148,7 +148,14 @@ We need to compile the contracts before deploying. We'll be using truffle for th
 ```
 truffle compile
 ```
-Now, You should start a private network on port 7545 using Ganache or something similar. To run the private network execute file nxdev.bat. Then, you can deploy your Nexus Mutual dApp using the migrate script. 
+Now, You should start a private network on port 7545 using Ganache or something similar. To run the private network - </br>
+On Windows, Execute file nxdev.bat present in NexusMutual directory </br>
+On Linux or Mac OS Systems, run the nxdev.sh file while in NexusMutual directory
+```
+./nxdev.sh
+```
+  
+Then, you can deploy your Nexus Mutual dApp using the migrate script. 
 ```
 truffle deploy
 ```

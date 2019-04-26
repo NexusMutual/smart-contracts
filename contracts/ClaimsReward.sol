@@ -344,7 +344,7 @@ contract ClaimsReward is Iupgradable {
                     statusOrig <= 5 && thresholdUnreached == 0) {
                     status = 8;
                     coverStatus = uint8(QuotationData.CoverStatus.ClaimAccepted);
-                } else if (deny.mul(100).div(accept.add(deny)) > 50 && statusOrig > 1 &&
+                } else if (deny.mul(100).div(accept.add(deny)) >= 50 && statusOrig > 1 &&
                     statusOrig <= 5 && thresholdUnreached == 0) {
                     status = 9;
                     coverStatus = uint8(QuotationData.CoverStatus.ClaimDenied);

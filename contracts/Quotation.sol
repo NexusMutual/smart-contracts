@@ -397,6 +397,7 @@ contract Quotation is Iupgradable {
 
         uint holdedCoverLen = qd.getUserHoldedCoverLength(_add) - 1;
         uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
+        require(qd.holdedCoverIDStatus(holdedCoverID) == uint(QuotationData.HCIDStatus.kycPending));
         address userAdd;
         address scAddress;
         bytes4 coverCurr;

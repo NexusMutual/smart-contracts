@@ -397,7 +397,6 @@ contract Quotation is Iupgradable {
 
         uint holdedCoverLen = qd.getUserHoldedCoverLength(_add).sub(1);
         uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
-        require(qd.holdedCoverIDStatus(holdedCoverID) == uint(QuotationData.HCIDStatus.kycPending));
         address userAdd;
         address scAddress;
         bytes4 coverCurr;
@@ -409,6 +408,7 @@ contract Quotation is Iupgradable {
         (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
         require(qd.refundEligible(userAdd));
         qd.setRefundEligible(userAdd, false);
+        require(qd.holdedCoverIDStatus(holdedCoverID) == uint(QuotationData.HCIDStatus.kycPending));
         uint joinFee = td.joiningFee();
         if (status) {
             mr.payJoiningFee.value(joinFee)(userAdd);

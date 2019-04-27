@@ -832,6 +832,12 @@ contract('Quotation', function([
           );
           let hcl = await qd.getUserHoldedCoverLength(notMember);
           await qt.kycVerdict(false, notMember);
+          await mr.payJoiningFee(notMember, {
+            from: notMember,
+            value: fee
+          });
+          await assertRevert(qt.fullRefund({ from: notMember }));
+          await mr.kycVerdict(notMember, false);
         });
       });
       describe('if want to join membership', function() {

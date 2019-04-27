@@ -294,8 +294,9 @@ contract(
           '0x'
         );
       });
-      it('15.37 Ab cannot vote twice on a same proposal', async function() {
+      it('15.37 Ab cannot vote twice on a same proposal and cannot transfer nxm to others', async function() {
         await gv.submitVote(pId, 1, { from: ab3 });
+        await assertRevert(nxmToken.transferFrom(ab3, ab2, 1e18));
         await assertRevert(gv.submitVote(pId, 1, { from: ab3 }));
       });
       it('15.38 Member cannot vote twice on a same proposal', async function() {

@@ -236,7 +236,7 @@ contract Quotation is Iupgradable {
         if (holdedCoverLen == 0) {
             return -1;
         } else {
-            uint holdedCoverID = qd.getUserHoldedCoverByIndex(userAdd, holdedCoverLen - 1);
+            uint holdedCoverID = qd.getUserHoldedCoverByIndex(userAdd, holdedCoverLen.sub(1));
             return int(qd.holdedCoverIDStatus(holdedCoverID));
         }
     }
@@ -270,7 +270,7 @@ contract Quotation is Iupgradable {
         uint joinFee = td.joiningFee();
         uint totalFee = joinFee;
         if (coverCurr == "ETH") {
-            totalFee = joinFee + coverDetails[1];
+            totalFee = joinFee.add(coverDetails[1]);
         } else {
             IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
             require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]));
@@ -339,7 +339,7 @@ contract Quotation is Iupgradable {
             from, coverCurr, scAddress, coverDetails[1], coverDetails[2]);
         // if cover period of quote is less than 60 days.
         if (coverPeriod <= 60) {
-            p1.closeCoverOraclise(cid, uint64(coverPeriod * 1 days));
+            p1.closeCoverOraclise(cid, uint64(uint(coverPeriod).mul(1 days)));
         }
         uint coverNoteAmount = (coverDetails[2].mul(qd.tokensRetained())).div(100);
         tc.mint(from, coverNoteAmount);
@@ -395,7 +395,7 @@ contract Quotation is Iupgradable {
      */
     function _kycTrigger(bool status, address _add) internal {
 
-        uint holdedCoverLen = qd.getUserHoldedCoverLength(_add) - 1;
+        uint holdedCoverLen = qd.getUserHoldedCoverLength(_add).sub(1);
         uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
         address userAdd;
         address scAddress;
@@ -408,6 +408,7 @@ contract Quotation is Iupgradable {
         (, scAddress, coverCurr, coverPeriod) = qd.getHoldedCoverDetailsByID1(holdedCoverID);
         require(qd.refundEligible(userAdd));
         qd.setRefundEligible(userAdd, false);
+        require(qd.holdedCoverIDStatus(holdedCoverID) == uint(QuotationData.HCIDStatus.kycPending));
         uint joinFee = td.joiningFee();
         if (status) {
             mr.payJoiningFee.value(joinFee)(userAdd);
@@ -437,7 +438,7 @@ contract Quotation is Iupgradable {
             qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycFailedOrRefunded));
             uint totalRefund = joinFee;
             if (coverCurr == "ETH") {
-                totalRefund = coverDetails[1] + joinFee;
+                totalRefund = coverDetails[1].add(joinFee);
             } else {
                 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                 erc20.transfer(userAdd, coverDetails[1]);

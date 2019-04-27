@@ -404,6 +404,7 @@ contract NXMaster is Governed {
     function addNewVersion(address[] _contractAddresses) public {
 
         require(msg.sender == owner && !constructorCheck);
+        require(_contractAddresses.length == allContractNames.length,"array length not same");
         constructorCheck = true;
 
         MemberRoles mr = MemberRoles(_contractAddresses[14]);   

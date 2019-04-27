@@ -330,6 +330,7 @@ contract(
         );
         addressIncorrect[2][0] = ZERO_ADDRESS;
         await assertRevert(newMaster.addNewVersion(addressIncorrect[2]));
+        await assertRevert(newMaster.addNewVersion([]));
         await newMaster.addNewVersion(addressCon[2]);
         await updateParameter(
           27,

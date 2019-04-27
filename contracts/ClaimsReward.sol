@@ -145,7 +145,7 @@ contract ClaimsReward is Iupgradable {
     function upgrade(address _newAdd) public onlyInternal {
         uint amount = tk.balanceOf(address(this));
         if (amount > 0)
-            tk.transfer(_newAdd, amount);
+            require(tk.transfer(_newAdd, amount));
         
     }
 
@@ -211,7 +211,7 @@ contract ClaimsReward is Iupgradable {
         tf.unlockStakerUnlockableTokens(msg.sender); 
         uint gvReward = gv.claimReward(msg.sender, _proposals);
         if (gvReward > 0) {
-            tk.transfer(msg.sender, gvReward);
+            require(tk.transfer(msg.sender, gvReward));
             gv.callRewardClaimedEvent(msg.sender, _proposals, gvReward);
         }
     }
@@ -420,7 +420,7 @@ contract ClaimsReward is Iupgradable {
                 total = tokenForVoteId.add(total);
         }
         if (total > 0)
-            tk.transfer(msg.sender, total); 
+            require(tk.transfer(msg.sender, total)); 
         cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
     }
 
@@ -446,7 +446,7 @@ contract ClaimsReward is Iupgradable {
         }
 
         if (total > 0) 
-            tk.transfer(msg.sender, total); //solhint-disable-line
+            require(tk.transfer(msg.sender, total)); //solhint-disable-line
         
     }
 }

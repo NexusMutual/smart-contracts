@@ -196,7 +196,7 @@ contract Quotation is Iupgradable {
         address smaratCA
     ) 
         public
-        pure
+        view
         returns(bytes32)
     {
         return keccak256(
@@ -207,6 +207,8 @@ contract Quotation is Iupgradable {
                 coverDetails[1],
                 coverDetails[2],
                 coverDetails[3]
+                // coverDetails[4],
+                // address(this)
             )
         );
     }
@@ -265,6 +267,8 @@ contract Quotation is Iupgradable {
         checkPause
     {
         require(coverDetails[3] > now);
+        // require(!qd.timestampRepeated(coverDetails[4]));
+        // qd.setTimestampRepeated(coverDetails[4]);
         require(!ms.isMember(msg.sender));
         require(qd.refundEligible(msg.sender) == false);
         uint joinFee = td.joiningFee();
@@ -313,7 +317,7 @@ contract Quotation is Iupgradable {
             address currAddr = pd.getCurrencyAssetAddress(currName);
             erc20 = IERC20(currAddr); //solhint-disable-line
             if (erc20.balanceOf(this) > 0) {
-                erc20.transfer(newAdd, erc20.balanceOf(this));
+                require(erc20.transfer(newAdd, erc20.balanceOf(this)));
             }
         }
     }
@@ -369,6 +373,8 @@ contract Quotation is Iupgradable {
         internal
     {
         require(coverDetails[3] > now);
+        // require(!qd.timestampRepeated(coverDetails[4]));
+        // qd.setTimestampRepeated(coverDetails[4]);
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
         _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
 
@@ -419,7 +425,7 @@ contract Quotation is Iupgradable {
                     poolAdd.transfer(coverDetails[1]);
                 } else {
                     erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
-                    erc20.transfer(poolAdd, coverDetails[1]);
+                    require(erc20.transfer(poolAdd, coverDetails[1]));
                 }
                 emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");               
                 _makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);
@@ -430,7 +436,7 @@ contract Quotation is Iupgradable {
                     userAdd.transfer(coverDetails[1]);
                 } else {
                     erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
-                    erc20.transfer(userAdd, coverDetails[1]);
+                    require(erc20.transfer(userAdd, coverDetails[1]));
                 }
                 emit RefundEvent(userAdd, status, holdedCoverID, "Cover Failed");
             }
@@ -441,7 +447,7 @@ contract Quotation is Iupgradable {
                 totalRefund = coverDetails[1].add(joinFee);
             } else {
                 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
-                erc20.transfer(userAdd, coverDetails[1]);
+                require(erc20.transfer(userAdd, coverDetails[1]));
             }
             userAdd.transfer(totalRefund);
             emit RefundEvent(userAdd, status, holdedCoverID, "KYC Failed");

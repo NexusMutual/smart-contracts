@@ -212,7 +212,7 @@ contract TokenController is IERC1132, Iupgradable {
         }  
 
         if (unlockableTokens > 0)
-            token.transfer(_of, unlockableTokens);
+            require(token.transfer(_of, unlockableTokens));
     }
 
     /**
@@ -467,7 +467,7 @@ contract TokenController is IERC1132, Iupgradable {
             locked[_of][_reason].claimed = true;
 
         locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
-        token.transfer(_of, _amount);
+        require(token.transfer(_of, _amount));
         emit Unlocked(_of, _reason, _amount);
     }
 }

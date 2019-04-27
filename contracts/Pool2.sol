@@ -199,7 +199,7 @@ contract Pool2 is Iupgradable {
             IERC20 erc20 = IERC20(pd.getInvestmentAssetAddress(_curr));
             if (_amount > erc20.balanceOf(address(this)))
                 _amount = erc20.balanceOf(address(this));
-            erc20.transfer(_transferTo, _amount);
+            require(erc20.transfer(_transferTo, _amount));
         }
     }
 
@@ -577,6 +577,6 @@ contract Pool2 is Iupgradable {
     {
         IERC20 erc20 = IERC20(pd.getInvestmentAssetAddress(_curr));
         if (erc20.balanceOf(address(this)) > 0)
-            erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
+            require(erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this))));
     }
 }

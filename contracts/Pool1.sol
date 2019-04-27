@@ -424,7 +424,7 @@ contract Pool1 is usingOraclize, Iupgradable {
             IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(_curr)); //solhint-disable-line
             if (erc20.balanceOf(address(this)) < _amount) 
                 _amount = erc20.balanceOf(address(this));
-            erc20.transfer(_transferTo, _amount); 
+            require(erc20.transfer(_transferTo, _amount)); 
             succ = true;
             
         }
@@ -441,7 +441,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     {
         IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(_curr));
         if (erc20.balanceOf(address(this)) > 0)
-            erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this)));
+            require(erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this))));
     }
 
     /**

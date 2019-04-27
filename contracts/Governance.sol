@@ -895,16 +895,16 @@ contract Governance is IGovernance, Iupgradable {
             delegationId = leaderDelegation[msg.sender][i];
             if (allDelegation[delegationId].leader == msg.sender && 
             _checkLastUpd(allDelegation[delegationId].lastUpd)) {
-                tokenBalance = tokenInstance.totalBalanceOf(allDelegation[delegationId].follower);
                 if (memberRole.checkRole(allDelegation[delegationId].follower, mrSequence)) {
+                    tokenBalance = tokenInstance.totalBalanceOf(allDelegation[delegationId].follower);
                     tokenInstance.lockForMemberVote(allDelegation[delegationId].follower, tokenHoldingTime);
+                    voters++;
+                    if (isSpecialResolution == 1) {
+                        voteWeight += tokenBalance + 10**18;
+                    } else {
+                        voteWeight += (_minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))) + 10**18;
+                    }
                 }
-                if (isSpecialResolution == 1) {
-                    voteWeight += tokenBalance + 10**18;
-                } else {
-                    voteWeight += (_minOf(tokenBalance, maxVoteWeigthPer.mul(totalSupply).div(100))) + 10**18;
-                }
-                voters++;
             }
         }
         if (mrSequence == uint(MemberRoles.Role.Member) || mrSequence == uint(MemberRoles.Role.Owner)) {

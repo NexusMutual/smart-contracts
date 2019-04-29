@@ -3,7 +3,6 @@ const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const PoolData = artifacts.require('PoolData');
-const EventCaller = artifacts.require('EventCaller');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenDataMock');
@@ -31,7 +30,6 @@ let td;
 let qd;
 let cd;
 let nxms;
-let eventCaller;
 let proposalId;
 let pId;
 let nxmToken;
@@ -63,7 +61,6 @@ contract(
       td = await TokenData.deployed();
       qd = await QuotationData.deployed();
       cd = await ClaimsData.deployed();
-      eventCaller = await EventCaller.deployed();
       await nxmToken.approve(tc.address, maxAllowance);
       let bal = await nxmToken.balanceOf(ab1);
       await nxmToken.approve(cr.address, maxAllowance, {
@@ -145,7 +142,7 @@ contract(
       }
       let actionHash = encode(action, code, proposedValue);
       await gvProposal(cId, actionHash, mr, gv, mrSequence);
-      if (code == 'MASTADD') {
+      if (code == 'MASTADD' && proposedValue != ZERO_ADDRESS) {
         let newMaster = await NXMaster.at(proposedValue);
         contractInst = newMaster;
       }
@@ -307,23 +304,8 @@ contract(
     });
 
     describe('Update Address Parameters', function() {
-      it('Should update Event Caller Address', async function() {
-        let newEventCaller = await EventCaller.new();
-        await updateParameter(
-          27,
-          2,
-          'EVCALL',
-          nxms,
-          'address',
-          newEventCaller.address
-        );
-      });
       it('Should update Master Contract Address', async function() {
-        // let eventCaller = EventCaller.deployed();
-        let newMaster = await NXMaster.new(
-          eventCaller.address,
-          nxmToken.address
-        );
+        let newMaster = await NXMaster.new(nxmToken.address);
         addressCon = await nxms.getVersionData(await nxms.getCurrentVersion());
         addressIncorrect = await nxms.getVersionData(
           await nxms.getCurrentVersion()
@@ -358,7 +340,7 @@ contract(
         await updateInvalidParameter(
           27,
           2,
-          'EVCALL',
+          'MASTADD',
           nxms,
           'address',
           ZERO_ADDRESS

@@ -49,6 +49,32 @@ contract IGovernance {
         uint gbtReward
     );
 
+    // /// @dev ProposalCreated event is called whenever a proposal is created. 
+    // event ProposalCreated (
+    //     uint256 proposalId,
+    //     uint256 subCategoryId,
+    //     address master,
+    //     string proposalDescHash
+    // );
+
+    /// @dev VoteCast event is called whenever a vote is cast that can potentially close the proposal. 
+    event VoteCast (uint256 proposalId);
+
+    /// @dev ProposalAccepted event is called when a proposal is accepted so that a server can listen that can 
+    ///      call any offchain actions
+    event ProposalAccepted (uint256 proposalId);
+
+    /// @dev CloseProposalOnTime event is called whenever a proposal is created or updated to close it on time.
+    event CloseProposalOnTime (
+        uint256 indexed proposalId,
+        uint256 time
+    );
+
+    /// @dev ActionSuccess event is called whenever an onchain action is executed.
+    event ActionSuccess (
+        uint256 proposalId
+    );
+
     /// @dev Creates a new proposal
     /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective

@@ -15,7 +15,6 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
-const EventCaller = artifacts.require('EventCaller');
 const FactoryMock = artifacts.require('FactoryMock');
 const DSValue = artifacts.require('DSValueMock');
 const DAI = artifacts.require('MockDAI');
@@ -44,7 +43,6 @@ module.exports = function(deployer) {
     await deployer.deploy(Governance);
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
-    const ec = await deployer.deploy(EventCaller);
-    await deployer.deploy(NXMaster, ec.address, tk.address);
+    await deployer.deploy(NXMaster, tk.address);
   });
 };

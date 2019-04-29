@@ -39,7 +39,6 @@ contract NXMaster is Governed {
     mapping(uint => mapping(bytes2 => address)) internal allContractVersions;
 
     address public tokenAddress;
-    address public eventCallerAdd;
 
     Claims internal c1;
     ClaimsReward internal cr;
@@ -59,9 +58,8 @@ contract NXMaster is Governed {
         locked = false;
     }
 
-    constructor(address _eventCallerAdd, address _tokenAdd) public {
+    constructor(address _tokenAdd) public {
         tokenAddress = _tokenAdd;
-        eventCallerAdd = _eventCallerAdd;
         owner = msg.sender;
         masterAddress = address(this);
         contractsActive[address(this)] = true; //1
@@ -130,12 +128,8 @@ contract NXMaster is Governed {
     function getAddressParameters(bytes8 code) external view returns(bytes8 codeVal, address val) {
 
         codeVal = code;
-        
-        if (code == "EVCALL") {
 
-            val = eventCallerAdd;
-
-        } else if (code == "MASTADD") {
+        if (code == "MASTADD") {
 
             val = masterAddress;
 
@@ -276,10 +270,6 @@ contract NXMaster is Governed {
     function isMember(address _add) public view returns(bool) {
         MemberRoles mr = MemberRoles(getLatestAddress("MR"));
         return mr.checkRole(_add, uint(MemberRoles.Role.Member));
-    }
-
-    function getEventCallerAddress() public view returns(address) {
-        return eventCallerAdd;
     }
 
     ///@dev Gets emergency pause details by index.
@@ -469,10 +459,8 @@ contract NXMaster is Governed {
      */
     function updateAddressParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
         require(val != address(0));
-        if (code == "EVCALL") {
-            _setEventCallerAddress(val);
 
-        } else if (code == "MASTADD") {
+        if (code == "MASTADD") {
             changeMasterAddress(val);
 
         } else {
@@ -598,15 +586,6 @@ contract NXMaster is Governed {
             up.changeDependentContractAddress();
             
         }
-    }
-
-    /**
-     * @dev to set the address of event caller 
-     * @param _add is the new user address
-     */
-    function _setEventCallerAddress(address _add) internal {
-        eventCallerAdd = _add;
-        _changeAllAddress();
     }
 
     ///@dev Changes owner of the contract.

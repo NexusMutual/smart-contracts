@@ -43,7 +43,5 @@ contract INXMMaster {
 
     function dAppToken() public view returns(address _add);
 
-    function getEventCallerAddress() public view returns(address);
-
     function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress);
 }

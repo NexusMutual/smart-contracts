@@ -3,7 +3,6 @@ const MemberRoles = artifacts.require('MemberRoles');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const TokenController = artifacts.require('TokenController');
 const NXMaster = artifacts.require('NXMaster');
-const EventCaller = artifacts.require('EventCaller');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMToken = artifacts.require('NXMToken');
 const TokenData = artifacts.require('TokenDataMock');

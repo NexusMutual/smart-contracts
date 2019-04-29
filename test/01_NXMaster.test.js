@@ -18,7 +18,6 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
-const EventCaller = artifacts.require('EventCaller');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -55,7 +54,6 @@ let newMaster;
 let memberRoles;
 let gov;
 let propCat;
-let ec;
 let factory;
 
 contract('NXMaster', function([
@@ -98,7 +96,6 @@ contract('NXMaster', function([
     let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
     let oldTk = await NXMToken.deployed();
     let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
-    ec = await EventCaller.deployed();
     addr.push(qd.address);
     addr.push(td.address);
     addr.push(cd.address);
@@ -134,7 +131,7 @@ contract('NXMaster', function([
   describe('Updating state', function() {
     // it('1.2 should be able to change master address', async function() {
     //   this.timeout(0);
-    //   newMaster = await NXMaster.new(ec.address, nxmtk.address);
+    //   newMaster = await NXMaster.new(nxmtk.address);
     //   await nxms.changeMasterAddress(newMaster.address, { from: owner });
     //   // await newMaster.changeTokenAddress(nxmtk.address);
     //   addr[12] = await nxms.getLatestAddress('GV');
@@ -253,7 +250,7 @@ contract('NXMaster', function([
     });
 
     it('1.10 should not be able to change master address', async function() {
-      newMaster = await NXMaster.new(ec.address, nxmtk.address);
+      newMaster = await NXMaster.new(nxmtk.address);
       await assertRevert(
         nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
       );

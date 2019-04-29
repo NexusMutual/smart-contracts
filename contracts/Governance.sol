@@ -15,7 +15,6 @@
 
 pragma solidity 0.4.24;
 
-import "./EventCaller.sol";
 import "./ProposalCategory.sol";
 import "./MemberRoles.sol";
 import "./imports/govblocks-protocol/interfaces/IGovernance.sol";
@@ -92,7 +91,6 @@ contract Governance is IGovernance, Iupgradable {
     MemberRoles internal memberRole;
     ProposalCategory internal proposalCategory;
     TokenController internal tokenInstance;
-    EventCaller internal eventCaller;
     MemberRoles internal mr;
 
     modifier onlyProposalOwner(uint _proposalId) {
@@ -582,8 +580,7 @@ contract Governance is IGovernance, Iupgradable {
         }
         tokenInstance = TokenController(ms.dAppLocker());
         memberRole = MemberRoles(ms.getLatestAddress("MR"));
-        proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));        
-        eventCaller = EventCaller(ms.getEventCallerAddress());
+        proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
         mr = MemberRoles(ms.getLatestAddress("MR"));
     }
 
@@ -747,12 +744,7 @@ contract Governance is IGovernance, Iupgradable {
             _proposalSD,
             _proposalDescHash
         );
-        eventCaller.callProposalCreated(
-            _proposalId,
-            _categoryId,
-            address(ms),
-            _proposalDescHash
-        );
+        // emit ProposalCreated(_proposalId, _categoryId, address(ms), _proposalDescHash);
     }
 
     /**
@@ -856,11 +848,11 @@ contract Governance is IGovernance, Iupgradable {
             proposalVoteTally[_proposalId].abVoteValue[0];
                 if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(numberOfMembers) 
                 >= majority || totalABVoted == numberOfMembers) {
-                    eventCaller.callVoteCast(_proposalId);
+                    emit VoteCast(_proposalId);
                 }
             } else {
                 if (numberOfMembers == proposalVoteTally[_proposalId].voters)
-                    eventCaller.callVoteCast(_proposalId);
+                    emit VoteCast(_proposalId);
             }
         }
 
@@ -966,9 +958,9 @@ contract Governance is IGovernance, Iupgradable {
             actionAddress = ms.getLatestAddress(contractName);
         }
         if (actionAddress.call(allProposalSolutions[_proposalId][max])) { //solhint-disable-line
-            eventCaller.callActionSuccess(_proposalId);
+            emit ActionSuccess(_proposalId);
         }
-        eventCaller.callProposalAccepted(_proposalId);
+        emit ProposalAccepted(_proposalId);
     }
 
     /**
@@ -1066,7 +1058,7 @@ contract Governance is IGovernance, Iupgradable {
         _updateProposalStatus(_proposalId, uint(ProposalStatus.VotingStarted));
         uint closingTime;
         (, , , , , closingTime, ) = proposalCategory.category(allProposalData[_proposalId].category);
-        eventCaller.callCloseProposalOnTimeAtAddress(_proposalId, address(this), SafeMath.add(closingTime, now));
+        emit CloseProposalOnTime(_proposalId, SafeMath.add(closingTime, now));
     }
 
     /**

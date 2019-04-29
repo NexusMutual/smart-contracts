@@ -18,7 +18,6 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('GovernanceMock');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
-const EventCaller = artifacts.require('EventCaller');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133'; //web3.eth.accounts[19];
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -47,7 +46,6 @@ module.exports = function(deployer) {
     let propCat = await ProposalCategory.deployed();
     const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
-    const eventCaller = await EventCaller.deployed();
     // let gvAdd = await nxms.getLatestAddress("GV");
     // let mrAdd = await nxms.getLatestAddress("MR");
     // let pcAdd = await nxms.getLatestAddress("PC");

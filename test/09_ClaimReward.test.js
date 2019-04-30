@@ -20,6 +20,7 @@ const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -139,14 +140,22 @@ contract('ClaimsReward', function([
       await tc.lock(CLA, tokens, validity, { from: member1 });
       await tc.lock(CLA, tokens, validity, { from: member2 });
       await tc.lock(CLA, tokens, validity, { from: member3 });
+      coverDetails[4] = 7972408607001;
+      var vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverBegin(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder, value: coverDetails[1] }
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);

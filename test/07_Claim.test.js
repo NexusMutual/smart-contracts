@@ -23,11 +23,12 @@ const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 
 const CLA = '0x434c41';
 const CA_ETH = '0x455448';
 const fee = ether(0.002);
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
+const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
@@ -156,24 +157,40 @@ contract('Claim', function([
 
       describe('if holds a cover', function() {
         before(async function() {
-          await P1.makeCoverBegin(
-            smartConAdd,
-            'ETH',
+          coverDetails[4] = 7972408607001;
+          var vrsdata = await getQuoteValues(
             coverDetails,
+            'ETH',
             coverPeriod,
-            v,
-            r,
-            s,
-            { from: coverHolder, value: coverDetails[1] }
+            smartConAdd,
+            qt.address
           );
           await P1.makeCoverBegin(
             smartConAdd,
             'ETH',
             coverDetails,
             coverPeriod,
-            v,
-            r,
-            s,
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
+            { from: coverHolder, value: coverDetails[1] }
+          );
+          coverDetails[4] = 7972408607002;
+          vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
+          await P1.makeCoverBegin(
+            smartConAdd,
+            'ETH',
+            coverDetails,
+            coverPeriod,
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: coverHolder, value: coverDetails[1] }
           );
         });
@@ -256,14 +273,22 @@ contract('Claim', function([
           describe('if cover expires', function() {
             let coverID;
             before(async function() {
+              coverDetails[4] = 7972408607003;
+              var vrsdata = await getQuoteValues(
+                coverDetails,
+                'ETH',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
               await P1.makeCoverBegin(
                 smartConAdd,
                 'ETH',
                 coverDetails,
                 coverPeriod,
-                v,
-                r,
-                s,
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder, value: coverDetails[1] }
               );
               coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -289,14 +314,22 @@ contract('Claim', function([
 
         describe('if member is not cover owner', function() {
           before(async function() {
+            coverDetails[4] = 7972408607004;
+            var vrsdata = await getQuoteValues(
+              coverDetails,
+              'ETH',
+              coverPeriod,
+              smartConAdd,
+              qt.address
+            );
             await qt.makeCoverUsingNXMTokens(
               coverDetails,
               coverPeriod,
               'ETH',
               smartConAdd,
-              v,
-              r,
-              s,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
               { from: coverHolder }
             );
           });

@@ -20,7 +20,7 @@ const DSValue = artifacts.require('DSValueMock');
 const DAI = artifacts.require('MockDAI');
 const founderAddress = web3.eth.accounts[0];
 const INITIAL_SUPPLY = 1500000 * 1e18;
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
+const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 
 module.exports = function(deployer) {
   deployer.then(async () => {

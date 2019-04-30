@@ -21,11 +21,12 @@ const { latestTime } = require('./utils/latestTime');
 const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
 const fee = ether(0.002);
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
+const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const PID = 0;
 const PNAME = '0x5343430000000000';
 const PHASH = 'Smart Contract Cover';
@@ -35,7 +36,13 @@ const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const nullAddress = '0x0000000000000000000000000000000000000000';
 const coverPeriod = 61;
 const coverPeriodLess = 50;
-const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
+const coverDetails = [
+  1,
+  3362445813369838,
+  744892736679184,
+  7972408607,
+  7972408607000
+];
 const coverDetailsLess = [
   5,
   19671964915000000,
@@ -275,14 +282,21 @@ contract('Quotation', function([
                 coverHolder
               );
               initialTotalSupply = (await tk.totalSupply()).div(P_18);
+              var vrsdata = await getQuoteValues(
+                coverDetails,
+                'ETH',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
               await P1.makeCoverBegin(
                 smartConAdd,
                 'ETH',
                 coverDetails,
                 coverPeriod,
-                vrs[0],
-                vrs[1],
-                vrs[2],
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder, value: coverDetails[1] }
               );
               const newLockedCN = BN_10.times(coverDetails[2]).div(BN_100);
@@ -312,15 +326,23 @@ contract('Quotation', function([
               );
             });
             it('6.10 should be revert if smart contract address is null', async function() {
+              coverDetails[4] = 7972408607114;
+              var vrsdata = await getQuoteValues(
+                coverDetails,
+                'ETH',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
               await assertRevert(
                 P1.makeCoverBegin(
                   nullAddress,
                   'ETH',
                   coverDetails,
                   coverPeriod,
-                  vrs[0],
-                  vrs[1],
-                  vrs[2],
+                  vrsdata[0],
+                  vrsdata[1],
+                  vrsdata[2],
                   { from: coverHolder, value: coverDetails[1] }
                 )
               );
@@ -370,14 +392,22 @@ contract('Quotation', function([
                 coverHolder
               );
               initialTotalSupply = (await tk.totalSupply()).div(P_18);
+              coverDetails[4] = 7972408607001;
+              var vrsdata = await getQuoteValues(
+                coverDetails,
+                'ETH',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
               await qt.makeCoverUsingNXMTokens(
                 coverDetails,
                 coverPeriod,
                 'ETH',
                 smartConAdd,
-                vrs[0],
-                vrs[1],
-                vrs[2],
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder }
               );
               const newLockedCN = BN_10.times(coverDetails[2]).div(BN_100);
@@ -457,6 +487,15 @@ contract('Quotation', function([
               const initialCAbalance = await cad.balanceOf(coverHolder);
               initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
               const initialTotalSupply = await tk.totalSupply();
+              coverDetailsDai[4] = 7972408607002;
+              var vrsdata = await getQuoteValues(
+                coverDetailsDai,
+                'DAI',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
+
               await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
               });
@@ -465,9 +504,9 @@ contract('Quotation', function([
                 'DAI',
                 coverDetailsDai,
                 coverPeriod,
-                vrs_dai[0],
-                vrs_dai[1],
-                vrs_dai[2],
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder }
               );
               const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
@@ -550,15 +589,36 @@ contract('Quotation', function([
               initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
                 staker2
               );
+              coverDetails[4] = 7972408607003;
+              var vrsdata = await getQuoteValues(
+                coverDetails,
+                'ETH',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
+
               await P1.makeCoverBegin(
                 smartConAdd,
                 'ETH',
                 coverDetails,
                 coverPeriod,
-                vrs[0],
-                vrs[1],
-                vrs[2],
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder, value: coverDetails[1] }
+              );
+              await assertRevert(
+                P1.makeCoverBegin(
+                  smartConAdd,
+                  'ETH',
+                  coverDetails,
+                  coverPeriod,
+                  vrsdata[0],
+                  vrsdata[1],
+                  vrsdata[2],
+                  { from: coverHolder, value: coverDetails[1] }
+                )
               );
             });
 
@@ -614,14 +674,22 @@ contract('Quotation', function([
                   { from: coverHolder }
                 )
               );
+              coverDetails[4] = 7972408607004;
+              var vrsdata = await getQuoteValues(
+                coverDetails,
+                'ETH',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
               await qt.makeCoverUsingNXMTokens(
                 coverDetails,
                 coverPeriod,
                 'ETH',
                 smartConAdd,
-                vrs[0],
-                vrs[1],
-                vrs[2],
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder }
               );
             });
@@ -655,14 +723,22 @@ contract('Quotation', function([
               await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
               });
+              coverDetailsDai[4] = 7972408607005;
+              var vrsdata = await getQuoteValues(
+                coverDetailsDai,
+                'DAI',
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
               await P1.makeCoverUsingCA(
                 smartConAdd,
                 'DAI',
                 coverDetailsDai,
                 coverPeriod,
-                vrs_dai[0],
-                vrs_dai[1],
-                vrs_dai[2],
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder }
               );
             });
@@ -682,6 +758,14 @@ contract('Quotation', function([
             it('6.27 should able to purchase cover with cover period less than 60 ', async function() {
               let coverLen = await qd.getCoverLength();
               let totalSASC = await qd.getTotalSumAssuredSC(smartConAdd, 'DAI');
+              coverDetailsLess[4] = 7972408607006;
+              var vrsdata = await getQuoteValues(
+                coverDetailsLess,
+                'DAI',
+                coverPeriodLess,
+                smartConAdd,
+                qt.address
+              );
               await cad.approve(P1.address, coverDetailsLess[1], {
                 from: coverHolder
               });
@@ -690,9 +774,9 @@ contract('Quotation', function([
                 'DAI',
                 coverDetailsLess,
                 coverPeriodLess,
-                vrsLess[0],
-                vrsLess[1],
-                vrsLess[2],
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
                 { from: coverHolder }
               );
               coverLen
@@ -719,15 +803,23 @@ contract('Quotation', function([
       });
       it('6.29 should revert if member', async function() {
         const totalFee = fee.plus(coverDetails[1].toString());
+        coverDetails[4] = 7972408607214;
+        var vrsdata = await getQuoteValues(
+          coverDetails,
+          'ETH',
+          coverPeriod,
+          smartConAdd,
+          qt.address
+        );
         await assertRevert(
           qt.initiateMembershipAndCover(
             smartConAdd,
             'ETH',
             coverDetails,
             coverPeriod,
-            vrs[0],
-            vrs[1],
-            vrs[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: member1, value: totalFee }
           )
         );
@@ -772,17 +864,13 @@ contract('Quotation', function([
             )
           );
           const totalFee = fee.plus(coverDetails[1].toString());
-          await assertRevert(
-            qt.initiateMembershipAndCover(
-              smartConAdd,
-              'ETH',
-              coverDetails,
-              coverPeriod,
-              vrs[0],
-              vrs[1],
-              vrs[2],
-              { from: notMember, value: 1 }
-            )
+          coverDetails[4] = 7972408607313;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
           );
           await assertRevert(
             qt.initiateMembershipAndCover(
@@ -790,20 +878,48 @@ contract('Quotation', function([
               'ETH',
               coverDetails,
               coverPeriod,
-              27,
-              vrs[1],
-              vrs[2],
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: notMember, value: 1 }
+            )
+          );
+          coverDetails[4] = 7972408607813;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
+          await assertRevert(
+            qt.initiateMembershipAndCover(
+              smartConAdd,
+              'ETH',
+              coverDetails,
+              coverPeriod,
+              10,
+              vrsdata[1],
+              vrsdata[2],
               { from: notMember, value: totalFee }
             )
+          );
+          coverDetails[4] = 7972408607007;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
           );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'ETH',
             coverDetails,
             coverPeriod,
-            vrs[0],
-            vrs[1],
-            vrs[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: notMember, value: totalFee }
           );
           await cad.transfer(qt.address, 10 * 1e18);
@@ -846,14 +962,22 @@ contract('Quotation', function([
             from: newMember1
           });
           const totalFee = fee.plus(coverDetails[1].toString());
+          coverDetails[4] = 7972408607008;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'ETH',
             coverDetails,
             coverPeriod,
-            vrs[0],
-            vrs[1],
-            vrs[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: newMember1, value: totalFee }
           );
           let holdedId = await qt.getRecentHoldedCoverIdStatus(newMember1);
@@ -868,14 +992,22 @@ contract('Quotation', function([
           await cad.approve(qt.address, coverDetailsDai[1], {
             from: newMember2
           });
+          coverDetailsDai[4] = 7972408607009;
+          var vrsdata = await getQuoteValues(
+            coverDetailsDai,
+            'DAI',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'DAI',
             coverDetailsDai,
             coverPeriod,
-            vrs_dai[0],
-            vrs_dai[1],
-            vrs_dai[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: newMember2, value: fee }
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
@@ -891,14 +1023,22 @@ contract('Quotation', function([
             from: newMember3
           });
           const totalFee = fee;
+          coverDetailsLess[4] = 7972408607010;
+          var vrsdata = await getQuoteValues(
+            coverDetailsLess,
+            'DAI',
+            coverPeriodLess,
+            smartConAdd,
+            qt.address
+          );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'DAI',
             coverDetailsLess,
             coverPeriodLess,
-            vrsLess[0],
-            vrsLess[1],
-            vrsLess[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: newMember3, value: totalFee }
           );
           await qt.fullRefund({ from: newMember3 });
@@ -909,14 +1049,22 @@ contract('Quotation', function([
             from: newMember3
           });
           const totalFee = fee.plus(coverDetails[1].toString());
+          coverDetails[4] = 7972408607011;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'ETH',
             coverDetails,
             coverPeriod,
-            vrs[0],
-            vrs[1],
-            vrs[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: newMember3, value: totalFee }
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember3, 0);
@@ -939,14 +1087,22 @@ contract('Quotation', function([
             from: newMember5
           });
           const totalFee = fee.plus(coverDetails[1].toString());
+          coverDetails[4] = 7972408607012;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'ETH',
             coverDetails,
             coverPeriod,
-            vrs[0],
-            vrs[1],
-            vrs[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: newMember5, value: totalFee }
           );
           await assertRevert(qt.kycVerdict(true, newMember5));
@@ -964,15 +1120,55 @@ contract('Quotation', function([
             from: newMember4
           });
           const totalFee = fee.plus(coverDetails[1].toString());
+          coverDetails[4] = 7972408607013;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'ETH',
             coverDetails,
             coverPeriod,
-            vrs[0],
-            vrs[1],
-            vrs[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: newMember4, value: totalFee }
+          );
+          await assertRevert(
+            qt.initiateMembershipAndCover(
+              smartConAdd,
+              'ETH',
+              coverDetails,
+              coverPeriod,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: newMember4, value: totalFee }
+            )
+          );
+          coverDetails[4] = 7972408607213;
+          var vrsdata = await getQuoteValues(
+            coverDetails,
+            'ETH',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
+          await assertRevert(
+            qt.initiateMembershipAndCover(
+              smartConAdd,
+              'ETH',
+              coverDetails,
+              coverPeriod,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: newMember4, value: totalFee }
+            )
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
           const newCoverDetails = coverDetails.slice();
@@ -1018,14 +1214,22 @@ contract('Quotation', function([
           await cad.approve(qt.address, coverDetailsDai[1], {
             from: notMember
           });
+          coverDetailsDai[4] = 7972408607014;
+          var vrsdata = await getQuoteValues(
+            coverDetailsDai,
+            'DAI',
+            coverPeriod,
+            smartConAdd,
+            qt.address
+          );
           await qt.initiateMembershipAndCover(
             smartConAdd,
             'DAI',
             coverDetailsDai,
             coverPeriod,
-            vrs_dai[0],
-            vrs_dai[1],
-            vrs_dai[2],
+            vrsdata[0],
+            vrsdata[1],
+            vrsdata[2],
             { from: notMember, value: fee }
           );
           const hcid = await qd.getUserHoldedCoverByIndex(notMember, 1);
@@ -1139,7 +1343,7 @@ contract('Quotation', function([
       it('6.54 should throw if call kycVerdict with non authorised address', async function() {
         await assertRevert(qt.kycVerdict(true, member1, { from: member1 }));
       });
-      it('6.54 should not able to update quoatation parameters directly', async function() {
+      it('6.55 should not able to update quoatation parameters directly', async function() {
         await assertRevert(qd.updateUintParameters('STLP', 1));
       });
     });

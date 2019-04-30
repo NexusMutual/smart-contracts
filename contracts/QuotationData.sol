@@ -54,6 +54,7 @@ contract QuotationData is Iupgradable {
     mapping(address => mapping(bytes4 => uint)) internal currencyCSAOfSCAdd;
     mapping(uint => uint8) public coverStatus;
     mapping(uint => uint) public holdedCoverIDStatus;
+    mapping(uint => bool) public timestampRepeated; 
     
 
     Cover[] internal allCovers;
@@ -118,6 +119,11 @@ contract QuotationData is Iupgradable {
     /// @param _amount Amount to be added.
     function addInTotalSumAssured(bytes4 _curr, uint _amount) external onlyInternal {
         currencyCSA[_curr] = currencyCSA[_curr].add(_amount);
+    }
+
+    /// @dev sets bit for timestamp to avoid replay attacks.
+    function setTimestampRepeated(uint _timestamp) external onlyInternal {
+        timestampRepeated[_timestamp] = true;
     }
     
     /// @dev Creates a blank new cover.

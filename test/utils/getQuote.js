@@ -4,22 +4,17 @@ var ethABI = require('ethereumjs-abi');
 var util = require('ethereumjs-util');
 const wallet = require('eth-lightwallet').keystore;
 var lightwallet = require('eth-lightwallet');
-var _password = 'Venkatesh';
-var _seedPhrase =
-  'mandate arrest tent matrix egg attract dentist chapter minimum finish unveil useless'; //seedPhrase for metamask
-var _hdPathString = "m/44'/60'/0'/0";
-
-async function getQuoteValues(args, callback) {
+async function getQuoteValues(...args) {
   var order = {
-    amount: args[0],
+    amount: args[0][0],
     curr: args[1],
     CP: args[2],
     smartCA: args[3],
-    Price: args[4],
-    price_nxm: args[5],
-    expire: args[6],
-    generationTime: args[7],
-    quotationContract: args[8]
+    Price: args[0][1],
+    price_nxm: args[0][2],
+    expire: args[0][3],
+    generationTime: args[0][4],
+    quotationContract: args[4]
   };
   var orderParts = [
     { value: bigNumberToBN(order.amount), type: 'uint' },
@@ -42,62 +37,79 @@ async function getQuoteValues(args, callback) {
   var hashBuff = ethABI.soliditySHA3(types, values);
   var hashHex = util.bufferToHex(hashBuff);
 
-  console.log('===)))))', wallet);
-  await wallet.createVault(
-    {
-      password: _password,
-      seedPhrase: _seedPhrase, // Optionally provide a 12-word seed phrase
-      hdPathString: _hdPathString // Optional custom HD Path String
+  var ks = {
+    salt: 'mDSSGi5eePbk3dBG4Ddk79f/Jwi5h3d0jI52F3M3yRg=',
+    hdPathString: "m/44'/60'/0'/0",
+    encSeed: {
+      encStr:
+        '1yzRGJIM7QTLqHzop5H96Txqpy/4P7DlgkPyPDzY9MsmmX6rT0M/4qNnNDX+wTY/NhZnFT84M6wZ8r8keBa/atNo81Xu84bNSRNk4b+W+9/69rcF3fNilP4GtxXE1X5WQhO7m6xeXDgGguQC9YdErDISAwvsSST8sVYhGkmmEtrp7GhE4xmeTA==',
+      nonce: 'jsdTS0xT7ijtSljsgZabpktsZtNC633V'
     },
-    function(err, ks) {
-      if (!err) {
-        console.log('hmmmm');
-        // Some methods will require providing the `pwDerivedKey`,
-        // Allowing you to only decrypt private keys on an as-needed basis.
-        // You can generate that value with this convenient method:
-        ks.keyFromPassword(_password, function(err, pwDerivedKey) {
-          if (err) throw err;
-
-          // generate five new address/private key pairs
-          // the corresponding private keys are also encrypted
-          ks.generateNewAddress(pwDerivedKey, 1);
-          console.log(
-            'privatekey---->',
-            ks,
-            ' =======',
-            pwDerivedKey.toString()
-          );
-          var addr = ks.getAddresses();
-          console.log(addr);
-          ks.passwordProvider = function(callback) {
-            var pw = prompt('Please enter password', 'Password');
-            callback(null, pw);
-          };
-
-          const orderHashBuff = util.toBuffer(hashHex);
-          const msgHashBuff = util.hashPersonalMessage(orderHashBuff);
-          const sig = lightwallet.signing.signMsgHash(
-            ks,
-            pwDerivedKey,
-            msgHashBuff,
-            ks.addresses[0]
-          );
-
-          console.log(
-            sig.v,
-            ' ',
-            util.toUnsigned(util.fromSigned(sig.r)).toString('hex'),
-            '  ',
-            util.toUnsigned(util.fromSigned(sig.s)).toString('hex')
-          );
-          callback(null, sig);
-          return sig;
-        });
-      } else {
-        callback(err, null);
+    encHdRootPriv: {
+      encStr:
+        'OXi2S5Fka6y4TG894bsagLcIPzfbwZlpq+ZTHjufbfaHccQmHnwEZDyjspTarf/OVc/nRI/qT1lOe68k+7bXSO8BTbnGxLorqYr9Qm+ImCaeexCRMYOdK9/Anm+2Aa2gLnjtlgBEf8dIEaWI8LoQhCKeJYSAFggXysoM31wYNQ==',
+      nonce: 'XsKB+uXOmeSWzhN/XPQXTvru2Aa6pnob'
+    },
+    version: 3,
+    hdIndex: 1,
+    encPrivKeys: {
+      '51042c4d8936a7764d18370a6a0762b860bb8e07': {
+        key: 'hGPlIoOYX9PKV0CyHHfC1EKYIibpeLKDkEUfWGWqBz25c9yVIk4TCZvMmkzgEMqD',
+        nonce: 'cDHUhUEaqkJ6OwB4BPJXi5Vw47tbvFYo'
       }
-    }
+    },
+    addresses: ['51042c4d8936a7764d18370a6a0762b860bb8e07']
+  };
+  ks = wallet.deserialize(JSON.stringify(ks));
+  var pwDerivedKey;
+  pwDerivedKey = new Uint8Array([
+    51,
+    95,
+    185,
+    86,
+    44,
+    101,
+    34,
+    239,
+    87,
+    233,
+    60,
+    63,
+    119,
+    227,
+    100,
+    242,
+    44,
+    242,
+    130,
+    145,
+    0,
+    32,
+    103,
+    29,
+    142,
+    236,
+    147,
+    33,
+    254,
+    230,
+    9,
+    225
+  ]);
+
+  const orderHashBuff = util.toBuffer(hashHex);
+  const msgHashBuff = util.hashPersonalMessage(orderHashBuff);
+  const sig = lightwallet.signing.signMsgHash(
+    ks,
+    pwDerivedKey,
+    msgHashBuff,
+    ks.addresses[0]
   );
+  var vrsData = [];
+  vrsData.push(sig.v);
+  vrsData.push('0x' + util.toUnsigned(util.fromSigned(sig.r)).toString('hex'));
+  vrsData.push('0x' + util.toUnsigned(util.fromSigned(sig.s)).toString('hex'));
+  return vrsData;
 }
 
 function bigNumberToBN(value) {

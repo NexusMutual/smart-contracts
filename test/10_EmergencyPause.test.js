@@ -20,6 +20,7 @@ const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether } = require('./utils/ether');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 
 const CLA = '0x434c41';
 const fee = ether(0.002);
@@ -143,36 +144,58 @@ contract('NXMaster: Emergency Pause', function([
 
   describe('Before Emergency Pause', function() {
     before(async function() {
+      coverDetails[4] = 7972408607001;
+      var vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverBegin(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder1, value: coverDetails[1] }
       );
-
+      coverDetails[4] = 7972408607002;
+      vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverBegin(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder2, value: coverDetails[1] }
       );
-
+      coverDetails[4] = 7972408607003;
+      vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverBegin(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder3, value: coverDetails[1] }
       );
 
@@ -229,14 +252,22 @@ contract('NXMaster: Emergency Pause', function([
     let startTime;
     before(async function() {
       const totalFee = fee.plus(coverDetails[1].toString());
+      coverDetails[4] = 7972408607004;
+      vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await qt.initiateMembershipAndCover(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: newMember, value: totalFee }
       );
 

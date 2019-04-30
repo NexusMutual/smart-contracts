@@ -24,6 +24,7 @@ const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -56,6 +57,7 @@ let nxms;
 let mr;
 let gv;
 let APIID;
+let qt;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -118,6 +120,7 @@ contract('Claim: Assessment 2', function([
     cd = await ClaimsData.deployed();
     td = await TokenData.deployed();
     DSV = await DSValue.deployed();
+    qt = await Quotation.deployed();
 
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
@@ -401,14 +404,22 @@ contract('Claim: Assessment 2', function([
           cr.claimAllPendingReward([], { from: UWarray[i] });
       }
       // buy cover 1
+
+      var vrsdata = await getQuoteValues(
+        [1, 6570841889000000, 100000000000000000000, 3549627424, 7972408607001],
+        ethereum_string,
+        100,
+        SC1,
+        qt.address
+      );
       await p1.makeCoverBegin(
         SC1,
         ethereum_string,
-        [1, 6570841889000000, 100000000000000000000, 3549627424],
+        [1, 6570841889000000, 100000000000000000000, 3549627424, 7972408607001],
         100,
-        28,
-        '0x6c944cf6193a757c7dfe36691aa993ac5b635c705db54df4bd30f333b4b209f9',
-        '0x4400c07f7b7a3335f9ab7a0cba334995eac0b385363cb884010b487aa9fede6e',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder5, value: 6570841889000000 }
       );
       let lockedCN = await tf.getLockedCNAgainstCover(1);
@@ -423,14 +434,33 @@ contract('Claim: Assessment 2', function([
       // buy cover 2
       await dai.transfer(coverHolder3, 164271047228000000);
       await dai.approve(p1.address, 164271047228000000, { from: coverHolder3 });
+      vrsdata = await getQuoteValues(
+        [
+          25,
+          164271047228000000,
+          100000000000000000000,
+          3549627424,
+          7972408607006
+        ],
+        dai_string,
+        100,
+        SC1,
+        qt.address
+      );
       await p1.makeCoverUsingCA(
         SC1,
         dai_string,
-        [25, 164271047228000000, 100000000000000000000, 3549627424],
+        [
+          25,
+          164271047228000000,
+          100000000000000000000,
+          3549627424,
+          7972408607006
+        ],
         100,
-        27,
-        '0x24c7142dc7df88d843ded769a01aa8f971ea152fad2be311f463f792c1c7948e',
-        '0x62320c196a6bba57d0d74db3426036794fa105225baa25d2d4dd7e6b3a726535',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder3 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(2);
@@ -442,14 +472,33 @@ contract('Claim: Assessment 2', function([
       else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 3
+      vrsdata = await getQuoteValues(
+        [
+          2,
+          26283367556000000,
+          200000000000000000000,
+          3549627424,
+          7972408607002
+        ],
+        ethereum_string,
+        200,
+        SC2,
+        qt.address
+      );
       await p1.makeCoverBegin(
         SC2,
         ethereum_string,
-        [2, 26283367556000000, 200000000000000000000, 3549627424],
+        [
+          2,
+          26283367556000000,
+          200000000000000000000,
+          3549627424,
+          7972408607002
+        ],
         200,
-        27,
-        '0x8e8914d33082e0a559193d1a213c17b9b713c718a0947e97e9147ee1da0d5cfb',
-        '0x538fe22574703a22eee32439266802ad2bbf86f7b1725eca9f19869d19eab7d9',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder1, value: 26283367556000000 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(3);
@@ -463,14 +512,33 @@ contract('Claim: Assessment 2', function([
       // buy cover 4
       await dai.transfer(coverHolder2, 657084188912000000);
       await dai.approve(p1.address, 657084188912000000, { from: coverHolder2 });
+      vrsdata = await getQuoteValues(
+        [
+          50,
+          657084188912000000,
+          200000000000000000000,
+          3549627424,
+          7972408607007
+        ],
+        dai_string,
+        200,
+        SC2,
+        qt.address
+      );
       await p1.makeCoverUsingCA(
         SC2,
         dai_string,
-        [50, 657084188912000000, 200000000000000000000, 3549627424],
+        [
+          50,
+          657084188912000000,
+          200000000000000000000,
+          3549627424,
+          7972408607007
+        ],
         200,
-        28,
-        '0x4eababac8c2ce2de33b187fdebeb2204b0b7a6324da5c04cae740c12e442f7db',
-        '0x176abf6c5eafd69a80d93fdb36d42a4f2528d28102642f610d885fc271cde6b3',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder2 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(4);
@@ -482,14 +550,33 @@ contract('Claim: Assessment 2', function([
       else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 5
+      vrsdata = await getQuoteValues(
+        [
+          3,
+          59137577002000000,
+          300000000000000000000,
+          3549627424,
+          7972408607003
+        ],
+        ethereum_string,
+        300,
+        SC3,
+        qt.address
+      );
       await p1.makeCoverBegin(
         SC3,
         ethereum_string,
-        [3, 59137577002000000, 300000000000000000000, 3549627424],
+        [
+          3,
+          59137577002000000,
+          300000000000000000000,
+          3549627424,
+          7972408607003
+        ],
         300,
-        27,
-        '0x259d493e835d7914cf303ebcf54b70facb5578ba2ceb5312fd7370acd83a8a38',
-        '0x6d007b19b3c9eb5f674456169c46a1237e5012c609789f0aeb7d5ec133638658',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder4, value: 59137577002000000 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(5);
@@ -505,14 +592,33 @@ contract('Claim: Assessment 2', function([
       await dai.approve(p1.address, 1478439425051000000, {
         from: coverHolder6
       });
+      vrsdata = await getQuoteValues(
+        [
+          75,
+          1478439425051000000,
+          300000000000000000000,
+          3549627424,
+          7972408607008
+        ],
+        dai_string,
+        300,
+        SC3,
+        qt.address
+      );
       await p1.makeCoverUsingCA(
         SC3,
         dai_string,
-        [75, 1478439425051000000, 300000000000000000000, 3549627424],
+        [
+          75,
+          1478439425051000000,
+          300000000000000000000,
+          3549627424,
+          7972408607008
+        ],
         300,
-        27,
-        '0xc95fd84e43701129559932594c8b2795db605225513adc024fc12d62b6336b0a',
-        '0x042e2fdcb91b51c3779495674042d8da8da5586ecb71cef86d0ad7ab104b3811',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder6 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(6);
@@ -524,14 +630,33 @@ contract('Claim: Assessment 2', function([
       else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 7
+      vrsdata = await getQuoteValues(
+        [
+          4,
+          105133470226000000,
+          400000000000000000000,
+          3549627424,
+          7972408607004
+        ],
+        ethereum_string,
+        400,
+        SC4,
+        qt.address
+      );
       await p1.makeCoverBegin(
         SC4,
         ethereum_string,
-        [4, 105133470226000000, 400000000000000000000, 3549627424],
+        [
+          4,
+          105133470226000000,
+          400000000000000000000,
+          3549627424,
+          7972408607004
+        ],
         400,
-        27,
-        '0x2da1cb66be29243a25b3dd4b699cd2a0fb923600fb735d690f022d6c5bc79248',
-        '0x5159be8e2c06a468af31d3cebdebeb9ad8fb735a365da194eea7a844b331472a',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder7, value: 105133470226000000 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(7);
@@ -547,14 +672,33 @@ contract('Claim: Assessment 2', function([
       await dai.approve(p1.address, 2628336755647000000, {
         from: coverHolder8
       });
+      vrsdata = await getQuoteValues(
+        [
+          100,
+          2628336755647000000,
+          400000000000000000000,
+          3549627424,
+          7972408607009
+        ],
+        dai_string,
+        400,
+        SC4,
+        qt.address
+      );
       await p1.makeCoverUsingCA(
         SC4,
         dai_string,
-        [100, 2628336755647000000, 400000000000000000000, 3549627424],
+        [
+          100,
+          2628336755647000000,
+          400000000000000000000,
+          3549627424,
+          7972408607009
+        ],
         400,
-        28,
-        '0xfcde6fd85c5dc1424ce136dcbdbdbb87f331c4ae01a1a7882d2f08c200020354',
-        '0x2aa8769ca67007bdce1a2d68a4c5a53c1723127f565effee24bc7c7081bc79a4',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder8 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(8);
@@ -567,14 +711,33 @@ contract('Claim: Assessment 2', function([
       else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
 
       // buy cover 9
+      vrsdata = await getQuoteValues(
+        [
+          5,
+          164271047228000000,
+          500000000000000000000,
+          3549627424,
+          7972408607005
+        ],
+        ethereum_string,
+        500,
+        SC5,
+        qt.address
+      );
       await p1.makeCoverBegin(
         SC5,
         ethereum_string,
-        [5, 164271047228000000, 500000000000000000000, 3549627424],
+        [
+          5,
+          164271047228000000,
+          500000000000000000000,
+          3549627424,
+          7972408607005
+        ],
         500,
-        28,
-        '0x42265a1747e5656d930bcf57c7325bb4fde14b18ff6bd490e1746c9e580d6fda',
-        '0x544b183f8f8327976832f5f6fc685a032e20f54f0b93f50f45205b5d6fe0b8ed',
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder9, value: 164271047228000000 }
       );
       lockedCN = await tf.getLockedCNAgainstCover(9);

@@ -206,9 +206,9 @@ contract Quotation is Iupgradable {
                 smaratCA,
                 coverDetails[1],
                 coverDetails[2],
-                coverDetails[3]
-                // coverDetails[4],
-                // address(this)
+                coverDetails[3],
+                coverDetails[4],
+                address(this)
             )
         );
     }
@@ -267,8 +267,8 @@ contract Quotation is Iupgradable {
         checkPause
     {
         require(coverDetails[3] > now);
-        // require(!qd.timestampRepeated(coverDetails[4]));
-        // qd.setTimestampRepeated(coverDetails[4]);
+        require(!qd.timestampRepeated(coverDetails[4]));
+        qd.setTimestampRepeated(coverDetails[4]);
         require(!ms.isMember(msg.sender));
         require(qd.refundEligible(msg.sender) == false);
         uint joinFee = td.joiningFee();
@@ -373,8 +373,8 @@ contract Quotation is Iupgradable {
         internal
     {
         require(coverDetails[3] > now);
-        // require(!qd.timestampRepeated(coverDetails[4]));
-        // qd.setTimestampRepeated(coverDetails[4]);
+        require(!qd.timestampRepeated(coverDetails[4]));
+        qd.setTimestampRepeated(coverDetails[4]);
         require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
         _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
 

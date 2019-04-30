@@ -23,6 +23,7 @@ const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -165,24 +166,40 @@ contract('Claim: Assessment', function([
             await tc.lock(CLA, tokens, validity, {
               from: member3
             });
-            await P1.makeCoverBegin(
-              smartConAdd,
-              'ETH',
+            coverDetails[4] = 7972408607001;
+            var vrsdata = await getQuoteValues(
               coverDetails,
+              'ETH',
               coverPeriod,
-              v,
-              r,
-              s,
-              { from: coverHolder, value: coverDetails[1] }
+              smartConAdd,
+              qt.address
             );
             await P1.makeCoverBegin(
               smartConAdd,
               'ETH',
               coverDetails,
               coverPeriod,
-              v,
-              r,
-              s,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: coverHolder, value: coverDetails[1] }
+            );
+            coverDetails[4] = 7972408607002;
+            vrsdata = await getQuoteValues(
+              coverDetails,
+              'ETH',
+              coverPeriod,
+              smartConAdd,
+              qt.address
+            );
+            await P1.makeCoverBegin(
+              smartConAdd,
+              'ETH',
+              coverDetails,
+              coverPeriod,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
               { from: coverHolder, value: coverDetails[1] }
             );
             coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -337,14 +354,22 @@ contract('Claim: Assessment', function([
 
         describe('Member rejects claim', function() {
           before(async function() {
+            coverDetails[4] = 7972408607003;
+            var vrsdata = await getQuoteValues(
+              coverDetails,
+              'ETH',
+              coverPeriod,
+              smartConAdd,
+              qt.address
+            );
             await P1.makeCoverBegin(
               smartConAdd,
               'ETH',
               coverDetails,
               coverPeriod,
-              v,
-              r,
-              s,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
               { from: coverHolder, value: coverDetails[1] }
             );
             coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -465,14 +490,22 @@ contract('Claim: Assessment', function([
 
   describe('Member not locked tokens for Claim Assessment', function() {
     before(async function() {
+      coverDetails[4] = 7972408607004;
+      var vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverBegin(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder, value: coverDetails[1] }
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -495,14 +528,22 @@ contract('Claim: Assessment', function([
       await mr.kycVerdict(member4, true);
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
       await tk.transfer(member4, ether(400));
+      coverDetails[4] = 7972408607005;
+      var vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverBegin(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder, value: coverDetails[1] }
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -561,14 +602,22 @@ contract('Claim: Assessment', function([
       await cad.approve(P1.address, coverDetailsDai[1], {
         from: coverHolder
       });
+      coverDetailsDai[4] = 7972408607006;
+      var vrsdata = await getQuoteValues(
+        coverDetailsDai,
+        'DAI',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverUsingCA(
         smartConAdd,
         'DAI',
         coverDetailsDai,
         coverPeriod,
-        vrs_dai[0],
-        vrs_dai[1],
-        vrs_dai[2],
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder }
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -601,14 +650,22 @@ contract('Claim: Assessment', function([
       await tc.lock(CLA, ether(200), duration.days(300), {
         from: member5
       });
+      coverDetails[4] = 7972408607007;
+      var vrsdata = await getQuoteValues(
+        coverDetails,
+        'ETH',
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
       await P1.makeCoverBegin(
         smartConAdd,
         'ETH',
         coverDetails,
         coverPeriod,
-        v,
-        r,
-        s,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: coverHolder, value: coverDetails[1] }
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);

@@ -6,6 +6,7 @@ const exchangeMock = artifacts.require('ExchangeMock');
 const MCR = artifacts.require('MCR');
 const DSValue = artifacts.require('DSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
+const Quotation = artifacts.require('Quotation');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -22,6 +23,7 @@ const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const encode = require('./utils/encoder.js').encode;
 const gvProp = require('./utils/gvProposal.js').gvProposal;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 
 let p1;
 let p2;
@@ -39,6 +41,7 @@ let nxms;
 let mkr;
 let gv;
 let fac;
+let qt;
 
 const BigNumber = web3.BigNumber;
 const newAsset = '0x535253';
@@ -86,6 +89,7 @@ contract('Pool', function([
     mcr = await MCR.deployed();
     DSV = await DSValue.deployed();
     qd = await QuotationDataMock.deployed();
+    qt = await Quotation.deployed();
     nxms = await NXMaster.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     tk = await NXMToken.deployed();
@@ -1230,15 +1234,22 @@ contract('Pool', function([
         from: member1
       });
       await cad.transfer(member1, tokenDai);
-
+      coverDetailsLess[4] = 7972408607001;
+      var vrsdata = await getQuoteValues(
+        coverDetailsLess,
+        'DAI',
+        coverPeriodLess,
+        smartConAdd,
+        qt.address
+      );
       await p1.makeCoverUsingCA(
         smartConAdd,
         'DAI',
         coverDetailsLess,
         coverPeriodLess,
-        vrsLess[0],
-        vrsLess[1],
-        vrsLess[2],
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
         { from: member1 }
       );
 

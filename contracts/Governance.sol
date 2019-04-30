@@ -79,6 +79,7 @@ contract Governance is IGovernance, Iupgradable {
     mapping(uint => mapping(address => bool)) public rewardClaimed; //voteid->member->reward claimed
     mapping (address => mapping(uint => uint)) public memberProposalVote;
     mapping (address => uint) public followerDelegation;
+    mapping (address => uint) internal followerCount;
     mapping (address => uint[]) internal leaderDelegation;
     mapping (uint => VoteTally) public proposalVoteTally;
     mapping (address => bool) isOpenForDelegation;
@@ -384,11 +385,14 @@ contract Governance is IGovernance, Iupgradable {
             require(SafeMath.add(allDelegation[followerDelegation[msg.sender]].lastUpd, tokenHoldingTime) < now);
         }
 
-        require(!alreadyDelegated(msg.sender), "already delegated by someone");
+        require(!alreadyDelegated(msg.sender), "Already a leader");
 
         require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.Owner)));
         require(!memberRole.checkRole(msg.sender, uint(MemberRoles.Role.AdvisoryBoard)));
 
+
+        require (followerCount[_add] < maxFollowers);
+        
         if (allVotesByMember[msg.sender].length > 0) {
             uint memberLastVoteId = SafeMath.sub(allVotesByMember[msg.sender].length, 1);
             require(SafeMath.add(allVotes[allVotesByMember[msg.sender][memberLastVoteId]].dateAdd, tokenHoldingTime)
@@ -402,7 +406,7 @@ contract Governance is IGovernance, Iupgradable {
         allDelegation.push(DelegateVote(msg.sender, _add, now));
         followerDelegation[msg.sender] = allDelegation.length - 1;
         leaderDelegation[_add].push(allDelegation.length - 1);
-
+        followerCount[_add]++;
     }
 
     /**
@@ -438,6 +442,7 @@ contract Governance is IGovernance, Iupgradable {
         codeVal = code;
 
         if (code == "GOVHOLD") {
+
             val = tokenHoldingTime / (1 days);
 
         } else if (code == "MAXFOL") {
@@ -574,10 +579,12 @@ contract Governance is IGovernance, Iupgradable {
 
         require(ms.checkIsAuthToGoverned(msg.sender));
         if (code == "GOVHOLD") {
-            _changeTokenHoldingTime(val * 1 days);
+
+            tokenHoldingTime = val * 1 days;
+
         } else if (code == "MAXFOL") {
 
-            _changeMaxFollowers(val);
+            maxFollowers = val;
 
         } else if (code == "MAXAB") {
 
@@ -587,7 +594,7 @@ contract Governance is IGovernance, Iupgradable {
             ms.updatePauseTime(val * 1 days);
 
         } else {
-            revert("Invalid param code");
+            revert("Invalid code");
         }
     }
 
@@ -948,13 +955,11 @@ contract Governance is IGovernance, Iupgradable {
     /// @dev Checks if the vote count against any solution passes the threshold value or not.
     function _checkForThreshold(uint _proposalId, uint _category) internal view returns(bool check) {
         uint categoryQuorumPerc;
-        uint roleId;
-        check = false;
-        (, roleId, , categoryQuorumPerc, , , ) = proposalCategory.category(_category);
+        (, , , categoryQuorumPerc, , , ) = proposalCategory.category(_category);
         uint totalTokenVoted = proposalVoteTally[_proposalId].memberVoteValue[0]
         +proposalVoteTally[_proposalId].memberVoteValue[1];
         check = totalTokenVoted.mul(100).div(tokenInstance.totalSupply() + 
-        memberRole.numberOfMembers(uint(MemberRoles.Role.Member))) > categoryQuorumPerc;
+        memberRole.numberOfMembers(uint(MemberRoles.Role.Member))) >= categoryQuorumPerc;
     }
     
     /**
@@ -998,6 +1003,8 @@ contract Governance is IGovernance, Iupgradable {
     function _unDelegate(address _follower) internal {
         uint followerId = followerDelegation[_follower];
         if (followerId > 0) {
+
+            followerCount[allDelegation[followerId].leader]--;
             allDelegation[followerId].leader = address(0);
             allDelegation[followerId].lastUpd = now;
         }
@@ -1033,8 +1040,8 @@ contract Governance is IGovernance, Iupgradable {
                 }
             } else {
                 uint abMaj = proposalCategory.categoryABReq(category);
-                uint abMem = memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard));
-                if (abMaj > 0 && proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(abMem) >= abMaj) {
+                // uint abMem = memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard));
+                if (abMaj > 0 && proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard))) >= abMaj) {
                     _callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
                 } else {
                     _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));
@@ -1055,9 +1062,9 @@ contract Governance is IGovernance, Iupgradable {
      */
     function _closeABVote(uint _proposalId, uint category, uint _roleId) internal {
         uint _majorityVote;
-        uint abMem = memberRole.numberOfMembers(_roleId);
+        // uint abMem = memberRole.numberOfMembers(_roleId);
         (, , _majorityVote, , , , ) = proposalCategory.category(category);
-        if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(abMem) >= _majorityVote) {
+        if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(memberRole.numberOfMembers(_roleId)) >= _majorityVote) {
             
             _callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
         } else {
@@ -1087,27 +1094,27 @@ contract Governance is IGovernance, Iupgradable {
         allProposal.push(ProposalStruct(address(0), now));
         allDelegation.push(DelegateVote(address(0), address(0), now));
         tokenHoldingTime = 1 * 7 days;
-        maxFollowers = 40;
         maxVoteWeigthPer = 5;
+        maxFollowers = 40;
         constructorCheck = true;
         roleIdAllowedToCatgorize = uint(MemberRoles.Role.AdvisoryBoard);
         specialResolutionMajPerc = 75;
     }
 
     /**
-     * @dev to change the token holding time
-     * @param time is the new time to be set
-     */
-    function _changeTokenHoldingTime(uint time) internal {
-        tokenHoldingTime = time;
-    }
-
-    /**
      * @dev to change maximum followers count
      * @param _maxFollowers is the new maximum followers limit
      */
-    function _changeMaxFollowers(uint _maxFollowers) internal {
-        maxFollowers = _maxFollowers;
-    }
+    // function _changeMaxFollowers(uint _maxFollowers) internal {
+    //     maxFollowers = _maxFollowers;
+    // }
+
+    /**
+     * @dev to change the token holding time
+     * @param time is the new time to be set
+     */
+    // function _changeTokenHoldingTime(uint time) internal {
+    //     tokenHoldingTime = time;
+    // }
 
 }

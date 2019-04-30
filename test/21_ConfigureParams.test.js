@@ -196,6 +196,9 @@ contract(
       it('Should update Governance Token Holding Time', async function() {
         await updateParameter(22, 2, 'GOVHOLD', gv, 'uint', '86400');
       });
+      it('Should update Max Followers limit', async function() {
+        await updateParameter(22, 2, 'MAXFOL', gv, 'uint', '10');
+      });
       it('Should update Max Advisory Board Members', async function() {
         await updateParameter(22, 2, 'MAXAB', gv, 'uint', '10');
       });

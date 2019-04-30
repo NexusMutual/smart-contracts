@@ -69,6 +69,11 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
         describe('At day 0', function() {
           it('16.1 UW1 to add stake on Smart Contracts', async function() {
             await tf.addStake(stakedContract, stakeTokens, { from: UW1 });
+            (await tf.getStakerLockedTokensOnSmartContract(
+              UW1,
+              stakedContract,
+              0
+            )).should.be.bignumber.equal(stakeTokens);
           });
         });
         describe('At day 10', function() {
@@ -86,6 +91,12 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' newBal ',
               parseFloat(newBal)
             );
+            (await tf.getStakerLockedTokensOnSmartContract(
+              UW2,
+              stakedContract,
+              1
+            )).should.be.bignumber.equal(stakeTokens);
+            (newBal / 1).should.be.equal(initialBal / 1 + 100 * 1e18);
           });
         });
         describe('At day 20', function() {
@@ -99,9 +110,23 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               stakedContract,
               4000 * 1e18
             );
-            let burnedUW1 = tx.receipt.logs[0].data;
-            let burnedUW2 = tx.receipt.logs[2].data;
-            console.log('burnedUW1 ', burnedUW1, ' burnedUW2 ', burnedUW2);
+            let burnedUW1 = await td.stakerStakedContracts(UW1, 0);
+            let burnedUW2 = await td.stakerStakedContracts(UW2, 0);
+            let burnedUW3 = await td.stakerStakedContracts(UW3, 0);
+            console.log(
+              'burnedUW1 ',
+              burnedUW1[5] / 1,
+              ' burnedUW2 ',
+              burnedUW2[5] / 1
+            );
+            (await tf.getStakerLockedTokensOnSmartContract(
+              UW3,
+              stakedContract,
+              2
+            )).should.be.bignumber.equal(stakeTokens);
+            (burnedUW1[5] / 1).should.be.equal(2300 * 1e18);
+            (burnedUW2[5] / 1).should.be.equal(1700 * 1e18);
+            (burnedUW3[5] / 1).should.be.equal(0);
           });
         });
         describe('At day 21', function() {
@@ -150,6 +175,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' newBalUW3 ',
               parseFloat(newBalUW3)
             );
+            ((newBalUW1 - initialBalUW1) / 1).should.be.equal(100 * 1e18);
+            ((newBalUW2 - initialBalUW2) / 1).should.be.equal(100 * 1e18);
+            ((newBalUW3 - initialBalUW3) / 1).should.be.equal(10 * 1e18);
           });
         });
         describe('At day 90', function() {
@@ -197,6 +225,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' newBalUW3 ',
               parseFloat(newBalUW3)
             );
+            ((newBalUW1 - initialBalUW1) / 1).should.be.equal(0);
+            ((newBalUW2 - initialBalUW2) / 1).should.be.equal(0);
+            ((newBalUW3 - initialBalUW3) / 1).should.be.equal(690 * 1e18);
           });
         });
         describe('At day 100', function() {
@@ -204,14 +235,31 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
             let time = await latestTime();
             time = time + (await duration.days(10));
             await increaseTimeTo(time + 10);
+            let alreadyBurnedUW1 = await td.stakerStakedContracts(UW1, 0);
+            let alreadyBurnedUW2 = await td.stakerStakedContracts(UW2, 0);
+            let alreadyBurnedUW3 = await td.stakerStakedContracts(UW3, 0);
             let tx1 = await tf.burnStakerLockedToken(
               stakedContract,
               1000 * 1e18
             );
-            let burnedUW2 = tx1.receipt.logs[0].data;
-            let burnedUW3 = tx1.receipt.logs[2].data;
-            console.log('burnedUW2 ', burnedUW2);
-            console.log('burnedUW3 ', burnedUW3);
+            let burnedUW1 = await td.stakerStakedContracts(UW1, 0);
+            let burnedUW2 = await td.stakerStakedContracts(UW2, 0);
+            let burnedUW3 = await td.stakerStakedContracts(UW3, 0);
+            console.log(
+              'burnedUW2 ',
+              burnedUW2[5] / 1 - alreadyBurnedUW2[5] / 1
+            );
+            console.log(
+              'burnedUW3 ',
+              burnedUW3[5] / 1 - alreadyBurnedUW3[5] / 1
+            );
+            (burnedUW1[5] / 1 - alreadyBurnedUW1[5] / 1).should.be.equal(0);
+            (burnedUW2[5] / 1 - alreadyBurnedUW2[5] / 1).should.be.equal(
+              700 * 1e18
+            );
+            (burnedUW3[5] / 1 - alreadyBurnedUW3[5] / 1).should.be.equal(
+              300 * 1e18
+            );
           });
         });
         describe('At day 101', function() {
@@ -259,6 +307,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' newBalUW3 ',
               parseFloat(newBalUW3)
             );
+            ((newBalUW1 - initialBalUW1) / 1).should.be.equal(0);
+            ((newBalUW2 - initialBalUW2) / 1).should.be.equal(0);
+            ((newBalUW3 - initialBalUW3) / 1).should.be.equal(100 * 1e18);
           });
         });
 
@@ -307,6 +358,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' newBalUW3 ',
               parseFloat(newBalUW3)
             );
+            ((newBalUW1 - initialBalUW1) / 1).should.be.equal(0);
+            ((newBalUW2 - initialBalUW2) / 1).should.be.equal(0);
+            ((newBalUW3 - initialBalUW3) / 1).should.be.equal(200 * 1e18);
           });
         });
 
@@ -355,6 +409,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' newBalUW3 ',
               parseFloat(newBalUW3)
             );
+            ((newBalUW1 - initialBalUW1) / 1).should.be.equal(0);
+            ((newBalUW2 - initialBalUW2) / 1).should.be.equal(0);
+            ((newBalUW3 - initialBalUW3) / 1).should.be.equal(1200 * 1e18);
           });
         });
       });

@@ -118,9 +118,6 @@ contract('MCR', function([owner, notOwner]) {
         [100, 14800],
         20190219
       );
-
-      console.log(await pd.c());
-      console.log(await pd.a());
     });
     it('19.3 single tranches 15 times Buy tokens', async function() {
       let x;

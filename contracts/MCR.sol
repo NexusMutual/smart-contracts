@@ -207,7 +207,7 @@ contract MCR is Iupgradable {
             (calculateTokenPrice("ETH").mul(975)).div(1000));
         uint lastMCRPerc = pd.getLastMCRPerc();
         if (lastMCRPerc > 10000)
-            maxTokens = (((uint(lastMCRPerc).sub(10000)).mul(2000)).div(10000)).mul(DECIMAL1E18);
+            maxTokens = (((uint(lastMCRPerc).sub(10000)).mul(2000)).mul(DECIMAL1E18)).div(10000);
         // require (false,'rofl'); 
         if (maxTokens > maxTokensAccPoolBal)
             maxTokens = maxTokensAccPoolBal;     
@@ -244,7 +244,7 @@ contract MCR is Iupgradable {
         (getA, getC, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
         uint mcrEth = pd.getLastMCREther();
         getC = getC.mul(DECIMAL1E18);
-        tokenPrice = (mcrEth.mul(DECIMAL1E18).div(getC).mul(max)).div(10 ** dividingFactor);
+        tokenPrice = (mcrEth.mul(DECIMAL1E18).mul(max).div(getC)).div(10 ** dividingFactor);
         tokenPrice = tokenPrice.add(getA.mul(DECIMAL1E18).div(DECIMAL1E05));
         tokenPrice = tokenPrice.mul(getCAAvgRate * 10); 
         tokenPrice = (tokenPrice).div(10**3);

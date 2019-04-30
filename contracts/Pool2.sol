@@ -271,8 +271,8 @@ contract Pool2 is Iupgradable {
                 (iaMin, iaMax) = pd.getInvestmentAssetHoldingPerc(curr);
                 z = pd.variationPercX100();
                 checkNumber = (iaBalance.mul(100 * 100000)).div(totalRiskBal.mul(iaRate));
-                if ((checkNumber > ((totalRiskBal.mul(iaMax.add(z))).div(100)).mul(100000)) ||
-                    (checkNumber < ((totalRiskBal.mul(iaMin.sub(z))).div(100)).mul(100000)))
+                if ((checkNumber > ((totalRiskBal.mul(iaMax.add(z))).mul(100000)).div(100)) ||
+                    (checkNumber < ((totalRiskBal.mul(iaMin.sub(z))).mul(100000)).div(100)))
                     check = true; //eligibleIA
             }
         }

@@ -121,6 +121,10 @@ contract(
         await nxmToken.transfer(web3.eth.accounts[i], balances[i] * 1e18);
       }
       // await gv.delegateVote(ab1, { from: ab2 });
+      await gv.setDelegationStatus(true, { from: ab1 });
+      await gv.setDelegationStatus(true, { from: ab3 });
+      await gv.setDelegationStatus(true, { from: mem4 });
+      await gv.setDelegationStatus(true, { from: mem5 });
       await gv.delegateVote(ab1, { from: mem1 });
       await gv.delegateVote(ab1, { from: mem2 });
       await gv.delegateVote(ab3, { from: mem3 });

@@ -81,12 +81,14 @@ contract Governance is IGovernance, Iupgradable {
     mapping (address => uint) public followerDelegation;
     mapping (address => uint[]) internal leaderDelegation;
     mapping (uint => VoteTally) public proposalVoteTally;
+    mapping (address => bool) isOpenForDelegation;
 
     bool internal constructorCheck;
     uint public tokenHoldingTime;
     uint internal roleIdAllowedToCatgorize;
     uint internal maxVoteWeigthPer;
     uint internal specialResolutionMajPerc;
+    uint internal maxFollowers;
 
     MemberRoles internal memberRole;
     ProposalCategory internal proposalCategory;
@@ -360,12 +362,20 @@ contract Governance is IGovernance, Iupgradable {
 
     }
 
+    function setDelegationStatus(bool _status) external isMemberAndcheckPause checkPendingRewards {
+        if(!_status) {
+            require(!alreadyDelegated(msg.sender));
+        }
+        isOpenForDelegation[msg.sender] = _status;
+    }
+
     /**
      * @dev to delegate vote to an address.
      * @param _add is the address to delegate vote to.
      */
     function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
 
+        require(isOpenForDelegation[_add]);
 
         //Check if given address is not a follower
         require(allDelegation[followerDelegation[_add]].leader == address(0));
@@ -429,6 +439,10 @@ contract Governance is IGovernance, Iupgradable {
 
         if (code == "GOVHOLD") {
             val = tokenHoldingTime / (1 days);
+
+        } else if (code == "MAXFOL") {
+
+            val = maxFollowers;
 
         } else if (code == "MAXAB") {
 
@@ -561,6 +575,10 @@ contract Governance is IGovernance, Iupgradable {
         require(ms.checkIsAuthToGoverned(msg.sender));
         if (code == "GOVHOLD") {
             _changeTokenHoldingTime(val * 1 days);
+        } else if (code == "MAXFOL") {
+
+            _changeMaxFollowers(val);
+
         } else if (code == "MAXAB") {
 
             mr.changeMaxABCount(val);
@@ -1069,6 +1087,7 @@ contract Governance is IGovernance, Iupgradable {
         allProposal.push(ProposalStruct(address(0), now));
         allDelegation.push(DelegateVote(address(0), address(0), now));
         tokenHoldingTime = 1 * 7 days;
+        maxFollowers = 40;
         maxVoteWeigthPer = 5;
         constructorCheck = true;
         roleIdAllowedToCatgorize = uint(MemberRoles.Role.AdvisoryBoard);
@@ -1081,6 +1100,14 @@ contract Governance is IGovernance, Iupgradable {
      */
     function _changeTokenHoldingTime(uint time) internal {
         tokenHoldingTime = time;
+    }
+
+    /**
+     * @dev to change maximum followers count
+     * @param _maxFollowers is the new maximum followers limit
+     */
+    function _changeMaxFollowers(uint _maxFollowers) internal {
+        maxFollowers = _maxFollowers;
     }
 
 }

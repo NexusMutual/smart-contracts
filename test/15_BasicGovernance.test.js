@@ -380,6 +380,31 @@ contract(
         let pendingReward = await gv.getPendingReward(mem6);
         assert.equal(pendingReward.toNumber(), 0);
       });
+      it('15.55 Should not add followers more than followers limit', async function() {
+        await increaseTime(604810);
+        pId = (await gv.getProposalLength()).toNumber();
+        await gv.createProposal('Proposal2', 'Proposal2', 'Proposal2', 0); //Pid 3
+        await gv.categorizeProposal(pId, 22, 0);
+        let actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          'MAXFOL',
+          2
+        );
+        await gv.submitProposalWithSolution(
+          pId,
+          'update max followers limit',
+          actionHash
+        );
+        await gv.submitVote(pId, 1, { from: ab1 });
+        await gv.submitVote(pId, 1, { from: ab2 });
+        await gv.submitVote(pId, 1, { from: ab3 });
+        await gv.submitVote(pId, 1, { from: mem2 });
+        await gv.submitVote(pId, 1, { from: mem3 });
+        await gv.submitVote(pId, 1, { from: mem6 });
+        await increaseTime(604810);
+        await gv.closeProposal(pId);
+        await assertRevert(gv.delegateVote(ab1, { from: mem6 }));
+      });
     });
   }
 );

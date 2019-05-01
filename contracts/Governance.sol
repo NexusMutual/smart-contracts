@@ -376,7 +376,6 @@ contract Governance is IGovernance, Iupgradable {
      */
     function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
 
-        require(isOpenForDelegation[_add]);
 
         //Check if given address is not a follower
         require(allDelegation[followerDelegation[_add]].leader == address(0));
@@ -402,6 +401,8 @@ contract Governance is IGovernance, Iupgradable {
         // require(getPendingReward(msg.sender) == 0);
 
         require(ms.isMember(_add));
+
+        require(isOpenForDelegation[_add]);
 
         allDelegation.push(DelegateVote(msg.sender, _add, now));
         followerDelegation[msg.sender] = allDelegation.length - 1;

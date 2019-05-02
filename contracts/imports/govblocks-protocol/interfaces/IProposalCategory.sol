@@ -10,7 +10,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 
 contract IProposalCategory {
@@ -33,16 +33,16 @@ contract IProposalCategory {
     /// @param _contractName name of contract to be called after proposal is accepted
     /// @param _incentives rewards to distributed after proposal is accepted
     function addCategory(
-        string _name, 
+        string calldata _name, 
         uint _memberRoleToVote,
         uint _majorityVotePerc, 
         uint _quorumPerc, 
-        uint[] _allowedToCreateProposal,
+        uint[] calldata _allowedToCreateProposal,
         uint _closingTime,
-        string _actionHash,
+        string calldata _actionHash,
         address _contractAddress,
         bytes2 _contractName,
-        uint[] _incentives
+        uint[] calldata _incentives
     ) 
         external;
 
@@ -55,7 +55,7 @@ contract IProposalCategory {
             uint memberRoleToVote,
             uint majorityVotePerc,
             uint quorumPerc,
-            uint[] allowedToCreateProposal,
+            uint[] memory allowedToCreateProposal,
             uint closingTime,
             uint minStake
         );
@@ -88,16 +88,16 @@ contract IProposalCategory {
     /// @param _incentives rewards to distributed after proposal is accepted
     function updateCategory(
         uint _categoryId, 
-        string _name, 
+        string memory _name, 
         uint _memberRoleToVote, 
         uint _majorityVotePerc, 
         uint _quorumPerc,
-        uint[] _allowedToCreateProposal,
+        uint[] memory _allowedToCreateProposal,
         uint _closingTime,
-        string _actionHash,
+        string memory _actionHash,
         address _contractAddress,
         bytes2 _contractName,
-        uint[] _incentives
+        uint[] memory _incentives
     )
         public;
 

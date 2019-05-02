@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
  
 import "../imports/openzeppelin-solidity/token/ERC20/IERC20.sol";
 import "../imports/openzeppelin-solidity/math/SafeMath.sol";

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.7;
 
 /**
  * @title SafeMath
@@ -62,4 +62,4 @@ library SafeMath {
         require(b != 0);
         return a % b;
     }
-}
+}

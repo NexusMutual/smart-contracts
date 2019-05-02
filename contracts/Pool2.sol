@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
 import "./Quotation.sol";
@@ -49,7 +49,7 @@ contract Pool2 is Iupgradable {
         locked = false;
     }
 
-    function () public payable {} 
+    function () external payable {} 
 
     /**
      * @dev to change the uniswap factory address 
@@ -66,7 +66,7 @@ contract Pool2 is Iupgradable {
      * @dev On upgrade transfer all investment assets and ether to new Investment Pool
      * @param newPoolAddress New Investment Assest Pool address
      */
-    function upgradeInvestmentPool(address newPoolAddress) external onlyInternal noReentrancy {
+    function upgradeInvestmentPool(address payable newPoolAddress) external onlyInternal noReentrancy {
         uint len = pd.getInvestmentCurrencyLen();
         for (uint64 i = 1; i < len; i++) {
             bytes4 iaName = pd.getInvestmentCurrencyByIndex(i);
@@ -103,7 +103,7 @@ contract Pool2 is Iupgradable {
      * @param rate array of investment asset exchange rate.
      * @param date current date in yyyymmdd.
      */ 
-    function saveIADetails(bytes4[] curr, uint64[] rate, uint64 date, bool bit) external checkPause noReentrancy {
+    function saveIADetails(bytes4[] calldata curr, uint64[] calldata rate, uint64 date, bool bit) external checkPause noReentrancy {
         bytes4 maxCurr;
         bytes4 minCurr;
         uint64 maxRate;
@@ -186,7 +186,7 @@ contract Pool2 is Iupgradable {
      */ 
     function _transferInvestmentAsset(
         bytes4 _curr,
-        address _transferTo,
+        address payable _transferTo,
         uint _amount
     ) 
         internal
@@ -308,8 +308,8 @@ contract Pool2 is Iupgradable {
      * @dev Calculates the investment asset rank.
      */  
     function _calculateIARank(
-        bytes4[] curr,
-        uint64[] rate
+        bytes4[] memory curr,
+        uint64[] memory rate
     )
         internal
         view

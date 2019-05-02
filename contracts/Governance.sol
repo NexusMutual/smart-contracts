@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./ProposalCategory.sol";
 import "./MemberRoles.sol";
@@ -139,9 +139,9 @@ contract Governance is IGovernance, Iupgradable {
     /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
     function createProposal(
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash, 
+        string calldata _proposalTitle, 
+        string calldata _proposalSD, 
+        string calldata _proposalDescHash, 
         uint _categoryId
     ) 
         external isAllowed(_categoryId)
@@ -156,9 +156,9 @@ contract Governance is IGovernance, Iupgradable {
     /// @param _proposalDescHash Proposal description hash having long and short description of proposal.
     function updateProposal(
         uint _proposalId, 
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash
+        string calldata _proposalTitle, 
+        string calldata _proposalSD, 
+        string calldata _proposalDescHash
     ) 
         external onlyProposalOwner(_proposalId)
     {
@@ -193,7 +193,7 @@ contract Governance is IGovernance, Iupgradable {
 
     /// @dev Initiates add solution
     //To implement the governance interface
-    function addSolution(uint, string, bytes) external {
+    function addSolution(uint, string calldata, bytes calldata) external {
     }
 
     /// @dev Opens proposal for voting
@@ -206,8 +206,8 @@ contract Governance is IGovernance, Iupgradable {
     /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
     function submitProposalWithSolution(
         uint _proposalId, 
-        string _solutionHash, 
-        bytes _action
+        string calldata _solutionHash, 
+        bytes calldata _action
     ) 
         external
         onlyProposalOwner(_proposalId)
@@ -220,12 +220,12 @@ contract Governance is IGovernance, Iupgradable {
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
     /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
     function createProposalwithSolution(
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash,
+        string calldata _proposalTitle, 
+        string calldata _proposalSD, 
+        string calldata _proposalDescHash,
         uint _categoryId, 
-        string _solutionHash, 
-        bytes _action
+        string calldata _solutionHash, 
+        bytes calldata _action
     ) 
         external isAllowed(_categoryId)
     {
@@ -246,12 +246,12 @@ contract Governance is IGovernance, Iupgradable {
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
     /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
     function createProposalwithVote(
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash,
+        string calldata _proposalTitle, 
+        string calldata _proposalSD, 
+        string calldata _proposalDescHash,
         uint _categoryId, 
-        string _solutionHash,
-        bytes _action
+        string calldata _solutionHash,
+        bytes calldata _action
     ) 
         external isAllowed(_categoryId)
     {
@@ -320,7 +320,7 @@ contract Governance is IGovernance, Iupgradable {
      * @param _proposals list of proposals of which reward will be claimed.
      * @return amount of pending reward.
      */
-    function claimReward(address _memberAddress, uint[] _proposals) 
+    function claimReward(address _memberAddress, uint[] calldata _proposals) 
         external returns(uint pendingDAppReward) 
     {
         
@@ -416,7 +416,7 @@ contract Governance is IGovernance, Iupgradable {
      * @param _proposals a list of proposals to claim reward on.
      * @param pendingDAppReward is the left over reward.
      */
-    function callRewardClaimedEvent(address _memberAddress, uint[] _proposals, uint pendingDAppReward) 
+    function callRewardClaimedEvent(address _memberAddress, uint[] calldata _proposals, uint pendingDAppReward) 
     external onlyInternal {
         emit RewardClaimed(
                 _memberAddress,
@@ -511,7 +511,7 @@ contract Governance is IGovernance, Iupgradable {
      * @param _solution whose details we want
      * @return action of a solution on a proposal
      */
-    function getSolutionAction(uint _proposalId, uint _solution) external view returns(uint, bytes) {
+    function getSolutionAction(uint _proposalId, uint _solution) external view returns(uint, bytes memory) {
         return (
             _solution,
             allProposalSolutions[_proposalId][_solution]
@@ -567,7 +567,7 @@ contract Governance is IGovernance, Iupgradable {
      * @dev get followers of an address
      * @return get followers of an address
      */
-    function getFollowers(address _add) external view returns(uint[]) {
+    function getFollowers(address _add) external view returns(uint[] memory) {
         return leaderDelegation[_add];
     }
 
@@ -734,7 +734,7 @@ contract Governance is IGovernance, Iupgradable {
      * @return advisory board vote value
      * @return amount of votes
      */
-    function voteTallyData(uint _proposalId, uint _solution) public constant returns(uint, uint, uint) {
+    function voteTallyData(uint _proposalId, uint _solution) public view returns(uint, uint, uint) {
         return (proposalVoteTally[_proposalId].memberVoteValue[_solution],
             proposalVoteTally[_proposalId].abVoteValue[_solution], proposalVoteTally[_proposalId].voters);
     }
@@ -747,9 +747,9 @@ contract Governance is IGovernance, Iupgradable {
      * @param _categoryId of proposal
      */
     function _createProposal(
-        string _proposalTitle,
-        string _proposalSD,
-        string _proposalDescHash,
+        string memory _proposalTitle,
+        string memory _proposalSD,
+        string memory _proposalDescHash,
         uint _categoryId
     )
         internal
@@ -803,7 +803,7 @@ contract Governance is IGovernance, Iupgradable {
      * @param _action on that solution
      * @param _solutionHash string value
      */
-    function _addSolution(uint _proposalId, bytes _action, string _solutionHash)
+    function _addSolution(uint _proposalId, bytes memory _action, string memory _solutionHash)
         internal
     {
         allProposalSolutions[_proposalId].push(_action);
@@ -813,8 +813,8 @@ contract Governance is IGovernance, Iupgradable {
     /// @dev When creating or submitting proposal with solution, This function open the proposal for voting
     function _proposalSubmission(
         uint _proposalId,
-        string _solutionHash,
-        bytes _action
+        string memory _solutionHash,
+        bytes memory _action
     )
         internal
     {

@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 
 contract IGovernance { 
@@ -79,9 +79,9 @@ contract IGovernance {
     /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
     function createProposal(
-        string _proposalTitle,
-        string _proposalSD,
-        string _proposalDescHash,
+        string calldata _proposalTitle,
+        string calldata _proposalSD,
+        string calldata _proposalDescHash,
         uint _categoryId
     ) 
         external;
@@ -91,9 +91,9 @@ contract IGovernance {
     /// @param _proposalDescHash Proposal description hash having long and short description of proposal.
     function updateProposal(
         uint _proposalId, 
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash
+        string calldata _proposalTitle, 
+        string calldata _proposalSD, 
+        string calldata _proposalDescHash
     ) 
         external;
 
@@ -109,8 +109,8 @@ contract IGovernance {
     /// @param _solutionHash Solution hash having required data against adding solution
     function addSolution(
         uint _proposalId,
-        string _solutionHash, 
-        bytes _action
+        string calldata _solutionHash, 
+        bytes calldata _action
     ) 
         external; 
 
@@ -122,8 +122,8 @@ contract IGovernance {
     /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
     function submitProposalWithSolution(
         uint _proposalId, 
-        string _solutionHash, 
-        bytes _action
+        string calldata _solutionHash, 
+        bytes calldata _action
     ) 
         external;
 
@@ -132,12 +132,12 @@ contract IGovernance {
     /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
     /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
     function createProposalwithSolution(
-        string _proposalTitle, 
-        string _proposalSD, 
-        string _proposalDescHash,
+        string calldata _proposalTitle, 
+        string calldata _proposalSD, 
+        string calldata _proposalDescHash,
         uint _categoryId, 
-        string _solutionHash, 
-        bytes _action
+        string calldata _solutionHash, 
+        bytes calldata _action
     ) 
         external;
 
@@ -148,7 +148,7 @@ contract IGovernance {
 
     function closeProposal(uint _proposalId) external;
 
-    function claimReward(address _memberAddress, uint[] _proposals) external returns(uint pendingDAppReward); 
+    function claimReward(address _memberAddress, uint[] calldata _proposals) external returns(uint pendingDAppReward); 
 
     function proposal(uint _proposalId)
         external

@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./FactoryMock.sol";
 import "../imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
@@ -14,7 +14,7 @@ contract ExchangeMock {
         factory = FactoryMock(factoryAddress);
     }
 
-    function () public payable {}
+    function () external payable {}
  
     function sendEth(uint val) public {
         (msg.sender).transfer(val);

@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./PoolData.sol";
 import "./imports/oraclize/ethereum-api/usingOraclize.sol";
@@ -50,7 +50,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         locked = false;
     }
 
-    function () public payable {} //solhint-disable-line
+    function () external payable {} //solhint-disable-line
 
     /**
      * @dev Pays out the sum assured in case a claim is accepted
@@ -62,7 +62,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         uint coverid,
         uint claimid,
         uint sumAssured,
-        address coverHolder,
+        address payable coverHolder,
         bytes4 coverCurr
     )
         external
@@ -152,7 +152,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @dev Transfers all assest (i.e ETH balance, Currency Assest) from old Pool to new Pool
      * @param newPoolAddress Address of the new Pool
      */
-    function upgradeCapitalPool(address newPoolAddress) external noReentrancy onlyInternal {
+    function upgradeCapitalPool(address payable newPoolAddress) external noReentrancy onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes4 caName = pd.getCurrenciesByIndex(i);
             _upgradeCapitalPool(caName, newPoolAddress);
@@ -185,7 +185,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      */
     function transferCurrencyAsset(
         bytes4 curr,
-        address transferTo,
+        address payable transferTo,
         uint amount
     )
         public
@@ -198,7 +198,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     } 
 
     /// @dev Handles callback of external oracle query.
-    function __callback(bytes32 myid, string result) public {
+    function __callback(bytes32 myid, string memory result) public {
         result; //silence compiler warning
         // owner will be removed from production build
         ms.delegateCallBack(myid);
@@ -209,7 +209,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     function makeCoverBegin(
         address smartCAdd,
         bytes4 coverCurr,
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         uint8 _v,
         bytes32 _r,
@@ -230,7 +230,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     function makeCoverUsingCA(
         address smartCAdd,
         bytes4 coverCurr,
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         uint8 _v,
         bytes32 _r,
@@ -257,7 +257,7 @@ contract Pool1 is usingOraclize, Iupgradable {
     /// @param amount amount (in wei) to send.
     /// @param _add Receiver's address.
     /// @return succ True if transfer is a success, otherwise False.
-    function transferEther(uint amount, address _add) public noReentrancy checkPause returns(bool succ) {
+    function transferEther(uint amount, address payable _add) public noReentrancy checkPause returns(bool succ) {
         require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
         succ = _add.send(amount);
     }
@@ -414,7 +414,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @param _amount is the amount to be transferred
      * @return boolean representing the success of transfer
      */
-    function _transferCurrencyAsset(bytes4 _curr, address _transferTo, uint _amount) internal returns(bool succ) {
+    function _transferCurrencyAsset(bytes4 _curr, address payable _transferTo, uint _amount) internal returns(bool succ) {
         if (_curr == "ETH") {
             if (address(this).balance < _amount)
                 _amount = address(this).balance;
@@ -456,8 +456,8 @@ contract Pool1 is usingOraclize, Iupgradable {
     function _oraclizeQuery(
         uint paramCount,
         uint timestamp,
-        string datasource,
-        string arg,
+        string memory datasource,
+        string memory arg,
         uint gasLimit
     ) 
         internal

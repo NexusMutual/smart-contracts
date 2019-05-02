@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
@@ -127,7 +127,7 @@ contract ClaimsData is Iupgradable {
         maxVotingTime = 1800;
         minVotingTime = 1200;
         payoutRetryTime = 86400;
-        allvotes.push(Vote(0, 0, 0, 0, false));
+        allvotes.push(Vote(address(0), 0, 0, 0, false));
         allClaims.push(Claim(0, 0));
         claimDepositTime = 7 days;
         claimRewardPerc = 20;
@@ -625,7 +625,7 @@ contract ClaimsData is Iupgradable {
      * @param _member user's address.
      * @return claimarr List of Claims id.
      */ 
-    function getAllClaimsByAddress(address _member) external view returns(uint[] claimarr) {
+    function getAllClaimsByAddress(address _member) external view returns(uint[] memory claimarr) {
         return allClaimsByAddress[_member];
     }
 
@@ -940,8 +940,8 @@ contract ClaimsData is Iupgradable {
         view
         returns(
             uint claimId,
-            uint[] ca,
-            uint[] mv
+            uint[] memory ca,
+            uint[] memory mv
         )
     {
         return (_claimId, claimVoteCA[_claimId], claimVoteMember[_claimId]);

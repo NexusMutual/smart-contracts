@@ -1,11 +1,11 @@
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 import "../imports/uniswap/solidity-interface.sol";
 
 
 contract DSValue1 {
     Factory internal factory;
 
-    function () public payable {} 
+    function () external payable {} 
 
     /**
      * @dev to get the exchange rate of eth to token.

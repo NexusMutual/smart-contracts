@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./Iupgradable.sol";
 import "./imports/openzeppelin-solidity/math/SafeMath.sol";
@@ -488,7 +488,7 @@ contract PoolData is Iupgradable {
     /**
      * @dev Gets all the investment currencies.
      */ 
-    function getAllInvestmentCurrencies() external view returns(bytes4[] currencies) {
+    function getAllInvestmentCurrencies() external view returns(bytes4[] memory currencies) {
         return allInvestmentCurrencies;
     }
 
@@ -509,7 +509,7 @@ contract PoolData is Iupgradable {
     /**
      * @dev Gets all currencies 
      */  
-    function getAllCurrencies() external view returns(bytes4[] currencies) {
+    function getAllCurrencies() external view returns(bytes4[] memory currencies) {
         return allCurrencies;
     }
 

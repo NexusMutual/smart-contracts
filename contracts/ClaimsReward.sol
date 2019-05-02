@@ -16,7 +16,7 @@
 //Claims Reward Contract contains the functions for calculating number of tokens
 // that will get rewarded, unlocked or burned depending upon the status of claim.
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./ClaimsData.sol";
 import "./Governance.sol";
@@ -181,9 +181,10 @@ contract ClaimsReward is Iupgradable {
     function getRewardAndClaimedStatus(uint check, uint claimId) public view returns(uint reward, bool claimed) {
         uint voteId;
         uint claimid;
+        uint lengthVote;
 
         if (check == 1) {
-            uint lengthVote = cd.getVoteAddressCALength(msg.sender);
+            lengthVote = cd.getVoteAddressCALength(msg.sender);
             for (uint i = 0; i < lengthVote; i++) {
                 voteId = cd.getVoteAddressCA(msg.sender, i);
                 (, claimid, , claimed) = cd.getVoteDetails(voteId);
@@ -205,7 +206,7 @@ contract ClaimsReward is Iupgradable {
      * @dev Function used to claim all pending rewards on a list of proposals.
      * @param _proposals List of proposals to claim reward of.
      */
-    function claimAllPendingReward(uint[] _proposals) public isMemberAndcheckPause {
+    function claimAllPendingReward(uint[] memory _proposals) public isMemberAndcheckPause {
         _claimRewardToBeDistributed();
         _claimStakeCommission();
         tf.unlockStakerUnlockableTokens(msg.sender); 
@@ -273,6 +274,7 @@ contract ClaimsReward is Iupgradable {
             uint deny;
             uint acceptAndDeny;
             bool rewardOrPunish;
+            uint sumAssured;
             (, accept) = cd.getClaimVote(claimid, 1);
             (, deny) = cd.getClaimVote(claimid, -1);
             acceptAndDeny = accept.add(deny);
@@ -282,7 +284,7 @@ contract ClaimsReward is Iupgradable {
             if (caTokens == 0) {
                 status = 3;
             } else {
-                uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
+                sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
                 // Min threshold reached tokens used for voting > 5* sum assured  
                 if (caTokens > sumAssured.mul(5)) {
 

@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./QuotationData.sol";
 import "./TokenFunctions.sol";
@@ -47,7 +47,7 @@ contract Quotation is Iupgradable {
         locked = false;
     }
 
-    function () public payable {} //solhint-disable-line
+    function () external payable {} //solhint-disable-line
 
     /**
      * @dev Iupgradable Interface to update dependent contract address
@@ -109,7 +109,7 @@ contract Quotation is Iupgradable {
      * @param smartCAdd Smart Contract Address
      */ 
     function makeCoverUsingNXMTokens(
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         bytes4 coverCurr,
         address smartCAdd,
@@ -134,7 +134,7 @@ contract Quotation is Iupgradable {
         address from,
         address scAddress,
         bytes4 coverCurr,
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         uint8 _v,
         bytes32 _r,
@@ -165,7 +165,7 @@ contract Quotation is Iupgradable {
      * @param _s argument from vrs hash.
      */ 
     function verifySign(
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         bytes4 curr,
         address smaratCA,
@@ -190,7 +190,7 @@ contract Quotation is Iupgradable {
      * @param smaratCA smarat contract address.
      */ 
     function getOrderHash(
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         bytes4 curr,
         address smaratCA
@@ -256,7 +256,7 @@ contract Quotation is Iupgradable {
     function initiateMembershipAndCover(
         address smartCAdd,
         bytes4 coverCurr,
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         uint8 _v,
         bytes32 _r,
@@ -305,7 +305,7 @@ contract Quotation is Iupgradable {
     /**
      * @dev transfering Ethers to newly created quotation contract.
      */  
-    function transferAssetsToNewContract(address newAdd) public onlyInternal noReentrancy {
+    function transferAssetsToNewContract(address payable newAdd) public onlyInternal noReentrancy {
         uint amount = address(this).balance;
         IERC20 erc20;
         if (amount > 0) {
@@ -316,8 +316,8 @@ contract Quotation is Iupgradable {
             bytes4 currName = pd.getCurrenciesByIndex(i);
             address currAddr = pd.getCurrencyAssetAddress(currName);
             erc20 = IERC20(currAddr); //solhint-disable-line
-            if (erc20.balanceOf(this) > 0) {
-                require(erc20.transfer(newAdd, erc20.balanceOf(this)));
+            if (erc20.balanceOf(address(this)) > 0) {
+                require(erc20.transfer(newAdd, erc20.balanceOf(address(this))));
             }
         }
     }
@@ -333,7 +333,7 @@ contract Quotation is Iupgradable {
         address from,
         address scAddress,
         bytes4 coverCurr,
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod
     )
         internal
@@ -364,7 +364,7 @@ contract Quotation is Iupgradable {
         address from,
         address scAddress,
         bytes4 coverCurr,
-        uint[] coverDetails,
+        uint[] memory coverDetails,
         uint16 coverPeriod,
         uint8 _v,
         bytes32 _r,
@@ -403,7 +403,7 @@ contract Quotation is Iupgradable {
 
         uint holdedCoverLen = qd.getUserHoldedCoverLength(_add).sub(1);
         uint holdedCoverID = qd.getUserHoldedCoverByIndex(_add, holdedCoverLen);
-        address userAdd;
+        address payable userAdd;
         address scAddress;
         bytes4 coverCurr;
         uint16 coverPeriod;
@@ -420,7 +420,7 @@ contract Quotation is Iupgradable {
             mr.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
                 qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
-                address poolAdd = ms.getLatestAddress("P1");
+                address payable poolAdd = ms.getLatestAddress("P1");
                 if (coverCurr == "ETH") {
                     poolAdd.transfer(coverDetails[1]);
                 } else {

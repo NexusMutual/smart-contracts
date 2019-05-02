@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 
 import "./Pool2.sol";
@@ -36,7 +36,7 @@ contract NXMaster is Governed {
     uint[] public versionDates;
     bytes2[] internal allContractNames;
     mapping(address => bool) public contractsActive;
-    mapping(uint => mapping(bytes2 => address)) internal allContractVersions;
+    mapping(uint => mapping(bytes2 => address payable)) internal allContractVersions;
 
     address public tokenAddress;
 
@@ -350,8 +350,8 @@ contract NXMaster is Governed {
         view 
         returns (
             uint versionNo,
-            bytes2[] contractsName,
-            address[] contractsAddress
+            bytes2[] memory contractsName,
+            address[] memory contractsAddress
         ) 
     {
         versionNo = _versionNo;
@@ -384,14 +384,14 @@ contract NXMaster is Governed {
 
     /// @dev Gets latest contract address
     /// @param _contractName Contract name to fetch
-    function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress) {
+    function getLatestAddress(bytes2 _contractName) public view returns(address payable contractAddress) {
         contractAddress =
             allContractVersions[versionDates.length - 1][_contractName];
     }
 
     /// @dev Creates a new version of contract addresses
     /// @param _contractAddresses Array of contract addresses which will be generated
-    function addNewVersion(address[] _contractAddresses) public {
+    function addNewVersion(address[] memory _contractAddresses) public {
 
         require(msg.sender == owner && !constructorCheck);
         require(_contractAddresses.length == allContractNames.length,"array length not same");

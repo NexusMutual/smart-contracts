@@ -10,7 +10,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 
 contract IMemberRoles {
@@ -21,7 +21,7 @@ contract IMemberRoles {
     /// @param _roleName New role name
     /// @param _roleDescription New description hash
     /// @param _authorized Authorized member against every role id
-    function addRole(bytes32 _roleName, string _roleDescription, address _authorized) public;
+    function addRole(bytes32 _roleName, string memory _roleDescription, address _authorized) public;
 
     /// @dev Assign or Delete a member from specific role.
     /// @param _memberAddress Address of Member
@@ -41,7 +41,7 @@ contract IMemberRoles {
     /// @param _memberRoleId Member role id
     /// @return roleId Role id
     /// @return allMemberAddress Member addresses of specified role id
-    function members(uint _memberRoleId) public view returns(uint, address[] allMemberAddress);
+    function members(uint _memberRoleId) public view returns(uint, address[] memory allMemberAddress);
 
     /// @dev Gets all members' length
     /// @param _memberRoleId Member role id
@@ -52,7 +52,7 @@ contract IMemberRoles {
     function authorized(uint _memberRoleId) public view returns(address);
 
     /// @dev Get All role ids array that has been assigned to a member so far.
-    function roles(address _memberAddress) public view returns(uint[] assignedRoles);
+    function roles(address _memberAddress) public view returns(uint[] memory assignedRoles);
 
     /// @dev Returns true if the given role id is assigned to a member.
     /// @param _memberAddress Address of member

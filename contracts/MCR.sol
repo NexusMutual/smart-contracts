@@ -13,7 +13,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 
 import "./PoolData.sol";
 import "./QuotationData.sol";
@@ -57,8 +57,8 @@ contract MCR is Iupgradable {
         uint mcrP,
         uint mcrE,
         uint vF,
-        bytes4[] curr,
-        uint[] _threeDayAvg,
+        bytes4[] calldata curr,
+        uint[] calldata _threeDayAvg,
         uint64 onlyDate
     )
         external
@@ -200,9 +200,11 @@ contract MCR is Iupgradable {
      */ 
     function getMaxSellTokens() public view returns(uint maxTokens) {
         uint baseMin = pd.getCurrencyAssetBaseMin("ETH");
-        if (address(p1).balance > baseMin.mul(50).div(100))
-            uint maxTokensAccPoolBal  = address(p1).balance.sub(
+        uint maxTokensAccPoolBal;
+        if (address(p1).balance > baseMin.mul(50).div(100)) {
+            maxTokensAccPoolBal  = address(p1).balance.sub(
             (baseMin.mul(50)).div(100));        
+        }
         maxTokensAccPoolBal = (maxTokensAccPoolBal.mul(DECIMAL1E18)).div(
             (calculateTokenPrice("ETH").mul(975)).div(1000));
         uint lastMCRPerc = pd.getLastMCRPerc();
@@ -257,11 +259,11 @@ contract MCR is Iupgradable {
     function _addMCRData(
         uint len,
         uint64 newMCRDate,
-        bytes4[] curr,
+        bytes4[] memory curr,
         uint mcrE,
         uint mcrP,
         uint vF,
-        uint[] _threeDayAvg
+        uint[] memory _threeDayAvg
     ) 
         internal
     {

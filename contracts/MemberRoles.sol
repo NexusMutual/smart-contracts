@@ -10,7 +10,7 @@
   You should have received a copy of the GNU General Public License
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 
-pragma solidity 0.4.24;
+pragma solidity 0.5.7;
 import "./TokenFunctions.sol";
 import "./imports/govblocks-protocol/interfaces/IMemberRoles.sol";
 import "./imports/govblocks-protocol/Governed.sol";
@@ -88,7 +88,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
      * @dev is used to add initital advisory board members
      * @param abArray is the list of initial advisory board members
      */
-    function addInitialABMembers(address[] abArray) external onlyOwner {
+    function addInitialABMembers(address[] calldata abArray) external onlyOwner {
 
         require(maxABCount >= 
             SafeMath.add(numberOfMembers(uint(Role.AdvisoryBoard)), abArray.length)
@@ -152,7 +152,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     /// @param _authorized Authorized member against every role id
     function addRole( //solhint-disable-line
         bytes32 _roleName,
-        string _roleDescription,
+        string memory _roleDescription,
         address _authorized
     )
     public
@@ -179,7 +179,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
      * @param userArray is list of addresses of members
      * @param tokens is list of tokens minted for each array element
      */
-    function addMembersBeforeLaunch(address[] userArray, uint[] tokens) public onlyOwner {
+    function addMembersBeforeLaunch(address[] memory userArray, uint[] memory tokens) public onlyOwner {
         require(!launched);
 
         for (uint i=0; i < userArray.length; i++) {
@@ -268,7 +268,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     /// @param _memberRoleId Member role id
     /// @return roleId Role id
     /// @return allMemberAddress Member addresses of specified role id
-    function members(uint _memberRoleId) public view returns(uint, address[] memberArray) { //solhint-disable-line
+    function members(uint _memberRoleId) public view returns(uint, address[] memory memberArray) { //solhint-disable-line
         uint length = memberRoleData[_memberRoleId].memberAddress.length;
         uint i;
         uint j = 0;
@@ -297,7 +297,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     }
 
     /// @dev Get All role ids array that has been assigned to a member so far.
-    function roles(address _memberAddress) public view returns(uint[]) { //solhint-disable-line
+    function roles(address _memberAddress) public view returns(uint[] memory) { //solhint-disable-line
         uint length = memberRoleData.length;
         uint[] memory assignedRoles = new uint[](length);
         uint counter = 0; 
@@ -326,7 +326,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     /// @dev Return total number of members assigned against each role id.
     /// @return totalMembers Total members in particular role id
-    function getMemberLengthForAllRoles() public view returns(uint[] totalMembers) { //solhint-disable-line
+    function getMemberLengthForAllRoles() public view returns(uint[] memory totalMembers) { //solhint-disable-line
         totalMembers = new uint[](memberRoleData.length);
         for (uint i = 0; i < memberRoleData.length; i++) {
             totalMembers[i] = numberOfMembers(i);
@@ -361,7 +361,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     /// @param _authorized Authorized member against every role id
     function _addRole(
         bytes32 _roleName,
-        string _roleDescription,
+        string memory _roleDescription,
         address _authorized
     ) internal {
         emit MemberRole(memberRoleData.length, _roleName, _roleDescription);
@@ -376,7 +376,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
      */
     function _checkMemberInArray(
         address _memberAddress,
-        address[] memberArray
+        address[] memory memberArray
     )
         internal
         pure

@@ -981,7 +981,8 @@ contract Governance is IGovernance, Iupgradable {
         } else if (contractName != "EX") {
             actionAddress = ms.getLatestAddress(contractName);
         }
-        if (actionAddress.call(allProposalSolutions[_proposalId][max])) { //solhint-disable-line
+        (bool actionStatus, ) = actionAddress.call(allProposalSolutions[_proposalId][max]);
+        if (actionStatus) { //solhint-disable-line
             emit ActionSuccess(_proposalId);
         }
         emit ProposalAccepted(_proposalId);

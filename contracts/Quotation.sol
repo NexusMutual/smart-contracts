@@ -47,7 +47,7 @@ contract Quotation is Iupgradable {
         locked = false;
     }
 
-    function () external payable {} //solhint-disable-line
+    // function () external payable {} //solhint-disable-line
 
     /**
      * @dev Iupgradable Interface to update dependent contract address
@@ -61,6 +61,10 @@ contract Quotation is Iupgradable {
         p1 = Pool1(ms.getLatestAddress("P1"));
         pd = PoolData(ms.getLatestAddress("PD"));
         mr = MemberRoles(ms.getLatestAddress("MR"));
+    }
+
+    function sendEther() public payable {
+        
     }
 
     /**
@@ -131,7 +135,7 @@ contract Quotation is Iupgradable {
      * @param scAddress Smart Contract Address
      */
     function verifyCoverDetails(
-        address from,
+        address payable from,
         address scAddress,
         bytes4 coverCurr,
         uint[] memory coverDetails,
@@ -305,11 +309,13 @@ contract Quotation is Iupgradable {
     /**
      * @dev transfering Ethers to newly created quotation contract.
      */  
-    function transferAssetsToNewContract(address payable newAdd) public onlyInternal noReentrancy {
+    function transferAssetsToNewContract(address newAdd) public onlyInternal noReentrancy {
         uint amount = address(this).balance;
         IERC20 erc20;
         if (amount > 0) {
-            newAdd.transfer(amount);   
+            // newAdd.transfer(amount);   
+            Quotation newQT = Quotation(newAdd);
+            newQT.sendEther.value(amount)();
         }
         uint currAssetLen = pd.getAllCurrenciesLen();
         for (uint64 i = 1; i < currAssetLen; i++) {
@@ -330,7 +336,7 @@ contract Quotation is Iupgradable {
      */  
 
     function _makeCover ( //solhint-disable-line
-        address from,
+        address payable from,
         address scAddress,
         bytes4 coverCurr,
         uint[] memory coverDetails,
@@ -361,7 +367,7 @@ contract Quotation is Iupgradable {
      * @param scAddress Smart Contract Address
      */  
     function _verifyCoverDetails(
-        address from,
+        address payable from,
         address scAddress,
         bytes4 coverCurr,
         uint[] memory coverDetails,
@@ -420,9 +426,9 @@ contract Quotation is Iupgradable {
             mr.payJoiningFee.value(joinFee)(userAdd);
             if (coverDetails[3] > now) { 
                 qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
-                address payable poolAdd = ms.getLatestAddress("P1");
+                address poolAdd = ms.getLatestAddress("P1");
                 if (coverCurr == "ETH") {
-                    poolAdd.transfer(coverDetails[1]);
+                    p1.sendEther.value(coverDetails[1])();
                 } else {
                     erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); //solhint-disable-line
                     require(erc20.transfer(poolAdd, coverDetails[1]));

@@ -36,7 +36,7 @@ contract NXMaster is Governed {
     uint[] public versionDates;
     bytes2[] internal allContractNames;
     mapping(address => bool) public contractsActive;
-    mapping(uint => mapping(bytes2 => address payable)) internal allContractVersions;
+    mapping(uint => mapping(bytes2 => address)) internal allContractVersions;
 
     address public tokenAddress;
 
@@ -241,7 +241,7 @@ contract NXMaster is Governed {
 
         }
         allContractVersions[versionDates.length - 1][_contractsName] = _contractsAddress;
-        changeMasterAddress(address(this));
+        changeMasterAddress(masterAddress);
         _changeAllAddress();
     }
 
@@ -384,7 +384,7 @@ contract NXMaster is Governed {
 
     /// @dev Gets latest contract address
     /// @param _contractName Contract name to fetch
-    function getLatestAddress(bytes2 _contractName) public view returns(address payable contractAddress) {
+    function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress) {
         contractAddress =
             allContractVersions[versionDates.length - 1][_contractName];
     }
@@ -457,7 +457,7 @@ contract NXMaster is Governed {
      * @param code is the associated code 
      * @param val is value to be set
      */
-    function updateAddressParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
+    function updateAddressParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
         require(val != address(0));
 
         if (code == "MASTADD") {
@@ -474,7 +474,7 @@ contract NXMaster is Governed {
      * @param code is the associated code 
      * @param val is value to be set
      */
-    function updateOwnerParameters(bytes8 code, address val) public onlyAuthorizedToGovern {
+    function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
         QuotationData qd;
         PoolData pd;
         if (code == "MSWALLET") {

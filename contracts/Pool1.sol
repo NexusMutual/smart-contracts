@@ -50,7 +50,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         locked = false;
     }
 
-    function () external payable {} //solhint-disable-line
+    // function () external payable {} //solhint-disable-line
 
     /**
      * @dev Pays out the sum assured in case a claim is accepted
@@ -77,10 +77,12 @@ contract Pool1 is usingOraclize, Iupgradable {
 
         //Payout
         if (coverCurr == "ETH" && address(this).balance >= sumAssured) {
-            check = _transferCurrencyAsset(coverCurr, coverHolder, sumAssured);
+            // check = _transferCurrencyAsset(coverCurr, coverHolder, sumAssured);
+            coverHolder.transfer(sumAssured);
+            check = true;
         } else if (coverCurr == "DAI" && erc20.balanceOf(address(this)) >= sumAssured) {
-            
-            check = _transferCurrencyAsset(coverCurr, coverHolder, sumAssured);
+            erc20.transfer(coverHolder, sumAssured);
+            check = true;
         }
         
         if (check == true) {
@@ -152,13 +154,15 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @dev Transfers all assest (i.e ETH balance, Currency Assest) from old Pool to new Pool
      * @param newPoolAddress Address of the new Pool
      */
-    function upgradeCapitalPool(address payable newPoolAddress) external noReentrancy onlyInternal {
+    function upgradeCapitalPool(address newPoolAddress) external noReentrancy onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes4 caName = pd.getCurrenciesByIndex(i);
             _upgradeCapitalPool(caName, newPoolAddress);
         }
-        if (address(this).balance > 0)
-            newPoolAddress.transfer(address(this).balance); //solhint-disable-line
+        if (address(this).balance > 0) {
+            Pool1 newP1 = Pool1(newPoolAddress);
+            newP1.sendEther.value(address(this).balance)();
+        }
     }
 
     /**
@@ -176,16 +180,18 @@ contract Pool1 is usingOraclize, Iupgradable {
         td = TokenData(ms.getLatestAddress("TD"));
     }
 
+    function sendEther() public payable {
+        
+    }
+
     /**
      * @dev transfers currency asset to an address
      * @param curr is the currency of currency asset to transfer
-     * @param transferTo is address to transfer currency asset to
      * @param amount is amount of currency asset to transfer
      * @return boolean to represent success or failure
      */
     function transferCurrencyAsset(
         bytes4 curr,
-        address payable transferTo,
         uint amount
     )
         public
@@ -194,7 +200,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         returns(bool)
     {
     
-        return _transferCurrencyAsset(curr, transferTo, amount);
+        return _transferCurrencyAsset(curr, amount);
     } 
 
     /// @dev Handles callback of external oracle query.
@@ -410,21 +416,20 @@ contract Pool1 is usingOraclize, Iupgradable {
     /**
      * @dev transfers currency asset
      * @param _curr is currency of asset to transfer
-     * @param _transferTo address that recieves currency assets
      * @param _amount is the amount to be transferred
      * @return boolean representing the success of transfer
      */
-    function _transferCurrencyAsset(bytes4 _curr, address payable _transferTo, uint _amount) internal returns(bool succ) {
+    function _transferCurrencyAsset(bytes4 _curr, uint _amount) internal returns(bool succ) {
         if (_curr == "ETH") {
             if (address(this).balance < _amount)
                 _amount = address(this).balance;
-            _transferTo.transfer(_amount);
+            p2.sendEther.value(_amount)();
             succ = true;
         } else {
             IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(_curr)); //solhint-disable-line
             if (erc20.balanceOf(address(this)) < _amount) 
                 _amount = erc20.balanceOf(address(this));
-            require(erc20.transfer(_transferTo, _amount)); 
+            require(erc20.transfer(address(p2), _amount)); 
             succ = true;
             
         }

@@ -217,7 +217,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
      * @param _userAddress whose kyc is being performed
      * @param verdict of kyc process
      */
-    function kycVerdict(address _userAddress, bool verdict) public {
+    function kycVerdict(address payable _userAddress, bool verdict) public {
 
         require(msg.sender == qd.kycAuthAddress());
         require(!ms.isPause());

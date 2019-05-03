@@ -80,7 +80,6 @@ contract TokenFunctionMock is TokenFunctions {
 
     function transferCurrencyAsset(
         bytes4 curr,
-        address transferTo,
         uint amount
     )
         public
@@ -88,6 +87,6 @@ contract TokenFunctionMock is TokenFunctions {
     {
         Pool1 p1 = Pool1(ms.getLatestAddress("P1"));
     
-        return p1.transferCurrencyAsset(curr, transferTo, amount);
+        return p1.transferCurrencyAsset(curr, amount);
     }
 }

@@ -27,7 +27,7 @@ contract QuotationData is Iupgradable {
     enum CoverStatus { Active, ClaimAccepted, ClaimDenied, CoverExpired, ClaimSubmitted, Requested }
 
     struct Cover {
-        address memberAddress;
+        address payable memberAddress;
         bytes4 currencyCode;
         uint sumAssured;
         uint16 coverPeriod;
@@ -130,7 +130,7 @@ contract QuotationData is Iupgradable {
     function addCover(
         uint16 _coverPeriod,
         uint _sumAssured,
-        address _userAddress,
+        address payable _userAddress,
         bytes4 _currencyCode,
         address _scAddress,
         uint premium,
@@ -305,7 +305,7 @@ contract QuotationData is Iupgradable {
     }
 
     /// @dev Gets the owner address of a given cover.
-    function getCoverMemberAddress(uint _cid) external view returns(address _add) {
+    function getCoverMemberAddress(uint _cid) external view returns(address payable _add) {
         _add = allCovers[_cid].memberAddress;
     }
 

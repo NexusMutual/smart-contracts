@@ -62,17 +62,17 @@ contract OwnedUpgradeabilityProxy is UpgradeabilityProxy {
     _upgradeTo(_implementation);
   }
 
-  /**
-   * @dev Allows the proxy owner to upgrade the current version of the proxy and call the new implementation
-   * to initialize whatever is needed through a low level call.
-   * @param _implementation representing the address of the new implementation to be set.
-   * @param _data represents the msg.data to bet sent in the low level call. This parameter may include the function
-   * signature of the implementation to be called with the needed payload
-   */
-  function upgradeToAndCall(address _implementation, bytes memory _data) payable public onlyProxyOwner {
-    _upgradeTo(_implementation);
-    require(address(this).call.value(msg.value)(_data));
-  }
+//   /**
+//   * @dev Allows the proxy owner to upgrade the current version of the proxy and call the new implementation
+//   * to initialize whatever is needed through a low level call.
+//   * @param _implementation representing the address of the new implementation to be set.
+//   * @param _data represents the msg.data to bet sent in the low level call. This parameter may include the function
+//   * signature of the implementation to be called with the needed payload
+//   */
+//   function upgradeToAndCall(address _implementation, bytes memory _data) payable public onlyProxyOwner {
+//     _upgradeTo(_implementation);
+//     require(address(this).call.value(msg.value)(_data));
+//   }
 
   /**
    * @dev Sets the address of the owner

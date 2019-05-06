@@ -16,7 +16,7 @@
 pragma solidity 0.5.7;
 
 import "./Iupgradable.sol";
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./SafeMath.sol";
 
 
 contract QuotationData is Iupgradable {

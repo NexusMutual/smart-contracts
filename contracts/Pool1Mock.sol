@@ -1,7 +1,7 @@
 pragma solidity 0.5.7;
 
-import "../Pool1.sol";
-import "../ClaimsData.sol";
+import "./Pool1.sol";
+import "./ClaimsData.sol";
 
 
 contract Pool1Mock is Pool1 {
@@ -39,7 +39,7 @@ contract Pool1Mock is Pool1 {
         tf.depositCN(coverId);   
     }
 
-    function transferFundToOtherAdd(address _add, uint amt) public {
+    function transferFundToOtherAdd(address payable _add, uint amt) public {
 
         _add.transfer(amt);
         
@@ -52,8 +52,8 @@ contract Pool1Mock is Pool1 {
     function _oraclizeQuery (
         uint paramCount,
         uint timestamp,
-        string datasource,
-        string arg,
+        string memory datasource,
+        string memory arg,
         uint gasLimit
     ) 
         internal

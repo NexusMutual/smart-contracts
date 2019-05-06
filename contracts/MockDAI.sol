@@ -1,7 +1,7 @@
 pragma solidity 0.5.7;
  
-import "../imports/openzeppelin-solidity/token/ERC20/IERC20.sol";
-import "../imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./IERC20.sol";
+import "./SafeMath.sol";
 
 
 contract MockDAI is IERC20 {

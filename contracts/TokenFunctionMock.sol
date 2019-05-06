@@ -1,7 +1,7 @@
 pragma solidity 0.5.7;
 
-import "../Pool1.sol";
-import "../ClaimsData.sol";
+import "./Pool1.sol";
+import "./ClaimsData.sol";
 
 
 contract TokenFunctionMock is TokenFunctions {

@@ -1,7 +1,7 @@
 pragma solidity 0.5.7;
 
-import "../PoolData.sol";
-import "../Governance.sol";
+import "./PoolData.sol";
+import "./Governance.sol";
 
 
 contract GovernanceMock is Governance {

@@ -11,8 +11,8 @@
     along with this program.  If not, see http://www.gnu.org/licenses/ */
 pragma solidity 0.5.7;
 
-import "./imports/govblocks-protocol/interfaces/IProposalCategory.sol";
-import "./imports/govblocks-protocol/Governed.sol";
+import "./IProposalCategory.sol";
+import "./Governed.sol";
 import "./Iupgradable.sol";
 
 

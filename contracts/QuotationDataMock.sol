@@ -1,8 +1,8 @@
 pragma solidity 0.5.7;
 
-import "../QuotationData.sol";
-import "../PoolData.sol";
-import "../imports/proxy/OwnedUpgradeabilityProxy.sol";
+import "./QuotationData.sol";
+import "./PoolData.sol";
+import "./OwnedUpgradeabilityProxy.sol";
 
 
 contract QuotationDataMock is QuotationData {
@@ -13,7 +13,7 @@ contract QuotationDataMock is QuotationData {
 
     }
 
-    function changeHoldedCoverDetails (uint index, uint[] newcoverDetails) public {
+    function changeHoldedCoverDetails (uint index, uint[] memory newcoverDetails) public {
         allCoverHolded[index].coverDetails = newcoverDetails;
     }
 

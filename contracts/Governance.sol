@@ -17,7 +17,7 @@ pragma solidity 0.5.7;
 
 import "./ProposalCategory.sol";
 import "./MemberRoles.sol";
-import "./imports/govblocks-protocol/interfaces/IGovernance.sol";
+import "./IGovernance.sol";
 
 
 contract Governance is IGovernance, Iupgradable {

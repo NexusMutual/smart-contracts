@@ -1,7 +1,7 @@
 pragma solidity 0.5.7;
 
 import "./FactoryMock.sol";
-import "../imports/openzeppelin-solidity/token/ERC20/ERC20.sol";
+import "./ERC20.sol";
 
 
 contract ExchangeMock {
@@ -14,7 +14,9 @@ contract ExchangeMock {
         factory = FactoryMock(factoryAddress);
     }
 
-    function () external payable {}
+    function recieveEther() public payable {
+
+    }
  
     function sendEth(uint val) public {
         (msg.sender).transfer(val);
@@ -82,7 +84,7 @@ contract ExchangeMock {
         uint256 tokensSold,
         uint256 minEth,
         uint256 deadline,
-        address recipient
+        address payable recipient
     )
         public
         payable
@@ -222,7 +224,7 @@ contract ExchangeMock {
         uint256 minEth,
         uint256 deadline,
         address buyer,
-        address recipient
+        address payable recipient
     )
         internal
         returns (uint256)

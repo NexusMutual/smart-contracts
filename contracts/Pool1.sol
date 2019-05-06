@@ -16,7 +16,7 @@
 pragma solidity 0.5.7;
 
 import "./PoolData.sol";
-import "./imports/oraclize/ethereum-api/usingOraclize.sol";
+import "./usingOraclize.sol";
 import "./Claims.sol";
 import "./Quotation.sol";
 import "./Pool2.sol";

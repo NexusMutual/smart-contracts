@@ -15,10 +15,10 @@
 
 pragma solidity 0.5.7;
 
-import "./imports/openzeppelin-solidity/math/SafeMath.sol";
+import "./SafeMath.sol";
 import "./Quotation.sol";
 import "./ClaimsReward.sol";
-import "./imports/uniswap/solidity-interface.sol";
+import "./solidity-interface.sol";
 
 
 contract Pool2 is Iupgradable {

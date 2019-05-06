@@ -7,7 +7,6 @@
     "test"
   ],
   "scripts": {
-    // "test": "scripts/test.sh",
     "pretty": "prettier --write --single-quote --tab-width 2 \"**/*.js\"",
     "precommit": "lint-staged"
   },

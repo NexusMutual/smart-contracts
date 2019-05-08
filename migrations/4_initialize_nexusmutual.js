@@ -15,18 +15,18 @@ const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('GovernanceMock');
+const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const Owner = web3.eth.accounts[0];
-const POOL_ETHER = 10 * 1e18;
-const POOL_ASSET = 50 * 1e18;
+const POOL_ETHER = '10000000000000000000';
+const POOL_ASSET = '50000000000000000000';
 
-module.exports = function(deployer) {
+module.exports = function(deployer, network, accounts) {
   deployer.then(async () => {
+    const Owner = accounts[0];
     const nxms = await NXMaster.deployed();
     const tk = await NXMToken.deployed();
     const td = await TokenData.deployed();
@@ -71,12 +71,12 @@ module.exports = function(deployer) {
     const dai = await DAI.deployed();
     // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
     // await qd.changeInvestmentAssetAddress('0x444149', dai.address);
-    await pl1.sendTransaction({ from: Owner, value: POOL_ETHER });
-    await pl2.sendTransaction({ from: Owner, value: POOL_ETHER }); //
+    await pl1.sendEther({ from: Owner, value: POOL_ETHER });
+    await pl2.sendEther({ from: Owner, value: POOL_ETHER }); //
     await mcr.addMCRData(
       18000,
-      100 * 1e18,
-      2 * 1e18,
+      '100000000000000000000',
+      '2000000000000000000',
       ['0x455448', '0x444149'],
       [100, 15517],
       20190103
@@ -88,7 +88,7 @@ module.exports = function(deployer) {
       true
     ); //testing
     await dai.transfer(pl2.address, POOL_ASSET);
-    let pcAddress = await nxms.getLatestAddress('PC');
+    let pcAddress = await nxms.getLatestAddress('0x5043');
     pc = await ProposalCategory.at(pcAddress);
     await pc.proposalCategoryInitiate();
   });

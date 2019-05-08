@@ -14,11 +14,12 @@ pragma solidity 0.5.7;
 import "./IProposalCategory.sol";
 import "./Governed.sol";
 import "./Iupgradable.sol";
-
+import "./MemberRoles.sol";
 
 contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
 
     bool internal constructorCheck;
+    MemberRoles internal mr;
 
     struct CategoryStruct {
         uint memberRoleToVote;
@@ -194,7 +195,9 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         constructorCheck = true;
     }
 
-    function changeDependentContractAddress() public {}
+    function changeDependentContractAddress() public {
+        mr = MemberRoles(ms.getLatestAddress("MR"));
+    }
 
     /**
      * @dev to change the master address
@@ -236,7 +239,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     )
         public
         onlyAuthorizedToGovern
-    { 
+    {
+        require(_verifyMemberRoles(_memberRoleToVote, _allowedToCreateProposal) == 0, "Invalid Role");
         allCategory[_categoryId].memberRoleToVote = _memberRoleToVote;
         allCategory[_categoryId].majorityVotePerc = _majorityVotePerc;
         allCategory[_categoryId].closingTime = _closingTime;
@@ -275,6 +279,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     ) 
         internal
     {
+        require(_verifyMemberRoles(_memberRoleToVote, _allowedToCreateProposal) == 0, "Invalid Role");
         allCategory.push(
             CategoryStruct(
                 _memberRoleToVote,
@@ -290,6 +295,19 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         categoryABReq[categoryId] = _incentives[2];
         isSpecialResolution[categoryId] = _incentives[3];
         emit Category(categoryId, _name, _actionHash);
+    }
+
+    function _verifyMemberRoles(uint _memberRoleToVote, uint[] memory _allowedToCreateProposal) internal returns(uint){ 
+        uint totalRoles = mr.totalRoles();
+        if(_memberRoleToVote >= totalRoles) {
+            return 1;
+        }
+        for(uint i=0;i < _allowedToCreateProposal.length;i++) {
+            if(_allowedToCreateProposal[i] >= totalRoles) {
+                return 1;
+            }
+        }
+        return 0;
     }
 
     /**

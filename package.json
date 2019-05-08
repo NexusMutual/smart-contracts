@@ -35,7 +35,8 @@
   "homepage": "https://github.com/somish/NexusMutual#readme",
   "dependencies": {
     "bitcore-lib": "^0.16.0",
-    "eth-lightwallet": "^3.0.1"
+    "eth-lightwallet": "^3.0.1",
+    "web3": "^1.0.0-beta.54"
   },
   "devDependencies": {
     "chai": "^4.1.2",

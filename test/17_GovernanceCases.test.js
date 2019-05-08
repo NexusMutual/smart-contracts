@@ -1,4 +1,4 @@
-const Governance = artifacts.require('GovernanceMock');
+const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');

@@ -1,5 +1,5 @@
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('GovernanceMock');
+const Governance = artifacts.require('Governance');
 const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const NXMaster = artifacts.require('NXMaster');

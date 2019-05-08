@@ -1,6 +1,6 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('PoolDataMock');
 const DAI = artifacts.require('MockDAI');
 const exchangeMock = artifacts.require('ExchangeMock');
 const MCR = artifacts.require('MCR');
@@ -13,7 +13,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const MKR = artifacts.require('MockMKR');
-const Governance = artifacts.require('GovernanceMock');
+const Governance = artifacts.require('Governance');
 const FactoryMock = artifacts.require('FactoryMock');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -203,8 +203,8 @@ contract('Pool', function([
   describe('Liquidity', function() {
     it('12.32 Setting the testing parameters', async function() {
       await DSV.setRate(10 * 1e18);
-      await gv.changeCurrencyAssetBaseMin('0x455448', 6 * 1e18);
-      await gv.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('0x455448', 6 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
       await tf.upgradeCapitalPool(owner);
       await p1.upgradeInvestmentPool(owner);
       await tf.transferCurrencyAsset('DAI', owner, 5 * 1e18);
@@ -345,7 +345,7 @@ contract('Pool', function([
       CABalD2.should.be.bignumber.equal(ICABalD2);
     });
     it('12.35 ILT(ETH->ETH)', async function() {
-      await gv.changeCurrencyAssetBaseMin(
+      await pd.changeCurrencyAssetBaseMin(
         '0x455448',
         (await pd.getCurrencyAssetBaseMin('ETH')) * 1 + 5 * 1e18
       );
@@ -395,7 +395,7 @@ contract('Pool', function([
       ICABalD = await cad.balanceOf(p1.address);
       ICABalD2 = await cad.balanceOf(p2.address);
 
-      await gv.changeCurrencyAssetBaseMin(
+      await pd.changeCurrencyAssetBaseMin(
         '0x455448',
         (await pd.getCurrencyAssetBaseMin('ETH')) * 1 - 5 * 1e18
       );
@@ -434,7 +434,7 @@ contract('Pool', function([
     });
 
     it('12.37 ILT(DAI->DAI)', async function() {
-      await gv.changeCurrencyAssetBaseMin(
+      await pd.changeCurrencyAssetBaseMin(
         'DAI',
         (await pd.getCurrencyAssetBaseMin('DAI')) * 1 + 5 * 1e18
       );
@@ -474,7 +474,7 @@ contract('Pool', function([
         20190129,
         false
       );
-      await gv.changeCurrencyAssetBaseMin(
+      await pd.changeCurrencyAssetBaseMin(
         'DAI',
         (await pd.getCurrencyAssetBaseMin('DAI')) * 1 - 5 * 1e18
       );
@@ -1034,7 +1034,7 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(owner);
       await p2.sendTransaction({ from: owner, value: CABalE2 / 1 - 5 * 1e18 });
       await cad.transfer(p2.address, CABalD2);
-      await gv.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('ETH', 11 * 1e18);
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1078,7 +1078,7 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(owner);
       await p2.sendTransaction({ from: owner, value: CABalE2 / 1 - 5 * 1e18 });
       await cad.transfer(p2.address, CABalD2);
-      await gv.changeCurrencyAssetBaseMin('DAI', 16 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('DAI', 16 * 1e18);
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1123,7 +1123,7 @@ contract('Pool', function([
         .should.be.bignumber.equal((ICABalD2 / 1e18).toFixed(0));
     });
     it('12.52 ILT(DAI->ETH) IA with 0 ETH balance', async function() {
-      await gv.changeCurrencyAssetBaseMin('DAI', 21 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('DAI', 21 * 1e18);
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1315,7 +1315,7 @@ contract('Pool', function([
       (newAssetRate / 1).should.be.equal(500);
     });
     it('12.57 ELT(DAI->MKR)', async function() {
-      await gv.changeCurrencyAssetBaseMin('0x444149', 15 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('0x444149', 15 * 1e18);
       await p2.sendTransaction({ from: owner, value: 5 * 1e18 });
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
@@ -1378,7 +1378,7 @@ contract('Pool', function([
         );
     });
     it('12.58 ILT(DAI->MKR)', async function() {
-      await gv.changeCurrencyAssetBaseMin('0x444149', 9 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('0x444149', 9 * 1e18);
       let mkrBal = await mkr.balanceOf(p2.address);
       await p1.upgradeInvestmentPool(owner);
       // await p2.sendTransaction({ from: owner, value: (CABalE2/1 - 5 * 1e18) });
@@ -1451,7 +1451,7 @@ contract('Pool', function([
       let emockD = await fac.getExchange(cad.address);
       let emockDAI = await exchangeMock.at(emockD);
       await emockDAI.sendTransaction({ from: owner, value: 1300 * 1e18 });
-      await gv.changeCurrencyAssetBaseMin('0x444149', 66 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('0x444149', 66 * 1e18);
       await p1.upgradeInvestmentPool(owner);
       await cad.transfer(p2.address, CABalD2);
       await mkr.transfer(p2.address, CABalM / 1 - 20 * 1e18);
@@ -1564,7 +1564,7 @@ contract('Pool', function([
     });
 
     it('12.61 ELT(DAI->MKR) amount > price slippage', async function() {
-      await gv.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('0x444149', 6 * 1e18);
       await p1.upgradeInvestmentPool(owner);
       await p2.sendTransaction({ from: owner, value: CABalE2 });
       await cad.transfer(p2.address, CABalD2);
@@ -1623,7 +1623,7 @@ contract('Pool', function([
         );
     });
     it('12.62 ILT(ETH->ETH) IA dont have sufficeint ETH', async function() {
-      await gv.changeCurrencyAssetBaseMin('ETH', 21 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('ETH', 21 * 1e18);
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
         [100, 1000, 500],
@@ -1661,7 +1661,7 @@ contract('Pool', function([
         .should.be.bignumber.equal((ICABalM / 1e18).toFixed(0));
     });
     it('12.63 ILT(DAI->DAI) IA dont have sufficeint ETH', async function() {
-      await gv.changeCurrencyAssetBaseMin('DAI', 36 * 1e18);
+      await pd.changeCurrencyAssetBaseMin('DAI', 36 * 1e18);
       await tf.transferCurrencyAsset('DAI', owner, 50 * 1e18);
       await p1.upgradeInvestmentPool(owner);
       await cad.transfer(p2.address, CABalD2);

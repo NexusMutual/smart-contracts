@@ -13,7 +13,7 @@ const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const Governance = artifacts.require('GovernanceMock');
+const Governance = artifacts.require('Governance');
 const DAI = artifacts.require('MockDAI');
 
 const { assertRevert } = require('./utils/assertRevert');

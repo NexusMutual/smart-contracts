@@ -7,7 +7,7 @@ const TokenData = artifacts.require('TokenDataMock');
 const NXMaster = artifacts.require('NXMaster');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
-const Governance = artifacts.require('GovernanceMock');
+const Governance = artifacts.require('Governance');
 
 const { ether } = require('./utils/ether');
 const { assertRevert } = require('./utils/assertRevert');

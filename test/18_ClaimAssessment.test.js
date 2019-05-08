@@ -1,6 +1,6 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('PoolDataMock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -15,7 +15,7 @@ const MCR = artifacts.require('MCR');
 const DAI = artifacts.require('MockDAI');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const Governance = artifacts.require('GovernanceMock');
+const Governance = artifacts.require('Governance');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -129,10 +129,10 @@ contract('Claim: Assessment 2', function([
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await DSV.setRate(25 * 1e18);
-    await gv.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
+    await pd.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
     await tf.upgradeCapitalPool(owner);
     await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
-    await gv.changeCurrencyAssetBaseMin(dai_string, 750 * 1e18);
+    await pd.changeCurrencyAssetBaseMin(dai_string, 750 * 1e18);
     await dai.transfer(p1.address, 1250 * 1e18);
     await mcr.addMCRData(
       10000,

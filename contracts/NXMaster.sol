@@ -36,7 +36,7 @@ contract NXMaster is Governed {
     uint[] public versionDates;
     bytes2[] internal allContractNames;
     mapping(address => bool) public contractsActive;
-    mapping(uint => mapping(bytes2 => address)) internal allContractVersions;
+    mapping(uint => mapping(bytes2 => address payable)) internal allContractVersions;
 
     address public tokenAddress;
 
@@ -209,7 +209,7 @@ contract NXMaster is Governed {
     }
 
     /// @dev upgrades a single contract
-    function upgradeContract(bytes2 _contractsName, address _contractsAddress) public {
+    function upgradeContract(bytes2 _contractsName, address payable _contractsAddress) public {
         require(checkIsAuthToGoverned(msg.sender));
         require(_contractsAddress != address(0));
 
@@ -384,14 +384,14 @@ contract NXMaster is Governed {
 
     /// @dev Gets latest contract address
     /// @param _contractName Contract name to fetch
-    function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress) {
+    function getLatestAddress(bytes2 _contractName) public view returns(address payable contractAddress) {
         contractAddress =
             allContractVersions[versionDates.length - 1][_contractName];
     }
 
     /// @dev Creates a new version of contract addresses
     /// @param _contractAddresses Array of contract addresses which will be generated
-    function addNewVersion(address[] memory _contractAddresses) public {
+    function addNewVersion(address payable[] memory _contractAddresses) public {
 
         require(msg.sender == owner && !constructorCheck);
         require(_contractAddresses.length == allContractNames.length,"array length not same");
@@ -518,7 +518,7 @@ contract NXMaster is Governed {
     /// @dev transfers proxy ownership to new master.
     /// @param _contractAddress contract address of new master.
     /// @param _proxyContracts array of addresses of proxyContracts
-    function _changeProxyOwnership(address _contractAddress, address _proxyContracts) internal {
+    function _changeProxyOwnership(address _contractAddress, address payable _proxyContracts) internal {
         // for (uint i = 0; i < _proxyContracts.length; i++) {
         OwnedUpgradeabilityProxy tempInstance 
         = OwnedUpgradeabilityProxy(_proxyContracts);

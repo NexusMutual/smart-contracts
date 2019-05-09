@@ -15,7 +15,7 @@ contract Proxy {
   * @dev Fallback function allowing to perform a delegatecall to the given implementation.
   * This function will return whatever the implementation call returns
   */
-  function () external {
+  function () external payable {
     address _impl = implementation();
     require(_impl != address(0));
 

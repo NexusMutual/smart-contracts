@@ -297,7 +297,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         emit Category(categoryId, _name, _actionHash);
     }
 
-    function _verifyMemberRoles(uint _memberRoleToVote, uint[] memory _allowedToCreateProposal) internal returns(uint){ 
+    function _verifyMemberRoles(uint _memberRoleToVote, uint[] memory _allowedToCreateProposal) internal view returns(uint){ 
         uint totalRoles = mr.totalRoles();
         if(_memberRoleToVote >= totalRoles) {
             return 1;

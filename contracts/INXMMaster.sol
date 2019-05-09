@@ -43,5 +43,5 @@ contract INXMMaster {
 
     function dAppToken() public view returns(address _add);
 
-    function getLatestAddress(bytes2 _contractName) public view returns(address contractAddress);
+    function getLatestAddress(bytes2 _contractName) public view returns(address payable contractAddress);
 }

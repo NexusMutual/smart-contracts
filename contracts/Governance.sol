@@ -532,9 +532,9 @@ contract Governance is IGovernance, Iupgradable {
      * @dev get length of propsal
      * @return length of propsal
      */
-    // function getProposalLength() external view returns(uint) {
-    //     return totalProposals;
-    // }
+    function getProposalLength() external view returns(uint) {
+        return totalProposals;
+    }
 
     /**
      * @dev get followers of an address

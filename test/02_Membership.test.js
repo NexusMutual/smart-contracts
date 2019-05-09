@@ -3,7 +3,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMaster = artifacts.require('NXMaster');
 
 const { assertRevert } = require('./utils/assertRevert');
-const { ether } = require('./utils/ether');
+const { ether } = require('./utils/ethTools');
 
 let tf;
 let mr;

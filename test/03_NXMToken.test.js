@@ -9,7 +9,7 @@ const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 
-const { ether } = require('./utils/ether');
+const { ether } = require('./utils/ethTools');
 const { assertRevert } = require('./utils/assertRevert');
 const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');

@@ -11,7 +11,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether } = require('./utils/ether');
+const { ether } = require('./utils/ethTools');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';

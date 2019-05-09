@@ -23,7 +23,7 @@ const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const Exchange_0x = web3.eth.accounts[17];
 
-const { ether } = require('./utils/ether');
+const { ether } = require('./utils/ethTools');
 const { assertRevert } = require('./utils/assertRevert');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;

@@ -7,7 +7,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMToken = artifacts.require('NXMToken');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 const encode = require('./utils/encoder.js').encode;
-const { ether } = require('./utils/ether');
+const { ether } = require('./utils/ethTools');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 
 let mr;

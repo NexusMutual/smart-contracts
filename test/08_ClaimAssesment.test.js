@@ -18,7 +18,7 @@ const DAI = artifacts.require('MockDAI');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether } = require('./utils/ether');
+const { ether } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;

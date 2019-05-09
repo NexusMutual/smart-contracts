@@ -10,6 +10,7 @@ const NXMToken = artifacts.require('NXMToken');
 const QuotationData = artifacts.require('QuotationDataMock');
 const DAI = artifacts.require('MockDAI');
 const ClaimsData = artifacts.require('ClaimsData');
+const Pool1 = artifacts.require('Pool1Mock');
 const FactoryMock = artifacts.require('FactoryMock');
 const expectEvent = require('./utils/expectEvent');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
@@ -18,6 +19,9 @@ const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const AdvisoryBoard = '0x41420000';
 const TokenFunctions = artifacts.require('TokenFunctionMock');
+const Web3 = require('web3');
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545')); // Hardcoded development port
+const { toWei } = require('./utils/ethTools');
 
 let tf;
 let gv;
@@ -29,6 +33,7 @@ let pd;
 let td;
 let qd;
 let cd;
+let p1;
 let nxms;
 let proposalId;
 let pId;
@@ -50,31 +55,37 @@ contract(
       tf = await TokenFunctions.deployed();
       cr = await ClaimsReward.deployed();
       nxmToken = await NXMToken.deployed();
-      let address = await nxms.getLatestAddress('GV');
+      let address = await nxms.getLatestAddress('0x4756');
       gv = await Governance.at(address);
-      address = await nxms.getLatestAddress('PC');
+      address = await nxms.getLatestAddress('0x5043');
       pc = await ProposalCategory.at(address);
-      address = await nxms.getLatestAddress('MR');
+      address = await nxms.getLatestAddress('0x4d52');
       mr = await MemberRoles.at(address);
-      tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+      tc = await TokenController.at(await nxms.getLatestAddress('0x5443'));
       pd = await PoolData.deployed();
+      p1 = await Pool1.deployed();
       td = await TokenData.deployed();
       qd = await QuotationData.deployed();
       cd = await ClaimsData.deployed();
+      // await p1.sendEther({value:10});
+      // console.log(await test.variable());
       await nxmToken.approve(tc.address, maxAllowance);
-      let bal = await nxmToken.balanceOf(ab1);
+      // await pc.payMe({
+      //     value:"10",
+      //     // from: web3.eth.accounts[1]
+      //   });
+      // let bal = await nxmToken.balanceOf(ab1);
       await nxmToken.approve(cr.address, maxAllowance, {
-        from: web3.eth.accounts[0]
+        from: ab1
       });
-      // await mr.payJoiningFee(web3.eth.accounts[0], {
-      //   value: 2000000000000000,
-      //   from: web3.eth.accounts[0]
-      // });
       // await mr.kycVerdict(web3.eth.accounts[0], true, {
       //   from: web3.eth.accounts[0]
       // });
       // await nxmToken.transfer(notMember, 267600*1e18);
-      let balances = [150000, 150000, 150000, 150000];
+      let balances = ['15000', '15000', '15000', '15000'];
+      console.log(ab1);
+      console.log(mem1);
+      console.log(mem2);
       for (let i = 1; i < 4; i++) {
         await nxmToken.approve(cr.address, maxAllowance, {
           from: web3.eth.accounts[i]
@@ -84,9 +95,9 @@ contract(
           from: web3.eth.accounts[i]
         });
         await mr.kycVerdict(web3.eth.accounts[i], true, {
-          from: web3.eth.accounts[0]
+          from: ab1
         });
-        await nxmToken.transfer(web3.eth.accounts[i], balances[i] * 1e18);
+        await nxmToken.transfer(web3.eth.accounts[i], toWei(balances[i]));
       }
     });
     async function updateParameter(
@@ -97,11 +108,13 @@ contract(
       type,
       proposedValue
     ) {
+      code = web3.toHex(code);
       let getterFunction;
       if (type == 'uint') {
         action = 'updateUintParameters(bytes8,uint)';
         getterFunction = 'getUintParameters';
       } else if (type == 'address') {
+        proposedValue = web3.toChecksumAddress(proposedValue);
         action = 'updateAddressParameters(bytes8,address)';
         getterFunction = 'getAddressParameters';
       } else if (type == 'owner') {
@@ -129,6 +142,7 @@ contract(
       type,
       proposedValue
     ) {
+      code = web3.toHex(code);
       let getterFunction;
       if (type == 'uint') {
         action = 'updateUintParameters(bytes8,uint)';
@@ -198,6 +212,9 @@ contract(
       });
       it('Should update Max Followers limit', async function() {
         await updateParameter(22, 2, 'MAXFOL', gv, 'uint', '10');
+      });
+      it('Should update Max Draft time limit', async function() {
+        await updateParameter(22, 2, 'MAXDRFT', gv, 'uint', '86400');
       });
       it('Should update Max Advisory Board Members', async function() {
         await updateParameter(22, 2, 'MAXAB', gv, 'uint', '10');

@@ -18,7 +18,7 @@ const FactoryMock = artifacts.require('FactoryMock');
 
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { assertRevert } = require('./utils/assertRevert');
-const { ether } = require('./utils/ether');
+const { ether } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const encode = require('./utils/encoder.js').encode;

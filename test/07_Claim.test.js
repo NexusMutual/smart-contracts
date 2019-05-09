@@ -347,8 +347,12 @@ contract('Claim', function([
   describe('Misc', function() {
     describe('owner address', function() {
       it('7.16 should be able to propose new minTime voting', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         let actionHash = encode(
           'updateUintParameters(bytes8,uint)',
           'CAMINVT',
@@ -359,8 +363,12 @@ contract('Claim', function([
         (val[1] / 1).should.be.equal(0);
       });
       it('7.17 should be able to propose new max voting Time', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         let actionHash = encode(
           'updateUintParameters(bytes8,uint)',
           'CAMAXVT',
@@ -371,8 +379,12 @@ contract('Claim', function([
         (val[1] / 1).should.be.equal(10);
       });
       it('7.18 should be able to propose new Payout retry time', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         let actionHash = encode(
           'updateUintParameters(bytes8,uint)',
           'CAPRETRY',
@@ -383,8 +395,12 @@ contract('Claim', function([
         (val[1] / 1).should.be.equal(120);
       });
       it('7.21 should be able to propose new claim deposit time', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         let actionHash = encode(
           'updateUintParameters(bytes8,uint)',
           'CADEPT',
@@ -396,8 +412,12 @@ contract('Claim', function([
       });
 
       it('7.22 should be able to propose new claim reward percentage', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         let actionHash = encode(
           'updateUintParameters(bytes8,uint)',
           'CAREWPER',

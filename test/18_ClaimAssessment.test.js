@@ -125,7 +125,7 @@ contract('Claim: Assessment 2', function([
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
-    gv = await Governance.at(await nxms.getLatestAddress('GV'));
+    gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await DSV.setRate(25 * 1e18);

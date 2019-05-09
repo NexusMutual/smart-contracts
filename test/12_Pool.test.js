@@ -95,7 +95,7 @@ contract('Pool', function([
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
-    let address = await nxms.getLatestAddress('GV');
+    let address = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(address);
     fac = await FactoryMock.deployed();
     await mr.addMembersBeforeLaunch([], []);

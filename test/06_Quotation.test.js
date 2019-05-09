@@ -924,8 +924,12 @@ contract('Quotation', function([
           );
           await cad.transfer(qt.address, 10 * 1e18);
           let newQt = await Quotation.new();
-          let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-          let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+          let oldMR = await MemberRoles.at(
+            await nxms.getLatestAddress(toHex('MR'))
+          );
+          let oldGv = await Governance.at(
+            await nxms.getLatestAddress(toHex('GV'))
+          );
           actionHash = encode(
             'upgradeContract(bytes2,address)',
             'QT',
@@ -1074,8 +1078,12 @@ contract('Quotation', function([
         });
 
         it('6.34.2 should revert if wallet address is not set', async function() {
-          let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-          let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+          let oldMR = await MemberRoles.at(
+            await nxms.getLatestAddress(toHex('MR'))
+          );
+          let oldGv = await Governance.at(
+            await nxms.getLatestAddress(toHex('GV'))
+          );
           actionHash = encode(
             'updateOwnerParameters(bytes8,address)',
             'MSWALLET',
@@ -1285,29 +1293,45 @@ contract('Quotation', function([
   describe('Misc', function() {
     describe('Change product params if owner', function() {
       it('6.47 only governance call should be able to change Profit Margin', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'PM', 4);
         await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.pm()) / 1).should.be.equal(4);
       });
       it('6.48 only governance call should be able to change STLP', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'STLP', 4);
         await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.stlp()) / 1).should.be.equal(4);
       });
       it('6.49 only governance call should be able to change STL', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'STL', 4);
         await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.stl()) / 1).should.be.equal(4);
       });
       it('6.50 only governance call should be able to change minimum cover period', async function() {
-        let oldMR = await MemberRoles.at(await nxms.getLatestAddress('MR'));
-        let oldGv = await Governance.at(await nxms.getLatestAddress('GV'));
+        let oldMR = await MemberRoles.at(
+          await nxms.getLatestAddress(toHex('MR'))
+        );
+        let oldGv = await Governance.at(
+          await nxms.getLatestAddress(toHex('GV'))
+        );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOMIND', 4);
         await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.minDays()) / 1).should.be.equal(4);

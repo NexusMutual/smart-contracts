@@ -88,7 +88,7 @@ contract('ClaimsReward', function([
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
-    gv = await Governance.at(await nxms.getLatestAddress('GV'));
+    gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     mcr = await MCR.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);

@@ -37,9 +37,9 @@ contract('MemberRoles', function([
 ]) {
   before(async function() {
     nxms = await NXMaster.deployed();
-    address = await nxms.getLatestAddress('MR');
+    address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
-    address = await nxms.getLatestAddress('GV');
+    address = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(address);
     tf = await TokenFunctions.deployed();
     tk = await NXMToken.deployed();

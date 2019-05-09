@@ -61,11 +61,11 @@ contract(
       tf = await TokenFunctions.deployed();
       cr = await ClaimsReward.deployed();
       nxmToken = await NXMToken.deployed();
-      let address = await nxms.getLatestAddress('GV');
+      let address = await nxms.getLatestAddress(toHex('GV'));
       gv = await Governance.at(address);
       address = await nxms.getLatestAddress('PC');
       pc = await ProposalCategory.at(address);
-      address = await nxms.getLatestAddress('MR');
+      address = await nxms.getLatestAddress(toHex('MR'));
       mr = await MemberRoles.at(address);
       tc = await TokenController.at(await nxms.getLatestAddress('TC'));
       // tc = await TokenController.deployed();

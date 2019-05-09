@@ -16,10 +16,10 @@ contract('Proposal Category', function([owner, other]) {
     nxms = await NXMaster.deployed();
     let address = await nxms.getLatestAddress('PC');
     pc = await ProposalCategory.at(address);
-    address = await nxms.getLatestAddress('GV');
+    address = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(address);
     tf = await TokenFunctions.deployed();
-    address = await nxms.getLatestAddress('MR');
+    address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
   });
 

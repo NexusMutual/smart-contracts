@@ -81,9 +81,9 @@ contract('NXMaster: Emergency Pause', function([
     td = await TokenData.deployed();
     mcr = await MCR.deployed();
     p2 = await Pool2.deployed();
-    gvAddress = await nxms.getLatestAddress('GV');
+    gvAddress = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(gvAddress);
-    let address = await nxms.getLatestAddress('MR');
+    let address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     await mr.addMembersBeforeLaunch([], []);

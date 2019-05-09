@@ -106,7 +106,7 @@ contract('Claim: Assessment', function([
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress('TC'));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
-    gv = await Governance.at(await nxms.getLatestAddress('GV'));
+    gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     await mr.addMembersBeforeLaunch([], []);

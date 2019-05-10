@@ -9,7 +9,7 @@ const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 
-const { ether } = require('./utils/ethTools');
+const { ether, toHex, toWei } = require('./utils/ethTools');
 const { assertRevert } = require('./utils/assertRevert');
 const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
@@ -28,7 +28,7 @@ let tf;
 let tc;
 let td;
 let mr;
-
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -49,7 +49,7 @@ contract('NXMToken', function([
   const fee = ether(0.002);
   const tokenAmount = ether(2);
   const tokens = ether(1);
-  const initialFounderTokens = new BigNumber(15e23);
+  const initialFounderTokens = new web3.utils.BN(toWei(1500000));
 
   before(async function() {
     tk = await NXMToken.deployed();
@@ -59,7 +59,7 @@ contract('NXMToken', function([
     mcr = await MCR.deployed();
     pd = await PoolData.deployed();
     nxms = await NXMaster.deployed();
-    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+    tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -68,6 +68,10 @@ contract('NXMToken', function([
     //   value: fee
     // });
     // await mr.kycVerdict(web3.eth.accounts[0], true);
+    const Web3 = require('web3');
+    const web3 = new Web3(
+      new Web3.providers.HttpProvider('http://localhost:8545')
+    );
     for (let itr = 6; itr < 9; itr++) {
       await mr.payJoiningFee(web3.eth.accounts[itr], {
         from: web3.eth.accounts[itr],
@@ -77,7 +81,7 @@ contract('NXMToken', function([
       let isMember = await nxms.isMember(web3.eth.accounts[itr]);
       isMember.should.equal(true);
 
-      await tk.transfer(web3.eth.accounts[itr], 375000000000000000000000);
+      await tk.transfer(web3.eth.accounts[itr], toWei(37500));
     }
   });
 
@@ -88,17 +92,21 @@ contract('NXMToken', function([
     });
     it('3.2 should return correct total Supply', async function() {
       const ts = await tk.totalSupply();
-      ts.should.be.bignumber.equal(initialFounderTokens);
+      ts.toString().should.be.equal(initialFounderTokens.toString());
     });
     it('3.3 should return non zero token price', async function() {
-      (await tf.getTokenPrice(ETH)).should.be.bignumber.not.equal(0);
+      (await tf.getTokenPrice(ETH))
+        .toString()
+        .should.be.not.equal((0).toString());
     });
     it('3.4 should return correct decimals', async function() {
       const decimals = 18;
-      decimals.should.be.bignumber.equal(await tk.decimals());
+      decimals.toString().should.be.equal((await tk.decimals()).toString());
     });
     it('3.5 should return zero available balance for non member', async function() {
-      (await tk.balanceOf(notMember)).should.be.bignumber.equal(0);
+      (await tk.balanceOf(notMember))
+        .toString()
+        .should.be.equal((0).toString());
     });
   });
 
@@ -112,7 +120,9 @@ contract('NXMToken', function([
     });
     it('3.7 should be able to buy tokens if member', async function() {
       await P1.buyToken({ from: member1, value: tokenAmount });
-      (await tk.balanceOf(member1)).should.be.bignumber.not.equal(0);
+      (await tk.balanceOf(member1))
+        .toString()
+        .should.be.not.equal((0).toString());
     });
   });
 
@@ -121,18 +131,24 @@ contract('NXMToken', function([
       it('3.8 returns zero', async function() {
         await mr.payJoiningFee(member2, { from: member2, value: fee });
         await mr.kycVerdict(member2, true);
-        (await tk.balanceOf(member2)).should.be.bignumber.equal(0);
+        (await tk.balanceOf(member2))
+          .toString()
+          .should.be.equal((0).toString());
       });
     });
     describe('when the requested account is a member and has some tokens', function() {
       beforeEach(async function() {});
       it('3.9 returns the non zero amount of tokens', async function() {
-        (await tk.balanceOf(member1)).should.be.bignumber.not.equal(0);
+        (await tk.balanceOf(member1))
+          .toString()
+          .should.be.not.equal((0).toString());
       });
     });
     describe('when the requested account is not a member', function() {
       it('3.10 returns zero', async function() {
-        (await tk.balanceOf(notMember)).should.be.bignumber.equal(0);
+        (await tk.balanceOf(notMember))
+          .toString()
+          .should.be.equal((0).toString());
       });
     });
   });
@@ -168,7 +184,9 @@ contract('NXMToken', function([
         describe('when the sender does have enough balance', function() {
           it('3.13 transfers the requested amount', async function() {
             await tk.transfer(to, transferTokens, { from: member1 });
-            (await tk.balanceOf(member2)).should.be.bignumber.not.equal(0);
+            (await tk.balanceOf(member2))
+              .toString()
+              .should.be.not.equal((0).toString());
           });
 
           it('3.14 emits a transfer event', async function() {
@@ -180,7 +198,9 @@ contract('NXMToken', function([
               to: member2
             });
 
-            event.args.value.should.be.bignumber.equal(transferTokens);
+            event.args.value
+              .toString()
+              .should.be.equal(transferTokens.toString());
           });
         });
       });
@@ -201,18 +221,20 @@ contract('NXMToken', function([
         const approveTokens = ether(2);
         it('3.16 approves the requested amount', async function() {
           await tk.approve(spender, approveTokens, { from: member1 });
-          (await tk.allowance(member1, spender)).should.be.bignumber.equal(
-            approveTokens
-          );
+          (await tk.allowance(member1, spender))
+            .toString()
+            .should.be.equal(approveTokens.toString());
         });
       });
       describe('when approve amount is more than balance of sender', function() {
         it('3.17 approves the requested amount', async function() {
-          const approveTokens = (await tk.balanceOf(member1)).plus(1e18);
+          const approveTokens = new BN(
+            (await tk.balanceOf(member1)).toString()
+          ).add(new BN(toWei(1).toString()));
           tk.approve(spender2, approveTokens, { from: member1 });
-          (await tk.allowance(member1, spender2)).should.be.bignumber.equal(
-            approveTokens
-          );
+          (await tk.allowance(member1, spender2))
+            .toString()
+            .should.be.equal(approveTokens.toString());
         });
       });
     });
@@ -223,9 +245,9 @@ contract('NXMToken', function([
 
       it('3.18 approves the requested amount', async function() {
         await tk.approve(spender, approveTokens, { from: notMember });
-        (await tk.allowance(notMember, spender)).should.be.bignumber.equal(
-          approveTokens
-        );
+        (await tk.allowance(notMember, spender))
+          .toString()
+          .should.be.equal(approveTokens.toString());
       });
     });
   });
@@ -275,19 +297,24 @@ contract('NXMToken', function([
               const initialTokenBalance = await tk.balanceOf(sender);
               await tk.transferFrom(sender, to, amount, { from: spender });
 
-              (await tk.balanceOf(sender)).should.be.bignumber.equal(
-                initialTokenBalance.minus(amount)
-              );
-
-              (await tk.balanceOf(to)).should.be.bignumber.equal(amount);
+              (await tk.balanceOf(sender))
+                .toString()
+                .should.be.equal(
+                  new BN(initialTokenBalance.toString())
+                    .sub(new BN(amount.toString()))
+                    .toString()
+                );
+              (await tk.balanceOf(to))
+                .toString()
+                .should.be.equal(amount.toString());
             });
 
             it('3.23 decreases the spender allowance', async function() {
               await tk.transferFrom(sender, to, amount, { from: spender });
 
-              (await tk.allowance(sender, spender)).should.be.bignumber.equal(
-                0
-              );
+              (await tk.allowance(sender, spender))
+                .toString()
+                .should.be.equal((0).toString());
             });
 
             it('3.24 emits a transfer event', async function() {
@@ -299,7 +326,7 @@ contract('NXMToken', function([
               logs[0].event.should.equal('Transfer');
               logs[0].args.from.should.equal(sender);
               logs[0].args.to.should.equal(to);
-              logs[0].args.value.should.be.bignumber.equal(amount);
+              logs[0].args.value.toString().should.be.equal(amount.toString());
             });
           });
 
@@ -307,9 +334,14 @@ contract('NXMToken', function([
             it('3.25 reverts', async function() {
               const amount = await tk.balanceOf(sender);
               await assertRevert(
-                tk.transferFrom(sender, to, amount.plus(1e18), {
-                  from: spender
-                })
+                tk.transferFrom(
+                  sender,
+                  to,
+                  new BN(amount.toString()).add(new BN(toWei(1).toString())),
+                  {
+                    from: spender
+                  }
+                )
               );
             });
           });
@@ -352,27 +384,43 @@ contract('NXMToken', function([
       const initialPoolBalance = await web3.eth.getBalance(P1.address);
       const initialTotalSupply = await tk.totalSupply();
       await P1.sellNXMTokens(sellTokens, { from: member1 });
-      const newPoolBalance = initialPoolBalance.minus(sellTokensWorth);
-      const newTokenBalance = initialTokenBalance.minus(sellTokens);
-      const newTotalSupply = initialTotalSupply.minus(sellTokens);
-      newTokenBalance.should.be.bignumber.equal(await tk.balanceOf(member1));
-      newTotalSupply.should.be.bignumber.equal(await tk.totalSupply());
-      newPoolBalance.should.be.bignumber.equal(
-        await web3.eth.getBalance(P1.address)
+      const newPoolBalance = new BN(initialPoolBalance.toString()).sub(
+        new BN(sellTokensWorth.toString())
       );
+      const newTokenBalance = new BN(initialTokenBalance.toString()).sub(
+        new BN(sellTokens.toString())
+      );
+      const newTotalSupply = new BN(initialTotalSupply.toString()).sub(
+        new BN(sellTokens.toString())
+      );
+      newTokenBalance
+        .toString()
+        .should.be.equal((await tk.balanceOf(member1)).toString());
+      newTotalSupply
+        .toString()
+        .should.be.equal((await tk.totalSupply()).toString());
+      newPoolBalance
+        .toString()
+        .should.be.equal((await web3.eth.getBalance(P1.address)).toString());
     });
 
     it('3.29 should not be to sell tokens more than balance', async function() {
       const tokenBalance = await tk.balanceOf(member1);
       await assertRevert(
-        P1.sellNXMTokens(tokenBalance.plus(1e18), { from: member1 })
+        P1.sellNXMTokens(
+          new BN(tokenBalance.toString()).add(new BN(toWei(1).toString())),
+          { from: member1 }
+        )
       );
     });
 
     it('3.30 should not be to sell tokens more than maxSellTokens', async function() {
       const maxSellTokens = await mcr.getMaxSellTokens({ from: member1 });
       await assertRevert(
-        P1.sellNXMTokens(maxSellTokens.plus(1e18), { from: member1 })
+        P1.sellNXMTokens(
+          new BN(maxSellTokens.toString()).add(new BN(toWei(1).toString())),
+          { from: member1 }
+        )
       );
     });
   });
@@ -384,7 +432,7 @@ contract('NXMToken', function([
         const event = expectEvent.inLogs(logs, 'Transfer', {
           from: member1
         });
-        await event.args.value.should.be.bignumber.equal(tokens);
+        await event.args.value.toString().should.be.equal(tokens.toString());
       });
     });
 
@@ -405,15 +453,15 @@ contract('NXMToken', function([
         let oldGv = await Governance.at(
           await nxms.getLatestAddress(toHex('GV'))
         );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'A', 0);
+        actionHash = encode('updateUintParameters(bytes8,uint)', toHex('A'), 0);
         await gvProp(25, actionHash, oldMR, oldGv, 2);
-        let val = await pd.getUintParameters('A');
+        let val = await pd.getUintParameters(toHex('A'));
         (val[1] / 1).should.be.equal(0);
         // await pd.changeA(0, { from: owner });
         await mcr.addMCRData(
           180,
           0,
-          2 * 1e18,
+          toWei(2),
           ['0x455448', '0x444149'],
           [100, 15517],
           20190219
@@ -422,9 +470,9 @@ contract('NXMToken', function([
       it('3.33 reverts', async function() {
         const initialTokenBalance = await tk.balanceOf(member1);
         await assertRevert(P1.buyToken({ from: member1, value: tokenAmount }));
-        (await tk.balanceOf(member1)).should.be.bignumber.equal(
-          initialTokenBalance
-        );
+        (await tk.balanceOf(member1))
+          .toString()
+          .should.be.equal(initialTokenBalance.toString());
       });
     });
 
@@ -446,10 +494,14 @@ contract('NXMToken', function([
         let oldGv = await Governance.at(
           await nxms.getLatestAddress(toHex('GV'))
         );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'JOINFEE', 1);
+        actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          toHex('JOINFEE'),
+          1
+        );
         await gvProp(21, actionHash, oldMR, oldGv, 2);
-        let val = await td.getUintParameters('JOINFEE');
-        val[1].should.be.bignumber.equal(1);
+        let val = await td.getUintParameters(toHex('JOINFEE'));
+        val[1].toString().should.be.equal((1).toString());
       });
       it('3.35 should be able to change BookTime', async function() {
         let oldMR = await MemberRoles.at(
@@ -458,10 +510,14 @@ contract('NXMToken', function([
         let oldGv = await Governance.at(
           await nxms.getLatestAddress(toHex('GV'))
         );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'CABOOKT', 1);
+        actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          toHex('CABOOKT'),
+          1
+        );
         await gvProp(21, actionHash, oldMR, oldGv, 2);
-        let val = await td.getUintParameters('CABOOKT');
-        val[1].should.be.bignumber.equal(1);
+        let val = await td.getUintParameters(toHex('CABOOKT'));
+        val[1].toString().should.be.equal((1).toString());
       });
       it('3.36 should be able to change lockCADays', async function() {
         let oldMR = await MemberRoles.at(
@@ -470,10 +526,14 @@ contract('NXMToken', function([
         let oldGv = await Governance.at(
           await nxms.getLatestAddress(toHex('GV'))
         );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'CALOCKT', 1);
+        actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          toHex('CALOCKT'),
+          1
+        );
         await gvProp(21, actionHash, oldMR, oldGv, 2);
-        let val = await td.getUintParameters('CALOCKT');
-        val[1].should.be.bignumber.equal(1);
+        let val = await td.getUintParameters(toHex('CALOCKT'));
+        val[1].toString().should.be.equal((1).toString());
       });
       it('3.37 should be able to change SCValidDays', async function() {
         let oldMR = await MemberRoles.at(
@@ -482,10 +542,14 @@ contract('NXMToken', function([
         let oldGv = await Governance.at(
           await nxms.getLatestAddress(toHex('GV'))
         );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'RALOCKT', 1);
+        actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          toHex('RALOCKT'),
+          1
+        );
         await gvProp(21, actionHash, oldMR, oldGv, 2);
-        let val = await td.getUintParameters('RALOCKT');
-        val[1].should.be.bignumber.equal(1);
+        let val = await td.getUintParameters(toHex('RALOCKT'));
+        val[1].toString().should.be.equal((1).toString());
       });
       it('3.38 should be able to change LockTokenTimeAfterCoverExp', async function() {
         let oldMR = await MemberRoles.at(
@@ -494,10 +558,14 @@ contract('NXMToken', function([
         let oldGv = await Governance.at(
           await nxms.getLatestAddress(toHex('GV'))
         );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOLOCKT', 1);
+        actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          toHex('QUOLOCKT'),
+          1
+        );
         await gvProp(20, actionHash, oldMR, oldGv, 2);
-        let val = await td.getUintParameters('QUOLOCKT');
-        val[1].should.be.bignumber.equal(1);
+        let val = await td.getUintParameters(toHex('QUOLOCKT'));
+        val[1].toString().should.be.equal((1).toString());
       });
       // it('3.39 should be able to change CanAddMemberAddress', async function() {
       //   await assertRevert(
@@ -513,10 +581,14 @@ contract('NXMToken', function([
         let oldGv = await Governance.at(
           await nxms.getLatestAddress(toHex('GV'))
         );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'MVLOCKT', 1);
+        actionHash = encode(
+          'updateUintParameters(bytes8,uint)',
+          toHex('MVLOCKT'),
+          1
+        );
         await gvProp(21, actionHash, oldMR, oldGv, 2);
-        let val = await td.getUintParameters('MVLOCKT');
-        val[1].should.be.bignumber.equal(1);
+        let val = await td.getUintParameters(toHex('MVLOCKT'));
+        val[1].toString().should.be.equal((1).toString());
       });
     });
   });

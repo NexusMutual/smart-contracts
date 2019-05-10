@@ -123,19 +123,13 @@ contract('NXMaster', function([
     //   value: fee
     // });
     // await oldMR.kycVerdict(web3.eth.accounts[0], true);
-    console.log(fee);
-    console.log(await td.joiningFee());
     for (let itr = 5; itr < 9; itr++) {
-      console.log('Hi');
       await oldMR.payJoiningFee(web3.eth.accounts[itr], {
         from: web3.eth.accounts[itr],
         value: fee
       });
-      console.log('Bye');
       await oldMR.kycVerdict(web3.eth.accounts[itr], true);
-      console.log('yo2');
       let isMember = await nxms.isMember(web3.eth.accounts[itr]);
-      console.log('yo3');
       isMember.should.equal(true);
 
       await oldTk.transfer(web3.eth.accounts[itr], toWei(37500));
@@ -216,15 +210,12 @@ contract('NXMaster', function([
         QE
       );
       await gvProp(28, actionHash, oldMR, oldGv, 3);
-      console.log(web3.utils.toChecksumAddress(QE));
       let qeAdd = await qd.authQuoteEngine();
       let qeAdd1 = web3.utils.toChecksumAddress(qeAdd);
       let qeAdd2 = web3.utils.toChecksumAddress(QE);
-      console.log('a1: ', qeAdd1);
-      console.log('a2: ', qeAdd2);
+      let assertion = qeAdd2 == qeAdd1;
 
-      qeAdd1.should.equal(qeAdd2);
-
+      assertion.should.equal(true);
       // await pd.changeCurrencyAssetAddress('0x444149', dai.address);
       // await pd.changeInvestmentAssetAddress('0x444149', dai.address);
       actionHash = encode(
@@ -233,7 +224,7 @@ contract('NXMaster', function([
         QE
       );
       await gvProp(28, actionHash, oldMR, oldGv, 3);
-      (await pd.notariseMCR()).should.be.equal(QE);
+      (await pd.notariseMCR()).should.be.equal(qeAdd2);
 
       actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
@@ -244,8 +235,8 @@ contract('NXMaster', function([
       (await pd.notariseMCR()).should.be.equal(owner);
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
-        2 * 1e18,
+        toWei(100),
+        toWei(2),
         ['0x455448', '0x444149'],
         [100, 15517],
         20190103
@@ -332,13 +323,13 @@ contract('NXMaster', function([
     });
 
     it('1.22 other address/contract should not be able to update pauseTime', async function() {
-      const updatePauseTime = pauseTime.plus(new web3.utils.BN(60));
-      console.log(updatePauseTime);
-      console.log(await nxms.getPauseTime());
+      // const updatePauseTime = pauseTime.addn(new web3.utils.BN(60));
+      const updatePauseTime = pauseTime.toNumber() + 60;
       await assertRevert(
         nxms.updatePauseTime(updatePauseTime, { from: newOwner })
       );
-      updatePauseTime.should.be.not.equal(await nxms.getPauseTime());
+      let pauseTime1 = await nxms.getPauseTime();
+      updatePauseTime.should.be.not.equal(pauseTime1.toNumber());
     });
 
     it('1.23 governance call should be able to update pauseTime', async function() {

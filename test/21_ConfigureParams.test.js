@@ -83,9 +83,6 @@ contract(
       // });
       // await nxmToken.transfer(notMember, 267600*1e18);
       let balances = ['15000', '15000', '15000', '15000'];
-      console.log(ab1);
-      console.log(mem1);
-      console.log(mem2);
       for (let i = 1; i < 4; i++) {
         await nxmToken.approve(cr.address, maxAllowance, {
           from: web3.eth.accounts[i]
@@ -114,7 +111,6 @@ contract(
         action = 'updateUintParameters(bytes8,uint)';
         getterFunction = 'getUintParameters';
       } else if (type == 'address') {
-        proposedValue = web3.toChecksumAddress(proposedValue);
         action = 'updateAddressParameters(bytes8,address)';
         getterFunction = 'getAddressParameters';
       } else if (type == 'owner') {
@@ -124,7 +120,7 @@ contract(
       // console.log(proposedValue);
       let actionHash = encode(action, code, proposedValue);
       await gvProposal(cId, actionHash, mr, gv, mrSequence);
-      if (code == 'MASTADD') {
+      if (code == web3.toHex('MASTADD')) {
         let newMaster = await NXMaster.at(proposedValue);
         contractInst = newMaster;
       }
@@ -132,7 +128,12 @@ contract(
       try {
         parameter[1] = parameter[1].toNumber();
       } catch (err) {}
-      assert.equal(parameter[1], proposedValue);
+      if (type == 'address') {
+        assert.equal(
+          web3.toChecksumAddress(parameter[1]),
+          web3.toChecksumAddress(proposedValue)
+        );
+      }
     }
     async function updateInvalidParameter(
       cId,
@@ -156,7 +157,7 @@ contract(
       }
       let actionHash = encode(action, code, proposedValue);
       await gvProposal(cId, actionHash, mr, gv, mrSequence);
-      if (code == 'MASTADD' && proposedValue != ZERO_ADDRESS) {
+      if (code == web3.toHex('MASTADD') && proposedValue != ZERO_ADDRESS) {
         let newMaster = await NXMaster.at(proposedValue);
         contractInst = newMaster;
       }

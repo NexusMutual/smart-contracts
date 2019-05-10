@@ -332,7 +332,7 @@ contract('NXMaster', function([
     });
 
     it('1.22 other address/contract should not be able to update pauseTime', async function() {
-      const updatePauseTime = pauseTime.addn(new web3.utils.BN(60));
+      const updatePauseTime = pauseTime.plus(new web3.utils.BN(60));
       console.log(updatePauseTime);
       console.log(await nxms.getPauseTime());
       await assertRevert(

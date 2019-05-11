@@ -22,6 +22,10 @@ contract MockDAI is IERC20 {
         _balances[msg.sender] = _totalSupply;
     }
 
+    function sendEther() public payable {
+
+    }
+
     /**
     * @dev Total number of tokens in existence
     */

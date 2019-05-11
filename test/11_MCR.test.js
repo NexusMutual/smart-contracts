@@ -291,7 +291,7 @@ contract('MCR', function([owner, notOwner]) {
       await p1.__callback(APIID, '');
     });
     it('11.22 rebalancing trade if total risk balance is 0', async function() {
-      await p1.sendTransaction({ from: owner, value: toWei(2) });
+      await p1.sendEther({ from: owner, value: toWei(2) });
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],

@@ -73,7 +73,9 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
           await assertRevert(
             tf.addStake(
               stakedContract,
-              new BN(stakeTokens.toString()).add(new BN(toWei(1).toString())),
+              new BN(stakeTokens.toString()).add(
+                new BN(toWei(1000000).toString())
+              ),
               {
                 from: member1
               }
@@ -88,8 +90,6 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
         it('5.3 should have zero staked tokens before', async function() {
           initialTokenBalance = await tk.balanceOf(member1);
           initialStakedTokens = await tf.getStakerAllLockedTokens.call(member1);
-          console.log(await td.getStakerStakedContractLength(member1));
-          console.log(initialStakedTokens);
           initialStakedTokens.toString().should.be.equal((0).toString());
         });
 

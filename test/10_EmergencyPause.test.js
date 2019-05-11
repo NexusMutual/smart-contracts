@@ -17,7 +17,7 @@ const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether } = require('./utils/ethTools');
+const { ether, toHex, toWei } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -26,7 +26,7 @@ const CLA = '0x434c41';
 const fee = ether(0.002);
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
-const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
+const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
 const v = 28;
 const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
@@ -43,6 +43,7 @@ let mcr;
 let gv;
 let mr;
 let newStakerPercentage = 5;
+const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -64,7 +65,9 @@ contract('NXMaster: Emergency Pause', function([
   const stakeTokens = ether(1);
   const tokens = ether(200);
   const validity = duration.days(30);
-  const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
+  const UNLIMITED_ALLOWANCE = new BN((2).toString())
+    .pow(new BN((256).toString()))
+    .sub(new BN((1).toString()));
 
   before(async function() {
     await advanceBlock();
@@ -85,13 +88,13 @@ contract('NXMaster: Emergency Pause', function([
     gv = await Governance.at(gvAddress);
     let address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
-    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+    tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
       18000,
-      100 * 1e18,
-      2 * 1e18,
+      toWei(100),
+      toWei(2),
       ['0x455448', '0x444149'],
       [100, 65407],
       20181011
@@ -147,14 +150,14 @@ contract('NXMaster: Emergency Pause', function([
       coverDetails[4] = 7972408607001;
       var vrsdata = await getQuoteValues(
         coverDetails,
-        'ETH',
+        toHex('ETH'),
         coverPeriod,
         smartConAdd,
         qt.address
       );
       await P1.makeCoverBegin(
         smartConAdd,
-        'ETH',
+        toHex('ETH'),
         coverDetails,
         coverPeriod,
         vrsdata[0],
@@ -165,14 +168,14 @@ contract('NXMaster: Emergency Pause', function([
       coverDetails[4] = 7972408607002;
       vrsdata = await getQuoteValues(
         coverDetails,
-        'ETH',
+        toHex('ETH'),
         coverPeriod,
         smartConAdd,
         qt.address
       );
       await P1.makeCoverBegin(
         smartConAdd,
-        'ETH',
+        toHex('ETH'),
         coverDetails,
         coverPeriod,
         vrsdata[0],
@@ -183,14 +186,14 @@ contract('NXMaster: Emergency Pause', function([
       coverDetails[4] = 7972408607003;
       vrsdata = await getQuoteValues(
         coverDetails,
-        'ETH',
+        toHex('ETH'),
         coverPeriod,
         smartConAdd,
         qt.address
       );
       await P1.makeCoverBegin(
         smartConAdd,
-        'ETH',
+        toHex('ETH'),
         coverDetails,
         coverPeriod,
         vrsdata[0],
@@ -223,15 +226,19 @@ contract('NXMaster: Emergency Pause', function([
       await increaseTimeTo(nowTime / 1 + (await cd.maxVotingTime()) / 1 + 100);
       await P1.__callback(APIID, '');
       let cid = await cd.getAllClaimsByIndex(claimId);
-      ((await qd.getCoverStatusNo(cid[0])) / 1).should.be.bignumber.equal(2);
+      ((await qd.getCoverStatusNo(cid[0])) / 1)
+        .toString()
+        .should.be.equal((2).toString());
     });
     it('10.2 should let submit claim', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
       await cl.submitClaim(coverID[0], { from: coverHolder1 });
       const claimId = (await cd.actualClaimLength()) - 1;
-      claimId.should.be.bignumber.equal(2);
+      claimId.toString().should.be.equal((2).toString());
       let cid = await cd.getAllClaimsByIndex(claimId);
-      ((await qd.getCoverStatusNo(cid[0])) / 1).should.be.bignumber.equal(4);
+      ((await qd.getCoverStatusNo(cid[0])) / 1)
+        .toString()
+        .should.be.equal((4).toString());
     });
     it('10.3 should be able to do claim assessment or stake NXM for claim', async function() {
       await tc.lock(CLA, ether(60), validity, { from: member3 });
@@ -251,18 +258,20 @@ contract('NXMaster: Emergency Pause', function([
   describe('Emergency Pause: Active', function() {
     let startTime;
     before(async function() {
-      const totalFee = fee.plus(coverDetails[1].toString());
+      const totalFee = new BN(fee.toString()).add(
+        new BN(coverDetails[1].toString())
+      );
       coverDetails[4] = 7972408607004;
       vrsdata = await getQuoteValues(
         coverDetails,
-        'ETH',
+        toHex('ETH'),
         coverPeriod,
         smartConAdd,
         qt.address
       );
       await qt.initiateMembershipAndCover(
         smartConAdd,
-        'ETH',
+        toHex('ETH'),
         coverDetails,
         coverPeriod,
         vrsdata[0],
@@ -292,7 +301,7 @@ contract('NXMaster: Emergency Pause', function([
       await assertRevert(
         qt.initiateMembershipAndCover(
           smartConAdd,
-          'ETH',
+          toHex('ETH'),
           coverDetails,
           coverPeriod,
           v,
@@ -309,7 +318,7 @@ contract('NXMaster: Emergency Pause', function([
       await nxms.getEmergencyPauseByIndex(0);
       const epd = await nxms.getLastEmergencyPause();
       epd[0].should.equal(true);
-      epd[1].should.be.bignumber.equal(startTime);
+      epd[1].toString().should.be.equal(startTime.toString());
       epd[2].should.equal(AdvisoryBoard);
     });
     it('10.9 should not be able to pay joining fee', async function() {
@@ -323,7 +332,9 @@ contract('NXMaster: Emergency Pause', function([
     it('10.11 add claim to queue', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder2);
       await cl.submitClaim(coverID[0], { from: coverHolder2 });
-      (await qd.getCoverStatusNo(coverID[0])).should.be.bignumber.equal(5);
+      (await qd.getCoverStatusNo(coverID[0]))
+        .toString()
+        .should.be.equal((5).toString());
     });
     it('10.12 should not let member vote for claim assessment', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
@@ -337,7 +348,7 @@ contract('NXMaster: Emergency Pause', function([
       await assertRevert(
         P1.makeCoverBegin(
           smartConAdd,
-          'ETH',
+          toHex('ETH'),
           coverDetails,
           coverPeriod,
           v,
@@ -431,9 +442,11 @@ contract('NXMaster: Emergency Pause', function([
       it('10.28 should submit queued claims', async function() {
         (await nxms.isPause()).should.equal(false);
         const claimId = (await cd.actualClaimLength()) - 1;
-        claimId.should.be.bignumber.equal(3);
+        claimId.toString().should.be.equal((3).toString());
         let cid = await cd.getAllClaimsByIndex(claimId);
-        ((await qd.getCoverStatusNo(cid[0])) / 1).should.be.bignumber.equal(4);
+        ((await qd.getCoverStatusNo(cid[0])) / 1)
+          .toString()
+          .should.be.equal((4).toString());
       });
     });
   });

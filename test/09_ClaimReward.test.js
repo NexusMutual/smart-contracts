@@ -15,7 +15,7 @@ const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether } = require('./utils/ethTools');
+const { ether, toHex, toWei } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
@@ -29,7 +29,7 @@ const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
-const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
+const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
 const v = 28;
 const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
@@ -49,6 +49,7 @@ let mr;
 let pd;
 let mcr;
 let gv;
+const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -68,7 +69,9 @@ contract('ClaimsReward', function([
   const stakeTokens = ether(250);
   const tokens = ether(6);
   const validity = duration.days(30);
-  const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
+  const UNLIMITED_ALLOWANCE = new BN((2).toString())
+    .pow(new BN((256).toString()))
+    .sub(new BN((1).toString()));
   let coverID;
   let closingTime;
   let claimId;
@@ -86,7 +89,7 @@ contract('ClaimsReward', function([
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
     nxms = await NXMaster.deployed();
-    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+    tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     mcr = await MCR.deployed();
@@ -94,8 +97,8 @@ contract('ClaimsReward', function([
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
       18000,
-      100 * 1e18,
-      2 * 1e18,
+      toWei(100),
+      toWei(2),
       ['0x455448', '0x444149'],
       [100, 65407],
       20181011
@@ -143,14 +146,14 @@ contract('ClaimsReward', function([
       coverDetails[4] = 7972408607001;
       var vrsdata = await getQuoteValues(
         coverDetails,
-        'ETH',
+        toHex('ETH'),
         coverPeriod,
         smartConAdd,
         qt.address
       );
       await P1.makeCoverBegin(
         smartConAdd,
-        'ETH',
+        toHex('ETH'),
         coverDetails,
         coverPeriod,
         vrsdata[0],
@@ -163,12 +166,16 @@ contract('ClaimsReward', function([
       claimId = (await cd.actualClaimLength()) - 1;
       const maxVotingTime = await cd.maxVotingTime();
       const now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
       await cl.submitCAVote(claimId, -1, { from: member1 });
       await cl.submitCAVote(claimId, -1, { from: member2 });
       await cl.submitCAVote(claimId, -1, { from: member3 });
       await cr.claimAllPendingReward([], { from: member1 });
-      await increaseTimeTo(closingTime.plus(2));
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
       let claimed = await cr.getRewardAndClaimedStatus(1, claimId, {
         from: member1
       });
@@ -177,7 +184,6 @@ contract('ClaimsReward', function([
       });
       claimed[1].should.be.equal(false);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      console.log(await pd.getApiIdTypeOf(apiid));
       await P1.__callback(apiid, '');
     });
     it('9.1 should change claim reward contract', async function() {
@@ -188,7 +194,7 @@ contract('ClaimsReward', function([
         newCr.address
       );
       await gvProp(29, actionHash, mr, gv, 2);
-      (await nxms.getLatestAddress('CR')).should.be.equal(newCr.address);
+      (await nxms.getLatestAddress(toHex('CR'))).should.be.equal(newCr.address);
       cr = newCr;
     });
     it('9.1 should be able to claim reward', async function() {
@@ -201,19 +207,27 @@ contract('ClaimsReward', function([
       );
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
-      (await cr.getAllPendingRewardOfUser(member1)).should.be.bignumber.equal(
-        0
-      );
+      (await cr.getAllPendingRewardOfUser(member1))
+        .toString()
+        .should.be.equal((0).toString());
     });
     it('9.2 should increase balance of member', async function() {
-      (await tk.balanceOf(member1)).should.be.bignumber.equal(
-        initialBalance.plus(rewardToGet)
-      );
+      (await tk.balanceOf(member1))
+        .toString()
+        .should.be.equal(
+          new BN(initialBalance.toString())
+            .add(new BN(rewardToGet.toString()))
+            .toString()
+        );
     });
     it('9.3 should decrease token balance of this contract', async function() {
-      (await tk.balanceOf(cr.address)).should.be.bignumber.equal(
-        initialTokenBalance.sub(rewardToGet)
-      );
+      (await tk.balanceOf(cr.address))
+        .toString()
+        .should.be.equal(
+          new BN(initialTokenBalance.toString())
+            .sub(new BN(rewardToGet.toString()))
+            .toString()
+        );
       let proposalIds = [];
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
@@ -237,24 +251,32 @@ contract('ClaimsReward', function([
     it('9.4 should be able to claim reward', async function() {
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: staker1 });
-      (await cr.getAllPendingRewardOfUser(staker1)).should.be.bignumber.equal(
-        0
-      );
+      (await cr.getAllPendingRewardOfUser(staker1))
+        .toString()
+        .should.be.equal((0).toString());
     });
     it('9.5 should increase balance of staker', async function() {
-      (await tk.balanceOf(staker1)).should.be.bignumber.equal(
-        initialBalance.plus(rewardToGet)
-      );
+      (await tk.balanceOf(staker1))
+        .toString()
+        .should.be.equal(
+          new BN(initialBalance.toString())
+            .add(new BN(rewardToGet.toString()))
+            .toString()
+        );
     });
     it('9.6 should decrease locked staked tokens of staker', async function() {
-      (await tf.getStakerAllLockedTokens(staker1)).should.be.bignumber.equal(
-        lockedStakedNXM.sub(unlockableStakedNXM)
-      );
+      (await tf.getStakerAllLockedTokens(staker1))
+        .toString()
+        .should.be.equal(
+          new BN(lockedStakedNXM.toString())
+            .sub(new BN(unlockableStakedNXM.toString()))
+            .toString()
+        );
     });
     it('9.7 should return zero unlockable staked tokens of staker', async function() {
-      (await tf.getStakerAllUnlockableStakedTokens(
-        staker1
-      )).should.be.bignumber.equal(0);
+      (await tf.getStakerAllUnlockableStakedTokens(staker1))
+        .toString()
+        .should.be.equal((0).toString());
     });
   });
 

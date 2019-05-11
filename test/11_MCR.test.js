@@ -12,7 +12,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether } = require('./utils/ethTools');
+const { ether, toHex, toWei } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 
@@ -31,6 +31,7 @@ let qd;
 let tf;
 let balance_DAI;
 let balance_ETH;
+const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -58,13 +59,13 @@ contract('MCR', function([owner, notOwner]) {
       let cap = await pd.capReached();
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
-        2 * 1e18,
+        toWei(100),
+        toWei(2),
         ['0x455448', '0x444149'],
         [100, 65407],
         20181011
       );
-      (await pd.capReached()).should.be.bignumber.equal(cap);
+      (await pd.capReached()).toString().should.be.equal(cap.toString());
     });
     describe('After launch', function() {
       before(async function() {
@@ -75,13 +76,13 @@ contract('MCR', function([owner, notOwner]) {
       it('11.2 After launch cap should not be set until it reached 100 for 1st time', async function() {
         await mcr.addMCRData(
           1800,
-          100 * 1e18,
-          2 * 1e18,
+          toWei(100),
+          toWei(2),
           ['0x455448', '0x444149'],
           [100, 65407],
           20181011
         );
-        (await pd.capReached()).should.be.bignumber.equal(0);
+        (await pd.capReached()).toString().should.be.equal((0).toString());
       });
 
       it('11.3 After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
@@ -90,25 +91,25 @@ contract('MCR', function([owner, notOwner]) {
         await increaseTimeTo(time);
         await mcr.addMCRData(
           1800,
-          100 * 1e18,
-          2 * 1e18,
+          toWei(100),
+          toWei(2),
           ['0x455448', '0x444149'],
           [100, 65407],
           20181011
         );
-        (await pd.capReached()).should.be.bignumber.equal(2);
+        (await pd.capReached()).toString().should.be.equal((2).toString());
       });
 
       it('11.4 After launch cap should not be set to 2 if reached 100% for 1st time on 30th day', async function() {
         await mcr.addMCRData(
           18000,
-          100 * 1e18,
-          2 * 1e18,
+          toWei(100),
+          toWei(2),
           ['0x455448', '0x444149'],
           [100, 65407],
           20181011
         );
-        (await pd.capReached()).should.be.bignumber.equal(1);
+        (await pd.capReached()).toString().should.be.equal((1).toString());
       });
     });
   });
@@ -120,8 +121,8 @@ contract('MCR', function([owner, notOwner]) {
     before(async function() {
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
-        2 * 1e18,
+        toWei(100),
+        toWei(2),
         ['0x455448', '0x444149'],
         [100, 15517],
         20190103
@@ -129,24 +130,30 @@ contract('MCR', function([owner, notOwner]) {
       await cad.transfer(p1.address, ether(600));
       balance_DAI = await cad.balanceOf(p1.address);
       balance_ETH = await web3.eth.getBalance(p1.address);
-      balance_ETH = balance_ETH.plus(await p1.getInvestmentAssetBalance());
+      balance_ETH = new BN(balance_ETH.toString()).add(
+        new BN((await p1.getInvestmentAssetBalance()).toString())
+      );
     });
 
     it('11.5 should return correct V(tp) price', async function() {
       const price_dai = await pd.getCAAvgRate(CA_DAI);
-      cal_vtp = balance_DAI.mul(100).div(price_dai);
-      cal_vtp = cal_vtp.plus(balance_ETH);
+      cal_vtp = new BN(balance_DAI.toString())
+        .mul(new BN((100).toString()))
+        .div(new BN(price_dai.toString()));
+      cal_vtp = new BN(cal_vtp.toString()).add(new BN(balance_ETH.toString()));
       cal_vtp
-        .toFixed(0)
-        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[0]);
+        .toString()
+        .should.be.equal((await mcr.calVtpAndMCRtp())[0].toString());
     });
 
     it('11.6 should return correct MCR(tp) price', async function() {
       const lastMCR = await pd.getLastMCR();
-      cal_mcrtp = cal_vtp.mul(lastMCR[0]).div(lastMCR[2]);
+      cal_mcrtp = new BN(cal_vtp.toString())
+        .mul(new BN(lastMCR[0].toString()))
+        .div(new BN(lastMCR[2].toString()));
       cal_mcrtp
-        .toFixed(0)
-        .should.be.bignumber.equal((await mcr.calVtpAndMCRtp())[1]);
+        .toString()
+        .should.be.equal((await mcr.calVtpAndMCRtp())[1].toString());
     });
   });
 
@@ -156,34 +163,48 @@ contract('MCR', function([owner, notOwner]) {
 
     before(async function() {
       const tpd = await pd.getTokenPriceDetails(CA_ETH);
-      const tc = (await tk.totalSupply()).div(1e18);
-      const sf = tpd[0].div(1e5);
+      // const tc = (await tk.totalSupply()).div(toWei(1));
+      const sf = new BN(tpd[0].toString()).div(new BN((100000).toString()));
       const C = tpd[1];
       const Curr3DaysAvg = tpd[2];
       const mcrtp = (await mcr.calVtpAndMCRtp())[1];
-      const mcrtpSquare = mcrtp.times(mcrtp).div(1e8);
-      const mcrEth = (await pd.getLastMCREther()).div(1e18);
-      const tp = sf.plus(
-        mcrEth
-          .div(C)
-          .times(mcrtpSquare)
-          .times(mcrtpSquare)
+      const mcrtpSquare = new BN(mcrtp.toString())
+        .mul(new BN(mcrtp.toString()))
+        .div(new BN((100000000).toString()));
+      const mcrEth = new BN((await pd.getLastMCREther()).toString()).div(
+        new BN(toWei(1).toString())
       );
-      tp_eth = tp.times(Curr3DaysAvg.div(100));
-      tp_dai = tp.times((await pd.getCAAvgRate(CA_DAI)).div(100));
+      const tp = new BN(sf.toString()).add(
+        new BN(mcrEth.toString())
+          .div(new BN(C.toString()))
+          .mul(new BN(mcrtpSquare.toString()))
+          .mul(new BN(mcrtpSquare.toString()))
+      );
+      tp_eth = new BN(tp.toString()).mul(
+        new BN(Curr3DaysAvg.toString()).div(new BN((100).toString()))
+      );
+      tp_dai = new BN(tp.toString()).mul(
+        new BN((await pd.getCAAvgRate(CA_DAI)).toString()).div(
+          new BN((100).toString())
+        )
+      );
     });
     it('11.7 should return correct Token price in ETH', async function() {
       tp_eth
-        .toFixed(4)
-        .should.be.bignumber.equal(
-          (await mcr.calculateTokenPrice(CA_ETH)).div(1e18).toFixed(4)
+        .toString()
+        .should.be.equal(
+          new BN((await mcr.calculateTokenPrice(CA_ETH)).toString())
+            .div(new BN(toWei(1).toString()))
+            .toString()
         );
     });
     it('11.8 should return correct Token price in DAI', async function() {
       tp_dai
-        .toFixed(4)
-        .should.be.bignumber.equal(
-          (await mcr.calculateTokenPrice(CA_DAI)).div(1e18).toFixed(4)
+        .toString()
+        .should.be.equal(
+          new BN((await mcr.calculateTokenPrice(CA_DAI)).toString())
+            .div(new BN(toWei(1).toString()))
+            .toString()
         );
     });
   });
@@ -198,8 +219,8 @@ contract('MCR', function([owner, notOwner]) {
       await assertRevert(
         mcr.addMCRData(
           18000,
-          100 * 1e18,
-          2 * 1e18,
+          toWei(100),
+          toWei(2),
           ['0x455448', '0x444149'],
           [100, 65407],
           20181011,
@@ -210,8 +231,8 @@ contract('MCR', function([owner, notOwner]) {
     it('11.17 add mcr when vf > vtp', async function() {
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
-        35833333333333330000,
+        toWei(100),
+        toWei(35.83333333333333),
         ['0x455448', '0x444149'],
         [100, 65407],
         20181011,
@@ -221,18 +242,24 @@ contract('MCR', function([owner, notOwner]) {
     it('11.18 getAllSumAssurance function should skip calcualation for currency with rate 0', async function() {
       await DSV.setRate(0);
       let allSA = await mcr.getAllSumAssurance();
-      (await qd.getTotalSumAssured('ETH')).should.be.bignumber.equal(allSA);
+      (await qd.getTotalSumAssured(toHex('ETH')))
+        .toString()
+        .should.be.equal(allSA.toString());
     });
     it('11.19 calVtpAndMCRtp function should skip calcualation for currency with rate 0', async function() {
       let vtp = await mcr.calVtpAndMCRtp();
       CABalE = await web3.eth.getBalance(p1.address);
       CABalE2 = await web3.eth.getBalance(p2.address);
-      vtp[0].should.be.bignumber.equal(CABalE.plus(CABalE2));
+      vtp[0]
+        .toString()
+        .should.be.equal(
+          new BN(CABalE.toString()).add(new BN(CABalE2.toString())).toString()
+        );
     });
     it('11.20 mcrTp should be 0 if vFull is 0', async function() {
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
+        toWei(100),
         0,
         ['0x455448', '0x444149'],
         [100, 65407],
@@ -248,7 +275,7 @@ contract('MCR', function([owner, notOwner]) {
       await p1.upgradeInvestmentPool(owner);
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
+        toWei(100),
         0,
         ['0x455448', '0x444149'],
         [100, 65407],
@@ -263,8 +290,8 @@ contract('MCR', function([owner, notOwner]) {
       await increaseTimeTo(timeINC);
       await p1.__callback(APIID, '');
     });
-    it('11.21 rebalancing trade if total risk balance is 0', async function() {
-      await p1.sendTransaction({ from: owner, value: 2 * 1e18 });
+    it('11.22 rebalancing trade if total risk balance is 0', async function() {
+      await p1.sendTransaction({ from: owner, value: toWei(2) });
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -273,12 +300,12 @@ contract('MCR', function([owner, notOwner]) {
         true
       );
     });
-    it('11.21 if mcr fails and retry after new mcr posted', async function() {
+    it('11.23 if mcr fails and retry after new mcr posted', async function() {
       await tf.upgradeCapitalPool(owner);
       await p1.upgradeInvestmentPool(owner);
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
+        toWei(100),
         0,
         ['0x455448', '0x444149'],
         [100, 65407],
@@ -288,8 +315,8 @@ contract('MCR', function([owner, notOwner]) {
       let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await mcr.addMCRData(
         18000,
-        100 * 1e18,
-        100 * 1e18,
+        toWei(100),
+        toWei(100),
         ['0x455448', '0x444149'],
         [100, 65407],
         20181013,
@@ -304,7 +331,7 @@ contract('MCR', function([owner, notOwner]) {
       await p1.__callback(APIID, '');
     });
 
-    it('11.22 get orcalise call details', async function() {
+    it('11.24 get orcalise call details', async function() {
       let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       let curr = await pd.getCurrOfApiId(APIID);
       let id = await pd.getApiCallIndex(1);

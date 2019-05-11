@@ -370,10 +370,11 @@ contract('Quotation', function([
               let checkd = false;
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+              let smartCACompare = web3.utils.toChecksumAddress(cdetails1[2]) == web3.utils.toChecksumAddress(smartConAdd);
               if (
                 cdetails1[3] == CA_ETH &&
                 cdetails1[1] == coverHolder &&
-                cdetails1[2] == smartConAdd
+                smartCACompare
               ) {
                 checkd = true;
               }
@@ -467,10 +468,11 @@ contract('Quotation', function([
               let checkd = false;
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+              let smartCACompare = web3.utils.toChecksumAddress(cdetails1[2]) == web3.utils.toChecksumAddress(smartConAdd);
               if (
                 cdetails1[3] == CA_ETH &&
                 cdetails1[1] == coverHolder &&
-                cdetails1[2] == smartConAdd
+                smartCACompare
               ) {
                 checkd = true;
               }
@@ -575,10 +577,11 @@ contract('Quotation', function([
               let checkd = false;
               const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
               const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+              let smartCACompare = web3.utils.toChecksumAddress(cdetails1[2]) == web3.utils.toChecksumAddress(smartConAdd);
               if (
                 cdetails1[3] == CA_DAI &&
                 cdetails1[1] == coverHolder &&
-                cdetails1[2] == smartConAdd
+                smartCACompare
               ) {
                 checkd = true;
               }

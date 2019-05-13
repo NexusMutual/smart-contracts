@@ -1,6 +1,6 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('PoolDataMock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -660,7 +660,7 @@ contract('Claim: Assessment', function([
         smartConAdd,
         qt.address
       );
-      console.log("qwer56");
+      console.log('qwer56');
       await P1.makeCoverUsingCA(
         smartConAdd,
         toHex('DAI'),
@@ -671,7 +671,7 @@ contract('Claim: Assessment', function([
         vrsdata[2],
         { from: coverHolder }
       );
-      console.log("qwer12");
+      console.log('qwer12');
       coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
       let clid = (await cd.actualClaimLength()) - 1;
@@ -681,9 +681,9 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 100);
       cStatus = await cd.getClaimStatusNumber(clid);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      console.log("qwer00");
+      console.log('qwer00');
       await P1.__callback(apiid, '');
-      console.log("qwer");
+      console.log('qwer');
       cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
       await cad.transfer(P1.address, toWei(20));

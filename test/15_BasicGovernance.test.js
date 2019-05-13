@@ -9,7 +9,10 @@ const TokenData = artifacts.require('TokenDataMock');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const encode = require('./utils/encoder.js').encode;
+const { toHex, toWei } = require('./utils/ethTools.js');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
+const Web3 = require('web3');
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
 const AdvisoryBoard = '0x41420000';
 let maxAllowance =
   '115792089237316195423570985008687907853269984665640564039457584007913129639935';
@@ -47,7 +50,7 @@ contract(
       nxmToken = await NXMToken.deployed();
       let address = await nxms.getLatestAddress(toHex('GV'));
       gv = await Governance.at(address);
-      address = await nxms.getLatestAddress('PC');
+      address = await nxms.getLatestAddress(toHex('PC'));
       pc = await ProposalCategory.at(address);
       address = await nxms.getLatestAddress(toHex('MR'));
       mr = await MemberRoles.at(address);
@@ -64,7 +67,7 @@ contract(
     });
 
     it('15.1 Should be able to change tokenHoldingTime manually', async function() {
-      await assertRevert(gv.updateUintParameters('GOVHOLD', 3000));
+      await assertRevert(gv.updateUintParameters(toHex('GOVHOLD'), 3000));
     });
 
     it('15.2 Only Advisory Board members are authorized to categorize proposal', async function() {
@@ -148,7 +151,7 @@ contract(
     });
 
     it('15.12 Should allow only owner to open proposal for voting', async () => {
-      await gv.categorizeProposal(proposalId, 9, 1e18);
+      await gv.categorizeProposal(proposalId, 9, toWei(1));
       await gv.proposal(proposalId);
       await pc.category(9);
       await assertRevert(gv.submitVote(proposalId, 1));
@@ -169,7 +172,7 @@ contract(
     });
 
     it('15.13 Should not update proposal if solution exists', async function() {
-      await assertRevert(gv.categorizeProposal(proposalId, 2, 1e18));
+      await assertRevert(gv.categorizeProposal(proposalId, 2, toWei(1)));
       await assertRevert(
         gv.updateProposal(
           proposalId,
@@ -215,7 +218,7 @@ contract(
     });
 
     it('15.21 Should claim reward only through claimRewards contract', async function() {
-      await assertRevert(gv.claimReward(ab1, [1]));
+      await assertRevert(gv.claimReward(ab1));
     });
 
     it('15.22 Should claim rewards', async function() {
@@ -236,7 +239,7 @@ contract(
         await mr.addInitialABMembers([ab2, ab3, ab4]);
         for (let i = 4; i < 11; i++) {
           await mr.payJoiningFee(web3.eth.accounts[i], {
-            value: 2000000000000000,
+            value: '2000000000000000',
             from: web3.eth.accounts[i]
           });
           await mr.kycVerdict(web3.eth.accounts[i], true, {
@@ -274,9 +277,6 @@ contract(
         let alreadyDelegated = await gv.alreadyDelegated(ab1);
         assert.equal(alreadyDelegated, true);
       });
-      it('15.33 Leader cannot change delegeation status if there are followers', async function() {
-        await assertRevert(gv.setDelegationStatus(false, { from: ab1 }));
-      });
       it('15.34 Member can delegate vote to Member who is not follower', async function() {
         await gv.setDelegationStatus(true, { from: mem3 });
         await gv.delegateVote(mem3, { from: mem5 });
@@ -296,7 +296,7 @@ contract(
       it('15.38 Create a proposal', async function() {
         pId = (await gv.getProposalLength()).toNumber();
         await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0); //Pid 2
-        await gv.categorizeProposal(pId, 13, 130 * 1e18);
+        await gv.categorizeProposal(pId, 13, toWei(130));
         await gv.submitProposalWithSolution(
           pId,
           'changes to pricing model',
@@ -305,7 +305,7 @@ contract(
       });
       it('15.39 Ab cannot vote twice on a same proposal and cannot transfer nxm to others', async function() {
         await gv.submitVote(pId, 1, { from: ab3 });
-        await assertRevert(nxmToken.transferFrom(ab3, ab2, 1e18));
+        await assertRevert(nxmToken.transferFrom(ab3, ab2, toWei(1)));
         await assertRevert(gv.submitVote(pId, 1, { from: ab3 }));
       });
       it('15.40 Member cannot vote twice on a same proposal', async function() {
@@ -319,7 +319,7 @@ contract(
         await assertRevert(gv.submitVote(pId, 1, { from: mem5 }));
       });
       it('15.43 Member can assign proxy if voted more than 7 days earlier', async function() {
-        await increaseTime(604805);
+        await increaseTime(604850);
         await gv.delegateVote(ab1, { from: mem4 });
       });
       it('15.44 Follower can undelegate vote if not voted since 7 days', async function() {
@@ -337,7 +337,7 @@ contract(
       it('15.47 Undelegated Follower cannot vote within 7 days since undelegation', async function() {
         pId = (await gv.getProposalLength()).toNumber();
         await gv.createProposal('Proposal2', 'Proposal2', 'Proposal2', 0); //Pid 3
-        await gv.categorizeProposal(pId, 13, 130 * 1e18);
+        await gv.categorizeProposal(pId, 13, toWei(130));
         await gv.submitProposalWithSolution(
           pId,
           'changes to pricing model',

@@ -319,7 +319,7 @@ contract(
       it('Should update Factor A', async function() {
         await updateParameter(26, 2, 'A', pd, 'uint', '40');
       });
-      it('Should update Factor A', async function() {
+      it('Should not update Factor A', async function() {
         await updateInvalidParameter(26, 2, 'Z', pd, 'uint', '40');
       });
     });

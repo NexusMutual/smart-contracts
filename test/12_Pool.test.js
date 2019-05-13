@@ -136,7 +136,7 @@ contract('Pool', function([
     await tk.transfer(member4, tokens);
   });
 
-  describe('PoolData', function() {
+  describe('PoolDataMock', function() {
     describe('Misc', function() {
       it('12.11 should return true if notarise address', async function() {
         (await pd.isnotarise(owner)).should.equal(true);

@@ -2,17 +2,20 @@ const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('PoolDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const TokenController = artifacts.require('TokenController');
 const NXMToken = artifacts.require('NXMToken');
 const expectEvent = require('./utils/expectEvent');
+const { toWei, toHex } = require('./utils/ethTools.js');
 const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const encode = require('./utils/encoder.js').encode;
 const AdvisoryBoard = '0x41420000';
 const TokenFunctions = artifacts.require('TokenFunctionMock');
+const Web3 = require('web3');
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
 
 let tf;
 let gv;
@@ -63,11 +66,11 @@ contract(
       nxmToken = await NXMToken.deployed();
       let address = await nxms.getLatestAddress(toHex('GV'));
       gv = await Governance.at(address);
-      address = await nxms.getLatestAddress('PC');
+      address = await nxms.getLatestAddress(toHex('PC'));
       pc = await ProposalCategory.at(address);
       address = await nxms.getLatestAddress(toHex('MR'));
       mr = await MemberRoles.at(address);
-      tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+      tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
       // tc = await TokenController.deployed();
       pd = await PoolData.deployed();
       await mr.addInitialABMembers([ab2, ab3, ab4, ab5]);
@@ -118,7 +121,7 @@ contract(
             from: web3.eth.accounts[0]
           });
         }
-        await nxmToken.transfer(web3.eth.accounts[i], balances[i] * 1e18);
+        await nxmToken.transfer(web3.eth.accounts[i], toWei(balances[i]));
       }
       // await gv.delegateVote(ab1, { from: ab2 });
       await gv.setDelegationStatus(true, { from: ab1 });
@@ -158,13 +161,9 @@ contract(
                   0,
                   { from: mem1 }
                 );
-                let proposalsStatus = await gv.getStatusOfProposals();
-                assert.equal(proposalsStatus[1].toNumber(), 2);
               });
               it('17.2 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 11, 130 * 1e18);
-                let proposalsStatus = await gv.getStatusOfProposals();
-                assert.equal(proposalsStatus[2].toNumber(), 1);
+                await gv.categorizeProposal(pId, 11, toWei(130));
               });
               it('17.3 Should open for voting', async function() {
                 await gv.submitProposalWithSolution(
@@ -173,10 +172,10 @@ contract(
                   '0x',
                   { from: mem1 }
                 );
-                let proposalsStatus = await gv.getStatusOfProposals();
-                assert.equal(proposalsStatus[3].toNumber(), 1);
+                // let proposalsStatus = await gv.getStatusOfProposals();
+                // assert.equal(proposalsStatus[3].toNumber(), 1);
                 let action = await gv.getSolutionAction(pId, 1);
-                assert.equal(action[1], '0x');
+                assert.equal(action[1], null);
               });
               it('17.4 should follow voting process', async function() {
                 await gv.submitVote(pId, 1, { from: ab1 });
@@ -201,16 +200,16 @@ contract(
               it('17.7 Proposal should be accepted', async function() {
                 let proposal = await gv.proposal(pId);
                 assert.equal(proposal[2].toNumber(), 3);
-                let proposalsStatus = await gv.getStatusOfProposals();
-                assert.equal(proposalsStatus[4].toNumber(), 1);
+                // let proposalsStatus = await gv.getStatusOfProposals();
+                // assert.equal(proposalsStatus[4].toNumber(), 1);
               });
               it('17.8 Should get rewards', async function() {
                 for (let i = 0; i < 13; i++) {
                   assert.equal(
                     (await gv.getPendingReward(
                       web3.eth.accounts[i]
-                    )).toNumber(),
-                    10 * 1e18,
+                    )).toString(),
+                    toWei(10),
                     web3.eth.accounts[i] + "didn't get reward"
                   );
                 }
@@ -236,7 +235,7 @@ contract(
                 );
               });
               it('17.11 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 12, 130 * 1e18);
+                await gv.categorizeProposal(pId, 12, toWei(130));
               });
               it('17.12 Should open for voting', async function() {
                 let actionHash = encode(
@@ -281,8 +280,8 @@ contract(
                   assert.equal(
                     (await gv.getPendingReward(
                       web3.eth.accounts[i]
-                    )).toNumber(),
-                    10 * 1e18,
+                    )).toString(),
+                    toWei(10),
                     web3.eth.accounts[i] + "didn't get reward"
                   );
                 }
@@ -308,7 +307,7 @@ contract(
                 );
               });
               it('17.20 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 12, 130 * 1e18);
+                await gv.categorizeProposal(pId, 12, toWei(130));
               });
               it('17.21 Should open for voting', async function() {
                 let actionHash = encode(
@@ -353,8 +352,8 @@ contract(
                   assert.equal(
                     (await gv.getPendingReward(
                       web3.eth.accounts[i]
-                    )).toNumber(),
-                    10 * 1e18,
+                    )).toString(),
+                    toWei(10),
                     web3.eth.accounts[i] + "didn't get reward"
                   );
                 }
@@ -376,7 +375,7 @@ contract(
               await gv.createProposal('Proposal3', 'Proposal3', 'Proposal3', 0);
             });
             it('17.29 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 12, 130 * 1e18);
+              await gv.categorizeProposal(pId, 12, toWei(130));
             });
             it('17.30 Should open for voting', async function() {
               let actionHash = encode(
@@ -407,14 +406,14 @@ contract(
             it('17.33 Proposal should be rejected', async function() {
               let proposal = await gv.proposal(pId);
               assert.equal(proposal[2].toNumber(), 4, 'Incorrect result');
-              let proposalsStatus = await gv.getStatusOfProposals();
-              assert.equal(proposalsStatus[5].toNumber(), 1);
+              // let proposalsStatus = await gv.getStatusOfProposals();
+              // assert.equal(proposalsStatus[5].toNumber(), 1);
             });
             it('17.34 Should get rewards', async function() {
               for (let i = 0; i < 13; i++) {
                 assert.equal(
-                  (await gv.getPendingReward(web3.eth.accounts[i])).toNumber(),
-                  10 * 1e18,
+                  (await gv.getPendingReward(web3.eth.accounts[i])).toString(),
+                  toWei(10),
                   web3.eth.accounts[i] + " didn't get reward"
                 );
               }
@@ -442,7 +441,7 @@ contract(
                   );
                 });
                 it('17.37 Should whitelist proposal and set Incentives', async function() {
-                  await gv.categorizeProposal(pId, 10, 140 * 1e18);
+                  await gv.categorizeProposal(pId, 10, toWei(140));
                 });
                 it('17.38 Should open for voting', async function() {
                   await gv.submitProposalWithSolution(
@@ -469,8 +468,8 @@ contract(
                   voters = [ab1, ab2, ab3, mem1, mem2, mem3, mem7];
                   for (let i = 0; i < voters.length; i++) {
                     assert.equal(
-                      (await gv.getPendingReward(voters[i])).toNumber(),
-                      20 * 1e18,
+                      (await gv.getPendingReward(voters[i])).toString(),
+                      toWei(20),
                       voters[i] + "didn't get reward"
                     );
                   }
@@ -496,7 +495,7 @@ contract(
                   );
                 });
                 it('17.45 Should whitelist proposal and set Incentives', async function() {
-                  await gv.categorizeProposal(pId, 15, 140 * 1e18);
+                  await gv.categorizeProposal(pId, 15, toWei(140));
                 });
                 it('17.46 Should open for voting', async function() {
                   let actionHash = encode(
@@ -535,8 +534,8 @@ contract(
                   voters = [ab3, ab4, ab5, mem3, mem5, mem6, mem7];
                   for (let i = 0; i < voters.length; i++) {
                     assert.equal(
-                      (await gv.getPendingReward(voters[i])).toNumber(),
-                      20 * 1e18,
+                      (await gv.getPendingReward(voters[i])).toString(),
+                      toWei(20),
                       voters[i] + "didn't get reward"
                     );
                   }
@@ -559,7 +558,7 @@ contract(
                 );
               });
               it('17.54 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 10, 140 * 1e18);
+                await gv.categorizeProposal(pId, 10, toWei(140));
               });
               it('17.55 Should open for voting', async function() {
                 await gv.submitProposalWithSolution(
@@ -586,8 +585,8 @@ contract(
                 voters = [ab1, ab2, ab3, mem1, mem2, mem3, mem7];
                 for (let i = 0; i < voters.length; i++) {
                   assert.equal(
-                    (await gv.getPendingReward(voters[i])).toNumber(),
-                    20 * 1e18,
+                    (await gv.getPendingReward(voters[i])).toString(),
+                    toWei(20),
                     voters[i] + "didn't get reward"
                   );
                 }
@@ -646,7 +645,7 @@ contract(
         describe('If majority is reached', function() {
           it('17.67 Should create proposal', async function() {
             await nxmToken.approve(tc.address, maxAllowance, { from: mem9 });
-            await tc.lock(CLA, 500 * 1e18, validity, { from: mem9 });
+            await tc.lock(CLA, toWei(500), validity, { from: mem9 });
             console.log(
               'Tokens locked for claims assessment - ' +
                 (await tc.tokensLocked(mem9, CLA))
@@ -656,7 +655,7 @@ contract(
             await gv.createProposal('Proposal7', 'Proposal7', 'Proposal7', 0);
           });
           it('17.68 Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 8, 140 * 1e18);
+            await gv.categorizeProposal(pId, 8, toWei(140));
           });
           it('17.69 Should open for voting', async function() {
             let actionHash = encode(
@@ -692,7 +691,7 @@ contract(
               'Locked token balance after burning the tokens-' +
                 (await tc.tokensLocked(mem9, CLA))
             );
-            assert.equal((await tc.tokensLocked(mem9, CLA)).toNumber(), 0);
+            assert.equal((await tc.tokensLocked(mem9, CLA)).toString(), 0);
           });
           it('17.74 No reward should be distributed if voting is open only for Advisory Board', async function() {
             voters = [ab1, ab2, ab3, ab4, ab5];
@@ -708,7 +707,7 @@ contract(
         describe('If majority is not reached', function() {
           it('17.75 Should create proposal', async function() {
             await nxmToken.approve(tc.address, maxAllowance, { from: mem9 });
-            await tc.lock(CLA, 500 * 1e18, validity, { from: mem9 });
+            await tc.lock(CLA, toWei(500), validity, { from: mem9 });
             console.log(
               'Tokens locked for claims assessment - ' +
                 (await tc.tokensLocked(mem9, CLA))
@@ -718,7 +717,7 @@ contract(
             await gv.createProposal('Proposal8', 'Proposal8', 'Proposal8', 0);
           });
           it('17.76 Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 8, 140 * 1e18);
+            await gv.categorizeProposal(pId, 8, toWei(140));
           });
           it('17.77 Should open for voting', async function() {
             let actionHash = encode(
@@ -752,8 +751,8 @@ contract(
                 (await tc.tokensLocked(mem9, CLA))
             );
             assert.equal(
-              (await tc.tokensLocked(mem9, CLA)).toNumber(),
-              500 * 1e18
+              (await tc.tokensLocked(mem9, CLA)).toString(),
+              toWei(500)
             );
           });
           it('17.82 No reward should be distributed if voting is open only for Advisory Board', async function() {
@@ -816,7 +815,7 @@ contract(
             voters = [ab3, ab4, ab5, mem3, mem4, mem5, mem6, mem7, mem8];
             for (let i = 0; i < voters.length; i++) {
               assert.equal(
-                (await gv.getPendingReward(voters[i])).toNumber(),
+                (await gv.getPendingReward(voters[i])).toString(),
                 0,
                 voters[i] + "didn't get reward"
               );
@@ -868,7 +867,7 @@ contract(
             voters = [ab3, ab4, ab5, mem3];
             for (let i = 0; i < voters.length; i++) {
               assert.equal(
-                (await gv.getPendingReward(voters[i])).toNumber(),
+                (await gv.getPendingReward(voters[i])).toString(),
                 0,
                 voters[i] + "didn't get reward"
               );
@@ -918,7 +917,7 @@ contract(
               await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
             });
             it('17.100 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 19, 160 * 1e18);
+              await gv.categorizeProposal(pId, 19, toWei(160));
             });
             it('17.101 Should open for voting', async function() {
               await gv.submitProposalWithSolution(
@@ -958,7 +957,7 @@ contract(
           });
           describe('with Automatic action', function() {
             it('17.106 Add new category for special resolution', async function() {
-              let pool1Address = await nxms.getLatestAddress('P1');
+              let pool1Address = await nxms.getLatestAddress(toHex('P1'));
               let actionHash = encode(
                 'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
                 'Special Withdraw funds',
@@ -1001,7 +1000,7 @@ contract(
               );
             });
             it('17.108 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 33, 160 * 1e18);
+              await gv.categorizeProposal(pId, 33, toWei(160));
             });
             it('17.109 Should open for voting', async function() {
               let actionHash = encode(
@@ -1049,7 +1048,7 @@ contract(
             await gv.createProposal('Proposal1', 'Proposal1', 'Proposal1', 0);
           });
           it('17.114 Should whitelist proposal and set Incentives', async function() {
-            await gv.categorizeProposal(pId, 19, 150 * 1e18);
+            await gv.categorizeProposal(pId, 19, toWei(150));
           });
           it('17.115 Should open for voting', async function() {
             await gv.submitProposalWithSolution(
@@ -1078,11 +1077,15 @@ contract(
             let proposal = await gv.proposal(pId);
             assert.equal(proposal[2].toNumber(), 6);
           });
-          it('17.119 Should not get rewards', async function() {
-            for (let i = 0; i < 14; i++) {
-              if (web3.eth.accounts[i] != mem9) {
+          it('17.119 Should get rewards', async function() {
+            for (let i = 0; i < 12; i++) {
+              if (
+                web3.toChecksumAddress(web3.eth.accounts[i]) !=
+                web3.toChecksumAddress(mem9)
+              ) {
                 assert.isAbove(
-                  (await gv.getPendingReward(web3.eth.accounts[i])).toNumber(),
+                  (await gv.getPendingReward(web3.eth.accounts[i])).toString() *
+                    1,
                   0,
                   'Incorrect reward'
                 );
@@ -1116,7 +1119,7 @@ contract(
         it('17.121 Should Reject the proposal', async function() {
           await gv.submitVote(pId, 0);
         });
-        it('17.122 Should execute defined automatic action', async function() {
+        it('17.122 Should not execute defined automatic action', async function() {
           let isOwner = await nxms.isOwner(web3.eth.accounts[1]);
           assert.equal(isOwner, false, 'Action executed');
         });
@@ -1131,7 +1134,7 @@ contract(
             'OWNER',
             web3.eth.accounts[1]
           );
-          await gv.createProposalwithVote(
+          await gv.createProposalwithSolution(
             'Proposal14',
             'Proposal14',
             'Proposal14',
@@ -1140,10 +1143,17 @@ contract(
             actionHash
           );
         });
-        it('17.124 Should execute defined automatic action', async function() {
+        it('17.124 Should Accept the proposal', async function() {
+          await gv.submitVote(pId, 1);
+        });
+        it('17.125 Should execute defined automatic action', async function() {
           await increaseTime(1000);
-          let owner = await nxms.getOwnerParameters('OWNER');
-          assert.equal(owner[1], web3.eth.accounts[1], 'Action not executed');
+          let owner = await nxms.getOwnerParameters(toHex('OWNER'));
+          assert.equal(
+            web3.toChecksumAddress(owner[1]),
+            web3.toChecksumAddress(web3.eth.accounts[1]),
+            'Action not executed'
+          );
         });
       });
     });

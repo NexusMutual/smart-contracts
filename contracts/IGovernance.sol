@@ -148,7 +148,7 @@ contract IGovernance {
 
     function closeProposal(uint _proposalId) external;
 
-    function claimReward(address _memberAddress, uint[] calldata _proposals) external returns(uint pendingDAppReward); 
+    function claimReward(address _memberAddress) external returns(uint pendingDAppReward); 
 
     function proposal(uint _proposalId)
         external

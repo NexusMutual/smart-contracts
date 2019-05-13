@@ -7,7 +7,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMToken = artifacts.require('NXMToken');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 const encode = require('./utils/encoder.js').encode;
-const { ether } = require('./utils/ethTools');
+const { toHex, toWei } = require('./utils/ethTools');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 
 let mr;
@@ -24,7 +24,7 @@ let mrLength1;
 let qd;
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const fee = ether(0.002);
+const fee = toWei(0.002);
 
 contract('MemberRoles', function([
   owner,
@@ -58,7 +58,7 @@ contract('MemberRoles', function([
     await mr.kycVerdict(member2, false);
   });
   it('13.3 Should not be able to pay joining fee for already a member', async function() {
-    await assertRevert(mr.payJoiningFee(owner, { value: 2000000000000000 }));
+    await assertRevert(mr.payJoiningFee(owner, { value: '2000000000000000' }));
   });
   it('13.4 Should not be able to trigger kyc using ZERO_ADDRESS', async function() {
     await assertRevert(mr.kycVerdict(ZERO_ADDRESS, true));
@@ -223,7 +223,7 @@ contract('MemberRoles', function([
   });
 
   it('13.27 Should check role if user buys membership', async () => {
-    await mr.payJoiningFee(member, { value: 2000000000000000, from: member });
+    await mr.payJoiningFee(member, { value: '2000000000000000', from: member });
     await mr.kycVerdict(member, true);
     assert.equal(await mr.checkRole(member, 2), true);
     assert.equal(await mr.checkRole(other, 2), false);
@@ -233,7 +233,7 @@ contract('MemberRoles', function([
     await assertRevert(
       mr.addMembersBeforeLaunch(
         [user1, user2, user3],
-        [100 * 1e18, 200 * 1e18, 300 * 1e18],
+        [toWei(100), toWei(200), toWei(300)],
         { from: member }
       )
     );
@@ -243,7 +243,7 @@ contract('MemberRoles', function([
     await assertRevert(
       mr.addMembersBeforeLaunch(
         [owner, user2, user3],
-        [100 * 1e18, 200 * 1e18, 300 * 1e18],
+        [toWei(100), toWei(200), toWei(300)],
         { from: owner }
       )
     );
@@ -252,7 +252,7 @@ contract('MemberRoles', function([
   it('13.30 Should able to add members before launch', async () => {
     await mr.addMembersBeforeLaunch(
       [user1, user2, user3],
-      [100 * 1e18, 200 * 1e18, 300 * 1e18],
+      [toWei(100), toWei(200), toWei(300)],
       { from: owner }
     );
     assert.equal(await mr.checkRole(user1, 2), true);
@@ -261,9 +261,9 @@ contract('MemberRoles', function([
     assert.equal(await tk.whiteListed(user1), true);
     assert.equal(await tk.whiteListed(user2), true);
     assert.equal(await tk.whiteListed(user3), true);
-    assert.equal(await tk.balanceOf(user1), 100 * 1e18);
-    assert.equal(await tk.balanceOf(user2), 200 * 1e18);
-    assert.equal(await tk.balanceOf(user3), 300 * 1e18);
+    assert.equal(await tk.balanceOf(user1), toWei(100));
+    assert.equal(await tk.balanceOf(user2), toWei(200));
+    assert.equal(await tk.balanceOf(user3), toWei(300));
     assert.equal(await mr.launched(), true);
   });
 
@@ -271,7 +271,7 @@ contract('MemberRoles', function([
     await assertRevert(
       mr.addMembersBeforeLaunch(
         [user1, user2, user3],
-        [100 * 1e18, 200 * 1e18, 300 * 1e18],
+        [toWei(100), toWei(200), toWei(300)],
         { from: owner }
       )
     );

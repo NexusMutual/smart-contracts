@@ -210,10 +210,10 @@ contract ClaimsReward is Iupgradable {
         _claimRewardToBeDistributed();
         _claimStakeCommission();
         tf.unlockStakerUnlockableTokens(msg.sender); 
-        uint gvReward = gv.claimReward(msg.sender, _proposals);
+        uint gvReward = gv.claimReward(msg.sender);
         if (gvReward > 0) {
             require(tk.transfer(msg.sender, gvReward));
-            gv.callRewardClaimedEvent(msg.sender, _proposals, gvReward);
+            // gv.callRewardClaimedEvent(msg.sender, _proposals, gvReward);
         }
     }
 

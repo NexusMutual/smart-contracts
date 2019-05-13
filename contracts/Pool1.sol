@@ -50,7 +50,7 @@ contract Pool1 is usingOraclize, Iupgradable {
         locked = false;
     }
 
-    // function () external payable {} //solhint-disable-line
+    function () external payable {} //solhint-disable-line
 
     /**
      * @dev Pays out the sum assured in case a claim is accepted
@@ -154,7 +154,7 @@ contract Pool1 is usingOraclize, Iupgradable {
      * @dev Transfers all assest (i.e ETH balance, Currency Assest) from old Pool to new Pool
      * @param newPoolAddress Address of the new Pool
      */
-    function upgradeCapitalPool(address newPoolAddress) external noReentrancy onlyInternal {
+    function upgradeCapitalPool(address payable newPoolAddress) external noReentrancy onlyInternal {
         for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
             bytes4 caName = pd.getCurrenciesByIndex(i);
             _upgradeCapitalPool(caName, newPoolAddress);

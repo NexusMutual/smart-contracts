@@ -209,13 +209,13 @@ contract ExchangeMock {
         returns (uint256)
     {
 
-        require((deadline >= block.timestamp && tokensSold > 0) && (minTokensBought > 0 && minEthBought > 0), "1");
-        require(exchangeAddress != address(this) && exchangeAddress != address(0), "1");
+        require((deadline >= block.timestamp && tokensSold > 0) && (minTokensBought > 0 && minEthBought > 0));
+        require(exchangeAddress != address(this) && exchangeAddress != address(0));
         // uint256 tokenReserve = token.balanceOf(address(this));
         uint256 ethBought = tokensSold/rateFactor();
         uint256 weiBought = (ethBought);
-        require(weiBought >= minEthBought, "3");
-        require(token.transferFrom(buyer, address(this), tokensSold), "4");
+        require(weiBought >= minEthBought);
+        require(token.transferFrom(buyer, address(this), tokensSold));
 
         
         

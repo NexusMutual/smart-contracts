@@ -19,7 +19,7 @@ const Governance = artifacts.require('Governance');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether } = require('./utils/ethTools');
+const { ether, toHex, toWei } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
@@ -39,8 +39,8 @@ const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
 const v = 28;
 const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
-const ethereum_string = 'ETH';
-const dai_string = 'DAI';
+const ethereum_string = toHex('ETH');
+const dai_string = toHex('DAI');
 
 let dai;
 let p1;
@@ -58,6 +58,7 @@ let mr;
 let gv;
 let APIID;
 let qt;
+const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -93,7 +94,9 @@ contract('Claim: Assessment 2', function([
   member5,
   member6
 ]) {
-  const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
+  const UNLIMITED_ALLOWANCE = new BN((2).toString())
+    .pow(new BN((256).toString()))
+    .sub(new BN((1).toString()));
 
   const SC1 = '0xef68e7c694f40c8202821edf525de3782458639f';
   const SC2 = '0x39bb259f66e1c59d5abef88375979b4d20d98022';
@@ -123,35 +126,35 @@ contract('Claim: Assessment 2', function([
     qt = await Quotation.deployed();
 
     nxms = await NXMaster.deployed();
-    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+    tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await DSV.setRate(25 * 1e18);
-    await pd.changeCurrencyAssetBaseMin(ethereum_string, 30 * 1e18);
-    await tf.upgradeCapitalPool(owner);
-    await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
-    await pd.changeCurrencyAssetBaseMin(dai_string, 750 * 1e18);
-    await dai.transfer(p1.address, 1250 * 1e18);
+    await DSV.setRate(toWei(25));
+    await pd.changeCurrencyAssetBaseMin(ethereum_string, toWei(30));
+    await tf.upgradeCapitalPool(dai.address);
+    await p1.sendEther({ from: owner, value: toWei(50) });
+    await pd.changeCurrencyAssetBaseMin(dai_string, toWei(750));
+    await dai.transfer(p1.address, toWei(1250));
     await mcr.addMCRData(
       10000,
       0,
-      100 * 1e18,
+      toWei(100),
       [ethereum_string, dai_string],
       [100, 2500],
       20190208
     );
-    await p1.upgradeInvestmentPool(owner);
+    await p1.upgradeInvestmentPool(dai.address);
     // await pd.changeC(400000);
     // await pd.changeA(10);
     // await td.changeBookTime(60);
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
-    // if ((await tk.totalSupply()) < 600000 * 1e18)
-    //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-    // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+    // if ((await tk.totalSupply()) < 600000 * toWei(1))
+    //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+    // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
 
     // const BASE_MIN_ETH = await pd.getCurrencyAssetBaseMin(ethereum_string);
     // const BASE_MIN_DAI = await pd.getCurrencyAssetBaseMin(dai_string);
@@ -278,80 +281,80 @@ contract('Claim: Assessment 2', function([
     await mr.kycVerdict(member6, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member6 });
 
-    await tk.transfer(underWriter1, 19095 * 1e18, { from: owner });
-    await tk.transfer(underWriter2, 16080 * 1e18, { from: owner });
-    await tk.transfer(underWriter3, 15050 * 1e18, { from: owner });
-    await tk.transfer(underWriter4, 18035 * 1e18, { from: owner });
-    await tk.transfer(underWriter5, 17065 * 1e18, { from: owner });
-    await tk.transfer(underWriter6, 19095 * 1e18, { from: owner });
+    await tk.transfer(underWriter1, toWei(19095), { from: owner });
+    await tk.transfer(underWriter2, toWei(16080), { from: owner });
+    await tk.transfer(underWriter3, toWei(15050), { from: owner });
+    await tk.transfer(underWriter4, toWei(18035), { from: owner });
+    await tk.transfer(underWriter5, toWei(17065), { from: owner });
+    await tk.transfer(underWriter6, toWei(19095), { from: owner });
 
-    await tk.transfer(claimAssessor1, 50000 * 1e18, { from: owner });
-    await tk.transfer(claimAssessor2, 30000 * 1e18, { from: owner });
-    await tk.transfer(claimAssessor3, 20000 * 1e18, { from: owner });
-    await tk.transfer(claimAssessor4, 60000 * 1e18, { from: owner });
-    await tk.transfer(claimAssessor5, 50000 * 1e18, { from: owner });
+    await tk.transfer(claimAssessor1, toWei(50000), { from: owner });
+    await tk.transfer(claimAssessor2, toWei(30000), { from: owner });
+    await tk.transfer(claimAssessor3, toWei(20000), { from: owner });
+    await tk.transfer(claimAssessor4, toWei(60000), { from: owner });
+    await tk.transfer(claimAssessor5, toWei(50000), { from: owner });
 
-    await tk.transfer(coverHolder1, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder2, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder3, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder4, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder5, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder6, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder7, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder8, 1000 * 1e18, { from: owner });
-    await tk.transfer(coverHolder9, 1000 * 1e18, { from: owner });
+    await tk.transfer(coverHolder1, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder2, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder3, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder4, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder5, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder6, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder7, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder8, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder9, toWei(1000), { from: owner });
 
-    await tk.transfer(member1, 30000 * 1e18, { from: owner });
-    await tk.transfer(member2, 20000 * 1e18, { from: owner });
-    await tk.transfer(member3, 10000 * 1e18, { from: owner });
-    await tk.transfer(member4, 20000 * 1e18, { from: owner });
-    await tk.transfer(member5, 30000 * 1e18, { from: owner });
-    await tk.transfer(member6, 150000 * 1e18, { from: owner });
+    await tk.transfer(member1, toWei(30000), { from: owner });
+    await tk.transfer(member2, toWei(20000), { from: owner });
+    await tk.transfer(member3, toWei(10000), { from: owner });
+    await tk.transfer(member4, toWei(20000), { from: owner });
+    await tk.transfer(member5, toWei(30000), { from: owner });
+    await tk.transfer(member6, toWei(150000), { from: owner });
 
     // now stake the tokens from the underwriters to the contracts
     // Smart contract 1
-    tf.addStake(SC1, 2000 * 1e18, { from: underWriter1 });
-    tf.addStake(SC1, 3000 * 1e18, { from: underWriter2 });
-    tf.addStake(SC1, 4000 * 1e18, { from: underWriter3 });
-    tf.addStake(SC1, 5000 * 1e18, { from: underWriter4 });
-    tf.addStake(SC1, 6000 * 1e18, { from: underWriter5 });
+    tf.addStake(SC1, toWei(2000), { from: underWriter1 });
+    tf.addStake(SC1, toWei(3000), { from: underWriter2 });
+    tf.addStake(SC1, toWei(4000), { from: underWriter3 });
+    tf.addStake(SC1, toWei(5000), { from: underWriter4 });
+    tf.addStake(SC1, toWei(6000), { from: underWriter5 });
 
     // Smart contract 2
-    tf.addStake(SC2, 4000 * 1e18, { from: underWriter3 });
-    tf.addStake(SC2, 5000 * 1e18, { from: underWriter2 });
-    tf.addStake(SC2, 6000 * 1e18, { from: underWriter5 });
-    tf.addStake(SC2, 7000 * 1e18, { from: underWriter4 });
-    tf.addStake(SC2, 8000 * 1e18, { from: underWriter1 });
+    tf.addStake(SC2, toWei(4000), { from: underWriter3 });
+    tf.addStake(SC2, toWei(5000), { from: underWriter2 });
+    tf.addStake(SC2, toWei(6000), { from: underWriter5 });
+    tf.addStake(SC2, toWei(7000), { from: underWriter4 });
+    tf.addStake(SC2, toWei(8000), { from: underWriter1 });
 
     // Smart contract 3
-    tf.addStake(SC3, 5000 * 1e18, { from: underWriter5 });
-    tf.addStake(SC3, 6000 * 1e18, { from: underWriter4 });
-    tf.addStake(SC3, 7000 * 1e18, { from: underWriter3 });
-    tf.addStake(SC3, 8000 * 1e18, { from: underWriter2 });
-    tf.addStake(SC3, 9000 * 1e18, { from: underWriter1 });
+    tf.addStake(SC3, toWei(5000), { from: underWriter5 });
+    tf.addStake(SC3, toWei(6000), { from: underWriter4 });
+    tf.addStake(SC3, toWei(7000), { from: underWriter3 });
+    tf.addStake(SC3, toWei(8000), { from: underWriter2 });
+    tf.addStake(SC3, toWei(9000), { from: underWriter1 });
 
     // Smart contract 4
-    tf.addStake(SC4, 30 * 1e18, { from: underWriter4 });
-    tf.addStake(SC4, 40 * 1e18, { from: underWriter3 });
-    tf.addStake(SC4, 50 * 1e18, { from: underWriter5 });
-    tf.addStake(SC4, 60 * 1e18, { from: underWriter2 });
-    tf.addStake(SC4, 70 * 1e18, { from: underWriter1 });
+    tf.addStake(SC4, toWei(30), { from: underWriter4 });
+    tf.addStake(SC4, toWei(40), { from: underWriter3 });
+    tf.addStake(SC4, toWei(50), { from: underWriter5 });
+    tf.addStake(SC4, toWei(60), { from: underWriter2 });
+    tf.addStake(SC4, toWei(70), { from: underWriter1 });
 
     // Smart contract 5
-    tf.addStake(SC5, 5 * 1e18, { from: underWriter4 });
-    tf.addStake(SC5, 10 * 1e18, { from: underWriter3 });
-    tf.addStake(SC5, 15 * 1e18, { from: underWriter5 });
-    tf.addStake(SC5, 20 * 1e18, { from: underWriter2 });
-    tf.addStake(SC5, 25 * 1e18, { from: underWriter1 });
+    tf.addStake(SC5, toWei(5), { from: underWriter4 });
+    tf.addStake(SC5, toWei(10), { from: underWriter3 });
+    tf.addStake(SC5, toWei(15), { from: underWriter5 });
+    tf.addStake(SC5, toWei(20), { from: underWriter2 });
+    tf.addStake(SC5, toWei(25), { from: underWriter1 });
 
     actionHash = encode('updateUintParameters(bytes8,uint)', 'A', 10);
     await gvProp(26, actionHash, mr, gv, 2);
-    val = await pd.getUintParameters('A');
+    val = await pd.getUintParameters(toHex('A'));
     (val[1] / 1).should.be.equal(10);
 
     actionHash = encode('updateUintParameters(bytes8,uint)', 'C', 400000);
     await gvProp(26, actionHash, mr, gv, 2);
-    val = await pd.getUintParameters('C');
+    val = await pd.getUintParameters(toHex('C'));
     (val[1] / 1).should.be.equal(400000);
   });
 
@@ -390,7 +393,7 @@ contract('Claim: Assessment 2', function([
       async function updateUWDetails(changeInUWBalanceExpected) {
         for (let i = 0; i < UWarray.length; i++) {
           let currentUWBalance = parseFloat(
-            (await tk.balanceOf(UWarray[i])) / 1e18
+            (await tk.balanceOf(UWarray[i])) / toWei(1)
           );
           changeInUWBalance[i] = currentUWBalance - balanceUW[i];
           if (changeInUWBalance[i] != changeInUWBalanceExpected[i]) {
@@ -406,7 +409,13 @@ contract('Claim: Assessment 2', function([
       // buy cover 1
 
       var vrsdata = await getQuoteValues(
-        [1, 6570841889000000, 100000000000000000000, 3549627424, 7972408607001],
+        [
+          1,
+          '6570841889000000',
+          '100000000000000000000',
+          '3549627424',
+          '7972408607001'
+        ],
         ethereum_string,
         100,
         SC1,
@@ -415,32 +424,43 @@ contract('Claim: Assessment 2', function([
       await p1.makeCoverBegin(
         SC1,
         ethereum_string,
-        [1, 6570841889000000, 100000000000000000000, 3549627424, 7972408607001],
+        [
+          1,
+          '6570841889000000',
+          '100000000000000000000',
+          '3549627424',
+          '7972408607001'
+        ],
         100,
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder5, value: 6570841889000000 }
+        { from: coverHolder5, value: '6570841889000000' }
       );
       let lockedCN = await tf.getLockedCNAgainstCover(1);
       claimAllUWRewards();
       allLockCNDetails.push(lockedCN);
       updateUWDetails([20, 0, 0, 0, 0]);
 
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
-
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
       // buy cover 2
-      await dai.transfer(coverHolder3, 164271047228000000);
-      await dai.approve(p1.address, 164271047228000000, { from: coverHolder3 });
+      await dai.transfer(coverHolder3, '164271047228000000');
+      await dai.approve(p1.address, '164271047228000000', {
+        from: coverHolder3
+      });
       vrsdata = await getQuoteValues(
         [
           25,
-          164271047228000000,
-          100000000000000000000,
-          3549627424,
-          7972408607006
+          '164271047228000000',
+          '100000000000000000000',
+          '3549627424',
+          '7972408607006'
         ],
         dai_string,
         100,
@@ -452,10 +472,10 @@ contract('Claim: Assessment 2', function([
         dai_string,
         [
           25,
-          164271047228000000,
-          100000000000000000000,
-          3549627424,
-          7972408607006
+          '164271047228000000',
+          '100000000000000000000',
+          '3549627424',
+          '7972408607006'
         ],
         100,
         vrsdata[0],
@@ -467,18 +487,22 @@ contract('Claim: Assessment 2', function([
       claimAllUWRewards();
       allLockCNDetails.push(lockedCN);
       updateUWDetails([20, 0, 0, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
       // buy cover 3
       vrsdata = await getQuoteValues(
         [
           2,
-          26283367556000000,
-          200000000000000000000,
-          3549627424,
-          7972408607002
+          '26283367556000000',
+          '200000000000000000000',
+          '3549627424',
+          '7972408607002'
         ],
         ethereum_string,
         200,
@@ -490,35 +514,41 @@ contract('Claim: Assessment 2', function([
         ethereum_string,
         [
           2,
-          26283367556000000,
-          200000000000000000000,
-          3549627424,
-          7972408607002
+          '26283367556000000',
+          '200000000000000000000',
+          '3549627424',
+          '7972408607002'
         ],
         200,
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder1, value: 26283367556000000 }
+        { from: coverHolder1, value: '26283367556000000' }
       );
       lockedCN = await tf.getLockedCNAgainstCover(3);
       claimAllUWRewards();
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 40, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
       // buy cover 4
-      await dai.transfer(coverHolder2, 657084188912000000);
-      await dai.approve(p1.address, 657084188912000000, { from: coverHolder2 });
+      await dai.transfer(coverHolder2, '657084188912000000');
+      await dai.approve(p1.address, '657084188912000000', {
+        from: coverHolder2
+      });
       vrsdata = await getQuoteValues(
         [
           50,
-          657084188912000000,
-          200000000000000000000,
-          3549627424,
-          7972408607007
+          '657084188912000000',
+          '200000000000000000000',
+          '3549627424',
+          '7972408607007'
         ],
         dai_string,
         200,
@@ -530,10 +560,10 @@ contract('Claim: Assessment 2', function([
         dai_string,
         [
           50,
-          657084188912000000,
-          200000000000000000000,
-          3549627424,
-          7972408607007
+          '657084188912000000',
+          '200000000000000000000',
+          '3549627424',
+          '7972408607007'
         ],
         200,
         vrsdata[0],
@@ -545,18 +575,22 @@ contract('Claim: Assessment 2', function([
       claimAllUWRewards();
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 40, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
       // buy cover 5
       vrsdata = await getQuoteValues(
         [
           3,
-          59137577002000000,
-          300000000000000000000,
-          3549627424,
-          7972408607003
+          '59137577002000000',
+          '300000000000000000000',
+          '3549627424',
+          '7972408607003'
         ],
         ethereum_string,
         300,
@@ -568,37 +602,41 @@ contract('Claim: Assessment 2', function([
         ethereum_string,
         [
           3,
-          59137577002000000,
-          300000000000000000000,
-          3549627424,
-          7972408607003
+          '59137577002000000',
+          '300000000000000000000',
+          '3549627424',
+          '7972408607003'
         ],
         300,
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder4, value: 59137577002000000 }
+        { from: coverHolder4, value: '59137577002000000' }
       );
       lockedCN = await tf.getLockedCNAgainstCover(5);
       claimAllUWRewards();
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 0, 0, 60]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
       // buy cover 6
-      await dai.transfer(coverHolder6, 1478439425051000000);
-      await dai.approve(p1.address, 1478439425051000000, {
+      await dai.transfer(coverHolder6, '1478439425051000000');
+      await dai.approve(p1.address, '1478439425051000000', {
         from: coverHolder6
       });
       vrsdata = await getQuoteValues(
         [
           75,
-          1478439425051000000,
-          300000000000000000000,
-          3549627424,
-          7972408607008
+          '1478439425051000000',
+          '300000000000000000000',
+          '3549627424',
+          '7972408607008'
         ],
         dai_string,
         300,
@@ -610,10 +648,10 @@ contract('Claim: Assessment 2', function([
         dai_string,
         [
           75,
-          1478439425051000000,
-          300000000000000000000,
-          3549627424,
-          7972408607008
+          '1478439425051000000',
+          '300000000000000000000',
+          '3549627424',
+          '7972408607008'
         ],
         300,
         vrsdata[0],
@@ -625,18 +663,22 @@ contract('Claim: Assessment 2', function([
       claimAllUWRewards();
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 0, 0, 0, 60]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
       // buy cover 7
       vrsdata = await getQuoteValues(
         [
           4,
-          105133470226000000,
-          400000000000000000000,
-          3549627424,
-          7972408607004
+          '105133470226000000',
+          '400000000000000000000',
+          '3549627424',
+          '7972408607004'
         ],
         ethereum_string,
         400,
@@ -648,37 +690,41 @@ contract('Claim: Assessment 2', function([
         ethereum_string,
         [
           4,
-          105133470226000000,
-          400000000000000000000,
-          3549627424,
-          7972408607004
+          '105133470226000000',
+          '400000000000000000000',
+          '3549627424',
+          '7972408607004'
         ],
         400,
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder7, value: 105133470226000000 }
+        { from: coverHolder7, value: '105133470226000000' }
       );
       lockedCN = await tf.getLockedCNAgainstCover(7);
       claimAllUWRewards();
       allLockCNDetails.push(lockedCN);
       updateUWDetails([0, 20, 20, 15, 25]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
       // buy cover 8
-      await dai.transfer(coverHolder8, 2628336755647000000);
-      await dai.approve(p1.address, 2628336755647000000, {
+      await dai.transfer(coverHolder8, '2628336755647000000');
+      await dai.approve(p1.address, '2628336755647000000', {
         from: coverHolder8
       });
       vrsdata = await getQuoteValues(
         [
           100,
-          2628336755647000000,
-          400000000000000000000,
-          3549627424,
-          7972408607009
+          '2628336755647000000',
+          '400000000000000000000',
+          '3549627424',
+          '7972408607009'
         ],
         dai_string,
         400,
@@ -690,10 +736,10 @@ contract('Claim: Assessment 2', function([
         dai_string,
         [
           100,
-          2628336755647000000,
-          400000000000000000000,
-          3549627424,
-          7972408607009
+          '2628336755647000000',
+          '400000000000000000000',
+          '3549627424',
+          '7972408607009'
         ],
         400,
         vrsdata[0],
@@ -706,18 +752,22 @@ contract('Claim: Assessment 2', function([
 
       allLockCNDetails.push(lockedCN);
       updateUWDetails([35, 10, 0, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
       // buy cover 9
       vrsdata = await getQuoteValues(
         [
           5,
-          164271047228000000,
-          500000000000000000000,
-          3549627424,
-          7972408607005
+          '164271047228000000',
+          '500000000000000000000',
+          '3549627424',
+          '7972408607005'
         ],
         ethereum_string,
         500,
@@ -729,32 +779,36 @@ contract('Claim: Assessment 2', function([
         ethereum_string,
         [
           5,
-          164271047228000000,
-          500000000000000000000,
-          3549627424,
-          7972408607005
+          '164271047228000000',
+          '500000000000000000000',
+          '3549627424',
+          '7972408607005'
         ],
         500,
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder9, value: 164271047228000000 }
+        { from: coverHolder9, value: '164271047228000000' }
       );
       lockedCN = await tf.getLockedCNAgainstCover(9);
       claimAllUWRewards();
 
       allLockCNDetails.push(lockedCN);
       updateUWDetails([12.5, 10, 5, 2.5, 7.5]);
-      if ((await tk.totalSupply()) < 600000 * 1e18)
-        await p1.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      else await p1.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      if ((await tk.totalSupply()) < 600000 * toWei(1))
+        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      else
+        await p1.burnFrom(
+          owner,
+          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
+        );
 
-      await tf.upgradeCapitalPool(owner);
-      await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
-      await dai.transfer(p1.address, 1250 * 1e18);
+      await tf.upgradeCapitalPool(dai.address);
+      await p1.sendEther({ from: owner, value: 50 * toWei(1) });
+      await dai.transfer(p1.address, toWei(1250));
       let lockCNFlag = 1;
       for (let i = 0; i < UWarray.length; i++) {
-        if (allCoverPremiums[i] * 0.1 * 1e18 != allLockCNDetails[i])
+        if (allCoverPremiums[i] * 0.1 * toWei(1) != allLockCNDetails[i])
           lockCNFlag = -1;
       }
       await rewardsFlag.should.equal(1);
@@ -795,11 +849,11 @@ contract('Claim: Assessment 2', function([
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
-      await tc.lock(CLA, 50000 * 1e18, validity, { from: claimAssessor1 });
-      await tc.lock(CLA, 30000 * 1e18, validity, { from: claimAssessor2 });
-      await tc.lock(CLA, 20000 * 1e18, validity, { from: claimAssessor3 });
+      await tc.lock(CLA, toWei(50000), validity, { from: claimAssessor1 });
+      await tc.lock(CLA, toWei(30000), validity, { from: claimAssessor2 });
+      await tc.lock(CLA, toWei(20000), validity, { from: claimAssessor3 });
       // cannot withdraw membership as it has staked tokens
       await assertRevert(mr.withdrawMembership({ from: claimAssessor1 }));
 
@@ -847,15 +901,21 @@ contract('Claim: Assessment 2', function([
 
       minVotingTime = await cd.minVotingTime();
 
-      closingTime = minVotingTime.plus(now);
-      await increaseTimeTo(closingTime.minus(10));
+      closingTime = new BN(minVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).sub(new BN((10).toString()))
+      );
 
       await p1.__callback(APIID, '');
 
       assert.equal(parseFloat((await cd.getClaimStatusNumber(claimID))[1]), 0);
 
       // check the CA vote not closing before the minimum time is reached even if the CA Vote is greater than 10*SA
-      await increaseTimeTo(closingTime.plus(10));
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((10).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder5, coverID)
@@ -876,28 +936,29 @@ contract('Claim: Assessment 2', function([
         await tf.getUserLockedCNTokens(coverHolder5, coverID)
       );
 
-      payoutReceived = (balanceAfter - balanceBefore) / 1e18;
-      coverTokensUnlockable = (tokenBalanceBefore - tokenBalanceAfter) / 1e18;
+      payoutReceived = (balanceAfter - balanceBefore) / toWei(1);
+      coverTokensUnlockable =
+        (tokenBalanceBefore - tokenBalanceAfter) / toWei(1);
       coverTokensBurned = Number(
-        ((totalBalanceBefore - totalBalanceAfter) / 1e18).toFixed(2)
+        ((totalBalanceBefore - totalBalanceAfter) / toWei(1)).toFixed(2)
       );
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -927,7 +988,7 @@ contract('Claim: Assessment 2', function([
                 0
               )
             )) /
-            1e18
+            toWei(1)
         );
         UWTokensBurned[i] = UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i];
       }
@@ -976,9 +1037,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
     });
 
     it('18.5 should pass for CA vote > 10 SA and majority > 70 % for accept(A1)', async function() {
@@ -1003,13 +1064,13 @@ contract('Claim: Assessment 2', function([
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
@@ -1043,8 +1104,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder5, coverID)
@@ -1068,7 +1133,7 @@ contract('Claim: Assessment 2', function([
                 0
               )
             )) /
-            1e18
+            toWei(1)
         );
       }
       // changing the claim status here
@@ -1082,26 +1147,26 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder5));
 
       coverTokensBurned = Number(
-        ((totalBalanceBefore - totalBalanceAfter) / 1e18).toFixed(2)
+        ((totalBalanceBefore - totalBalanceAfter) / toWei(1)).toFixed(2)
       );
       payoutReceived = Number(
-        ((balanceAfter - balanceBefore) / 1e18).toFixed(2)
+        ((balanceAfter - balanceBefore) / toWei(1)).toFixed(2)
       );
       coverTokensUnlockable = Number(
-        ((tokenBalanceAfter - tokenBalanceBefore) / 1e18).toFixed(2)
+        ((tokenBalanceAfter - tokenBalanceBefore) / toWei(1)).toFixed(2)
       );
 
       now = await latestTime();
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -1119,7 +1184,7 @@ contract('Claim: Assessment 2', function([
       );
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -1171,7 +1236,7 @@ contract('Claim: Assessment 2', function([
       // to verify, the staker staked burned by index
       assert.equal(
         parseFloat(await td.getStakerStakedBurnedByIndex(underWriter1, 0)) /
-          1e18,
+          toWei(1),
         2000
       );
 
@@ -1182,7 +1247,7 @@ contract('Claim: Assessment 2', function([
             underWriter1,
             0
           )
-        ) / 1e18,
+        ) / toWei(1),
         0
       );
 
@@ -1191,9 +1256,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
 
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
@@ -1228,12 +1293,12 @@ contract('Claim: Assessment 2', function([
       let member3Object = new member();
 
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -1250,7 +1315,7 @@ contract('Claim: Assessment 2', function([
                   0
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -1286,8 +1351,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder3, coverID)
@@ -1303,13 +1372,13 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, -1, { from: member1 });
@@ -1321,8 +1390,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -1343,11 +1416,11 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -1361,18 +1434,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder3));
 
       coverTokensBurned = Number(
-        ((totalBalanceBefore - totalBalanceAfter) / 1e18).toFixed(2)
+        ((totalBalanceBefore - totalBalanceAfter) / toWei(1)).toFixed(2)
       );
       payoutReceived = Number(
-        ((balanceAfter - balanceBefore) / 1e18).toFixed(2)
+        ((balanceAfter - balanceBefore) / toWei(1)).toFixed(2)
       );
       coverTokensUnlockable = Number(
-        ((tokenBalanceAfter - tokenBalanceBefore) / 1e18).toFixed(2)
+        ((tokenBalanceAfter - tokenBalanceBefore) / toWei(1)).toFixed(2)
       );
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -1429,9 +1502,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -1465,12 +1538,12 @@ contract('Claim: Assessment 2', function([
       let member3Object = new member();
 
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -1487,7 +1560,7 @@ contract('Claim: Assessment 2', function([
                   0
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -1523,8 +1596,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder3, coverID)
@@ -1540,13 +1617,13 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -1556,8 +1633,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -1578,11 +1659,11 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -1596,18 +1677,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder3));
 
       coverTokensBurned = Number(
-        ((totalBalanceBefore - totalBalanceAfter) / 1e18).toFixed(2)
+        ((totalBalanceBefore - totalBalanceAfter) / toWei(1)).toFixed(2)
       );
       payoutReceived = Number(
-        ((balanceAfter - balanceBefore) / 1e18).toFixed(2)
+        ((balanceAfter - balanceBefore) / toWei(1)).toFixed(2)
       );
       coverTokensUnlockable = Number(
-        ((tokenBalanceAfter - tokenBalanceBefore) / 1e18).toFixed(2)
+        ((tokenBalanceAfter - tokenBalanceBefore) / toWei(1)).toFixed(2)
       );
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -1664,9 +1745,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -1709,16 +1790,16 @@ contract('Claim: Assessment 2', function([
         underWriter1
       ];
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
 
-      await tc.lock(CLA, 60000 * 1e18, validity, { from: claimAssessor4 });
-      await tc.lock(CLA, 50000 * 1e18, validity, { from: claimAssessor5 });
+      await tc.lock(CLA, toWei(60000), validity, { from: claimAssessor4 });
+      await tc.lock(CLA, toWei(50000), validity, { from: claimAssessor5 });
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -1735,7 +1816,7 @@ contract('Claim: Assessment 2', function([
                   1
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -1784,8 +1865,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder1, coverID)
@@ -1801,19 +1886,19 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -1823,8 +1908,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -1853,11 +1942,11 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -1871,16 +1960,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder1));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -1958,9 +2049,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -2004,15 +2095,15 @@ contract('Claim: Assessment 2', function([
       ];
 
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
 
-      // await tc.lock(CLA, 60000 * 1e18, validity, {from: claimAssessor4});
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor5});
+      // await tc.lock(CLA, 60000 * toWei(1), validity, {from: claimAssessor4});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor5});
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -2029,7 +2120,7 @@ contract('Claim: Assessment 2', function([
                   1
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -2078,8 +2169,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder1, coverID)
@@ -2095,19 +2190,19 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -2117,8 +2212,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -2147,11 +2246,11 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -2164,22 +2263,25 @@ contract('Claim: Assessment 2', function([
       );
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder1));
 
-      payoutReceived = (balanceAfter - balanceBefore) / 1e18;
-      coverTokensUnlockable = (tokenBalanceAfter - tokenBalanceBefore) / 1e18;
+      payoutReceived = (balanceAfter - balanceBefore) / toWei(1);
+      coverTokensUnlockable =
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1);
       coverTokensBurned =
-        (coverTokensLockedBefore - coverTokensLockedAfter) / 1e18;
+        (coverTokensLockedBefore - coverTokensLockedAfter) / toWei(1);
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -2256,9 +2358,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -2305,7 +2407,7 @@ contract('Claim: Assessment 2', function([
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -2322,18 +2424,18 @@ contract('Claim: Assessment 2', function([
                   1
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
 
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
 
-      // await tc.lock(CLA, 60000 * 1e18, validity, {from: claimAssessor4});
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor5});
+      // await tc.lock(CLA, 60000 * toWei(1), validity, {from: claimAssessor4});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor5});
 
       coverID = await qd.getAllCoversOfUser(coverHolder2);
       await cl.submitClaim(coverID[0], { from: coverHolder2 });
@@ -2373,8 +2475,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder2, coverID)
@@ -2390,16 +2496,16 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, -1, { from: member1 });
@@ -2411,8 +2517,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -2437,15 +2547,15 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
       member4Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / toWei(1);
       member5Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -2461,16 +2571,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder2));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -2539,9 +2651,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -2586,15 +2698,15 @@ contract('Claim: Assessment 2', function([
         underWriter1
       ];
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
 
-      // await tc.lock(CLA, 60000 * 1e18, validity, {from: claimAssessor4});
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor5});
+      // await tc.lock(CLA, 60000 * toWei(1), validity, {from: claimAssessor4});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor5});
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -2611,7 +2723,7 @@ contract('Claim: Assessment 2', function([
                   1
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -2654,8 +2766,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder2, coverID)
@@ -2671,16 +2787,16 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -2692,8 +2808,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -2718,15 +2838,15 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
       member4Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / toWei(1);
       member5Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -2742,16 +2862,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder2));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -2820,9 +2942,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -2857,12 +2979,12 @@ contract('Claim: Assessment 2', function([
         underWriter1
       ];
       // need not to do the lock again
-      // await tc.lock(CLA, 50000 * 1e18, validity, {from: claimAssessor1});
-      // await tc.lock(CLA, 30000 * 1e18, validity, {from: claimAssessor2});
-      // await tc.lock(CLA, 20000 * 1e18, validity, {from: claimAssessor3});
+      // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
+      // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
+      // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
       let UWTokensLocked = [];
       for (let i = 0; i < UWarray.length; i++) {
@@ -2878,7 +3000,7 @@ contract('Claim: Assessment 2', function([
                   2
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -2927,8 +3049,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder4, coverID)
@@ -2950,29 +3076,31 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder4));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
       now = await latestTime();
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        1e18;
+        toWei(1);
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -2999,7 +3127,7 @@ contract('Claim: Assessment 2', function([
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -3073,9 +3201,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -3112,7 +3240,7 @@ contract('Claim: Assessment 2', function([
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -3129,7 +3257,7 @@ contract('Claim: Assessment 2', function([
                   2
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -3179,8 +3307,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder4, coverID)
@@ -3202,29 +3334,31 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder4));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
       now = await latestTime();
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        1e18;
+        toWei(1);
 
       let proposalIds = [];
       await cr.claimAllPendingReward(proposalIds, { from: claimAssessor1 });
@@ -3251,7 +3385,7 @@ contract('Claim: Assessment 2', function([
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -3324,9 +3458,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -3368,7 +3502,7 @@ contract('Claim: Assessment 2', function([
       ];
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -3385,7 +3519,7 @@ contract('Claim: Assessment 2', function([
                   2
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -3421,8 +3555,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder6, coverID)
@@ -3438,13 +3576,13 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -3453,8 +3591,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -3475,9 +3617,9 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -3490,16 +3632,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder6));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -3556,9 +3700,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -3600,7 +3744,7 @@ contract('Claim: Assessment 2', function([
       ];
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -3617,7 +3761,7 @@ contract('Claim: Assessment 2', function([
                   2
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -3653,8 +3797,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder6, coverID)
@@ -3670,13 +3818,13 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -3685,8 +3833,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -3707,9 +3859,9 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -3722,16 +3874,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder6));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -3788,9 +3942,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -3828,7 +3982,7 @@ contract('Claim: Assessment 2', function([
       let member2Object = new member();
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -3845,7 +3999,7 @@ contract('Claim: Assessment 2', function([
                   3
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -3857,8 +4011,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder7, coverID)
@@ -3879,8 +4037,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -3888,9 +4050,9 @@ contract('Claim: Assessment 2', function([
       let proposalIds = [];
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -3903,16 +4065,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder7));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -3936,9 +4100,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -3983,7 +4147,7 @@ contract('Claim: Assessment 2', function([
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -4000,7 +4164,7 @@ contract('Claim: Assessment 2', function([
                   3
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -4049,8 +4213,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder7, coverID)
@@ -4066,19 +4234,19 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -4088,8 +4256,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -4118,11 +4290,11 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -4136,16 +4308,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder7));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -4223,9 +4397,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -4269,7 +4443,7 @@ contract('Claim: Assessment 2', function([
       ];
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -4286,7 +4460,7 @@ contract('Claim: Assessment 2', function([
                   3
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -4335,8 +4509,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder8, coverID)
@@ -4352,19 +4530,19 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
       claimAssessor3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        1e18;
+        toWei(1);
       claimAssessor4Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        1e18;
+        toWei(1);
       claimAssessor5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -4374,8 +4552,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -4404,11 +4586,11 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -4422,16 +4604,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder8));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -4509,9 +4693,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -4555,7 +4739,7 @@ contract('Claim: Assessment 2', function([
       ];
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
@@ -4572,7 +4756,7 @@ contract('Claim: Assessment 2', function([
                   4
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -4600,8 +4784,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder9, coverID)
@@ -4617,10 +4805,10 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, -1, { from: member1 });
@@ -4633,8 +4821,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -4651,17 +4843,17 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
       member4Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / toWei(1);
       member5Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / toWei(1);
       member6Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member6)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member6)) / toWei(1);
 
       await cr.claimAllPendingReward(proposalIds, { from: member1 });
       await cr.claimAllPendingReward(proposalIds, { from: member2 });
@@ -4678,16 +4870,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder9));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -4738,9 +4932,9 @@ contract('Claim: Assessment 2', function([
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
 
-      // if ((await tk.totalSupply()) < 600000 * 1e18)
-      //   await tc.mint(owner, 600000 * 1e18 - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * 1e18);
+      // if ((await tk.totalSupply()) < 600000 * toWei(1))
+      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
+      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
       // now = await latestTime();
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
@@ -4784,7 +4978,7 @@ contract('Claim: Assessment 2', function([
       ];
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       UWTokensLocked = [];
@@ -4801,7 +4995,7 @@ contract('Claim: Assessment 2', function([
                   4
                 )
               )) /
-              1e18
+              toWei(1)
           ).toFixed(2)
         );
       }
@@ -4830,8 +5024,12 @@ contract('Claim: Assessment 2', function([
 
       maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       let coverTokensLockedBefore = parseFloat(
         await tf.getUserLockedCNTokens(coverHolder9, coverID)
@@ -4847,10 +5045,10 @@ contract('Claim: Assessment 2', function([
 
       claimAssessor1Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        1e18;
+        toWei(1);
       claimAssessor2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        1e18;
+        toWei(1);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -4863,8 +5061,12 @@ contract('Claim: Assessment 2', function([
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = maxVotingTime.plus(now);
-      await increaseTimeTo(closingTime.plus(2));
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((2).toString()))
+      );
 
       // now member voting will be closed
       await p1.__callback(APIID, '');
@@ -4881,19 +5083,21 @@ contract('Claim: Assessment 2', function([
       );
 
       member1Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
       member2Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
       member3Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
       member4Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / toWei(1);
       member5Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / toWei(1);
       member6Object.rewardRecieved =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member6)) / 1e18;
+        parseFloat(await cr.getRewardToBeDistributedByUser(member6)) / toWei(1);
 
-      await increaseTimeTo(closingTime.plus(172800));
+      await increaseTimeTo(
+        new BN(closingTime.toString()).add(new BN((172800).toString()))
+      );
 
       // cannot withdraw membership as it has not claimed Pending reward
       await assertRevert(mr.withdrawMembership({ from: member1 }));
@@ -4913,16 +5117,18 @@ contract('Claim: Assessment 2', function([
       let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder9));
 
       coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / 1e18
+        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
       ).toFixed(2);
-      payoutReceived = Number((balanceAfter - balanceBefore) / 1e18).toFixed(2);
+      payoutReceived = Number(
+        (balanceAfter - balanceBefore) / toWei(1)
+      ).toFixed(2);
       coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / 1e18
+        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / 1e18;
+          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
 
       for (let i = 0; i < UWarray.length; i++) {
@@ -4978,7 +5184,7 @@ contract('Claim: Assessment 2', function([
   });
   describe('Burning 0 tokens of a staker', function() {
     it('18.24 successful', async function() {
-      tf.addStake(SC1, 200 * 1e18, { from: underWriter6 });
+      tf.addStake(SC1, toWei(200), { from: underWriter6 });
       coverID = await qd.getAllCoversOfUser(coverHolder5);
 
       await tf.burnStakerLockedToken(SC1, 0);
@@ -4987,17 +5193,14 @@ contract('Claim: Assessment 2', function([
       maxVotingTime = await cd.maxVotingTime();
       let maxStakeTime = 21600000;
       let now = await latestTime();
-      closingTime = maxVotingTime.plus(now + maxStakeTime);
+      closingTime = new BN(maxVotingTime.toString()).add(
+        new BN((now + maxStakeTime).toString())
+      );
       await increaseTimeTo(closingTime);
       await tf.burnStakerLockedToken(SC1, 10);
     });
     it('18.26 when stakerStakedNXM = 0', async function() {
       await assertRevert(p1.depositCN(0));
-    });
-    it('18.26 when stakerStakedNXM = 0', async function() {
-      console.log(parseFloat(await qd.getValidityOfCover(1)));
-      console.log(parseFloat(await latestTime()));
-      // await assertRevert(p1.depositCN(0));
     });
   });
 });

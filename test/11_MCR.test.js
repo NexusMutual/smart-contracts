@@ -1,7 +1,7 @@
 const MCR = artifacts.require('MCR');
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('PoolDataMock');
 const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
@@ -271,8 +271,8 @@ contract('MCR', function([owner, notOwner]) {
       (vtp[1] / 1).should.be.equal(0);
     });
     it('11.21 mcr if vtp is 0', async function() {
-      await tf.upgradeCapitalPool(owner);
-      await p1.upgradeInvestmentPool(owner);
+      await tf.upgradeCapitalPool(cad.address);
+      await p1.upgradeInvestmentPool(cad.address);
       await mcr.addMCRData(
         18000,
         toWei(100),
@@ -291,7 +291,7 @@ contract('MCR', function([owner, notOwner]) {
       await p1.__callback(APIID, '');
     });
     it('11.22 rebalancing trade if total risk balance is 0', async function() {
-      await p1.sendTransaction({ from: owner, value: toWei(2) });
+      await p1.sendEther({ from: owner, value: toWei(2) });
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -301,8 +301,8 @@ contract('MCR', function([owner, notOwner]) {
       );
     });
     it('11.23 if mcr fails and retry after new mcr posted', async function() {
-      await tf.upgradeCapitalPool(owner);
-      await p1.upgradeInvestmentPool(owner);
+      await tf.upgradeCapitalPool(cad.address);
+      await p1.upgradeInvestmentPool(cad.address);
       await mcr.addMCRData(
         18000,
         toWei(100),

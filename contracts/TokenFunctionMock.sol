@@ -68,7 +68,7 @@ contract TokenFunctionMock is TokenFunctions {
         tc.releaseLockedTokens(_of, _reason, _amount);
     }    
 
-    function upgradeCapitalPool(address newPoolAddress) external {
+    function upgradeCapitalPool(address payable newPoolAddress) external {
         Pool1 p1 = Pool1(ms.getLatestAddress("P1"));
         p1.upgradeCapitalPool(newPoolAddress);
     }

@@ -557,12 +557,30 @@ contract('Quotation', function([
                     .sub(new BN(coverDetailsDai[1].toString()))
                     .toString()
                 );
-              newLockedCN
+              var newLockedCNVal = newLockedCN.toString();
+              newLockedCNVal = newLockedCNVal.substring(
+                0,
+                newLockedCNVal.length - 1
+              );
+              var presentLockedCNVal = presentLockedCN.toString();
+              presentLockedCNVal = presentLockedCNVal.substring(
+                0,
+                presentLockedCNVal.length - 1
+              );
+              newLockedCNVal.should.be.equal(presentLockedCNVal.toString());
+              var newTotalSupplyVal = newTotalSupply.toString();
+              newTotalSupplyVal = newTotalSupplyVal.substring(
+                0,
+                newTotalSupplyVal.length - 2
+              );
+              var presentTotalSupplyVal = presentTotalSupply.toString();
+              var presentTotalSupplyVal = presentTotalSupplyVal.substring(
+                0,
+                presentTotalSupplyVal.length - 2
+              );
+              newTotalSupplyVal
                 .toString()
-                .should.be.equal(presentLockedCN.toString());
-              newTotalSupply
-                .toString()
-                .should.be.equal(presentTotalSupply.toString());
+                .should.be.equal(presentTotalSupplyVal.toString());
             });
             it('6.19 currency assest balance should increase after cover purchase', async function() {
               const presentPoolBalanceOfCA = new BN(
@@ -987,7 +1005,7 @@ contract('Quotation', function([
             vrsdata[2],
             { from: notMember, value: totalFee }
           );
-          await cad.transfer(qt.address, 10 * 1e18);
+          await cad.transfer(qt.address, toWei(10));
           let newQt = await Quotation.new();
           let oldMR = await MemberRoles.at(
             await nxms.getLatestAddress(toHex('MR'))
@@ -1001,7 +1019,9 @@ contract('Quotation', function([
             newQt.address
           );
           await gvProp(29, actionHash, oldMR, oldGv, 2);
-          (await nxms.getLatestAddress('QT')).should.be.equal(newQt.address);
+          (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
+            newQt.address
+          );
           qt = newQt;
           await assertRevert(
             qt.initiateMembershipAndCover(

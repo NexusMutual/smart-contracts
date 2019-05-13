@@ -136,7 +136,7 @@ contract('Pool', function([
     await tk.transfer(member4, tokens);
   });
 
-  describe.only('PoolData', function() {
+  describe('PoolData', function() {
     describe('Misc', function() {
       it('12.11 should return true if notarise address', async function() {
         (await pd.isnotarise(owner)).should.equal(true);
@@ -204,26 +204,16 @@ contract('Pool', function([
   });
 
   describe('Liquidity', function() {
-    it.only('12.32 Setting the testing parameters', async function() {
-      console.log('1');
+    it('12.32 Setting the testing parameters', async function() {
       await DSV.setRate(toWei(10));
-      console.log('1');
       await pd.changeCurrencyAssetBaseMin('0x455448', toWei(6));
-      console.log('1');
       await pd.changeCurrencyAssetBaseMin('0x444149', toWei(6));
-      console.log('1');
       await tf.upgradeCapitalPool(cad.address);
-      console.log('1');
       await p1.upgradeInvestmentPool(cad.address);
-      console.log('1');
       await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(5));
-      console.log('1');
       await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(5));
-      console.log('1');
       await p1.sendEther({ from: owner, value: toWei(20) });
-      console.log('1');
       await cad.transfer(p1.address, toWei(20));
-      console.log('1');
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -231,16 +221,14 @@ contract('Pool', function([
         20190125,
         false
       );
-      console.log('1');
       let baseMinE = await pd.getCurrencyAssetBaseMin('0x455448');
       let baseMinD = await pd.getCurrencyAssetBaseMin('0x444149');
       let holdMinE = await pd.getInvestmentAssetMinHoldingPerc('0x455448');
       let holdMinD = await pd.getInvestmentAssetMinHoldingPerc('0x444149');
       let holdMaxE = await pd.getInvestmentAssetMaxHoldingPerc('0x455448');
       let holdMaxD = await pd.getInvestmentAssetMaxHoldingPerc('0x444149');
-      console.log('1');
     });
-    it.only('12.33 ELT ETH (No IA available at IA pool)', async function() {
+    it('12.33 ELT ETH (No IA available at IA pool)', async function() {
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -269,49 +257,68 @@ contract('Pool', function([
           parseFloat(parseFloat(baseVarMinE[0]) + parseFloat(baseVarMinE[1]));
 
       CABalE.toString().should.be.equal((ICABalE - amount).toString());
-      CABalE2.toString().should.be.equal((ICABalE2 + amount).toString());
+      console.log('yo', CABalE2.toString());
+      console.log('yo', (ICABalE2 + amount).toString().substr(1));
+      CABalE2.toString().should.be.equal(
+        (ICABalE2 + amount).toString().substr(1)
+      );
+      console.log('bye yo');
       CABalD.toString().should.be.equal(ICABalE.toString());
+      console.log('jhf');
       CABalD2.toString().should.be.equal(ICABalE2.toString());
-
+      console.log('jhf');
       await p1.internalLiquiditySwap(toHex('DAI'));
-
+      console.log('jhf');
       let FCABalE;
       let FCABalD;
       let FCABalE2;
       let FCABalD2;
-
+      console.log('jhf');
       var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      console.log('jhf');
       let exchangeDAI = await fac.getExchange(
         await pd.getInvestmentAssetAddress(toHex('DAI'))
       );
+      console.log('jhf');
       emock = await exchangeMock.at(exchangeDAI);
-      await emock.sendEther({ from: notOwner, value: 2000 * toWei(1) });
-      await cad.transfer(emock.address, 200000 * toWei(1));
+      console.log('jhf');
+      await emock.sendEther({ from: notOwner, value: toWei(2000) });
+      console.log('jhf');
+      await cad.transfer(emock.address, toWei(200000));
+      console.log('jhf');
       let time = await latestTime();
+      console.log('jhf');
       await increaseTimeTo(
         (await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100
       );
+      console.log('jhf');
 
       await p1.__callback(APIID, '');
-
+      console.log('ok');
       FCABalE = await web3.eth.getBalance(p1.address);
       FCABalE2 = await web3.eth.getBalance(p2.address);
       FCABalD = await cad.balanceOf(p1.address);
       FCABalD2 = await cad.balanceOf(p2.address);
       baseVarMinE = await pd.getCurrencyAssetVarBase(toHex('DAI'));
+      console.log('ok');
       amount =
         parseFloat(CABalD) -
         1.5 *
           parseFloat(parseFloat(baseVarMinE[0]) + parseFloat(baseVarMinE[1]));
+      console.log('ok');
       FCABalE.toString().should.be.equal(CABalE.toString());
+      console.log('ok');
       FCABalE2.toString().should.be.equal(
         (
           amount / ((await pd.getCAAvgRate(toHex('DAI'))) / 100) +
           CABalE2 * 1
         ).toString()
       );
+      console.log('jhf');
       FCABalD.toString().should.be.equal((CABalD - amount).toString());
+      console.log('jhf');
       FCABalD2.toString().should.be.equal(CABalD2.toString());
+      console.log('jhf');
     });
     it('12.34 RBT (ETH to ETH)', async function() {
       let ICABalE;
@@ -803,7 +810,7 @@ contract('Pool', function([
     });
 
     it('12.44 RBT DAI to ETH amount > price slippage', async function() {
-      await emock.sendEth(2087960000000000000000);
+      await emock.removeEther(2087960000000000000000);
       await cad.transfer(p2.address, 50 * toWei(1), { from: owner });
       let ICABalE;
       let ICABalD;
@@ -1032,7 +1039,7 @@ contract('Pool', function([
         );
     });
     it('12.49 ILT(DAI->ETH) amount > price slippage', async function() {
-      await emock.sendEth(1520000000000000000);
+      await emock.removeEther(1520000000000000000);
       await p2.sendEther({ from: owner, value: toWei(5) });
       await p1.sendEther({
         from: owner,
@@ -1595,12 +1602,12 @@ contract('Pool', function([
     });
 
     it('12.60 ILT(DAI->MKR) amount > price slippage', async function() {
-      emock.sendEth(await web3.eth.getBalance(emock.address));
+      emock.removeEther(await web3.eth.getBalance(emock.address));
       let emockD = await fac.getExchange(
         await pd.getInvestmentAssetAddress(toHex('DAI'))
       );
       emockDAI = exchangeMock.at(emockD);
-      emockDAI.sendEth(await web3.eth.getBalance(emockDAI.address));
+      emockDAI.removeEther(await web3.eth.getBalance(emockDAI.address));
       await emockDAI.sendEther({ from: owner, value: 80 * toWei(1) });
       await emock.sendEther({ from: owner, value: 75 * toWei(1) });
       await tf.transferCurrencyAsset(toHex('DAI'), owner, 12.5 * toWei(1));

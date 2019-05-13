@@ -1,10 +1,13 @@
 async function assertRevert(promise) {
   try {
     await promise;
-    assert.fail('Expected revert not received');
+    throw null;
   } catch (error) {
-    const revertFound = error.message.search('revert') >= 0;
-    assert(revertFound, `Expected revert, got ${error} instead`);
+    assert(error, `Expected an error but did not get one`);
+    assert(
+      error.message.includes('revert'),
+      `Expected an error containing "revert" but got "${error.message}" instead`
+    );
   }
 }
 

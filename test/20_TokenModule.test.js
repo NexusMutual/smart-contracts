@@ -6,7 +6,8 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const TokenData = artifacts.require('TokenDataMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
-const { ether } = require('./utils/ethTools');
+const DAI = artifacts.require('MockDAI');
+const { ether, toHex, toWei } = require('./utils/ethTools');
 const { assertRevert } = require('./utils/assertRevert');
 const { increaseTimeTo } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
@@ -16,6 +17,8 @@ const { advanceBlock } = require('./utils/advanceToBlock');
 const ETH = '0x455448';
 const fee = ether(0.002);
 let ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+let dai;
 let tk;
 let tc;
 let p1;
@@ -24,6 +27,7 @@ let mr;
 let nxms;
 let td;
 let tf;
+const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -31,7 +35,9 @@ require('chai')
   .should();
 
 contract('Token Module', function([owner, member1]) {
-  const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1);
+  const UNLIMITED_ALLOWANCE = new BN((2).toString())
+    .pow(new BN((256).toString()))
+    .sub(new BN((1).toString()));
   before(async function() {
     await advanceBlock();
     tk = await NXMToken.deployed();
@@ -41,20 +47,18 @@ contract('Token Module', function([owner, member1]) {
     tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     td = await TokenData.deployed();
-    tc = await TokenController.at(await nxms.getLatestAddress('TC'));
+    tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
+    dai = await DAI.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-
-    await tf.upgradeCapitalPool(owner);
-    await p1.sendTransaction({ from: owner, value: 50 * 1e18 });
-    await p1.upgradeInvestmentPool(owner);
-
+    await tf.upgradeCapitalPool(dai.address);
+    await p1.sendEther({ from: owner, value: toWei(50) });
+    await p1.upgradeInvestmentPool(dai.address);
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
     // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tk.transfer(member1, 30000 * 1e18, { from: owner });
+    await tk.transfer(member1, toWei(30000), { from: owner });
     // console.log(await tk.allowance(owner, tc.address));
-
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
   });
   describe('NXMToken: ', function() {
@@ -93,12 +97,12 @@ contract('Token Module', function([owner, member1]) {
     it('20.5 transfer function "require" - else conditions are checked', async function() {
       // to check that transfer is not made to ZERO_ADDRESS
       await assertRevert(
-        tk.transfer(ZERO_ADDRESS, 30000 * 1e18, { from: owner })
+        tk.transfer(ZERO_ADDRESS, toWei(30000), { from: owner })
       );
 
       // to check that owner is not locked for MV
       // await tc.lockForMemberVote(owner, 2); // lock the owner, so that it cannot transfer
-      // await assertRevert(tk.transfer(member1, 30000 * 1e18, { from: owner }));
+      // await assertRevert(tk.transfer(member1, towei(30000), { from: owner }));
     });
 
     it('20.6 _mint function "require" - else ZERO_ADDRESS condition is checked', async function() {
@@ -112,15 +116,21 @@ contract('Token Module', function([owner, member1]) {
     });
 
     it('20.8 should not be able to reduce lock if no locked tokens', async function() {
-      await assertRevert(tf.reduceLock(member1, 'random', await latestTime()));
+      await assertRevert(
+        tf.reduceLock(member1, toHex('random'), await latestTime())
+      );
     });
 
     it('20.9 should not be able to burn if no locked tokens', async function() {
-      await assertRevert(tf.burnLockedTokens(member1, 'random', 10e18));
+      await assertRevert(
+        tf.burnLockedTokens(member1, toHex('random'), toWei(10))
+      );
     });
 
     it('20.10 should not be able to release tokens more than he have locked', async function() {
-      await assertRevert(tf.releaseLockedTokens(member1, 'random', 10e18));
+      await assertRevert(
+        tf.releaseLockedTokens(member1, toHex('random'), toWei(10))
+      );
     });
   });
 });

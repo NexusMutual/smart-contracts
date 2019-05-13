@@ -1,6 +1,6 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('PoolDataMock');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -281,7 +281,7 @@ contract('NXMaster: Emergency Pause', function([
       );
 
       let p = await gv.getProposalLength();
-      await gv.createProposalwithVote(
+      await gv.createProposalwithSolution(
         'Implement Emergency Pause',
         'Implement Emergency Pause',
         'Implement Emergency Pause',
@@ -295,7 +295,7 @@ contract('NXMaster: Emergency Pause', function([
       //   'Implement Emergency Pause',
       //   '0x872f1eb3'
       // );
-      // await gv.submitVote(p, 1);
+      await gv.submitVote(p, 1);
       await gv.closeProposal(p);
       startTime = await latestTime();
       await assertRevert(
@@ -416,7 +416,7 @@ contract('NXMaster: Emergency Pause', function([
     describe('Turning off emergency pause automatically', function() {
       it('10.26 should be able to turn off automatically', async function() {
         let p = await gv.getProposalLength();
-        await gv.createProposalwithVote(
+        await gv.createProposalwithSolution(
           'Implement Emergency Pause',
           'Implement Emergency Pause',
           'Implement Emergency Pause',
@@ -424,7 +424,7 @@ contract('NXMaster: Emergency Pause', function([
           'Implement Emergency Pause',
           '0x872f1eb3'
         );
-
+        await gv.submitVote(p, 1);
         await gv.closeProposal(p);
         startTime = await latestTime();
         await increaseTimeTo(startTime / 1 + 2419300 + 100);

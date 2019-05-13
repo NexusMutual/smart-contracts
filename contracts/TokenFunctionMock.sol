@@ -1,6 +1,6 @@
 pragma solidity 0.5.7;
 
-import "./Pool1.sol";
+import "./Pool1Mock.sol";
 import "./ClaimsData.sol";
 
 
@@ -79,14 +79,15 @@ contract TokenFunctionMock is TokenFunctions {
     }
 
     function transferCurrencyAsset(
-        bytes4 curr,
-        uint amount
+        bytes4 _curr,
+        address payable _address,
+        uint _amount
     )
         public
         returns(bool)
     {
-        Pool1 p1 = Pool1(ms.getLatestAddress("P1"));
+        Pool1Mock p1 = Pool1Mock(ms.getLatestAddress("P1"));
     
-        return p1.transferCurrencyAsset(curr, amount);
+        return p1.transferCurrencyAssetToAddress(_curr, _address, _amount);
     }
 }

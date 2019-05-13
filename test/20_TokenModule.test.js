@@ -35,9 +35,8 @@ require('chai')
   .should();
 
 contract('Token Module', function([owner, member1]) {
-  const UNLIMITED_ALLOWANCE = new BN((2).toString())
-    .pow(new BN((256).toString()))
-    .sub(new BN((1).toString()));
+  const UNLIMITED_ALLOWANCE =
+    '115792089237316195423570985008687907853269984665640564039457584007913129639935';
   before(async function() {
     await advanceBlock();
     tk = await NXMToken.deployed();
@@ -73,11 +72,11 @@ contract('Token Module', function([owner, member1]) {
     });
 
     it('20.3 decreaseAllowance function is called, ZERO_ADDRESS is also checked', async function() {
-      await tk.decreaseAllowance(tc.address, 0.1 * UNLIMITED_ALLOWANCE, {
+      await tk.decreaseAllowance(tc.address, UNLIMITED_ALLOWANCE, {
         from: owner
       });
       await assertRevert(
-        tk.decreaseAllowance(ZERO_ADDRESS, 0.1 * UNLIMITED_ALLOWANCE, {
+        tk.decreaseAllowance(ZERO_ADDRESS, UNLIMITED_ALLOWANCE, {
           from: owner
         })
       );
@@ -85,11 +84,11 @@ contract('Token Module', function([owner, member1]) {
 
     it('20.4 increaseAllowance function is called, ZERO_ADDRESS is also checked', async function() {
       await assertRevert(
-        tk.increaseAllowance(ZERO_ADDRESS, 0.1 * UNLIMITED_ALLOWANCE, {
+        tk.increaseAllowance(ZERO_ADDRESS, UNLIMITED_ALLOWANCE, {
           from: owner
         })
       );
-      await tk.increaseAllowance(tc.address, 0.1 * UNLIMITED_ALLOWANCE, {
+      await tk.increaseAllowance(tc.address, UNLIMITED_ALLOWANCE, {
         from: owner
       });
     });
@@ -111,7 +110,7 @@ contract('Token Module', function([owner, member1]) {
 
     it('20.7 should not be able to burn more than user balance', async function() {
       await assertRevert(
-        tf.burnFrom(member1, (await tk.balanceOf(member1)) / 1 + 1)
+        tf.burnFrom(member1, (await tk.balanceOf(member1)).toString())
       );
     });
 

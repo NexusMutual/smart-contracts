@@ -1,5 +1,5 @@
 const MCR = artifacts.require('MCR');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('PoolDataMock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');

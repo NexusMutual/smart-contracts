@@ -18,10 +18,16 @@ contract ExchangeMock {
 
     }
  
-    function sendEth(uint val) public {
+    function removeEther(uint val) public {
+        
         (msg.sender).transfer(val);
     }
 
+
+    function sendEther() public payable {
+        
+    }
+    
     function rateFactor() public view returns(uint256) {
         if (token.id() == 1) {
             return 10;

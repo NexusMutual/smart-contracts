@@ -651,7 +651,6 @@ contract('Claim: Assessment', function([
       (13).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.30 Payout fails for 1st time and later complete', async function() {
-      await dsv.setRate(toWei(120));
       await cad.transfer(coverHolder, toWei(20));
       await cad.approve(P1.address, coverDetailsDai[1], {
         from: coverHolder

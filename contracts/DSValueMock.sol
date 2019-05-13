@@ -6,7 +6,8 @@ contract DSValueMock {
     bytes32 public p;
 
     constructor() public {
-        p = bytes32("0x68155A43676E00000");
+        uint val = 120 * 10**18;
+        p = bytes32(val);
     }
 
     function read() public view returns (bytes32) {

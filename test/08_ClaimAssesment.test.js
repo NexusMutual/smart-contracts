@@ -15,6 +15,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const Governance = artifacts.require('Governance');
 const DAI = artifacts.require('MockDAI');
+const DSValue = artifacts.require('DSValueMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -60,6 +61,7 @@ let nxms;
 let mr;
 let pd;
 let gv;
+let dsv;
 const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
@@ -112,6 +114,7 @@ contract('Claim: Assessment', function([
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
+    dsv = await DSValue.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -648,6 +651,7 @@ contract('Claim: Assessment', function([
       (13).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.30 Payout fails for 1st time and later complete', async function() {
+      await dsv.setRate(toWei(120));
       await cad.transfer(coverHolder, toWei(20));
       await cad.approve(P1.address, coverDetailsDai[1], {
         from: coverHolder
@@ -660,7 +664,6 @@ contract('Claim: Assessment', function([
         smartConAdd,
         qt.address
       );
-      console.log("qwer56");
       await P1.makeCoverUsingCA(
         smartConAdd,
         toHex('DAI'),
@@ -671,7 +674,6 @@ contract('Claim: Assessment', function([
         vrsdata[2],
         { from: coverHolder }
       );
-      console.log("qwer12");
       coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
       let clid = (await cd.actualClaimLength()) - 1;
@@ -681,9 +683,7 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 100);
       cStatus = await cd.getClaimStatusNumber(clid);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      console.log("qwer00");
       await P1.__callback(apiid, '');
-      console.log("qwer");
       cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
       await cad.transfer(P1.address, toWei(20));
@@ -693,106 +693,106 @@ contract('Claim: Assessment', function([
       (14).should.be.equal(parseFloat(cStatus[1]));
     });
   });
-  // describe('More basic test cases', function() {
-  //   before(async function() {
-  //     // let now = await latestTime();
-  //     // await increaseTimeTo(BOOK_TIME.plus(now));
-  //     await mr.payJoiningFee(member5, { from: member5, value: fee });
-  //     await mr.kycVerdict(member5, true);
-  //     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member5 });
-  //     await tk.transfer(member5, ether(250));
-  //     await tc.lock(CLA, ether(200), duration.days(300), {
-  //       from: member5
-  //     });
-  //     coverDetails[4] = '7972408607007';
-  //     var vrsdata = await getQuoteValues(
-  //       coverDetails,
-  //       toHex('ETH'),
-  //       coverPeriod,
-  //       smartConAdd,
-  //       qt.address
-  //     );
-  //     await P1.makeCoverBegin(
-  //       smartConAdd,
-  //       toHex('ETH'),
-  //       coverDetails,
-  //       coverPeriod,
-  //       vrsdata[0],
-  //       vrsdata[1],
-  //       vrsdata[2],
-  //       { from: coverHolder, value: coverDetails[1] }
-  //     );
-  //     coverID = await qd.getAllCoversOfUser(coverHolder);
-  //     await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
-  //   });
-  //   it('8.31 should not allow to cast CA vote if not locked under CA', async function() {
-  //     let clid = (await cd.actualClaimLength()) - 1;
-  //     await assertRevert(cl.submitCAVote(clid, -1, { from: staker1 }));
-  //   });
-  //   it('8.32 should not be able to CAs right to cast CA vote for 3 days', async function() {
-  //     await assertRevert(cd.setUserClaimVotePausedOn(member1));
-  //   });
-  //   it('8.33 should not be able to update uint parameter directly', async function() {
-  //     await assertRevert(cd.updateUintParameters(toHex('A'), 12));
-  //   });
-  //   it('8.34 should get 0 for wrong code', async function() {
-  //     let val = await cd.getUintParameters(toHex('EPTIME'));
-  //     (val[1] / 1).should.be.equal(0);
-  //   });
-  //   it('8.35 even if passed by governance should not trigger action for wrong code', async function() {
-  //     actionHash = encode('updateUintParameters(bytes8,uint)', 'asd', 12);
-  //     await gvProp(24, actionHash, mr, gv, 2);
-  //   });
-  //   it('8.36 should able to propose to block CAs right to cast CA vote for 3 days', async function() {
-  //     let val = await cd.userClaimVotePausedOn(member1);
-  //     (val / 1).should.be.equal(0);
-  //     actionHash = encode('setUserClaimVotePausedOn(address)', member1);
-  //     await gvProp(9, actionHash, mr, gv, 1);
-  //     val = await cd.userClaimVotePausedOn(member1);
-  //     (val / 1).should.not.be.equal(0);
-  //   });
-  //   it('8.37 should not able to vote as CA if blocked', async function() {
-  //     let clid = (await cd.actualClaimLength()) - 1;
-  //     await assertRevert(cl.submitCAVote(clid, -1, { from: member1 }));
-  //   });
-  //   it('8.38 should close voting during casting vote as CA', async function() {
-  //     now = await latestTime();
-  //     let minVoteTime = await cd.minVotingTime();
-  //     await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
-  //     let clid = (await cd.actualClaimLength()) - 1;
-  //     await cl.submitCAVote(clid, -1, { from: member5 });
-  //     tokenVoted = await cd.getTokensClaim(member5, clid);
-  //     parseFloat(tokenVoted[1]).should.be.equal(parseFloat(ether(200)));
-  //     (await cl.checkVoteClosing(clid))
-  //       .toString()
-  //       .should.be.equal((-1).toString());
-  //   });
+  describe('More basic test cases', function() {
+    before(async function() {
+      // let now = await latestTime();
+      // await increaseTimeTo(BOOK_TIME.plus(now));
+      await mr.payJoiningFee(member5, { from: member5, value: fee });
+      await mr.kycVerdict(member5, true);
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member5 });
+      await tk.transfer(member5, ether(250));
+      await tc.lock(CLA, ether(200), duration.days(300), {
+        from: member5
+      });
+      coverDetails[4] = '7972408607007';
+      var vrsdata = await getQuoteValues(
+        coverDetails,
+        toHex('ETH'),
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
+      await P1.makeCoverBegin(
+        smartConAdd,
+        toHex('ETH'),
+        coverDetails,
+        coverPeriod,
+        vrsdata[0],
+        vrsdata[1],
+        vrsdata[2],
+        { from: coverHolder, value: coverDetails[1] }
+      );
+      coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+    });
+    it('8.31 should not allow to cast CA vote if not locked under CA', async function() {
+      let clid = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(clid, -1, { from: staker1 }));
+    });
+    it('8.32 should not be able to CAs right to cast CA vote for 3 days', async function() {
+      await assertRevert(cd.setUserClaimVotePausedOn(member1));
+    });
+    it('8.33 should not be able to update uint parameter directly', async function() {
+      await assertRevert(cd.updateUintParameters(toHex('A'), 12));
+    });
+    it('8.34 should get 0 for wrong code', async function() {
+      let val = await cd.getUintParameters(toHex('EPTIME'));
+      (val[1] / 1).should.be.equal(0);
+    });
+    it('8.35 even if passed by governance should not trigger action for wrong code', async function() {
+      actionHash = encode('updateUintParameters(bytes8,uint)', 'asd', 12);
+      await gvProp(24, actionHash, mr, gv, 2);
+    });
+    it('8.36 should able to propose to block CAs right to cast CA vote for 3 days', async function() {
+      let val = await cd.userClaimVotePausedOn(member1);
+      (val / 1).should.be.equal(0);
+      actionHash = encode('setUserClaimVotePausedOn(address)', member1);
+      await gvProp(9, actionHash, mr, gv, 1);
+      val = await cd.userClaimVotePausedOn(member1);
+      (val / 1).should.not.be.equal(0);
+    });
+    it('8.37 should not able to vote as CA if blocked', async function() {
+      let clid = (await cd.actualClaimLength()) - 1;
+      await assertRevert(cl.submitCAVote(clid, -1, { from: member1 }));
+    });
+    it('8.38 should close voting during casting vote as CA', async function() {
+      now = await latestTime();
+      let minVoteTime = await cd.minVotingTime();
+      await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
+      let clid = (await cd.actualClaimLength()) - 1;
+      await cl.submitCAVote(clid, -1, { from: member5 });
+      tokenVoted = await cd.getTokensClaim(member5, clid);
+      parseFloat(tokenVoted[1]).should.be.equal(parseFloat(ether(200)));
+      (await cl.checkVoteClosing(clid))
+        .toString()
+        .should.be.equal((-1).toString());
+    });
 
-  //   it('8.39 should close voting during casting vote as Member', async function() {
-  //     coverID = await qd.getAllCoversOfUser(coverHolder);
-  //     await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
-  //     let clid = (await cd.actualClaimLength()) - 1;
-  //     let now = await latestTime();
-  //     let maxVoteTime = await cd.maxVotingTime();
-  //     await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
-  //     let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-  //     await P1.__callback(apiid, '');
-  //     now = await latestTime();
-  //     let minVoteTime = await cd.minVotingTime();
-  //     await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
-  //     await cl.submitMemberVote(clid, -1, { from: member5 });
-  //     (await cl.checkVoteClosing(clid))
-  //       .toString()
-  //       .should.be.equal((-1).toString());
-  //   });
-  //   it('8.40 should revert while selling NXMs', async function() {
-  //     await assertRevert(P1.sellNXMTokens(toWei(2), { from: member5 }));
-  //   });
-  //   it('8.41 should handle if commissionToBePaid is 0', async function() {
-  //     await P1.updateStakerCommissions(smartConAdd, 0);
-  //   });
-  //   it('8.41 should handle if burnNXMAmount is 0', async function() {
-  //     await P1.burnStakerLockedToken(1, toHex('ETH'), 0);
-  //   });
-  // });
+    it('8.39 should close voting during casting vote as Member', async function() {
+      coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      let clid = (await cd.actualClaimLength()) - 1;
+      let now = await latestTime();
+      let maxVoteTime = await cd.maxVotingTime();
+      await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
+      let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      await P1.__callback(apiid, '');
+      now = await latestTime();
+      let minVoteTime = await cd.minVotingTime();
+      await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
+      await cl.submitMemberVote(clid, -1, { from: member5 });
+      (await cl.checkVoteClosing(clid))
+        .toString()
+        .should.be.equal((-1).toString());
+    });
+    it('8.40 should revert while selling NXMs', async function() {
+      await assertRevert(P1.sellNXMTokens(toWei(2), { from: member5 }));
+    });
+    it('8.41 should handle if commissionToBePaid is 0', async function() {
+      await P1.updateStakerCommissions(smartConAdd, 0);
+    });
+    it('8.41 should handle if burnNXMAmount is 0', async function() {
+      await P1.burnStakerLockedToken(1, toHex('ETH'), 0);
+    });
+  });
 });

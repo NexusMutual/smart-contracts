@@ -600,7 +600,7 @@ contract('Pool', function([
     });
 
     it('12.40 ELT(DAI->ETH)', async function() {
-      await cad.transfer(p1.address, 10 * toWei(1));
+      await cad.transfer(p1.address, toWei(10));
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -756,7 +756,7 @@ contract('Pool', function([
     });
 
     it('12.43 ILT ETH to DAI', async function() {
-      await cad.transfer(p2.address, 50 * toWei(1), { from: owner });
+      await cad.transfer(p2.address, toWei(50), { from: owner });
       await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(5));
       let ICABalE;
       let ICABalD;
@@ -811,7 +811,7 @@ contract('Pool', function([
 
     it('12.44 RBT DAI to ETH amount > price slippage', async function() {
       await emock.removeEther(2087960000000000000000);
-      await cad.transfer(p2.address, 50 * toWei(1), { from: owner });
+      await cad.transfer(p2.address, toWei(50), { from: owner });
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -856,7 +856,7 @@ contract('Pool', function([
       await p1.sendEther({ from: owner, value: toWei(5) });
       await p1.upgradeInvestmentPool(cad.address);
       await p2.sendEther({ from: owner, value: CABalE2 });
-      await cad.transfer(p2.address, CABalD2 / 1 - 50 * toWei(1));
+      await cad.transfer(p2.address, CABalD2 / 1 - toWei(50));
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -908,7 +908,7 @@ contract('Pool', function([
       let ICABalD;
       let ICABalE2;
       let ICABalD2;
-      await p1.sendEther({ from: owner, value: 10 * toWei(1) });
+      await p1.sendEther({ from: owner, value: toWei(10) });
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -934,7 +934,7 @@ contract('Pool', function([
         .toFixed(1)
         .toString()
         .should.be.equal(
-          ((ICABalE - 0.48 * toWei(1)) / toWei(1)).toFixed(1).toString()
+          ((ICABalE - toWei(0.48)) / toWei(1)).toFixed(1).toString()
         );
       CABalE2.toString().should.be.equal(ICABalE2.toString());
       CABalD.toString().should.be.equal(ICABalD.toString());
@@ -942,7 +942,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD2 * 1 + 4.8 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD2 * 1 + toWei(4.8)) / toWei(1)).toFixed(0).toString()
         );
     });
     it('12.47 ELT(DAI->ETH) amount > price slippage', async function() {
@@ -954,8 +954,8 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(cad.address);
       await p2.sendEther({ from: owner, value: CABalE2 / 1 - toWei(5) });
       await cad.transfer(p2.address, CABalD2);
-      await tf.transferCurrencyAsset(toHex('ETH'), owner, 10 * toWei(1));
-      await cad.transfer(p1.address, 10 * toWei(1), { from: owner });
+      await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(10));
+      await cad.transfer(p1.address, toWei(10), { from: owner });
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -985,7 +985,7 @@ contract('Pool', function([
       CABalD2 = await cad.balanceOf(p2.address);
       CABalE.toString().should.be.equal(ICABalE.toString());
       CABalE2.toString().should.be.equal(
-        (ICABalE2 * 1 + 0.5 * toWei(1)).toString()
+        (ICABalE2 * 1 + toWei(0.5)).toString()
       );
       CABalD.toString().should.be.equal((ICABalD - toWei(5)).toString);
       CABalD2.toString().should.be.equal(ICABalD2.toString());
@@ -1027,7 +1027,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalE * 1 + 0.48 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalE * 1 + toWei(0.48)) / toWei(1)).toFixed(0).toString()
         );
       CABalE2.toString().should.be.equal(ICABalE2.toString());
       CABalD.toString().should.be.equal(ICABalD.toString());
@@ -1035,7 +1035,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD2 - 4.8 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD2 - toWei(4.8)) / toWei(1)).toFixed(0).toString()
         );
     });
     it('12.49 ILT(DAI->ETH) amount > price slippage', async function() {
@@ -1079,7 +1079,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalE2 * 1 - 0.4 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalE2 * 1 - toWei(0.4)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD / toWei(1))
         .toFixed(0)
@@ -1093,12 +1093,12 @@ contract('Pool', function([
         .should.be.equal((ICABalD2 / toWei(1)).toFixed(0).toString());
     });
     it('12.50 ILT(ETH->DAI) IA dont have enough amount', async function() {
-      await emock.sendEther({ from: owner, value: 50000 * toWei(1) });
+      await emock.sendEther({ from: owner, value: toWei(50000) });
 
       await p1.upgradeInvestmentPool(cad.address);
       await p2.sendEther({ from: owner, value: CABalE2 / 1 - toWei(5) });
       await cad.transfer(p2.address, CABalD2);
-      await pd.changeCurrencyAssetBaseMin(toHex('ETH'), 11 * toWei(1));
+      await pd.changeCurrencyAssetBaseMin(toHex('ETH'), toWei(11));
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1129,7 +1129,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalE * 1 + 7.06 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalE * 1 + toWei(7.06)) / toWei(1)).toFixed(0).toString()
         );
       CABalE2.toString().should.be.equal(ICABalE2.toString());
       CABalD.toString().should.be.equal(ICABalD.toString());
@@ -1137,14 +1137,14 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD2 - 70.6 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD2 - toWei(70.6)) / toWei(1)).toFixed(0).toString()
         );
     });
     it('12.51 ILT(DAI->ETH) IA dont have enough amount', async function() {
       await p1.upgradeInvestmentPool(cad.address);
       await p2.sendEther({ from: owner, value: CABalE2 / 1 - toWei(5) });
       await cad.transfer(p2.address, CABalD2);
-      await pd.changeCurrencyAssetBaseMin(toHex('DAI'), 16 * toWei(1));
+      await pd.changeCurrencyAssetBaseMin(toHex('DAI'), toWei(16));
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1179,13 +1179,13 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalE2 * 1 - 1.14 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalE2 * 1 - toWei(1.14)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD / toWei(1))
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD * 1 + 11.4 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD * 1 + toWei(11.4)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD2 / toWei(1))
         .toFixed(0)
@@ -1193,7 +1193,7 @@ contract('Pool', function([
         .should.be.equal((ICABalD2 / toWei(1)).toFixed(0).toString());
     });
     it('12.52 ILT(DAI->ETH) IA with 0 ETH balance', async function() {
-      await pd.changeCurrencyAssetBaseMin(toHex('DAI'), 21 * toWei(1));
+      await pd.changeCurrencyAssetBaseMin(toHex('DAI'), toWei(21));
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -1255,7 +1255,7 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(cad.address);
       await p2.sendEther({ from: owner, value: p2ETH / 1 - toWei(5) });
       await cad.transfer(p2.address, p2DAI);
-      await cad.transfer(p2.address, 30 * toWei(1), { from: owner });
+      await cad.transfer(p2.address, toWei(30), { from: owner });
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -1395,7 +1395,7 @@ contract('Pool', function([
       (newAssetRate / 1).should.be.equal(500);
     });
     it('12.57 ELT(DAI->MKR)', async function() {
-      await pd.changeCurrencyAssetBaseMin('0x444149', 15 * toWei(1));
+      await pd.changeCurrencyAssetBaseMin('0x444149', toWei(15));
       await p2.sendEther({ from: owner, value: toWei(5) });
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
@@ -1465,14 +1465,14 @@ contract('Pool', function([
         );
     });
     it('12.58 ILT(DAI->MKR)', async function() {
-      await pd.changeCurrencyAssetBaseMin('0x444149', 9 * toWei(1));
+      await pd.changeCurrencyAssetBaseMin('0x444149', toWei(9));
       let mkrBal = await mkr.balanceOf(p2.address);
       await p1.upgradeInvestmentPool(cad.address);
       // await p2.sendEther({ from: owner, value: (CABalE2/1 -toWei(5)) });
       await cad.transfer(p2.address, CABalD2);
       await mkr.transfer(p2.address, mkrBal);
-      await mkr.transfer(p2.address, 50 * toWei(1));
-      await tf.transferCurrencyAsset(toHex('DAI'), owner, 15 * toWei(1));
+      await mkr.transfer(p2.address, toWei(50));
+      await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(15));
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
         [100, 1000, 500],
@@ -1541,14 +1541,14 @@ contract('Pool', function([
     it('12.59 ILT(DAI->MKR) IA dont have enough amount', async function() {
       let emockM = await fac.getExchange(mkr.address);
       emock = await exchangeMock.at(emockM);
-      await emock.sendEther({ from: owner, value: 1300 * toWei(1) });
+      await emock.sendEther({ from: owner, value: toWei(1300) });
       let emockD = await fac.getExchange(cad.address);
       let emockDAI = await exchangeMock.at(emockD);
-      await emockDAI.sendEther({ from: owner, value: 1300 * toWei(1) });
-      await pd.changeCurrencyAssetBaseMin('0x444149', 66 * toWei(1));
+      await emockDAI.sendEther({ from: owner, value: toWei(1300) });
+      await pd.changeCurrencyAssetBaseMin('0x444149', toWei(66));
       await p1.upgradeInvestmentPool(cad.address);
       await cad.transfer(p2.address, CABalD2);
-      await mkr.transfer(p2.address, CABalM / 1 - 20 * toWei(1));
+      await mkr.transfer(p2.address, CABalM / 1 - toWei(20));
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
         [100, 1000, 500],
@@ -1587,7 +1587,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD * 1 + 63 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD * 1 + toWei(63)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD2 / toWei(1))
         .toFixed(0)
@@ -1597,7 +1597,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalM * 1 - 31.5 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalM * 1 - toWei(31.5)) / toWei(1)).toFixed(0).toString()
         );
     });
 
@@ -1608,10 +1608,10 @@ contract('Pool', function([
       );
       emockDAI = exchangeMock.at(emockD);
       emockDAI.removeEther(await web3.eth.getBalance(emockDAI.address));
-      await emockDAI.sendEther({ from: owner, value: 80 * toWei(1) });
-      await emock.sendEther({ from: owner, value: 75 * toWei(1) });
-      await tf.transferCurrencyAsset(toHex('DAI'), owner, 12.5 * toWei(1));
-      await mkr.transfer(p2.address, 50 * toWei(1));
+      await emockDAI.sendEther({ from: owner, value: toWei(80) });
+      await emock.sendEther({ from: owner, value: toWei(75) });
+      await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(12.5));
+      await mkr.transfer(p2.address, toWei(50));
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
         [100, 1000, 500],
@@ -1653,7 +1653,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD * 1 + 30 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD * 1 + toWei(30)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD2 / toWei(1))
         .toFixed(0)
@@ -1663,7 +1663,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalM * 1 - 15 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalM * 1 - toWei(15)) / toWei(1)).toFixed(0).toString()
         );
     });
 
@@ -1672,8 +1672,8 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(cad.address);
       await p2.sendEther({ from: owner, value: CABalE2 });
       await cad.transfer(p2.address, CABalD2);
-      await mkr.transfer(p2.address, CABalM / 1 - 30 * toWei(1));
-      await p2.sendEther({ from: owner, value: 10 * toWei(1) });
+      await mkr.transfer(p2.address, CABalM / 1 - toWei(30));
+      await p2.sendEther({ from: owner, value: toWei(10) });
       await emock.sendEther({ from: owner, value: toWei(3) });
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
@@ -1718,7 +1718,7 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD * 1 - 30 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD * 1 - toWei(30)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD2 / toWei(1))
         .toFixed(0)
@@ -1728,11 +1728,11 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalM * 1 + 15 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalM * 1 + toWei(15)) / toWei(1)).toFixed(0).toString()
         );
     });
     it('12.62 ILT(ETH->ETH) IA dont have sufficeint ETH', async function() {
-      await pd.changeCurrencyAssetBaseMin(toHex('ETH'), 21 * toWei(1));
+      await pd.changeCurrencyAssetBaseMin(toHex('ETH'), toWei(21));
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
         [100, 1000, 500],
@@ -1755,13 +1755,13 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalE / 1 + 10 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalE / 1 + toWei(10)) / toWei(1)).toFixed(0).toString()
         );
       (CABalE2 / toWei(1))
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalE2 - 10 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalE2 - toWei(10)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD / toWei(1))
         .toFixed(0)
@@ -1777,8 +1777,8 @@ contract('Pool', function([
         .should.be.equal((ICABalM / toWei(1)).toFixed(0).toString());
     });
     it('12.63 ILT(DAI->DAI) IA dont have sufficeint ETH', async function() {
-      await pd.changeCurrencyAssetBaseMin(toHex('DAI'), 36 * toWei(1));
-      await tf.transferCurrencyAsset(toHex('DAI'), owner, 50 * toWei(1));
+      await pd.changeCurrencyAssetBaseMin(toHex('DAI'), toWei(36));
+      await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(50));
       await p1.upgradeInvestmentPool(cad.address);
       await cad.transfer(p2.address, CABalD2);
       await p2.saveIADetails(
@@ -1813,13 +1813,13 @@ contract('Pool', function([
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD / 1 + 17.9 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD / 1 + toWei(17.9)) / toWei(1)).toFixed(0).toString()
         );
       (CABalD2 / toWei(1))
         .toFixed(0)
         .toString()
         .should.be.equal(
-          ((ICABalD2 - 17.9 * toWei(1)) / toWei(1)).toFixed(0).toString()
+          ((ICABalD2 - toWei(17.9)) / toWei(1)).toFixed(0).toString()
         );
       (CABalM / toWei(1))
         .toFixed(0)
@@ -1958,7 +1958,7 @@ contract('Pool', function([
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
       let varbase = await pd.getCurrencyAssetVarBase(toHex('MKR'));
-      (varbase[1] / 1).should.be.equal(10 * toWei(1));
+      (varbase[1] / 1).should.be.equal(toWei(10));
       (varbase[2] / 1).should.be.equal(0);
       (await pd.getCurrencyAssetAddress(toHex('MKR'))).should.be.equal(
         mkr.address
@@ -1966,7 +1966,7 @@ contract('Pool', function([
     });
     it('12.69 should not be able to add new currency asset directly', async function() {
       await assertRevert(
-        pd.addCurrencyAssetCurrency('0x49434e', mkr.address, 11 * toWei(1))
+        pd.addCurrencyAssetCurrency('0x49434e', mkr.address, toWei(11))
       );
     });
     it('12.70 should not be able to change IA status directly', async function() {

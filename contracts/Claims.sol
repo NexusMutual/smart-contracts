@@ -17,6 +17,7 @@ pragma solidity 0.5.7;
 
 import "./TokenFunctions.sol";
 import "./ClaimsData.sol";
+import "./MCR.sol";
 
 
 contract Claims is Iupgradable {
@@ -33,6 +34,7 @@ contract Claims is Iupgradable {
     PoolData internal pd;
     Pool2 internal p2;
     QuotationData internal qd;
+    MCR internal m1;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     
@@ -119,7 +121,7 @@ contract Claims is Iupgradable {
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
-        uint tokenx1e18 = tf.getTokenPrice(curr);
+        uint tokenx1e18 = m1.calculateTokenPrice(curr);
         uint accept;
         uint deny;
         if (member == 0) {
@@ -144,6 +146,7 @@ contract Claims is Iupgradable {
         cr = ClaimsReward(ms.getLatestAddress("CR"));
         cd = ClaimsData(ms.getLatestAddress("CD"));
         qd = QuotationData(ms.getLatestAddress("QD"));
+        m1 = MCR(ms.getLatestAddress("MC"));
     }
 
     /**
@@ -316,9 +319,9 @@ contract Claims is Iupgradable {
         
         if (status > 5 && status != 12) {
             close = -1;
-        }  else if (dateUpd.add(cd.maxVotingTime()) <= now && status != 12) {
+        }  else if (status != 12 && dateUpd.add(cd.maxVotingTime()) <= now) {
             close = 1;
-        } else if (dateUpd.add(cd.minVotingTime()) >= now && status != 12) {
+        } else if (status != 12 && dateUpd.add(cd.minVotingTime()) >= now) {
             close = 0;
         } else if (status == 0 || (status >= 1 && status <= 5)) {
             close = _checkVoteClosingFinal(claimId, status);
@@ -340,7 +343,7 @@ contract Claims is Iupgradable {
         uint coverId;
         (, coverId) = cd.getClaimCoverId(claimId);
         bytes4 curr = qd.getCurrencyOfCover(coverId);
-        uint tokenx1e18 = tf.getTokenPrice(curr);
+        uint tokenx1e18 = m1.calculateTokenPrice(curr);
         uint accept;
         uint deny;
         (, accept, deny) = cd.getClaimsTokenCA(claimId);

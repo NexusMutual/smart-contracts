@@ -290,13 +290,6 @@ contract Quotation is Iupgradable {
     }
 
     /**
-     * @dev to get the full refund 
-     */
-    function fullRefund() public checkPause noReentrancy {
-        _kycTrigger(false, msg.sender);
-    }
-
-    /**
      * @dev to get the verdict of kyc process 
      * @param status is the kyc status
      * @param _add is the address of member

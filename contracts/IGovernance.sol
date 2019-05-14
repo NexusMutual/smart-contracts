@@ -49,14 +49,6 @@ contract IGovernance {
         uint gbtReward
     );
 
-    // /// @dev ProposalCreated event is called whenever a proposal is created. 
-    // event ProposalCreated (
-    //     uint256 proposalId,
-    //     uint256 subCategoryId,
-    //     address master,
-    //     string proposalDescHash
-    // );
-
     /// @dev VoteCast event is called whenever a vote is cast that can potentially close the proposal. 
     event VoteCast (uint256 proposalId);
 

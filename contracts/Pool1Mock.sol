@@ -45,7 +45,7 @@ contract Pool1Mock is Pool1 {
         
     }
 
-    function upgradeInvestmentPool(address newPoolAddress) public {
+    function upgradeInvestmentPool(address payable newPoolAddress) public {
         p2.upgradeInvestmentPool(newPoolAddress);
     }
 

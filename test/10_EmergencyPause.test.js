@@ -209,7 +209,7 @@ contract('NXMaster: Emergency Pause', function([
         from: member2
       });
       let proposalsIDs = [];
-      await cr.claimAllPendingReward(proposalsIDs, { from: member4 });
+      await cr.claimAllPendingReward(20, { from: member4 });
     });
     it('10.1 should return false for isPause', async function() {
       (await nxms.isPause()).should.equal(false);

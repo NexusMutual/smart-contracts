@@ -1041,7 +1041,6 @@ contract('Quotation', function([
             from: notMember,
             value: fee
           });
-          await assertRevert(qt.fullRefund({ from: notMember }));
           await mr.kycVerdict(notMember, false);
         });
       });
@@ -1104,71 +1103,8 @@ contract('Quotation', function([
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
           await qt.kycVerdict(true, newMember2);
         });
-        it('6.33 should refund full amount if user aks (DAI)', async function() {
-          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-            from: newMember3
-          });
-          await cad.transfer(newMember3, tokenDai);
-          let initialDAI = await cad.balanceOf(member3);
-          await cad.approve(qt.address, coverDetailsLess[1], {
-            from: newMember3
-          });
-          const totalFee = fee;
-          coverDetailsLess[4] = 7972408607010;
-          var vrsdata = await getQuoteValues(
-            coverDetailsLess,
-            toHex('DAI'),
-            coverPeriodLess,
-            smartConAdd,
-            qt.address
-          );
-          await qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('DAI'),
-            coverDetailsLess,
-            coverPeriodLess,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            { from: newMember3, value: totalFee }
-          );
-          await qt.fullRefund({ from: newMember3 });
-          initialDAI
-            .toString()
-            .should.be.equal((await cad.balanceOf(member3)).toString());
-        });
-        it('6.34 should refund full amount to new member', async function() {
-          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-            from: newMember3
-          });
-          const totalFee = new BN(fee.toString()).add(
-            new BN(coverDetails[1].toString())
-          );
-          coverDetails[4] = 7972408607011;
-          var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('ETH'),
-            coverDetails,
-            coverPeriod,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            { from: newMember3, value: totalFee }
-          );
-          const hcid = await qd.getUserHoldedCoverByIndex(newMember3, 0);
-          await assertRevert(qt.fullRefund({ from: owner }));
-          await qt.fullRefund({ from: newMember3 });
-          await assertRevert(qt.kycVerdict(true, newMember3));
-        });
 
-        it('6.34.2 should revert if wallet address is not set', async function() {
+        it('6.34 should revert if wallet address is not set', async function() {
           let oldMR = await MemberRoles.at(
             await nxms.getLatestAddress(toHex('MR'))
           );

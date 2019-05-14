@@ -108,9 +108,9 @@ contract ClaimsReward is Iupgradable {
         uint totalTokens;
         (tokens, claimId, verdict, claimed) = cd.getVoteDetails(voteid);
         lastClaimedCheck = false;
-        if (cd.getFinalVerdict(claimId) == 0)
-            lastClaimedCheck = true;
         int8 claimVerdict = cd.getFinalVerdict(claimId);
+        if (claimVerdict == 0)
+            lastClaimedCheck = true;
 
         if (claimVerdict == verdict && (claimed == false || flag == 1)) {
             
@@ -204,11 +204,10 @@ contract ClaimsReward is Iupgradable {
 
     /**
      * @dev Function used to claim all pending rewards on a list of proposals.
-     * @param _proposals List of proposals to claim reward of.
      */
-    function claimAllPendingReward(uint[] memory _proposals) public isMemberAndcheckPause {
-        _claimRewardToBeDistributed();
-        _claimStakeCommission();
+    function claimAllPendingReward(uint records) public isMemberAndcheckPause {
+        _claimRewardToBeDistributed(records);
+        _claimStakeCommission(records);
         tf.unlockStakerUnlockableTokens(msg.sender); 
         uint gvReward = gv.claimReward(msg.sender);
         if (gvReward > 0) {
@@ -369,12 +368,11 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Allows a user to claim all pending  Claims assessment rewards.
-    function _claimRewardToBeDistributed() internal {
+    function _claimRewardToBeDistributed(uint _records) internal {
         uint lengthVote = cd.getVoteAddressCALength(msg.sender);
-        uint lastIndexCA;
-        uint lastIndexMV;
         uint voteid;
-        (lastIndexCA, lastIndexMV) = cd.getRewardDistributedIndex(msg.sender);
+        uint lastIndex;
+        (lastIndex, ) = cd.getRewardDistributedIndex(msg.sender);
         uint total = 0;
         uint lastClaimed = lengthVote;
         uint tokenForVoteId = 0;
@@ -385,7 +383,11 @@ contract ClaimsReward is Iupgradable {
         uint claimId;
         uint perc;
         uint i;
-        for (i = lastIndexCA; i < lengthVote; i++) {
+        if (lengthVote.sub(lastIndex) > _records) {
+            lengthVote = lastIndex.add(_records);
+        }
+
+        for (i = lastIndex; i < lengthVote; i++) {
             voteid = cd.getVoteAddressCA(msg.sender, i);
             (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
             if (lastClaimed == lengthVote && lastClaimedCheck == true)
@@ -410,7 +412,11 @@ contract ClaimsReward is Iupgradable {
         _days = _days.mul(counter);
         if (tc.tokensLockedAtTime(msg.sender, "CLA", now) > 0)
             tc.reduceLock(msg.sender, "CLA", _days);
-        for (i = lastIndexMV; i < lengthVote; i++) {
+        (, lastIndex) = cd.getRewardDistributedIndex(msg.sender);
+        if (lengthVote.sub(lastIndex) > _records) {
+            lengthVote = lastIndex.add(_records);
+        }
+        for (i = lastIndex; i < lengthVote; i++) {
             voteid = cd.getVoteAddressMember(msg.sender, i);
             (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);
             if (lastClaimed == lengthVote && lastClaimedCheck == true)
@@ -429,13 +435,18 @@ contract ClaimsReward is Iupgradable {
     /**
      * @dev Function used to claim the commission earned by the staker.
      */
-    function _claimStakeCommission() internal {
+    function _claimStakeCommission(uint _records) internal {
         uint total=0;
         uint len = td.getStakerStakedContractLength(msg.sender);
         uint lastCompletedStakeCommission = td.lastCompletedStakeCommission(msg.sender);
         uint commissionEarned;
         uint commissionRedeemed;
         uint maxCommission;
+
+        if (len.sub(lastCompletedStakeCommission) > _records) {
+            len = lastCompletedStakeCommission.add(_records);
+        }
+
         for (uint i = lastCompletedStakeCommission; i < len; i++) {
             commissionRedeemed = td.getStakerRedeemedStakeCommission(msg.sender, i);
             commissionEarned = td.getStakerEarnedStakeCommission(msg.sender, i);

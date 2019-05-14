@@ -90,6 +90,9 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
      */
     function addInitialABMembers(address[] calldata abArray) external onlyOwner {
 
+        //Ensure that NXMaster has initialized.
+        require(ms.masterInitialized());
+
         require(maxABCount >= 
             SafeMath.add(numberOfMembers(uint(Role.AdvisoryBoard)), abArray.length)
         );
@@ -128,7 +131,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
      */
     function changeMasterAddress(address _masterAddress) public {
         if (masterAddress != address(0))
-            require(masterAddress == msg.sender || ms.isInternal(msg.sender));
+            require(masterAddress == msg.sender);
         masterAddress = _masterAddress;
         ms = INXMMaster(_masterAddress);
         nxMasterAddress = _masterAddress;
@@ -248,8 +251,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         gv.removeDelegation(msg.sender);
         dAppToken.burnFrom(msg.sender, tk.balanceOf(msg.sender));
         _updateRole(msg.sender, uint(Role.Member), false);
-        dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist
-        
+        dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist        
     }
 
     /// @dev Return number of member roles

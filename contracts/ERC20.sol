@@ -1,4 +1,4 @@
-pragma solidity ^0.5.7;
+pragma solidity 0.5.7;
 
 import "./IERC20.sol";
 import "./SafeMath.sol";
@@ -121,7 +121,8 @@ contract ERC20 is IERC20 {
         require(spender != address(0));
 
         _allowed[msg.sender][spender] = (
-          _allowed[msg.sender][spender].add(addedValue));
+            _allowed[msg.sender][spender].add(addedValue)
+        );
         emit Approval(msg.sender, spender, _allowed[msg.sender][spender]);
         return true;
     }
@@ -203,7 +204,7 @@ contract ERC20 is IERC20 {
         // Should https://github.com/OpenZeppelin/zeppelin-solidity/issues/707 be accepted,
         // this function needs to emit an event with the updated approval.
         _allowed[account][msg.sender] = _allowed[account][msg.sender].sub(
-          value);
+            value);
         _burn(account, value);
     }
 }

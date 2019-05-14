@@ -327,14 +327,12 @@ contract(
     describe('Update Address Parameters', function() {
       it('Should update Master Contract Address', async function() {
         let newMaster = await NXMaster.new(nxmToken.address);
-        addressCon = await nxms.getVersionData(await nxms.getCurrentVersion());
-        addressIncorrect = await nxms.getVersionData(
-          await nxms.getCurrentVersion()
-        );
-        addressIncorrect[2][0] = ZERO_ADDRESS;
-        await assertRevert(newMaster.addNewVersion(addressIncorrect[2]));
+         addressCon = await nxms.getVersionData();
+        addressIncorrect = await nxms.getVersionData();
+        addressIncorrect[1][0] = ZERO_ADDRESS;
+        await assertRevert(newMaster.addNewVersion(addressIncorrect[1]));
         await assertRevert(newMaster.addNewVersion([]));
-        await newMaster.addNewVersion(addressCon[2]);
+        await newMaster.addNewVersion(addressCon[1]);
         await updateParameter(
           27,
           2,

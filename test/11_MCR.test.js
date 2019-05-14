@@ -164,33 +164,30 @@ contract('MCR', function([owner, notOwner]) {
     before(async function() {
       const tpd = await pd.getTokenPriceDetails(CA_ETH);
       // const tc = (await tk.totalSupply()).div(toWei(1));
-      const sf = new BN(tpd[0].toString()).div(new BN((100000).toString()));
+      const sf = parseFloat(tpd[0].toString()) / 100000;
+
       const C = tpd[1];
       const Curr3DaysAvg = tpd[2];
       const mcrtp = (await mcr.calVtpAndMCRtp())[1];
       const mcrtpSquare = new BN(mcrtp.toString())
         .mul(new BN(mcrtp.toString()))
         .div(new BN((100000000).toString()));
+
       const mcrEth = new BN((await pd.getLastMCREther()).toString()).div(
         new BN(toWei(1).toString())
       );
-      const tp = new BN(sf.toString()).add(
-        new BN(mcrEth.toString())
-          .div(new BN(C.toString()))
-          .mul(new BN(mcrtpSquare.toString()))
-          .mul(new BN(mcrtpSquare.toString()))
-      );
-      tp_eth = new BN(tp.toString()).mul(
-        new BN(Curr3DaysAvg.toString()).div(new BN((100).toString()))
-      );
-      tp_dai = new BN(tp.toString()).mul(
-        new BN((await pd.getCAAvgRate(CA_DAI)).toString()).div(
-          new BN((100).toString())
-        )
-      );
+      const tp =
+        sf +
+        (parseFloat(mcrEth.toString()) / parseFloat(C.toString())) *
+          parseFloat(mcrtpSquare.toString()) *
+          parseFloat(mcrtpSquare.toString());
+
+      tp_eth = tp * (parseFloat(Curr3DaysAvg.toString()) / 100);
+      tp_dai =
+        tp * (parseFloat((await pd.getCAAvgRate(CA_DAI)).toString()) / 100);
     });
     it('11.7 should return correct Token price in ETH', async function() {
-      tp_eth
+      parseInt(tp_eth)
         .toString()
         .should.be.equal(
           new BN((await mcr.calculateTokenPrice(CA_ETH)).toString())
@@ -199,7 +196,7 @@ contract('MCR', function([owner, notOwner]) {
         );
     });
     it('11.8 should return correct Token price in DAI', async function() {
-      tp_dai
+      parseInt(tp_dai)
         .toString()
         .should.be.equal(
           new BN((await mcr.calculateTokenPrice(CA_DAI)).toString())

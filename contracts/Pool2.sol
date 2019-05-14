@@ -38,6 +38,8 @@ contract Pool2 is Iupgradable {
         factory = Factory(_uniswapFactoryAdd);
     }
 
+    function() external payable {}
+
     event Liquidity(bytes16 typeOf, bytes16 functionName);
 
     event Rebalancing(bytes4 iaCurr, uint tokenAmount);
@@ -66,7 +68,7 @@ contract Pool2 is Iupgradable {
      * @dev On upgrade transfer all investment assets and ether to new Investment Pool
      * @param newPoolAddress New Investment Assest Pool address
      */
-    function upgradeInvestmentPool(address newPoolAddress) external onlyInternal noReentrancy {
+    function upgradeInvestmentPool(address payable newPoolAddress) external onlyInternal noReentrancy {
         uint len = pd.getInvestmentCurrencyLen();
         for (uint64 i = 1; i < len; i++) {
             bytes4 iaName = pd.getInvestmentCurrencyByIndex(i);
@@ -140,6 +142,7 @@ contract Pool2 is Iupgradable {
         uint baseMin;
         uint varMin;
         uint caBalance;
+
 
         (maxIACurr, maxIARate, minIACurr, minIARate) = pd.getIARankDetailsByDate(pd.getLastDate());
         uint len = pd.getAllCurrenciesLen();

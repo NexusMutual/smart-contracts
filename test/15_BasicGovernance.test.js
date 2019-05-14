@@ -197,10 +197,6 @@ contract(
       await assertRevert(gv.submitVote(proposalId, 1));
     });
 
-    it('15.17 Should not claim reward for an open proposal', async function() {
-      await assertRevert(cr.claimAllPendingReward([proposalId]));
-    });
-
     it('15.18 Should close proposal', async function() {
       let canClose = await gv.canCloseProposal(proposalId);
       assert.equal(canClose.toNumber(), 1);
@@ -227,10 +223,6 @@ contract(
       await cr.claimAllPendingReward([1]);
       let pendingRewards = await gv.getPendingReward(ab1);
       assert.equal(pendingRewards.toNumber(), 0, 'Rewards not claimed');
-    });
-
-    it('15.23 Should not claim reward twice for same proposal', async function() {
-      await assertRevert(cr.claimAllPendingReward([1]));
     });
 
     describe('Delegation cases', function() {

@@ -216,7 +216,7 @@ contract(
               });
               it('17.9 Should claim rewards', async function() {
                 for (let i = 0; i < 13; i++) {
-                  await cr.claimAllPendingReward([pId], {
+                  await cr.claimAllPendingReward(20, {
                     from: web3.eth.accounts[i]
                   });
                 }
@@ -288,7 +288,7 @@ contract(
               });
               it('17.18 Should claim rewards', async function() {
                 for (let i = 0; i < 13; i++) {
-                  await cr.claimAllPendingReward([pId], {
+                  await cr.claimAllPendingReward(20, {
                     from: web3.eth.accounts[i]
                   });
                 }
@@ -360,7 +360,7 @@ contract(
               });
               it('17.27 Should claim rewards', async function() {
                 for (let i = 0; i < 13; i++) {
-                  await cr.claimAllPendingReward([pId], {
+                  await cr.claimAllPendingReward(20, {
                     from: web3.eth.accounts[i]
                   });
                 }
@@ -420,7 +420,7 @@ contract(
             });
             it('17.35 Should claim rewards', async function() {
               for (let i = 0; i < 13; i++) {
-                await cr.claimAllPendingReward([pId], {
+                await cr.claimAllPendingReward(20, {
                   from: web3.eth.accounts[i]
                 });
               }
@@ -476,7 +476,7 @@ contract(
                 });
                 it('17.43 Should claim rewards', async function() {
                   for (let i = 0; i < voters.length; i++) {
-                    await cr.claimAllPendingReward([pId], { from: voters[i] });
+                    await cr.claimAllPendingReward(20, { from: voters[i] });
                   }
                 });
               });
@@ -542,7 +542,7 @@ contract(
                 });
                 it('17.52 Should claim rewards', async function() {
                   for (let i = 0; i < voters.length; i++) {
-                    await cr.claimAllPendingReward([pId], { from: voters[i] });
+                    await cr.claimAllPendingReward(20, { from: voters[i] });
                   }
                 });
               });
@@ -593,7 +593,7 @@ contract(
               });
               it('17.60 Should claim rewards', async function() {
                 for (let i = 0; i < voters.length; i++) {
-                  await cr.claimAllPendingReward([pId], { from: voters[i] });
+                  await cr.claimAllPendingReward(20, { from: voters[i] });
                 }
               });
             });
@@ -949,7 +949,7 @@ contract(
             });
             it('17.105 Should claim rewards', async function() {
               for (let i = 0; i < 13; i++) {
-                await cr.claimAllPendingReward([pId], {
+                await cr.claimAllPendingReward(20, {
                   from: web3.eth.accounts[i]
                 });
               }

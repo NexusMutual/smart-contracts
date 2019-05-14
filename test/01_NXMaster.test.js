@@ -136,17 +136,11 @@ contract('NXMaster', function([
     }
   });
   describe('Updating state', function() {
-    // it('1.2 should be able to change master address', async function() {
-    //   this.timeout(0);
-    //   newMaster = await NXMaster.new(nxmtk.address);
-    //   await nxms.changeMasterAddress(newMaster.address, { from: owner });
-    //   // await newMaster.changeTokenAddress(nxmtk.address);
-    //   addr[12] = await nxms.getLatestAddress(toHex('GV'));
-    //   addr[13] = await nxms.getLatestAddress('PC');
-    //   addr[14] = await nxms.getLatestAddress(toHex('MR'));
-    //   await newMaster.addNewVersion(addr);
-    //   nxms = newMaster;
-    // });
+
+    it('1.2 should not be able to change master address if master has not initialized', async function() {
+      let newMaster = await NXMaster.new(nxmtk.address);
+      await assertRevert(nxms.changeMasterAddress(newMaster.address));
+    });
 
     it('1.3 should be able to change single contract (proxy contracts)', async function() {
       this.timeout(0);

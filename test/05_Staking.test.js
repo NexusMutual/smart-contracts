@@ -124,7 +124,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             let time = await latestTime();
             time = time + (await duration.days(251));
             await increaseTimeTo(time);
-            await cr.claimAllPendingReward([], { from: member2 });
+            await cr.claimAllPendingReward(20, { from: member2 });
           });
           it('5.7 staker should have zero total locked nxm tokens against smart contract', async function() {
             const lockedTokens = await tf.getStakerAllLockedTokens.call(

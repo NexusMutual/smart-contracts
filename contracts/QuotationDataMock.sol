@@ -2,7 +2,7 @@ pragma solidity 0.5.7;
 
 import "./QuotationData.sol";
 import "./PoolData.sol";
-import "./OwnedUpgradeabilityProxy.sol";
+import "./external/proxy/OwnedUpgradeabilityProxy.sol";
 
 
 contract QuotationDataMock is QuotationData {

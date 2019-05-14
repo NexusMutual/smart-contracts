@@ -34,6 +34,9 @@ contract Governance is IGovernance, Iupgradable {
         Denied
     }
 
+    // struct ProposalStruct {
+    // }
+
     struct ProposalData {
         uint propStatus;
         uint finalVerdict;
@@ -72,6 +75,7 @@ contract Governance is IGovernance, Iupgradable {
     mapping(uint => ProposalData) internal allProposalData;
     mapping(uint => bytes[]) internal allProposalSolutions;
     mapping(address => uint[]) internal allVotesByMember;
+    mapping (address => mapping(uint => uint)) internal allVotesByMemberIndex;
     mapping(uint => mapping(address => bool)) public rewardClaimed; //voteid->member->reward claimed
     mapping (address => mapping(uint => uint)) public memberProposalVote;
     mapping (address => uint) public followerDelegation;
@@ -79,7 +83,7 @@ contract Governance is IGovernance, Iupgradable {
     mapping (address => uint[]) internal leaderDelegation;
     mapping (uint => VoteTally) public proposalVoteTally;
     mapping (address => bool) public isOpenForDelegation;
-    mapping (address => uint) internal lastRewardClaimed;
+    mapping (address => uint) public lastRewardClaimed;
     
 
     bool internal constructorCheck;
@@ -90,7 +94,6 @@ contract Governance is IGovernance, Iupgradable {
     uint internal maxFollowers;
     uint internal totalProposals;
     uint internal maxDraftTime;
-    uint internal maxRewardProposals;
 
     MemberRoles internal memberRole;
     ProposalCategory internal proposalCategory;
@@ -242,6 +245,34 @@ contract Governance is IGovernance, Iupgradable {
         );
     }
 
+    /// @dev Creates a new proposal with solution and votes for the solution
+    /// @param _proposalDescHash Proposal description hash through IPFS having Short and long description of proposal
+    /// @param _categoryId This id tells under which the proposal is categorized i.e. Proposal's Objective
+    /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
+    // function createProposalwithVote(
+    //     string calldata _proposalTitle, 
+    //     string calldata _proposalSD, 
+    //     string calldata _proposalDescHash,
+    //     uint _categoryId, 
+    //     string calldata _solutionHash,
+    //     bytes calldata _action
+    // ) 
+    //     external isAllowed(_categoryId)
+    // {
+
+    //     uint proposalId = totalProposals;
+
+    //     _createProposal(_proposalTitle, _proposalSD, _proposalDescHash, _categoryId);
+
+    //     _proposalSubmission(
+    //         proposalId,
+    //         _solutionHash,
+    //         _action
+    //     );
+
+    //     _submitVote(proposalId, 1);
+    // }
+
     /**
      * @dev used to submit vote on a proposal.
      * @param _proposalId to vote upon.
@@ -268,16 +299,17 @@ contract Governance is IGovernance, Iupgradable {
         
         
         uint _memberRole;
-        if (allProposalData[_proposalId].dateUpd.add(maxDraftTime) <= now && 
-        allProposalData[_proposalId].propStatus < uint(ProposalStatus.VotingStarted)) {
+        uint _closingTime;
+        if(allProposalData[_proposalId].dateUpd.add(maxDraftTime) <= now && 
+            allProposalData[_proposalId].propStatus < uint(ProposalStatus.VotingStarted)) {
             _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));
-        } else {
+        }
+        else {
             require(canCloseProposal(_proposalId) == 1, "Cannot close");
             (, _memberRole, , , , , ) = proposalCategory.category(allProposalData[_proposalId].category);
             // max = 0;
             // //Change majority condition based on category and member role, create getABVerdict
-            // if(proposalVoteTally[_proposalId].memberVoteValue[0] < 
-            // proposalVoteTally[_proposalId].memberVoteValue[1])
+            // if(proposalVoteTally[_proposalId].memberVoteValue[0] < proposalVoteTally[_proposalId].memberVoteValue[1])
             //     max = 1;
 
             // uint maxVote = proposalVoteTally[_proposalId].memberVoteValue[0];
@@ -298,7 +330,7 @@ contract Governance is IGovernance, Iupgradable {
      _proposals list of proposals of which reward will be claimed.
      * @return amount of pending reward.
      */
-    function claimReward(address _memberAddress) 
+    function claimReward(address _memberAddress, uint _maxRecords) 
         external returns(uint pendingDAppReward) 
     {
         
@@ -337,39 +369,76 @@ contract Governance is IGovernance, Iupgradable {
         //     }
         // }
         uint proposalId;
-        uint8 lastClaimed = 1;
+        // uint8 lastClaimed = 1;
         uint j;
         uint[] memory proposals = new uint[](20);
-        for (uint i = lastRewardClaimed[_memberAddress]; i < allVotesByMember[leader].length 
-        && j < maxRewardProposals; i++) {
+        for (uint i = allVotesByMemberIndex[leader][lastRewardClaimed[_memberAddress]];
+            i < allVotesByMember[leader].length && j < _maxRecords; i++)
+        {
             voteId = allVotesByMember[leader][i];
             proposalId = allVotes[voteId].proposalId;
             if ((allVotes[voteId].dateAdd > (
-                lastUpd + tokenHoldingTime) || leader == _memberAddress) && 
-                (!rewardClaimed[voteId][_memberAddress]) && 
-                (proposalVoteTally[proposalId].voters > 0 &&
-                allProposalData[proposalId].propStatus > uint(ProposalStatus.VotingStarted))) {
-                pendingDAppReward += allProposalData[proposalId].commonIncentive / 
-                proposalVoteTally[proposalId].voters;
-                rewardClaimed[voteId][_memberAddress] = true;
-                proposals[j] = proposalId;
-                j++;
-                if (lastClaimed == 1 && (lastRewardClaimed[_memberAddress] + 1) == i) {
-                    lastRewardClaimed[_memberAddress] = i;
+                lastUpd + tokenHoldingTime) || leader == _memberAddress)) {
+                if((proposalVoteTally[proposalId].voters > 0 &&
+                 allProposalData[proposalId].propStatus > uint(ProposalStatus.VotingStarted)))
+                {
+                    if (!rewardClaimed[voteId][_memberAddress]) {
+                        pendingDAppReward += allProposalData[proposalId].commonIncentive / 
+                        proposalVoteTally[proposalId].voters;
+                        rewardClaimed[voteId][_memberAddress] = true;
+                        proposals[j] = proposalId;
+                        j++;
+                    }
+                    if((allVotesByMemberIndex[leader][lastRewardClaimed[_memberAddress]] + 1) == i) {
+                        lastRewardClaimed[_memberAddress] = voteId;
+                    }
                 }
-            } else {
-                lastClaimed = 0;
             }
         }
         uint[] memory _proposals = new uint[](j);
-        for (uint i = 0; i < j; i++) {
+        for(uint i = 0; i<j; i++) {
             _proposals[i] = proposals[i];
         }
-        emit RewardClaimed(
-            _memberAddress,
-            _proposals,
-            pendingDAppReward
-        );
+        if(j > 0) {
+            emit RewardClaimed(
+                _memberAddress,
+                _proposals,
+                pendingDAppReward
+            );
+        }
+    }
+
+    /**
+     * @dev get pending reward of a member
+     * @param _memberAddress in concern
+     * @return amount of pending reward
+     */
+    function getPendingReward(address _memberAddress)
+        public view returns(uint pendingDAppReward)
+    {
+        uint delegationId = followerDelegation[_memberAddress];
+        address leader;
+        uint lastUpd;
+        if (delegationId > 0 && allDelegation[delegationId].leader != address(0)) {
+            leader = allDelegation[delegationId].leader;
+            lastUpd = allDelegation[delegationId].lastUpd;
+        } else
+            leader = _memberAddress;
+
+        uint proposalId;
+        for (uint i = allVotesByMemberIndex[leader][lastRewardClaimed[_memberAddress]]; i < allVotesByMember[leader].length; i++) {  
+            if (allVotes[allVotesByMember[leader][i]].dateAdd > (
+                lastUpd + tokenHoldingTime) || leader == _memberAddress) {
+                if (!rewardClaimed[allVotesByMember[leader][i]][_memberAddress]) {
+                    proposalId = allVotes[allVotesByMember[leader][i]].proposalId;
+                    if (proposalVoteTally[proposalId].voters > 0 && allProposalData[proposalId].propStatus
+                    > uint(ProposalStatus.VotingStarted)) {
+                        pendingDAppReward += allProposalData[proposalId].commonIncentive / 
+                        proposalVoteTally[proposalId].voters;
+                    }
+                }
+            }
+        }
     }
 
     function setDelegationStatus(bool _status) external isMemberAndcheckPause checkPendingRewards {
@@ -381,7 +450,8 @@ contract Governance is IGovernance, Iupgradable {
      * @param _add is the address to delegate vote to.
      */
     function delegateVote(address _add) external isMemberAndcheckPause checkPendingRewards {
-
+        //Ensure that NXMaster has initialized.
+        // require(ms.masterInitialized());
 
         //Check if given address is not a follower
         require(allDelegation[followerDelegation[_add]].leader == address(0));
@@ -414,6 +484,21 @@ contract Governance is IGovernance, Iupgradable {
         leaderDelegation[_add].push(allDelegation.length - 1);
         followerCount[_add]++;
     }
+
+    /**
+     * @dev calls the reward claimed event.
+     * @param _memberAddress whose reward is claimed.
+     * @param _proposals a list of proposals to claim reward on.
+     * @param pendingDAppReward is the left over reward.
+     */
+    // function callRewardClaimedEvent(address _memberAddress, uint[] calldata _proposals, uint pendingDAppReward) 
+    // external onlyInternal {
+    //     emit RewardClaimed(
+    //             _memberAddress,
+    //             _proposals,
+    //             pendingDAppReward
+    //         );
+    // }
 
     /**
      * @dev Undelegates the sender
@@ -526,42 +611,6 @@ contract Governance is IGovernance, Iupgradable {
      */
     function getFollowers(address _add) external view returns(uint[] memory) {
         return leaderDelegation[_add];
-    }
-
-    /**
-     * @dev get pending reward of a member
-     * @param _memberAddress in concern
-     * @return amount of pending reward
-     */
-    function getPendingReward(address _memberAddress)
-        public view returns(uint pendingDAppReward)
-    {
-        uint delegationId = followerDelegation[_memberAddress];
-        address leader;
-        uint lastUpd;
-        if (delegationId > 0 && allDelegation[delegationId].leader != address(0)) {
-            leader = allDelegation[delegationId].leader;
-            lastUpd = allDelegation[delegationId].lastUpd;
-        } else
-            leader = _memberAddress;
-
-        uint proposalId;
-        uint j;
-        for (uint i = lastRewardClaimed[_memberAddress]; i < allVotesByMember[leader].length
-        && j < maxRewardProposals; i++) {  
-            if (allVotes[allVotesByMember[leader][i]].dateAdd > (
-                lastUpd + tokenHoldingTime) || leader == _memberAddress) {
-                if (!rewardClaimed[allVotesByMember[leader][i]][_memberAddress]) {
-                    proposalId = allVotes[allVotesByMember[leader][i]].proposalId;
-                    if (proposalVoteTally[proposalId].voters > 0 && allProposalData[proposalId].propStatus
-                    > uint(ProposalStatus.VotingStarted)) {
-                        pendingDAppReward += allProposalData[proposalId].commonIncentive / 
-                        proposalVoteTally[proposalId].voters;
-                        j++;
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -818,6 +867,7 @@ contract Governance is IGovernance, Iupgradable {
         uint totalVotes = allVotes.length;
 
         allVotesByMember[msg.sender].push(totalVotes);
+        allVotesByMemberIndex[msg.sender][totalVotes] = allVotesByMember[msg.sender].length - 1;
         memberProposalVote[msg.sender][_proposalId] = totalVotes;
 
         // addressProposalVote[msg.sender][_proposalId] = totalVotes;
@@ -1009,7 +1059,8 @@ contract Governance is IGovernance, Iupgradable {
                 uint abMaj = proposalCategory.categoryABReq(category);
                 // uint abMem = memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard));
                 if (abMaj > 0 && proposalVoteTally[_proposalId].abVoteValue[1].mul(100)
-                .div(memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard))) >= abMaj) {
+                    .div(memberRole.numberOfMembers(uint(MemberRoles.Role.AdvisoryBoard))) >= abMaj)
+                {
                     _callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
                 } else {
                     _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));
@@ -1033,8 +1084,8 @@ contract Governance is IGovernance, Iupgradable {
         // uint abMem = memberRole.numberOfMembers(_roleId);
         (, , _majorityVote, , , , ) = proposalCategory.category(category);
         if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100)
-        .div(memberRole.numberOfMembers(_roleId)) >= _majorityVote) {
-            
+            .div(memberRole.numberOfMembers(_roleId)) >= _majorityVote)
+        {
             _callIfMajReach(_proposalId, uint(ProposalStatus.Accepted), category, 1);
         } else {
             _updateProposalStatus(_proposalId, uint(ProposalStatus.Denied));
@@ -1067,7 +1118,6 @@ contract Governance is IGovernance, Iupgradable {
         maxDraftTime = 2 * 7 days;
         maxVoteWeigthPer = 5;
         maxFollowers = 40;
-        maxRewardProposals = 20;
         constructorCheck = true;
         roleIdAllowedToCatgorize = uint(MemberRoles.Role.AdvisoryBoard);
         specialResolutionMajPerc = 75;

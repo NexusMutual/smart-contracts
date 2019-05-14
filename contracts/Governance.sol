@@ -391,7 +391,7 @@ contract Governance is IGovernance, Iupgradable {
         followerDelegation[msg.sender] = allDelegation.length - 1;
         leaderDelegation[_add].push(allDelegation.length - 1);
         followerCount[_add]++;
-        lastRewardClaimed[msg.sender] = lastRewardClaimed[_add];
+        lastRewardClaimed[msg.sender] = allVotesByMember[_add].length;
     }
 
     /**
@@ -950,7 +950,8 @@ contract Governance is IGovernance, Iupgradable {
             followerCount[allDelegation[followerId].leader]--;
             allDelegation[followerId].leader = address(0);
             allDelegation[followerId].lastUpd = now;
-            lastRewardClaimed[msg.sender] = allVotesByMember[msg.sender].length - 1;
+
+            lastRewardClaimed[msg.sender] = allVotesByMember[msg.sender].length;
         }
     }
 

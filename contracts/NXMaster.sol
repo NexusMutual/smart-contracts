@@ -67,10 +67,6 @@ contract NXMaster is Governed {
         _addContractNames();
     }
 
-    function masterInitialized() public view returns(bool) {
-        return constructorCheck;
-    }
-
     /// @dev upgrades a single contract
     function upgradeContractImplementation(bytes2 _contractsName, address _contractsAddress) 
         external  
@@ -203,6 +199,10 @@ contract NXMaster is Governed {
 
         require(isInternal(msg.sender));
         pauseTime = _time;
+    }
+
+    function masterInitialized() public view returns(bool) {
+        return constructorCheck;
     }
 
     ///@dev get time in seconds for which emergency pause is applied.

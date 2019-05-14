@@ -46,9 +46,7 @@ contract Quotation is Iupgradable {
         _;
         locked = false;
     }
-
-    // function () external payable {} //solhint-disable-line
-
+    
     /**
      * @dev Iupgradable Interface to update dependent contract address
      */

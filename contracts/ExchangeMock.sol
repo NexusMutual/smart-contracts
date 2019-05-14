@@ -23,7 +23,6 @@ contract ExchangeMock {
         (msg.sender).transfer(val);
     }
 
-
     function sendEther() public payable {
         
     }

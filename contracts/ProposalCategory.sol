@@ -16,6 +16,7 @@ import "./Governed.sol";
 import "./Iupgradable.sol";
 import "./MemberRoles.sol";
 
+
 contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
 
     bool public constructorCheck;
@@ -145,7 +146,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         "MS", 50, 15, 2, 0);
         _addInitialCategories("Burn Claims Assessor Bond", "QmezNJUF2BM5Nv9EMnsEKUmuqjvdySzvQFvhEdvFJbau3k", //8
         "TF", 80, 15, 1, 0);
-        _addInitialCategories("Pause Claim Assessor Voting for 3 days", "QmRBXh9NGoGV7U7tTurKPhL4bzvDc9n23QZYidELpBPVdg", "CD", 60, 15, 1, 0);
+        _addInitialCategories("Pause Claim Assessor Voting for 3 days", 
+        "QmRBXh9NGoGV7U7tTurKPhL4bzvDc9n23QZYidELpBPVdg", "CD", 60, 15, 1, 0);
         _addInitialCategories("Changes to Capital Model", "", "EX", 50, 15, 2, 60);
         _addInitialCategories("Changes to Pricing Model", "", "EX", 50, 15, 2, 60);
         _addInitialCategories("Withdraw funds to Pay for Support Services", 
@@ -184,7 +186,8 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
             "MS", 50, 15, 2, 60);
         _addInitialCategories("Update Owner Parameters", "QmTEmDA1ECmGPfh5x3co1GmjXQCp3zisUP6rnLQjWmW8nu", //28
             "MS", 50, 15, 3, 0);
-        _addInitialCategories("Release new smart contract code", "QmSStfVwXF1TzDPCseVtMydgdF1xmzqhMtfpUg9Btx7tUp", "MS", 50, 15, 2, 80);
+        _addInitialCategories("Release new smart contract code", "QmSStfVwXF1TzDPCseVtMydgdF1xmzqhMtfpUg9Btx7tUp", 
+        "MS", 50, 15, 2, 80);
         _addInitialCategories("Edit Currency Asset Address", "QmahwCzxmUX1QEjgczmA2NF4Nxtx839eRLCXbBFeFCm3cF",
         "PD", 50, 15, 3, 60);
         _addInitialCategories("Edit Currency Asset baseMin", "QmeFSwZ21d7XabxVc7eiNKbtfEXUuD8qQXkeHZ5To1vo4t",
@@ -297,13 +300,14 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
         emit Category(categoryId, _name, _actionHash);
     }
 
-    function _verifyMemberRoles(uint _memberRoleToVote, uint[] memory _allowedToCreateProposal) internal view returns(uint){ 
+    function _verifyMemberRoles(uint _memberRoleToVote, uint[] memory _allowedToCreateProposal) 
+    internal view returns(uint) { 
         uint totalRoles = mr.totalRoles();
-        if(_memberRoleToVote >= totalRoles) {
+        if (_memberRoleToVote >= totalRoles) {
             return 1;
         }
-        for(uint i=0;i < _allowedToCreateProposal.length;i++) {
-            if(_allowedToCreateProposal[i] >= totalRoles) {
+        for (uint i = 0; i < _allowedToCreateProposal.length; i++) {
+            if (_allowedToCreateProposal[i] >= totalRoles) {
                 return 1;
             }
         }

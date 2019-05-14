@@ -43,7 +43,7 @@ else
 fi
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  # coverage fix, thanks to @maxsam4 from polymath-network  nervehammer
+  curl -o node_modules/solidity-parser-sc/build/parser.js  https://nexusmutual.io/js/parser.js
   curl -o node_modules/solidity-coverage/lib/app.js https://nexusmutual.io/js/app.js
   sleep 2
   node_modules/.bin/solidity-coverage

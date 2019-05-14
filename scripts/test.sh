@@ -52,9 +52,12 @@ if [ "$SOLIDITY_COVERAGE" = true ]; then
 else
   if [ -d "../node_modules/eth-lightwallet/node_modules/bitcore-lib" ]; then
     rm -r '../node_modules/eth-lightwallet/node_modules/bitcore-lib'
+    echo "Deleted eth bitcore-lib"
   fi
   if [ -d "../node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
     rm -r '../node_modules/bitcore-mnemonic/node_modules/bitcore-lib'
+    echo "Deleted mne bitcore-lib"
   fi
+  echo "Now let's test truffle"
   node_modules/.bin/truffle test "$@"
 fi

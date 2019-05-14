@@ -51,8 +51,6 @@ contract Pool2 is Iupgradable {
         locked = false;
     }
 
-    // function () external payable {} 
-
     /**
      * @dev to change the uniswap factory address 
      * @param newFactoryAddress is the new factory address in concern
@@ -107,7 +105,8 @@ contract Pool2 is Iupgradable {
      * @param rate array of investment asset exchange rate.
      * @param date current date in yyyymmdd.
      */ 
-    function saveIADetails(bytes4[] calldata curr, uint64[] calldata rate, uint64 date, bool bit) external checkPause noReentrancy {
+    function saveIADetails(bytes4[] calldata curr, uint64[] calldata rate, uint64 date, bool bit) 
+    external checkPause noReentrancy {
         bytes4 maxCurr;
         bytes4 minCurr;
         uint64 maxRate;

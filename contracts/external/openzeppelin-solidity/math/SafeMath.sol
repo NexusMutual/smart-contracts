@@ -1,4 +1,5 @@
-pragma solidity ^0.5.7;
+pragma solidity 0.5.7;
+
 
 /**
  * @title SafeMath
@@ -14,8 +15,8 @@ library SafeMath {
         // benefit is lost if 'b' is also tested.
         // See: https://github.com/OpenZeppelin/openzeppelin-solidity/pull/522
         if (a == 0) {
-          return 0;
-      }
+            return 0;
+        }
 
         uint256 c = a * b;
         require(c / a == b);

@@ -49,7 +49,8 @@ contract Pool1Mock is Pool1 {
         p2.upgradeInvestmentPool(newPoolAddress);
     }
 
-    function transferCurrencyAssetToAddress(bytes4 _curr, address payable _address, uint _amount) public returns(bool succ) {
+    function transferCurrencyAssetToAddress(bytes4 _curr, address payable _address, uint _amount) 
+    public returns(bool succ) {
         if (_curr == "ETH") {
             if (address(this).balance < _amount)
                 _amount = address(this).balance;

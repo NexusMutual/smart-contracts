@@ -24,7 +24,8 @@ ganache_running() {
 }
 
 start_ganache() {
-
+  rm -r '../node_modules/eth-lightwallet/node_modules/bitcore-lib'
+  rm -r '../node_modules/bitcore-mnemonic/node_modules/bitcore-lib'
   if [ "$SOLIDITY_COVERAGE" = true ]; then
     node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 30 -e 10000000 > /dev/null &
   else

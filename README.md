@@ -141,6 +141,8 @@ Now, It's time to install the dependencies. Enter the NexusMutual directory and 
 ```
 npm install
 ```
+Make sure you delete folder `bitcore-lib` from node_modules inside modules `eth-lightwallet` and `bitcore-mnemonic`
+
 We need to compile the contracts before deploying. We'll be using truffle for that (You can use Remix or solc directly).
 ```
 truffle compile

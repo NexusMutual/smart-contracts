@@ -37,12 +37,9 @@ if ganache_running; then
   echo "Using existing ganache instance"
 else
   echo "Starting our own ganache instance"
-  wait
   start_ganache
-  wait
   sleep 2
 fi
-wait
 if [ "$SOLIDITY_COVERAGE" = true ]; then
   curl -o node_modules/solidity-parser-sc/build/parser.js  https://nexusmutual.io/js/parser.js
   curl -o node_modules/solidity-coverage/lib/app.js https://nexusmutual.io/js/app.js
@@ -52,17 +49,14 @@ if [ "$SOLIDITY_COVERAGE" = true ]; then
     cat coverage/lcov.info | node_modules/.bin/coveralls
   fi
 else
-  wait
-  if [ -d "../node_modules/eth-lightwallet/node_modules/bitcore-lib" ]; then
-    rm -r '../node_modules/eth-lightwallet/node_modules/bitcore-lib'
+  if [ -d "node_modules/eth-lightwallet/node_modules/bitcore-lib" ]; then
+    rm -r "node_modules/eth-lightwallet/node_modules/bitcore-lib"
     echo "Deleted eth bitcore-lib"
   fi
-  if [ -d "../node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
-    rm -r '../node_modules/bitcore-mnemonic/node_modules/bitcore-lib'
+  if [ -d "node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
+    rm -r "node_modules/bitcore-mnemonic/node_modules/bitcore-lib"
     echo "Deleted mne bitcore-lib"
   fi
-  wait
   echo "Now let's test truffle"
-  wait
   node_modules/.bin/truffle test "$@"
 fi

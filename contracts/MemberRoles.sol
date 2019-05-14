@@ -12,8 +12,8 @@
 
 pragma solidity 0.5.7;
 import "./TokenFunctions.sol";
-import "./IMemberRoles.sol";
-import "./Governed.sol";
+import "./external/govblocks-protocol/interfaces/IMemberRoles.sol";
+import "./external/govblocks-protocol/Governed.sol";
 import "./TokenController.sol";
 import "./ClaimsReward.sol";
 import "./TokenData.sol";

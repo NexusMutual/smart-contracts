@@ -17,9 +17,9 @@ pragma solidity 0.5.7;
 
 
 import "./Pool2.sol";
-import "./Governed.sol";
+import "./external/govblocks-protocol/Governed.sol";
 import "./Claims.sol";
-import "./OwnedUpgradeabilityProxy.sol";
+import "./external/proxy/OwnedUpgradeabilityProxy.sol";
 
 
 contract NXMaster is Governed {

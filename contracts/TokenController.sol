@@ -16,7 +16,7 @@
 pragma solidity 0.5.7;
 
 import "./Iupgradable.sol";
-import "./IERC1132.sol";
+import "./external/ERC1132/IERC1132.sol";
 import "./NXMToken.sol";
 
 

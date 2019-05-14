@@ -10,8 +10,11 @@ const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const encode = require('./utils/encoder.js').encode;
 const { toHex, toWei } = require('./utils/ethTools.js');
+const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const Web3 = require('web3');
+const gvProposalWithIncentive = require('./utils/gvProposal.js')
+  .gvProposalWithIncentive;
 const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
 const AdvisoryBoard = '0x41420000';
 let maxAllowance =
@@ -197,6 +200,10 @@ contract(
       await assertRevert(gv.submitVote(proposalId, 1));
     });
 
+    // it('15.17 Should not claim reward for an open proposal', async function() {
+    //   await assertRevert(cr.claimAllPendingReward(20));
+    // });
+
     it('15.18 Should close proposal', async function() {
       let canClose = await gv.canCloseProposal(proposalId);
       assert.equal(canClose.toNumber(), 1);
@@ -214,15 +221,89 @@ contract(
     });
 
     it('15.21 Should claim reward only through claimRewards contract', async function() {
-      await assertRevert(gv.claimReward(ab1));
+      await assertRevert(gv.claimReward(ab1, 20));
     });
 
     it('15.22 Should claim rewards', async function() {
       await nxms.isMember(ab1);
       await nxmToken.balanceOf(cr.address);
-      await cr.claimAllPendingReward([1]);
+      await cr.claimAllPendingReward(20);
       let pendingRewards = await gv.getPendingReward(ab1);
       assert.equal(pendingRewards.toNumber(), 0, 'Rewards not claimed');
+    });
+
+    // it('15.23 Should not claim reward twice for same proposal', async function() {
+    //   await assertRevert(cr.claimAllPendingReward(20));
+    // });
+
+    it('Should claim rewards for multiple number of proposals', async function() {
+      let action = 'updateUintParameters(bytes8,uint)';
+      let code = 'MAXFOL';
+      let proposedValue = 50;
+      let lastClaimed = await gv.lastRewardClaimed(ab1);
+      let actionHash = encode(action, code, proposedValue);
+      for (let i = 0; i < 3; i++) {
+        await gvProposalWithIncentive(22, actionHash, mr, gv, 2, 10);
+      }
+      let members = await mr.members(2);
+      let iteration = 0;
+      for (iteration = 0; iteration < members[1].length; iteration++) {
+        await cr.claimAllPendingReward(20);
+      }
+      pId = await gv.getProposalLength();
+      lastClaimed = await gv.lastRewardClaimed(ab1);
+    });
+
+    it('Claim rewards for proposals which are not in sequence', async function() {
+      pId = await gv.getProposalLength();
+      let action = 'updateUintParameters(bytes8,uint)';
+      let code = 'MAXFOL';
+      let proposedValue = 50;
+      let actionHash = encode(action, code, proposedValue);
+      for (let i = 0; i < 3; i++) {
+        await gvProposalWithIncentive(22, actionHash, mr, gv, 2, 10);
+      }
+      let p = await gv.getProposalLength();
+      await gv.createProposal('proposal', 'proposal', 'proposal', 0);
+      await gv.categorizeProposal(p, 22, 10);
+      await gv.submitProposalWithSolution(p, 'proposal', actionHash);
+      let members = await mr.members(2);
+      let iteration = 0;
+      for (iteration = 0; iteration < members[1].length; iteration++) {
+        await gv.submitVote(p, 1, {
+          from: members[1][iteration]
+        });
+      }
+      for (let i = 0; i < 3; i++) {
+        await gvProposalWithIncentive(22, actionHash, mr, gv, 2, 10);
+      }
+      for (iteration = 0; iteration < members[1].length; iteration++) {
+        await cr.claimAllPendingReward(20);
+      }
+      let p1 = await gv.getProposalLength();
+      let lastClaimed = await gv.lastRewardClaimed(ab1);
+      assert.equal(lastClaimed.toNumber(), p.toNumber() - 1);
+      await gv.closeProposal(p);
+      for (iteration = 0; iteration < members[1].length; iteration++) {
+        await cr.claimAllPendingReward(20);
+      }
+
+      lastClaimed = await gv.lastRewardClaimed(ab1);
+      assert.equal(lastClaimed.toNumber(), p1.toNumber() - 1);
+    });
+
+    it('Claim Rewards for maximum of 20 proposals', async function() {
+      let action = 'updateUintParameters(bytes8,uint)';
+      let code = 'MAXFOL';
+      let proposedValue = 50;
+      let actionHash = encode(action, code, proposedValue);
+      for (let i = 0; i < 2; i++) {
+        await gvProposalWithIncentive(22, actionHash, mr, gv, 2, 10);
+      }
+      await cr.claimAllPendingReward(20);
+      let p1 = await gv.getProposalLength();
+      let lastClaimed = await gv.lastRewardClaimed(ab1);
+      assert.equal(lastClaimed.toNumber(), p1.toNumber() - 1);
     });
 
     describe('Delegation cases', function() {
@@ -358,7 +439,7 @@ contract(
       });
       it('15.51 Follower cannot undelegate if there are rewards pending to be claimed', async function() {
         await assertRevert(gv.unDelegate({ from: mem5 }));
-        await cr.claimAllPendingReward([pId], { from: mem5 });
+        await cr.claimAllPendingReward(20, { from: mem5 });
       });
       it('15.52 Follower should not get reward if delegated within 7days', async function() {
         let pendingReward = await gv.getPendingReward(mem7);

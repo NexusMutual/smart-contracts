@@ -374,7 +374,6 @@ contract ClaimsReward is Iupgradable {
         uint lastIndex;
         (lastIndex, ) = cd.getRewardDistributedIndex(msg.sender);
         uint total = 0;
-        uint lastClaimed = lengthVote;
         uint tokenForVoteId = 0;
         bool lastClaimedCheck;
         uint _days = td.lockCADays();
@@ -386,6 +385,7 @@ contract ClaimsReward is Iupgradable {
         if (lengthVote.sub(lastIndex) > _records) {
             lengthVote = lastIndex.add(_records);
         }
+        uint lastClaimed = lengthVote;
 
         for (i = lastIndex; i < lengthVote; i++) {
             voteid = cd.getVoteAddressCA(msg.sender, i);
@@ -416,6 +416,7 @@ contract ClaimsReward is Iupgradable {
         if (lengthVote.sub(lastIndex) > _records) {
             lengthVote = lastIndex.add(_records);
         }
+        lastClaimed = lengthVote;
         for (i = lastIndex; i < lengthVote; i++) {
             voteid = cd.getVoteAddressMember(msg.sender, i);
             (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);

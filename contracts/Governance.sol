@@ -72,7 +72,6 @@ contract Governance is IGovernance, Iupgradable {
     mapping(uint => ProposalData) internal allProposalData;
     mapping(uint => bytes[]) internal allProposalSolutions;
     mapping(address => uint[]) internal allVotesByMember;
-    mapping (address => mapping(uint => uint)) internal allVotesByMemberIndex;
     mapping(uint => mapping(address => bool)) public rewardClaimed; //voteid->member->reward claimed
     mapping (address => mapping(uint => uint)) public memberProposalVote;
     mapping (address => uint) public followerDelegation;
@@ -308,16 +307,16 @@ contract Governance is IGovernance, Iupgradable {
             leader = _memberAddress;
 
         uint proposalId;
+        uint totalVotes = allVotesByMember[leader].length;
+        uint lastClaimed = totalVotes;
         uint j;
         uint[] memory proposals = new uint[](20);
-        for (uint i = allVotesByMemberIndex[leader][lastRewardClaimed[_memberAddress]];
-        i < allVotesByMember[leader].length && j < _maxRecords; i++) {
+        for (uint i = lastRewardClaimed[_memberAddress];i < totalVotes && j < _maxRecords; i++) {
             voteId = allVotesByMember[leader][i];
             proposalId = allVotes[voteId].proposalId;
-            if ((allVotes[voteId].dateAdd > (
+            if (proposalVoteTally[proposalId].voters > 0 && (allVotes[voteId].dateAdd > (
                 lastUpd + tokenHoldingTime) || leader == _memberAddress)) {
-                if ((proposalVoteTally[proposalId].voters > 0 &&
-                allProposalData[proposalId].propStatus > uint(ProposalStatus.VotingStarted))) {
+                if (allProposalData[proposalId].propStatus > uint(ProposalStatus.VotingStarted)) {
                     if (!rewardClaimed[voteId][_memberAddress]) {
                         pendingDAppReward += allProposalData[proposalId].commonIncentive / 
                         proposalVoteTally[proposalId].voters;
@@ -325,12 +324,14 @@ contract Governance is IGovernance, Iupgradable {
                         proposals[j] = proposalId;
                         j++;
                     }
-                    if ((allVotesByMemberIndex[leader][lastRewardClaimed[_memberAddress]] + 1) == i) {
-                        lastRewardClaimed[_memberAddress] = voteId;
+                } else {
+                    if(lastClaimed == totalVotes) {
+                        lastClaimed = i;
                     }
                 }
             }
         }
+        lastRewardClaimed[_memberAddress] = lastClaimed;
         uint[] memory _proposals = new uint[](j);
         for (uint i = 0; i < j; i++) {
             _proposals[i] = proposals[i];
@@ -390,6 +391,7 @@ contract Governance is IGovernance, Iupgradable {
         followerDelegation[msg.sender] = allDelegation.length - 1;
         leaderDelegation[_add].push(allDelegation.length - 1);
         followerCount[_add]++;
+        lastRewardClaimed[msg.sender] = lastRewardClaimed[_add];
     }
 
     /**
@@ -523,8 +525,7 @@ contract Governance is IGovernance, Iupgradable {
             leader = _memberAddress;
 
         uint proposalId;
-        for (uint i = allVotesByMemberIndex[leader][lastRewardClaimed[_memberAddress]];
-        i < allVotesByMember[leader].length; i++) {
+        for (uint i = lastRewardClaimed[_memberAddress];i < allVotesByMember[leader].length; i++) {
             if (allVotes[allVotesByMember[leader][i]].dateAdd > (
                 lastUpd + tokenHoldingTime) || leader == _memberAddress) {
                 if (!rewardClaimed[allVotesByMember[leader][i]][_memberAddress]) {
@@ -793,7 +794,6 @@ contract Governance is IGovernance, Iupgradable {
         uint totalVotes = allVotes.length;
 
         allVotesByMember[msg.sender].push(totalVotes);
-        allVotesByMemberIndex[msg.sender][totalVotes] = allVotesByMember[msg.sender].length - 1;
         memberProposalVote[msg.sender][_proposalId] = totalVotes;
 
         // addressProposalVote[msg.sender][_proposalId] = totalVotes;
@@ -950,6 +950,7 @@ contract Governance is IGovernance, Iupgradable {
             followerCount[allDelegation[followerId].leader]--;
             allDelegation[followerId].leader = address(0);
             allDelegation[followerId].lastUpd = now;
+            lastRewardClaimed[msg.sender] = allVotesByMember[msg.sender].length - 1;
         }
     }
 

@@ -1,8 +1,8 @@
 
 pragma solidity 0.5.7;
 
-import "./MCR.sol";
-import "./PoolData.sol";
+import "../MCR.sol";
+import "../PoolData.sol";
 
 
 contract PoolDataMock is PoolData {

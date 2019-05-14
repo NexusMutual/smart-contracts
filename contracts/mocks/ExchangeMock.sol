@@ -1,7 +1,7 @@
 pragma solidity 0.5.7;
 
 import "./FactoryMock.sol";
-import "./external/openzeppelin-solidity/token/ERC20/ERC20.sol";
+import "../external/openzeppelin-solidity/token/ERC20/ERC20.sol";
 
 
 contract ExchangeMock {

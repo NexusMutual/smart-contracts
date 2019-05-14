@@ -21,6 +21,7 @@ import "./TokenData.sol";
 import "./NXMToken.sol";
 import "./Pool1.sol";
 import "./MemberRoles.sol";
+import "./ProposalCategory.sol";
 
 
 contract MCR is Iupgradable {
@@ -32,6 +33,7 @@ contract MCR is Iupgradable {
     QuotationData internal qd;
     MemberRoles internal mr;
     TokenData internal td;
+    ProposalCategory internal proposalCategory;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint private constant DECIMAL1E05 = uint(10) ** 5;
@@ -64,6 +66,7 @@ contract MCR is Iupgradable {
         external
         checkPause
     {
+        require(proposalCategory.constructorCheck());
         require(pd.isnotarise(msg.sender));
         uint _days = (uint(now).sub(mr.launchedOn())).div(1 days);
         if (mr.launched() && pd.capReached() != 1 && _days <= 30) {
@@ -112,6 +115,7 @@ contract MCR is Iupgradable {
         tk = NXMToken(ms.tokenAddress());
         mr = MemberRoles(ms.getLatestAddress("MR"));
         td = TokenData(ms.getLatestAddress("TD"));
+        proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
     }
 
     /** 

@@ -88,7 +88,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
             time = time + (await duration.days(10));
             await increaseTimeTo(time + 10);
             await tf.addStake(stakedContract, stakeTokens, { from: UW2 });
-            await cr.claimAllPendingReward([], { from: UW1 });
+            await cr.claimAllPendingReward(20, { from: UW1 });
             let newBal = await tk.balanceOf(UW1);
             console.log(
               'initialBal ',
@@ -164,9 +164,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward([], { from: UW1 });
-            await cr.claimAllPendingReward([], { from: UW2 });
-            await cr.claimAllPendingReward([], { from: UW3 });
+            await cr.claimAllPendingReward(20, { from: UW1 });
+            await cr.claimAllPendingReward(20, { from: UW2 });
+            await cr.claimAllPendingReward(20, { from: UW3 });
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -214,9 +214,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward([], { from: UW1 });
-            await cr.claimAllPendingReward([], { from: UW2 });
-            await cr.claimAllPendingReward([], { from: UW3 });
+            await cr.claimAllPendingReward(20, { from: UW1 });
+            await cr.claimAllPendingReward(20, { from: UW2 });
+            await cr.claimAllPendingReward(20, { from: UW3 });
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -296,9 +296,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward([], { from: UW1 });
-            await cr.claimAllPendingReward([], { from: UW2 });
-            await cr.claimAllPendingReward([], { from: UW3 });
+            await cr.claimAllPendingReward(20, { from: UW1 });
+            await cr.claimAllPendingReward(20, { from: UW2 });
+            await cr.claimAllPendingReward(20, { from: UW3 });
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -349,9 +349,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward([], { from: UW1 });
-            await cr.claimAllPendingReward([], { from: UW2 });
-            await cr.claimAllPendingReward([], { from: UW3 });
+            await cr.claimAllPendingReward(20, { from: UW1 });
+            await cr.claimAllPendingReward(20, { from: UW2 });
+            await cr.claimAllPendingReward(20, { from: UW3 });
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -402,9 +402,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward([], { from: UW1 });
-            await cr.claimAllPendingReward([], { from: UW2 });
-            await cr.claimAllPendingReward([], { from: UW3 });
+            await cr.claimAllPendingReward(20, { from: UW1 });
+            await cr.claimAllPendingReward(20, { from: UW2 });
+            await cr.claimAllPendingReward(20, { from: UW3 });
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);

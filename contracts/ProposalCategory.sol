@@ -18,7 +18,7 @@ import "./MemberRoles.sol";
 
 contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
 
-    bool internal constructorCheck;
+    bool public constructorCheck;
     MemberRoles internal mr;
 
     struct CategoryStruct {
@@ -205,7 +205,7 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
      */
     function changeMasterAddress(address _masterAddress) public {
         if (masterAddress != address(0))
-            require(masterAddress == msg.sender || ms.isInternal(msg.sender));
+            require(masterAddress == msg.sender);
         masterAddress = _masterAddress;
         ms = INXMMaster(_masterAddress);
         nxMasterAddress = _masterAddress;

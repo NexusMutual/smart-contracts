@@ -26,6 +26,8 @@ contract INXMMaster {
     uint public pauseTime;
 
     function delegateCallBack(bytes32 myid) external;
+
+    function masterInitialized() public view returns(bool);
     
     function isInternal(address _add) public view returns(bool);
 

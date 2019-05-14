@@ -136,7 +136,8 @@ contract TokenFunctions is Iupgradable {
     {
         uint stakedAmount = 0;
         address stakerAddress;
-        for (uint i = 0; i < td.getStakedContractStakersLength(_stakedContractAddress); i++) {
+        uint staketLen = td.getStakedContractStakersLength(_stakedContractAddress);
+        for (uint i = 0; i < staketLen; i++) {
             stakerAddress = td.getStakedContractStakerByIndex(_stakedContractAddress, i);
             uint stakerIndex = td.getStakedContractStakerIndex(
             _stakedContractAddress, i);

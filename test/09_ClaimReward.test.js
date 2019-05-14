@@ -172,7 +172,7 @@ contract('ClaimsReward', function([
       await cl.submitCAVote(claimId, -1, { from: member1 });
       await cl.submitCAVote(claimId, -1, { from: member2 });
       await cl.submitCAVote(claimId, -1, { from: member3 });
-      await cr.claimAllPendingReward([], { from: member1 });
+      await cr.claimAllPendingReward(20, { from: member1 });
       await increaseTimeTo(
         new BN(closingTime.toString()).add(new BN((2).toString()))
       );
@@ -203,10 +203,10 @@ contract('ClaimsReward', function([
       initialBalance = await tk.balanceOf(member1);
       rewardToGet = await cr.getAllPendingRewardOfUser(member1);
       await assertRevert(
-        cr.claimAllPendingReward(proposalIds, { from: notMember })
+        cr.claimAllPendingReward(20, { from: notMember })
       );
-      await cr.claimAllPendingReward(proposalIds, { from: member1 });
-      await cr.claimAllPendingReward(proposalIds, { from: member1 });
+      await cr.claimAllPendingReward(20, { from: member1 });
+      await cr.claimAllPendingReward(20, { from: member1 });
       (await cr.getAllPendingRewardOfUser(member1))
         .toString()
         .should.be.equal((0).toString());
@@ -230,7 +230,7 @@ contract('ClaimsReward', function([
         );
       let proposalIds = [];
 
-      await cr.claimAllPendingReward(proposalIds, { from: member1 });
+      await cr.claimAllPendingReward(20, { from: member1 });
     });
   });
   describe('Staker gets reward', function() {
@@ -250,7 +250,7 @@ contract('ClaimsReward', function([
     });
     it('9.4 should be able to claim reward', async function() {
       let proposalIds = [];
-      await cr.claimAllPendingReward(proposalIds, { from: staker1 });
+      await cr.claimAllPendingReward(20, { from: staker1 });
       (await cr.getAllPendingRewardOfUser(staker1))
         .toString()
         .should.be.equal((0).toString());

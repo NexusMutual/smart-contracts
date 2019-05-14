@@ -342,8 +342,6 @@ contract NXMaster is Governed {
     }
 
     /// @dev Gets latest version name and address
-    /// @param _versionNo Version number that data we want to fetch
-    /// @return versionNo Version number
     /// @return contractsName Latest version's contract names
     /// @return contractsAddress Latest version's contract addresses
     function getVersionData() 
@@ -393,7 +391,7 @@ contract NXMaster is Governed {
     function addNewVersion(address payable[] memory _contractAddresses) public {
 
         require(msg.sender == owner && !constructorCheck);
-        require(_contractAddresses.length == allContractNames.length,"array length not same");
+        require(_contractAddresses.length == allContractNames.length, "array length not same");
         constructorCheck = true;
 
         MemberRoles mr = MemberRoles(_contractAddresses[14]);   

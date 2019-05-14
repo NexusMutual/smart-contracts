@@ -206,7 +206,7 @@ contract MCR is Iupgradable {
         uint baseMin = pd.getCurrencyAssetBaseMin("ETH");
         uint maxTokensAccPoolBal;
         if (address(p1).balance > baseMin.mul(50).div(100)) {
-            maxTokensAccPoolBal  = address(p1).balance.sub(
+            maxTokensAccPoolBal = address(p1).balance.sub(
             (baseMin.mul(50)).div(100));        
         }
         maxTokensAccPoolBal = (maxTokensAccPoolBal.mul(DECIMAL1E18)).div(

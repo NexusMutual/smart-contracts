@@ -251,8 +251,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         gv.removeDelegation(msg.sender);
         dAppToken.burnFrom(msg.sender, tk.balanceOf(msg.sender));
         _updateRole(msg.sender, uint(Role.Member), false);
-        dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist
-        
+        dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist        
     }
 
     /// @dev Return number of member roles

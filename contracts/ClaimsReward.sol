@@ -383,8 +383,7 @@ contract ClaimsReward is Iupgradable {
         uint claimId;
         uint perc;
         uint i;
-        if(lengthVote.sub(lastIndex) > _records)
-        {
+        if (lengthVote.sub(lastIndex) > _records) {
             lengthVote = lastIndex.add(_records);
         }
 
@@ -414,8 +413,7 @@ contract ClaimsReward is Iupgradable {
         if (tc.tokensLockedAtTime(msg.sender, "CLA", now) > 0)
             tc.reduceLock(msg.sender, "CLA", _days);
         (, lastIndex) = cd.getRewardDistributedIndex(msg.sender);
-        if(lengthVote.sub(lastIndex) > _records)
-        {
+        if (lengthVote.sub(lastIndex) > _records) {
             lengthVote = lastIndex.add(_records);
         }
         for (i = lastIndex; i < lengthVote; i++) {
@@ -445,8 +443,7 @@ contract ClaimsReward is Iupgradable {
         uint commissionRedeemed;
         uint maxCommission;
 
-        if(len.sub(lastCompletedStakeCommission) > _records)
-        {
+        if (len.sub(lastCompletedStakeCommission) > _records) {
             len = lastCompletedStakeCommission.add(_records);
         }
 

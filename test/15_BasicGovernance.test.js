@@ -297,24 +297,70 @@ contract(
     });
 
     it('Claim Rewards for maximum of 20 proposals', async function() {
-      let action = 'updateUintParameters(bytes8,uint)';
-      let code = 'MAXFOL';
-      let proposedValue = 50;
-      let actionHash = encode(action, code, proposedValue);
-      for (let i = 0; i < 2; i++) {
-        await gvProposalWithIncentive(22, actionHash, mr, gv, 2, 10);
-      }
-      await cr.claimAllPendingReward(20);
+      await gv.setDelegationStatus(true, { from: ab1 });
+      let actionHash = encode(
+        'updateUintParameters(bytes8,uint)',
+        'MAXFOL',
+        50
+      );
       let p1 = await gv.getProposalLength();
       let lastClaimed = await gv.lastRewardClaimed(ab1);
-      assert.equal(lastClaimed.toNumber(), p1.toNumber() - 1);
+      for (let i = 0; i < 7; i++) {
+        await gvProposalWithIncentive(22, actionHash, mr, gv, 2, 10);
+      }
+      await cr.claimAllPendingReward(5);
+      p1 = await gv.getProposalLength();
+      let lastProposal = p1.toNumber() - 1;
+      lastClaimed = await gv.lastRewardClaimed(ab1);
+      //Two proposal are still pending to be claimed since 5 had been passed as max records to claim
+      assert.equal(lastClaimed.toNumber(), lastProposal - 2);
+    });
+
+    it('Claim Reward for followers', async function() {
+      let actionHash = encode(
+        'updateUintParameters(bytes8,uint)',
+        'MAXFOL',
+        50
+      );
+      await mr.payJoiningFee(mem1, {
+        value: '2000000000000000',
+        from: mem1
+      });
+      await mr.kycVerdict(mem1, true, {
+        from: ab1
+      });
+      await gv.delegateVote(ab1, { from: mem1 });
+      await increaseTime(604805);
+      let lastClaimedAb1 = await gv.lastRewardClaimed(ab1);
+      let lastClaimedMem1 = await gv.lastRewardClaimed(mem1);
+      //ab1 has 2 reward pending to be claimed in previous case
+      //last claimed of member will be total number of votes of ab1 untill his delegation
+      assert.equal(lastClaimedMem1.toNumber(), lastClaimedAb1.toNumber() + 2);
+      for (let i = 0; i < 7; i++) {
+        await gvProposalWithIncentive(22, actionHash, mr, gv, 1, 10);
+      }
+      await cr.claimAllPendingReward(5, { from: mem1 });
+      let lastClaimedMem2 = await gv.lastRewardClaimed(mem1);
+      assert.equal(lastClaimedMem1.toNumber() + 5, lastClaimedMem2);
+    });
+
+    it('Last reward claimed should be updated when follower undelegates', async function() {
+      await cr.claimAllPendingReward(20, { from: ab1 });
+      await cr.claimAllPendingReward(20, { from: mem1 });
+      await gv.setDelegationStatus(false, { from: ab1 });
+      await gv.unDelegate({ from: mem1 });
+      await increaseTime(604900);
+      let lastRewardClaimed = await gv.lastRewardClaimed(mem1);
+      //Till now Member 1 hasn't voted on his own, so his vote count will be 0
+      assert.equal(lastRewardClaimed.toNumber(), 0);
     });
 
     describe('Delegation cases', function() {
       it('15.24 Initialising Members', async function() {
+        await increaseTime(604900);
         await assertRevert(mr.changeMaxABCount(4, { from: ab2 }));
         await mr.addInitialABMembers([ab2, ab3, ab4]);
-        for (let i = 4; i < 11; i++) {
+        for (let i = 5; i < 11; i++) {
           await mr.payJoiningFee(web3.eth.accounts[i], {
             value: '2000000000000000',
             from: web3.eth.accounts[i]

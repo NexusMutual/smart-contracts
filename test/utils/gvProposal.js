@@ -1,3 +1,4 @@
+const increaseTime = require('./increaseTime.js').increaseTime;
 async function gvProposal(...args) {
   let catId = args[0];
   let actionHash = args[1];
@@ -38,6 +39,7 @@ async function gvProposalWithIncentive(...args) {
       from: members[1][iteration]
     });
   // console.log(await gv.proposalDetails(p));
+  await increaseTime(604800);
   if (seq != 3) await gv.closeProposal(p);
   let proposal = await gv.proposal(p);
   assert.equal(proposal[2].toNumber(), 3);

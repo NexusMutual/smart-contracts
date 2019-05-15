@@ -310,8 +310,8 @@ contract Governance is IGovernance, Iupgradable {
         uint totalVotes = allVotesByMember[leader].length;
         uint lastClaimed = totalVotes;
         uint j;
-        uint[] memory proposals = new uint[](20);
-        for (uint i = lastRewardClaimed[_memberAddress];i < totalVotes && j < _maxRecords; i++) {
+        uint i;
+        for (i = lastRewardClaimed[_memberAddress];i < totalVotes && j < _maxRecords; i++) {
             voteId = allVotesByMember[leader][i];
             proposalId = allVotes[voteId].proposalId;
             if (proposalVoteTally[proposalId].voters > 0 && (allVotes[voteId].dateAdd > (
@@ -321,7 +321,6 @@ contract Governance is IGovernance, Iupgradable {
                         pendingDAppReward += allProposalData[proposalId].commonIncentive / 
                         proposalVoteTally[proposalId].voters;
                         rewardClaimed[voteId][_memberAddress] = true;
-                        proposals[j] = proposalId;
                         j++;
                     }
                 } else {
@@ -331,15 +330,16 @@ contract Governance is IGovernance, Iupgradable {
                 }
             }
         }
-        lastRewardClaimed[_memberAddress] = lastClaimed;
-        uint[] memory _proposals = new uint[](j);
-        for (uint i = 0; i < j; i++) {
-            _proposals[i] = proposals[i];
+
+        if(lastClaimed == totalVotes) {
+            lastRewardClaimed[_memberAddress] = i;
+        } else {
+            lastRewardClaimed[_memberAddress] = lastClaimed;
         }
+
         if (j > 0) {
             emit RewardClaimed(
                 _memberAddress,
-                _proposals,
                 pendingDAppReward
             );
         }

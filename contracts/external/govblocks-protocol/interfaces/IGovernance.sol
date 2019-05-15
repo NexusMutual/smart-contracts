@@ -45,7 +45,6 @@ contract IGovernance {
 
     event RewardClaimed(
         address indexed member,
-        uint[] voterProposals,
         uint gbtReward
     );
 

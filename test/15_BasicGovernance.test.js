@@ -426,11 +426,11 @@ contract(
         await assertRevert(gv.delegateVote(ab1, { from: mem1 }));
       });
       it('15.26 AB member cannot delegate vote to AB', async function() {
-        await gv.setDelegationStatus(true, { from: ab2 });
+        await gv.setDelegationStatus(true, { from: ab1 });
         await assertRevert(gv.delegateVote(ab1, { from: ab2 }));
       });
       it('15.27 Owner cannot delegate vote', async function() {
-        await gv.setDelegationStatus(true, { from: ab1 });
+        await gv.setDelegationStatus(true, { from: ab3 });
         await assertRevert(gv.delegateVote(ab3, { from: ab1 }));
       });
       it('15.28 AB member cannot delegate vote to Member', async function() {

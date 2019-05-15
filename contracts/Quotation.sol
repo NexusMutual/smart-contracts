@@ -292,7 +292,7 @@ contract Quotation is Iupgradable {
      * @param status is the kyc status
      * @param _add is the address of member
      */
-    function kycVerdict(bool status, address _add) public checkPause noReentrancy {
+    function kycVerdict(address _add, bool status) public checkPause noReentrancy {
         require(msg.sender == qd.kycAuthAddress());
         _kycTrigger(status, _add);
     }

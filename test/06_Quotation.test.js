@@ -1036,7 +1036,7 @@ contract('Quotation', function([
             )
           );
           let hcl = await qd.getUserHoldedCoverLength(notMember);
-          await qt.kycVerdict(false, notMember);
+          await qt.kycVerdict(notMember, false);
           await mr.payJoiningFee(notMember, {
             from: notMember,
             value: fee
@@ -1072,7 +1072,7 @@ contract('Quotation', function([
           );
           let holdedId = await qt.getRecentHoldedCoverIdStatus(newMember1);
           holdedId.toNumber().should.be.above(0);
-          await qt.kycVerdict(true, newMember1);
+          await qt.kycVerdict(newMember1, true);
         });
         it('6.32 should be able to join membership and purchase cover with DAI', async function() {
           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
@@ -1101,7 +1101,7 @@ contract('Quotation', function([
             { from: newMember2, value: fee }
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
-          await qt.kycVerdict(true, newMember2);
+          await qt.kycVerdict(newMember2, true);
         });
 
         it('6.34 should revert if wallet address is not set', async function() {
@@ -1142,7 +1142,7 @@ contract('Quotation', function([
             vrsdata[2],
             { from: newMember5, value: totalFee }
           );
-          await assertRevert(qt.kycVerdict(true, newMember5));
+          await assertRevert(qt.kycVerdict(newMember5, true));
           actionHash = encode(
             'updateOwnerParameters(bytes8,address)',
             'MSWALLET',
@@ -1213,7 +1213,7 @@ contract('Quotation', function([
           const newCoverDetails = coverDetails.slice();
           newCoverDetails[3] = (await latestTime()) - 3;
           await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          await qt.kycVerdict(true, newMember4);
+          await qt.kycVerdict(newMember4, true);
         });
 
         it('6.36 should revert if quote validity expires', async function() {
@@ -1277,7 +1277,7 @@ contract('Quotation', function([
           const newCoverDetails = coverDetailsDai.slice();
           newCoverDetails[3] = (await latestTime()) - 3;
           await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          await qt.kycVerdict(true, notMember);
+          await qt.kycVerdict(notMember, true);
         });
       });
     });
@@ -1410,7 +1410,7 @@ contract('Quotation', function([
         (await pd.getApiIdTypeOf(APIID)).should.be.equal('0x4d435246');
       });
       it('6.54 should throw if call kycVerdict with non authorised address', async function() {
-        await assertRevert(qt.kycVerdict(true, member1, { from: member1 }));
+        await assertRevert(qt.kycVerdict(member1, true, { from: member1 }));
       });
       it('6.55 should not able to update quoatation parameters directly', async function() {
         await assertRevert(qd.updateUintParameters(toHex('STLP'), 1));

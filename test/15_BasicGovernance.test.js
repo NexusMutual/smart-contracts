@@ -407,6 +407,22 @@ contract(
       await gv.setDelegationStatus(false, { from: ab1 });
       await gv.unDelegate({ from: mem1 });
     });
+
+    it('Proposal should be closed if not categorized for more than 14 days', async function() {
+      pId = await gv.getProposalLength();
+      await gv.createProposal('Proposal', 'Proposal', 'Proposal', 0);
+      await increaseTime(604810 * 2);
+      await gv.closeProposal(pId);
+    });
+
+    it('Proposal should be closed if not submitted to vote for more than 14 days', async function() {
+      pId = await gv.getProposalLength();
+      await gv.createProposal('Proposal', 'Proposal', 'Proposal', 0);
+      await gv.categorizeProposal(pId, 22, 10);
+      await increaseTime(604810 * 2);
+      await gv.closeProposal(pId);
+    });
+
     describe('Delegation cases', function() {
       it('15.24 Initialising Members', async function() {
         await increaseTime(604900);

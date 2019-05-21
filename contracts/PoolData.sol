@@ -100,12 +100,12 @@ contract PoolData is Iupgradable {
     constructor(address _notariseAdd, address _daiFeedAdd, address _daiAdd) public {
         notariseMCR = _notariseAdd;
         daiFeedAddress = _daiFeedAdd;
-        c = 5203349;
-        a = 1948;
+        c = 5800000;
+        a = 1020;
         mcrTime = 24 hours;
         mcrFailTime = 6 hours;
         allMCRData.push(McrData(0, 0, 0, 0));
-        minCap = DECIMAL1E18;
+        minCap = 12000 * DECIMAL1E18;
         shockParameter = 50;
         variationPercX100 = 100; //1%
         iaRatesTime = 24 hours; //24 hours in seconds
@@ -114,13 +114,13 @@ contract PoolData is Iupgradable {
         ethVolumeLimit = 4;
         capacityLimit = 10;
         allCurrencies.push("ETH");
-        allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 6 * DECIMAL1E18, 0);
+        allCurrencyAssets["ETH"] = CurrencyAssets(address(0), 1000 * DECIMAL1E18, 0);
         allCurrencies.push("DAI");
-        allCurrencyAssets["DAI"] = CurrencyAssets(_daiAdd, 7 * DECIMAL1E18, 0);
+        allCurrencyAssets["DAI"] = CurrencyAssets(_daiAdd, 50000 * DECIMAL1E18, 0);
         allInvestmentCurrencies.push("ETH");
-        allInvestmentAssets["ETH"] = InvestmentAssets(address(0), true, 500, 5000, 18);
+        allInvestmentAssets["ETH"] = InvestmentAssets(address(0), true, 2500, 10000, 18);
         allInvestmentCurrencies.push("DAI");
-        allInvestmentAssets["DAI"] = InvestmentAssets(_daiAdd, true, 500, 5000, 18);
+        allInvestmentAssets["DAI"] = InvestmentAssets(_daiAdd, true, 250, 1500, 18);
     }
 
     /**
@@ -395,7 +395,7 @@ contract PoolData is Iupgradable {
     /// @dev Gets the details of last added MCR.
     /// @return mcrPercx100 Total Minimum Capital Requirement percentage of that month of year(multiplied by 100).
     /// @return vFull Total Pool fund value in Ether used in the last full daily calculation.
-    function getLastMCR() external view returns(uint mcrPercx100, uint mcrEtherx100, uint vFull, uint64 date) {
+    function getLastMCR() external view returns(uint mcrPercx100, uint mcrEtherx1E18, uint vFull, uint64 date) {
         uint index = allMCRData.length.sub(1);
         return (
             allMCRData[index].mcrPercx100,

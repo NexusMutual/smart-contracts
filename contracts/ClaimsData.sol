@@ -124,9 +124,9 @@ contract ClaimsData is Iupgradable {
 
     constructor() public {
         pendingClaimStart = 1;
-        maxVotingTime = 1800;
-        minVotingTime = 1200;
-        payoutRetryTime = 86400;
+        maxVotingTime = 48 * 1 hours;
+        minVotingTime = 12 * 1 hours;
+        payoutRetryTime = 24 * 1 hours;
         allvotes.push(Vote(address(0), 0, 0, 0, false));
         allClaims.push(Claim(0, 0));
         claimDepositTime = 7 days;

@@ -104,6 +104,10 @@ contract(
       );
     });
 
+    it('Should not allow to add in AB if not member', async function() {
+      await assertRevert(mr.addInitialABMembers([ab2, ab3, ab4]));
+    });
+
     it('15.5 Should create a proposal', async function() {
       let propLength = await gv.getProposalLength();
       proposalId = propLength.toNumber();
@@ -427,6 +431,27 @@ contract(
       it('15.24 Initialising Members', async function() {
         await increaseTime(604900);
         await assertRevert(mr.changeMaxABCount(4, { from: ab2 }));
+        await mr.payJoiningFee(ab2, {
+          value: '2000000000000000',
+          from: ab2
+        });
+        await mr.kycVerdict(ab2, true, {
+          from: ab1
+        });
+        await mr.payJoiningFee(ab3, {
+          value: '2000000000000000',
+          from: ab3
+        });
+        await mr.kycVerdict(ab3, true, {
+          from: ab1
+        });
+        await mr.payJoiningFee(ab4, {
+          value: '2000000000000000',
+          from: ab4
+        });
+        await mr.kycVerdict(ab4, true, {
+          from: ab1
+        });
         await mr.addInitialABMembers([ab2, ab3, ab4]);
         for (let i = 5; i < 11; i++) {
           await mr.payJoiningFee(web3.eth.accounts[i], {

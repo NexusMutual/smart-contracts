@@ -73,6 +73,34 @@ contract(
       tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
       // tc = await TokenController.deployed();
       pd = await PoolData.deployed();
+      await mr.payJoiningFee(ab2, {
+            value: 2000000000000000,
+            from: ab2
+          });
+          await mr.kycVerdict(ab2, true, {
+            from: web3.eth.accounts[0]
+          });
+       await mr.payJoiningFee(ab3, {
+            value: 2000000000000000,
+            from: ab3
+          });
+          await mr.kycVerdict(ab3, true, {
+            from: web3.eth.accounts[0]
+          });
+        await mr.payJoiningFee(ab4, {
+            value: 2000000000000000,
+            from: ab4
+          });
+          await mr.kycVerdict(ab4, true, {
+            from: web3.eth.accounts[0]
+          });
+          await mr.payJoiningFee(ab5, {
+            value: 2000000000000000,
+            from: ab5
+          });
+          await mr.kycVerdict(ab5, true, {
+            from: web3.eth.accounts[0]
+          });
       await mr.addInitialABMembers([ab2, ab3, ab4, ab5]);
       await nxmToken.approve(tc.address, maxAllowance);
       let bal = await nxmToken.balanceOf(ab1);

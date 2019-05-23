@@ -101,7 +101,7 @@ contract PoolData is Iupgradable {
         notariseMCR = _notariseAdd;
         daiFeedAddress = _daiFeedAdd;
         c = 5800000;
-        a = 1020;
+        a = 1028;
         mcrTime = 24 hours;
         mcrFailTime = 6 hours;
         allMCRData.push(McrData(0, 0, 0, 0));

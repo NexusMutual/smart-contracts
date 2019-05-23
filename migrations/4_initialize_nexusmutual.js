@@ -66,18 +66,20 @@ module.exports = function(deployer, network, accounts) {
      propCat.address,
      mr.address
    ];
-
+   console.log("1");
    await nxms.addNewVersion(addr);
-
+   console.log("2");
    let pcAddress = await nxms.getLatestAddress('0x5043');
    pc = await ProposalCategory.at(pcAddress);
    await pc.proposalCategoryInitiate();
-
+console.log("3");
    const dai = await DAI.deployed();
    // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
    // await qd.changeInvestmentAssetAddress('0x444149', dai.address);
    await pl1.sendEther({ from: Owner, value: POOL_ETHER });
+   console.log("4");
    await pl2.sendEther({ from: Owner, value: POOL_ETHER }); //
+   console.log("5");
    await mcr.addMCRData(
      18000,
      '100000000000000000000',
@@ -86,12 +88,15 @@ module.exports = function(deployer, network, accounts) {
      [100, 15517],
      20190103
    );
+   console.log("6");
    await pl2.saveIADetails(
      ['0x455448', '0x444149'],
      [100, 15517],
      20190103,
      true
    ); //testing
+   console.log("7");
    await dai.transfer(pl2.address, POOL_ASSET);
+   console.log("8");
  });
 };

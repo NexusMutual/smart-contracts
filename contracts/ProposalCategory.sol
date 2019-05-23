@@ -120,23 +120,23 @@ contract ProposalCategory is  Governed, IProposalCategory, Iupgradable {
     /// @dev Initiates Default settings for Proposal Category contract (Adding default categories)
     function proposalCategoryInitiate() external { //solhint-disable-line
         require(!constructorCheck);
-        _addInitialCategories("Uncategorized", "", "MR", 50, 25, 1, 0); //0
+        _addInitialCategories("Uncategorized", "", "MR", 60, 15, 1, 0); //0
         _addInitialCategories("Add new member role", "QmQFnBep7AyMYU3LJDuHSpTYatnw65XjHzzirrghtZoR8U", 
-        "MR", 50, 25, 1, 0);
+        "MR", 60, 15, 1, 0);
         _addInitialCategories("Update member role", "QmXMzSViLBJ22P9oj51Zz7isKTRnXWPHZcQ5hzGvvWD3UV", 
-        "MR", 50, 25, 1, 0);
+        "MR", 60, 15, 1, 0);
         _addInitialCategories("Add new category", "QmUq9Rb6rWFHZXjVtyzh7AWGDeyVFtDHKiP5fJpgnuinQ7", "PC", 
-        50, 25, 1, 0);
+        60, 15, 1, 0);
         _addInitialCategories("Edit category", "QmQmvfBiCLfe5jPdq69iRBRRdnSHSroJQ4SG8DhtkXcLfQ",  //4
-        "PC", 50, 25, 1, 0);
+        "PC", 60, 15, 1, 0);
         _addInitialCategories(
             "Upgrade a contract Implementation",
             "Qme4hGas6RuDYk9LKE2XkK9E46LNeCBUzY12DdT5uQstvh",
             "MS",
             50,
-            25,
-            1,
-            0
+            15,
+            2,
+            80
         );
         
         //  --------------------------------------------------------------------------------------------- //

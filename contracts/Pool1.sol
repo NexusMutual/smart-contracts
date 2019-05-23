@@ -146,7 +146,7 @@ contract Pool1 is usingOraclize, Iupgradable {
 
     /// @dev Oraclize call to update investment asset rates.
     function saveIADetailsOracalise(uint time) external onlyInternal {
-        bytes32 myid = _oraclizeQuery(3, time, "URL", "http://a3.nexusmutual.io", 0);
+        bytes32 myid = _oraclizeQuery(3, time, "URL", "https://api.nexusmutual.io/saveIADetails/M1", 0);
         _saveApiDetails(myid, "IARB", 0);
     }
     

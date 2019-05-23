@@ -419,7 +419,6 @@ contract NXMaster is Governed {
             _changeAllAddress();
             TokenController tc = TokenController(getLatestAddress("TC"));
             tc.changeOperator(getLatestAddress("TC"));
-            tc.addToWhitelist(owner);
         }
         
         

@@ -415,10 +415,9 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
             "Represents Owner of Mutual.", //solhint-disable-line
             address(0)
         );
-        _updateRole(_firstAB, uint(Role.AdvisoryBoard), true);
+        // _updateRole(_firstAB, uint(Role.AdvisoryBoard), true);
         _updateRole(_firstAB, uint(Role.Owner), true);
-        // dAppToken.addToWhitelist(_firstAB);
-        _updateRole(_firstAB, uint(Role.Member), true);
+        // _updateRole(_firstAB, uint(Role.Member), true);
         launchedOn = 0;
     }
 

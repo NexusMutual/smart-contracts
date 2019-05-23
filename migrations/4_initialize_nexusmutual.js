@@ -25,78 +25,70 @@ const POOL_ETHER = '10000000000000000000';
 const POOL_ASSET = '50000000000000000000';
 
 module.exports = function(deployer, network, accounts) {
- deployer.then(async () => {
-   const Owner = accounts[0];
-   const nxms = await NXMaster.deployed();
-   const tk = await NXMToken.deployed();
-   const td = await TokenData.deployed();
-   const tf = await TokenFunctions.deployed();
-   const tc = await TokenController.deployed();
-   const pl1 = await Pool1.deployed();
-   const pl2 = await Pool2.deployed();
-   const pd = await PoolData.deployed();
-   const qt = await Quotation.deployed();
-   const qd = await QuotationDataMock.deployed();
-   const cl = await Claims.deployed();
-   const cr = await ClaimsReward.deployed();
-   const cd = await ClaimsData.deployed();
-   const mcr = await MCR.deployed();
-   const dsv = await DSValue.deployed();
-   const gov = await Governance.deployed();
-   let propCat = await ProposalCategory.deployed();
-   const mr = await MemberRoles.deployed();
-   const factory = await FactoryMock.deployed();
-   // let gvAdd = await nxms.getLatestAddress("GV");
-   // let mrAdd = await nxms.getLatestAddress("MR");
-   // let pcAdd = await nxms.getLatestAddress("PC");
-   let addr = [
-     qd.address,
-     td.address,
-     cd.address,
-     pd.address,
-     qt.address,
-     tf.address,
-     tc.address,
-     cl.address,
-     cr.address,
-     pl1.address,
-     pl2.address,
-     mcr.address,
-     gov.address,
-     propCat.address,
-     mr.address
-   ];
-   console.log("1");
-   await nxms.addNewVersion(addr);
-   console.log("2");
-   let pcAddress = await nxms.getLatestAddress('0x5043');
-   pc = await ProposalCategory.at(pcAddress);
-   await pc.proposalCategoryInitiate();
-console.log("3");
-   const dai = await DAI.deployed();
-   // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
-   // await qd.changeInvestmentAssetAddress('0x444149', dai.address);
-   await pl1.sendEther({ from: Owner, value: POOL_ETHER });
-   console.log("4");
-   await pl2.sendEther({ from: Owner, value: POOL_ETHER }); //
-   console.log("5");
-   await mcr.addMCRData(
-     18000,
-     '100000000000000000000',
-     '2000000000000000000',
-     ['0x455448', '0x444149'],
-     [100, 15517],
-     20190103
-   );
-   console.log("6");
-   await pl2.saveIADetails(
-     ['0x455448', '0x444149'],
-     [100, 15517],
-     20190103,
-     true
-   ); //testing
-   console.log("7");
-   await dai.transfer(pl2.address, POOL_ASSET);
-   console.log("8");
- });
+  deployer.then(async () => {
+    const Owner = accounts[0];
+    const nxms = await NXMaster.deployed();
+    const tk = await NXMToken.deployed();
+    const td = await TokenData.deployed();
+    const tf = await TokenFunctions.deployed();
+    const tc = await TokenController.deployed();
+    const pl1 = await Pool1.deployed();
+    const pl2 = await Pool2.deployed();
+    const pd = await PoolData.deployed();
+    const qt = await Quotation.deployed();
+    const qd = await QuotationDataMock.deployed();
+    const cl = await Claims.deployed();
+    const cr = await ClaimsReward.deployed();
+    const cd = await ClaimsData.deployed();
+    const mcr = await MCR.deployed();
+    const dsv = await DSValue.deployed();
+    const gov = await Governance.deployed();
+    let propCat = await ProposalCategory.deployed();
+    const mr = await MemberRoles.deployed();
+    const factory = await FactoryMock.deployed();
+    // let gvAdd = await nxms.getLatestAddress("GV");
+    // let mrAdd = await nxms.getLatestAddress("MR");
+    // let pcAdd = await nxms.getLatestAddress("PC");
+    let addr = [
+      qd.address,
+      td.address,
+      cd.address,
+      pd.address,
+      qt.address,
+      tf.address,
+      tc.address,
+      cl.address,
+      cr.address,
+      pl1.address,
+      pl2.address,
+      mcr.address,
+      gov.address,
+      propCat.address,
+      mr.address
+    ];
+    await nxms.addNewVersion(addr);
+    let pcAddress = await nxms.getLatestAddress('0x5043');
+    pc = await ProposalCategory.at(pcAddress);
+    await pc.proposalCategoryInitiate();
+    const dai = await DAI.deployed();
+    // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
+    // await qd.changeInvestmentAssetAddress('0x444149', dai.address);
+    await pl1.sendEther({ from: Owner, value: POOL_ETHER });
+    await pl2.sendEther({ from: Owner, value: POOL_ETHER }); //
+    await mcr.addMCRData(
+      18000,
+      '100000000000000000000',
+      '2000000000000000000',
+      ['0x455448', '0x444149'],
+      [100, 15517],
+      20190103
+    );
+    await pl2.saveIADetails(
+      ['0x455448', '0x444149'],
+      [100, 15517],
+      20190103,
+      true
+    ); //testing
+    await dai.transfer(pl2.address, POOL_ASSET);
+  });
 };

@@ -1,5 +1,5 @@
 const Claims = artifacts.require('Claims');
-const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsData = artifacts.require('ClaimsDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');

@@ -6,7 +6,8 @@ const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const Claims = artifacts.require('Claims');
-const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsData = artifacts.require('ClaimsDataMock');
+
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');

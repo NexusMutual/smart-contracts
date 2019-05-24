@@ -1,5 +1,6 @@
 const Claims = artifacts.require('Claims');
-const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsData = artifacts.require('ClaimsDataMock');
+
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('DSValueMock');
@@ -136,7 +137,6 @@ contract('NXMaster', function([
     }
   });
   describe('Updating state', function() {
-
     it('1.2 should not be able to change master address if master has not initialized', async function() {
       let newMaster = await NXMaster.new(nxmtk.address);
       await assertRevert(nxms.changeMasterAddress(newMaster.address));
@@ -155,7 +155,7 @@ contract('NXMaster', function([
       );
       let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
       // await oldGv.changeDependentContractAddress();
-      await gvProp(5, actionHash, oldMR, oldGv, 1);
+      await gvProp(5, actionHash, oldMR, oldGv, 2);
       (await qd.getImplementationAdd(toHex('MR'))).should.be.equal(
         newMemberRoles.address
       );
@@ -462,7 +462,7 @@ contract('NXMaster', function([
       );
       let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
       // await oldGv.changeDependentContractAddress();
-      await gvProp(5, actionHash, oldMR, oldGv, 1);
+      await gvProp(5, actionHash, oldMR, oldGv, 2);
     });
     it('1.27 revert in case of upgrade contract by non governance contract', async function() {
       await assertRevert(nxms.upgradeContract(toHex('TF'), nxms.address));

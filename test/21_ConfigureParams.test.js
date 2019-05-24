@@ -9,7 +9,8 @@ const TokenData = artifacts.require('TokenDataMock');
 const NXMToken = artifacts.require('NXMToken');
 const QuotationData = artifacts.require('QuotationDataMock');
 const DAI = artifacts.require('MockDAI');
-const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsData = artifacts.require('ClaimsDataMock');
+
 const Pool1 = artifacts.require('Pool1Mock');
 const FactoryMock = artifacts.require('FactoryMock');
 const expectEvent = require('./utils/expectEvent');
@@ -327,7 +328,7 @@ contract(
     describe('Update Address Parameters', function() {
       it('Should update Master Contract Address', async function() {
         let newMaster = await NXMaster.new(nxmToken.address);
-         addressCon = await nxms.getVersionData();
+        addressCon = await nxms.getVersionData();
         addressIncorrect = await nxms.getVersionData();
         addressIncorrect[1][0] = ZERO_ADDRESS;
         await assertRevert(newMaster.addNewVersion(addressIncorrect[1]));

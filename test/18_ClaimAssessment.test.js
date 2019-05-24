@@ -6,7 +6,8 @@ const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
-const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsData = artifacts.require('ClaimsDataMock');
+
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const DSValue = artifacts.require('DSValueMock');

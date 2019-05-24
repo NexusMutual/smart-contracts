@@ -1,5 +1,5 @@
 const Claims = artifacts.require('Claims');
-const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsData = artifacts.require('ClaimsDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('DSValueMock');
@@ -90,5 +90,14 @@ module.exports = function(deployer, network, accounts) {
       true
     ); //testing
     await dai.transfer(pl2.address, POOL_ASSET);
+    let mrInstance = await MemberRoles.at(
+      await nxms.getLatestAddress('0x4d52')
+    );
+    await mrInstance.payJoiningFee(Owner, {
+      from: Owner,
+      value: '2000000000000000'
+    });
+    await mrInstance.kycVerdict(Owner, true);
+    await mrInstance.addInitialABMembers([Owner]);
   });
 };

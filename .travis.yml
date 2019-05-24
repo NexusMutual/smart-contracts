@@ -3,12 +3,25 @@ sudo: required
 language: node_js
 
 node_js:
-  - "9"
+  - "10"
 
-install:
-  - npm install -g truffle
-  - npm install -g solhint
+cache:
+  directories:
+    - node_modules
 
 script:
-  - truffle compile
-  - solhint contracts/*.sol 
+  - npm install
+
+jobs:
+  fast_finish: true
+  allow_failures:
+    - env: SOLIDITY_COVERAGE=true
+  include:
+    - stage: tests
+      name: "unit tests"
+      script: npm run test
+    - stage: tests
+      name: "unit tests with coverage"
+      script: travis_wait 90 npm run test
+      env: SOLIDITY_COVERAGE=true
+

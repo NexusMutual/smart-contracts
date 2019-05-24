@@ -6,3 +6,14 @@ build
 
 # node modules
 node_modules
+
+# python script
+*.py
+
+# log files
+*.log
+
+# coverage 
+coverageEnv
+coverage
+coverage.json

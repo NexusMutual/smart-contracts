@@ -1,14 +1,16 @@
-{                                              
-    "extends": "default",                      
-    "rules": {                                 
-        "indent": ["error", 4],                
-        "quotes": ["error", "double"],         
-        "max-line-length": ["error", 150],
-        "contract-name-camelcase": false,
-        "code-complexity": ["error",17],
-        "function-max-lines":["warn"],
-        "max-states-count":["error",36],
-        "check-send-result":["warn"],
-        "multiple-sends": ["warn"]
-    }                                          
-}                                              
+{
+  "extends": "default",
+  "rules": {
+    "indent": ["error", 4],
+    "quotes": ["error", "double"],
+    "max-line-length": ["error", 120],
+    "code-complexity": false,
+    "not-rely-on-time": false,
+    "check-send-result": false,
+    "function-max-lines": false,
+    "max-states-count": false,
+    "no-empty-blocks": false,
+    "multiple-sends": false,
+    "no-simple-event-func-name": false
+  }
+}

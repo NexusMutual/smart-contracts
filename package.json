@@ -1,7 +1,59 @@
 {
-  "devDependencies": {
-    "solhint": "^1.2.1"
+  "name": "nexusmutual",
+  "version": "1.0.0",
+  "description": "Smart Contract Covers",
+  "files": [
+    "contracts",
+    "test"
+  ],
+  "scripts": {
+    "test": "scripts/test.sh",
+    "pretty": "prettier --write --single-quote --tab-width 2 \"**/*.js\"",
+    "precommit": "lint-staged"
   },
-  "scripts": {},
-  "dependencies": {}
+  "lint-staged": {
+    "**/*.{js,json}": [
+      "prettier --single-quote --write --tab-width 2",
+      "git add"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/somish/NexusMutual.git"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart",
+    "contracts",
+    "insurance"
+  ],
+  "author": "nexusmutual.io",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/somish/NexusMutual/issues"
+  },
+  "homepage": "https://github.com/somish/NexusMutual#readme",
+  "dependencies": {
+    "bitcore-lib": "^0.16.0",
+    "eth-lightwallet": "^3.0.1",
+    "web3": "^0.20.0"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-bignumber": "^2.0.2",
+    "coveralls": "^3.0.2",
+    "ethereum-bridge": "^0.6.1",
+    "ethereumjs-abi": "^0.6.5",
+    "ganache-cli": "^6.1.8",
+    "husky": "^1.1.2",
+    "lint-staged": "^7.2.2",
+    "mocha": "^5.2.0",
+    "prettier": "^1.14.2",
+    "solc": "^0.5.7",
+    "solhint": "^1.5.1",
+    "solidity-coverage": "^0.5.11",
+    "truffle": "^5.0.7",
+    "truffle-hdwallet-provider": "0.0.5"
+  }
 }

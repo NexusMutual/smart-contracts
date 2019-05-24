@@ -1211,7 +1211,7 @@ contract('Quotation', function([
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
           const newCoverDetails = coverDetails.slice();
-          newCoverDetails[3] = (await latestTime()) - 3;
+          newCoverDetails[3] = (await latestTime()) - 100;
           await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
           await qt.kycVerdict(newMember4, true);
         });

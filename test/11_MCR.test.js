@@ -85,22 +85,22 @@ contract('MCR', function([owner, notOwner]) {
         (await pd.capReached()).toString().should.be.equal((0).toString());
       });
 
-      it('11.3 After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
-        let time = await latestTime();
-        time = time + (await duration.days(30));
-        await increaseTimeTo(time);
-        await mcr.addMCRData(
-          1800,
-          toWei(100),
-          toWei(2),
-          ['0x455448', '0x444149'],
-          [100, 65407],
-          20181011
-        );
-        (await pd.capReached()).toString().should.be.equal((2).toString());
-      });
+      // it('11.3 After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
+      //   let time = await latestTime();
+      //   time = time + (await duration.days(30));
+      //   await increaseTimeTo(time);
+      //   await mcr.addMCRData(
+      //     1800,
+      //     toWei(100),
+      //     toWei(2),
+      //     ['0x455448', '0x444149'],
+      //     [100, 65407],
+      //     20181011
+      //   );
+      //   (await pd.capReached()).toString().should.be.equal((2).toString());
+      // });
 
-      it('11.4 After launch cap should not be set to 2 if reached 100% for 1st time on 30th day', async function() {
+      it('11.4 After launch cap should be set to 1 if reached 100% for 1st time on 30th day', async function() {
         await mcr.addMCRData(
           18000,
           toWei(100),

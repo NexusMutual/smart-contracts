@@ -68,13 +68,10 @@ contract MCR is Iupgradable {
     {
         require(proposalCategory.constructorCheck());
         require(pd.isnotarise(msg.sender));
-        uint _days = (uint(now).sub(mr.launchedOn())).div(1 days);
-        if (mr.launched() && pd.capReached() != 1 && _days <= 30) {
+        if (mr.launched() && pd.capReached() != 1) {
             
             if (mcrP >= 10000)
                 pd.setCapReached(1);  
-            if (pd.capReached() != 1 && _days == 30)
-                pd.setCapReached(2);
 
         }
         uint len = pd.getMCRDataLength();

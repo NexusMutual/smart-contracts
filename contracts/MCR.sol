@@ -214,6 +214,8 @@ contract MCR is Iupgradable {
             if (lower > 0) {                                       //Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
                 lowerThreshold = vtp.mul(100).div(lower);
             }
+            upperThreshold = upperThreshold.mul(100);
+            lowerThreshold = lowerThreshold.mul(100);
     }
 
     /**
@@ -231,7 +233,6 @@ contract MCR is Iupgradable {
         uint lastMCRPerc = pd.getLastMCRPerc();
         if (lastMCRPerc > 10000)
             maxTokens = (((uint(lastMCRPerc).sub(10000)).mul(2000)).mul(DECIMAL1E18)).div(10000);
-        // require (false,'rofl'); 
         if (maxTokens > maxTokensAccPoolBal)
             maxTokens = maxTokensAccPoolBal;     
     }
@@ -296,8 +297,8 @@ contract MCR is Iupgradable {
             (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
 
         }
-        if (len == 1 || (mcrP.div(100)) >= lowerThreshold 
-            && (mcrP.div(100)) <= upperThreshold) {
+        if (len == 1 || (mcrP) >= lowerThreshold 
+            && (mcrP) <= upperThreshold) {
             vtp = pd.getLastMCRDate(); // due to stack to deep error,we are reusing already declared variable
             pd.pushMCRData(mcrP, mcrE, vF, newMCRDate);
             for (uint i = 0; i < curr.length; i++) {

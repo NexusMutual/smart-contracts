@@ -333,16 +333,16 @@ contract('MCR', function([owner, notOwner]) {
         new BN((2218).toString()),
         new BN((7).toString())
       );
-      thresholdValues[0].toString().should.be.equal(new BN(91).toString());
-      thresholdValues[1].toString().should.be.equal(new BN(121).toString());
+      thresholdValues[0].toString().should.be.equal(new BN(9100).toString());
+      thresholdValues[1].toString().should.be.equal(new BN(12100).toString());
       let thresholdValues1 = await mcr.getThresholdValues(
         new BN(toWei(7072).toString()),
         new BN(toWei(7060).toString()),
         new BN((20000).toString()),
         new BN((7).toString())
       );
-      thresholdValues1[0].toString().should.be.equal(new BN(70).toString());
-      thresholdValues1[1].toString().should.be.equal(new BN(121).toString());
+      thresholdValues1[0].toString().should.be.equal(new BN(7000).toString());
+      thresholdValues1[1].toString().should.be.equal(new BN(12100).toString());
     });
   });
 });

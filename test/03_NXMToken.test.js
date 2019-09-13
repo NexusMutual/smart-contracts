@@ -377,7 +377,7 @@ contract('NXMToken', function([
   });
 
   describe('Sell Tokens', function() {
-    const sellTokens = ether(0.000000118376485163);
+    const sellTokens = ether(0.002);
     it('3.28 should able to sell tokens', async function() {
       await tk.approve(tc.address, sellTokens, { from: member1 });
       const initialTokenBalance = await tk.balanceOf(member1);

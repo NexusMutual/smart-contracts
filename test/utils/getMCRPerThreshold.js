@@ -12,7 +12,7 @@ async function getValue(...args) {
   let val = await mcr.getThresholdValues(vtp[0], vf, totalSa, mincap);
   // console.log(val);
   // console.log(vtp[0],"  ",vf," ",totalSa," ",mincap);
-  return ((val[0] / 1 + val[1] / 1) * 100) / 2;
+  return (val[0] / 1 + val[1] / 1) / 2;
 }
 
 function bigNumberToBN(value) {

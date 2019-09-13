@@ -78,7 +78,7 @@ module.exports = function(deployer, network, accounts) {
     await mcr.addMCRData(
       18000,
       '100000000000000000000',
-      '2000000000000000000',
+      '7000000000000000000000',
       ['0x455448', '0x444149'],
       [100, 15517],
       20190103

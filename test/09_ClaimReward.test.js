@@ -22,6 +22,7 @@ const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -104,7 +105,7 @@ contract('ClaimsReward', function([
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
-      18000,
+      await getValue(toWei(2), pd, mcr),
       toWei(100),
       toWei(2),
       ['0x455448', '0x444149'],

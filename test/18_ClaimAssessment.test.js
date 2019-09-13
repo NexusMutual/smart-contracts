@@ -26,6 +26,7 @@ const { latestTime } = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
@@ -135,17 +136,18 @@ contract('Claim: Assessment 2', function([
     await DSV.setRate(toWei(25));
     await pd.changeCurrencyAssetBaseMin(ethereum_string, toWei(30));
     await tf.upgradeCapitalPool(dai.address);
-    await p1.sendEther({ from: owner, value: toWei(50) });
+    await p1.sendEther({ from: owner, value: toWei(2500) });
     await pd.changeCurrencyAssetBaseMin(dai_string, toWei(750));
     await dai.transfer(p1.address, toWei(1250));
     await mcr.addMCRData(
       10000,
       0,
-      toWei(100),
+      toWei(6000),
       [ethereum_string, dai_string],
       [100, 2500],
       20190208
     );
+    await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(2500 - 50));
     await p1.upgradeInvestmentPool(dai.address);
     // await pd.changeC(400000);
     // await pd.changeA(10);
@@ -162,7 +164,6 @@ contract('Claim: Assessment 2', function([
 
     // let ia_pool_eth = await web3.eth.getBalance(p2.address);
     // let ia_pool_dai = await dai.balanceOf(p2.address);
-
     await mr.payJoiningFee(underWriter1, { from: underWriter1, value: fee });
     await mr.kycVerdict(underWriter1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter1 });

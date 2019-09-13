@@ -22,6 +22,7 @@ const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
@@ -160,7 +161,7 @@ contract('Quotation', function([
 
     it('6.2 should return 1 if 100% mcr reached within 30 days of launch', async function() {
       await mcr.addMCRData(
-        18000,
+        await getValue(toWei(2), pd, mcr),
         toWei(100),
         toWei(2),
         ['0x455448', '0x444149'],
@@ -1401,7 +1402,7 @@ contract('Quotation', function([
       });
       it('6.53 should fail add mcr if lower threshold not reached', async function() {
         await mcr.addMCRData(
-          0,
+          (await getValue(toWei(2), pd, mcr)) / 2,
           toWei(100),
           toWei(2),
           ['0x455448', '0x444149'],

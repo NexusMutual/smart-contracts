@@ -38,6 +38,7 @@ contract MCR is Iupgradable {
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint private constant DECIMAL1E05 = uint(10) ** 5;
     uint private constant DECIMAL1E19 = uint(10) ** 19;
+    uint private constant minCapFactor = uint(10) ** 21;
 
     event MCREvent(
         uint indexed date,
@@ -196,6 +197,25 @@ contract MCR is Iupgradable {
         return _calVtpAndMCRtp(poolBalance);
     }
 
+    function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns(uint lowerThreshold, uint upperThreshold)
+    {
+        uint lower = 0;
+        if (vtp >= vF) {
+                upperThreshold = vtp.mul(120).div((minCap.mul(minCapFactor)));     //Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
+            } else {
+                upperThreshold = vF.mul(120).div((minCap.mul(minCapFactor)));
+            }
+
+            if (vtp > 0) {
+                lower = totalSA.mul(DECIMAL1E18).mul(pd.shockParameter()).div(100);
+                if(lower < minCap.mul(minCapFactor).mul(11).div(10))
+                    lower = minCap.mul(minCapFactor).mul(11).div(10);
+            }
+            if (lower > 0) {                                       //Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
+                lowerThreshold = vtp.mul(100).div(lower);
+            }
+    }
+
     /**
      * @dev Gets max numbers of tokens that can be sold at the moment.
      */ 
@@ -269,23 +289,12 @@ contract MCR is Iupgradable {
         internal
     {
         uint vtp = 0;
-        uint lower = 0;
         uint lowerThreshold = 0;
         uint upperThreshold = 0;
         if (len > 1) {
             (vtp, ) = _calVtpAndMCRtp(address(p1).balance);
-            if (vtp >= vF) {
-                upperThreshold = vtp.mul(100).div(pd.minCap());
-            } else {
-                upperThreshold = vF.mul(100).div(pd.minCap());
-            }
+            (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
 
-            if (vtp > 0) {
-                lower = (getAllSumAssurance().mul(100).mul(DECIMAL1E18)).div(pd.shockParameter());
-            }
-            if (lower > 0) {
-                lowerThreshold = vtp.div(lower);
-            }
         }
         if (len == 1 || (mcrP.div(100)) >= lowerThreshold 
             && (mcrP.div(100)) <= upperThreshold) {

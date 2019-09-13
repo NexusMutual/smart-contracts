@@ -21,7 +21,7 @@ const FactoryMock = artifacts.require('FactoryMock');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const POOL_ETHER = '10000000000000000000';
+const POOL_ETHER = '3500000000000000000000';
 const POOL_ASSET = '50000000000000000000';
 
 module.exports = function(deployer, network, accounts) {

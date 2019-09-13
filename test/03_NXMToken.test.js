@@ -17,6 +17,7 @@ const CA_ETH = '0x45544800';
 const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const ETH = '0x455448';
 
@@ -376,7 +377,7 @@ contract('NXMToken', function([
   });
 
   describe('Sell Tokens', function() {
-    const sellTokens = ether(0.02);
+    const sellTokens = ether(0.000000118376485163);
     it('3.28 should able to sell tokens', async function() {
       await tk.approve(tc.address, sellTokens, { from: member1 });
       const initialTokenBalance = await tk.balanceOf(member1);
@@ -459,7 +460,7 @@ contract('NXMToken', function([
         (val[1] / 1).should.be.equal(0);
         // await pd.changeA(0, { from: owner });
         await mcr.addMCRData(
-          180,
+          await getValue(toWei(2), pd, mcr),
           0,
           toWei(2),
           ['0x455448', '0x444149'],

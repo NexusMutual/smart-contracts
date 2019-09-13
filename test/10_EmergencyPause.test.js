@@ -22,6 +22,7 @@ const { ether, toHex, toWei } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CLA = '0x434c41';
 const fee = ether(0.002);
@@ -93,7 +94,7 @@ contract('NXMaster: Emergency Pause', function([
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
-      18000,
+      await getValue(toWei(2), pd, mcr),
       toWei(100),
       toWei(2),
       ['0x455448', '0x444149'],
@@ -249,7 +250,7 @@ contract('NXMaster: Emergency Pause', function([
     });
 
     it('10.5 should be able to redeem NXM tokens', async function() {
-      await P1.sellNXMTokens(ether(0.01), { from: member1 });
+      await P1.sellNXMTokens(await mcr.getMaxSellTokens(), { from: member1 });
     });
     it('10.6 should be able to withdraw membership', async function() {
       await mr.withdrawMembership({ from: member4 });

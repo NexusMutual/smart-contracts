@@ -15,6 +15,7 @@ const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether, toHex, toWei } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
@@ -84,21 +85,6 @@ contract('MCR', function([owner, notOwner]) {
         );
         (await pd.capReached()).toString().should.be.equal((0).toString());
       });
-
-      // it('11.3 After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
-      //   let time = await latestTime();
-      //   time = time + (await duration.days(30));
-      //   await increaseTimeTo(time);
-      //   await mcr.addMCRData(
-      //     1800,
-      //     toWei(100),
-      //     toWei(2),
-      //     ['0x455448', '0x444149'],
-      //     [100, 65407],
-      //     20181011
-      //   );
-      //   (await pd.capReached()).toString().should.be.equal((2).toString());
-      // });
 
       it('11.4 After launch cap should be set to 1 if reached 100% for 1st time on 30th day', async function() {
         await mcr.addMCRData(
@@ -187,21 +173,25 @@ contract('MCR', function([owner, notOwner]) {
         tp * (parseFloat((await pd.getCAAvgRate(CA_DAI)).toString()) / 100);
     });
     it('11.7 should return correct Token price in ETH', async function() {
-      parseInt(tp_eth)
+      parseInt(tp_eth / 1000)
         .toString()
         .should.be.equal(
-          new BN((await mcr.calculateTokenPrice(CA_ETH)).toString())
-            .div(new BN(toWei(1).toString()))
-            .toString()
+          parseInt(
+            new BN((await mcr.calculateTokenPrice(CA_ETH)).toString())
+              .div(new BN(toWei(1).toString()))
+              .toString() / 1000
+          ).toString()
         );
     });
     it('11.8 should return correct Token price in DAI', async function() {
-      parseInt(tp_dai)
+      parseInt(tp_dai / 1e6)
         .toString()
         .should.be.equal(
-          new BN((await mcr.calculateTokenPrice(CA_DAI)).toString())
-            .div(new BN(toWei(1).toString()))
-            .toString()
+          parseInt(
+            new BN((await mcr.calculateTokenPrice(CA_DAI)).toString())
+              .div(new BN(toWei(1).toString()))
+              .toString() / 1e6
+          ).toString()
         );
     });
   });
@@ -255,7 +245,7 @@ contract('MCR', function([owner, notOwner]) {
     });
     it('11.20 mcrTp should be 0 if vFull is 0', async function() {
       await mcr.addMCRData(
-        18000,
+        await getValue(0, pd, mcr),
         toWei(100),
         0,
         ['0x455448', '0x444149'],
@@ -334,6 +324,25 @@ contract('MCR', function([owner, notOwner]) {
       let id = await pd.getApiCallIndex(1);
       let dateUPD = await pd.getDateUpdOfAPI(APIID);
       let details = await pd.getApiCallDetails(APIID);
+    });
+
+    it('11.25 Testing new threshold condition with standard values', async function() {
+      let thresholdValues = await mcr.getThresholdValues(
+        new BN(toWei(7072).toString()),
+        new BN(toWei(7060).toString()),
+        new BN((2218).toString()),
+        new BN((7).toString())
+      );
+      thresholdValues[0].toString().should.be.equal(new BN(91).toString());
+      thresholdValues[1].toString().should.be.equal(new BN(121).toString());
+      let thresholdValues1 = await mcr.getThresholdValues(
+        new BN(toWei(7072).toString()),
+        new BN(toWei(7060).toString()),
+        new BN((20000).toString()),
+        new BN((7).toString())
+      );
+      thresholdValues1[0].toString().should.be.equal(new BN(70).toString());
+      thresholdValues1[1].toString().should.be.equal(new BN(121).toString());
     });
   });
 });

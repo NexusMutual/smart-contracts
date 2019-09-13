@@ -1402,7 +1402,7 @@ contract('Quotation', function([
       });
       it('6.53 should fail add mcr if lower threshold not reached', async function() {
         await mcr.addMCRData(
-          (await getValue(toWei(2), pd, mcr)) / 2,
+          parseInt((await getValue(toWei(2), pd, mcr)) / 2),
           toWei(100),
           toWei(2),
           ['0x455448', '0x444149'],

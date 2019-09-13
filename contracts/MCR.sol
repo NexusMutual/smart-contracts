@@ -201,9 +201,9 @@ contract MCR is Iupgradable {
     {
         uint lower = 0;
         if (vtp >= vF) {
-                upperThreshold = vtp.mul(120).div((minCap.mul(minCapFactor)));     //Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
+                upperThreshold = vtp.mul(120).mul(100).div((minCap.mul(minCapFactor)));     //Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
             } else {
-                upperThreshold = vF.mul(120).div((minCap.mul(minCapFactor)));
+                upperThreshold = vF.mul(120).mul(100).div((minCap.mul(minCapFactor)));
             }
 
             if (vtp > 0) {
@@ -212,10 +212,8 @@ contract MCR is Iupgradable {
                     lower = minCap.mul(minCapFactor).mul(11).div(10);
             }
             if (lower > 0) {                                       //Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
-                lowerThreshold = vtp.mul(100).div(lower);
+                lowerThreshold = vtp.mul(100).mul(100).div(lower);
             }
-            upperThreshold = upperThreshold.mul(100);
-            lowerThreshold = lowerThreshold.mul(100);
     }
 
     /**

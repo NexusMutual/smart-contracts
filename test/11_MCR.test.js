@@ -333,16 +333,24 @@ contract('MCR', function([owner, notOwner]) {
         new BN((2218).toString()),
         new BN((7).toString())
       );
-      thresholdValues[0].toString().should.be.equal(new BN(9100).toString());
-      thresholdValues[1].toString().should.be.equal(new BN(12100).toString());
+      thresholdValues[0].toString().should.be.equal(new BN(9184).toString());
+      thresholdValues[1].toString().should.be.equal(new BN(12123).toString());
       let thresholdValues1 = await mcr.getThresholdValues(
         new BN(toWei(7072).toString()),
         new BN(toWei(7060).toString()),
         new BN((20000).toString()),
         new BN((7).toString())
       );
-      thresholdValues1[0].toString().should.be.equal(new BN(7000).toString());
-      thresholdValues1[1].toString().should.be.equal(new BN(12100).toString());
+      thresholdValues1[0].toString().should.be.equal(new BN(7072).toString());
+      thresholdValues1[1].toString().should.be.equal(new BN(12123).toString());
+      thresholdValues2 = await mcr.getThresholdValues(
+        new BN('9127095013938829399629'.toString()),
+        new BN(toWei(9127).toString()),
+        new BN((4856).toString()),
+        new BN((7).toString())
+      );
+      thresholdValues2[0].toString().should.be.equal(new BN(11853).toString());
+      thresholdValues2[1].toString().should.be.equal(new BN(15646).toString());
     });
   });
 });

@@ -76,7 +76,7 @@ module.exports = function(deployer, network, accounts) {
     await pl1.sendEther({ from: Owner, value: POOL_ETHER });
     await pl2.sendEther({ from: Owner, value: POOL_ETHER }); //
     await mcr.addMCRData(
-      18000,
+      13000,
       '100000000000000000000',
       '7000000000000000000000',
       ['0x455448', '0x444149'],

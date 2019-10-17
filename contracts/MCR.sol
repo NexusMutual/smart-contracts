@@ -40,6 +40,8 @@ contract MCR is Iupgradable {
     uint private constant DECIMAL1E19 = uint(10) ** 19;
     uint private constant minCapFactor = uint(10) ** 21;
 
+    uint public variableMincap;
+
     event MCREvent(
         uint indexed date,
         uint blockNumber,
@@ -199,17 +201,18 @@ contract MCR is Iupgradable {
 
     function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns(uint lowerThreshold, uint upperThreshold)
     {
+        minCap = (minCap.mul(minCapFactor)).add(variableMincap);
         uint lower = 0;
         if (vtp >= vF) {
-                upperThreshold = vtp.mul(120).mul(100).div((minCap.mul(minCapFactor)));     //Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
+                upperThreshold = vtp.mul(120).mul(100).div((minCap));     //Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
             } else {
-                upperThreshold = vF.mul(120).mul(100).div((minCap.mul(minCapFactor)));
+                upperThreshold = vF.mul(120).mul(100).div((minCap));
             }
 
             if (vtp > 0) {
                 lower = totalSA.mul(DECIMAL1E18).mul(pd.shockParameter()).div(100);
-                if(lower < minCap.mul(minCapFactor).mul(11).div(10))
-                    lower = minCap.mul(minCapFactor).mul(11).div(10);
+                if(lower < minCap.mul(11).div(10))
+                    lower = minCap.mul(11).div(10);
             }
             if (lower > 0) {                                       //Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
                 lowerThreshold = vtp.mul(100).mul(100).div(lower);
@@ -295,6 +298,8 @@ contract MCR is Iupgradable {
             (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
 
         }
+        if(mcrP > 13000)
+            variableMincap =  (variableMincap.mul(101).add(minCapFactor.mul(pd.minCap()))).div(100);
         if (len == 1 || (mcrP) >= lowerThreshold 
             && (mcrP) <= upperThreshold) {
             vtp = pd.getLastMCRDate(); // due to stack to deep error,we are reusing already declared variable

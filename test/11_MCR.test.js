@@ -378,5 +378,8 @@ contract('MCR', function([owner, notOwner]) {
       let dateUPD = await pd.getDateUpdOfAPI(APIID);
       let details = await pd.getApiCallDetails(APIID);
     });
+    it('should not be able to update capital model parameters directly', async function() {
+      await assertRevert(mcr.updateUintParameters('0x49434e', 12));
+    });
   });
 });

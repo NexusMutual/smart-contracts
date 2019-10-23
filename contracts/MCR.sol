@@ -41,6 +41,8 @@ contract MCR is Iupgradable {
     uint private constant minCapFactor = uint(10) ** 21;
 
     uint public variableMincap;
+    uint public dynamicMincapThresholdx100 = 13000;
+    uint public dynamicMincapIncrementx100 = 100;
 
     event MCREvent(
         uint indexed date,
@@ -238,6 +240,46 @@ contract MCR is Iupgradable {
             maxTokens = maxTokensAccPoolBal;     
     }
 
+    /**
+     * @dev Gets Uint Parameters of a code
+     * @param code whose details we want
+     * @return string value of the code
+     * @return associated amount (time or perc or value) to the code
+     */
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+        codeVal = code;
+        if (code == "DMCT") {
+            val = dynamicMincapThresholdx100;
+
+        } else if (code == "DMCI") {
+
+            val = dynamicMincapIncrementx100;
+
+        }
+            
+    }
+
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
+    function updateUintParameters(bytes8 code, uint val) public {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if (code == "DMCT") {
+           dynamicMincapThresholdx100 = val;
+
+        } else if (code == "DMCI") {
+
+            dynamicMincapIncrementx100 = val;
+
+        }
+         else {
+            revert("Invalid param code");
+        }
+            
+    }
+
     /** 
      * @dev Calls oraclize query to calculate MCR details after 24 hours.
      */ 
@@ -298,8 +340,17 @@ contract MCR is Iupgradable {
             (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
 
         }
-        if(mcrP > 13000)
-            variableMincap =  (variableMincap.mul(101).add(minCapFactor.mul(pd.minCap()))).div(100);
+        if(mcrP > dynamicMincapThresholdx100)
+            variableMincap =  (variableMincap.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
+
+
+        // Explanation for above formula :- 
+        // actual formula -> variableMinCap =  variableMinCap + (variableMinCap+minCap)*dynamicMincapIncrement/100
+        // Implemented formula is simplified form of actual formula.
+        // Let consider above formula as b = b + (a+b)*c/100
+        // here, dynamicMincapIncrement is in x100 format. 
+        // so b+(a+b)*cx100/10000 can be written as => (10000.b + b.cx100 + a.cx100)/10000.
+        // It can further simplify to (b.(10000+cx100) + a.cx100)/10000.
         if (len == 1 || (mcrP) >= lowerThreshold 
             && (mcrP) <= upperThreshold) {
             vtp = pd.getLastMCRDate(); // due to stack to deep error,we are reusing already declared variable

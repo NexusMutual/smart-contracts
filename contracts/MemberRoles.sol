@@ -45,13 +45,20 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     uint public maxABCount;
     bool public launched;
     uint public launchedOn;
-
+    bool internal locked;
     modifier checkRoleAuthority(uint _memberRoleId) {
         if (memberRoleData[_memberRoleId].authorized != address(0))
             require(msg.sender == memberRoleData[_memberRoleId].authorized);
         else
             require(isAuthorizedToGovern(msg.sender), "Not Authorized");
         _;
+    }
+
+    modifier noReentrancy() {
+        require(!locked, "Reentrant call.");
+        locked = true;
+        _;
+        locked = false;
     }
 
     /**
@@ -251,6 +258,19 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         dAppToken.burnFrom(msg.sender, tk.balanceOf(msg.sender));
         _updateRole(msg.sender, uint(Role.Member), false);
         dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist        
+    }
+
+    function switchMembership(address _add) external noReentrancy {
+        require(!ms.isPause() && ms.isMember(msg.sender) && !ms.isMember(_add));
+        require(dAppToken.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
+        require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
+        require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+        gv.removeDelegation(msg.sender);
+        dAppToken.addToWhitelist(_add);
+        _updateRole(_add, uint(Role.Member), true);
+        tk.transferFrom(msg.sender, _add, tk.balanceOf(msg.sender));
+        _updateRole(msg.sender, uint(Role.Member), false);
+        dAppToken.removeFromWhitelist(msg.sender);
     }
 
     /// @dev Return number of member roles

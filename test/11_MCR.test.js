@@ -15,6 +15,7 @@ const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether, toHex, toWei } = require('./utils/ethTools');
 const { increaseTimeTo, duration } = require('./utils/increaseTime');
 const { latestTime } = require('./utils/latestTime');
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
@@ -55,6 +56,32 @@ contract('MCR', function([owner, notOwner]) {
   });
 
   describe('Initial MCR cap test cases', function() {
+    it('Testing new threshold condition with standard values', async function() {
+      let thresholdValues = await mcr.getThresholdValues(
+        new BN(toWei(7072).toString()),
+        new BN(toWei(7060).toString()),
+        new BN((2218).toString()),
+        new BN((7).toString())
+      );
+      thresholdValues[0].toString().should.be.equal(new BN(9184).toString());
+      thresholdValues[1].toString().should.be.equal(new BN(12123).toString());
+      let thresholdValues1 = await mcr.getThresholdValues(
+        new BN(toWei(7072).toString()),
+        new BN(toWei(7060).toString()),
+        new BN((20000).toString()),
+        new BN((7).toString())
+      );
+      thresholdValues1[0].toString().should.be.equal(new BN(7072).toString());
+      thresholdValues1[1].toString().should.be.equal(new BN(12123).toString());
+      thresholdValues2 = await mcr.getThresholdValues(
+        new BN('9127095013938829399629'.toString()),
+        new BN(toWei(9127).toString()),
+        new BN((4856).toString()),
+        new BN((7).toString())
+      );
+      thresholdValues2[0].toString().should.be.equal(new BN(11853).toString());
+      thresholdValues2[1].toString().should.be.equal(new BN(15646).toString());
+    });
     it('11.1 post mcr before launch should not affect initialMCRCap', async function() {
       let cap = await pd.capReached();
       await mcr.addMCRData(
@@ -65,6 +92,9 @@ contract('MCR', function([owner, notOwner]) {
         [100, 65407],
         20181011
       );
+      ((await mcr.variableMincap()) / 1e18)
+        .toString()
+        .should.be.equal((70).toString());
       (await pd.capReached()).toString().should.be.equal(cap.toString());
     });
     describe('After launch', function() {
@@ -82,23 +112,11 @@ contract('MCR', function([owner, notOwner]) {
           [100, 65407],
           20181011
         );
+        ((await mcr.variableMincap()) / 1e18)
+          .toString()
+          .should.be.equal((70).toString());
         (await pd.capReached()).toString().should.be.equal((0).toString());
       });
-
-      // it('11.3 After launch cap should be set to 2 if not reached 100% for 1st time till 30 days', async function() {
-      //   let time = await latestTime();
-      //   time = time + (await duration.days(30));
-      //   await increaseTimeTo(time);
-      //   await mcr.addMCRData(
-      //     1800,
-      //     toWei(100),
-      //     toWei(2),
-      //     ['0x455448', '0x444149'],
-      //     [100, 65407],
-      //     20181011
-      //   );
-      //   (await pd.capReached()).toString().should.be.equal((2).toString());
-      // });
 
       it('11.4 After launch cap should be set to 1 if reached 100% for 1st time on 30th day', async function() {
         await mcr.addMCRData(
@@ -109,6 +127,9 @@ contract('MCR', function([owner, notOwner]) {
           [100, 65407],
           20181011
         );
+        ((await mcr.variableMincap()) / 1e18)
+          .toString()
+          .should.be.equal((140.7).toString());
         (await pd.capReached()).toString().should.be.equal((1).toString());
       });
     });
@@ -127,6 +148,9 @@ contract('MCR', function([owner, notOwner]) {
         [100, 15517],
         20190103
       );
+      ((await mcr.variableMincap()) / 1e18)
+        .toString()
+        .should.be.equal((212.107).toString());
       await cad.transfer(p1.address, ether(600));
       balance_DAI = await cad.balanceOf(p1.address);
       balance_ETH = await web3.eth.getBalance(p1.address);
@@ -187,21 +211,25 @@ contract('MCR', function([owner, notOwner]) {
         tp * (parseFloat((await pd.getCAAvgRate(CA_DAI)).toString()) / 100);
     });
     it('11.7 should return correct Token price in ETH', async function() {
-      parseInt(tp_eth)
+      parseInt(tp_eth / 1000)
         .toString()
         .should.be.equal(
-          new BN((await mcr.calculateTokenPrice(CA_ETH)).toString())
-            .div(new BN(toWei(1).toString()))
-            .toString()
+          parseInt(
+            new BN((await mcr.calculateTokenPrice(CA_ETH)).toString())
+              .div(new BN(toWei(1).toString()))
+              .toString() / 1000
+          ).toString()
         );
     });
     it('11.8 should return correct Token price in DAI', async function() {
-      parseInt(tp_dai)
+      parseInt(tp_dai / 1e6)
         .toString()
         .should.be.equal(
-          new BN((await mcr.calculateTokenPrice(CA_DAI)).toString())
-            .div(new BN(toWei(1).toString()))
-            .toString()
+          parseInt(
+            new BN((await mcr.calculateTokenPrice(CA_DAI)).toString())
+              .div(new BN(toWei(1).toString()))
+              .toString() / 1e6
+          ).toString()
         );
     });
   });
@@ -235,6 +263,9 @@ contract('MCR', function([owner, notOwner]) {
         20181011,
         { from: owner }
       );
+      ((await mcr.variableMincap()) / 1e18)
+        .toString()
+        .should.be.equal((284.22807).toString());
     });
     it('11.18 getAllSumAssurance function should skip calcualation for currency with rate 0', async function() {
       await DSV.setRate(0);
@@ -255,7 +286,7 @@ contract('MCR', function([owner, notOwner]) {
     });
     it('11.20 mcrTp should be 0 if vFull is 0', async function() {
       await mcr.addMCRData(
-        18000,
+        await getValue(0, pd, mcr),
         toWei(100),
         0,
         ['0x455448', '0x444149'],
@@ -263,6 +294,9 @@ contract('MCR', function([owner, notOwner]) {
         20181011,
         { from: owner }
       );
+      ((await mcr.variableMincap()) / 1e18)
+        .toString()
+        .should.be.equal((284.22807).toString());
       let vtp = await mcr.calVtpAndMCRtp();
 
       (vtp[1] / 1).should.be.equal(0);
@@ -279,6 +313,9 @@ contract('MCR', function([owner, notOwner]) {
         20181011,
         { from: owner }
       );
+      ((await mcr.variableMincap()) / 1e18)
+        .toString()
+        .should.be.equal((357.0703507).toString());
       let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       let timeINC =
         (await pd.getDateAddOfAPI(APIID)) / 1 +
@@ -309,6 +346,9 @@ contract('MCR', function([owner, notOwner]) {
         20181012,
         { from: owner }
       );
+      ((await mcr.variableMincap()) / 1e18)
+        .toString()
+        .should.be.equal((430.64105420699997).toString());
       let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await mcr.addMCRData(
         18000,
@@ -319,6 +359,9 @@ contract('MCR', function([owner, notOwner]) {
         20181013,
         { from: owner }
       );
+      ((await mcr.variableMincap()) / 1e18)
+        .toString()
+        .should.be.equal((504.94746474907004).toString());
       await p1.__callback(APIID, ''); // to cover else branch (if call comes before callback time)
       let timeINC =
         (await pd.getDateAddOfAPI(APIID)) / 1 +
@@ -334,6 +377,9 @@ contract('MCR', function([owner, notOwner]) {
       let id = await pd.getApiCallIndex(1);
       let dateUPD = await pd.getDateUpdOfAPI(APIID);
       let details = await pd.getApiCallDetails(APIID);
+    });
+    it('should not be able to update capital model parameters directly', async function() {
+      await assertRevert(mcr.updateUintParameters('0x49434e', 12));
     });
   });
 });

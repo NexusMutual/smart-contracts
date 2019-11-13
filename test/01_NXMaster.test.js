@@ -28,6 +28,7 @@ const { ether, toHex, toWei } = require('./utils/ethTools');
 const { assertRevert } = require('./utils/assertRevert');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -228,7 +229,7 @@ contract('NXMaster', function([
       await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await pd.notariseMCR()).should.be.equal(owner);
       await mcr.addMCRData(
-        18000,
+        await getValue(toWei(2), pd, mcr),
         toWei(100),
         toWei(2),
         ['0x455448', '0x444149'],

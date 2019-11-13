@@ -16,7 +16,7 @@ contract PoolDataMock is PoolData {
         a = 1948;
         mcrTime = 24 hours;
         mcrFailTime = 6 hours;
-        minCap = DECIMAL1E18;
+        minCap = 7;
         shockParameter = 50;
         variationPercX100 = 100; //1%
         iaRatesTime = 24 hours; //24 hours in seconds

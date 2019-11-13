@@ -10,6 +10,7 @@ const NXMToken = artifacts.require('NXMToken');
 const QuotationData = artifacts.require('QuotationDataMock');
 const DAI = artifacts.require('MockDAI');
 const ClaimsData = artifacts.require('ClaimsDataMock');
+const MCR = artifacts.require('MCR');
 
 const Pool1 = artifacts.require('Pool1Mock');
 const FactoryMock = artifacts.require('FactoryMock');
@@ -22,8 +23,10 @@ const AdvisoryBoard = '0x41420000';
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const Web3 = require('web3');
 const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545')); // Hardcoded development port
-const { toWei } = require('./utils/ethTools');
+// const { toWei } = require('./utils/ethTools');
+const { toHex, toWei } = require('./utils/ethTools');
 
+let mcr;
 let tf;
 let gv;
 let cr;
@@ -68,6 +71,7 @@ contract(
       td = await TokenData.deployed();
       qd = await QuotationData.deployed();
       cd = await ClaimsData.deployed();
+      mcr = await MCR.deployed();
       // await p1.sendEther({value:10});
       // console.log(await test.variable());
       await nxmToken.approve(tc.address, maxAllowance);
@@ -129,11 +133,13 @@ contract(
       try {
         parameter[1] = parameter[1].toNumber();
       } catch (err) {}
-      if (type == 'address') {
+      if (type == 'address' || type == 'owner') {
         assert.equal(
           web3.toChecksumAddress(parameter[1]),
           web3.toChecksumAddress(proposedValue)
         );
+      } else {
+        assert.equal(parameter[1], proposedValue, 'Not updated');
       }
     }
     async function updateInvalidParameter(
@@ -307,6 +313,7 @@ contract(
       });
       it('Should update Min Capital Required', async function() {
         await updateParameter(26, 2, 'MCRMIN', pd, 'uint', '60');
+        await updateParameter(26, 2, 'MCRMIN', pd, 'uint', '7');
       });
       it('Should update Shock Parameter', async function() {
         await updateParameter(26, 2, 'MCRSHOCK', pd, 'uint', '60');
@@ -322,6 +329,104 @@ contract(
       });
       it('Should not update Factor A', async function() {
         await updateInvalidParameter(26, 2, 'Z', pd, 'uint', '40');
+      });
+    });
+
+    describe('Update newly added Capital Model Parameters', function() {
+      before(async function() {
+        const c1 = await pc.totalCategories();
+        let actionHash = encode(
+          'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
+          'Description',
+          2,
+          50,
+          15,
+          [2],
+          604800,
+          '',
+          mcr.address,
+          toHex('MC'),
+          [0, 0, 0, 1]
+        );
+        let p1 = await gv.getProposalLength();
+        await gv.createProposalwithSolution(
+          'Add new member',
+          'Add new member',
+          'Addnewmember',
+          3,
+          'Add new member',
+          actionHash
+        );
+        await gv.submitVote(p1.toNumber(), 1);
+        await gv.closeProposal(p1.toNumber());
+        const c2 = await pc.totalCategories();
+        assert.equal(c2 / 1, c1 / 1 + 1, 'category not added');
+        ((await mcr.variableMincap()) / 1e18)
+          .toString()
+          .should.be.equal((0).toString());
+        await mcr.addMCRData(
+          13001,
+          '100000000000000000000',
+          '7000000000000000000000',
+          ['0x455448', '0x444149'],
+          [100, 15517],
+          20190113
+        );
+      });
+
+      it('Should update Dynamic Mincap Threshold', async function() {
+        ((await mcr.variableMincap()) / 1e18)
+          .toString()
+          .should.be.equal((70).toString());
+        await updateParameter(33, 2, 'DMCT', mcr, 'uint', 14003);
+
+        await mcr.addMCRData(
+          14003,
+          '100000000000000000000',
+          '7000000000000000000000',
+          ['0x455448', '0x444149'],
+          [100, 15517],
+          20190113
+        );
+        ((await mcr.variableMincap()) / 1e18)
+          .toString()
+          .should.be.equal((70).toString());
+
+        await mcr.addMCRData(
+          15003,
+          '100000000000000000000',
+          '7000000000000000000000',
+          ['0x455448', '0x444149'],
+          [100, 15517],
+          20190113
+        );
+        ((await mcr.variableMincap()) / 1e18)
+          .toString()
+          .should.be.equal((140.7).toString());
+      });
+
+      // it('Should not update Dynamic Mincap Threshold', async function() {
+      //   await updateInvalidParameter(33, 2, 'DMCT', mcr, 'uint', 4003);
+      // });
+
+      it('Should update Dynamic Mincap Increment', async function() {
+        await updateParameter(33, 2, 'DMCI', mcr, 'uint', 123);
+
+        await mcr.addMCRData(
+          15003,
+          '100000000000000000000',
+          '7000000000000000000000',
+          ['0x455448', '0x444149'],
+          [100, 15517],
+          20190113
+        );
+        ((await mcr.variableMincap()) / 1e18)
+          .toString()
+          .should.be.equal((228.53061).toString());
+      });
+
+      it('Should not update newly added Capital Model Parameters', async function() {
+        await updateInvalidParameter(33, 2, 'DMC1', mcr, 'uint', 1245);
       });
     });
 

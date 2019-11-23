@@ -40,25 +40,19 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
 
     enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
+    event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
+
     MemberRoleDetails[] internal memberRoleData;
     bool internal constructorCheck;
     uint public maxABCount;
     bool public launched;
     uint public launchedOn;
-    bool internal locked;
     modifier checkRoleAuthority(uint _memberRoleId) {
         if (memberRoleData[_memberRoleId].authorized != address(0))
             require(msg.sender == memberRoleData[_memberRoleId].authorized);
         else
             require(isAuthorizedToGovern(msg.sender), "Not Authorized");
         _;
-    }
-
-    modifier noReentrancy() {
-        require(!locked, "Reentrant call.");
-        locked = true;
-        _;
-        locked = false;
     }
 
     /**
@@ -247,7 +241,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
     }
 
     /**
-     * @dev Called by existed member if if wish to Withdraw membership.
+     * @dev Called by existed member if wish to Withdraw membership.
      */
     function withdrawMembership() public {
         require(!ms.isPause() && ms.isMember(msg.sender));
@@ -260,7 +254,12 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist        
     }
 
-    function switchMembership(address _add) external noReentrancy {
+
+    /**
+     * @dev Called by existed member if wish to switch membership to other address.
+     * @param _add address of user to forward membership.
+     */
+    function switchMembership(address _add) external {
         require(!ms.isPause() && ms.isMember(msg.sender) && !ms.isMember(_add));
         require(dAppToken.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
         require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
@@ -271,6 +270,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         tk.transferFrom(msg.sender, _add, tk.balanceOf(msg.sender));
         _updateRole(msg.sender, uint(Role.Member), false);
         dAppToken.removeFromWhitelist(msg.sender);
+        emit switchedMembership(msg.sender, _add, now);
     }
 
     /// @dev Return number of member roles

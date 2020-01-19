@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/somish/NexusMutual#readme",
   "dependencies": {
+    "@openzeppelin/contracts": "^2.4.0",
     "bitcore-lib": "^0.16.0",
     "eth-lightwallet": "^3.0.1",
     "web3": "^0.20.0"

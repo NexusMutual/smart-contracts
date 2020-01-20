@@ -1,0 +1,324 @@
+/* Copyright (C) 2017 NexusMutual.io
+
+  This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+    along with this program.  If not, see http://www.gnu.org/licenses/ */
+    
+pragma solidity 0.5.7;
+
+import "./external/openzeppelin-solidity/math/SafeMath.sol";
+import "./NXMaster.sol";
+
+
+contract StakedData {
+    using SafeMath for uint;
+
+    // Maximum possible allocation against single smart contract, changeable via governance
+    uint public maxAllocationPerx100; 
+    // Minimum possible allocation against single smart contract, changeable via governance
+    uint public minAllocationPerx100; 
+    // Minimum stake need to be maintained by risk assessors, changeable via governance
+    uint public minStake;
+    // Parameter which used in determining max global stake for single contract, changeable via governance
+    uint public globalMaxStakeMultiplier;
+    // Varible that determines minimum time after which disallocation will effect, changeable via governance
+    uint public disallocateEffectTime;
+
+    // max percentx100 user can allocate.
+    uint private constant MAX_TOTAL_STAKE = 10000; 
+    // 10^18
+    uint private constant DECIMAL1E18 = uint(10) ** 18; 
+
+    NXMaster internal ms;
+    MemberRoles internal mr;
+
+    // Structure to hold staker's staked contract and allocation against it.
+    struct Staked {
+        address smartContract;
+        uint allocationx100;
+    }
+
+    // Structure to hold staked contract's staker and allocation against it.
+    struct Staker {
+        address stakerAddress;
+        uint allocationx100;
+    }
+
+    // Structure to hold unstaking records.
+    struct DecreaseAllocationRequest {
+
+        uint amount;
+        uint timestamp;
+    }
+
+    /**
+     * @dev mapping of uw address to array of sc address to fetch 
+     * all staked contract address of underwriter 
+     */ 
+    mapping(address => Staked[]) public stakerStakedContracts; 
+
+    /**
+     * @dev mapping of uw address to total allocation 
+     */
+    mapping(address => uint) public userTotalAllocated;
+
+    /**
+     * @dev mapping of uw address to coverId till which user have claimed commission 
+     */
+    mapping(address => uint) public lastClaimedforCoverId;
+
+    /**
+     * @dev mapping of uw address to array of requested unallocation records to fetch 
+     * all unallocation records of underwriter 
+     */
+    mapping(address => DecreaseAllocationRequest[]) public userPendingUnstake;
+    
+    /**
+     * @dev mapping of uw address to Total global stake.
+     * ie., actualStake = globalStake - globalBurned 
+     */
+    mapping(address => uint) public globalStake;
+
+    /**
+     * @dev mapping of uw address to Total burned stake which is not reduced from global stake. 
+     * ie., actualStake = globalStake - globalBurned 
+     */
+    mapping(address => uint) public globalBurned;
+
+    /**
+     * @dev mapping of uw address to claim id which determines if action took place for UW for particular claim id. 
+     */
+    mapping(address => mapping(uint => bool)) public riskAssesorClaimAction;
+    
+
+    /** 
+     * @dev mapping of sc address to array of UW address to fetch
+     * all underwritters of the staked smart contract
+     */
+    mapping(address => Staker[]) public stakedContractStakers;
+
+    mapping(address => uint) public lastBurnedforClaimId;
+
+    /** 
+     * @dev mapping of UW address to smart contract address to index.
+     * To interlink stakedContractStakers and stakerStakedContracts
+     */
+    mapping(address=> mapping(address=> uint)) public userSCIndex;
+
+    /** 
+     * @dev Modifier that ensure that transaction is from internal contracts only.
+     */
+    modifier onlyInternal {
+        ms = NXMaster(mr.nxMasterAddress());
+        require(ms.isInternal(msg.sender));
+        _;
+    }
+
+    constructor(address _mrAdd) public {
+
+        mr = MemberRoles(_mrAdd);
+        maxAllocationPerx100 = 1000;
+        minAllocationPerx100 = 200;
+        minStake = 100 * DECIMAL1E18;
+        globalMaxStakeMultiplier = 2;
+        disallocateEffectTime = 90 * 1 days;
+
+    }
+
+    /**
+     * @dev Updates Global stake of staker.
+     * @param staker address of staker.
+     * @param amount amount of NXM to be updated.
+     */
+    function updateGlobalStake(address staker, uint amount) external onlyInternal
+    {
+        globalStake[staker] = amount;
+    }
+
+    /**
+     * @dev Updates Global burned of staker.
+     * @param staker address of staker.
+     * @param amount amount of NXM burned.
+     */
+    function updateGlobalBurn(address staker, uint amount) external onlyInternal
+    {
+        globalBurned[staker] = amount;
+    }
+
+    /**
+     * @dev Updates coverid till which user had claimed commission.
+     * @param staker address of staker.
+     * @param coverId cover id till which user had claimed.
+     */
+    function updateLastClaimedforCoverId(address staker, uint coverId) external onlyInternal 
+    {
+        lastClaimedforCoverId[staker] = coverId; 
+    }
+
+    /**
+     * @dev Adjusts allocation to keep actual staked NXM against each contract.
+     * @param staker address of staker.
+     * @param differenceAmount amount unstaked.
+     */
+    function updateAllocations(address staker, uint differenceAmount) external onlyInternal {
+        uint stakedLen = stakerStakedContracts[staker].length;
+        uint previousStake = globalStake[staker];
+        for (uint i=0; i < stakedLen; i++) {
+            uint updatedPer;
+            updatedPer = previousStake.mul(stakerStakedContracts[staker][i].allocationx100)
+            .div(previousStake.sub(differenceAmount));
+            stakerStakedContracts[staker][i].allocationx100 = updatedPer;
+            stakedContractStakers[stakerStakedContracts[staker][i].smartContract][userSCIndex[staker]
+            [stakerStakedContracts[staker][i].smartContract]].allocationx100 = updatedPer;
+
+        }   
+    }
+    
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
+    function updateUintParameters(bytes8 code, uint val) external {
+        ms = NXMaster(mr.nxMasterAddress());
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if (code == "MAXALOC") {
+
+            _setMaxAllocationPerx100(val); 
+
+        } else if (code == "MINALOC") {
+
+            _setMinAllocationPerx100(val);
+
+        } else if (code == "MINSTK") {
+
+            _setMinStake(val);
+
+        } else if (code == "GLSTKMUL") {
+
+            _setGlobalMaxStakeMultiplier(val);
+
+        } else if (code == "DSALCT") {
+
+            _setDisallocateEffectTime(val);
+
+        } else {
+            revert("Invalid param code");
+        }
+         
+    }
+
+    /**
+     * @dev Gets Uint Parameters of a code
+     * @param code whose details we want
+     * @return string value of the code
+     * @return associated amount (time or perc or value) to the code
+     */
+    function getUintParameters(bytes8 code) external view returns(bytes8 codeVal, uint val) {
+        codeVal = code;
+        if (code == "MAXALOC") {
+
+            val = maxAllocationPerx100; 
+
+        } else if (code == "MINALOC") {
+
+            val = minAllocationPerx100;
+
+        } else if (code == "MINSTK") {
+
+            val = minStake;
+
+        } else if (code == "GLSTKMUL") {
+
+            val = globalMaxStakeMultiplier;
+
+        } else if (code == "DSALCT") {
+
+            val = disallocateEffectTime;
+
+        }  
+    }
+
+    /**
+     * @dev Gets max unstakable tokens.
+     * @param staker address of staker.
+     */
+    function getMaxUnstakable(address staker) external view returns(uint val)
+    {
+        // (SNXM - SBurn) 
+        uint actualStake = globalStake[staker].sub(globalBurned[staker]);
+        // (100 - sum(P))
+        uint proportion = uint(MAX_TOTAL_STAKE).sub(userTotalAllocated[staker]);
+        // 10 * (Max Stake% - MaxPn), multiplying with 10 so both proportion can have same format (divide by 100)
+        uint proportion1 = ((maxAllocationPerx100).sub(getMaxAllocation(staker))).mul(10);
+
+        if (proportion > proportion1) {
+            proportion = proportion1;
+        }
+
+        val = actualStake.mul(proportion).div(MAX_TOTAL_STAKE);
+    }
+
+    /**
+     * @dev Gets max allocation.
+     * @param staker address of staker.
+     */
+    function getMaxAllocation(address staker) public view returns(uint max)
+    {
+        uint stakedLen = stakerStakedContracts[staker].length;
+        for (uint i=0; i < stakedLen; i++) {
+            if (stakerStakedContracts[staker][i].allocationx100 > max)
+                max = stakerStakedContracts[staker][i].allocationx100;
+        }
+
+    }
+
+    /**
+     * @dev to set the maximum allocation for single smart cover
+     * @param _val is new percentage value (x100)
+     */
+    function _setMaxAllocationPerx100(uint _val) internal {
+        maxAllocationPerx100 = _val;
+    }
+
+    /**
+     * @dev to set the minimum allocation for single smart cover
+     * @param _val is new percentage value (x100)
+     */
+    function _setMinAllocationPerx100(uint _val) internal {
+        minAllocationPerx100 = _val;
+    }
+
+    /**
+     * @dev to set the minimum stake allowed
+     * @param _val is new min stake value
+     */
+    function _setMinStake(uint _val) internal {
+        minStake = _val;
+    }
+
+    /**
+     * @dev to set global max stake multiplier 
+     * @param _val is new value
+     */
+    function _setGlobalMaxStakeMultiplier(uint _val) internal {
+        globalMaxStakeMultiplier = _val;
+    }
+
+    /**
+     * @dev to set minimum time between disallocation request and effect. 
+     * @param _val is new value
+     */
+    function _setDisallocateEffectTime(uint _val) internal {
+        disallocateEffectTime = _val;
+    }
+}

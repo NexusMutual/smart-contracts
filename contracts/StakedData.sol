@@ -112,7 +112,13 @@ contract StakedData {
      * @dev mapping of UW address to smart contract address to index.
      * To interlink stakedContractStakers and stakerStakedContracts
      */
-    mapping(address=> mapping(address=> uint)) public userSCIndex;
+    mapping(address=> mapping(address=> uint)) internal userSCIndex;
+
+    /** 
+     * @dev mapping of smart contract address to UW address to index.
+     * To interlink stakedContractStakers and stakerStakedContracts
+     */
+    mapping(address=> mapping(address=> uint)) internal scUserIndex;
 
     /** 
      * @dev Modifier that ensure that transaction is from internal contracts only.
@@ -177,8 +183,8 @@ contract StakedData {
             updatedPer = previousStake.mul(stakerStakedContracts[staker][i].allocationx100)
             .div(previousStake.sub(differenceAmount));
             stakerStakedContracts[staker][i].allocationx100 = updatedPer;
-            stakedContractStakers[stakerStakedContracts[staker][i].smartContract][userSCIndex[staker]
-            [stakerStakedContracts[staker][i].smartContract]].allocationx100 = updatedPer;
+            stakedContractStakers[stakerStakedContracts[staker][i].smartContract][getUserSCIndex(staker, 
+            stakerStakedContracts[staker][i].smartContract)].allocationx100 = updatedPer;
 
         }   
     }
@@ -249,8 +255,24 @@ contract StakedData {
     }
 
     /**
+     * @dev Gets NXM staked for mentioned smart contract.
+     * @param _stakedContractAddress address of staked smart cover.
+     * @return total total nxms.
+     */
+    function getTotalStakedTokensOnSmartContract(address _stakedContractAddress) external view returns(uint total) {
+        uint len = stakedContractStakers[_stakedContractAddress].length;
+        for (uint i=0; i < len; i++) {
+
+            total = total.add(stakedContractStakers[_stakedContractAddress][i].allocationx100.mul(
+            globalStake[stakedContractStakers[_stakedContractAddress][i].stakerAddress].sub(
+            globalBurned[stakedContractStakers[_stakedContractAddress][i].stakerAddress])));
+        }
+    }
+
+    /**
      * @dev Gets max unstakable tokens.
      * @param staker address of staker.
+     * @return val max amount unstakable.
      */
     function getMaxUnstakable(address staker) external view returns(uint val)
     {
@@ -271,6 +293,7 @@ contract StakedData {
     /**
      * @dev Gets max allocation.
      * @param staker address of staker.
+     * @return max maximum allocation by staker.
      */
     function getMaxAllocation(address staker) public view returns(uint max)
     {
@@ -280,6 +303,34 @@ contract StakedData {
                 max = stakerStakedContracts[staker][i].allocationx100;
         }
 
+    }
+
+    /**
+     * @dev Gets mapped index for smart contract to user.
+     * @param smartContract address of smart cover.
+     * @param staker address of staker.
+     * @return index mapped index.
+     */
+    function getScUserIndex(address smartContract, address staker) public view returns(uint index)
+    {
+        index = scUserIndex[smartContract][staker];
+        if (index == 0) {
+            require(staker == stakedContractStakers[smartContract][index].stakerAddress);
+        }
+    }
+
+    /**
+     * @dev Gets mapped index for user to smart contract.
+     * @param staker address of staker.
+     * @param smartContract address of smart cover.
+     * @return index mapped index.
+     */
+    function getUserSCIndex(address staker, address smartContract) public view returns(uint index)
+    {
+        index = userSCIndex[staker][smartContract];
+        if (index == 0) {
+            require(smartContract == stakerStakedContracts[staker][index].smartContract);
+        }
     }
 
     /**

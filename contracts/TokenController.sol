@@ -51,6 +51,7 @@ contract TokenController is IERC1132, Iupgradable {
     */
     function lock(bytes32 _reason, uint256 _amount, uint256 _time) public returns (bool)
     {
+        require(_reason != "RA");
         // If tokens are already locked, then functions extendLock or
         // increaseLockAmount should be used to make any changes
         _lock(msg.sender, _reason, _amount, _time);
@@ -85,6 +86,7 @@ contract TokenController is IERC1132, Iupgradable {
         public
         returns (bool)
     {
+        require(_reason != "RA");
         _extendLock(msg.sender, _reason, _time);
         return true;
     }
@@ -111,8 +113,23 @@ contract TokenController is IERC1132, Iupgradable {
     function increaseLockAmount(bytes32 _reason, uint256 _amount)
         public
         returns (bool)
-    {    
+    {
+        require(_reason != "RA");
         _increaseLockAmount(msg.sender, _reason, _amount);
+        return true;
+    }
+
+    /**
+    * @dev Increase number of tokens locked for a Risk assesment
+    * @param _riskAssesor risk assesor address.
+    * @param _amount Number of tokens to be increased
+    */
+    function increaseRALockAmount(address _riskAssesor, uint256 _amount)
+        public
+        onlyInternal
+        returns (bool)
+    {    
+        _increaseLockAmount(_riskAssesor, "RA", _amount);
         return true;
     }
 

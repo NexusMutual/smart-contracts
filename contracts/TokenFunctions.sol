@@ -17,6 +17,7 @@ pragma solidity 0.5.7;
 
 import "./NXMToken.sol";
 import "./Governance.sol";
+import "./StakedData.sol";
 
 
 contract TokenFunctions is Iupgradable {
@@ -31,10 +32,16 @@ contract TokenFunctions is Iupgradable {
     ClaimsReward internal cr;
     Governance internal gv;
     PoolData internal pd;
+    StakedData internal sd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
+    uint private constant minCapFactor = uint(10) ** 21;
 
     event BurnCATokens(uint claimId, address addr, uint amount);
+
+    constructor(address  _stakeDataAdd) public {
+        sd = StakedData(_stakeDataAdd);
+    }
     
     /**
      * @dev Sends commission to underwriter on purchase of staked smart contract.
@@ -122,6 +129,189 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
+     * @dev Increases tokens staked for risk assessment.
+     * Called by user to increase stake amount.
+     * @param amount additional stake to be added.
+     */
+    function increaseStake(uint amount) external {
+
+        // Add check to ensure no pending commission  to claim.
+        uint updatedGlobalStake = sd.globalStake(msg.sender).add(amount).sub(sd.globalBurned(msg.sender));
+        require(updatedGlobalStake > sd.minStake());
+        if(tc.tokensLocked(msg.sender, "RA") == 0)
+        {
+            tc.lockOf(msg.sender, "RA", amount, uint(2 ** 251).sub(now)); // locking for indefinite time.
+        }
+        else {
+            tc.increaseRALockAmount(msg.sender, amount);
+        }
+        sd.updateGlobalStake(msg.sender, updatedGlobalStake);
+        sd.updateGlobalBurn(msg.sender, 0);
+        sd.updateLastClaimedforCoverId(msg.sender, qd.getCoverLength());
+        
+        // sd.updateLastBurnedforClaimId(msg.sender, ); // update last burned for claim id
+        // update RA->claimid->burned   
+    }
+
+    /**
+     * @dev unstakes tokens from tokens staked for risk assessment.
+     * Called by user to unstake stake amount.
+     * @param amount tokens to be unstake.
+     */
+    function decreaseStake(uint amount) external {
+
+        require(amount > 0);
+        // Add check to ensure no pending commision to claim.
+        // update RA->claimid->burned   
+        uint maxUnstakeAmount = sd.getMaxUnstakable(msg.sender);
+        require(maxUnstakeAmount >= amount);
+
+
+        uint updatedGlobalStake = sd.globalStake(msg.sender).sub(amount).sub(sd.globalBurned(msg.sender));
+        // sd.updateLastBurnedforClaimId(msg.sender, ); // update last burned for claim id
+
+        sd.updateLastClaimedforCoverId(msg.sender, qd.getCoverLength());
+        
+        require(updatedGlobalStake > sd.minStake());
+
+        sd.updateGlobalStake(msg.sender, updatedGlobalStake);
+        if(sd.globalBurned(msg.sender) > 0){
+            sd.updateGlobalBurn(msg.sender, 0);
+            // update RA->claimid->burned
+        }
+
+        sd.updateAllocations(msg.sender, amount);
+
+        tc.releaseLockedTokens(msg.sender, "RA", amount);   
+    }
+
+    /**
+     * @dev Increases staking allocation against mentioned smart cover.
+     * Called by user to increase allocation %.
+     * @param scAdd array of smart cover against which allocation to be added.
+     * @param percentx100 array of values for additional allocation to be added.
+     */
+    function increaseAllocation(address[] calldata scAdd, uint[] calldata percentx100) external {
+        require(scAdd.length == percentx100.length);
+        // Add check to ensure no pending commision to claim.
+        uint currentTotalAllocated = sd.userTotalAllocated(msg.sender);
+        uint totalAllocationPassed = 0;
+        for(uint i = 0;i<scAdd.length;i++)
+        {
+            require(percentx100[i] > 0);
+            totalAllocationPassed = totalAllocationPassed.add(percentx100[i]);
+            require(currentTotalAllocated.add(totalAllocationPassed) <= 10000);
+            int scUserIndex = sd.getScUserIndex(scAdd[i], msg.sender);
+            uint currentAllocated;
+            if(scUserIndex == -1)
+                currentAllocated = 0;
+            else
+                (, currentAllocated) = sd.stakerStakedContracts(msg.sender, uint(scUserIndex));
+            require(currentAllocated.add(percentx100[i]) >= sd.minAllocationPerx100() && currentAllocated.add(percentx100[i]) <= sd.maxAllocationPerx100());
+            uint globalMaxPerContract = getGlobalMaxStakePerContract();
+            uint totalStakedOnContract = getTotalStakedTokensOnSmartContract(scAdd[i]);
+            uint globalStake = sd.globalStake(msg.sender);
+            uint minAllocx100 = percentx100[i];
+            if(globalMaxPerContract >= ((globalStake.sub(sd.globalBurned(msg.sender))).mul(minAllocx100).div(10000)).add(totalStakedOnContract))
+                minAllocx100 = (globalMaxPerContract.sub(totalStakedOnContract)).mul(10000).div(globalStake);
+            if(currentAllocated == 0)
+            {
+                sd.pushStakeData(msg.sender, scAdd[i], minAllocx100);
+            }
+            else
+            {
+                sd.increaseStakeAllocation(msg.sender, scAdd[i], minAllocx100);
+            }
+        }
+    }
+
+    /**
+     * @dev Keeps record for decreases staking allocation against mentioned smart cover.
+     * Called by user to request for decrease allocation %.
+     * @param scAdd array of smart cover against which allocation to be reduced.
+     * @param percentx100 array of values for allocation to be reduced.
+     */
+    function decreaseAllocation(address[] calldata scAdd, uint[] calldata percentx100) external {
+        require(scAdd.length == percentx100.length);
+
+        for(uint i = 0;i<scAdd.length;i++)
+        {
+            int scUserIndex = sd.getScUserIndex(scAdd[i], msg.sender);
+            uint currentAllocated;
+            if(scUserIndex == -1)
+                currentAllocated = 0;
+            else
+                (, currentAllocated) = sd.stakerStakedContracts(msg.sender, uint(scUserIndex));
+            uint minAllocationx100 = percentx100[i];
+            if (currentAllocated < minAllocationx100)
+                minAllocationx100 = currentAllocated;
+            // No need to push if min allocation to reduce is 0.
+            if (minAllocationx100 > 0)
+                sd.pushDecreaseAllocationRequest(msg.sender, scAdd[i], minAllocationx100);
+        }
+        
+    }
+
+    /**
+     * @dev Triggers action for decreases staking allocation against available records for mentioned user.
+     * Called by anyone to trigger decrease allocation % for all records which completed disallocateEffectTime time.
+     * @param userAdd User address.
+     */
+    function disAllocate(address userAdd) external {
+
+        // send pending rewards.
+        uint len = sd.getDissallocationLen(userAdd);
+        uint i = sd.userDisallocationExecuted(userAdd);
+        for(; i < len; i++)
+        {
+            uint timeStamp;
+            address smartContract;
+            uint percentx100;
+            (smartContract, percentx100, timeStamp) = sd.userDisallocationRequest(userAdd, i);
+            if(timeStamp <= now)
+            {
+                int scUserIndex = sd.getScUserIndex(smartContract, userAdd);
+                uint currentAllocated;
+                if(scUserIndex == -1)
+                    currentAllocated = 0;
+                else
+                    (, currentAllocated) = sd.stakerStakedContracts(msg.sender, uint(scUserIndex));
+                if(percentx100 > currentAllocated)
+                {
+                    percentx100 = currentAllocated;
+                }
+                else if(currentAllocated.sub(percentx100) > 0 && currentAllocated.sub(percentx100) < sd.minAllocationPerx100())
+                {
+                    percentx100 = currentAllocated.sub(sd.minAllocationPerx100());
+                }
+
+                // No need to call if min allocation to reduce is 0.
+                if(percentx100 > 0)
+                    sd.decreaseStakeAllocation(userAdd, smartContract, percentx100);
+                    
+            }
+            else {
+                // As all records are in ascending order, So if timeStamp of current index is > now, 
+                // all the timestamps after will be >= it.
+                break; 
+            }
+
+            
+        }
+        sd.setUserDisallocationExecuted(userAdd, i);
+        
+    }
+
+    /**
+     * @dev Gets maximum amount stakable against particular smart contract.
+     * @return limit max stakable.
+     */
+    function getGlobalMaxStakePerContract() public view returns(uint limit)
+    {
+        limit = sd.globalMaxStakeMultiplier().mul(pd.capacityLimit()).mul(((m1.variableMincap().mul(minCapFactor)).add(pd.minCap()))).mul(DECIMAL1E18).div(m1.calculateTokenPrice("ETH")); //2 x Min Cap ETH x Capacity Limit / tokenPrice
+    }
+
+    /**
      * @dev Gets the total staked NXM tokens against
      * Smart contract by all stakers
      * @param _stakedContractAddress smart contract address.
@@ -130,23 +320,11 @@ contract TokenFunctions is Iupgradable {
     function getTotalStakedTokensOnSmartContract(
         address _stakedContractAddress
     )
-        external
+        public
         view
         returns(uint amount)
     {
-        uint stakedAmount = 0;
-        address stakerAddress;
-        uint staketLen = td.getStakedContractStakersLength(_stakedContractAddress);
-        for (uint i = 0; i < staketLen; i++) {
-            stakerAddress = td.getStakedContractStakerByIndex(_stakedContractAddress, i);
-            uint stakerIndex = td.getStakedContractStakerIndex(
-            _stakedContractAddress, i);
-            uint currentlyStaked;
-            (, currentlyStaked) = _unlockableBeforeBurningAndCanBurn(stakerAddress, 
-            _stakedContractAddress, stakerIndex);
-            stakedAmount = stakedAmount.add(currentlyStaked);
-        } 
-        amount = stakedAmount;
+        amount = sd.getTotalStakedTokensOnSmartContract(_stakedContractAddress);
     }
 
     /**
@@ -232,6 +410,7 @@ contract TokenFunctions is Iupgradable {
         gv = Governance(ms.getLatestAddress("GV"));
         mr = MemberRoles(ms.getLatestAddress("MR"));
         pd = PoolData(ms.getLatestAddress("PD"));
+
     }
 
     /**

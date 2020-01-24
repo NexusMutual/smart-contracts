@@ -55,8 +55,8 @@ contract StakedData {
 
     // Structure to hold unstaking records.
     struct DecreaseAllocationRequest {
-
-        uint amount;
+        address smartContract;
+        uint disAllocationx100;
         uint timestamp;
     }
 
@@ -80,7 +80,7 @@ contract StakedData {
      * @dev mapping of uw address to array of requested unallocation records to fetch 
      * all unallocation records of underwriter 
      */
-    mapping(address => DecreaseAllocationRequest[]) public userPendingUnstake;
+    mapping(address=> DecreaseAllocationRequest[]) public userDisallocationRequest;
     
     /**
      * @dev mapping of uw address to Total global stake.
@@ -119,6 +119,11 @@ contract StakedData {
      * To interlink stakedContractStakers and stakerStakedContracts
      */
     mapping(address=> mapping(address=> uint)) internal scUserIndex;
+
+    /** 
+     * @dev mapping of staker address to executed disallocation index.    
+     */
+    mapping(address=> uint) public userDisallocationExecuted;
 
     /** 
      * @dev Modifier that ensure that transaction is from internal contracts only.
@@ -183,10 +188,108 @@ contract StakedData {
             updatedPer = previousStake.mul(stakerStakedContracts[staker][i].allocationx100)
             .div(previousStake.sub(differenceAmount));
             stakerStakedContracts[staker][i].allocationx100 = updatedPer;
-            stakedContractStakers[stakerStakedContracts[staker][i].smartContract][getUserSCIndex(staker, 
-            stakerStakedContracts[staker][i].smartContract)].allocationx100 = updatedPer;
+            stakedContractStakers[stakerStakedContracts[staker][i].smartContract][uint(getUserSCIndex(staker,
+            stakerStakedContracts[staker][i].smartContract))].allocationx100 = updatedPer;
 
         }   
+    }
+
+    /**
+     * @dev Pushes stake data into array.
+     * @param staker address of staker.
+     * @param smartContract sc against which stake is allocated.
+     * @param allocationx100 allocated percentx100.
+     */
+    function pushStakeData(address staker, address smartContract, uint allocationx100) external onlyInternal {
+          
+        userSCIndex[staker][smartContract] = stakedContractStakers[smartContract].length;
+        scUserIndex[smartContract][staker] = stakerStakedContracts[staker].length;  
+        stakedContractStakers[smartContract].push(Staker(staker, allocationx100));
+        stakerStakedContracts[staker].push(Staked(smartContract, allocationx100));
+        userTotalAllocated[staker] = userTotalAllocated[staker].add(allocationx100);
+    }
+
+    /**
+     * @dev Pushes dissallocation requests into array.
+     * @param staker address of staker.
+     * @param smartContract sc against which allocation is to reduce.
+     * @param disAllocationx100 percentx100 to reduce.
+     */
+    function pushDecreaseAllocationRequest(
+        address staker, 
+        address smartContract, 
+        uint disAllocationx100
+        ) 
+        external 
+        onlyInternal 
+    {
+        userDisallocationRequest[staker].push(
+            DecreaseAllocationRequest(
+                smartContract, 
+                disAllocationx100, 
+                uint(now).add(disallocateEffectTime))
+            );
+    }
+
+    /**
+     * @dev Increases stake allocations.
+     * @param staker address of staker.
+     * @param smartContract sc against which stake is allocated.
+     * @param allocationx100 allocation to increase percentx100.
+     */
+    function increaseStakeAllocation(
+        address staker, 
+        address smartContract, 
+        uint allocationx100
+        ) 
+        external 
+        onlyInternal 
+    {
+          
+        uint indexUserSC = userSCIndex[staker][smartContract];
+        stakedContractStakers[smartContract][indexUserSC].allocationx100 = stakedContractStakers[smartContract]
+        [indexUserSC].allocationx100.add(allocationx100);
+        uint indexSCUser = scUserIndex[smartContract][staker]; 
+        stakerStakedContracts[staker][indexSCUser].allocationx100 = stakerStakedContracts[staker]
+        [indexSCUser].allocationx100.add(allocationx100);  
+        userTotalAllocated[staker] = userTotalAllocated[staker].add(allocationx100);
+    }
+
+    /**
+     * @dev Decreases stake allocations.
+     * @param staker address of staker.
+     * @param smartContract sc against which stake is allocated.
+     * @param allocationx100 allocation to decrease percentx100.
+     */
+    function decreaseStakeAllocation(
+        address staker, 
+        address smartContract, 
+        uint allocationx100
+        ) 
+        external 
+        onlyInternal 
+    {
+
+        uint indexUserSC = userSCIndex[staker][smartContract];
+        stakedContractStakers[smartContract][indexUserSC].allocationx100 = stakedContractStakers[smartContract]
+        [indexUserSC].allocationx100.sub(allocationx100);
+        uint indexSCUser = scUserIndex[smartContract][staker]; 
+        stakerStakedContracts[staker][indexSCUser].allocationx100 = stakerStakedContracts[staker]
+        [indexSCUser].allocationx100.sub(allocationx100);  
+        userTotalAllocated[staker] = userTotalAllocated[staker].sub(allocationx100);
+        if (stakedContractStakers[smartContract][indexUserSC].allocationx100 == allocationx100) {
+            _removeRecord(staker, smartContract);
+        }
+    }
+
+    /**
+     * @dev Sets index upto which disallocation requests are executed for given user.
+     * @param staker address of staker.
+     * @param index index upto which disallocation requests are executed.
+     */
+    function setUserDisallocationExecuted(address staker, uint index) external onlyInternal {
+          
+        userDisallocationExecuted[staker] = index;
     }
     
     /**
@@ -311,11 +414,15 @@ contract StakedData {
      * @param staker address of staker.
      * @return index mapped index.
      */
-    function getScUserIndex(address smartContract, address staker) public view returns(uint index)
+    function getScUserIndex(address smartContract, address staker) public view returns(int index)
     {
-        index = scUserIndex[smartContract][staker];
+        index = int(scUserIndex[smartContract][staker]);
+        if (stakerStakedContracts[staker].length == 0) {
+            return -1;
+        }
         if (index == 0) {
-            require(staker == stakedContractStakers[smartContract][index].stakerAddress);
+            if (smartContract != stakerStakedContracts[smartContract][uint(index)].smartContract)
+                return -1;
         }
     }
 
@@ -325,12 +432,46 @@ contract StakedData {
      * @param smartContract address of smart cover.
      * @return index mapped index.
      */
-    function getUserSCIndex(address staker, address smartContract) public view returns(uint index)
+    function getUserSCIndex(address staker, address smartContract) public view returns(int index)
     {
-        index = userSCIndex[staker][smartContract];
-        if (index == 0) {
-            require(smartContract == stakerStakedContracts[staker][index].smartContract);
+        index = int(userSCIndex[staker][smartContract]);
+        if (stakedContractStakers[smartContract].length == 0) {
+            return -1;
         }
+        if (index == 0) {
+            if (staker != stakedContractStakers[smartContract][uint(index)].stakerAddress)
+                return -1;
+        }
+    }
+
+    /**
+     * @dev Gets length of dissallocation requests.
+     * @param staker address of staker.
+     * @return len length.
+     */
+    function getDissallocationLen(address staker) public view returns(uint len)
+    {
+        len = userDisallocationRequest[staker].length;
+    }
+
+    /**
+     * @dev to remove staker data from structure if allocation becomes 0.
+     * @param staker address of staker.
+     * @param smartContract address of smart contract.
+     */
+    function _removeRecord(address staker, address smartContract) internal {
+        uint indexUserSC = userSCIndex[staker][smartContract];
+        uint indexSCUser = scUserIndex[smartContract][staker]; 
+        stakedContractStakers[smartContract][indexUserSC] = stakedContractStakers[smartContract]
+        [stakedContractStakers[smartContract].length.sub(1)];
+        stakerStakedContracts[staker][indexSCUser] = stakerStakedContracts[staker]
+        [stakerStakedContracts[staker].length.sub(1)];  
+        userSCIndex[stakedContractStakers[smartContract][indexUserSC].stakerAddress][smartContract] = indexUserSC;
+        scUserIndex[stakerStakedContracts[staker][indexSCUser].smartContract][staker] = indexSCUser;
+        userSCIndex[staker][smartContract] = 0;
+        scUserIndex[smartContract][staker] = 0;
+        stakedContractStakers[smartContract].pop();
+        stakerStakedContracts[staker].pop();
     }
 
     /**

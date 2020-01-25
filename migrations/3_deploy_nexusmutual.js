@@ -22,6 +22,10 @@ const INITIAL_SUPPLY = '1500000000000000000000000';
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 
 module.exports = function(deployer, network, accounts) {
+  if (deployer.network === 'skipMigrations') {
+    return;
+  }
+
   deployer.then(async () => {
     let founderAddress = accounts[0];
     let factory = await FactoryMock.deployed();

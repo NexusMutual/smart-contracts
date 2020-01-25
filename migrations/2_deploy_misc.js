@@ -13,6 +13,10 @@ const EXCHANGE_TOKEN = '10000000000000000000000';
 const EXCHANGE_ETHER = 100000000000000000000;
 
 module.exports = function(deployer, network, accounts) {
+  if (deployer.network === 'skipMigrations') {
+    return;
+  }
+
   deployer.then(async () => {
     dai = await deployer.deploy(DAI);
     mkr = await deployer.deploy(MKR);

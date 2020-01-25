@@ -10,6 +10,7 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
 
   struct TokenData {
     uint creationTimestamp;
+    address lastOwner;
   }
 
   INXMMaster.INXMMaster internal nxMaster;
@@ -23,8 +24,8 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
   }
 
   function buyCover(
-        address smartContractAddress,
-        bytes4 coverCurr,
+        address coveredContractAddress,
+        bytes4 coverCurrency,
         uint[] memory coverDetails,
         uint16 coverPeriod,
         uint8 _v,
@@ -38,10 +39,10 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
     uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).add(coverDetails[1]);
     require(msg.value == requiredValue, "Incorrect value sent");
 
-    p1.makeCoverBegin.value(coverDetails[1])(smartContractAddress, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+    p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
     uint256 nextTokenId = tokenIdCounter++;
 
-    allTokenData[nextTokenId] = TokenData(block.timestamp);
+    allTokenData[nextTokenId] = TokenData(block.timestamp, msg.sender);
     _mint(msg.sender, nextTokenId);
   }
 

@@ -9,9 +9,11 @@ import * as Pool1 from "./Pool1.sol";
 contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
 
   struct TokenData {
-    uint creationTimestamp;
+    uint expiryTimestamp;
     address lastOwner;
   }
+
+  uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
 
   INXMMaster.INXMMaster internal nxMaster;
   uint public priceLoadPercentage;
@@ -42,7 +44,19 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
     p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
     uint256 nextTokenId = tokenIdCounter++;
 
-    allTokenData[nextTokenId] = TokenData(block.timestamp, msg.sender);
+    uint maxValidTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD; 
+
+    allTokenData[nextTokenId] = TokenData(maxValidTimestamp, msg.sender);
     _mint(msg.sender, nextTokenId);
+  }
+
+  function submitClaim(
+    uint256 tokenId
+    )
+    public
+    payable
+  {
+    require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
+    require(allTokenData[tokenId].expiryTimestamp > block.timestamp, "Token is expired");
   }
 }

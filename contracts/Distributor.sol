@@ -14,9 +14,9 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
   }
 
   INXMMaster.INXMMaster internal nxMaster;
-  uint priceLoadPercentage;
+  uint public priceLoadPercentage;
   uint256 internal tokenIdCounter;
-  mapping(uint256 => TokenData) allTokenData;
+  mapping(uint256 => TokenData) internal allTokenData;
 
   constructor(address _masterAddress, uint _priceLoadPercentage) public {
     nxMaster = INXMMaster.INXMMaster(_masterAddress);
@@ -45,8 +45,4 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
     allTokenData[nextTokenId] = TokenData(block.timestamp, msg.sender);
     _mint(msg.sender, nextTokenId);
   }
-
-  // function makeCoverBegin(
-
-  // )
 }

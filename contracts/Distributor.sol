@@ -30,7 +30,9 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
   {
     Pool1.Pool1 p1 = Pool1.Pool1(nxMaster.getLatestAddress("P1"));
     uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).add(coverDetails[1]);
-    require(msg.value == requiredValue);
+    require(msg.value == requiredValue, "Incorrect value sent");
+
+    p1.makeCoverBegin.value(coverDetails[1])(smartContractAddress, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     uint256 nextTokenId = tokenIdCounter++;
     // _mint(nextTokenId)
   }

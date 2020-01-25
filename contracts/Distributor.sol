@@ -5,12 +5,15 @@ import * as Ownable from "@openzeppelin/contracts/ownership/Ownable.sol";
 import * as SafeMath from "./external/openzeppelin-solidity/math/SafeMath.sol";
 import * as INXMMaster from "./INXMMaster.sol";
 import * as Pool1 from "./Pool1.sol";
+import * as Claims from "./Claims.sol";
 
 contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
 
   struct TokenData {
     uint expirationTimestamp;
     address lastOwner;
+    bytes4 coverCurrency;
+    uint[] coverDetails;
   }
 
   uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
@@ -42,20 +45,25 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
     require(msg.value == requiredValue, "Incorrect value sent");
 
     p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
-    
+
     uint256 nextTokenId = tokenIdCounter++;
     uint expirationTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD + coverPeriod * 1 days; 
-    allTokenData[nextTokenId] = TokenData(expirationTimestamp, msg.sender);
+    allTokenData[nextTokenId] = TokenData(expirationTimestamp, msg.sender, coverCurrency, coverDetails);
     _mint(msg.sender, nextTokenId);
   }
 
   function submitClaim(
-    uint256 tokenId
+    uint256 tokenId,
+    uint coverId
     )
     public
     payable
   {
     require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
     require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
+    Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
+    claims.submitClaim(coverId);
+    
+    safeTransferFrom(msg.sender, address(this), tokenId);
   }
 }

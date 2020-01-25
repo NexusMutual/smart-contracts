@@ -1,16 +1,19 @@
 pragma solidity 0.5.7;
 
 import * as ERC721 from "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "./INXMMaster.sol";
-import * as Quotation from "./Quotation.sol";
+import * as Ownable from "@openzeppelin/contracts/ownership/Ownable.sol";
+import * as SafeMath from "./external/openzeppelin-solidity/math/SafeMath.sol";
+import * as INXMMaster from "./INXMMaster.sol";
+import * as Pool1 from "./Pool1.sol";
 
-contract Distributor is ERC721.ERC721Full, Ownable {
+contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
 
-  INXMMaster nxMaster;
-  constructor(address _masterAddress) public {
-    nxMaster = INXMMaster(_masterAddress);
-    
+  INXMMaster.INXMMaster internal nxMaster;
+  uint priceLoadPercentage;
+  uint256 internal tokenIdCounter;
+  constructor(address _masterAddress, uint _priceLoadPercentage) public {
+    nxMaster = INXMMaster.INXMMaster(_masterAddress);
+    priceLoadPercentage = _priceLoadPercentage;
   }
 
   function buyCover(
@@ -25,7 +28,14 @@ contract Distributor is ERC721.ERC721Full, Ownable {
      public
      payable 
   {
-    Quotation.Quotation qt = Quotation.Quotation(nxMaster.getLatestAddress("QT"));
-    require(qt.verifySign(coverDetails, coverPeriod, coverCurr, smartContractAddress, _v, _r, _s));
+    Pool1.Pool1 p1 = Pool1.Pool1(nxMaster.getLatestAddress("P1"));
+    uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).add(coverDetails[1]);
+    require(msg.value == requiredValue);
+    uint256 nextTokenId = tokenIdCounter++;
+    // _mint(nextTokenId)
   }
+
+  // function makeCoverBegin(
+
+  // )
 }

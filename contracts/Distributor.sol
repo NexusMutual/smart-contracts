@@ -8,9 +8,15 @@ import * as Pool1 from "./Pool1.sol";
 
 contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
 
+  struct TokenData {
+    uint creationTimestamp;
+  }
+
   INXMMaster.INXMMaster internal nxMaster;
   uint priceLoadPercentage;
   uint256 internal tokenIdCounter;
+  mapping(uint256 => TokenData) allTokenData;
+
   constructor(address _masterAddress, uint _priceLoadPercentage) public {
     nxMaster = INXMMaster.INXMMaster(_masterAddress);
     priceLoadPercentage = _priceLoadPercentage;
@@ -34,7 +40,9 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
 
     p1.makeCoverBegin.value(coverDetails[1])(smartContractAddress, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
     uint256 nextTokenId = tokenIdCounter++;
-    // _mint(nextTokenId)
+
+    allTokenData[nextTokenId] = TokenData(block.timestamp);
+    _mint(msg.sender, nextTokenId);
   }
 
   // function makeCoverBegin(

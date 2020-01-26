@@ -221,16 +221,6 @@ contract('Claim: Assessment', function([
             );
             console.log('buyCover finished.');
 
-            // await P1.makeCoverBegin(
-            //   smartConAdd,
-            //   toHex('ETH'),
-            //   coverDetails,
-            //   coverPeriod,
-            //   vrsdata[0],
-            //   vrsdata[1],
-            //   vrsdata[2],
-            //   { from: coverHolder, value: coverDetails[1] }
-            // );
             coverDetails[4] = '7972408607002';
             vrsdata = await getQuoteValues(
               coverDetails,

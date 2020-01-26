@@ -10,13 +10,13 @@ const ClaimsData = artifacts.require('ClaimsDataMock');
 
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
-const DSValue = artifacts.require('DSValueMock');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
-const DAI = artifacts.require('MockDAI');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const Governance = artifacts.require('Governance');
+const DAI = artifacts.require('MockDAI');
+const DSValue = artifacts.require('DSValueMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
@@ -30,22 +30,25 @@ const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
-const validity = duration.days(30);
-
 const fee = ether(0.002);
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
-const coverDetails = [1, 3362445813369838, 744892736679184, 7972408607];
+const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
 const v = 28;
 const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
-const ethereum_string = toHex('ETH');
-const dai_string = toHex('DAI');
 
-let dai;
-let p1;
+const coverDetailsDai = [5, '16812229066849188', '5694231991898', '7972408607'];
+const vrs_dai = [
+  27,
+  '0xdcaa177410672d90890f1c0a42a965b3af9026c04caedbce9731cb43827e8556',
+  '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
+];
+
+let P1;
+let p2;
 let tk;
 let tf;
 let tc;
@@ -53,13 +56,14 @@ let td;
 let cr;
 let cl;
 let qd;
+let qt;
+let cad;
 let mcr;
-let DSV;
 let nxms;
 let mr;
+let pd;
 let gv;
-let APIID;
-let qt;
+let dsv;
 const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
@@ -67,766 +71,271 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Claim: Assessment 2', function([
+contract('Claim: Assessment', function([
   owner,
-  underWriter1,
-  underWriter2,
-  underWriter3,
-  underWriter4,
-  underWriter5,
-  underWriter6,
-  claimAssessor1,
-  claimAssessor2,
-  claimAssessor3,
-  claimAssessor4,
-  claimAssessor5,
-  coverHolder1,
-  coverHolder2,
-  coverHolder3,
-  coverHolder4,
-  coverHolder5,
-  coverHolder6,
-  coverHolder7,
-  coverHolder8,
-  coverHolder9,
   member1,
   member2,
   member3,
   member4,
   member5,
-  member6
+  staker1,
+  staker2,
+  coverHolder,
+  notMember
 ]) {
+  const P_18 = new BN(toWei(1).toString());
+  const stakeTokens = ether(5);
+  const tokens = ether(60);
+  const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
-
-  const SC1 = '0xef68e7c694f40c8202821edf525de3782458639f';
-  const SC2 = '0x39bb259f66e1c59d5abef88375979b4d20d98022';
-  const SC3 = '0x618e75ac90b12c6049ba3b27f5d5f8651b0037f6';
-  const SC4 = '0x40395044Ac3c0C57051906dA938B54BD6557F212';
-  const SC5 = '0xee74110fb5a1007b06282e0de5d73a61bf41d9cd';
-
+  const BOOK_TIME = new BN(duration.hours(13).toString());
   let coverID;
-  let claimID;
+  let closingTime;
+  let minTime;
   let maxVotingTime;
-  let newStakerPercentage = 5;
+  let claimId;
+
   before(async function() {
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    p1 = await Pool1.deployed();
-    p2 = await Pool2.deployed();
-    pd = await PoolData.deployed();
-    mcr = await MCR.deployed();
-    dai = await DAI.deployed();
-    qd = await QuotationDataMock.deployed();
+    td = await TokenData.deployed();
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
-    td = await TokenData.deployed();
-    DSV = await DSValue.deployed();
+    qd = await QuotationDataMock.deployed();
+    P1 = await Pool1.deployed();
+    pd = await PoolData.deployed();
     qt = await Quotation.deployed();
-
+    mcr = await MCR.deployed();
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
+    p2 = await Pool2.deployed();
+    cad = await DAI.deployed();
+    dsv = await DSValue.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await DSV.setRate(toWei(25));
-    await pd.changeCurrencyAssetBaseMin(ethereum_string, toWei(30));
-    await tf.upgradeCapitalPool(dai.address);
-    await p1.sendEther({ from: owner, value: toWei(2500) });
-    await pd.changeCurrencyAssetBaseMin(dai_string, toWei(750));
-    await dai.transfer(p1.address, toWei(1250));
     await mcr.addMCRData(
-      10000,
-      0,
-      toWei(6000),
-      [ethereum_string, dai_string],
-      [100, 2500],
-      20190208
+      await getValue(toWei(2), pd, mcr),
+      toWei(100),
+      toWei(2),
+      ['0x455448', '0x444149'],
+      [100, 65407],
+      20181011
     );
-    await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(2500 - 50));
-    await p1.upgradeInvestmentPool(dai.address);
-    // await pd.changeC(400000);
-    // await pd.changeA(10);
-    // await td.changeBookTime(60);
+    (await pd.capReached()).toString().should.be.equal((1).toString());
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
-    // if ((await tk.totalSupply()) < 600000 * toWei(1))
-    //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-    // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
-
-    // const BASE_MIN_ETH = await pd.getCurrencyAssetBaseMin(ethereum_string);
-    // const BASE_MIN_DAI = await pd.getCurrencyAssetBaseMin(dai_string);
-
-    // let ia_pool_eth = await web3.eth.getBalance(p2.address);
-    // let ia_pool_dai = await dai.balanceOf(p2.address);
-    await mr.payJoiningFee(underWriter1, { from: underWriter1, value: fee });
-    await mr.kycVerdict(underWriter1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter1 });
-
-    await mr.payJoiningFee(underWriter2, { from: underWriter2, value: fee });
-    await mr.kycVerdict(underWriter2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter2 });
-
-    await mr.payJoiningFee(underWriter3, { from: underWriter3, value: fee });
-    await mr.kycVerdict(underWriter3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter3 });
-
-    await mr.payJoiningFee(underWriter4, { from: underWriter4, value: fee });
-    await mr.kycVerdict(underWriter4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter4 });
-
-    await mr.payJoiningFee(underWriter5, { from: underWriter5, value: fee });
-    await mr.kycVerdict(underWriter5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter5 });
-
-    await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
-    await mr.kycVerdict(underWriter6, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
-
-    await mr.payJoiningFee(claimAssessor1, {
-      from: claimAssessor1,
-      value: fee
-    });
-    await mr.kycVerdict(claimAssessor1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor1 });
-
-    await mr.payJoiningFee(claimAssessor2, {
-      from: claimAssessor2,
-      value: fee
-    });
-    await mr.kycVerdict(claimAssessor2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor2 });
-
-    await mr.payJoiningFee(claimAssessor3, {
-      from: claimAssessor3,
-      value: fee
-    });
-    await mr.kycVerdict(claimAssessor3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor3 });
-
-    await mr.payJoiningFee(claimAssessor4, {
-      from: claimAssessor4,
-      value: fee
-    });
-    await mr.kycVerdict(claimAssessor4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor4 });
-
-    await mr.payJoiningFee(claimAssessor5, {
-      from: claimAssessor5,
-      value: fee
-    });
-    await mr.kycVerdict(claimAssessor5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor5 });
-
-    await mr.payJoiningFee(coverHolder1, { from: coverHolder1, value: fee });
-    await mr.kycVerdict(coverHolder1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder1 });
-
-    await mr.payJoiningFee(coverHolder2, { from: coverHolder2, value: fee });
-    await mr.kycVerdict(coverHolder2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder2 });
-
-    await mr.payJoiningFee(coverHolder3, { from: coverHolder3, value: fee });
-    await mr.kycVerdict(coverHolder3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder3 });
-
-    await mr.payJoiningFee(coverHolder4, { from: coverHolder4, value: fee });
-    await mr.kycVerdict(coverHolder4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder4 });
-
-    await mr.payJoiningFee(coverHolder5, { from: coverHolder5, value: fee });
-    await mr.kycVerdict(coverHolder5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder5 });
-
-    await mr.payJoiningFee(coverHolder6, { from: coverHolder6, value: fee });
-    await mr.kycVerdict(coverHolder6, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder6 });
-
-    await mr.payJoiningFee(coverHolder7, { from: coverHolder7, value: fee });
-    await mr.kycVerdict(coverHolder7, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder7 });
-
-    await mr.payJoiningFee(coverHolder8, { from: coverHolder8, value: fee });
-    await mr.kycVerdict(coverHolder8, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder8 });
-
-    await mr.payJoiningFee(coverHolder9, { from: coverHolder9, value: fee });
-    await mr.kycVerdict(coverHolder9, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder9 });
-
     await mr.payJoiningFee(member1, { from: member1, value: fee });
     await mr.kycVerdict(member1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-
     await mr.payJoiningFee(member2, { from: member2, value: fee });
     await mr.kycVerdict(member2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-
     await mr.payJoiningFee(member3, { from: member3, value: fee });
     await mr.kycVerdict(member3, true);
+    await mr.payJoiningFee(staker1, { from: staker1, value: fee });
+    await mr.kycVerdict(staker1, true);
+    await mr.payJoiningFee(staker2, { from: staker2, value: fee });
+    await mr.kycVerdict(staker2, true);
+    await mr.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
+    await mr.kycVerdict(coverHolder, true);
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder });
 
-    await mr.payJoiningFee(member4, { from: member4, value: fee });
-    await mr.kycVerdict(member4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
-
-    await mr.payJoiningFee(member5, { from: member5, value: fee });
-    await mr.kycVerdict(member5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member5 });
-
-    await mr.payJoiningFee(member6, { from: member6, value: fee });
-    await mr.kycVerdict(member6, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member6 });
-
-    await tk.transfer(underWriter1, toWei(19095), { from: owner });
-    await tk.transfer(underWriter2, toWei(16080), { from: owner });
-    await tk.transfer(underWriter3, toWei(15050), { from: owner });
-    await tk.transfer(underWriter4, toWei(18035), { from: owner });
-    await tk.transfer(underWriter5, toWei(17065), { from: owner });
-    await tk.transfer(underWriter6, toWei(19095), { from: owner });
-
-    await tk.transfer(claimAssessor1, toWei(50000), { from: owner });
-    await tk.transfer(claimAssessor2, toWei(30000), { from: owner });
-    await tk.transfer(claimAssessor3, toWei(20000), { from: owner });
-    await tk.transfer(claimAssessor4, toWei(60000), { from: owner });
-    await tk.transfer(claimAssessor5, toWei(50000), { from: owner });
-
-    await tk.transfer(coverHolder1, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder2, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder3, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder4, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder5, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder6, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder7, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder8, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder9, toWei(1000), { from: owner });
-
-    await tk.transfer(member1, toWei(30000), { from: owner });
-    await tk.transfer(member2, toWei(20000), { from: owner });
-    await tk.transfer(member3, toWei(10000), { from: owner });
-    await tk.transfer(member4, toWei(20000), { from: owner });
-    await tk.transfer(member5, toWei(30000), { from: owner });
-    await tk.transfer(member6, toWei(150000), { from: owner });
-
-    // now stake the tokens from the underwriters to the contracts
-    // Smart contract 1
-    tf.addStake(SC1, toWei(2000), { from: underWriter1 });
-    tf.addStake(SC1, toWei(3000), { from: underWriter2 });
-    tf.addStake(SC1, toWei(4000), { from: underWriter3 });
-    tf.addStake(SC1, toWei(5000), { from: underWriter4 });
-    tf.addStake(SC1, toWei(6000), { from: underWriter5 });
-
-    // Smart contract 2
-    tf.addStake(SC2, toWei(4000), { from: underWriter3 });
-    tf.addStake(SC2, toWei(5000), { from: underWriter2 });
-    tf.addStake(SC2, toWei(6000), { from: underWriter5 });
-    tf.addStake(SC2, toWei(7000), { from: underWriter4 });
-    tf.addStake(SC2, toWei(8000), { from: underWriter1 });
-
-    // Smart contract 3
-    tf.addStake(SC3, toWei(5000), { from: underWriter5 });
-    tf.addStake(SC3, toWei(6000), { from: underWriter4 });
-    tf.addStake(SC3, toWei(7000), { from: underWriter3 });
-    tf.addStake(SC3, toWei(8000), { from: underWriter2 });
-    tf.addStake(SC3, toWei(9000), { from: underWriter1 });
-
-    // Smart contract 4
-    tf.addStake(SC4, toWei(30), { from: underWriter4 });
-    tf.addStake(SC4, toWei(40), { from: underWriter3 });
-    tf.addStake(SC4, toWei(50), { from: underWriter5 });
-    tf.addStake(SC4, toWei(60), { from: underWriter2 });
-    tf.addStake(SC4, toWei(70), { from: underWriter1 });
-
-    // Smart contract 5
-    tf.addStake(SC5, toWei(5), { from: underWriter4 });
-    tf.addStake(SC5, toWei(10), { from: underWriter3 });
-    tf.addStake(SC5, toWei(15), { from: underWriter5 });
-    tf.addStake(SC5, toWei(20), { from: underWriter2 });
-    tf.addStake(SC5, toWei(25), { from: underWriter1 });
-
-    actionHash = encode('updateUintParameters(bytes8,uint)', 'A', 10);
-    await gvProp(26, actionHash, mr, gv, 2);
-    val = await pd.getUintParameters(toHex('A'));
-    (val[1] / 1).should.be.equal(10);
-
-    actionHash = encode('updateUintParameters(bytes8,uint)', 'C', 400000);
-    await gvProp(26, actionHash, mr, gv, 2);
-    val = await pd.getUintParameters(toHex('C'));
-    (val[1] / 1).should.be.equal(400000);
+    await tk.transfer(member1, ether(250));
+    await tk.transfer(member2, ether(250));
+    await tk.transfer(member3, ether(250));
+    await tk.transfer(coverHolder, ether(250));
+    await tk.transfer(staker1, ether(250));
+    await tk.transfer(staker2, ether(250));
+    await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
+    await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
+    maxVotingTime = await cd.maxVotingTime();
   });
 
-  describe('claim test case', function() {
-    let UWarray = [
-      underWriter1,
-      underWriter2,
-      underWriter3,
-      underWriter4,
-      underWriter5
-    ];
-    let oneWeek = 604800; //  number of seconds in a week
-    let UWTokensBurned = []; // size will be same as that of UWArraty
-    let UWTotalBalanceBefore = [];
-    let UWTotalBalanceAfter = [];
-    let payoutReceived;
-    let coverTokensUnlockable;
-    let coverTokensBurned;
-    // function timeConverter(UNIX_timestamp) {
-    //   var a = new Date(UNIX_timestamp * 1000);
-    //   var date = a.getDate();
-    //   var month = a.getMonth();
-    //   return date + '/' + month;
-    // }
-    it('18.1 Should buy cover and collect rewards', async function() {
-      let allCoverPremiums = [100, 100, 200, 200, 300, 300, 400, 400, 500];
-      let allLockCNDetails = []; // here all lockCN values
-      let changeInUWBalance = [];
+  describe('Member locked Tokens for Claim Assessment', function() {
+    describe('Voting is not closed yet', function() {
+      describe('CA not voted yet', function() {
+        describe('All CAs rejects claim', function() {
+          before(async function() {
+            await tc.lock(CLA, tokens, validity, {
+              from: member1
+            });
+            await tc.lock(CLA, tokens, validity, {
+              from: member2
+            });
+            await tc.lock(CLA, tokens, validity, {
+              from: member3
+            });
+            coverDetails[4] = '7972408607001';
+            var vrsdata = await getQuoteValues(
+              coverDetails,
+              toHex('ETH'),
+              coverPeriod,
+              smartConAdd,
+              qt.address
+            );
+            await P1.makeCoverBegin(
+              smartConAdd,
+              toHex('ETH'),
+              coverDetails,
+              coverPeriod,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: coverHolder, value: coverDetails[1] }
+            );
+            coverDetails[4] = '7972408607002';
+            vrsdata = await getQuoteValues(
+              coverDetails,
+              toHex('ETH'),
+              coverPeriod,
+              smartConAdd,
+              qt.address
+            );
+            await P1.makeCoverBegin(
+              smartConAdd,
+              toHex('ETH'),
+              coverDetails,
+              coverPeriod,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: coverHolder, value: coverDetails[1] }
+            );
+            coverID = await qd.getAllCoversOfUser(coverHolder);
+            await cl.submitClaim(coverID[0], { from: coverHolder });
+            const minVotingTime = await cd.minVotingTime();
+            const now = await latestTime();
+            minTime = new BN(minVotingTime.toString()).add(
+              new BN(now.toString())
+            );
+            await cl.getClaimFromNewStart(0, { from: member1 });
+            await cl.getUserClaimByIndex(0, { from: coverHolder });
+            await cl.getClaimbyIndex(1, { from: coverHolder });
+            claimId = (await cd.actualClaimLength()) - 1;
+          });
+          it('8.1 voting should be open', async function() {
+            (await cl.checkVoteClosing(claimId))
+              .toString()
+              .should.be.equal((0).toString());
+          });
+          it('8.2 should let claim assessors to vote for claim assessment', async function() {
+            let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+            await cl.submitCAVote(claimId, -1, { from: member1 });
+            await cl.submitCAVote(claimId, -1, { from: member2 });
+            await cl.submitCAVote(claimId, -1, { from: member3 });
+            let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+            (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
+              tokens * 3
+            );
+            let all_votes = await cd.getAllVotesForClaim(claimId);
+            expectedVotes = all_votes[1].length;
+            expectedVotes.should.be.equal(3);
+            let isBooked = await td.isCATokensBooked(member1);
+            isBooked.should.be.equal(true);
+          });
+          it('8.3 should not let claim assessors to vote for 2nd time in same claim id', async function() {
+            await assertRevert(cl.submitCAVote(claimId, -1, { from: member2 }));
+          });
+          it('8.4 should not let member to vote for CA', async function() {
+            await assertRevert(
+              cl.submitMemberVote(claimId, -1, { from: member1 })
+            );
+          });
+          it('8.5 should close voting after min time', async function() {
+            await increaseTimeTo(
+              new BN(minTime.toString()).add(new BN((2).toString()))
+            );
+            (await cl.checkVoteClosing(claimId))
+              .toString()
+              .should.be.equal((1).toString());
+          });
+          it('8.6 should not able to vote after voting close', async function() {
+            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+          });
+          it('8.7 should be able to change claim status', async function() {
+            let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
-      let balanceUW = [];
-      for (let i = 0; i < UWarray.length; i++) {
-        balanceUW.push(0);
-        changeInUWBalance.push(0);
-      }
-      let rewardsFlag = 1;
-      async function updateUWDetails(changeInUWBalanceExpected) {
-        for (let i = 0; i < UWarray.length; i++) {
-          let currentUWBalance = parseFloat(
-            (await tk.balanceOf(UWarray[i])) / toWei(1)
-          );
-          changeInUWBalance[i] = currentUWBalance - balanceUW[i];
-          if (changeInUWBalance[i] != changeInUWBalanceExpected[i]) {
-            rewardsFlag = -1;
-          }
-          balanceUW[i] = currentUWBalance;
-        }
-      }
-      function claimAllUWRewards() {
-        for (let i = 0; i < UWarray.length; i++)
-          cr.claimAllPendingReward(20, { from: UWarray[i] });
-      }
-      // buy cover 1
+            APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+            await P1.__callback(APIID, '');
+            const newCStatus = await cd.getClaimStatusNumber(claimId);
+            newCStatus[1].toString().should.be.equal((6).toString());
+          });
+          it('8.8 voting should be closed', async function() {
+            (await cl.checkVoteClosing(claimId))
+              .toString()
+              .should.be.equal((-1).toString());
+          });
+        });
 
-      var vrsdata = await getQuoteValues(
-        [
-          1,
-          '6570841889000000',
-          '100000000000000000000',
-          '3549627424',
-          '7972408607001'
-        ],
-        ethereum_string,
-        100,
-        SC1,
-        qt.address
-      );
-      await p1.makeCoverBegin(
-        SC1,
-        ethereum_string,
-        [
-          1,
-          '6570841889000000',
-          '100000000000000000000',
-          '3549627424',
-          '7972408607001'
-        ],
-        100,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder5, value: '6570841889000000' }
-      );
-      let lockedCN = await tf.getLockedCNAgainstCover(1);
-      claimAllUWRewards();
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([20, 0, 0, 0, 0]);
+        describe('All CAs accept claim', function() {
+          let initialStakedTokens1;
+          let initialStakedTokens2;
+          let priceinEther;
+          before(async function() {
+            const now = await latestTime();
+            await increaseTimeTo(
+              new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
+            );
+            coverID = await qd.getAllCoversOfUser(coverHolder);
+            await cl.submitClaim(coverID[1], { from: coverHolder });
+            claimId = (await cd.actualClaimLength()) - 1;
+            initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
+              staker1,
+              smartConAdd,
+              0
+            );
+            initialStakedTokens2 = await tf.getStakerLockedTokensOnSmartContract(
+              staker2,
+              smartConAdd,
+              1
+            );
+          });
 
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-      // buy cover 2
-      await dai.transfer(coverHolder3, '164271047228000000');
-      await dai.approve(p1.address, '164271047228000000', {
-        from: coverHolder3
+          it('8.9 should let claim assessor to vote for claim assessment', async function() {
+            await cl.submitCAVote(claimId, 1, { from: member1 });
+            await cl.submitCAVote(claimId, 1, { from: member2 });
+            await cl.submitCAVote(claimId, 1, { from: member3 });
+            await cl.getClaimFromNewStart(0, { from: member1 });
+            await cl.getClaimFromNewStart(1, { from: member1 });
+            await cd.getVoteToken(claimId, 0, 1);
+            await cd.getVoteVoter(claimId, 1, 1);
+            let verdict = await cd.getVoteVerdict(claimId, 1, 1);
+            parseFloat(verdict).should.be.equal(1);
+          });
+          it('8.10 should not able to vote after voting closed', async function() {
+            const now = await latestTime();
+            const maxVotingTime = await cd.maxVotingTime();
+            closingTime = new BN(maxVotingTime.toString()).add(
+              new BN(now.toString())
+            );
+            await increaseTimeTo(
+              new BN(closingTime.toString()).add(new BN((6).toString()))
+            );
+            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+          });
+          it('8.11 orcalise call should be able to change claim status', async function() {
+            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+            priceinEther = await mcr.calculateTokenPrice(CA_ETH);
+            await P1.__callback(apiid, '');
+            const newCStatus = await cd.getClaimStatusNumber(claimId);
+            newCStatus[1].toString().should.be.equal((7).toString());
+          });
+          it('8.12 voting should be closed', async function() {
+            (await cl.checkVoteClosing(claimId))
+              .toString()
+              .should.be.equal((-1).toString());
+          });
+        });
       });
-      vrsdata = await getQuoteValues(
-        [
-          25,
-          '164271047228000000',
-          '100000000000000000000',
-          '3549627424',
-          '7972408607006'
-        ],
-        dai_string,
-        100,
-        SC1,
-        qt.address
-      );
-      await p1.makeCoverUsingCA(
-        SC1,
-        dai_string,
-        [
-          25,
-          '164271047228000000',
-          '100000000000000000000',
-          '3549627424',
-          '7972408607006'
-        ],
-        100,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder3 }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(2);
-      claimAllUWRewards();
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([20, 0, 0, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      // buy cover 3
-      vrsdata = await getQuoteValues(
-        [
-          2,
-          '26283367556000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607002'
-        ],
-        ethereum_string,
-        200,
-        SC2,
-        qt.address
-      );
-      await p1.makeCoverBegin(
-        SC2,
-        ethereum_string,
-        [
-          2,
-          '26283367556000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607002'
-        ],
-        200,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder1, value: '26283367556000000' }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(3);
-      claimAllUWRewards();
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([0, 0, 40, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      // buy cover 4
-      await dai.transfer(coverHolder2, '657084188912000000');
-      await dai.approve(p1.address, '657084188912000000', {
-        from: coverHolder2
-      });
-      vrsdata = await getQuoteValues(
-        [
-          50,
-          '657084188912000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607007'
-        ],
-        dai_string,
-        200,
-        SC2,
-        qt.address
-      );
-      await p1.makeCoverUsingCA(
-        SC2,
-        dai_string,
-        [
-          50,
-          '657084188912000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607007'
-        ],
-        200,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder2 }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(4);
-      claimAllUWRewards();
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([0, 0, 40, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      // buy cover 5
-      vrsdata = await getQuoteValues(
-        [
-          3,
-          '59137577002000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607003'
-        ],
-        ethereum_string,
-        300,
-        SC3,
-        qt.address
-      );
-      await p1.makeCoverBegin(
-        SC3,
-        ethereum_string,
-        [
-          3,
-          '59137577002000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607003'
-        ],
-        300,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder4, value: '59137577002000000' }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(5);
-      claimAllUWRewards();
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([0, 0, 0, 0, 60]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      // buy cover 6
-      await dai.transfer(coverHolder6, '1478439425051000000');
-      await dai.approve(p1.address, '1478439425051000000', {
-        from: coverHolder6
-      });
-      vrsdata = await getQuoteValues(
-        [
-          75,
-          '1478439425051000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607008'
-        ],
-        dai_string,
-        300,
-        SC3,
-        qt.address
-      );
-      await p1.makeCoverUsingCA(
-        SC3,
-        dai_string,
-        [
-          75,
-          '1478439425051000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607008'
-        ],
-        300,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder6 }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(6);
-      claimAllUWRewards();
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([0, 0, 0, 0, 60]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      // buy cover 7
-      vrsdata = await getQuoteValues(
-        [
-          4,
-          '105133470226000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607004'
-        ],
-        ethereum_string,
-        400,
-        SC4,
-        qt.address
-      );
-      await p1.makeCoverBegin(
-        SC4,
-        ethereum_string,
-        [
-          4,
-          '105133470226000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607004'
-        ],
-        400,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder7, value: '105133470226000000' }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(7);
-      claimAllUWRewards();
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([0, 20, 20, 15, 25]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      // buy cover 8
-      await dai.transfer(coverHolder8, '2628336755647000000');
-      await dai.approve(p1.address, '2628336755647000000', {
-        from: coverHolder8
-      });
-      vrsdata = await getQuoteValues(
-        [
-          100,
-          '2628336755647000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607009'
-        ],
-        dai_string,
-        400,
-        SC4,
-        qt.address
-      );
-      await p1.makeCoverUsingCA(
-        SC4,
-        dai_string,
-        [
-          100,
-          '2628336755647000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607009'
-        ],
-        400,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder8 }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(8);
-      claimAllUWRewards();
-
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([35, 10, 0, 0, 0]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      // buy cover 9
-      vrsdata = await getQuoteValues(
-        [
-          5,
-          '164271047228000000',
-          '500000000000000000000',
-          '3549627424',
-          '7972408607005'
-        ],
-        ethereum_string,
-        500,
-        SC5,
-        qt.address
-      );
-      await p1.makeCoverBegin(
-        SC5,
-        ethereum_string,
-        [
-          5,
-          '164271047228000000',
-          '500000000000000000000',
-          '3549627424',
-          '7972408607005'
-        ],
-        500,
-        vrsdata[0],
-        vrsdata[1],
-        vrsdata[2],
-        { from: coverHolder9, value: '164271047228000000' }
-      );
-      lockedCN = await tf.getLockedCNAgainstCover(9);
-      claimAllUWRewards();
-
-      allLockCNDetails.push(lockedCN);
-      updateUWDetails([12.5, 10, 5, 2.5, 7.5]);
-      if ((await tk.totalSupply()) < 600000 * toWei(1))
-        await p1.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      else
-        await p1.burnFrom(
-          owner,
-          toWei(((await tk.totalSupply()) - 600000 * toWei(1)) / toWei(1))
-        );
-
-      await tf.upgradeCapitalPool(dai.address);
-      await p1.sendEther({ from: owner, value: 50 * toWei(1) });
-      await dai.transfer(p1.address, toWei(1250));
-      let lockCNFlag = 1;
-      for (let i = 0; i < UWarray.length; i++) {
-        if (allCoverPremiums[i] * 0.1 * toWei(1) != allLockCNDetails[i])
-          lockCNFlag = -1;
-      }
-      await rewardsFlag.should.equal(1);
-      await lockCNFlag.should.equal(1);
     });
-
-    // it('18.2 Should not be able to updateStakerCommission if premiumNXM is 0', async function() {
-    //   await tf.updateStakerCommissions(SC1, 0, { from: owner });
-    // });
-
-    // it('18.3 Calling updateStakerCommissions when max commission is reached which is in case of buying cover 7 for SC4', async function() {
-    //   // after calling make cover begin for SC4, all UW's recived 50% (max) of their staked as commission so calling the funtion in the next line has no effect
-    //   await tf.updateStakerCommissions(SC4, 400000000000000000000, {
-    //     from: owner
-    //   });
-    //   // the above function is simply run but has no effect for else part of if (maxCommission > commissionEarned)
-    // });
   });
 });

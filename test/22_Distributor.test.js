@@ -239,7 +239,15 @@ contract('Claim: Assessment', function([
               smartConAdd,
               qt.address
             );
-            await P1.makeCoverBegin(
+
+            const buyCoverValue2 = new web3.utils.BN(coverDetails[1])
+              .mul(new web3.utils.BN(110))
+              .div(new web3.utils.BN(100));
+            console.log(
+              `##########Buy cover value ${buyCoverValue2.toString()}`
+            );
+
+            const r2 = await distributor.buyCover(
               smartConAdd,
               toHex('ETH'),
               coverDetails,
@@ -247,8 +255,9 @@ contract('Claim: Assessment', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: coverHolder, value: coverDetails[1] }
+              { from: nftCoverHolder1, value: buyCoverValue2.toString() }
             );
+
             coverID = await qd.getAllCoversOfUser(distributor.address);
 
             try {
@@ -279,8 +288,8 @@ contract('Claim: Assessment', function([
               new BN(now.toString())
             );
             await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getUserClaimByIndex(0, { from: coverHolder });
-            await cl.getClaimbyIndex(1, { from: coverHolder });
+            await cl.getUserClaimByIndex(0, { from: distributor.address });
+            await cl.getClaimbyIndex(1, { from: distributor.address });
             claimId = (await cd.actualClaimLength()) - 1;
           });
           it('8.1 voting should be open', async function() {

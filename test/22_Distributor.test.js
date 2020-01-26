@@ -84,7 +84,8 @@ contract('Claim: Assessment', function([
   staker1,
   staker2,
   coverHolder,
-  notMember
+  notMember,
+  nftCoverHolder1
 ]) {
   const P_18 = new BN(toWei(1).toString());
   const stakeTokens = ether(5);
@@ -122,7 +123,9 @@ contract('Claim: Assessment', function([
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     dsv = await DSValue.deployed();
-    distributor = await Distributor.new(nxms.address, priceLoadPercentage);
+    distributor = await Distributor.new(nxms.address, priceLoadPercentage, {
+      from: coverHolder
+    });
 
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -149,6 +152,11 @@ contract('Claim: Assessment', function([
     await mr.kycVerdict(staker2, true);
     await mr.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
     await mr.kycVerdict(coverHolder, true);
+    await mr.payJoiningFee(distributor.address, {
+      from: coverHolder,
+      value: fee
+    });
+    await mr.kycVerdict(distributor.address, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
@@ -189,7 +197,14 @@ contract('Claim: Assessment', function([
               smartConAdd,
               qt.address
             );
-            await P1.makeCoverBegin(
+
+            const buyCoverValue = new web3.utils.BN('3362445813369838')
+              .mul(new web3.utils.BN(110))
+              .div(new web3.utils.BN(100));
+            console.log(
+              `##########Buy cover value ${buyCoverValue.toString()}`
+            );
+            const r = await distributor.buyCover(
               smartConAdd,
               toHex('ETH'),
               coverDetails,
@@ -197,8 +212,22 @@ contract('Claim: Assessment', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: coverHolder, value: coverDetails[1] }
+              { from: nftCoverHolder1, value: buyCoverValue.toString() }
             );
+
+            console.log('Cover made succesfully.');
+            console.log(r);
+
+            // await P1.makeCoverBegin(
+            //   smartConAdd,
+            //   toHex('ETH'),
+            //   coverDetails,
+            //   coverPeriod,
+            //   vrsdata[0],
+            //   vrsdata[1],
+            //   vrsdata[2],
+            //   { from: coverHolder, value: coverDetails[1] }
+            // );
             coverDetails[4] = '7972408607002';
             vrsdata = await getQuoteValues(
               coverDetails,

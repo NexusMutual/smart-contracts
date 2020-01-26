@@ -202,33 +202,24 @@ contract('Claim: Assessment', function([
               qt.address
             );
 
-            const buyCoverValue = new web3.utils.BN('3362445813369838')
+            const buyCoverValue = new web3.utils.BN(coverDetails[1])
               .mul(new web3.utils.BN(110))
               .div(new web3.utils.BN(100));
             console.log(
               `##########Buy cover value ${buyCoverValue.toString()}`
             );
 
-            try {
-              const r = await distributor.buyCover(
-                smartConAdd,
-                toHex('ETH'),
-                coverDetails,
-                coverPeriod,
-                vrsdata[0],
-                vrsdata[1],
-                vrsdata[2],
-                { from: nftCoverHolder1, value: buyCoverValue.toString() }
-              );
-
-              console.log('buyCover succesful.');
-              console.log(r);
-            } catch (e) {
-              console.log(`buyCover failed with ${e.stack}`);
-            }
-
+            const r = await distributor.buyCover(
+              smartConAdd,
+              toHex('ETH'),
+              coverDetails,
+              coverPeriod,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: nftCoverHolder1, value: buyCoverValue.toString() }
+            );
             console.log('buyCover finished.');
-            console.log(r);
 
             // await P1.makeCoverBegin(
             //   smartConAdd,
@@ -258,8 +249,30 @@ contract('Claim: Assessment', function([
               vrsdata[2],
               { from: coverHolder, value: coverDetails[1] }
             );
-            coverID = await qd.getAllCoversOfUser(coverHolder);
-            await cl.submitClaim(coverID[0], { from: coverHolder });
+            coverID = await qd.getAllCoversOfUser(distributor.address);
+
+            try {
+              const firstTokenId = 0;
+              const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
+                .mul(new web3.utils.BN(5))
+                .div(new web3.utils.BN(100));
+              const r = await distributor.submitClaim(
+                firstTokenId,
+                coverID[0],
+                {
+                  from: nftCoverHolder1,
+                  value: submitClaimDeposit
+                }
+              );
+              console.log('submitClaim succesful.');
+              console.log(r);
+            } catch (e) {
+              console.log(`submitClaim failed with ${e.stack}`);
+            }
+
+            console.log('submitClaim finished.');
+            // await cl.submitClaim(coverID[0], { from: coverHolder });
+
             const minVotingTime = await cd.minVotingTime();
             const now = await latestTime();
             minTime = new BN(minVotingTime.toString()).add(

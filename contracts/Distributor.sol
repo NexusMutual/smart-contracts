@@ -63,13 +63,12 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
   {
     require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
     require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
-
     uint coverAmount = allTokenData[tokenId].coverDetails[1];
     require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
-
+ 
     Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
     claims.submitClaim(coverId);
-    
+
     allTokenData[tokenId].lastOwner = msg.sender;
     safeTransferFrom(msg.sender, owner(), tokenId);
   }

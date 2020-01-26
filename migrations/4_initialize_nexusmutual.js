@@ -25,10 +25,6 @@ const POOL_ETHER = '3500000000000000000000';
 const POOL_ASSET = '50000000000000000000';
 
 module.exports = function(deployer, network, accounts) {
-  if (deployer.network === 'skipMigrations') {
-    return;
-  }
-
   deployer.then(async () => {
     const Owner = accounts[0];
     const nxms = await NXMaster.deployed();

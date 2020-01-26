@@ -70,6 +70,6 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
     claims.submitClaim(coverId);
     
     allTokenData[tokenId].lastOwner = msg.sender;
-    safeTransferFrom(msg.sender, address(this), tokenId);
+    safeTransferFrom(msg.sender, owner(), tokenId);
   }
 }

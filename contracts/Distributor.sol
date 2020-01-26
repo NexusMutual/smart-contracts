@@ -17,6 +17,7 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
   }
 
   uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
+  uint public constant CLAIM_DEPOSIT_PERCENTAGE = 5;
 
   INXMMaster.INXMMaster internal nxMaster;
   uint public priceLoadPercentage;
@@ -41,7 +42,7 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
      payable 
   {
     Pool1.Pool1 p1 = Pool1.Pool1(nxMaster.getLatestAddress("P1"));
-    uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).add(coverDetails[1]);
+    uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).div(100).add(coverDetails[1]);
     require(msg.value == requiredValue, "Incorrect value sent");
 
     p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
@@ -61,9 +62,14 @@ contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
   {
     require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
     require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
+
+    uint coverAmount = allTokenData[tokenId].coverDetails[1];
+    require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
+
     Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
     claims.submitClaim(coverId);
     
+    allTokenData[tokenId].lastOwner = msg.sender;
     safeTransferFrom(msg.sender, address(this), tokenId);
   }
 }

@@ -7,7 +7,7 @@ import * as INXMMaster from "./INXMMaster.sol";
 import * as Pool1 from "./Pool1.sol";
 import * as Claims from "./Claims.sol";
 
-contract Distributor is ERC721.ERC721Full, Ownable.Ownable {
+contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownable.Ownable {
 
   struct TokenData {
     uint expirationTimestamp;

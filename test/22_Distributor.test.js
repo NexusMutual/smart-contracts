@@ -18,6 +18,8 @@ const Governance = artifacts.require('Governance');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('DSValueMock');
 
+const Distributor = artifacts.require('Distributor');
+
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether, toHex, toWei } = require('./utils/ethTools');
@@ -64,6 +66,7 @@ let mr;
 let pd;
 let gv;
 let dsv;
+let distributor;
 const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
@@ -97,6 +100,8 @@ contract('Claim: Assessment', function([
   let maxVotingTime;
   let claimId;
 
+  let priceLoadPercentage = 10;
+
   before(async function() {
     await advanceBlock();
     tk = await NXMToken.deployed();
@@ -117,6 +122,8 @@ contract('Claim: Assessment', function([
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     dsv = await DSValue.deployed();
+    distributor = await Distributor.new(nxms.address, priceLoadPercentage);
+
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(

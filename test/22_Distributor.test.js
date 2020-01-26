@@ -163,11 +163,15 @@ contract('Claim: Assessment', function([
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker1 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker2 });
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder });
+    await distributor.nxmTokenApprove(tc.address, UNLIMITED_ALLOWANCE, {
+      from: coverHolder
+    });
 
     await tk.transfer(member1, ether(250));
     await tk.transfer(member2, ether(250));
     await tk.transfer(member3, ether(250));
     await tk.transfer(coverHolder, ether(250));
+    await tk.transfer(distributor.address, ether(250));
     await tk.transfer(staker1, ether(250));
     await tk.transfer(staker2, ether(250));
     await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
@@ -204,7 +208,29 @@ contract('Claim: Assessment', function([
             console.log(
               `##########Buy cover value ${buyCoverValue.toString()}`
             );
-            const r = await distributor.buyCover(
+
+            try {
+              const r = await distributor.buyCover(
+                smartConAdd,
+                toHex('ETH'),
+                coverDetails,
+                coverPeriod,
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
+                { from: nftCoverHolder1, value: buyCoverValue.toString() }
+              );
+
+              console.log('buyCover succesful.');
+              console.log(r);
+            } catch (e) {
+              console.log(`buyCover failed with ${e.stack}`);
+            }
+
+            console.log('buyCover finished.');
+            console.log(r);
+
+            await P1.makeCoverBegin(
               smartConAdd,
               toHex('ETH'),
               coverDetails,
@@ -212,22 +238,8 @@ contract('Claim: Assessment', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: nftCoverHolder1, value: buyCoverValue.toString() }
+              { from: coverHolder, value: coverDetails[1] }
             );
-
-            console.log('Cover made succesfully.');
-            console.log(r);
-
-            // await P1.makeCoverBegin(
-            //   smartConAdd,
-            //   toHex('ETH'),
-            //   coverDetails,
-            //   coverPeriod,
-            //   vrsdata[0],
-            //   vrsdata[1],
-            //   vrsdata[2],
-            //   { from: coverHolder, value: coverDetails[1] }
-            // );
             coverDetails[4] = '7972408607002';
             vrsdata = await getQuoteValues(
               coverDetails,

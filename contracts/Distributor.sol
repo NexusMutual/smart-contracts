@@ -6,6 +6,7 @@ import * as SafeMath from "./external/openzeppelin-solidity/math/SafeMath.sol";
 import * as INXMMaster from "./INXMMaster.sol";
 import * as Pool1 from "./Pool1.sol";
 import * as Claims from "./Claims.sol";
+import * as NXMToken from "./NXMToken.sol";
 
 contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownable.Ownable {
 
@@ -71,5 +72,13 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     
     allTokenData[tokenId].lastOwner = msg.sender;
     safeTransferFrom(msg.sender, owner(), tokenId);
+  }
+
+  function nxmTokenApprove(address spender, uint256 value)
+  public
+  onlyOwner
+  {
+    NXMToken.NXMToken nxmToken = NXMToken.NXMToken(nxMaster.tokenAddress());
+    nxmToken.approve(spender, value);
   }
 }

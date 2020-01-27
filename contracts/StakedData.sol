@@ -277,7 +277,7 @@ contract StakedData {
         stakerStakedContracts[staker][indexSCUser].allocationx100 = stakerStakedContracts[staker]
         [indexSCUser].allocationx100.sub(allocationx100);  
         userTotalAllocated[staker] = userTotalAllocated[staker].sub(allocationx100);
-        if (stakedContractStakers[smartContract][indexUserSC].allocationx100 == allocationx100) {
+        if (stakedContractStakers[smartContract][indexUserSC].allocationx100 == 0) {
             _removeRecord(staker, smartContract);
         }
     }

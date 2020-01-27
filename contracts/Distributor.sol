@@ -7,6 +7,7 @@ import * as INXMMaster from "./INXMMaster.sol";
 import * as Pool1 from "./Pool1.sol";
 import * as Claims from "./Claims.sol";
 import * as NXMToken from "./NXMToken.sol";
+import * as QuotationData from "./QuotationData.sol";
 
 contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownable.Ownable {
 
@@ -15,6 +16,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     address lastOwner;
     bytes4 coverCurrency;
     uint[] coverDetails;
+    uint coverId;
   }
 
   uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
@@ -48,15 +50,18 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
 
     p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
 
+    QuotationData.QuotationData quotationData = QuotationData.QuotationData(nxMaster.getLatestAddress("QD"));
+    // *assumes* the newly created claim is appended at the end of the list covers
+    uint coverId = quotationData.getCoverLength().sub(1);
+
     uint256 nextTokenId = tokenIdCounter++;
     uint expirationTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD + coverPeriod * 1 days; 
-    allTokenData[nextTokenId] = TokenData(expirationTimestamp, msg.sender, coverCurrency, coverDetails);
+    allTokenData[nextTokenId] = TokenData(expirationTimestamp, msg.sender, coverCurrency, coverDetails, coverId);
     _mint(msg.sender, nextTokenId);
   }
 
   function submitClaim(
-    uint256 tokenId,
-    uint coverId
+    uint256 tokenId
     )
     public
     payable
@@ -67,7 +72,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
  
     Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
-    claims.submitClaim(coverId);
+    claims.submitClaim(allTokenData[tokenId].coverId);
 
     allTokenData[tokenId].lastOwner = msg.sender;
     safeTransferFrom(msg.sender, owner(), tokenId);

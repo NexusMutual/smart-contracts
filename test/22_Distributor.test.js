@@ -255,14 +255,10 @@ contract('Claim: Assessment', function([
               const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
                 .mul(new web3.utils.BN(5))
                 .div(new web3.utils.BN(100));
-              const r = await distributor.submitClaim(
-                firstTokenId,
-                coverID[0],
-                {
-                  from: nftCoverHolder1,
-                  value: submitClaimDeposit
-                }
-              );
+              const r = await distributor.submitClaim(firstTokenId, {
+                from: nftCoverHolder1,
+                value: submitClaimDeposit
+              });
               console.log('submitClaim succesful.');
               console.log(r);
             } catch (e) {

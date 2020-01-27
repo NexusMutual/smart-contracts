@@ -3,23 +3,18 @@ pragma solidity 0.5.7;
 
 contract DSValueMock {
 
-    bytes32 public p;
+    uint public p;
 
     constructor() public {
-        uint val = 120 * 10**18;
-        p = bytes32(val);
+        p = 120 * 10**8;
     }
 
     function read() public view returns (bytes32) {
-        return p;
+        return bytes32(p * 10**10);
         
     }
 
     function setRate(uint value) public {
-        p = bytes32(value);
-    }
-
-    function peek() public pure returns (bytes32, bool) {
-        return (0x000000000000000000000000000000000000000000000008696a94dfc55d0000, true);
+        p = value;
     }
 }

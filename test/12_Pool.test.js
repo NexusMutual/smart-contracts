@@ -206,7 +206,7 @@ contract('Pool', function([
 
   describe('Liquidity', function() {
     it('12.32 Setting the testing parameters', async function() {
-      await DSV.setRate(toWei(10));
+      await DSV.setRate(10 * Math.pow(10, 8));
       await pd.changeCurrencyAssetBaseMin('0x455448', toWei(6));
       await pd.changeCurrencyAssetBaseMin('0x444149', toWei(6));
       await tf.upgradeCapitalPool(cad.address);

@@ -22,7 +22,9 @@ contract Aggregator {
 
 
 contract NXMDSValue {
-    
+
+    /// @dev Gets DAI feed address from chainlink feed and converts into desired format.
+    /// @return It returns DAI Feed rate in 10^18 format.  
     function read() public view returns (bytes32)
     {
         

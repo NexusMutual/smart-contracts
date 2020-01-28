@@ -42,9 +42,9 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-    )
+  )
      public
-     payable 
+     payable
   {
     uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).div(100).add(coverDetails[1]);
     require(msg.value == requiredValue, "Incorrect value sent");
@@ -63,7 +63,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-    ) 
+  )
     public
   {
     uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).div(100).add(coverDetails[1]);
@@ -104,13 +104,13 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
   {
     require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
     require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
-    require(allTokenData[tokenId].coverCurrency == "ETH");
+    require(allTokenData[tokenId].coverCurrency == "ETH", "currency not ETH");
     uint coverAmount = allTokenData[tokenId].coverDetails[1];
     require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
 
     _submitClaim(tokenId);
   }
-  
+
   function submitClaimUsingCA(
     uint256 tokenId
   )

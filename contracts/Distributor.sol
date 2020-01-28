@@ -52,14 +52,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     Pool1.Pool1 p1 = Pool1.Pool1(nxMaster.getLatestAddress("P1"));
     p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
 
-    QuotationData.QuotationData quotationData = QuotationData.QuotationData(nxMaster.getLatestAddress("QD"));
-    // *assumes* the newly created claim is appended at the end of the list covers
-    uint coverId = quotationData.getCoverLength().sub(1);
-
-    uint256 nextTokenId = tokenIdCounter++;
-    uint expirationTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD + coverPeriod * 1 days; 
-    allTokenData[nextTokenId] = TokenData(expirationTimestamp, msg.sender, coverCurrency, coverDetails, coverId);
-    _mint(msg.sender, nextTokenId);
+    mintToken(coverCurrency, coverDetails, coverPeriod);
   }
 
   function buyCoverUsingCA(

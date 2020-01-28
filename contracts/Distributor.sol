@@ -91,14 +91,14 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     uint coverId = quotationData.getCoverLength().sub(1);
 
     uint256 nextTokenId = tokenIdCounter++;
-    uint expirationTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD + coverPeriod * 1 days; 
+    uint expirationTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD + coverPeriod * 1 days;
     allTokenData[nextTokenId] = TokenData(expirationTimestamp, msg.sender, coverCurrency, coverDetails, coverId);
     _mint(msg.sender, nextTokenId);
   }
 
   function submitClaim(
     uint256 tokenId
-    )
+  )
     public
     payable
   {
@@ -107,7 +107,30 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     require(allTokenData[tokenId].coverCurrency == "ETH");
     uint coverAmount = allTokenData[tokenId].coverDetails[1];
     require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
- 
+
+    _submitClaim(tokenId);
+  }
+  
+  function submitClaimUsingCA(
+    uint256 tokenId
+  )
+    public
+  {
+    require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
+    require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
+    uint depositAmount = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
+    PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
+    IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(allTokenData[tokenId].coverCurrency));
+    require(erc20.transferFrom(msg.sender, address(this), depositAmount), "Transfer failed");
+
+    _submitClaim(tokenId);
+  }
+
+  function _submitClaim(
+    uint256 tokenId
+  )
+    internal
+  {
     Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
     claims.submitClaim(allTokenData[tokenId].coverId);
 

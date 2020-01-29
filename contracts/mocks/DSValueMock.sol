@@ -3,7 +3,7 @@ pragma solidity 0.5.7;
 
 contract DSValueMock {
 
-    uint public p;
+    int public p;
 
     constructor() public {
         p = 120 * 10**8;
@@ -14,7 +14,7 @@ contract DSValueMock {
         
     }
 
-    function setRate(uint value) public {
+    function setRate(int value) public {
         p = value;
     }
 }

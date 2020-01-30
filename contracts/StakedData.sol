@@ -421,7 +421,7 @@ contract StakedData {
             return -1;
         }
         if (index == 0) {
-            if (smartContract != stakerStakedContracts[smartContract][uint(index)].smartContract)
+            if (smartContract != stakerStakedContracts[staker][uint(index)].smartContract)
                 return -1;
         }
     }

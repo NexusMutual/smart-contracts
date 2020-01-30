@@ -433,7 +433,7 @@ contract TokenController is IERC1132, Iupgradable {
     */
     function _increaseLockAmount(address _of, bytes32 _reason, uint256 _amount) internal {
         require(_tokensLocked(_of, _reason) > 0);
-        token.operatorTransfer(msg.sender, _amount);
+        token.operatorTransfer(_of, _amount);
 
         locked[_of][_reason].amount = locked[_of][_reason].amount.add(_amount);
         emit Locked(_of, _reason, _amount, locked[_of][_reason].validity);

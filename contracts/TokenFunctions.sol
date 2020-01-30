@@ -49,41 +49,41 @@ contract TokenFunctions is Iupgradable {
      * @param _premiumNXM premium of cover in NXM.
      */
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) external onlyInternal {
-        uint commissionToBePaid = (_premiumNXM.mul(td.stakerCommissionPer())).div(100);
-        uint stakeLength = td.getStakedContractStakersLength(_scAddress);
-        address claimsRewardAddress = ms.getLatestAddress("CR");
-        for (uint i = td.stakedContractCurrentCommissionIndex(_scAddress); i < stakeLength; i++) {
-            if (commissionToBePaid > 0) {
-                address stakerAddress;
-                uint stakeAmt;
-                uint stakerIndex;
-                (stakerAddress, ) = td.stakedContractStakers(_scAddress, i);
-                stakerIndex = td.getStakedContractStakerIndex(_scAddress, i);
-                stakeAmt = td.getStakerInitialStakedAmountOnContract(stakerAddress, stakerIndex);
-                uint maxCommission = (stakeAmt.mul(td.stakerMaxCommissionPer())).div(100);
-                uint commissionEarned;
-                commissionEarned = td.getStakerEarnedStakeCommission(stakerAddress, stakerIndex);
-                if (maxCommission > commissionEarned) {
-                    if (maxCommission >= commissionEarned.add(commissionToBePaid)) {
-                        td.pushEarnedStakeCommissions(stakerAddress, _scAddress, 
-                            i, commissionToBePaid);
-                        tc.mint(claimsRewardAddress, commissionToBePaid);
-                        if (i > 0)
-                            td.setStakedContractCurrentCommissionIndex(_scAddress, i);
-                        commissionToBePaid = 0;
-                        break;
-                    } else {
-                        td.pushEarnedStakeCommissions(stakerAddress, _scAddress, i,
-                            maxCommission.sub(commissionEarned));
-                        tc.mint(claimsRewardAddress, maxCommission.sub(commissionEarned));
-                        commissionToBePaid = commissionToBePaid.sub(maxCommission.sub(commissionEarned));
-                    }
-                }
-            } else
-                break;
-        }
-        if (commissionToBePaid > 0 && stakeLength > 0)
-            td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
+        // uint commissionToBePaid = (_premiumNXM.mul(td.stakerCommissionPer())).div(100);
+        // uint stakeLength = td.getStakedContractStakersLength(_scAddress);
+        // address claimsRewardAddress = ms.getLatestAddress("CR");
+        // for (uint i = td.stakedContractCurrentCommissionIndex(_scAddress); i < stakeLength; i++) {
+        //     if (commissionToBePaid > 0) {
+        //         address stakerAddress;
+        //         uint stakeAmt;
+        //         uint stakerIndex;
+        //         (stakerAddress, ) = td.stakedContractStakers(_scAddress, i);
+        //         stakerIndex = td.getStakedContractStakerIndex(_scAddress, i);
+        //         stakeAmt = td.getStakerInitialStakedAmountOnContract(stakerAddress, stakerIndex);
+        //         uint maxCommission = (stakeAmt.mul(td.stakerMaxCommissionPer())).div(100);
+        //         uint commissionEarned;
+        //         commissionEarned = td.getStakerEarnedStakeCommission(stakerAddress, stakerIndex);
+        //         if (maxCommission > commissionEarned) {
+        //             if (maxCommission >= commissionEarned.add(commissionToBePaid)) {
+        //                 td.pushEarnedStakeCommissions(stakerAddress, _scAddress, 
+        //                     i, commissionToBePaid);
+        //                 tc.mint(claimsRewardAddress, commissionToBePaid);
+        //                 if (i > 0)
+        //                     td.setStakedContractCurrentCommissionIndex(_scAddress, i);
+        //                 commissionToBePaid = 0;
+        //                 break;
+        //             } else {
+        //                 td.pushEarnedStakeCommissions(stakerAddress, _scAddress, i,
+        //                     maxCommission.sub(commissionEarned));
+        //                 tc.mint(claimsRewardAddress, maxCommission.sub(commissionEarned));
+        //                 commissionToBePaid = commissionToBePaid.sub(maxCommission.sub(commissionEarned));
+        //             }
+        //         }
+        //     } else
+        //         break;
+        // }
+        // if (commissionToBePaid > 0 && stakeLength > 0)
+        //     td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
     }
 
      /**
@@ -92,40 +92,40 @@ contract TokenFunctions is Iupgradable {
      * @param coverid Cover Id.
      */
     function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external onlyInternal {
-        address scAddress;
-        (, scAddress) = qd.getscAddressOfCover(coverid);
-        uint tokenPrice = m1.calculateTokenPrice(curr);
-        uint totalStaker = td.getStakedContractStakersLength(scAddress);
-        uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
-        address stakerAddress;
-        uint stakerStakedNXM;
-        for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
-            if (burnNXMAmount > 0) {
-                stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
-                uint stakerIndex = td.getStakedContractStakerIndex(
-                scAddress, i);
-                uint v;
-                (v, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
-                td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, v);
-                if (stakerStakedNXM > 0) {
-                    if (stakerStakedNXM >= burnNXMAmount) {
-                        _burnStakerTokenLockedAgainstSmartContract(
-                            stakerAddress, scAddress, i, burnNXMAmount);
-                        if (i > 0)
-                            td.setStakedContractCurrentBurnIndex(scAddress, i);
-                        burnNXMAmount = 0;
-                        break;
-                    } else {
-                        _burnStakerTokenLockedAgainstSmartContract(
-                            stakerAddress, scAddress, i, stakerStakedNXM);
-                        burnNXMAmount = burnNXMAmount.sub(stakerStakedNXM);
-                    }
-                }
-            } else
-                break;
-        }
-        if (burnNXMAmount > 0 && totalStaker > 0)
-            td.setStakedContractCurrentBurnIndex(scAddress, totalStaker.sub(1));
+        // address scAddress;
+        // (, scAddress) = qd.getscAddressOfCover(coverid);
+        // uint tokenPrice = m1.calculateTokenPrice(curr);
+        // uint totalStaker = td.getStakedContractStakersLength(scAddress);
+        // uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
+        // address stakerAddress;
+        // uint stakerStakedNXM;
+        // for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
+        //     if (burnNXMAmount > 0) {
+        //         stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
+        //         uint stakerIndex = td.getStakedContractStakerIndex(
+        //         scAddress, i);
+        //         uint v;
+        //         (v, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
+        //         td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, v);
+        //         if (stakerStakedNXM > 0) {
+        //             if (stakerStakedNXM >= burnNXMAmount) {
+        //                 _burnStakerTokenLockedAgainstSmartContract(
+        //                     stakerAddress, scAddress, i, burnNXMAmount);
+        //                 if (i > 0)
+        //                     td.setStakedContractCurrentBurnIndex(scAddress, i);
+        //                 burnNXMAmount = 0;
+        //                 break;
+        //             } else {
+        //                 _burnStakerTokenLockedAgainstSmartContract(
+        //                     stakerAddress, scAddress, i, stakerStakedNXM);
+        //                 burnNXMAmount = burnNXMAmount.sub(stakerStakedNXM);
+        //             }
+        //         }
+        //     } else
+        //         break;
+        // }
+        // if (burnNXMAmount > 0 && totalStaker > 0)
+        //     td.setStakedContractCurrentBurnIndex(scAddress, totalStaker.sub(1));
     }
 
     /**
@@ -172,7 +172,9 @@ contract TokenFunctions is Iupgradable {
 
         sd.updateLastClaimedforCoverId(msg.sender, qd.getCoverLength());
         
-        require(updatedGlobalStake > sd.minStake());
+        require(updatedGlobalStake > sd.minStake() || updatedGlobalStake == 0);
+
+        sd.updateAllocations(msg.sender, amount);
 
         sd.updateGlobalStake(msg.sender, updatedGlobalStake);
         if(sd.globalBurned(msg.sender) > 0){
@@ -180,7 +182,7 @@ contract TokenFunctions is Iupgradable {
             // update RA->claimid->burned
         }
 
-        sd.updateAllocations(msg.sender, amount);
+        
 
         tc.releaseLockedTokens(msg.sender, "RA", amount);   
     }

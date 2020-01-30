@@ -4,7 +4,7 @@ const PoolData = artifacts.require('PoolDataMock');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
-const TokenController = artifacts.require('TokenController');
+const TokenController = artifacts.require('TokenControllerOld');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
 

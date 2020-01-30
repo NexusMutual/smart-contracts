@@ -7,7 +7,7 @@ const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
-const TokenController = artifacts.require('TokenController');
+const TokenController = artifacts.require('TokenControllerOld');
 const TokenData = artifacts.require('TokenDataMock');
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
@@ -18,6 +18,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
+const StakedData = artifacts.require('StakedData');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';

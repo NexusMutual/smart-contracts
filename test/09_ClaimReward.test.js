@@ -1,6 +1,6 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const NXMToken = artifacts.require('NXMToken');
-const TokenController = artifacts.require('TokenController');
+const TokenController = artifacts.require('TokenControllerOld');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const PoolData = artifacts.require('PoolDataMock');
 const TokenData = artifacts.require('TokenDataMock');

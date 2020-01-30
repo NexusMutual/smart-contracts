@@ -4,7 +4,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const PoolData = artifacts.require('PoolDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const TokenController = artifacts.require('TokenController');
+const TokenController = artifacts.require('TokenControllerOld');
 const NXMToken = artifacts.require('NXMToken');
 const expectEvent = require('./utils/expectEvent');
 const { toWei, toHex } = require('./utils/ethTools.js');
@@ -74,33 +74,33 @@ contract(
       // tc = await TokenController.deployed();
       pd = await PoolData.deployed();
       await mr.payJoiningFee(ab2, {
-            value: 2000000000000000,
-            from: ab2
-          });
-          await mr.kycVerdict(ab2, true, {
-            from: web3.eth.accounts[0]
-          });
-       await mr.payJoiningFee(ab3, {
-            value: 2000000000000000,
-            from: ab3
-          });
-          await mr.kycVerdict(ab3, true, {
-            from: web3.eth.accounts[0]
-          });
-        await mr.payJoiningFee(ab4, {
-            value: 2000000000000000,
-            from: ab4
-          });
-          await mr.kycVerdict(ab4, true, {
-            from: web3.eth.accounts[0]
-          });
-          await mr.payJoiningFee(ab5, {
-            value: 2000000000000000,
-            from: ab5
-          });
-          await mr.kycVerdict(ab5, true, {
-            from: web3.eth.accounts[0]
-          });
+        value: 2000000000000000,
+        from: ab2
+      });
+      await mr.kycVerdict(ab2, true, {
+        from: web3.eth.accounts[0]
+      });
+      await mr.payJoiningFee(ab3, {
+        value: 2000000000000000,
+        from: ab3
+      });
+      await mr.kycVerdict(ab3, true, {
+        from: web3.eth.accounts[0]
+      });
+      await mr.payJoiningFee(ab4, {
+        value: 2000000000000000,
+        from: ab4
+      });
+      await mr.kycVerdict(ab4, true, {
+        from: web3.eth.accounts[0]
+      });
+      await mr.payJoiningFee(ab5, {
+        value: 2000000000000000,
+        from: ab5
+      });
+      await mr.kycVerdict(ab5, true, {
+        from: web3.eth.accounts[0]
+      });
       await mr.addInitialABMembers([ab2, ab3, ab4, ab5]);
       await nxmToken.approve(tc.address, maxAllowance);
       let bal = await nxmToken.balanceOf(ab1);

@@ -1,7 +1,6 @@
 const Governance = artifacts.require('Governance');
 const MemberRoles = artifacts.require('MemberRoles');
 const ProposalCategory = artifacts.require('ProposalCategory');
-const TokenController = artifacts.require('TokenController');
 const NXMaster = artifacts.require('NXMaster');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMToken = artifacts.require('NXMToken');
@@ -28,7 +27,6 @@ let proposalId;
 let pId;
 let mr;
 let nxmToken;
-let tc;
 let td;
 
 contract(
@@ -57,7 +55,6 @@ contract(
       pc = await ProposalCategory.at(address);
       address = await nxms.getLatestAddress(toHex('MR'));
       mr = await MemberRoles.at(address);
-      tc = await TokenController.deployed();
       td = await TokenData.deployed();
       //To cover functions in govblocks interface, which are not implemented by NexusMutual
       await gv.addSolution(0, '', '0x');

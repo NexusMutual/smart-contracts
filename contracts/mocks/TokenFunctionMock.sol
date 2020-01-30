@@ -2,9 +2,10 @@ pragma solidity 0.5.7;
 
 import "./Pool1Mock.sol";
 import "../ClaimsData.sol";
+import "../TokenFunctionsOld.sol";
 
 
-contract TokenFunctionMock is TokenFunctions {
+contract TokenFunctionMock is TokenFunctionsOld {
 
     /**
         * @dev Burns tokens staked against a Smart Contract Cover.

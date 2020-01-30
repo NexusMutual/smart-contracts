@@ -6,7 +6,7 @@ const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const TokenController = artifacts.require('TokenController');
+const TokenController = artifacts.require('TokenControllerOld');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 const { assertRevert } = require('./utils/assertRevert');

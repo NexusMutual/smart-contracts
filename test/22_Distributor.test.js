@@ -49,6 +49,10 @@ const vrs_dai = [
   '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
 ];
 
+const buyCoverValue = new web3.utils.BN(coverDetails[1])
+  .mul(new web3.utils.BN(110))
+  .div(new web3.utils.BN(100));
+
 let P1;
 let p2;
 let tk;
@@ -74,7 +78,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Claim: Assessment', function([
+contract('Distributor Claim: Assessment', function([
   owner,
   member1,
   member2,
@@ -85,7 +89,8 @@ contract('Claim: Assessment', function([
   staker2,
   coverHolder,
   notMember,
-  nftCoverHolder1
+  nftCoverHolder1,
+  nftCoverHolder2
 ]) {
   const P_18 = new BN(toWei(1).toString());
   const stakeTokens = ether(5);
@@ -202,14 +207,7 @@ contract('Claim: Assessment', function([
               qt.address
             );
 
-            const buyCoverValue = new web3.utils.BN(coverDetails[1])
-              .mul(new web3.utils.BN(110))
-              .div(new web3.utils.BN(100));
-            console.log(
-              `##########Buy cover value ${buyCoverValue.toString()}`
-            );
-
-            const r = await distributor.buyCover(
+            await distributor.buyCover(
               smartConAdd,
               toHex('ETH'),
               coverDetails,
@@ -219,7 +217,6 @@ contract('Claim: Assessment', function([
               vrsdata[2],
               { from: nftCoverHolder1, value: buyCoverValue.toString() }
             );
-            console.log('buyCover finished.');
 
             coverDetails[4] = '7972408607002';
             vrsdata = await getQuoteValues(
@@ -230,14 +227,7 @@ contract('Claim: Assessment', function([
               qt.address
             );
 
-            const buyCoverValue2 = new web3.utils.BN(coverDetails[1])
-              .mul(new web3.utils.BN(110))
-              .div(new web3.utils.BN(100));
-            console.log(
-              `##########Buy cover value ${buyCoverValue2.toString()}`
-            );
-
-            const r2 = await distributor.buyCover(
+            await distributor.buyCover(
               smartConAdd,
               toHex('ETH'),
               coverDetails,
@@ -245,28 +235,17 @@ contract('Claim: Assessment', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: nftCoverHolder1, value: buyCoverValue2.toString() }
+              { from: nftCoverHolder1, value: buyCoverValue.toString() }
             );
 
-            coverID = await qd.getAllCoversOfUser(distributor.address);
-
-            try {
-              const firstTokenId = 0;
-              const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
-                .mul(new web3.utils.BN(5))
-                .div(new web3.utils.BN(100));
-              const r = await distributor.submitClaim(firstTokenId, {
-                from: nftCoverHolder1,
-                value: submitClaimDeposit
-              });
-              console.log('submitClaim succesful.');
-              console.log(r);
-            } catch (e) {
-              console.log(`submitClaim failed with ${e.stack}`);
-            }
-
-            console.log('submitClaim finished.');
-            // await cl.submitClaim(coverID[0], { from: coverHolder });
+            const firstTokenId = 0;
+            const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
+              .mul(new web3.utils.BN(5))
+              .div(new web3.utils.BN(100));
+            await distributor.submitClaim(firstTokenId, {
+              from: nftCoverHolder1,
+              value: submitClaimDeposit
+            });
 
             const minVotingTime = await cd.minVotingTime();
             const now = await latestTime();
@@ -341,6 +320,7 @@ contract('Claim: Assessment', function([
             await increaseTimeTo(
               new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
             );
+
             coverID = await qd.getAllCoversOfUser(coverHolder);
             await cl.submitClaim(coverID[1], { from: coverHolder });
             claimId = (await cd.actualClaimLength()) - 1;

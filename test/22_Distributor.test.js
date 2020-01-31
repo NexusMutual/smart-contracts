@@ -56,6 +56,14 @@ const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
   .mul(new web3.utils.BN(5))
   .div(new web3.utils.BN(100));
 
+const buyCoverDaiValue = new web3.utils.BN(coverDetailsDai[1])
+  .mul(new web3.utils.BN(110))
+  .div(new web3.utils.BN(100));
+
+const submitClaimDaiDeposit = new web3.utils.BN(coverDetailsDai[1])
+  .mul(new web3.utils.BN(5))
+  .div(new web3.utils.BN(100));
+
 let P1;
 let p2;
 let tk;
@@ -373,7 +381,61 @@ contract('Distributor buy cover and claim', function([
     describe('Voting is not closed yet', function() {
       describe('CA not voted yet', function() {
         describe('All CAs accept claim', function() {
-          before(async function() {});
+          before(async function() {
+            await cad.transfer(nftCoverHolder1, toWei(2000));
+
+            console.log('Approving initial tokens..');
+            await cad.approve(distributor.address, buyCoverDaiValue, {
+              from: coverHolder
+            });
+            coverDetailsDai[4] = 7972408607006;
+            var vrsdata = await getQuoteValues(
+              coverDetailsDai,
+              toHex('DAI'),
+              coverPeriod,
+              smartConAdd,
+              qt.address
+            );
+
+            try {
+              await distributor.buyCoverUsingCA(
+                smartConAdd,
+                toHex('DAI'),
+                coverDetails,
+                coverPeriod,
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
+                { from: nftCoverHolder1 }
+              );
+            } catch (e) {
+              console.log(`Error ${e.stack}`);
+              console.log('Failed buyCover');
+              throw e;
+            }
+
+            console.log('Approving more tokens..');
+            await cad.approve(distributor.address, submitClaimDaiDeposit, {
+              from: coverHolder
+            });
+
+            const firstTokenId = 0;
+
+            console.log('Submitting claim..');
+            await distributor.submitClaimUsingCA(firstTokenId, {
+              from: nftCoverHolder1
+            });
+
+            const minVotingTime = await cd.minVotingTime();
+            const now = await latestTime();
+            minTime = new BN(minVotingTime.toString()).add(
+              new BN(now.toString())
+            );
+            await cl.getClaimFromNewStart(0, { from: member1 });
+            await cl.getUserClaimByIndex(0, { from: distributor.address });
+            await cl.getClaimbyIndex(1, { from: distributor.address });
+            claimId = (await cd.actualClaimLength()) - 1;
+          });
 
           it('8.1 voting should be open', async function() {
             (await cl.checkVoteClosing(claimId))

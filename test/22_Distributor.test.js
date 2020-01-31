@@ -81,7 +81,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Distributor Claim: Assessment', function([
+contract('Distributor buy cover and claim', function([
   owner,
   member1,
   member2,
@@ -386,6 +386,22 @@ contract('Distributor Claim: Assessment', function([
               new BN(closingTime.toString()).add(new BN((6).toString()))
             );
             await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+          });
+        });
+      });
+    });
+  });
+
+  describe('Dai Cover - Member locked Tokens for Claim Assessment', function() {
+    describe('Voting is not closed yet', function() {
+      describe('CA not voted yet', function() {
+        describe('All CAs accept claim', function() {
+          before(async function() {});
+
+          it('8.1 voting should be open', async function() {
+            (await cl.checkVoteClosing(claimId))
+              .toString()
+              .should.be.equal((0).toString());
           });
         });
       });

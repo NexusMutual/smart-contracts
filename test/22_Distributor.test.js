@@ -242,9 +242,6 @@ contract('Distributor buy cover and claim', function([
             );
 
             const firstTokenId = 0;
-            const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
-              .mul(new web3.utils.BN(5))
-              .div(new web3.utils.BN(100));
             await distributor.submitClaim(firstTokenId, {
               from: nftCoverHolder1,
               value: submitClaimDeposit
@@ -324,29 +321,9 @@ contract('Distributor buy cover and claim', function([
               new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
             );
 
-            coverDetails[4] = '7972408607003';
-            vrsdata = await getQuoteValues(
-              coverDetails,
-              toHex('ETH'),
-              coverPeriod,
-              smartConAdd,
-              qt.address
-            );
-
-            await distributor.buyCover(
-              smartConAdd,
-              toHex('ETH'),
-              coverDetails,
-              coverPeriod,
-              vrsdata[0],
-              vrsdata[1],
-              vrsdata[2],
-              { from: nftCoverHolder2, value: buyCoverValue.toString() }
-            );
-
-            tokenId = 2;
+            tokenId = 1;
             await distributor.submitClaim(tokenId, {
-              from: nftCoverHolder2,
+              from: nftCoverHolder1,
               value: submitClaimDeposit
             });
 

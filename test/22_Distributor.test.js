@@ -52,6 +52,9 @@ const vrs_dai = [
 const buyCoverValue = new web3.utils.BN(coverDetails[1])
   .mul(new web3.utils.BN(110))
   .div(new web3.utils.BN(100));
+const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
+  .mul(new web3.utils.BN(5))
+  .div(new web3.utils.BN(100));
 
 let P1;
 let p2;
@@ -321,9 +324,35 @@ contract('Distributor Claim: Assessment', function([
               new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
             );
 
+            coverDetails[4] = '7972408607003';
+            vrsdata = await getQuoteValues(
+              coverDetails,
+              toHex('ETH'),
+              coverPeriod,
+              smartConAdd,
+              qt.address
+            );
+
+            await distributor.buyCover(
+              smartConAdd,
+              toHex('ETH'),
+              coverDetails,
+              coverPeriod,
+              vrsdata[0],
+              vrsdata[1],
+              vrsdata[2],
+              { from: nftCoverHolder2, value: buyCoverValue.toString() }
+            );
+
+            tokenId = 2;
+            await distributor.submitClaim(tokenId, {
+              from: nftCoverHolder2,
+              value: submitClaimDeposit
+            });
+
             coverID = await qd.getAllCoversOfUser(coverHolder);
-            await cl.submitClaim(coverID[1], { from: coverHolder });
             claimId = (await cd.actualClaimLength()) - 1;
+            console.log(`Claim Id: ${claimId}`);
             initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
               staker1,
               smartConAdd,

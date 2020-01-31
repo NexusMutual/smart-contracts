@@ -387,18 +387,6 @@ contract('Distributor Claim: Assessment', function([
             );
             await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
           });
-          it('8.11 orcalise call should be able to change claim status', async function() {
-            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            priceinEther = await mcr.calculateTokenPrice(CA_ETH);
-            await P1.__callback(apiid, '');
-            const newCStatus = await cd.getClaimStatusNumber(claimId);
-            newCStatus[1].toString().should.be.equal((7).toString());
-          });
-          it('8.12 voting should be closed', async function() {
-            (await cl.checkVoteClosing(claimId))
-              .toString()
-              .should.be.equal((-1).toString());
-          });
         });
       });
     });

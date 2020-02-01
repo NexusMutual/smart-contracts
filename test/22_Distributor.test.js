@@ -110,8 +110,6 @@ contract('Distributor buy cover and claim', function([
   member1,
   member2,
   member3,
-  member4,
-  member5,
   staker1,
   staker2,
   coverHolder,

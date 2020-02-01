@@ -49,22 +49,28 @@ const vrs_dai = [
   '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
 ];
 
+const priceLoadPercentage = 10;
+const percentageDenominator = 100;
+const coverPriceMultiplier = percentageDenominator + priceLoadPercentage;
+const claimSubmitDepositPercentage = 5;
+
 const coverBasePrice = new web3.utils.BN(coverDetails[1]);
 const buyCoverValue = coverBasePrice
-  .mul(new web3.utils.BN(110))
-  .div(new web3.utils.BN(100));
+  .mul(new web3.utils.BN(coverPriceMultiplier))
+  .div(new web3.utils.BN(percentageDenominator));
 const buyCoverFee = buyCoverValue.sub(coverBasePrice);
 const submitClaimDeposit = coverBasePrice
-  .mul(new web3.utils.BN(5))
-  .div(new web3.utils.BN(100));
+  .mul(new web3.utils.BN(claimSubmitDepositPercentage))
+  .div(new web3.utils.BN(percentageDenominator));
 
-const buyCoverDaiValue = new web3.utils.BN(coverDetailsDai[1])
-  .mul(new web3.utils.BN(110))
-  .div(new web3.utils.BN(100));
-
-const submitClaimDaiDeposit = new web3.utils.BN(coverDetailsDai[1])
-  .mul(new web3.utils.BN(5))
-  .div(new web3.utils.BN(100));
+const coverBaseDaiPrice = new web3.utils.BN(coverDetailsDai[1]);
+const buyCoverDaiValue = coverBaseDaiPrice
+  .mul(new web3.utils.BN(coverPriceMultiplier))
+  .div(new web3.utils.BN(percentageDenominator));
+const buyCoverDaiFee = buyCoverDaiValue.sub(coverBaseDaiPrice);
+const submitClaimDaiDeposit = coverBaseDaiPrice
+  .mul(new web3.utils.BN(claimSubmitDepositPercentage))
+  .div(new web3.utils.BN(percentageDenominator));
 
 let P1;
 let p2;
@@ -127,8 +133,6 @@ contract('Distributor buy cover and claim', function([
   let minTime;
   let maxVotingTime;
   let claimId;
-
-  let priceLoadPercentage = 10;
 
   before(async function() {
     await advanceBlock();
@@ -341,8 +345,13 @@ contract('Distributor buy cover and claim', function([
               await web3.eth.getBalance(distributorFeeReceiver)
             );
 
+            const withdrawableETHValue = await distributor.withdrawableETH.call();
+            console.log(`withdrawableETHValue: ${withdrawableETHValue}`);
             // 2 covers were bought
-            const withdrawnSum = buyCoverFee.mul(new web3.utils.BN(2));
+            const withdrawnSum = buyCoverFee
+              .mul(new web3.utils.BN(2))
+              .toString();
+            console.log(`Withdrawn sum: ${withdrawnSum}`);
             const r = await distributor.withdrawETH(
               distributorFeeReceiver,
               withdrawnSum,
@@ -354,9 +363,10 @@ contract('Distributor buy cover and claim', function([
             const feeReceiverBalancePostWithdrawal = new web3.utils.BN(
               await web3.eth.getBalance(distributorFeeReceiver)
             );
-            const gain = feeReceiverBalancePostWithdrawal
-              .sub(feeReceiverBalancePreWithdrawal)(gain.toString())
-              .should.be.equal();
+            const gain = feeReceiverBalancePostWithdrawal.sub(
+              feeReceiverBalancePreWithdrawal
+            );
+            gain.toString().should.be.equal(withdrawnSum);
           });
         });
 
@@ -508,6 +518,33 @@ contract('Distributor buy cover and claim', function([
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((12).toString());
           });
+
+          // it(' should be able to withdraw DAI fee from all bought covers', async function() {
+          //   const feeReceiverBalancePreWithdrawal = new web3.utils.BN(
+          //     await web3.eth.getBalance(distributorFeeReceiver)
+          //   );
+
+          //   const withdrawableDAIValue = await distributor.withdrawableDAI.call()
+          //   console.log(`withdrawableETHValue: ${withdrawableETHValue}`)
+          //   // 2 covers were bought
+          //   const withdrawnSum = buyCoverDAIFee.toString();
+          //   console.log(`Withdrawn sum: ${withdrawnSum}`);
+          //   const r = await distributor.withdrawableDAI(
+          //     distributorFeeReceiver,
+          //     withdrawnSum,
+          //     {
+          //       from: coverHolder
+          //     }
+          //   );
+
+          //   const feeReceiverBalancePostWithdrawal = new web3.utils.BN(
+          //     await web3.eth.getBalance(distributorFeeReceiver)
+          //   );
+          //   const gain = feeReceiverBalancePostWithdrawal
+          //     .sub(feeReceiverBalancePreWithdrawal);
+
+          //   (gain.toString()).should.be.equal();
+          // });
           // it('8.12 voting should be closed', async function() {
           //   (await cl.checkVoteClosing(claimId))
           //     .toString()

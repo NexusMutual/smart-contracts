@@ -29,8 +29,8 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
   uint256 internal tokenIdCounter;
   mapping(uint256 => TokenData) internal allTokenData;
 
-  uint withdrawableETH;
-  uint withdrawableDAI;
+  uint public withdrawableETH;
+  uint public withdrawableDAI;
 
   constructor(address _masterAddress, uint _priceLoadPercentage) public {
     nxMaster = INXMMaster.INXMMaster(_masterAddress);
@@ -159,7 +159,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     external
     onlyOwner
   {
-    require(withdrawableETH > _amount, "Not enough ETH");
+    require(withdrawableETH >= _amount, "Not enough ETH");
     withdrawableETH = withdrawableETH.sub(_amount);
     _recipient.transfer(_amount);
   }
@@ -168,7 +168,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     external
     onlyOwner
   {
-    require(withdrawableDAI > _amount, "Not enough DAI");
+    require(withdrawableDAI >= _amount, "Not enough DAI");
     withdrawableDAI = withdrawableDAI.sub(_amount);
     _recipient.transfer(_amount);
 

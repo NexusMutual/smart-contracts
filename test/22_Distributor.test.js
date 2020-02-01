@@ -287,12 +287,12 @@ contract('Distributor buy cover and claim', function([
             await cl.getClaimbyIndex(1, { from: distributor.address });
             claimId = (await cd.actualClaimLength()) - 1;
           });
-          it('8.1 voting should be open', async function() {
+          it('voting should be open', async function() {
             (await cl.checkVoteClosing(claimId))
               .toString()
               .should.be.equal((0).toString());
           });
-          it('8.2 should let claim assessors to vote for claim assessment', async function() {
+          it('should let claim assessors to vote for claim assessment', async function() {
             let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
             await cl.submitCAVote(claimId, -1, { from: member1 });
             await cl.submitCAVote(claimId, -1, { from: member2 });
@@ -307,15 +307,15 @@ contract('Distributor buy cover and claim', function([
             let isBooked = await td.isCATokensBooked(member1);
             isBooked.should.be.equal(true);
           });
-          it('8.3 should not let claim assessors to vote for 2nd time in same claim id', async function() {
+          it('should not let claim assessors to vote for 2nd time in same claim id', async function() {
             await assertRevert(cl.submitCAVote(claimId, -1, { from: member2 }));
           });
-          it('8.4 should not let member to vote for CA', async function() {
+          it('should not let member to vote for CA', async function() {
             await assertRevert(
               cl.submitMemberVote(claimId, -1, { from: member1 })
             );
           });
-          it('8.5 should close voting after min time', async function() {
+          it('should close voting after min time', async function() {
             await increaseTimeTo(
               new BN(minTime.toString()).add(new BN((2).toString()))
             );
@@ -323,10 +323,10 @@ contract('Distributor buy cover and claim', function([
               .toString()
               .should.be.equal((1).toString());
           });
-          it('8.6 should not able to vote after voting close', async function() {
+          it('should not able to vote after voting close', async function() {
             await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
           });
-          it('8.7 should be able to change claim status', async function() {
+          it('should be able to change claim status', async function() {
             let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
             APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -334,13 +334,13 @@ contract('Distributor buy cover and claim', function([
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((6).toString());
           });
-          it('8.8 voting should be closed', async function() {
+          it('voting should be closed', async function() {
             (await cl.checkVoteClosing(claimId))
               .toString()
               .should.be.equal((-1).toString());
           });
 
-          it(' should be able to withdraw ETH fee from all bought covers', async function() {
+          it('should be able to withdraw ETH fee from all bought covers', async function() {
             const feeReceiverBalancePreWithdrawal = new web3.utils.BN(
               await web3.eth.getBalance(distributorFeeReceiver)
             );
@@ -396,7 +396,7 @@ contract('Distributor buy cover and claim', function([
             );
           });
 
-          it('8.9 should let claim assessor to vote for claim assessment', async function() {
+          it('should let claim assessor to vote for claim assessment', async function() {
             await cl.submitCAVote(claimId, 1, { from: member1 });
             await cl.submitCAVote(claimId, 1, { from: member2 });
             await cl.submitCAVote(claimId, 1, { from: member3 });
@@ -407,7 +407,7 @@ contract('Distributor buy cover and claim', function([
             let verdict = await cd.getVoteVerdict(claimId, 1, 1);
             parseFloat(verdict).should.be.equal(1);
           });
-          it('8.10 should not able to vote after voting closed', async function() {
+          it('should not able to vote after voting closed', async function() {
             const now = await latestTime();
             const maxVotingTime = await cd.maxVotingTime();
             closingTime = new BN(maxVotingTime.toString()).add(
@@ -480,13 +480,13 @@ contract('Distributor buy cover and claim', function([
             claimId = (await cd.actualClaimLength()) - 1;
           });
 
-          it('8.1 voting should be open', async function() {
+          it('voting should be open', async function() {
             (await cl.checkVoteClosing(claimId))
               .toString()
               .should.be.equal((0).toString());
           });
 
-          it('8.9 should let claim assessor to vote for claim assessment', async function() {
+          it('should let claim assessor to vote for claim assessment', async function() {
             await cl.submitCAVote(claimId, 1, { from: member1 });
             await cl.submitCAVote(claimId, 1, { from: member2 });
             await cl.submitCAVote(claimId, 1, { from: member3 });
@@ -497,7 +497,7 @@ contract('Distributor buy cover and claim', function([
             let verdict = await cd.getVoteVerdict(claimId, 1, 1);
             parseFloat(verdict).should.be.equal(1);
           });
-          it('8.10 should not able to vote after voting closed', async function() {
+          it('should not able to vote after voting closed', async function() {
             const now = await latestTime();
             const maxVotingTime = await cd.maxVotingTime();
             closingTime = new BN(maxVotingTime.toString()).add(
@@ -508,7 +508,7 @@ contract('Distributor buy cover and claim', function([
             );
             await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
           });
-          it('8.11 orcalise call should be able to change claim status', async function() {
+          it('orcalise call should be able to change claim status', async function() {
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             priceinEther = await mcr.calculateTokenPrice(CA_ETH);
             await P1.__callback(apiid, '');
@@ -516,7 +516,7 @@ contract('Distributor buy cover and claim', function([
             newCStatus[1].toString().should.be.equal((12).toString());
           });
 
-          it(' should be able to withdraw DAI fee from all bought covers', async function() {
+          it('should be able to withdraw DAI fee from all bought covers', async function() {
             const feeReceiverBalancePreWithdrawal = new web3.utils.BN(
               await cad.balanceOf(distributorFeeReceiver)
             );
@@ -540,7 +540,7 @@ contract('Distributor buy cover and claim', function([
             gain.toString().should.be.equal(withdrawnSum);
           });
 
-          // it('8.12 voting should be closed', async function() {
+          // it('voting should be closed', async function() {
           //   (await cl.checkVoteClosing(claimId))
           //     .toString()
           //     .should.be.equal((-1).toString());

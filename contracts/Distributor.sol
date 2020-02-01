@@ -163,4 +163,17 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     withdrawableETH = withdrawableETH.sub(_amount);
     _recipient.transfer(_amount);
   }
+
+  function withdrawDAI(address payable _recipient, uint256 _amount)
+    external
+    onlyOwner
+  {
+    require(withdrawableDAI > _amount, "Not enough DAI");
+    withdrawableDAI = withdrawableDAI.sub(_amount);
+    _recipient.transfer(_amount);
+
+    PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
+    IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress("DAI"));
+    erc20.transferFrom(address(this), _recipient, _amount);
+  }
 }

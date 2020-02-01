@@ -49,10 +49,12 @@ const vrs_dai = [
   '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
 ];
 
-const buyCoverValue = new web3.utils.BN(coverDetails[1])
+const coverBasePrice = new web3.utils.BN(coverDetails[1]);
+const buyCoverValue = coverBasePrice
   .mul(new web3.utils.BN(110))
   .div(new web3.utils.BN(100));
-const submitClaimDeposit = new web3.utils.BN(coverDetails[1])
+const buyCoverFee = buyCoverValue.sub(coverBasePrice);
+const submitClaimDeposit = coverBasePrice
   .mul(new web3.utils.BN(5))
   .div(new web3.utils.BN(100));
 
@@ -109,7 +111,8 @@ contract('Distributor buy cover and claim', function([
   coverHolder,
   notMember,
   nftCoverHolder1,
-  nftCoverHolder2
+  nftCoverHolder2,
+  distributorFeeReceiver
 ]) {
   const P_18 = new BN(toWei(1).toString());
   const stakeTokens = ether(5);
@@ -331,6 +334,29 @@ contract('Distributor buy cover and claim', function([
             (await cl.checkVoteClosing(claimId))
               .toString()
               .should.be.equal((-1).toString());
+          });
+
+          it(' should be able to withdraw ETH fee from all bought covers', async function() {
+            const feeReceiverBalancePreWithdrawal = new web3.utils.BN(
+              await web3.eth.getBalance(distributorFeeReceiver)
+            );
+
+            // 2 covers were bought
+            const withdrawnSum = buyCoverFee.mul(new web3.utils.BN(2));
+            const r = await distributor.withdrawETH(
+              distributorFeeReceiver,
+              withdrawnSum,
+              {
+                from: coverHolder
+              }
+            );
+
+            const feeReceiverBalancePostWithdrawal = new web3.utils.BN(
+              await web3.eth.getBalance(distributorFeeReceiver)
+            );
+            const gain = feeReceiverBalancePostWithdrawal
+              .sub(feeReceiverBalancePreWithdrawal)(gain.toString())
+              .should.be.equal();
           });
         });
 

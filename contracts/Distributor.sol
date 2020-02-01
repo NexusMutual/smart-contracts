@@ -173,6 +173,6 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
 
     PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
     IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress("DAI"));
-    require(erc20.transferFrom(address(this), _recipient, _amount), "Transfer failed");
+    require(erc20.transfer(_recipient, _amount), "Transfer failed");
   }
 }

@@ -520,12 +520,8 @@ contract('Distributor buy cover and claim', function([
             const feeReceiverBalancePreWithdrawal = new web3.utils.BN(
               await cad.balanceOf(distributorFeeReceiver)
             );
-
-            const withdrawableDAIValue = await distributor.withdrawableDAI.call();
-            console.log(`withdrawableDAIValue: ${withdrawableDAIValue}`);
             // 1 cover were bought
             const withdrawnSum = buyCoverDaiFee.toString();
-            console.log(`Withdrawn sum: ${withdrawnSum}`);
             const r = await distributor.withdrawDAI(
               distributorFeeReceiver,
               withdrawnSum,
@@ -541,7 +537,7 @@ contract('Distributor buy cover and claim', function([
               feeReceiverBalancePreWithdrawal
             );
 
-            gain.toString().should.be.equal();
+            gain.toString().should.be.equal(withdrawnSum);
           });
 
           // it('8.12 voting should be closed', async function() {

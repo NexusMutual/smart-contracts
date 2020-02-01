@@ -115,9 +115,7 @@ contract('Distributor buy cover and claim', function([
   staker1,
   staker2,
   coverHolder,
-  notMember,
   nftCoverHolder1,
-  nftCoverHolder2,
   distributorFeeReceiver
 ]) {
   const P_18 = new BN(toWei(1).toString());

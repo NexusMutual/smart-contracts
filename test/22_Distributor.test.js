@@ -395,6 +395,11 @@ contract('Distributor buy cover and claim', function([
       describe('CA not voted yet', function() {
         describe('All CAs accept claim', function() {
           before(async function() {
+            let now1 = await latestTime();
+            await increaseTimeTo(
+              new BN(BOOK_TIME.toString()).add(new BN(now1.toString()))
+            );
+
             await cad.transfer(nftCoverHolder1, toWei(2000));
 
             await cad.approve(distributor.address, buyCoverDaiValue, {
@@ -432,9 +437,9 @@ contract('Distributor buy cover and claim', function([
             });
 
             const minVotingTime = await cd.minVotingTime();
-            const now = await latestTime();
+            now2 = await latestTime();
             minTime = new BN(minVotingTime.toString()).add(
-              new BN(now.toString())
+              new BN(now2.toString())
             );
             await cl.getClaimFromNewStart(0, { from: member1 });
             await cl.getUserClaimByIndex(0, { from: distributor.address });
@@ -470,6 +475,18 @@ contract('Distributor buy cover and claim', function([
             );
             await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
           });
+          it('8.11 orcalise call should be able to change claim status', async function() {
+            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+            priceinEther = await mcr.calculateTokenPrice(CA_ETH);
+            await P1.__callback(apiid, '');
+            const newCStatus = await cd.getClaimStatusNumber(claimId);
+            newCStatus[1].toString().should.be.equal((12).toString());
+          });
+          // it('8.12 voting should be closed', async function() {
+          //   (await cl.checkVoteClosing(claimId))
+          //     .toString()
+          //     .should.be.equal((-1).toString());
+          // });
         });
       });
     });

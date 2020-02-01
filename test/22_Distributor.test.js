@@ -540,7 +540,7 @@ contract('Distributor buy cover and claim', function([
             gain.toString().should.be.equal(withdrawnSum);
           });
 
-          // it('voting should be closed', async function() {
+          // it(' voting should be closed', async function() {
           //   (await cl.checkVoteClosing(claimId))
           //     .toString()
           //     .should.be.equal((-1).toString());

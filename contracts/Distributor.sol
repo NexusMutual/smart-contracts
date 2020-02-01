@@ -1,6 +1,7 @@
 pragma solidity 0.5.7;
 
 import * as ERC721 from "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
+import * as ERC721Holder from "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import * as IERC20 from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import * as Ownable from "@openzeppelin/contracts/ownership/Ownable.sol";
 import * as SafeMath from "./external/openzeppelin-solidity/math/SafeMath.sol";
@@ -11,7 +12,7 @@ import * as Claims from "./Claims.sol";
 import * as NXMToken from "./NXMToken.sol";
 import * as QuotationData from "./QuotationData.sol";
 
-contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownable.Ownable {
+contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), ERC721Holder.ERC721Holder, Ownable.Ownable {
 
   struct TokenData {
     uint expirationTimestamp;
@@ -144,7 +145,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     claims.submitClaim(allTokenData[tokenId].coverId);
 
     allTokenData[tokenId].lastOwner = msg.sender;
-    safeTransferFrom(msg.sender, owner(), tokenId);
+    safeTransferFrom(msg.sender, address(this), tokenId);
   }
 
   function nxmTokenApprove(address _spender, uint256 _value)

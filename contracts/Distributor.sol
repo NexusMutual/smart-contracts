@@ -29,6 +29,9 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
   uint256 internal tokenIdCounter;
   mapping(uint256 => TokenData) internal allTokenData;
 
+  uint withdrawableETH;
+  uint withdrawableDAI;
+
   constructor(address _masterAddress, uint _priceLoadPercentage) public {
     nxMaster = INXMMaster.INXMMaster(_masterAddress);
     priceLoadPercentage = _priceLoadPercentage;
@@ -51,6 +54,9 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
 
     Pool1.Pool1 p1 = Pool1.Pool1(nxMaster.getLatestAddress("P1"));
     p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
+
+    // add fee to the withdrawable pool
+    withdrawableETH = withdrawableETH.add(requiredValue.sub(coverDetails[1]));
 
     mintToken(coverCurrency, coverDetails, coverPeriod);
   }
@@ -75,6 +81,9 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     Pool1.Pool1 p1 = Pool1.Pool1(pool1Address);
     erc20.approve(pool1Address, coverDetails[1]);
     p1.makeCoverUsingCA(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
+
+    // add fee to the withdrawable pool
+    withdrawableDAI = withdrawableDAI.add(requiredValue.sub(coverDetails[1]));
 
     mintToken(coverCurrency, coverDetails, coverPeriod);
   }
@@ -138,11 +147,20 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     safeTransferFrom(msg.sender, owner(), tokenId);
   }
 
-  function nxmTokenApprove(address spender, uint256 value)
+  function nxmTokenApprove(address _spender, uint256 _value)
   public
   onlyOwner
   {
     NXMToken.NXMToken nxmToken = NXMToken.NXMToken(nxMaster.tokenAddress());
-    nxmToken.approve(spender, value);
+    nxmToken.approve(_spender, _value);
+  }
+
+  function withdrawETH(address payable _recipient, uint256 _amount)
+    external
+    onlyOwner
+  {
+    require(withdrawableETH > _amount, "Not enough ETH");
+    withdrawableETH = withdrawableETH.sub(_amount);
+    _recipient.transfer(_amount);
   }
 }

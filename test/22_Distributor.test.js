@@ -195,187 +195,187 @@ contract('Distributor buy cover and claim', function([
     maxVotingTime = await cd.maxVotingTime();
   });
 
-  describe('Member locked Tokens for Claim Assessment', function() {
-    describe('Voting is not closed yet', function() {
-      describe('CA not voted yet', function() {
-        describe('All CAs rejects claim', function() {
-          before(async function() {
-            await tc.lock(CLA, tokens, validity, {
-              from: member1
-            });
-            await tc.lock(CLA, tokens, validity, {
-              from: member2
-            });
-            await tc.lock(CLA, tokens, validity, {
-              from: member3
-            });
-            coverDetails[4] = '7972408607001';
-            var vrsdata = await getQuoteValues(
-              coverDetails,
-              toHex('ETH'),
-              coverPeriod,
-              smartConAdd,
-              qt.address
-            );
+  // describe('Member locked Tokens for Claim Assessment', function() {
+  //   describe('Voting is not closed yet', function() {
+  //     describe('CA not voted yet', function() {
+  //       describe('All CAs rejects claim', function() {
+  //         before(async function() {
+  //           await tc.lock(CLA, tokens, validity, {
+  //             from: member1
+  //           });
+  //           await tc.lock(CLA, tokens, validity, {
+  //             from: member2
+  //           });
+  //           await tc.lock(CLA, tokens, validity, {
+  //             from: member3
+  //           });
+  //           coverDetails[4] = '7972408607001';
+  //           var vrsdata = await getQuoteValues(
+  //             coverDetails,
+  //             toHex('ETH'),
+  //             coverPeriod,
+  //             smartConAdd,
+  //             qt.address
+  //           );
 
-            await distributor.buyCover(
-              smartConAdd,
-              toHex('ETH'),
-              coverDetails,
-              coverPeriod,
-              vrsdata[0],
-              vrsdata[1],
-              vrsdata[2],
-              { from: nftCoverHolder1, value: buyCoverValue.toString() }
-            );
+  //           await distributor.buyCover(
+  //             smartConAdd,
+  //             toHex('ETH'),
+  //             coverDetails,
+  //             coverPeriod,
+  //             vrsdata[0],
+  //             vrsdata[1],
+  //             vrsdata[2],
+  //             { from: nftCoverHolder1, value: buyCoverValue.toString() }
+  //           );
 
-            coverDetails[4] = '7972408607002';
-            vrsdata = await getQuoteValues(
-              coverDetails,
-              toHex('ETH'),
-              coverPeriod,
-              smartConAdd,
-              qt.address
-            );
+  //           coverDetails[4] = '7972408607002';
+  //           vrsdata = await getQuoteValues(
+  //             coverDetails,
+  //             toHex('ETH'),
+  //             coverPeriod,
+  //             smartConAdd,
+  //             qt.address
+  //           );
 
-            await distributor.buyCover(
-              smartConAdd,
-              toHex('ETH'),
-              coverDetails,
-              coverPeriod,
-              vrsdata[0],
-              vrsdata[1],
-              vrsdata[2],
-              { from: nftCoverHolder1, value: buyCoverValue.toString() }
-            );
+  //           await distributor.buyCover(
+  //             smartConAdd,
+  //             toHex('ETH'),
+  //             coverDetails,
+  //             coverPeriod,
+  //             vrsdata[0],
+  //             vrsdata[1],
+  //             vrsdata[2],
+  //             { from: nftCoverHolder1, value: buyCoverValue.toString() }
+  //           );
 
-            const firstTokenId = 0;
-            await distributor.submitClaim(firstTokenId, {
-              from: nftCoverHolder1,
-              value: submitClaimDeposit
-            });
+  //           const firstTokenId = 0;
+  //           await distributor.submitClaim(firstTokenId, {
+  //             from: nftCoverHolder1,
+  //             value: submitClaimDeposit
+  //           });
 
-            const minVotingTime = await cd.minVotingTime();
-            const now = await latestTime();
-            minTime = new BN(minVotingTime.toString()).add(
-              new BN(now.toString())
-            );
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getUserClaimByIndex(0, { from: distributor.address });
-            await cl.getClaimbyIndex(1, { from: distributor.address });
-            claimId = (await cd.actualClaimLength()) - 1;
-          });
-          it('8.1 voting should be open', async function() {
-            (await cl.checkVoteClosing(claimId))
-              .toString()
-              .should.be.equal((0).toString());
-          });
-          it('8.2 should let claim assessors to vote for claim assessment', async function() {
-            let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-            await cl.submitCAVote(claimId, -1, { from: member1 });
-            await cl.submitCAVote(claimId, -1, { from: member2 });
-            await cl.submitCAVote(claimId, -1, { from: member3 });
-            let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-            (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
-              tokens * 3
-            );
-            let all_votes = await cd.getAllVotesForClaim(claimId);
-            expectedVotes = all_votes[1].length;
-            expectedVotes.should.be.equal(3);
-            let isBooked = await td.isCATokensBooked(member1);
-            isBooked.should.be.equal(true);
-          });
-          it('8.3 should not let claim assessors to vote for 2nd time in same claim id', async function() {
-            await assertRevert(cl.submitCAVote(claimId, -1, { from: member2 }));
-          });
-          it('8.4 should not let member to vote for CA', async function() {
-            await assertRevert(
-              cl.submitMemberVote(claimId, -1, { from: member1 })
-            );
-          });
-          it('8.5 should close voting after min time', async function() {
-            await increaseTimeTo(
-              new BN(minTime.toString()).add(new BN((2).toString()))
-            );
-            (await cl.checkVoteClosing(claimId))
-              .toString()
-              .should.be.equal((1).toString());
-          });
-          it('8.6 should not able to vote after voting close', async function() {
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
-          });
-          it('8.7 should be able to change claim status', async function() {
-            let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+  //           const minVotingTime = await cd.minVotingTime();
+  //           const now = await latestTime();
+  //           minTime = new BN(minVotingTime.toString()).add(
+  //             new BN(now.toString())
+  //           );
+  //           await cl.getClaimFromNewStart(0, { from: member1 });
+  //           await cl.getUserClaimByIndex(0, { from: distributor.address });
+  //           await cl.getClaimbyIndex(1, { from: distributor.address });
+  //           claimId = (await cd.actualClaimLength()) - 1;
+  //         });
+  //         it('8.1 voting should be open', async function() {
+  //           (await cl.checkVoteClosing(claimId))
+  //             .toString()
+  //             .should.be.equal((0).toString());
+  //         });
+  //         it('8.2 should let claim assessors to vote for claim assessment', async function() {
+  //           let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+  //           await cl.submitCAVote(claimId, -1, { from: member1 });
+  //           await cl.submitCAVote(claimId, -1, { from: member2 });
+  //           await cl.submitCAVote(claimId, -1, { from: member3 });
+  //           let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+  //           (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
+  //             tokens * 3
+  //           );
+  //           let all_votes = await cd.getAllVotesForClaim(claimId);
+  //           expectedVotes = all_votes[1].length;
+  //           expectedVotes.should.be.equal(3);
+  //           let isBooked = await td.isCATokensBooked(member1);
+  //           isBooked.should.be.equal(true);
+  //         });
+  //         it('8.3 should not let claim assessors to vote for 2nd time in same claim id', async function() {
+  //           await assertRevert(cl.submitCAVote(claimId, -1, { from: member2 }));
+  //         });
+  //         it('8.4 should not let member to vote for CA', async function() {
+  //           await assertRevert(
+  //             cl.submitMemberVote(claimId, -1, { from: member1 })
+  //           );
+  //         });
+  //         it('8.5 should close voting after min time', async function() {
+  //           await increaseTimeTo(
+  //             new BN(minTime.toString()).add(new BN((2).toString()))
+  //           );
+  //           (await cl.checkVoteClosing(claimId))
+  //             .toString()
+  //             .should.be.equal((1).toString());
+  //         });
+  //         it('8.6 should not able to vote after voting close', async function() {
+  //           await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+  //         });
+  //         it('8.7 should be able to change claim status', async function() {
+  //           let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
-            APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(APIID, '');
-            const newCStatus = await cd.getClaimStatusNumber(claimId);
-            newCStatus[1].toString().should.be.equal((6).toString());
-          });
-          it('8.8 voting should be closed', async function() {
-            (await cl.checkVoteClosing(claimId))
-              .toString()
-              .should.be.equal((-1).toString());
-          });
-        });
+  //           APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+  //           await P1.__callback(APIID, '');
+  //           const newCStatus = await cd.getClaimStatusNumber(claimId);
+  //           newCStatus[1].toString().should.be.equal((6).toString());
+  //         });
+  //         it('8.8 voting should be closed', async function() {
+  //           (await cl.checkVoteClosing(claimId))
+  //             .toString()
+  //             .should.be.equal((-1).toString());
+  //         });
+  //       });
 
-        describe('All CAs accept claim', function() {
-          let initialStakedTokens1;
-          let initialStakedTokens2;
-          let priceinEther;
-          before(async function() {
-            const now = await latestTime();
-            await increaseTimeTo(
-              new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
-            );
+  //       describe('All CAs accept claim', function() {
+  //         let initialStakedTokens1;
+  //         let initialStakedTokens2;
+  //         let priceinEther;
+  //         before(async function() {
+  //           const now = await latestTime();
+  //           await increaseTimeTo(
+  //             new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
+  //           );
 
-            tokenId = 1;
-            await distributor.submitClaim(tokenId, {
-              from: nftCoverHolder1,
-              value: submitClaimDeposit
-            });
+  //           tokenId = 1;
+  //           await distributor.submitClaim(tokenId, {
+  //             from: nftCoverHolder1,
+  //             value: submitClaimDeposit
+  //           });
 
-            coverID = await qd.getAllCoversOfUser(coverHolder);
-            claimId = (await cd.actualClaimLength()) - 1;
-            console.log(`Claim Id: ${claimId}`);
-            initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
-              staker1,
-              smartConAdd,
-              0
-            );
-            initialStakedTokens2 = await tf.getStakerLockedTokensOnSmartContract(
-              staker2,
-              smartConAdd,
-              1
-            );
-          });
+  //           coverID = await qd.getAllCoversOfUser(coverHolder);
+  //           claimId = (await cd.actualClaimLength()) - 1;
+  //           console.log(`Claim Id: ${claimId}`);
+  //           initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
+  //             staker1,
+  //             smartConAdd,
+  //             0
+  //           );
+  //           initialStakedTokens2 = await tf.getStakerLockedTokensOnSmartContract(
+  //             staker2,
+  //             smartConAdd,
+  //             1
+  //           );
+  //         });
 
-          it('8.9 should let claim assessor to vote for claim assessment', async function() {
-            await cl.submitCAVote(claimId, 1, { from: member1 });
-            await cl.submitCAVote(claimId, 1, { from: member2 });
-            await cl.submitCAVote(claimId, 1, { from: member3 });
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getClaimFromNewStart(1, { from: member1 });
-            await cd.getVoteToken(claimId, 0, 1);
-            await cd.getVoteVoter(claimId, 1, 1);
-            let verdict = await cd.getVoteVerdict(claimId, 1, 1);
-            parseFloat(verdict).should.be.equal(1);
-          });
-          it('8.10 should not able to vote after voting closed', async function() {
-            const now = await latestTime();
-            const maxVotingTime = await cd.maxVotingTime();
-            closingTime = new BN(maxVotingTime.toString()).add(
-              new BN(now.toString())
-            );
-            await increaseTimeTo(
-              new BN(closingTime.toString()).add(new BN((6).toString()))
-            );
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
-          });
-        });
-      });
-    });
-  });
+  //         it('8.9 should let claim assessor to vote for claim assessment', async function() {
+  //           await cl.submitCAVote(claimId, 1, { from: member1 });
+  //           await cl.submitCAVote(claimId, 1, { from: member2 });
+  //           await cl.submitCAVote(claimId, 1, { from: member3 });
+  //           await cl.getClaimFromNewStart(0, { from: member1 });
+  //           await cl.getClaimFromNewStart(1, { from: member1 });
+  //           await cd.getVoteToken(claimId, 0, 1);
+  //           await cd.getVoteVoter(claimId, 1, 1);
+  //           let verdict = await cd.getVoteVerdict(claimId, 1, 1);
+  //           parseFloat(verdict).should.be.equal(1);
+  //         });
+  //         it('8.10 should not able to vote after voting closed', async function() {
+  //           const now = await latestTime();
+  //           const maxVotingTime = await cd.maxVotingTime();
+  //           closingTime = new BN(maxVotingTime.toString()).add(
+  //             new BN(now.toString())
+  //           );
+  //           await increaseTimeTo(
+  //             new BN(closingTime.toString()).add(new BN((6).toString()))
+  //           );
+  //           await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+  //         });
+  //       });
+  //     });
+  //   });
+  // });
 
   describe('Dai Cover - Member locked Tokens for Claim Assessment', function() {
     describe('Voting is not closed yet', function() {
@@ -386,7 +386,7 @@ contract('Distributor buy cover and claim', function([
 
             console.log('Approving initial tokens..');
             await cad.approve(distributor.address, buyCoverDaiValue, {
-              from: coverHolder
+              from: nftCoverHolder1
             });
             coverDetailsDai[4] = 7972408607006;
             var vrsdata = await getQuoteValues(
@@ -401,7 +401,7 @@ contract('Distributor buy cover and claim', function([
               await distributor.buyCoverUsingCA(
                 smartConAdd,
                 toHex('DAI'),
-                coverDetails,
+                coverDetailsDai,
                 coverPeriod,
                 vrsdata[0],
                 vrsdata[1],
@@ -416,7 +416,7 @@ contract('Distributor buy cover and claim', function([
 
             console.log('Approving more tokens..');
             await cad.approve(distributor.address, submitClaimDaiDeposit, {
-              from: coverHolder
+              from: nftCoverHolder1
             });
 
             const firstTokenId = 0;

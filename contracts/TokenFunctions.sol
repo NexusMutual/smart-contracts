@@ -144,6 +144,7 @@ contract TokenFunctions is Iupgradable {
         }
         else {
             tc.increaseRALockAmount(msg.sender, amount);
+            sd.updateAllocations(msg.sender, amount, false);
         }
         sd.updateGlobalStake(msg.sender, updatedGlobalStake);
         sd.updateGlobalBurn(msg.sender, 0);
@@ -174,7 +175,7 @@ contract TokenFunctions is Iupgradable {
         
         require(updatedGlobalStake > sd.minStake() || updatedGlobalStake == 0);
 
-        sd.updateAllocations(msg.sender, amount);
+        sd.updateAllocations(msg.sender, amount, true);
 
         sd.updateGlobalStake(msg.sender, updatedGlobalStake);
         if(sd.globalBurned(msg.sender) > 0){

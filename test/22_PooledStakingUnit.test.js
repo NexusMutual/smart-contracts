@@ -104,7 +104,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       assert.equal(await tc.totalLockedBalance(ab1, time), toWei(150));
     });
 
-    it('User can increase stake against risk assesment', async function() {
+    it('User can increase stake against risk assesment (For total allocation = 0)', async function() {
       let currentCoverLen = await qd.getCoverLength();
       let initialBalance = await nxmToken.balanceOf(ab1);
       let initialLocked = await sd.globalStake(ab1);
@@ -359,6 +359,90 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       );
     });
 
+    it('User can increase stake against risk assesment (For total allocation > 0)', async function() {
+      let initialBalance = await nxmToken.balanceOf(ab1);
+      let initialLocked = await sd.globalStake(ab1);
+      let currentStakerStakedData1 = await sd.stakerStakedContracts(ab1, 0);
+      let currentStakerStakedData2 = await sd.stakerStakedContracts(ab1, 1);
+      let currentStakerStakedData3 = await sd.stakerStakedContracts(ab1, 2);
+      let currentStakedStakerData1 = await sd.stakedContractStakers(
+        '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'.toLowerCase(),
+        0
+      );
+      let currentStakedStakerData2 = await sd.stakedContractStakers(
+        '0xdac17f958d2ee523a2206206994597c13d831ec7'.toLowerCase(),
+        0
+      );
+      let currentStakedStakerData3 = await sd.stakedContractStakers(
+        '0xf1290473e210b2108a85237fbcd7b6eb42cc654f'.toLowerCase(),
+        0
+      );
+      await tf.increaseStake(toWei(10));
+      let finalBalance = await nxmToken.balanceOf(ab1);
+      let finalStakerStakedData1 = await sd.stakerStakedContracts(ab1, 0);
+      let finalStakerStakedData2 = await sd.stakerStakedContracts(ab1, 1);
+      let finalStakerStakedData3 = await sd.stakerStakedContracts(ab1, 2);
+      let finalStakedStakerData1 = await sd.stakedContractStakers(
+        '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'.toLowerCase(),
+        0
+      );
+      let finalStakedStakerData2 = await sd.stakedContractStakers(
+        '0xdac17f958d2ee523a2206206994597c13d831ec7'.toLowerCase(),
+        0
+      );
+      let finalStakedStakerData3 = await sd.stakedContractStakers(
+        '0xf1290473e210b2108a85237fbcd7b6eb42cc654f'.toLowerCase(),
+        0
+      );
+      assert.equal(
+        await sd.globalStake(ab1),
+        initialLocked / 1 + toWei(10) / 1
+      );
+      assert.equal(initialBalance.sub(finalBalance), toWei(10));
+      assert.equal(
+        finalStakerStakedData1[1],
+        Math.floor(
+          (currentStakerStakedData1[1] * initialLocked) /
+            (initialLocked / 1 + toWei(10) / 1)
+        )
+      );
+      assert.equal(
+        finalStakerStakedData2[1],
+        Math.floor(
+          (currentStakerStakedData2[1] * initialLocked) /
+            (initialLocked / 1 + toWei(10) / 1)
+        )
+      );
+      assert.equal(
+        finalStakerStakedData3[1],
+        Math.floor(
+          (currentStakerStakedData3[1] * initialLocked) /
+            (initialLocked / 1 + toWei(10) / 1)
+        )
+      );
+      assert.equal(
+        finalStakedStakerData1[1],
+        Math.floor(
+          (currentStakedStakerData1[1] * initialLocked) /
+            (initialLocked / 1 + toWei(10) / 1)
+        )
+      );
+      assert.equal(
+        finalStakedStakerData2[1],
+        Math.floor(
+          (currentStakedStakerData2[1] * initialLocked) /
+            (initialLocked / 1 + toWei(10) / 1)
+        )
+      );
+      assert.equal(
+        finalStakedStakerData3[1],
+        Math.floor(
+          (currentStakedStakerData3[1] * initialLocked) /
+            (initialLocked / 1 + toWei(10) / 1)
+        )
+      );
+    });
+
     it('User can request for decrease allocation against any smart contract', async function() {
       await tf.decreaseAllocation(
         [
@@ -366,7 +450,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
           '0xdac17f958d2ee523a2206206994597c13d831ec7'.toLowerCase(),
           '0xf1290473e210b2108a85237fbcd7b6eb42cc654f'.toLowerCase()
         ],
-        [100, 50, 289]
+        [100, 50, 269]
       );
       let nowTime = await latestTime();
       let disallocReq1 = await sd.userDisallocationRequest(ab1, 0);
@@ -390,7 +474,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
         disallocReq3[0].toLowerCase(),
         '0xf1290473e210b2108a85237fbcd7b6eb42cc654f'.toLowerCase()
       );
-      assert.equal(disallocReq3[1], 289);
+      assert.equal(disallocReq3[1], 269);
       assert.equal(disallocReq3[2], nowTime / 1 + 24 * 60 * 60 * 90);
     });
 
@@ -427,7 +511,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       assert.equal(stakedStakerData2[1], currentStakedStakerData2[1] - 50);
       assert.equal(
         await sd.userTotalAllocated(ab1),
-        totalAllocated - 100 - 50 - 289
+        totalAllocated - 100 - 50 - 269
       );
       // Below two comparing indices with -1 because as user have unallocated entire stake so his mapping will not be available in structure.
       // Below conditions ensure that mapping don't exist anymore

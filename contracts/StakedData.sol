@@ -179,14 +179,23 @@ contract StakedData {
      * @dev Adjusts allocation to keep actual staked NXM against each contract.
      * @param staker address of staker.
      * @param differenceAmount amount unstaked.
+     * @param _type True if, called from decrease stake. False if, called from increase stake.
      */
-    function updateAllocations(address staker, uint differenceAmount) external onlyInternal {
+    function updateAllocations(address staker, uint differenceAmount, bool _type) external onlyInternal {
         uint stakedLen = stakerStakedContracts[staker].length;
         uint previousStake = globalStake[staker];
         for (uint i=0; i < stakedLen; i++) {
             uint updatedPer;
-            updatedPer = previousStake.mul(stakerStakedContracts[staker][i].allocationx100)
-            .div(previousStake.sub(differenceAmount));
+            if (_type) {
+
+                updatedPer = previousStake.mul(stakerStakedContracts[staker][i].allocationx100)
+                .div(previousStake.sub(differenceAmount));
+            } else {
+
+                updatedPer = previousStake.mul(stakerStakedContracts[staker][i].allocationx100)
+                .div(previousStake.add(differenceAmount));
+            }
+
             stakerStakedContracts[staker][i].allocationx100 = updatedPer;
             stakedContractStakers[stakerStakedContracts[staker][i].smartContract][uint(getUserSCIndex(staker,
             stakerStakedContracts[staker][i].smartContract))].allocationx100 = updatedPer;

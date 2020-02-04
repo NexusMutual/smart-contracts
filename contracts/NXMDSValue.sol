@@ -18,7 +18,7 @@ import "./external/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract Aggregator {
-    function currentAnswer() public view returns (int); 
+    function latestAnswer() public view returns (int); 
 }
 
 
@@ -26,22 +26,22 @@ contract NXMDSValue {
 
     using SafeMath for uint;
 
-    /// @dev Get ETH-USD feed from Chainlink and convert it to bytes32.
-    /// @return Returns ETH-USD rate in wei. 
+    /// @dev Gets DAI-ETH feed from Chainlink and converts it to ETH-DAI(in bytes32).
+    /// @return Returns ETH-DAI rate in wei. 
     function read() public view returns (bytes32)
     {
         
-        // Instance to get USD feed from chainlink.
-        Aggregator aggregator = Aggregator(0x79fEbF6B9F76853EDBcBc913e6aAE8232cFB9De9);
-        int rate = aggregator.currentAnswer();
+        // Instance to get DAI-ETH feed from chainlink.
+        Aggregator aggregator = Aggregator(0x037E8F2125bF532F3e228991e051c8A7253B642c);
+        int rate = aggregator.latestAnswer();
 
         // Chainlink returns value of type int256, 
         // Check is to ensure that value should always be positive integer. 
         require(rate > 0, "Rate should be positive integer only"); 
         
-        // Chainlink feed return value is (rate * 10^8).
-        // Multiplying by 10^10 because DSValue requires the value to be in format (rate * 10^18).
-        // Chainlink feed returns int256. Converting to bytes32 to follow the DSValue format.
-        return bytes32(uint(rate).mul(10**10));
+        // Chainlink feed returns DAI-ETH rate.
+        // Reciprocating the obtained value because DSValue requires the value to be in format (ETH-DAI).
+        // Further, converting to bytes32 to follow the DSValue format.
+        return bytes32(uint(10**36).div(uint(rate)));
     }
 }

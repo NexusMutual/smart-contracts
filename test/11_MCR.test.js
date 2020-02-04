@@ -268,7 +268,7 @@ contract('MCR', function([owner, notOwner]) {
         .should.be.equal((284.22807).toString());
     });
     it('11.18 getAllSumAssurance function should skip calcualation for currency with rate 0', async function() {
-      await DSV.setRate(0);
+      await DSV.setZeroRate(true);
       let allSA = await mcr.getAllSumAssurance();
       (await qd.getTotalSumAssured(toHex('ETH')))
         .toString()

@@ -133,7 +133,7 @@ contract('Claim: Assessment 2', function([
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await DSV.setRate(25 * Math.pow(10, 8));
+    await DSV.setRate(25);
     await pd.changeCurrencyAssetBaseMin(ethereum_string, toWei(30));
     await tf.upgradeCapitalPool(dai.address);
     await p1.sendEther({ from: owner, value: toWei(2500) });

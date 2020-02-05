@@ -10,7 +10,7 @@ const ClaimsData = artifacts.require('ClaimsDataMock');
 
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const DAI = artifacts.require('MockDAI');

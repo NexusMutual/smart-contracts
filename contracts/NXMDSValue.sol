@@ -26,8 +26,8 @@ contract NXMDSValue {
 
     using SafeMath for uint;
 
-    /// @dev Gets DAI-ETH feed from Chainlink and converts it to ETH-DAI(in bytes32).
-    /// @return Returns ETH-DAI rate in wei. 
+    /// @dev Get DAI-ETH feed from Chainlink and convert it to ETH-DAI(in bytes32).
+    /// @return Return ETH-DAI rate in wei. 
     function read() public view returns (bytes32)
     {
         
@@ -35,13 +35,11 @@ contract NXMDSValue {
         Aggregator aggregator = Aggregator(0x037E8F2125bF532F3e228991e051c8A7253B642c);
         int rate = aggregator.latestAnswer();
 
-        // Chainlink returns value of type int256, 
-        // Check is to ensure that value should always be positive integer. 
-        require(rate > 0, "Rate should be positive integer only"); 
+        // Chainlink returns an int256. Ensure the value is always positive. 
+        require(rate > 0, "Rate should be a positive integer"); 
         
-        // Chainlink feed returns DAI-ETH rate.
         // Reciprocating the obtained value because DSValue requires the value to be in format (ETH-DAI).
-        // Further, converting to bytes32 to follow the DSValue format.
+        // Convert value to bytes32 to follow the DSValue format.
         return bytes32(uint(10**36).div(uint(rate)));
     }
 }

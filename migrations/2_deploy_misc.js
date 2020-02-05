@@ -1,6 +1,6 @@
 const DAI = artifacts.require('MockDAI');
 const MKR = artifacts.require('MockMKR');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const FactoryMock = artifacts.require('FactoryMock');
 const ExchangeMock = artifacts.require('ExchangeMock');
 const ExchangeMKRMock = artifacts.require('ExchangeMock');

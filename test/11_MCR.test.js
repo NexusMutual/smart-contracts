@@ -6,7 +6,7 @@ const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 

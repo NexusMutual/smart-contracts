@@ -2,21 +2,23 @@ pragma solidity 0.5.7;
 import "../external/openzeppelin-solidity/math/SafeMath.sol";
 
 
-contract DSValueMock {
+contract NXMDSValueMock {
 
     using SafeMath for uint;
-    int public p;
+    int public rate;
     address public owner;
-    bool zeroRate;
+    bool internal zeroRate;
+
     constructor(address _owner) public {
-        p = int(uint(10**18).div(120));
+        rate = int(uint(10**18).div(120));
         owner = _owner;
     }
 
     function read() public view returns (bytes32) {
-        if(zeroRate)
+        if (zeroRate) {
             return bytes32(0);
-        return bytes32(uint(10**36).div(uint(p)));
+        }
+        return bytes32(uint(10**36).div(uint(rate)));
         
     }
 
@@ -27,6 +29,6 @@ contract DSValueMock {
 
     function setRate(uint value) public {
         require(msg.sender == owner);
-        p = int(uint(10**18).div(value));
+        rate = int(uint(10**18).div(value));
     }
 }

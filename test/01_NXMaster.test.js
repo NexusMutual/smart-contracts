@@ -3,7 +3,7 @@ const ClaimsData = artifacts.require('ClaimsDataMock');
 
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');

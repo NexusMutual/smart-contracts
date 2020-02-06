@@ -16,10 +16,11 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), ERC72
 
   struct TokenData {
     uint expirationTimestamp;
-    address lastOwner;
     bytes4 coverCurrency;
     uint[] coverDetails;
     uint coverId;
+    bool claimInProgress;
+    uint claimId;
   }
 
   uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
@@ -102,7 +103,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), ERC72
 
     uint256 nextTokenId = tokenIdCounter++;
     uint expirationTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD + coverPeriod * 1 days;
-    allTokenData[nextTokenId] = TokenData(expirationTimestamp, msg.sender, coverCurrency, coverDetails, coverId);
+    allTokenData[nextTokenId] = TokenData(expirationTimestamp, coverCurrency, coverDetails, coverId, false, 0);
     _mint(msg.sender, nextTokenId);
   }
 
@@ -144,8 +145,9 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), ERC72
     Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
     claims.submitClaim(allTokenData[tokenId].coverId);
 
-    allTokenData[tokenId].lastOwner = msg.sender;
-    safeTransferFrom(msg.sender, address(this), tokenId);
+    allTokenData[tokenId].claimInProgress = true;
+    // TODO: set to correct value once claim ID is available
+    allTokenData[tokenId].claimId = 1235;
   }
 
   function nxmTokenApprove(address _spender, uint256 _value)

@@ -283,6 +283,36 @@ contract('Distributor buy cover and claim', function([
             await cl.getClaimbyIndex(1, { from: distributor.address });
             claimId = (await cd.actualClaimLength()) - 1;
           });
+
+          it('should return token data for token with claim in progress', async () => {
+            const tokenData = await distributor.getTokenData.call(firstTokenId);
+
+            tokenData.coverId.should.be.equal('1');
+            tokenData.claimInProgress.should.be.equal(true);
+            tokenData.coverDetails[0].should.be.equal(
+              coverDetails[0].toString()
+            );
+            tokenData.coverDetails[1].should.be.equal(coverDetails[1]);
+            tokenData.coverDetails[2].should.be.equal(coverDetails[2]);
+            tokenData.coverDetails[3].should.be.equal(coverDetails[3]);
+          });
+
+          it('should return token data for token with no claim in progress', async () => {
+            const tokenData = await distributor.getTokenData.call(
+              secondTokenId
+            );
+
+            tokenData.coverId.should.equal('2');
+            tokenData.claimInProgress.should.equal(false);
+            tokenData.claimId.should.equal('0');
+            tokenData.coverDetails[0].should.be.equal(
+              coverDetails[0].toString()
+            );
+            tokenData.coverDetails[1].should.equal(coverDetails[1]);
+            tokenData.coverDetails[2].should.be.equal(coverDetails[2]);
+            tokenData.coverDetails[3].should.be.equal(coverDetails[3]);
+          });
+
           it('voting should be open', async function() {
             (await cl.checkVoteClosing(claimId))
               .toString()

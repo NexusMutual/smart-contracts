@@ -148,7 +148,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
 
     allTokenData[tokenId].claimInProgress = true;
     // TODO: set to correct value once claim ID is available
-    allTokenData[tokenId].claimId = 1235;
+    allTokenData[tokenId].claimId = 1337;
   }
 
   function getTokenData(uint tokenId) public view returns (TokenData memory) {

@@ -222,6 +222,9 @@ contract('Distributor buy cover and claim', function([
             await tc.lock(CLA, tokens, validity, {
               from: member3
             });
+          });
+
+          it('allows buying cover using ETH', async () => {
             coverDetails[4] = '7972408607001';
             var vrsdata = await getQuoteValues(
               coverDetails,
@@ -244,7 +247,9 @@ contract('Distributor buy cover and claim', function([
 
             firstTokenId = getCoverDataFromBuyCoverLogs(buyCoverResponse1.logs)
               .tokenId;
+          });
 
+          it('allows buying a second cover after buying 1 already', async () => {
             coverDetails[4] = '7972408607002';
             vrsdata = await getQuoteValues(
               coverDetails,
@@ -267,7 +272,9 @@ contract('Distributor buy cover and claim', function([
 
             secondTokenId = getCoverDataFromBuyCoverLogs(buyCoverResponse2.logs)
               .tokenId;
+          });
 
+          it('allows submitting a claim for the cover', async () => {
             await distributor.submitClaim(firstTokenId, {
               from: nftCoverHolder1,
               value: submitClaimDeposit

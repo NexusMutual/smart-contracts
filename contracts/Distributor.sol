@@ -1,7 +1,8 @@
 pragma solidity 0.5.7;
+pragma experimental ABIEncoderV2;
 
 import * as ERC721 from "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
-import * as ERC721Holder from "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
+import * as ERC721Enumerable from "@openzeppelin/contracts/token/ERC721/ERC721Enumerable.sol";
 import * as IERC20 from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import * as Ownable from "@openzeppelin/contracts/ownership/Ownable.sol";
 import * as SafeMath from "./external/openzeppelin-solidity/math/SafeMath.sol";
@@ -12,7 +13,7 @@ import * as Claims from "./Claims.sol";
 import * as NXMToken from "./NXMToken.sol";
 import * as QuotationData from "./QuotationData.sol";
 
-contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), ERC721Holder.ERC721Holder, Ownable.Ownable {
+contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownable.Ownable {
 
   struct TokenData {
     uint expirationTimestamp;
@@ -148,6 +149,10 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), ERC72
     allTokenData[tokenId].claimInProgress = true;
     // TODO: set to correct value once claim ID is available
     allTokenData[tokenId].claimId = 1235;
+  }
+
+  function getTokenData(uint tokenId) public view returns (TokenData memory) {
+    return allTokenData[tokenId];
   }
 
   function nxmTokenApprove(address _spender, uint256 _value)

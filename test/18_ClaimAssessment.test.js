@@ -10,7 +10,7 @@ const ClaimsData = artifacts.require('ClaimsDataMock');
 
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const DAI = artifacts.require('MockDAI');
@@ -133,7 +133,7 @@ contract('Claim: Assessment 2', function([
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await DSV.setRate(toWei(25));
+    await DSV.setRate(25);
     await pd.changeCurrencyAssetBaseMin(ethereum_string, toWei(30));
     await tf.upgradeCapitalPool(dai.address);
     await p1.sendEther({ from: owner, value: toWei(2500) });

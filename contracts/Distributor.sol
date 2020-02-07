@@ -113,9 +113,8 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
   )
     public
     payable
+    allowsClaims(tokenId)
   {
-    require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
-    require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
     require(allTokenData[tokenId].coverCurrency == "ETH", "currency not ETH");
     uint coverAmount = allTokenData[tokenId].coverDetails[1];
     require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
@@ -127,9 +126,8 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     uint256 tokenId
   )
     public
+    allowsClaims(tokenId)
   {
-    require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
-    require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
     uint depositAmount = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
     PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
     IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(allTokenData[tokenId].coverCurrency));
@@ -182,5 +180,12 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
     IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress("DAI"));
     require(erc20.transfer(_recipient, _amount), "Transfer failed");
+  }
+
+  modifier allowsClaims(uint256 tokenId) {
+    require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
+    require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
+    require(!allTokenData[tokenId].claimInProgress, "Claim already in progress");
+    _;
   }
 }

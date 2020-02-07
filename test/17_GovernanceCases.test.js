@@ -7,7 +7,7 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const TokenController = artifacts.require('TokenController');
 const NXMToken = artifacts.require('NXMToken');
 const expectEvent = require('./utils/expectEvent');
-const { toWei, toHex } = require('./utils/ethTools.js');
+const {toWei, toHex} = require('./utils/ethTools.js');
 const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
@@ -29,8 +29,10 @@ let proposalId;
 let pId;
 let nxmToken;
 let balance;
+let IAstatus;
 let status;
 let voters;
+let accounts = [];
 let maxAllowance =
   '115792089237316195423570985008687907853269984665640564039457584007913129639935';
 
@@ -60,6 +62,26 @@ contract(
     notMember
   ]) => {
     before(async function() {
+      accounts = [
+        ab1,
+        ab2,
+        ab3,
+        ab4,
+        ab5,
+        mem1,
+        mem2,
+        mem3,
+        mem4,
+        mem5,
+        mem6,
+        mem7,
+        mem8,
+        mem9,
+        mem10,
+        mem11,
+        mem12,
+        notMember
+      ];
       nxms = await NXMaster.deployed();
       tf = await TokenFunctions.deployed();
       cr = await ClaimsReward.deployed();
@@ -74,33 +96,33 @@ contract(
       // tc = await TokenController.deployed();
       pd = await PoolData.deployed();
       await mr.payJoiningFee(ab2, {
-            value: 2000000000000000,
-            from: ab2
-          });
-          await mr.kycVerdict(ab2, true, {
-            from: web3.eth.accounts[0]
-          });
-       await mr.payJoiningFee(ab3, {
-            value: 2000000000000000,
-            from: ab3
-          });
-          await mr.kycVerdict(ab3, true, {
-            from: web3.eth.accounts[0]
-          });
-        await mr.payJoiningFee(ab4, {
-            value: 2000000000000000,
-            from: ab4
-          });
-          await mr.kycVerdict(ab4, true, {
-            from: web3.eth.accounts[0]
-          });
-          await mr.payJoiningFee(ab5, {
-            value: 2000000000000000,
-            from: ab5
-          });
-          await mr.kycVerdict(ab5, true, {
-            from: web3.eth.accounts[0]
-          });
+        value: 2000000000000000,
+        from: ab2
+      });
+      await mr.kycVerdict(ab2, true, {
+        from: accounts[0]
+      });
+      await mr.payJoiningFee(ab3, {
+        value: 2000000000000000,
+        from: ab3
+      });
+      await mr.kycVerdict(ab3, true, {
+        from: accounts[0]
+      });
+      await mr.payJoiningFee(ab4, {
+        value: 2000000000000000,
+        from: ab4
+      });
+      await mr.kycVerdict(ab4, true, {
+        from: accounts[0]
+      });
+      await mr.payJoiningFee(ab5, {
+        value: 2000000000000000,
+        from: ab5
+      });
+      await mr.kycVerdict(ab5, true, {
+        from: accounts[0]
+      });
       await mr.addInitialABMembers([ab2, ab3, ab4, ab5]);
       await nxmToken.approve(tc.address, maxAllowance);
       let bal = await nxmToken.balanceOf(ab1);
@@ -127,40 +149,40 @@ contract(
         238500
       ];
       await nxmToken.approve(cr.address, maxAllowance, {
-        from: web3.eth.accounts[0]
+        from: accounts[0]
       });
-      // await mr.payJoiningFee(web3.eth.accounts[0], {
+      // await mr.payJoiningFee(accounts[0], {
       //   value: 2000000000000000,
-      //   from: web3.eth.accounts[0]
+      //   from: accounts[0]
       // });
-      // await mr.kycVerdict(web3.eth.accounts[0], true, {
-      //   from: web3.eth.accounts[0]
+      // await mr.kycVerdict(accounts[0], true, {
+      //   from: accounts[0]
       // });
       for (let i = 1; i < 18; i++) {
         await nxmToken.approve(cr.address, maxAllowance, {
-          from: web3.eth.accounts[i]
+          from: accounts[i]
         });
         if (i > 4) {
-          await mr.payJoiningFee(web3.eth.accounts[i], {
+          await mr.payJoiningFee(accounts[i], {
             value: 2000000000000000,
-            from: web3.eth.accounts[i]
+            from: accounts[i]
           });
-          await mr.kycVerdict(web3.eth.accounts[i], true, {
-            from: web3.eth.accounts[0]
+          await mr.kycVerdict(accounts[i], true, {
+            from: accounts[0]
           });
         }
-        await nxmToken.transfer(web3.eth.accounts[i], toWei(balances[i]));
+        await nxmToken.transfer(accounts[i], toWei(balances[i]));
       }
       // await gv.delegateVote(ab1, { from: ab2 });
-      await gv.setDelegationStatus(true, { from: ab1 });
-      await gv.setDelegationStatus(true, { from: ab3 });
-      await gv.setDelegationStatus(true, { from: mem4 });
-      await gv.setDelegationStatus(true, { from: mem5 });
-      await gv.delegateVote(ab1, { from: mem1 });
-      await gv.delegateVote(ab1, { from: mem2 });
-      await gv.delegateVote(ab3, { from: mem3 });
-      await gv.delegateVote(mem4, { from: mem8 });
-      await gv.delegateVote(mem5, { from: mem6 });
+      await gv.setDelegationStatus(true, {from: ab1});
+      await gv.setDelegationStatus(true, {from: ab3});
+      await gv.setDelegationStatus(true, {from: mem4});
+      await gv.setDelegationStatus(true, {from: mem5});
+      await gv.delegateVote(ab1, {from: mem1});
+      await gv.delegateVote(ab1, {from: mem2});
+      await gv.delegateVote(ab3, {from: mem3});
+      await gv.delegateVote(mem4, {from: mem8});
+      await gv.delegateVote(mem5, {from: mem6});
       await increaseTime(604800);
     });
 
@@ -187,7 +209,7 @@ contract(
                   'Proposal1',
                   'Proposal1',
                   0,
-                  { from: mem1 }
+                  {from: mem1}
                 );
               });
               it('17.2 Should whitelist proposal and set Incentives', async function() {
@@ -198,7 +220,7 @@ contract(
                   pId,
                   'changes to pricing model',
                   '0x',
-                  { from: mem1 }
+                  {from: mem1}
                 );
                 // let proposalsStatus = await gv.getStatusOfProposals();
                 // assert.equal(proposalsStatus[3].toNumber(), 1);
@@ -206,20 +228,20 @@ contract(
                 assert.equal(action[1], null);
               });
               it('17.4 should follow voting process', async function() {
-                await gv.submitVote(pId, 1, { from: ab1 });
+                await gv.submitVote(pId, 1, {from: ab1});
                 let voteWeight = await gv.voteTallyData(pId, 1);
                 assert.equal(voteWeight[1].toNumber(), 1);
-                await gv.submitVote(pId, 1, { from: ab2 });
-                await gv.submitVote(pId, 1, { from: ab3 });
-                await gv.submitVote(pId, 1, { from: ab4 });
-                await gv.submitVote(pId, 1, { from: ab5 });
-                await gv.submitVote(pId, 0, { from: mem4 });
-                await gv.submitVote(pId, 0, { from: mem5 });
-                await gv.submitVote(pId, 1, { from: mem7 });
+                await gv.submitVote(pId, 1, {from: ab2});
+                await gv.submitVote(pId, 1, {from: ab3});
+                await gv.submitVote(pId, 1, {from: ab4});
+                await gv.submitVote(pId, 1, {from: ab5});
+                await gv.submitVote(pId, 0, {from: mem4});
+                await gv.submitVote(pId, 0, {from: mem5});
+                await gv.submitVote(pId, 1, {from: mem7});
               });
               it('17.5 Should not vote if cloing time of proposal is completed', async function() {
                 await increaseTime(604810);
-                await assertRevert(gv.submitVote(pId, 1, { from: mem9 }));
+                await assertRevert(gv.submitVote(pId, 1, {from: mem9}));
               });
               it('17.6 Should close vote', async function() {
                 await increaseTime(604800);
@@ -234,18 +256,16 @@ contract(
               it('17.8 Should get rewards', async function() {
                 for (let i = 0; i < 13; i++) {
                   assert.equal(
-                    (await gv.getPendingReward(
-                      web3.eth.accounts[i]
-                    )).toString(),
+                    (await gv.getPendingReward(accounts[i])).toString(),
                     toWei(10),
-                    web3.eth.accounts[i] + "didn't get reward"
+                    accounts[i] + "didn't get reward"
                   );
                 }
               });
               it('17.9 Should claim rewards', async function() {
                 for (let i = 0; i < 13; i++) {
                   await cr.claimAllPendingReward(20, {
-                    from: web3.eth.accounts[i]
+                    from: accounts[i]
                   });
                 }
               });
@@ -253,7 +273,7 @@ contract(
             describe('with Valid Automatic action', function() {
               it('17.10 Should create proposal', async function() {
                 await increaseTime(604800);
-                balance = await web3.eth.getBalance(notMember);
+                IAstatus = await pd.getInvestmentAssetStatus('0x455448');
                 pId = (await gv.getProposalLength()).toNumber();
                 await gv.createProposal(
                   'Proposal2',
@@ -263,13 +283,13 @@ contract(
                 );
               });
               it('17.11 Should whitelist proposal and set Incentives', async function() {
-                await gv.categorizeProposal(pId, 12, toWei(130));
+                await gv.categorizeProposal(pId, 15, toWei(130));
               });
               it('17.12 Should open for voting', async function() {
                 let actionHash = encode(
-                  'transferEther(uint,address)',
-                  '10000000000000000',
-                  notMember
+                  'changeInvestmentAssetStatus(bytes4,bool)',
+                  'ETH',
+                  !IAstatus
                 );
                 await gv.submitProposalWithSolution(
                   pId,
@@ -278,14 +298,14 @@ contract(
                 );
               });
               it('17.13 should follow voting process', async function() {
-                await gv.submitVote(pId, 1, { from: ab1 });
-                await gv.submitVote(pId, 1, { from: ab2 });
-                await gv.submitVote(pId, 1, { from: ab3 });
-                await gv.submitVote(pId, 1, { from: ab4 });
-                await gv.submitVote(pId, 1, { from: ab5 });
-                await gv.submitVote(pId, 0, { from: mem4 });
-                await gv.submitVote(pId, 0, { from: mem5 });
-                await gv.submitVote(pId, 1, { from: mem7 });
+                await gv.submitVote(pId, 1, {from: ab1});
+                await gv.submitVote(pId, 1, {from: ab2});
+                await gv.submitVote(pId, 1, {from: ab3});
+                await gv.submitVote(pId, 1, {from: ab4});
+                await gv.submitVote(pId, 1, {from: ab5});
+                await gv.submitVote(pId, 0, {from: mem4});
+                await gv.submitVote(pId, 0, {from: mem5});
+                await gv.submitVote(pId, 1, {from: mem7});
               });
               it('17.14 Should close vote', async function() {
                 await increaseTime(604800);
@@ -296,28 +316,28 @@ contract(
                 assert.equal(proposal[2].toNumber(), 3);
               });
               it('17.16 Should execute defined automatic action', async function() {
-                let bal = await web3.eth.getBalance(notMember);
-                assert.isAbove(
-                  bal.toNumber(),
-                  balance.toNumber(),
+                let iaStatusLatest = await pd.getInvestmentAssetStatus(
+                  '0x455448'
+                );
+                assert.notEqual(
+                  iaStatusLatest,
+                  IAstatus,
                   'Action not executed'
                 );
               });
               it('17.17 Should get rewards', async function() {
                 for (let i = 0; i < 13; i++) {
                   assert.equal(
-                    (await gv.getPendingReward(
-                      web3.eth.accounts[i]
-                    )).toString(),
+                    (await gv.getPendingReward(accounts[i])).toString(),
                     toWei(10),
-                    web3.eth.accounts[i] + "didn't get reward"
+                    accounts[i] + "didn't get reward"
                   );
                 }
               });
               it('17.18 Should claim rewards', async function() {
                 for (let i = 0; i < 13; i++) {
                   await cr.claimAllPendingReward(20, {
-                    from: web3.eth.accounts[i]
+                    from: accounts[i]
                   });
                 }
               });
@@ -325,7 +345,7 @@ contract(
             describe('with in valid Automatic action', function() {
               it('17.19 Should create proposal', async function() {
                 await increaseTime(604800);
-                balance = await web3.eth.getBalance(notMember);
+                IAstatus = await pd.getInvestmentAssetStatus('0x455448');
                 pId = (await gv.getProposalLength()).toNumber();
                 await gv.createProposal(
                   'Proposal2',
@@ -339,9 +359,9 @@ contract(
               });
               it('17.21 Should open for voting', async function() {
                 let actionHash = encode(
-                  'transferEth(uint,address)',
-                  '10000000000000000',
-                  notMember
+                  'changeInvestmentAssetStat(bytes4,bool)', //invalid function declared instead of original one changeInvestmentAssetStatus
+                  'ETH',
+                  false
                 );
                 await gv.submitProposalWithSolution(
                   pId,
@@ -350,14 +370,14 @@ contract(
                 );
               });
               it('17.22 should follow voting process', async function() {
-                await gv.submitVote(pId, 1, { from: ab1 });
-                await gv.submitVote(pId, 1, { from: ab2 });
-                await gv.submitVote(pId, 1, { from: ab3 });
-                await gv.submitVote(pId, 1, { from: ab4 });
-                await gv.submitVote(pId, 1, { from: ab5 });
-                await gv.submitVote(pId, 0, { from: mem4 });
-                await gv.submitVote(pId, 0, { from: mem5 });
-                await gv.submitVote(pId, 1, { from: mem7 });
+                await gv.submitVote(pId, 1, {from: ab1});
+                await gv.submitVote(pId, 1, {from: ab2});
+                await gv.submitVote(pId, 1, {from: ab3});
+                await gv.submitVote(pId, 1, {from: ab4});
+                await gv.submitVote(pId, 1, {from: ab5});
+                await gv.submitVote(pId, 0, {from: mem4});
+                await gv.submitVote(pId, 0, {from: mem5});
+                await gv.submitVote(pId, 1, {from: mem7});
               });
               it('17.23 Should close vote', async function() {
                 await increaseTime(604800);
@@ -368,28 +388,24 @@ contract(
                 assert.equal(proposal[2].toNumber(), 3);
               });
               it('17.25 Should not execute defined automatic action', async function() {
-                let bal = await web3.eth.getBalance(notMember);
-                assert.equal(
-                  bal.toNumber(),
-                  balance.toNumber(),
-                  'Action executed'
+                let iaStatusLatest = await pd.getInvestmentAssetStatus(
+                  '0x455448'
                 );
+                assert.equal(iaStatusLatest, IAstatus, 'Action executed');
               });
               it('17.26 Should get rewards', async function() {
                 for (let i = 0; i < 13; i++) {
                   assert.equal(
-                    (await gv.getPendingReward(
-                      web3.eth.accounts[i]
-                    )).toString(),
+                    (await gv.getPendingReward(accounts[i])).toString(),
                     toWei(10),
-                    web3.eth.accounts[i] + "didn't get reward"
+                    accounts[i] + "didn't get reward"
                   );
                 }
               });
               it('17.27 Should claim rewards', async function() {
                 for (let i = 0; i < 13; i++) {
                   await cr.claimAllPendingReward(20, {
-                    from: web3.eth.accounts[i]
+                    from: accounts[i]
                   });
                 }
               });
@@ -418,14 +434,14 @@ contract(
               );
             });
             it('17.31 should follow voting process', async function() {
-              await gv.submitVote(pId, 0, { from: ab1 });
-              await gv.submitVote(pId, 0, { from: ab2 });
-              await gv.submitVote(pId, 1, { from: ab3 });
-              await gv.submitVote(pId, 1, { from: ab4 });
-              await gv.submitVote(pId, 0, { from: ab5 });
-              await gv.submitVote(pId, 0, { from: mem4 });
-              await gv.submitVote(pId, 0, { from: mem5 });
-              await gv.submitVote(pId, 1, { from: mem7 });
+              await gv.submitVote(pId, 0, {from: ab1});
+              await gv.submitVote(pId, 0, {from: ab2});
+              await gv.submitVote(pId, 1, {from: ab3});
+              await gv.submitVote(pId, 1, {from: ab4});
+              await gv.submitVote(pId, 0, {from: ab5});
+              await gv.submitVote(pId, 0, {from: mem4});
+              await gv.submitVote(pId, 0, {from: mem5});
+              await gv.submitVote(pId, 1, {from: mem7});
             });
             it('17.32 Should close vote', async function() {
               await increaseTime(604800);
@@ -440,16 +456,16 @@ contract(
             it('17.34 Should get rewards', async function() {
               for (let i = 0; i < 13; i++) {
                 assert.equal(
-                  (await gv.getPendingReward(web3.eth.accounts[i])).toString(),
+                  (await gv.getPendingReward(accounts[i])).toString(),
                   toWei(10),
-                  web3.eth.accounts[i] + " didn't get reward"
+                  accounts[i] + " didn't get reward"
                 );
               }
             });
             it('17.35 Should claim rewards', async function() {
               for (let i = 0; i < 13; i++) {
                 await cr.claimAllPendingReward(20, {
-                  from: web3.eth.accounts[i]
+                  from: accounts[i]
                 });
               }
             });
@@ -479,10 +495,10 @@ contract(
                   );
                 });
                 it('17.39 Should follow voting process', async function() {
-                  await gv.submitVote(pId, 1, { from: ab1 });
-                  await gv.submitVote(pId, 1, { from: ab2 });
-                  await gv.submitVote(pId, 1, { from: ab3 });
-                  await gv.submitVote(pId, 1, { from: mem7 });
+                  await gv.submitVote(pId, 1, {from: ab1});
+                  await gv.submitVote(pId, 1, {from: ab2});
+                  await gv.submitVote(pId, 1, {from: ab3});
+                  await gv.submitVote(pId, 1, {from: mem7});
                 });
                 it('17.40 Should close vote', async function() {
                   await increaseTime(604800);
@@ -504,7 +520,7 @@ contract(
                 });
                 it('17.43 Should claim rewards', async function() {
                   for (let i = 0; i < voters.length; i++) {
-                    await cr.claimAllPendingReward(20, { from: voters[i] });
+                    await cr.claimAllPendingReward(20, {from: voters[i]});
                   }
                 });
               });
@@ -538,11 +554,11 @@ contract(
                   );
                 });
                 it('17.47 should follow voting process', async function() {
-                  await gv.submitVote(pId, 1, { from: ab3 });
-                  await gv.submitVote(pId, 1, { from: ab4 });
-                  await gv.submitVote(pId, 1, { from: ab5 });
-                  await gv.submitVote(pId, 0, { from: mem5 });
-                  await gv.submitVote(pId, 0, { from: mem7 });
+                  await gv.submitVote(pId, 1, {from: ab3});
+                  await gv.submitVote(pId, 1, {from: ab4});
+                  await gv.submitVote(pId, 1, {from: ab5});
+                  await gv.submitVote(pId, 0, {from: mem5});
+                  await gv.submitVote(pId, 0, {from: mem7});
                 });
                 it('17.48 Should close vote', async function() {
                   await increaseTime(604800);
@@ -570,7 +586,7 @@ contract(
                 });
                 it('17.52 Should claim rewards', async function() {
                   for (let i = 0; i < voters.length; i++) {
-                    await cr.claimAllPendingReward(20, { from: voters[i] });
+                    await cr.claimAllPendingReward(20, {from: voters[i]});
                   }
                 });
               });
@@ -596,10 +612,10 @@ contract(
                 );
               });
               it('17.56 should follow voting process', async function() {
-                await gv.submitVote(pId, 1, { from: ab1 });
-                await gv.submitVote(pId, 1, { from: ab2 });
-                await gv.submitVote(pId, 1, { from: ab3 });
-                await gv.submitVote(pId, 1, { from: mem7 });
+                await gv.submitVote(pId, 1, {from: ab1});
+                await gv.submitVote(pId, 1, {from: ab2});
+                await gv.submitVote(pId, 1, {from: ab3});
+                await gv.submitVote(pId, 1, {from: mem7});
               });
               it('17.57 Should close vote', async function() {
                 await increaseTime(604800);
@@ -621,7 +637,7 @@ contract(
               });
               it('17.60 Should claim rewards', async function() {
                 for (let i = 0; i < voters.length; i++) {
-                  await cr.claimAllPendingReward(20, { from: voters[i] });
+                  await cr.claimAllPendingReward(20, {from: voters[i]});
                 }
               });
             });
@@ -672,8 +688,8 @@ contract(
       describe('And open for only AB vote.', function() {
         describe('If majority is reached', function() {
           it('17.67 Should create proposal', async function() {
-            await nxmToken.approve(tc.address, maxAllowance, { from: mem9 });
-            await tc.lock(CLA, toWei(500), validity, { from: mem9 });
+            await nxmToken.approve(tc.address, maxAllowance, {from: mem9});
+            await tc.lock(CLA, toWei(500), validity, {from: mem9});
             console.log(
               'Tokens locked for claims assessment - ' +
                 (await tc.tokensLocked(mem9, CLA))
@@ -699,12 +715,12 @@ contract(
             );
           });
           it('17.70 should follow voting process', async function() {
-            await gv.submitVote(pId, 1, { from: ab1 });
-            await gv.submitVote(pId, 1, { from: ab2 });
+            await gv.submitVote(pId, 1, {from: ab1});
+            await gv.submitVote(pId, 1, {from: ab2});
             assert.equal(await gv.canCloseProposal(pId), 0);
-            await gv.submitVote(pId, 0, { from: ab3 });
-            await gv.submitVote(pId, 1, { from: ab4 });
-            await gv.submitVote(pId, 1, { from: ab5 });
+            await gv.submitVote(pId, 0, {from: ab3});
+            await gv.submitVote(pId, 1, {from: ab4});
+            await gv.submitVote(pId, 1, {from: ab5});
           });
           it('17.71 Should close vote', async function() {
             await increaseTime(604800);
@@ -734,8 +750,8 @@ contract(
         });
         describe('If majority is not reached', function() {
           it('17.75 Should create proposal', async function() {
-            await nxmToken.approve(tc.address, maxAllowance, { from: mem9 });
-            await tc.lock(CLA, toWei(500), validity, { from: mem9 });
+            await nxmToken.approve(tc.address, maxAllowance, {from: mem9});
+            await tc.lock(CLA, toWei(500), validity, {from: mem9});
             console.log(
               'Tokens locked for claims assessment - ' +
                 (await tc.tokensLocked(mem9, CLA))
@@ -761,9 +777,9 @@ contract(
             );
           });
           it('17.78 Should follow voting process', async function() {
-            await gv.submitVote(pId, 1, { from: ab1 });
-            await gv.submitVote(pId, 1, { from: ab2 });
-            await gv.submitVote(pId, 0, { from: ab3 });
+            await gv.submitVote(pId, 1, {from: ab1});
+            await gv.submitVote(pId, 1, {from: ab2});
+            await gv.submitVote(pId, 0, {from: ab3});
           });
           it('17.79 Should close vote', async function() {
             await increaseTime(604800);
@@ -815,15 +831,15 @@ contract(
               16,
               'Swap AB Member',
               actionHash,
-              { from: mem1 }
+              {from: mem1}
             );
           });
           it('17.84 should follow voting process', async function() {
-            await gv.submitVote(pId, 1, { from: ab3 });
-            await gv.submitVote(pId, 1, { from: ab4 });
-            await gv.submitVote(pId, 1, { from: ab5 });
-            await gv.submitVote(pId, 1, { from: mem4 });
-            await gv.submitVote(pId, 0, { from: mem5 });
+            await gv.submitVote(pId, 1, {from: ab3});
+            await gv.submitVote(pId, 1, {from: ab4});
+            await gv.submitVote(pId, 1, {from: ab5});
+            await gv.submitVote(pId, 1, {from: mem4});
+            await gv.submitVote(pId, 0, {from: mem5});
           });
           it('17.85 Should close vote', async function() {
             await increaseTime(604800);
@@ -869,13 +885,13 @@ contract(
               16,
               'Swap AB Member',
               actionHash,
-              { from: mem1 }
+              {from: mem1}
             );
           });
           it('17.90 should follow voting process', async function() {
-            await gv.submitVote(pId, 1, { from: ab3 });
-            await gv.submitVote(pId, 1, { from: ab4 });
-            await gv.submitVote(pId, 1, { from: ab5 });
+            await gv.submitVote(pId, 1, {from: ab3});
+            await gv.submitVote(pId, 1, {from: ab4});
+            await gv.submitVote(pId, 1, {from: ab5});
           });
           it('17.91 Should close vote', async function() {
             await increaseTime(604800);
@@ -914,7 +930,7 @@ contract(
               16,
               'Swap AB Member',
               actionHash,
-              { from: mem1 }
+              {from: mem1}
             );
           });
           it('17.96 Should close vote', async function() {
@@ -955,17 +971,17 @@ contract(
               );
             });
             it('17.102 should follow voting process', async function() {
-              await gv.submitVote(pId, 1, { from: ab1 });
-              await gv.submitVote(pId, 1, { from: ab2 });
-              await gv.submitVote(pId, 1, { from: ab3 });
-              await gv.submitVote(pId, 1, { from: ab4 });
-              await gv.submitVote(pId, 1, { from: ab5 });
-              await gv.submitVote(pId, 1, { from: mem4 });
-              await gv.submitVote(pId, 1, { from: mem5 });
-              await gv.submitVote(pId, 1, { from: mem7 });
-              await gv.submitVote(pId, 1, { from: mem10 });
-              await gv.submitVote(pId, 1, { from: mem11 });
-              await gv.submitVote(pId, 1, { from: mem12 });
+              await gv.submitVote(pId, 1, {from: ab1});
+              await gv.submitVote(pId, 1, {from: ab2});
+              await gv.submitVote(pId, 1, {from: ab3});
+              await gv.submitVote(pId, 1, {from: ab4});
+              await gv.submitVote(pId, 1, {from: ab5});
+              await gv.submitVote(pId, 1, {from: mem4});
+              await gv.submitVote(pId, 1, {from: mem5});
+              await gv.submitVote(pId, 1, {from: mem7});
+              await gv.submitVote(pId, 1, {from: mem10});
+              await gv.submitVote(pId, 1, {from: mem11});
+              await gv.submitVote(pId, 1, {from: mem12});
             });
             it('17.103 Should close vote', async function() {
               await increaseTime(604800);
@@ -978,7 +994,7 @@ contract(
             it('17.105 Should claim rewards', async function() {
               for (let i = 0; i < 13; i++) {
                 await cr.claimAllPendingReward(20, {
-                  from: web3.eth.accounts[i]
+                  from: accounts[i]
                 });
               }
             });
@@ -995,8 +1011,8 @@ contract(
                 [2],
                 604800,
                 'QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM',
-                pool1Address,
-                'P1',
+                pd.address,
+                'PD',
                 [0, 0, 0, 1]
               );
               pId = (await gv.getProposalLength()).toNumber();
@@ -1008,17 +1024,17 @@ contract(
                 'For testing Special Resolution cases',
                 actionHash
               );
-              await gv.submitVote(pId, 1, { from: ab1 });
-              await gv.submitVote(pId, 1, { from: ab2 });
-              await gv.submitVote(pId, 1, { from: ab3 });
-              await gv.submitVote(pId, 1, { from: ab4 });
-              await gv.submitVote(pId, 1, { from: ab5 });
+              await gv.submitVote(pId, 1, {from: ab1});
+              await gv.submitVote(pId, 1, {from: ab2});
+              await gv.submitVote(pId, 1, {from: ab3});
+              await gv.submitVote(pId, 1, {from: ab4});
+              await gv.submitVote(pId, 1, {from: ab5});
               await gv.closeProposal(pId);
               assert.equal((await pc.totalCategories()).toNumber(), 34);
             });
             it('17.107 Should create proposal', async function() {
               await increaseTime(604800);
-              balance = await web3.eth.getBalance(notMember);
+              IAstatus = await pd.getInvestmentAssetStatus('0x455448');
               pId = (await gv.getProposalLength()).toNumber();
               await gv.createProposal(
                 'Proposal13',
@@ -1032,9 +1048,9 @@ contract(
             });
             it('17.109 Should open for voting', async function() {
               let actionHash = encode(
-                'transferEther(uint,address)',
-                '10000000000000000',
-                notMember
+                'changeInvestmentAssetStatus(bytes4,bool)',
+                'ETH',
+                !IAstatus
               );
               await gv.submitProposalWithSolution(
                 pId,
@@ -1043,29 +1059,27 @@ contract(
               );
             });
             it('17.110 should follow voting process', async function() {
-              await gv.submitVote(pId, 1, { from: ab1 });
-              await gv.submitVote(pId, 1, { from: ab2 });
-              await gv.submitVote(pId, 1, { from: ab3 });
-              await gv.submitVote(pId, 1, { from: ab4 });
-              await gv.submitVote(pId, 1, { from: ab5 });
-              await gv.submitVote(pId, 1, { from: mem4 });
-              await gv.submitVote(pId, 1, { from: mem5 });
-              await gv.submitVote(pId, 1, { from: mem7 });
-              await gv.submitVote(pId, 1, { from: mem10 });
-              await gv.submitVote(pId, 1, { from: mem11 });
-              await gv.submitVote(pId, 1, { from: mem12 });
+              await gv.submitVote(pId, 1, {from: ab1});
+              await gv.submitVote(pId, 1, {from: ab2});
+              await gv.submitVote(pId, 1, {from: ab3});
+              await gv.submitVote(pId, 1, {from: ab4});
+              await gv.submitVote(pId, 1, {from: ab5});
+              await gv.submitVote(pId, 1, {from: mem4});
+              await gv.submitVote(pId, 1, {from: mem5});
+              await gv.submitVote(pId, 1, {from: mem7});
+              await gv.submitVote(pId, 1, {from: mem10});
+              await gv.submitVote(pId, 1, {from: mem11});
+              await gv.submitVote(pId, 1, {from: mem12});
             });
             it('17.111 Should close vote', async function() {
               await increaseTime(604800);
               await gv.closeProposal(pId);
             });
             it('17.112 Should execute defined automatic action', async function() {
-              let bal = await web3.eth.getBalance(notMember);
-              assert.isAbove(
-                bal.toNumber(),
-                balance.toNumber(),
-                'Action not executed'
+              let iaStatusLatest = await pd.getInvestmentAssetStatus(
+                '0x455448'
               );
+              assert.notEqual(iaStatusLatest, IAstatus, 'Action not executed');
             });
           });
         });
@@ -1086,16 +1100,16 @@ contract(
             );
           });
           it('17.116 should follow voting process', async function() {
-            await gv.submitVote(pId, 1, { from: ab1 });
-            await gv.submitVote(pId, 1, { from: ab2 });
-            await gv.submitVote(pId, 1, { from: ab3 });
-            await gv.submitVote(pId, 1, { from: ab4 });
-            await gv.submitVote(pId, 1, { from: ab5 });
-            await gv.submitVote(pId, 1, { from: mem4 });
-            await gv.submitVote(pId, 0, { from: mem5 });
-            await gv.submitVote(pId, 1, { from: mem7 });
-            await gv.submitVote(pId, 1, { from: mem10 });
-            await gv.submitVote(pId, 1, { from: mem11 });
+            await gv.submitVote(pId, 1, {from: ab1});
+            await gv.submitVote(pId, 1, {from: ab2});
+            await gv.submitVote(pId, 1, {from: ab3});
+            await gv.submitVote(pId, 1, {from: ab4});
+            await gv.submitVote(pId, 1, {from: ab5});
+            await gv.submitVote(pId, 1, {from: mem4});
+            await gv.submitVote(pId, 0, {from: mem5});
+            await gv.submitVote(pId, 1, {from: mem7});
+            await gv.submitVote(pId, 1, {from: mem10});
+            await gv.submitVote(pId, 1, {from: mem11});
           });
           it('17.117 Should close vote', async function() {
             await increaseTime(604800);
@@ -1108,12 +1122,11 @@ contract(
           it('17.119 Should get rewards', async function() {
             for (let i = 0; i < 12; i++) {
               if (
-                web3.toChecksumAddress(web3.eth.accounts[i]) !=
+                web3.toChecksumAddress(accounts[i]) !=
                 web3.toChecksumAddress(mem9)
               ) {
                 assert.isAbove(
-                  (await gv.getPendingReward(web3.eth.accounts[i])).toString() *
-                    1,
+                  (await gv.getPendingReward(accounts[i])).toString() * 1,
                   0,
                   'Incorrect reward'
                 );
@@ -1133,7 +1146,7 @@ contract(
           let actionHash = encode(
             'updateOwnerParameters(bytes8,address)',
             'OWNER',
-            web3.eth.accounts[1]
+            accounts[1]
           );
           await gv.createProposalwithSolution(
             'Proposal14',
@@ -1148,7 +1161,7 @@ contract(
           await gv.submitVote(pId, 0);
         });
         it('17.122 Should not execute defined automatic action', async function() {
-          let isOwner = await nxms.isOwner(web3.eth.accounts[1]);
+          let isOwner = await nxms.isOwner(accounts[1]);
           assert.equal(isOwner, false, 'Action executed');
         });
       });
@@ -1160,7 +1173,7 @@ contract(
           let actionHash = encode(
             'updateOwnerParameters(bytes8,address)',
             'OWNER',
-            web3.eth.accounts[1]
+            accounts[1]
           );
           await gv.createProposalwithSolution(
             'Proposal14',
@@ -1179,7 +1192,7 @@ contract(
           let owner = await nxms.getOwnerParameters(toHex('OWNER'));
           assert.equal(
             web3.toChecksumAddress(owner[1]),
-            web3.toChecksumAddress(web3.eth.accounts[1]),
+            web3.toChecksumAddress(accounts[1]),
             'Action not executed'
           );
         });

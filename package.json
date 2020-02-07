@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "test": "scripts/test.sh",
+    "coverage": "scripts/coverage.sh",
     "pretty": "prettier --write --single-quote --tab-width 2 \"**/*.js\"",
     "precommit": "lint-staged"
   },
@@ -45,15 +46,15 @@
     "coveralls": "^3.0.2",
     "ethereum-bridge": "^0.6.1",
     "ethereumjs-abi": "^0.6.5",
-    "ganache-cli": "^6.1.8",
+    "ganache-cli": "^6.9.0",
     "husky": "^1.1.2",
     "lint-staged": "^7.2.2",
     "mocha": "^5.2.0",
     "prettier": "^1.14.2",
     "solc": "^0.5.7",
     "solhint": "^1.5.1",
-    "solidity-coverage": "^0.5.11",
-    "truffle": "^5.0.7",
+    "solidity-coverage": "^0.7.1",
+    "truffle": "^5.0.31",
     "truffle-hdwallet-provider": "0.0.5"
   }
 }

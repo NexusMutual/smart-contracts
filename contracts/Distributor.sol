@@ -115,6 +115,7 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     payable
     allowsClaims(tokenId)
   {
+    require(!allTokenData[tokenId].claimInProgress, "Claim already in progress");
     require(allTokenData[tokenId].coverCurrency == "ETH", "currency not ETH");
     uint coverAmount = allTokenData[tokenId].coverDetails[1];
     require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
@@ -128,6 +129,8 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     public
     allowsClaims(tokenId)
   {
+    require(!allTokenData[tokenId].claimInProgress, "Claim already in progress");
+    require(allTokenData[tokenId].coverCurrency == "DAI", "currency not DAI");
     uint depositAmount = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
     PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
     IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(allTokenData[tokenId].coverCurrency));
@@ -147,6 +150,55 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
     allTokenData[tokenId].claimInProgress = true;
     // TODO: set to correct value once claim ID is available
     allTokenData[tokenId].claimId = 1337;
+  }
+
+  function redeemClaim(
+    uint256 tokenId
+  )
+    public
+    allowsClaims(tokenId)
+  {
+    require(allTokenData[tokenId].claimInProgress, "No claim is in progress");
+
+    QuotationData.QuotationData quotationData = QuotationData.QuotationData(nxMaster.getLatestAddress("QD"));
+    uint8 coverStatus;
+    uint sumAssured;
+    (, coverStatus, sumAssured, , ) = quotationData.getCoverDetailsByCoverID2(allTokenData[tokenId].coverId);
+
+    if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimDenied)) {
+      _burn(tokenId);
+
+    } else if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimAccepted)) {
+      Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
+      int8 finalVerdict;
+      (, , finalVerdict, , ) = claims.getClaimbyIndex(allTokenData[tokenId].claimId);
+
+      if (finalVerdict == 14) {
+        _sendAssuredSum(allTokenData[tokenId].coverCurrency, sumAssured);
+        _burn(tokenId);
+      } else {
+        revert("Claim accepted but payout not completed");
+      }
+    } else {
+      revert("Claim is neither accepted nor denied");
+    }
+  }
+
+  function _sendAssuredSum(
+    bytes4 coverCurrency,
+    uint sumAssured
+    )
+    internal
+  {
+    if (coverCurrency == "ETH") {
+      msg.sender.transfer(sumAssured);
+    } else if (coverCurrency == "DAI") {
+      PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
+      IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress("DAI"));
+      require(erc20.transfer(msg.sender, sumAssured), "Transfer failed");
+    } else {
+      revert("Unsupported currency.");
+    }
   }
 
   function getTokenData(uint tokenId) public view returns (TokenData memory) {
@@ -185,7 +237,6 @@ contract Distributor is ERC721.ERC721Full("NXMDistributorNFT", "NXMDNFT"), Ownab
   modifier allowsClaims(uint256 tokenId) {
     require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
     require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
-    require(!allTokenData[tokenId].claimInProgress, "Claim already in progress");
     _;
   }
 }

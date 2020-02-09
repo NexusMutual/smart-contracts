@@ -172,6 +172,14 @@ contract Distributor is
 
     if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimDenied)) {
       _burn(tokenId);
+      uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
+      if (allTokenData[tokenId].coverCurrency == "ETH") {
+        withdrawableETH.add(deposit);
+      } else if (allTokenData[tokenId].coverCurrency == "DAI") {
+        withdrawableDAI.add(deposit);
+      } else {
+        revert("Unsupported currency");
+      }
 
     } else if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimAccepted)) {
       Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));

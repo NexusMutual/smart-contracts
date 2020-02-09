@@ -179,7 +179,9 @@ contract Distributor is
       (, , finalVerdict, , ) = claims.getClaimbyIndex(allTokenData[tokenId].claimId);
 
       if (finalVerdict == 14) {
-        _sendAssuredSum(allTokenData[tokenId].coverCurrency, sumAssured);
+        uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
+        uint totalReturnedSum = sumAssured.add(deposit);
+        _sendAssuredSum(allTokenData[tokenId].coverCurrency, totalReturnedSum);
         _burn(tokenId);
       } else {
         revert("Claim accepted but payout not completed");

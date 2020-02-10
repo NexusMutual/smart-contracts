@@ -60,6 +60,12 @@ contract StakedData {
         uint timestamp;
     }
 
+    struct BurnedStake {
+        uint burned;
+        uint timestamp;
+        uint stakedNXM;
+    }
+
     /**
      * @dev mapping of uw address to array of sc address to fetch 
      * all staked contract address of underwriter 
@@ -125,6 +131,8 @@ contract StakedData {
      */
     mapping(address=> uint) public userDisallocationExecuted;
 
+    mapping(uint=> BurnedStake) public claimIdBurnedStake;
+
     /** 
      * @dev Modifier that ensure that transaction is from internal contracts only.
      */
@@ -156,13 +164,23 @@ contract StakedData {
     }
 
     /**
-     * @dev Updates Global burned of staker.
+     * @dev Decreases Global burned of staker.
      * @param staker address of staker.
-     * @param amount amount of NXM burned.
+     * @param amount amount of NXM burned to reduce.
      */
-    function updateGlobalBurn(address staker, uint amount) external onlyInternal
+    function decreaseGlobalBurn(address staker, uint amount) external onlyInternal
     {
-        globalBurned[staker] = amount;
+        globalBurned[staker] = globalBurned[staker].sub(amount);
+    }
+
+    /**
+     * @dev Increases Global burned of staker.
+     * @param staker address of staker.
+     * @param amount amount of NXM burned to increase.
+     */
+    function increaseGlobalBurn(address staker, uint amount) external onlyInternal
+    {
+        globalBurned[staker] = globalBurned[staker].add(amount);
     }
 
     /**
@@ -299,6 +317,11 @@ contract StakedData {
     function setUserDisallocationExecuted(address staker, uint index) external onlyInternal {
           
         userDisallocationExecuted[staker] = index;
+    }
+
+    function setClaimIdBurnedStake(uint claimId, uint burned, uint stakedNXM) external onlyInternal {
+
+        claimIdBurnedStake[claimId] = BurnedStake(burned, now, stakedNXM);
     }
     
     /**
@@ -461,6 +484,26 @@ contract StakedData {
     function getDissallocationLen(address staker) public view returns(uint len)
     {
         len = userDisallocationRequest[staker].length;
+    }
+
+    /**
+     * @dev Gets total number of staker staked against a smart cover.
+     * @param smartContractAddress address of smart contract.
+     * @return len length.
+     */
+    function getTotalStakerAgainstSC(address smartContractAddress) public view returns(uint len)
+    {
+        len = stakedContractStakers[smartContractAddress].length;
+    }
+
+    /**
+     * @dev Gets total number of NXM staked in actual.
+     * @param stakerAdd address of staker.
+     * @return stakeAmt actual staked amount.
+     */
+    function getActualGlobalStake(address stakerAdd) public view returns(uint stakeAmt)
+    {
+        stakeAmt = globalStake[stakerAdd].sub(globalBurned[stakerAdd]);
     }
 
     /**

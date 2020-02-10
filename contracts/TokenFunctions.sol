@@ -36,6 +36,7 @@ contract TokenFunctions is Iupgradable {
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
     uint private constant minCapFactor = uint(10) ** 21;
+    uint private constant pointMultiplier = 10;
 
     event BurnCATokens(uint claimId, address addr, uint amount);
 
@@ -97,6 +98,9 @@ contract TokenFunctions is Iupgradable {
         // uint tokenPrice = m1.calculateTokenPrice(curr);
         // uint totalStaker = td.getStakedContractStakersLength(scAddress);
         // uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
+        // uint totalStakedOncontract = getTotalStakedTokensOnSmartContract(scAddress);
+        // if(burnNXMAmount > totalStakedOncontract)
+        //     burnNXMAmount = totalStakedOncontract;
         // address stakerAddress;
         // uint stakerStakedNXM;
         // for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
@@ -128,6 +132,28 @@ contract TokenFunctions is Iupgradable {
         //     td.setStakedContractCurrentBurnIndex(scAddress, totalStaker.sub(1));
     }
 
+    function burnStakerStake(uint _claimId, uint _coverId, bytes4 curr) external onlyInternal {
+        address scAddress;
+        (, scAddress) = qd.getscAddressOfCover(_coverId);
+        uint tokenPrice = m1.calculateTokenPrice(curr);
+        uint burnNXMAmount = qd.getCoverSumAssured(_coverId).mul(DECIMAL1E18).div(tokenPrice);
+        uint totalStakedOncontract = getTotalStakedTokensOnSmartContract(scAddress);
+        if(burnNXMAmount > totalStakedOncontract)
+            burnNXMAmount = totalStakedOncontract;
+        sd.setClaimIdBurnedStake(_claimId, burnNXMAmount, totalStakedOncontract);
+        uint totalStaker = sd.getTotalStakerAgainstSC(scAddress);
+        for (uint i = 0; i < totalStaker; i++) {
+            address stakerAdd;
+            uint allocation;
+            (stakerAdd, allocation) = sd.stakedContractStakers(scAddress, i);
+            uint stakerBurn = allocation.mul(sd.getActualGlobalStake(stakerAdd)).mul(pointMultiplier).div(10000);
+            if(burnNXMAmount < totalStakedOncontract)
+                stakerBurn = stakerBurn.mul(burnNXMAmount).div(totalStakedOncontract);
+            sd.increaseGlobalBurn(stakerAdd, stakerBurn);
+
+        }
+    }
+
     /**
      * @dev Increases tokens staked for risk assessment.
      * Called by user to increase stake amount.
@@ -136,7 +162,8 @@ contract TokenFunctions is Iupgradable {
     function increaseStake(uint amount) external {
 
         // Add check to ensure no pending commission  to claim.
-        uint updatedGlobalStake = sd.globalStake(msg.sender).add(amount).sub(sd.globalBurned(msg.sender));
+        uint globalBurn = sd.globalBurned(msg.sender);
+        uint updatedGlobalStake = sd.globalStake(msg.sender).add(amount).sub(globalBurn);
         require(updatedGlobalStake > sd.minStake());
         if(tc.tokensLocked(msg.sender, "RA") == 0)
         {
@@ -147,7 +174,7 @@ contract TokenFunctions is Iupgradable {
             sd.updateAllocations(msg.sender, amount, false);
         }
         sd.updateGlobalStake(msg.sender, updatedGlobalStake);
-        sd.updateGlobalBurn(msg.sender, 0);
+        sd.decreaseGlobalBurn(msg.sender, globalBurn);
         sd.updateLastClaimedforCoverId(msg.sender, qd.getCoverLength());
         
         // sd.updateLastBurnedforClaimId(msg.sender, ); // update last burned for claim id
@@ -162,13 +189,14 @@ contract TokenFunctions is Iupgradable {
     function decreaseStake(uint amount) external {
 
         require(amount > 0);
+        uint globalBurn = sd.globalBurned(msg.sender);
         // Add check to ensure no pending commision to claim.
         // update RA->claimid->burned   
         uint maxUnstakeAmount = sd.getMaxUnstakable(msg.sender);
         require(maxUnstakeAmount >= amount);
 
 
-        uint updatedGlobalStake = sd.globalStake(msg.sender).sub(amount).sub(sd.globalBurned(msg.sender));
+        uint updatedGlobalStake = sd.globalStake(msg.sender).sub(amount).sub(globalBurn);
         // sd.updateLastBurnedforClaimId(msg.sender, ); // update last burned for claim id
 
         sd.updateLastClaimedforCoverId(msg.sender, qd.getCoverLength());
@@ -178,8 +206,8 @@ contract TokenFunctions is Iupgradable {
         sd.updateAllocations(msg.sender, amount, true);
 
         sd.updateGlobalStake(msg.sender, updatedGlobalStake);
-        if(sd.globalBurned(msg.sender) > 0){
-            sd.updateGlobalBurn(msg.sender, 0);
+        if(globalBurn > 0){
+            sd.decreaseGlobalBurn(msg.sender, globalBurn);
             // update RA->claimid->burned
         }
 

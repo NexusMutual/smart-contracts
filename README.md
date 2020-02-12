@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/somish/NexusMutual.svg?branch=master)](https://travis-ci.org/somish/NexusMutual?branch=master)
+[![Build Status](https://travis-ci.org/somish/NexusMutual.svg?branch=master)](https://travis-ci.org/somish/NexusMutual?branch=master) [![Coverage Status](https://coveralls.io/repos/github/NexusMutual/smart-contracts/badge.svg?branch=master)](https://coveralls.io/github/NexusMutual/smart-contracts?branch=master)
 
 <h1><a id="NEXUS_MUTUAL_0"></a>NEXUS MUTUAL</h1>
 <p>Nexus Mutual uses blockchain technology to bring the mutual ethos back to insurance by creating aligned incentives through smart contract code on the Ethereum blockchain.</p>

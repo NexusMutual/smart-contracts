@@ -22,6 +22,7 @@ import "./ClaimsData.sol";
 import "./Governance.sol";
 import "./Claims.sol";
 import "./Pool1.sol";
+import "./StakedData.sol";
 
 
 contract ClaimsReward is Iupgradable {
@@ -38,8 +39,14 @@ contract ClaimsReward is Iupgradable {
     Pool2 internal p2;
     PoolData internal pd;
     Governance internal gv;
+    StakedData internal sd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
+    uint private constant pointMultiplier = 10;
+
+    constructor(address  _stakeDataAdd) public {
+        sd = StakedData(_stakeDataAdd);
+    }
   
     function changeDependentContractAddress() public onlyInternal {
         c1 = Claims(ms.getLatestAddress("CL"));
@@ -236,6 +243,36 @@ contract ClaimsReward is Iupgradable {
         total = caReward.add(unlockableStakedTokens).add(commissionEarned.
         sub(commissionReedmed)).add(governanceReward);
     }
+
+    // function getGlobalStakedAtCoverPurchase(uint _coverId, address _user) public view returns(uint)
+    // {
+    //     // uint purchasedOn = qd.getValidityOfCover(_coverId).sub(uint(qd.getCoverPeriod(_coverId)).mul(1 days));
+    //     uint i = sd.lastBurnedforClaimId(_user);
+    //     // uint claimLen = cd.actualClaimLength();
+    //     uint globalStake = sd.globalStake(_user);
+    //     uint totalBurnt = 0;
+    //     for(; i < cd.actualClaimLength(); i++)
+    //     {
+    //         if(cd.getFinalVerdict(i) == 1) {
+    //             (, uint coverIdOfClaim) = cd.getClaimCoverId(i);
+    //             (, address smartCover) = qd.getscAddressOfCover(coverIdOfClaim);
+    //             if(sd.getScUserIndex(smartCover, _user) != -1)
+    //             {
+    //                 (, uint allocation) = sd.stakerStakedContracts(_user, uint(sd.getScUserIndex(smartCover, _user)));
+    //                 uint burntOn;
+    //                 uint burntByStakedRatio;
+    //                 (burntOn, burntByStakedRatio) = sd.claimIdBurnedStake(i);
+    //                 if(burntByStakedRatio < 10000)
+    //                     burntByStakedRatio = 10000;
+    //                 if(burntOn < qd.getValidityOfCover(_coverId).sub(uint(qd.getCoverPeriod(_coverId)).mul(1 days)))
+    //                     totalBurnt = totalBurnt.add(allocation.mul(globalStake.sub(totalBurnt)).mul(pointMultiplier).mul(burntByStakedRatio).div(100000000));
+    //                 else
+    //                     break;
+    //             }
+    //         }
+    //     }
+
+    // }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.
     //             Unlocking and burning of the tokens will also depend upon the status of claim.
@@ -476,5 +513,42 @@ contract ClaimsReward is Iupgradable {
         if (total > 0) 
             require(tk.transfer(_user, total)); //solhint-disable-line
         
+    }
+
+    /**
+     * @dev Function used to claim the commission earned by the staker by new stratergy.
+     */
+    function _claimPooledStakeCommission(uint _records, address _user) internal {
+        uint i = sd.lastClaimedforCoverId(_user);
+        uint lastCover = qd.getCoverLength();
+        uint reward = 0;
+        uint globalStaked = sd.globalStake(_user);
+        uint j=0;
+        uint burned;
+        for(; i < lastCover && j<_records; i++)
+        {
+            (, address smartCover) = qd.getscAddressOfCover(i);
+            int scUser = sd.getScUserIndex(smartCover, _user);
+            if(scUser != -1)
+            {
+                uint allocation;
+                (, allocation) = sd.stakerStakedContracts(_user, uint(scUser));
+                burned = 0;// getGlobalStakedAtCoverPurchase(i, _user);
+                uint stakedAtCoverPurchase = globalStaked.sub(burned);
+                uint stakedOnScAtCoverPurchase;
+                uint rewardForCover;
+                (rewardForCover, stakedOnScAtCoverPurchase) = sd.coverIdCommission(i);
+                reward = reward.add(allocation.mul(stakedAtCoverPurchase).mul(rewardForCover).div(stakedOnScAtCoverPurchase).div(10000));
+                j++;
+            }
+        }
+        sd.updateGlobalStake(_user, globalStaked.sub(burned));
+        sd.decreaseGlobalBurn(_user, burned);
+        tc.burnLockedTokens(_user, "RA", burned);
+        sd.updateLastClaimedforCoverId(msg.sender, i);
+        // update CLburn
+        // update mapping clid to burned
+        if (reward > 0) 
+            require(tk.transfer(_user, reward));
     }
 }

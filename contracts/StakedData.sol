@@ -60,9 +60,16 @@ contract StakedData {
         uint timestamp;
     }
 
+    // Structure to hold Burned stake records.
     struct BurnedStake {
-        uint burned;
+        // uint burned;
         uint timestamp;
+        uint burntByStakedRatiox1000;
+    }
+
+    // Structure to hold Commission records.
+    struct CommissionData {
+        uint reward;
         uint stakedNXM;
     }
 
@@ -131,7 +138,15 @@ contract StakedData {
      */
     mapping(address=> uint) public userDisallocationExecuted;
 
+    /** 
+     * @dev mapping of claim id to burned stake against it.    
+     */
     mapping(uint=> BurnedStake) public claimIdBurnedStake;
+
+    /** 
+     * @dev mapping of cover id to reward to be distributed.    
+     */
+    mapping(uint=> CommissionData) public coverIdCommission;
 
     /** 
      * @dev Modifier that ensure that transaction is from internal contracts only.
@@ -319,9 +334,25 @@ contract StakedData {
         userDisallocationExecuted[staker] = index;
     }
 
-    function setClaimIdBurnedStake(uint claimId, uint burned, uint stakedNXM) external onlyInternal {
+    /**
+     * @dev Updates burned stake data against claim id.
+     * @param claimid claim id.
+     * @param burntByStakedRatio ratio of amount of nxm burned by amount of nxm staked against sc at time of burning.
+     */
+    function setClaimIdBurnedStake(uint claimid, uint burntByStakedRatio) external onlyInternal {
 
-        claimIdBurnedStake[claimId] = BurnedStake(burned, now, stakedNXM);
+        claimIdBurnedStake[claimid] = BurnedStake(now, burntByStakedRatio);
+    }
+
+    /**
+     * @dev Updates Commission to be distributed against coverId.
+     * @param coverId cover id against which reward is to be distributed.
+     * @param reward amount of nxm to be distributed.
+     * @param stakedNXM amount of nxm staked against sc at time of cover purchase.
+     */
+    function setCoverIdCommission(uint coverId, uint reward, uint stakedNXM) external onlyInternal {
+
+        coverIdCommission[coverId] = CommissionData(reward, stakedNXM);
     }
     
     /**

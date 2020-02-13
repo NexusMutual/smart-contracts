@@ -2,6 +2,7 @@ pragma solidity 0.5.7;
 
 import "../Pool1.sol";
 import "../ClaimsData.sol";
+import "../TokenFunctionsOld.sol";
 
 
 contract Pool1Mock is Pool1 {
@@ -25,7 +26,7 @@ contract Pool1Mock is Pool1 {
     }
 
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) external {
-        TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
+        TokenFunctionsOld tf = TokenFunctionsOld(ms.getLatestAddress("TF"));
         tf.updateStakerCommissions(_scAddress, _premiumNXM);
     }
 

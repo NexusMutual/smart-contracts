@@ -1,6 +1,6 @@
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
-const ClaimsReward = artifacts.require('ClaimsReward');
+const ClaimsReward = artifacts.require('ClaimsRewardOld');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
@@ -10,7 +10,7 @@ const TokenController = artifacts.require('TokenControllerOld');
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolDataMock');
-const Quotation = artifacts.require('Quotation');
+const Quotation = artifacts.require('QuotationOld');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');

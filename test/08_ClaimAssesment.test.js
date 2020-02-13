@@ -8,9 +8,9 @@ const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
 
-const ClaimsReward = artifacts.require('ClaimsReward');
+const ClaimsReward = artifacts.require('ClaimsRewardOld');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
-const Quotation = artifacts.require('Quotation');
+const Quotation = artifacts.require('QuotationOld');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');

@@ -8,10 +8,10 @@ const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
 
-const ClaimsReward = artifacts.require('ClaimsReward');
+const ClaimsReward = artifacts.require('ClaimsRewardOld');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const DSValue = artifacts.require('DSValueMock');
-const Quotation = artifacts.require('Quotation');
+const Quotation = artifacts.require('QuotationOld');
 const MCR = artifacts.require('MCR');
 const DAI = artifacts.require('MockDAI');
 const MemberRoles = artifacts.require('MemberRoles');

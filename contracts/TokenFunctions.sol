@@ -49,45 +49,14 @@ contract TokenFunctions is Iupgradable {
      * @param _scAddress staker address.
      * @param _premiumNXM premium of cover in NXM.
      */
-    function updateStakerCommissions(address _scAddress, uint _premiumNXM) external onlyInternal {
-        // uint commissionToBePaid = (_premiumNXM.mul(td.stakerCommissionPer())).div(100);
-        // uint stakeLength = td.getStakedContractStakersLength(_scAddress);
-        // address claimsRewardAddress = ms.getLatestAddress("CR");
-        // for (uint i = td.stakedContractCurrentCommissionIndex(_scAddress); i < stakeLength; i++) {
-        //     if (commissionToBePaid > 0) {
-        //         address stakerAddress;
-        //         uint stakeAmt;
-        //         uint stakerIndex;
-        //         (stakerAddress, ) = td.stakedContractStakers(_scAddress, i);
-        //         stakerIndex = td.getStakedContractStakerIndex(_scAddress, i);
-        //         stakeAmt = td.getStakerInitialStakedAmountOnContract(stakerAddress, stakerIndex);
-        //         uint maxCommission = (stakeAmt.mul(td.stakerMaxCommissionPer())).div(100);
-        //         uint commissionEarned;
-        //         commissionEarned = td.getStakerEarnedStakeCommission(stakerAddress, stakerIndex);
-        //         if (maxCommission > commissionEarned) {
-        //             if (maxCommission >= commissionEarned.add(commissionToBePaid)) {
-        //                 td.pushEarnedStakeCommissions(stakerAddress, _scAddress, 
-        //                     i, commissionToBePaid);
-        //                 tc.mint(claimsRewardAddress, commissionToBePaid);
-        //                 if (i > 0)
-        //                     td.setStakedContractCurrentCommissionIndex(_scAddress, i);
-        //                 commissionToBePaid = 0;
-        //                 break;
-        //             } else {
-        //                 td.pushEarnedStakeCommissions(stakerAddress, _scAddress, i,
-        //                     maxCommission.sub(commissionEarned));
-        //                 tc.mint(claimsRewardAddress, maxCommission.sub(commissionEarned));
-        //                 commissionToBePaid = commissionToBePaid.sub(maxCommission.sub(commissionEarned));
-        //             }
-        //         }
-        //     } else
-        //         break;
-        // }
-        // if (commissionToBePaid > 0 && stakeLength > 0)
-        //     td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
+    function updateStakerCommissions(uint coverId, address _scAddress, uint _premiumNXM) external onlyInternal {
+        address claimsRewardAddress = ms.getLatestAddress("CR");
+        uint reward = _premiumNXM.mul(td.stakerCommissionPer()).div(100);
+        sd.setCoverIdCommission(coverId, reward, sd.getTotalStakedTokensOnSmartContract(_scAddress));
+        tc.mint(claimsRewardAddress, reward);
     }
 
-     /**
+    /**
      * @dev Burns tokens staked against a Smart Contract Cover.
      * Called when a claim submitted against this cover is accepted.
      * @param coverid Cover Id.
@@ -140,7 +109,7 @@ contract TokenFunctions is Iupgradable {
         uint totalStakedOncontract = getTotalStakedTokensOnSmartContract(scAddress);
         if(burnNXMAmount > totalStakedOncontract)
             burnNXMAmount = totalStakedOncontract;
-        sd.setClaimIdBurnedStake(_claimId, burnNXMAmount, totalStakedOncontract);
+        sd.setClaimIdBurnedStake(_claimId, burnNXMAmount.mul(10000).div( totalStakedOncontract));
         uint totalStaker = sd.getTotalStakerAgainstSC(scAddress);
         for (uint i = 0; i < totalStaker; i++) {
             address stakerAdd;
@@ -175,6 +144,7 @@ contract TokenFunctions is Iupgradable {
         }
         sd.updateGlobalStake(msg.sender, updatedGlobalStake);
         sd.decreaseGlobalBurn(msg.sender, globalBurn);
+        tc.burnLockedTokens(msg.sender, "RA", globalBurn);
         sd.updateLastClaimedforCoverId(msg.sender, qd.getCoverLength());
         
         // sd.updateLastBurnedforClaimId(msg.sender, ); // update last burned for claim id
@@ -208,6 +178,7 @@ contract TokenFunctions is Iupgradable {
         sd.updateGlobalStake(msg.sender, updatedGlobalStake);
         if(globalBurn > 0){
             sd.decreaseGlobalBurn(msg.sender, globalBurn);
+            tc.burnLockedTokens(msg.sender, "RA", globalBurn);
             // update RA->claimid->burned
         }
 

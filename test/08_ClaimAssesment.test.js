@@ -16,7 +16,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const Governance = artifacts.require('Governance');
 const DAI = artifacts.require('MockDAI');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');

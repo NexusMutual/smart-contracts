@@ -4,7 +4,7 @@ const PoolData = artifacts.require('PoolDataMock');
 const DAI = artifacts.require('MockDAI');
 const exchangeMock = artifacts.require('ExchangeMock');
 const MCR = artifacts.require('MCR');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const NXMToken = artifacts.require('NXMToken');
@@ -206,7 +206,7 @@ contract('Pool', function([
 
   describe('Liquidity', function() {
     it('12.32 Setting the testing parameters', async function() {
-      await DSV.setRate(toWei(10));
+      await DSV.setRate(10);
       await pd.changeCurrencyAssetBaseMin('0x455448', toWei(6));
       await pd.changeCurrencyAssetBaseMin('0x444149', toWei(6));
       await tf.upgradeCapitalPool(cad.address);

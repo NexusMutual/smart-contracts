@@ -1,6 +1,6 @@
 const DAI = artifacts.require('MockDAI');
 const MKR = artifacts.require('MockMKR');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const FactoryMock = artifacts.require('FactoryMock');
 const ExchangeMock = artifacts.require('ExchangeMock');
 const ExchangeMKRMock = artifacts.require('ExchangeMock');
@@ -16,7 +16,7 @@ module.exports = function(deployer, network, accounts) {
   deployer.then(async () => {
     dai = await deployer.deploy(DAI);
     mkr = await deployer.deploy(MKR);
-    await deployer.deploy(DSValue);
+    await deployer.deploy(DSValue, accounts[0]);
     factory = await deployer.deploy(FactoryMock);
     exchange = await deployer.deploy(
       ExchangeMock,

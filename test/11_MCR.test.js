@@ -6,7 +6,7 @@ const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
-const DSValue = artifacts.require('DSValueMock');
+const DSValue = artifacts.require('NXMDSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 
@@ -268,7 +268,7 @@ contract('MCR', function([owner, notOwner]) {
         .should.be.equal((284.22807).toString());
     });
     it('11.18 getAllSumAssurance function should skip calcualation for currency with rate 0', async function() {
-      await DSV.setRate(0);
+      await DSV.setZeroRate(true);
       let allSA = await mcr.getAllSumAssurance();
       (await qd.getTotalSumAssured(toHex('ETH')))
         .toString()

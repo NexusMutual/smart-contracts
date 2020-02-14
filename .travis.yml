@@ -22,6 +22,6 @@ jobs:
       script: npm run test
     - stage: tests
       name: "unit tests with coverage"
-      script: travis_wait 90 npm run test
+      script: npm run test
       env: SOLIDITY_COVERAGE=true
 

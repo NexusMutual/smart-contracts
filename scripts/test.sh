@@ -13,23 +13,14 @@ cleanup() {
   fi
 }
 
-if [ "$SOLIDITY_COVERAGE" = true ]; then
-  ganache_port=8555
-else
-  ganache_port=8545
-fi
+ganache_port=8545
 
 ganache_running() {
   nc -z localhost "$ganache_port"
 }
 
-start_ganache() {
-  if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 30 -e 10000000 > /dev/null &
-  else
-    node_modules/.bin/ganache-cli --gasLimit 8000000 -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 30 -e 10000000 > /dev/null &
-  fi
-
+start_ganache() { 
+  node_modules/.bin/ganache-cli --gasLimit 80000000 -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 30 -e 10000000 > /dev/null &
   ganache_pid=$!
 }
 
@@ -40,23 +31,22 @@ else
   start_ganache
   sleep 2
 fi
+
+if [ -d "node_modules/eth-lightwallet/node_modules/bitcore-lib" ]; then
+    rm -r "node_modules/eth-lightwallet/node_modules/bitcore-lib"
+    echo "Deleted eth bitcore-lib"
+fi
+if [ -d "node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
+  rm -r "node_modules/bitcore-mnemonic/node_modules/bitcore-lib"
+  echo "Deleted mne bitcore-lib"
+fi
+
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  curl -o node_modules/solidity-parser-sc/build/parser.js  https://nexusmutual.io/js/parser.js
-  curl -o node_modules/solidity-coverage/lib/app.js https://nexusmutual.io/js/app.js
-  sleep 2
-  node_modules/.bin/solidity-coverage
+  npx truffle run coverage
   if [ "$CONTINUOUS_INTEGRATION" = true ]; then
     cat coverage/lcov.info | node_modules/.bin/coveralls
   fi
 else
-  if [ -d "node_modules/eth-lightwallet/node_modules/bitcore-lib" ]; then
-    rm -r "node_modules/eth-lightwallet/node_modules/bitcore-lib"
-    echo "Deleted eth bitcore-lib"
-  fi
-  if [ -d "node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
-    rm -r "node_modules/bitcore-mnemonic/node_modules/bitcore-lib"
-    echo "Deleted mne bitcore-lib"
-  fi
   echo "Now let's test truffle"
   node_modules/.bin/truffle test "$@"
 fi

@@ -128,24 +128,26 @@ contract TokenFunctions is Iupgradable {
      * Called by user to increase stake amount.
      * @param amount additional stake to be added.
      */
-    function increaseStake(uint amount) external {
+    function increaseStake(address _user, uint amount) external {
+
+        require((_user == msg.sender && sd.userMigrated(_user)) || _user == ms.getLatestAddress("CR"));
 
         // Add check to ensure no pending commission  to claim.
-        uint globalBurn = sd.globalBurned(msg.sender);
-        uint updatedGlobalStake = sd.globalStake(msg.sender).add(amount).sub(globalBurn);
+        uint globalBurn = sd.globalBurned(_user);
+        uint updatedGlobalStake = sd.globalStake(_user).add(amount).sub(globalBurn);
         require(updatedGlobalStake > sd.minStake());
-        if(tc.tokensLocked(msg.sender, "RA") == 0)
+        if(tc.tokensLocked(_user, "RA") == 0)
         {
-            tc.lockOf(msg.sender, "RA", amount, uint(2 ** 251).sub(now)); // locking for indefinite time.
+            tc.lockOf(_user, "RA", amount, uint(2 ** 251).sub(now)); // locking for indefinite time.
         }
         else {
-            tc.increaseRALockAmount(msg.sender, amount);
-            sd.updateAllocations(msg.sender, amount, false);
+            tc.increaseRALockAmount(_user, amount);
+            sd.updateAllocations(_user, amount, false);
         }
-        sd.updateGlobalStake(msg.sender, updatedGlobalStake);
-        sd.decreaseGlobalBurn(msg.sender, globalBurn);
-        tc.burnLockedTokens(msg.sender, "RA", globalBurn);
-        sd.updateLastClaimedforCoverId(msg.sender, qd.getCoverLength());
+        sd.updateGlobalStake(_user, updatedGlobalStake);
+        sd.decreaseGlobalBurn(_user, globalBurn);
+        tc.burnLockedTokens(_user, "RA", globalBurn);
+        sd.updateLastClaimedforCoverId(_user, qd.getCoverLength());
         
         // sd.updateLastBurnedforClaimId(msg.sender, ); // update last burned for claim id
         // update RA->claimid->burned   
@@ -159,6 +161,7 @@ contract TokenFunctions is Iupgradable {
     function decreaseStake(uint amount) external {
 
         require(amount > 0);
+        require(sd.userMigrated(msg.sender));
         uint globalBurn = sd.globalBurned(msg.sender);
         // Add check to ensure no pending commision to claim.
         // update RA->claimid->burned   
@@ -189,41 +192,65 @@ contract TokenFunctions is Iupgradable {
 
     /**
      * @dev Increases staking allocation against mentioned smart cover.
-     * Called by user to increase allocation %.
+     * Called by user to increase allocation %. Can also be called by CR contract in behalf of user.
+     * @param _user address of user.
      * @param scAdd array of smart cover against which allocation to be added.
      * @param percentx100 array of values for additional allocation to be added.
      */
-    function increaseAllocation(address[] calldata scAdd, uint[] calldata percentx100) external {
+    function increaseAllocation(address _user, address[] calldata scAdd, uint[] calldata percentx100) external {
         require(scAdd.length == percentx100.length);
+        require((_user == msg.sender && sd.userMigrated(_user)) || _user == ms.getLatestAddress("CR"));
         // Add check to ensure no pending commision to claim.
-        uint currentTotalAllocated = sd.userTotalAllocated(msg.sender);
+        uint currentTotalAllocated = sd.userTotalAllocated(_user);
         uint totalAllocationPassed = 0;
+        uint globalMaxPerContract = getGlobalMaxStakePerContract();
+        uint globalStake = sd.globalStake(_user);
+        uint globalBurned = sd.globalBurned(_user);
+        uint minAlloc = sd.minAllocationPerx100();
+        uint maxAlloc = sd.maxAllocationPerx100();
         for(uint i = 0;i<scAdd.length;i++)
         {
-            require(percentx100[i] > 0);
-            totalAllocationPassed = totalAllocationPassed.add(percentx100[i]);
-            require(currentTotalAllocated.add(totalAllocationPassed) <= 10000);
-            int scUserIndex = sd.getScUserIndex(scAdd[i], msg.sender);
-            uint currentAllocated;
-            if(scUserIndex == -1)
-                currentAllocated = 0;
-            else
-                (, currentAllocated) = sd.stakerStakedContracts(msg.sender, uint(scUserIndex));
-            require(currentAllocated.add(percentx100[i]) >= sd.minAllocationPerx100() && currentAllocated.add(percentx100[i]) <= sd.maxAllocationPerx100());
-            uint globalMaxPerContract = getGlobalMaxStakePerContract();
-            uint totalStakedOnContract = getTotalStakedTokensOnSmartContract(scAdd[i]);
-            uint globalStake = sd.globalStake(msg.sender);
-            uint minAllocx100 = percentx100[i];
-            if(globalMaxPerContract >= ((globalStake.sub(sd.globalBurned(msg.sender))).mul(minAllocx100).div(10000)).add(totalStakedOnContract))
-                minAllocx100 = (globalMaxPerContract.sub(totalStakedOnContract)).mul(10000).div(globalStake);
-            if(currentAllocated == 0)
-            {
-                sd.pushStakeData(msg.sender, scAdd[i], minAllocx100);
+            if (percentx100[i] > 0) {
+                totalAllocationPassed = totalAllocationPassed.add(percentx100[i]);
+                require(currentTotalAllocated.add(totalAllocationPassed) <= 10000);
+                _increaseAllocationExtended(_user, scAdd[i], percentx100[i], globalMaxPerContract, globalStake, globalBurned, minAlloc, maxAlloc);
             }
-            else
-            {
-                sd.increaseStakeAllocation(msg.sender, scAdd[i], minAllocx100);
-            }
+            
+        }
+    }
+
+    /**
+     * @dev Extended part increaseAllocation.
+     * The function is splitted into 2 parts to avoid stack too deep error.
+     * @param _user address of user.
+     * @param scAdd smart cover against which allocation to be added.
+     * @param percentx100 value for additional allocation to be added.
+     * @param globalMaxPerContract Max possible stake against a smart contract.
+     * @param globalStake global stake of user.
+     * @param globalBurned global burned of user.
+     * @param minAlloc minimum allocation percentage for single contract.
+     * @param maxAlloc maximum allocation percentage for single contract.
+     */
+    function _increaseAllocationExtended(address _user, address scAdd, uint percentx100, uint globalMaxPerContract, uint globalStake, uint globalBurned, uint minAlloc, uint maxAlloc) internal {
+        
+        int scUserIndex = sd.getScUserIndex(scAdd, _user);
+        uint currentAllocated;
+        if(scUserIndex == -1)
+            currentAllocated = 0;
+        else
+            (, currentAllocated) = sd.stakerStakedContracts(_user, uint(scUserIndex));
+        require(currentAllocated.add(percentx100) >= minAlloc && currentAllocated.add(percentx100) <= maxAlloc);
+        uint minAllocx100 = percentx100;
+        uint totalStakedOnContract = getTotalStakedTokensOnSmartContract(scAdd);
+        if(globalMaxPerContract >= ((globalStake.sub(globalBurned).mul(minAllocx100).div(10000)).add(totalStakedOnContract)))
+            minAllocx100 = (globalMaxPerContract.sub(totalStakedOnContract)).mul(10000).div(globalStake);
+        if(currentAllocated == 0)
+        {
+            sd.pushStakeData(_user, scAdd, minAllocx100);
+        }
+        else
+        {
+            sd.increaseStakeAllocation(_user, scAdd, minAllocx100);
         }
     }
 
@@ -235,7 +262,7 @@ contract TokenFunctions is Iupgradable {
      */
     function decreaseAllocation(address[] calldata scAdd, uint[] calldata percentx100) external {
         require(scAdd.length == percentx100.length);
-
+        require(sd.userMigrated(msg.sender));
         for(uint i = 0;i<scAdd.length;i++)
         {
             int scUserIndex = sd.getScUserIndex(scAdd[i], msg.sender);
@@ -251,6 +278,8 @@ contract TokenFunctions is Iupgradable {
             if (minAllocationx100 > 0)
                 sd.pushDecreaseAllocationRequest(msg.sender, scAdd[i], minAllocationx100);
         }
+
+        sd.callEvent(msg.sender, 0, 1);
         
     }
 
@@ -607,7 +636,7 @@ contract TokenFunctions is Iupgradable {
         address stakedAdd, 
         uint stakerIndex
     )
-    internal 
+    public 
     view 
     returns
     (uint amount, uint canBurn) {

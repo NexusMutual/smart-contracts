@@ -42,10 +42,51 @@ contract ClaimsReward is Iupgradable {
     StakedData internal sd;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
-    uint private constant pointMultiplier = 10;
+    uint private constant POINT_MULTIPLIER = 10;
 
     constructor(address  _stakeDataAdd) public {
         sd = StakedData(_stakeDataAdd);
+    }
+
+    /**
+     * @dev Migrates all users to new staking structure.
+     * @param _ra address of user.
+     */
+    function migrateStake(address _ra) external {
+
+        require(!sd.userMigrated(_ra));
+        claimAllCommissionAndUnlockable(_ra, 10);
+        uint snxm = tf.getStakerAllLockedTokens(_ra);
+        if (snxm > 0) {
+
+            tc.mint(_ra, snxm);
+            tf.increaseStake(_ra, snxm);
+            uint stakedLen = td.getStakerStakedContractLength(_ra);
+            uint[] memory stakedAllocations = new uint[](stakedLen);
+            address[] memory stakedAddresses = new address[](stakedLen);
+            uint i;
+            for (i = 0; i < stakedLen; i++) {
+                uint scIndex;
+                stakedAddresses[i] = td.getStakerStakedContractByIndex(_ra, i);
+                scIndex = td.getStakerStakedContractIndex(stakedAddresses[i], i);
+                uint stakedAmount;
+                (, stakedAmount) = tf._unlockableBeforeBurningAndCanBurn(_ra, stakedAddresses[i], i);
+                stakedAllocations[i] = stakedAmount.mul(10000).div(snxm);
+                if (stakedAllocations[i] > 1000) {
+                    stakedAllocations[i] = 1000;
+                }
+                if (stakedAllocations[i] < 200) {
+                    stakedAllocations[i] = 0;
+                }
+                td.pushBurnedTokens(_ra, i, stakedAmount);
+                bytes32 reason = keccak256(abi.encodePacked("UW", _ra,
+                    stakedAddresses[i], scIndex));
+                tc.burnLockedTokens(_ra, reason, stakedAmount);
+            }
+            tf.increaseAllocation(_ra, stakedAddresses, stakedAllocations);
+        }
+        sd.setUserMigrated(_ra);
+        sd.callEvent(_ra, 0, 2);
     }
   
     function changeDependentContractAddress() public onlyInternal {
@@ -224,11 +265,6 @@ contract ClaimsReward is Iupgradable {
         }
     }
 
-    function claimAllCommissionAndUnlockable(address _user, uint records) internal {
-        _claimStakeCommission(records, _user);
-        tf.unlockStakerUnlockableTokens(_user); 
-    } 
-    
     /**
      * @dev Function used to get pending rewards of a particular user address.
      * @param _add user address.
@@ -244,6 +280,11 @@ contract ClaimsReward is Iupgradable {
         sub(commissionReedmed)).add(governanceReward);
     }
 
+    function claimAllCommissionAndUnlockable(address _user, uint records) internal {
+        _claimStakeCommission(records, _user);
+        tf.unlockStakerUnlockableTokens(_user); 
+    } 
+
     // function getGlobalStakedAtCoverPurchase(uint _coverId, address _user) public view returns(uint)
     // {
     //     // uint purchasedOn = qd.getValidityOfCover(_coverId).sub(uint(qd.getCoverPeriod(_coverId)).mul(1 days));
@@ -258,14 +299,16 @@ contract ClaimsReward is Iupgradable {
     //             (, address smartCover) = qd.getscAddressOfCover(coverIdOfClaim);
     //             if(sd.getScUserIndex(smartCover, _user) != -1)
     //             {
-    //                 (, uint allocation) = sd.stakerStakedContracts(_user, uint(sd.getScUserIndex(smartCover, _user)));
+    //                 (, uint allocation) = sd.stakerStakedContracts(_user, 
+    // uint(sd.getScUserIndex(smartCover, _user)));
     //                 uint burntOn;
     //                 uint burntByStakedRatio;
     //                 (burntOn, burntByStakedRatio) = sd.claimIdBurnedStake(i);
     //                 if(burntByStakedRatio < 10000)
     //                     burntByStakedRatio = 10000;
     //                 if(burntOn < qd.getValidityOfCover(_coverId).sub(uint(qd.getCoverPeriod(_coverId)).mul(1 days)))
-    //                     totalBurnt = totalBurnt.add(allocation.mul(globalStake.sub(totalBurnt)).mul(pointMultiplier).mul(burntByStakedRatio).div(100000000));
+    //                     totalBurnt = totalBurnt.add(allocation.mul(
+    // globalStake.sub(totalBurnt)).mul(POINT_MULTIPLIER).mul(burntByStakedRatio).div(100000000));
     //                 else
     //                     break;
     //             }
@@ -447,10 +490,11 @@ contract ClaimsReward is Iupgradable {
             if (tokenForVoteId > 0)
                 total = tokenForVoteId.add(total);
         }
-        if(lastClaimed == lengthVote)
+        if (lastClaimed == lengthVote) {
             cd.setRewardDistributedIndexCA(msg.sender, i);
-        else
+        } else {
             cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
+        }
         lengthVote = cd.getVoteAddressMemberLength(msg.sender);
         lastClaimed = lengthVote;
         _days = _days.mul(counter);
@@ -465,7 +509,7 @@ contract ClaimsReward is Iupgradable {
             if (lastClaimed == lengthVote && lastClaimedCheck == true)
                 lastClaimed = i;
             (, claimId, , claimed) = cd.getVoteDetails(voteid);
-            if (claimed == false && cd.getFinalVerdict(claimId) != 0){
+            if (claimed == false && cd.getFinalVerdict(claimId) != 0) {
                 cd.setRewardClaimed(voteid, true);
                 counter++;
             }
@@ -474,10 +518,11 @@ contract ClaimsReward is Iupgradable {
         }
         if (total > 0)
             require(tk.transfer(msg.sender, total));
-        if(lastClaimed == lengthVote) 
+        if (lastClaimed == lengthVote) {
             cd.setRewardDistributedIndexMV(msg.sender, i);
-        else
+        } else {
             cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
+        }
     }
 
     /**
@@ -505,10 +550,11 @@ contract ClaimsReward is Iupgradable {
             total = total.add(commissionEarned.sub(commissionRedeemed));
             counter++;
         }
-            if(lastCommisionRedeemed == len)
-                td.setLastCompletedStakeCommissionIndex(_user, i);
-            else
-                td.setLastCompletedStakeCommissionIndex(_user, lastCommisionRedeemed); 
+        if (lastCommisionRedeemed == len) {
+            td.setLastCompletedStakeCommissionIndex(_user, i);
+        } else {
+            td.setLastCompletedStakeCommissionIndex(_user, lastCommisionRedeemed); 
+        }
 
         if (total > 0) 
             require(tk.transfer(_user, total)); //solhint-disable-line
@@ -525,12 +571,10 @@ contract ClaimsReward is Iupgradable {
         uint globalStaked = sd.globalStake(_user);
         uint j=0;
         uint burned;
-        for(; i < lastCover && j<_records; i++)
-        {
+        for (; i < lastCover && j < _records; i++) {
             (, address smartCover) = qd.getscAddressOfCover(i);
             int scUser = sd.getScUserIndex(smartCover, _user);
-            if(scUser != -1)
-            {
+            if (scUser != -1) {
                 uint allocation;
                 (, allocation) = sd.stakerStakedContracts(_user, uint(scUser));
                 burned = 0;// getGlobalStakedAtCoverPurchase(i, _user);
@@ -538,7 +582,8 @@ contract ClaimsReward is Iupgradable {
                 uint stakedOnScAtCoverPurchase;
                 uint rewardForCover;
                 (rewardForCover, stakedOnScAtCoverPurchase) = sd.coverIdCommission(i);
-                reward = reward.add(allocation.mul(stakedAtCoverPurchase).mul(rewardForCover).div(stakedOnScAtCoverPurchase).div(10000));
+                reward = reward.add(allocation.mul(stakedAtCoverPurchase).mul(rewardForCover)
+                    .div(stakedOnScAtCoverPurchase).div(10000));
                 j++;
             }
         }
@@ -550,5 +595,6 @@ contract ClaimsReward is Iupgradable {
         // update mapping clid to burned
         if (reward > 0) 
             require(tk.transfer(_user, reward));
+        sd.callEvent(_user, reward, 3);
     }
 }

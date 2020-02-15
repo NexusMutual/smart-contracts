@@ -10,6 +10,7 @@ const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const { latestTime } = require('./utils/latestTime');
 const TokenFunctions = artifacts.require('TokenFunctions');
+const ClaimsReward = artifacts.require('ClaimsReward');
 const Web3 = require('web3');
 const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545')); // Hardcoded development port
 // const { toWei } = require('./utils/ethTools');
@@ -23,6 +24,7 @@ let qd;
 let nxms;
 let nxmToken;
 let sd;
+let cr;
 let maxAllowance =
   '115792089237316195423570985008687907853269984665640564039457584007913129639935';
 
@@ -65,7 +67,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
   });
 
   describe('Staking', function() {
-    it('Upgrade TokenFunctions and TokenController contract', async function() {
+    it('Upgrade TokenFunctions, claimRewards and TokenController contract', async function() {
       let newTf = await TokenFunctions.new(sd.address);
 
       let actionHash = encode(
@@ -76,6 +78,20 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       await gvProposal(29, actionHash, mr, gv, 2);
       assert.equal(await nxms.getLatestAddress(toHex('TF')), newTf.address);
       tf = newTf;
+
+      let newCr = await ClaimsReward.new(sd.address);
+      actionHash = encode(
+        'upgradeContract(bytes2,address)',
+        'CR',
+        newCr.address
+      );
+      await gvProposal(29, actionHash, mr, gv, 2);
+      assert.equal(await nxms.getLatestAddress(toHex('CR')), newCr.address);
+
+      cr = await ClaimsReward.at(await nxms.getLatestAddress(toHex('CR')));
+
+      await cr.migrateStake(ab1);
+
       let newTc = await TokenController.new();
       actionHash = encode(
         'upgradeContractImplementation(bytes2,address)',
@@ -91,7 +107,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
     it('User can lock against risk assesment', async function() {
       let currentCoverLen = await qd.getCoverLength();
       let initialBalance = await nxmToken.balanceOf(ab1);
-      await tf.increaseStake(toWei(150));
+      await tf.increaseStake(ab1, toWei(150));
       let finalBalance = await nxmToken.balanceOf(ab1);
       let time = await latestTime();
       assert.equal(await sd.globalStake(ab1), toWei(150));
@@ -108,7 +124,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       let currentCoverLen = await qd.getCoverLength();
       let initialBalance = await nxmToken.balanceOf(ab1);
       let initialLocked = await sd.globalStake(ab1);
-      await tf.increaseStake(toWei(10));
+      await tf.increaseStake(ab1, toWei(10));
       let finalBalance = await nxmToken.balanceOf(ab1);
       let time = await latestTime();
       assert.equal(
@@ -150,6 +166,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
     it('User can allocate against any smart contract', async function() {
       assert.equal(await sd.userTotalAllocated(ab1), 0);
       await tf.increaseAllocation(
+        ab1,
         [
           '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'.toLowerCase(),
           '0xdac17f958d2ee523a2206206994597c13d831ec7'.toLowerCase()
@@ -225,6 +242,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       );
       let currentTotalAllocated = await sd.userTotalAllocated(ab1);
       await tf.increaseAllocation(
+        ab1,
         [
           '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'.toLowerCase(),
           '0xdac17f958d2ee523a2206206994597c13d831ec7'.toLowerCase(),
@@ -377,7 +395,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
         '0xf1290473e210b2108a85237fbcd7b6eb42cc654f'.toLowerCase(),
         0
       );
-      await tf.increaseStake(toWei(10));
+      await tf.increaseStake(ab1, toWei(10));
       let finalBalance = await nxmToken.balanceOf(ab1);
       let finalStakerStakedData1 = await sd.stakerStakedContracts(ab1, 0);
       let finalStakerStakedData2 = await sd.stakerStakedContracts(ab1, 1);

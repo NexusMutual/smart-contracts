@@ -149,6 +149,11 @@ contract StakedData {
     mapping(uint=> CommissionData) public coverIdCommission;
 
     /** 
+     * @dev mapping of user to boolean to determine if user is migrated.    
+     */
+    mapping(address => bool) public userMigrated;
+
+    /** 
      * @dev Modifier that ensure that transaction is from internal contracts only.
      */
     modifier onlyInternal {
@@ -156,6 +161,21 @@ contract StakedData {
         require(ms.isInternal(msg.sender));
         _;
     }
+
+    /** 
+     * @dev Event to raise while any user raise dissallocation request.
+     */
+    event DisalloctionRequest(address indexed _user);
+
+    /** 
+     * @dev Event to raise while any user migrates.
+     */
+    event Migrated(address indexed _user);
+
+    /** 
+     * @dev Event to raise while any user claim their commission.
+     */
+    event CommissionClaimed(address indexed _user, uint _amount);
 
     constructor(address _mrAdd) public {
 
@@ -176,6 +196,15 @@ contract StakedData {
     function updateGlobalStake(address staker, uint amount) external onlyInternal
     {
         globalStake[staker] = amount;
+    }
+
+    /**
+     * @dev Marks user as migrated.
+     * @param _user address of user.
+     */
+    function setUserMigrated(address _user) external onlyInternal
+    {
+        userMigrated[_user] = true;
     }
 
     /**
@@ -353,6 +382,34 @@ contract StakedData {
     function setCoverIdCommission(uint coverId, uint reward, uint stakedNXM) external onlyInternal {
 
         coverIdCommission[coverId] = CommissionData(reward, stakedNXM);
+    }
+
+    /**
+     * @dev Emits events for appropriate type.
+     * @param _user address of user.
+     * @param _amount amount of nxm claimed.
+     * @param _type It determines type of event to emit. 1 for dissallocation request,
+     * 2 for migration, 3 for commission claimed.
+     */
+    function callEvent(address _user, uint _amount, uint _type) external onlyInternal {
+
+        if(_type == 1)
+        {
+            emit DisalloctionRequest(_user);
+
+        } else if(_type == 2) {
+
+            emit Migrated(_user);
+
+        } else if(_type == 3) {
+
+            emit CommissionClaimed(_user, _amount);
+
+        } else {
+
+            revert("invalid type");
+        }
+
     }
     
     /**

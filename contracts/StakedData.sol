@@ -177,6 +177,26 @@ contract StakedData {
      */
     event CommissionClaimed(address indexed _user, uint _amount);
 
+    /** 
+     * @dev Event to raise while any user increases global stake.
+     */
+    event IncreaseStake(address indexed _user, uint _amount);
+
+    /** 
+     * @dev Event to raise while any user decreases global stake.
+     */
+    event DecreaseStake(address indexed _user, uint _amount);
+
+    /** 
+     * @dev Event to raise while any user increases stake allocation.
+     */
+    event IncreaseAllocation(address indexed _user, address indexed _scAddress, uint _amount);
+
+    /** 
+     * @dev Event to raise while any user decreases stake allocation.
+     */
+    event DecreaseAllocation(address indexed _user, address indexed _scAddress, uint _amount);
+
     constructor(address _mrAdd) public {
 
         mr = MemberRoles(_mrAdd);
@@ -387,11 +407,13 @@ contract StakedData {
     /**
      * @dev Emits events for appropriate type.
      * @param _user address of user.
+     * @param _scAdd address of smart contract.
      * @param _amount amount of nxm claimed.
      * @param _type It determines type of event to emit. 1 for dissallocation request,
-     * 2 for migration, 3 for commission claimed.
+     * 2 for migration, 3 for commission claimed, 4 for increase stake, 5 for decrease stake.
+     * 6 for increase allocation, 7 for decrease allocation.
      */
-    function callEvent(address _user, uint _amount, uint _type) external onlyInternal {
+    function callEvent(address _user, address _scAdd, uint _amount, uint _type) external onlyInternal {
 
         if(_type == 1)
         {
@@ -404,6 +426,20 @@ contract StakedData {
         } else if(_type == 3) {
 
             emit CommissionClaimed(_user, _amount);
+
+        } else if(_type == 4) {
+
+            emit IncreaseStake(_user, _amount);
+
+        } else if(_type == 5) {
+
+            emit DecreaseStake(_user, _amount);
+
+        } else if(_type == 6) {
+            emit IncreaseAllocation(_user, _scAdd, _amount);
+
+        } else if(_type == 7) {
+            emit DecreaseAllocation(_user, _scAdd, _amount);
 
         } else {
 

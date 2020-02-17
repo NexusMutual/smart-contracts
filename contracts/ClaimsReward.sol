@@ -86,7 +86,7 @@ contract ClaimsReward is Iupgradable {
             tf.increaseAllocation(_ra, stakedAddresses, stakedAllocations);
         }
         sd.setUserMigrated(_ra);
-        sd.callEvent(_ra, 0, 2);
+        sd.callEvent(_ra, address(0), 0, 2);
     }
   
     function changeDependentContractAddress() public onlyInternal {
@@ -595,6 +595,6 @@ contract ClaimsReward is Iupgradable {
         // update mapping clid to burned
         if (reward > 0) 
             require(tk.transfer(_user, reward));
-        sd.callEvent(_user, reward, 3);
+        sd.callEvent(_user, address(0), reward, 3);
     }
 }

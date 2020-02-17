@@ -62,43 +62,7 @@ contract TokenFunctions is Iupgradable {
      * @param coverid Cover Id.
      */
     function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external onlyInternal {
-        // address scAddress;
-        // (, scAddress) = qd.getscAddressOfCover(coverid);
-        // uint tokenPrice = m1.calculateTokenPrice(curr);
-        // uint totalStaker = td.getStakedContractStakersLength(scAddress);
-        // uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
-        // uint totalStakedOncontract = getTotalStakedTokensOnSmartContract(scAddress);
-        // if(burnNXMAmount > totalStakedOncontract)
-        //     burnNXMAmount = totalStakedOncontract;
-        // address stakerAddress;
-        // uint stakerStakedNXM;
-        // for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
-        //     if (burnNXMAmount > 0) {
-        //         stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
-        //         uint stakerIndex = td.getStakedContractStakerIndex(
-        //         scAddress, i);
-        //         uint v;
-        //         (v, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
-        //         td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, v);
-        //         if (stakerStakedNXM > 0) {
-        //             if (stakerStakedNXM >= burnNXMAmount) {
-        //                 _burnStakerTokenLockedAgainstSmartContract(
-        //                     stakerAddress, scAddress, i, burnNXMAmount);
-        //                 if (i > 0)
-        //                     td.setStakedContractCurrentBurnIndex(scAddress, i);
-        //                 burnNXMAmount = 0;
-        //                 break;
-        //             } else {
-        //                 _burnStakerTokenLockedAgainstSmartContract(
-        //                     stakerAddress, scAddress, i, stakerStakedNXM);
-        //                 burnNXMAmount = burnNXMAmount.sub(stakerStakedNXM);
-        //             }
-        //         }
-        //     } else
-        //         break;
-        // }
-        // if (burnNXMAmount > 0 && totalStaker > 0)
-        //     td.setStakedContractCurrentBurnIndex(scAddress, totalStaker.sub(1));
+        
     }
 
     function burnStakerStake(uint _claimId, uint _coverId, bytes4 curr) external onlyInternal {
@@ -150,7 +114,8 @@ contract TokenFunctions is Iupgradable {
         sd.updateLastClaimedforCoverId(_user, qd.getCoverLength());
         
         // sd.updateLastBurnedforClaimId(msg.sender, ); // update last burned for claim id
-        // update RA->claimid->burned   
+        // update RA->claimid->burned 
+        sd.callEvent(_user, address(0), amount, 4); 
     }
 
     /**
@@ -187,7 +152,8 @@ contract TokenFunctions is Iupgradable {
 
         
 
-        tc.releaseLockedTokens(msg.sender, "RA", amount);   
+        tc.releaseLockedTokens(msg.sender, "RA", amount);  
+        sd.callEvent(msg.sender, address(0), amount, 5); 
     }
 
     /**
@@ -252,6 +218,7 @@ contract TokenFunctions is Iupgradable {
         {
             sd.increaseStakeAllocation(_user, scAdd, minAllocx100);
         }
+        sd.callEvent(_user, scAdd, percentx100, 6);
     }
 
     /**
@@ -279,7 +246,7 @@ contract TokenFunctions is Iupgradable {
                 sd.pushDecreaseAllocationRequest(msg.sender, scAdd[i], minAllocationx100);
         }
 
-        sd.callEvent(msg.sender, 0, 1);
+        sd.callEvent(msg.sender, address(0), 0, 1);
         
     }
 
@@ -306,7 +273,7 @@ contract TokenFunctions is Iupgradable {
                 if(scUserIndex == -1)
                     currentAllocated = 0;
                 else
-                    (, currentAllocated) = sd.stakerStakedContracts(msg.sender, uint(scUserIndex));
+                    (, currentAllocated) = sd.stakerStakedContracts(userAdd, uint(scUserIndex));
                 if(percentx100 > currentAllocated)
                 {
                     percentx100 = currentAllocated;
@@ -317,8 +284,10 @@ contract TokenFunctions is Iupgradable {
                 }
 
                 // No need to call if min allocation to reduce is 0.
-                if(percentx100 > 0)
+                if (percentx100 > 0) {
                     sd.decreaseStakeAllocation(userAdd, smartContract, percentx100);
+                    sd.callEvent(userAdd, smartContract, percentx100, 7);
+                }
                     
             }
             else {
@@ -538,18 +507,6 @@ contract TokenFunctions is Iupgradable {
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
         td.setDepositCNAmount(coverId, coverNoteAmount);
         tc.lockOf(_of, reason, coverNoteAmount, validity);
-    }
-
-    /**
-     * @dev Staking on contract.
-     * @param _scAddress smart contract address.
-     * @param _amount amount of NXM.
-     */ 
-    function addStake(address _scAddress, uint _amount) public isMemberAndcheckPause {
-        uint scIndex = td.addStake(msg.sender, _scAddress, _amount);
-        uint validity = (td.scValidDays()).mul(1 days);
-        bytes32 reason = keccak256(abi.encodePacked("UW", msg.sender, _scAddress, scIndex));
-        tc.lockOf(msg.sender, reason, _amount, validity);
     }
 
     /**

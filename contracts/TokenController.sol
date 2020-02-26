@@ -26,6 +26,12 @@ contract TokenController is IERC1132, Iupgradable {
     event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
     NXMToken public token;
+
+    /**
+     * @dev mapping of uw address to Total burned stake which is not reduced from global stake. 
+     * ie., actualStake = globalStake - globalBurned 
+     */
+    mapping(address => uint) public globalBurned;
     
     /**
     * @dev Just for interface
@@ -131,6 +137,36 @@ contract TokenController is IERC1132, Iupgradable {
     {    
         _increaseLockAmount(_riskAssesor, "RA", _amount);
         return true;
+    }
+
+    /**
+     * @dev burns tokens locked against RA 
+     * @param _amount is the amount to burn
+     * @return the boolean status of the burning process
+     */
+    function burnRaLock(uint _amount) public onlyInternal returns (bool) {
+        token.burn(_amount);
+    }
+
+    /**
+     * @dev Decreases Global burned of staker.
+     * @param staker address of staker.
+     * @param amount amount of NXM burned to reduce.
+     */
+    function decreaseGlobalBurn(address staker, uint amount) external onlyInternal
+    {
+        globalBurned[staker] = globalBurned[staker].sub(amount);
+        locked[staker]["RA"].amount = locked[staker]["RA"].amount.sub(amount);
+    }
+
+    /**
+     * @dev Increases Global burned of staker.
+     * @param staker address of staker.
+     * @param amount amount of NXM burned to increase.
+     */
+    function increaseGlobalBurn(address staker, uint amount) external onlyInternal
+    {
+        globalBurned[staker] = globalBurned[staker].add(amount);
     }
 
     /**
@@ -342,7 +378,7 @@ contract TokenController is IERC1132, Iupgradable {
         for (uint256 i = 0; i < lockReason[_of].length; i++) {
             amount = amount.add(_tokensLockedAtTime(_of, lockReason[_of][i], _time));
         }
-    } 
+    }
 
     /**
     * @dev Locks a specified amount of tokens against an address,
@@ -380,6 +416,8 @@ contract TokenController is IERC1132, Iupgradable {
     {
         if (!locked[_of][_reason].claimed)
             amount = locked[_of][_reason].amount;
+        if(_reason == "RA")
+            amount = amount.sub(globalBurned[_of]);
     }
 
     /**
@@ -397,6 +435,8 @@ contract TokenController is IERC1132, Iupgradable {
     {
         if (locked[_of][_reason].validity > _time)
             amount = locked[_of][_reason].amount;
+        if(_reason == "RA")
+            amount = amount.sub(globalBurned[_of]);
     }
     
     /**
@@ -446,7 +486,7 @@ contract TokenController is IERC1132, Iupgradable {
     */
     function _tokensUnlockable(address _of, bytes32 _reason) internal view returns (uint256 amount)
     {
-      if (locked[_of][_reason].validity <= now && !locked[_of][_reason].claimed) //solhint-disable-line
+        if (locked[_of][_reason].validity <= now && !locked[_of][_reason].claimed) //solhint-disable-line
             amount = locked[_of][_reason].amount;
     }
 

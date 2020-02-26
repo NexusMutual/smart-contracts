@@ -39,7 +39,7 @@ contract StakedData {
     uint private constant DECIMAL1E18 = uint(10) ** 18; 
 
     NXMaster internal ms;
-    MemberRoles internal mr;
+    TokenController internal tc;
 
     // Structure to hold staker's staked contract and allocation against it.
     struct Staked {
@@ -62,7 +62,7 @@ contract StakedData {
 
     // Structure to hold Burned stake records.
     struct BurnedStake {
-        // uint burned;
+        uint claimid;
         uint timestamp;
         uint burntByStakedRatiox1000;
     }
@@ -72,6 +72,11 @@ contract StakedData {
         uint reward;
         uint stakedNXM;
     }
+
+    /** 
+     * @dev array of burned stake.    
+     */
+    BurnedStake[] public claimIdBurnedStake;
 
     /**
      * @dev mapping of uw address to array of sc address to fetch 
@@ -101,25 +106,17 @@ contract StakedData {
      */
     mapping(address => uint) public globalStake;
 
-    /**
-     * @dev mapping of uw address to Total burned stake which is not reduced from global stake. 
-     * ie., actualStake = globalStake - globalBurned 
-     */
-    mapping(address => uint) public globalBurned;
-
-    /**
-     * @dev mapping of uw address to claim id which determines if action took place for UW for particular claim id. 
-     */
-    mapping(address => mapping(uint => bool)) public riskAssesorClaimAction;
-    
-
     /** 
      * @dev mapping of sc address to array of UW address to fetch
      * all underwritters of the staked smart contract
      */
     mapping(address => Staker[]) public stakedContractStakers;
 
-    mapping(address => uint) public lastBurnedforClaimId;
+    /** 
+     * @dev mapping of Staker address to index of BurnedStake.
+     * till which staker's stake is burned.
+     */
+    mapping(address => uint) public lastBurnedforClaim;
 
     /** 
      * @dev mapping of UW address to smart contract address to index.
@@ -139,11 +136,6 @@ contract StakedData {
     mapping(address=> uint) public userDisallocationExecuted;
 
     /** 
-     * @dev mapping of claim id to burned stake against it.    
-     */
-    mapping(uint=> BurnedStake) public claimIdBurnedStake;
-
-    /** 
      * @dev mapping of cover id to reward to be distributed.    
      */
     mapping(uint=> CommissionData) public coverIdCommission;
@@ -157,7 +149,7 @@ contract StakedData {
      * @dev Modifier that ensure that transaction is from internal contracts only.
      */
     modifier onlyInternal {
-        ms = NXMaster(mr.nxMasterAddress());
+        ms = NXMaster(tc.nxMasterAddress());
         require(ms.isInternal(msg.sender));
         _;
     }
@@ -197,9 +189,9 @@ contract StakedData {
      */
     event DecreaseAllocation(address indexed _user, address indexed _scAddress, uint _amount);
 
-    constructor(address _mrAdd) public {
+    constructor(address _tcAdd) public {
 
-        mr = MemberRoles(_mrAdd);
+        tc = TokenController(_tcAdd);
         maxAllocationPerx100 = 1000;
         minAllocationPerx100 = 200;
         minStake = 100 * DECIMAL1E18;
@@ -209,13 +201,23 @@ contract StakedData {
     }
 
     /**
-     * @dev Updates Global stake of staker.
+     * @dev Decreases Global stake of staker.
      * @param staker address of staker.
-     * @param amount amount of NXM to be updated.
+     * @param amount amount of NXM stake to reduce.
      */
-    function updateGlobalStake(address staker, uint amount) external onlyInternal
+    function decreaseGlobalStake(address staker, uint amount) external onlyInternal
     {
-        globalStake[staker] = amount;
+        globalStake[staker] = globalStake[staker].sub(amount);
+    }
+
+    /**
+     * @dev Increases Global stake of staker.
+     * @param staker address of staker.
+     * @param amount amount of NXM stake to increase.
+     */
+    function increaseGlobalStake(address staker, uint amount) external onlyInternal
+    {
+        globalStake[staker] = globalStake[staker].add(amount);
     }
 
     /**
@@ -228,26 +230,6 @@ contract StakedData {
     }
 
     /**
-     * @dev Decreases Global burned of staker.
-     * @param staker address of staker.
-     * @param amount amount of NXM burned to reduce.
-     */
-    function decreaseGlobalBurn(address staker, uint amount) external onlyInternal
-    {
-        globalBurned[staker] = globalBurned[staker].sub(amount);
-    }
-
-    /**
-     * @dev Increases Global burned of staker.
-     * @param staker address of staker.
-     * @param amount amount of NXM burned to increase.
-     */
-    function increaseGlobalBurn(address staker, uint amount) external onlyInternal
-    {
-        globalBurned[staker] = globalBurned[staker].add(amount);
-    }
-
-    /**
      * @dev Updates coverid till which user had claimed commission.
      * @param staker address of staker.
      * @param coverId cover id till which user had claimed.
@@ -255,6 +237,16 @@ contract StakedData {
     function updateLastClaimedforCoverId(address staker, uint coverId) external onlyInternal 
     {
         lastClaimedforCoverId[staker] = coverId; 
+    }
+
+    /**
+     * @dev Updates burn stake index till which user had claimed commission.
+     * @param staker address of staker.
+     * @param index burn stake index till which user had claimed.
+     */
+    function updateLastBurnedforClaim(address staker, uint index) external onlyInternal 
+    {
+        lastBurnedforClaim[staker] = index; 
     }
 
     /**
@@ -384,13 +376,20 @@ contract StakedData {
     }
 
     /**
-     * @dev Updates burned stake data against claim id.
+     * @dev Pushes burned stake data.
      * @param claimid claim id.
      * @param burntByStakedRatio ratio of amount of nxm burned by amount of nxm staked against sc at time of burning.
      */
-    function setClaimIdBurnedStake(uint claimid, uint burntByStakedRatio) external onlyInternal {
+    function pushClaimIdBurnedStake(uint claimid, uint burntByStakedRatio) external onlyInternal {
 
-        claimIdBurnedStake[claimid] = BurnedStake(now, burntByStakedRatio);
+        claimIdBurnedStake.push(BurnedStake(claimid, now, burntByStakedRatio));
+    }
+
+    /**
+     * @dev Gets length of claimIdBurnedStake.
+     */
+    function getClaimIdBurnedStake() external view returns(uint) {
+        return claimIdBurnedStake.length;
     }
 
     /**
@@ -454,7 +453,7 @@ contract StakedData {
      * @param val value to set
      */
     function updateUintParameters(bytes8 code, uint val) external {
-        ms = NXMaster(mr.nxMasterAddress());
+        ms = NXMaster(tc.nxMasterAddress());
         require(ms.checkIsAuthToGoverned(msg.sender));
         if (code == "MAXALOC") {
 
@@ -524,7 +523,7 @@ contract StakedData {
 
             total = total.add(stakedContractStakers[_stakedContractAddress][i].allocationx100.mul(
             globalStake[stakedContractStakers[_stakedContractAddress][i].stakerAddress].sub(
-            globalBurned[stakedContractStakers[_stakedContractAddress][i].stakerAddress])));
+            tc.globalBurned(stakedContractStakers[_stakedContractAddress][i].stakerAddress))));
         }
     }
 
@@ -536,7 +535,7 @@ contract StakedData {
     function getMaxUnstakable(address staker) external view returns(uint val)
     {
         // (SNXM - SBurn) 
-        uint actualStake = globalStake[staker].sub(globalBurned[staker]);
+        uint actualStake = globalStake[staker].sub(tc.globalBurned(staker));
         // (100 - sum(P))
         uint proportion = uint(MAX_TOTAL_STAKE).sub(userTotalAllocated[staker]);
         // 10 * (Max Stake% - MaxPn), multiplying with 10 so both proportion can have same format (divide by 100)
@@ -627,7 +626,7 @@ contract StakedData {
      */
     function getActualGlobalStake(address stakerAdd) public view returns(uint stakeAmt)
     {
-        stakeAmt = globalStake[stakerAdd].sub(globalBurned[stakerAdd]);
+        stakeAmt = globalStake[stakerAdd].sub(tc.globalBurned(stakerAdd));
     }
 
     /**

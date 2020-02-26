@@ -38,7 +38,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
     address = await nxms.getLatestAddress('0x4d52');
     mr = await MemberRoles.at(address);
     qd = await QuotationData.deployed();
-    sd = await StakedData.new(mr.address);
+    sd = await StakedData.new(await nxms.getLatestAddress('0x5443'));
 
     await nxmToken.approve(await nxms.getLatestAddress('0x5443'), maxAllowance);
 
@@ -78,7 +78,6 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       await gvProposal(29, actionHash, mr, gv, 2);
       assert.equal(await nxms.getLatestAddress(toHex('TF')), newTf.address);
       tf = newTf;
-
       let newCr = await ClaimsReward.new(sd.address);
       actionHash = encode(
         'upgradeContract(bytes2,address)',
@@ -91,7 +90,6 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       cr = await ClaimsReward.at(await nxms.getLatestAddress(toHex('CR')));
 
       await cr.migrateStake(ab1);
-
       let newTc = await TokenController.new();
       actionHash = encode(
         'upgradeContractImplementation(bytes2,address)',
@@ -111,7 +109,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       let finalBalance = await nxmToken.balanceOf(ab1);
       let time = await latestTime();
       assert.equal(await sd.globalStake(ab1), toWei(150));
-      assert.equal(await sd.globalBurned(ab1), 0);
+      assert.equal(await tc.globalBurned(ab1), 0);
       assert.equal(
         (await sd.lastClaimedforCoverId(ab1)) / 1,
         currentCoverLen / 1
@@ -131,7 +129,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
         await sd.globalStake(ab1),
         initialLocked / 1 + toWei(10) / 1
       );
-      assert.equal(await sd.globalBurned(ab1), 0);
+      assert.equal(await tc.globalBurned(ab1), 0);
       assert.equal(
         (await sd.lastClaimedforCoverId(ab1)) / 1,
         currentCoverLen / 1
@@ -151,7 +149,7 @@ contract('Pooled staking', ([ab1, mem1, mem2, mem3, notMember]) => {
       let finalBalance = await nxmToken.balanceOf(ab1);
       let time = await latestTime();
       assert.equal(await sd.globalStake(ab1), initialLocked - toWei(10));
-      assert.equal(await sd.globalBurned(ab1), 0);
+      assert.equal(await tc.globalBurned(ab1), 0);
       assert.equal(
         (await sd.lastClaimedforCoverId(ab1)) / 1,
         currentCoverLen / 1

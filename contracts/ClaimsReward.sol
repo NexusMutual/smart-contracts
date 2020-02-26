@@ -255,13 +255,14 @@ contract ClaimsReward is Iupgradable {
     /**
      * @dev Function used to claim all pending rewards on a list of proposals.
      */
-    function claimAllPendingReward(uint records) public isMemberAndcheckPause {
-        _claimRewardToBeDistributed(records);
-        _claimStakeCommission(records, msg.sender);
-        tf.unlockStakerUnlockableTokens(msg.sender); 
-        uint gvReward = gv.claimReward(msg.sender, records);
+    function claimAllPendingReward(address userAdd, uint records) public {
+        require((ms.isInternal(msg.sender) || userAdd == msg.sender) && ms.isMember(userAdd) && !ms.isPause());
+        // _claimRewardToBeDistributed(records);
+        _claimPooledStakeCommission(userAdd, records);
+        // tf.unlockStakerUnlockableTokens(msg.sender); 
+        uint gvReward = gv.claimReward(userAdd, records);
         if (gvReward > 0) {
-            require(tk.transfer(msg.sender, gvReward));
+            require(tk.transfer(userAdd, gvReward));
         }
     }
 
@@ -272,12 +273,40 @@ contract ClaimsReward is Iupgradable {
      */
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
         uint caReward = getRewardToBeDistributedByUser(_add);
-        uint commissionEarned = td.getStakerTotalEarnedStakeCommission(_add);
-        uint commissionReedmed = td.getStakerTotalReedmedStakeCommission(_add);
-        uint unlockableStakedTokens = tf.getStakerAllUnlockableStakedTokens(_add);
+        (uint commission, , , ) = getPendingPooledCommission(_add, 100);
+        // uint commissionReedmed = td.getStakerTotalReedmedStakeCommission(_add);
+        // uint unlockableStakedTokens = tf.getStakerAllUnlockableStakedTokens(_add);
         uint governanceReward = gv.getPendingReward(_add);
-        total = caReward.add(unlockableStakedTokens).add(commissionEarned.
-        sub(commissionReedmed)).add(governanceReward);
+        total = caReward.add(commission).add(governanceReward);
+    }
+
+    function getPendingPooledCommission(address _user, uint _records) public view returns(uint reward, uint i, uint totalBurned, uint burnedClaimIndex) {
+        i = sd.lastClaimedforCoverId(_user);
+        burnedClaimIndex = sd.lastBurnedforClaim(_user);
+        uint burnedStakeLen = sd.getClaimIdBurnedStake();
+        uint burntOn;
+        if(burnedClaimIndex < burnedStakeLen)
+            (burntOn, , ) = sd.claimIdBurnedStake(burnedClaimIndex);
+        uint lastCover = qd.getCoverLength();
+        reward = 0;
+        uint globalStaked = sd.globalStake(_user);
+        uint j=0;
+        totalBurned = 0;
+        for (; i < lastCover && j < _records; i++) {
+            uint purchasedOn = qd.getValidityOfCover(i).sub(uint(qd.getCoverPeriod(i)).mul(1 days));
+            if(burntOn < purchasedOn && burnedClaimIndex < burnedStakeLen)
+            {
+                uint burnedForIndex = _getUserStakeBurnForClaim(_user, burnedClaimIndex, globalStaked);
+                globalStaked = globalStaked.sub(burnedForIndex);
+                totalBurned = totalBurned.add(burnedForIndex);
+                burnedClaimIndex++;
+                if(burnedClaimIndex < burnedStakeLen)
+                    (burntOn, ,) = sd.claimIdBurnedStake(burnedClaimIndex);
+
+            }
+            reward = reward.add(_getUserRewardForCover(_user, i, globalStaked));
+            j++;
+        }
     }
 
     function claimAllCommissionAndUnlockable(address _user, uint records) internal {
@@ -285,37 +314,38 @@ contract ClaimsReward is Iupgradable {
         tf.unlockStakerUnlockableTokens(_user); 
     } 
 
-    // function getGlobalStakedAtCoverPurchase(uint _coverId, address _user) public view returns(uint)
-    // {
-    //     // uint purchasedOn = qd.getValidityOfCover(_coverId).sub(uint(qd.getCoverPeriod(_coverId)).mul(1 days));
-    //     uint i = sd.lastBurnedforClaimId(_user);
-    //     // uint claimLen = cd.actualClaimLength();
-    //     uint globalStake = sd.globalStake(_user);
-    //     uint totalBurnt = 0;
-    //     for(; i < cd.actualClaimLength(); i++)
-    //     {
-    //         if(cd.getFinalVerdict(i) == 1) {
-    //             (, uint coverIdOfClaim) = cd.getClaimCoverId(i);
-    //             (, address smartCover) = qd.getscAddressOfCover(coverIdOfClaim);
-    //             if(sd.getScUserIndex(smartCover, _user) != -1)
-    //             {
-    //                 (, uint allocation) = sd.stakerStakedContracts(_user, 
-    // uint(sd.getScUserIndex(smartCover, _user)));
-    //                 uint burntOn;
-    //                 uint burntByStakedRatio;
-    //                 (burntOn, burntByStakedRatio) = sd.claimIdBurnedStake(i);
-    //                 if(burntByStakedRatio < 10000)
-    //                     burntByStakedRatio = 10000;
-    //                 if(burntOn < qd.getValidityOfCover(_coverId).sub(uint(qd.getCoverPeriod(_coverId)).mul(1 days)))
-    //                     totalBurnt = totalBurnt.add(allocation.mul(
-    // globalStake.sub(totalBurnt)).mul(POINT_MULTIPLIER).mul(burntByStakedRatio).div(100000000));
-    //                 else
-    //                     break;
-    //             }
-    //         }
-    //     }
+    function _getUserStakeBurnForClaim(address _user, uint index, uint globalStake) internal view returns(uint) {
+        uint claimid;
+        uint burntByStakedRatiox1000;
+        (, burntByStakedRatiox1000, claimid) = sd.claimIdBurnedStake(index);
+        if(burntByStakedRatiox1000 < 10000)
+            burntByStakedRatiox1000 = 10000;
+        (, uint coverIdOfClaim) = cd.getClaimCoverId(claimid);
+        (, address smartCover) = qd.getscAddressOfCover(coverIdOfClaim);
+        int scUserIndex = sd.getScUserIndex(smartCover, _user);
+        if(scUserIndex != -1)
+        {
+            (, uint allocation) = sd.stakerStakedContracts(_user, uint(scUserIndex));
+            return allocation.mul(globalStake).mul(POINT_MULTIPLIER).mul(burntByStakedRatiox1000).div(100000000);
+        }
+        return 0; // scUserIndex == -1 means user has not staked against the smart contract for which calim is accepted.
 
-    // }
+    }
+
+    function _getUserRewardForCover(address _user, uint coverId, uint globalStaked) internal view returns(uint) {
+        (, address smartCover) = qd.getscAddressOfCover(coverId);
+        int scUser = sd.getScUserIndex(smartCover, _user);
+        if(scUser != -1)
+        {
+            (, uint allocation) = sd.stakerStakedContracts(_user, uint(scUser));
+            uint stakedOnScAtCoverPurchase;
+            uint rewardForCover;
+            (rewardForCover, stakedOnScAtCoverPurchase) = sd.coverIdCommission(coverId);
+            return allocation.mul(globalStaked).mul(rewardForCover).div(stakedOnScAtCoverPurchase).div(10000);
+        }
+        return 0; // scUserIndex == -1 means user has not staked against the smart contract for which cover is purchased.
+
+    }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.
     //             Unlocking and burning of the tokens will also depend upon the status of claim.
@@ -564,35 +594,12 @@ contract ClaimsReward is Iupgradable {
     /**
      * @dev Function used to claim the commission earned by the staker by new stratergy.
      */
-    function _claimPooledStakeCommission(uint _records, address _user) internal {
-        uint i = sd.lastClaimedforCoverId(_user);
-        uint lastCover = qd.getCoverLength();
-        uint reward = 0;
-        uint globalStaked = sd.globalStake(_user);
-        uint j=0;
-        uint burned;
-        for (; i < lastCover && j < _records; i++) {
-            (, address smartCover) = qd.getscAddressOfCover(i);
-            int scUser = sd.getScUserIndex(smartCover, _user);
-            if (scUser != -1) {
-                uint allocation;
-                (, allocation) = sd.stakerStakedContracts(_user, uint(scUser));
-                burned = 0;// getGlobalStakedAtCoverPurchase(i, _user);
-                uint stakedAtCoverPurchase = globalStaked.sub(burned);
-                uint stakedOnScAtCoverPurchase;
-                uint rewardForCover;
-                (rewardForCover, stakedOnScAtCoverPurchase) = sd.coverIdCommission(i);
-                reward = reward.add(allocation.mul(stakedAtCoverPurchase).mul(rewardForCover)
-                    .div(stakedOnScAtCoverPurchase).div(10000));
-                j++;
-            }
-        }
-        sd.updateGlobalStake(_user, globalStaked.sub(burned));
-        sd.decreaseGlobalBurn(_user, burned);
-        tc.burnLockedTokens(_user, "RA", burned);
-        sd.updateLastClaimedforCoverId(msg.sender, i);
-        // update CLburn
-        // update mapping clid to burned
+    function _claimPooledStakeCommission(address _user, uint _records) internal {
+        (uint reward, uint lastCover, uint totalBurned, uint burnedClaimIndex) = getPendingPooledCommission(_user, _records);
+        sd.decreaseGlobalStake(_user, totalBurned);
+        tc.decreaseGlobalBurn(_user, totalBurned);
+        sd.updateLastClaimedforCoverId(_user, lastCover);
+        sd.updateLastBurnedforClaim(_user, burnedClaimIndex);
         if (reward > 0) 
             require(tk.transfer(_user, reward));
         sd.callEvent(_user, address(0), reward, 3);

@@ -196,7 +196,8 @@ contract TokenController is IERC1132, Iupgradable {
     * @param _time Lock reduction time in seconds
     */
     function reduceLock(address _of, bytes32 _reason, uint256 _time) public onlyInternal {
-        _reduceLock(_of, _reason, _time);
+        if(tokensLockedAtTime(_of, _reason, now) > 0)
+            _reduceLock(_of, _reason, _time);
     } 
 
     /**

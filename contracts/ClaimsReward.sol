@@ -257,7 +257,7 @@ contract ClaimsReward is Iupgradable {
      */
     function claimAllPendingReward(address userAdd, uint records) public {
         require((ms.isInternal(msg.sender) || userAdd == msg.sender) && ms.isMember(userAdd) && !ms.isPause());
-        // _claimRewardToBeDistributed(records);
+        _claimRewardToBeDistributed(userAdd, records);
         _claimPooledStakeCommission(userAdd, records);
         // tf.unlockStakerUnlockableTokens(msg.sender); 
         uint gvReward = gv.claimReward(userAdd, records);
@@ -485,11 +485,11 @@ contract ClaimsReward is Iupgradable {
     }
 
     /// @dev Allows a user to claim all pending  Claims assessment rewards.
-    function _claimRewardToBeDistributed(uint _records) internal {
-        uint lengthVote = cd.getVoteAddressCALength(msg.sender);
+    function _claimRewardToBeDistributed(address _userAdd, uint _records) internal {
+        uint lengthVote = cd.getVoteAddressCALength(_userAdd);
         uint voteid;
-        uint lastIndex;
-        (lastIndex, ) = cd.getRewardDistributedIndex(msg.sender);
+        // uint lastIndex;
+        // (lastIndex, ) = cd.getRewardDistributedIndex(msg.sender);
         uint total = 0;
         uint tokenForVoteId = 0;
         bool lastClaimedCheck;
@@ -501,8 +501,8 @@ contract ClaimsReward is Iupgradable {
         uint i;
         uint lastClaimed = lengthVote;
 
-        for (i = lastIndex; i < lengthVote && counter < _records; i++) {
-            voteid = cd.getVoteAddressCA(msg.sender, i);
+        for ((i, ) = cd.getRewardDistributedIndex(_userAdd); i < lengthVote && counter < _records; i++) {
+            voteid = cd.getVoteAddressCA(_userAdd, i);
             (tokenForVoteId, lastClaimedCheck, , perc) = getRewardToBeGiven(1, voteid, 0);
             if (lastClaimed == lengthVote && lastClaimedCheck == true)
                 lastClaimed = i;
@@ -520,21 +520,22 @@ contract ClaimsReward is Iupgradable {
             if (tokenForVoteId > 0)
                 total = tokenForVoteId.add(total);
         }
-        if (lastClaimed == lengthVote) {
-            cd.setRewardDistributedIndexCA(msg.sender, i);
-        } else {
-            cd.setRewardDistributedIndexCA(msg.sender, lastClaimed);
-        }
-        lengthVote = cd.getVoteAddressMemberLength(msg.sender);
-        lastClaimed = lengthVote;
         _days = _days.mul(counter);
-        if (tc.tokensLockedAtTime(msg.sender, "CLA", now) > 0)
-            tc.reduceLock(msg.sender, "CLA", _days);
-        (, lastIndex) = cd.getRewardDistributedIndex(msg.sender);
+        // Added check for non zero locked tokens inside reduceLock function to avoid stack too deep error.
+        tc.reduceLock(_userAdd, "CLA", _days); 
+        if (lastClaimed == lengthVote) {
+            cd.setRewardDistributedIndexCA(_userAdd, i);
+        } else {
+            cd.setRewardDistributedIndexCA(_userAdd, lastClaimed);
+        }
+        lengthVote = cd.getVoteAddressMemberLength(_userAdd);
+        lastClaimed = lengthVote;
+        
+        // (, lastIndex) = cd.getRewardDistributedIndex(msg.sender);
         lastClaimed = lengthVote;
         counter = 0;
-        for (i = lastIndex; i < lengthVote && counter < _records; i++) {
-            voteid = cd.getVoteAddressMember(msg.sender, i);
+        for ((i, ) = cd.getRewardDistributedIndex(_userAdd); i < lengthVote && counter < _records; i++) {
+            voteid = cd.getVoteAddressMember(_userAdd, i);
             (tokenForVoteId, lastClaimedCheck, , ) = getRewardToBeGiven(0, voteid, 0);
             if (lastClaimed == lengthVote && lastClaimedCheck == true)
                 lastClaimed = i;
@@ -547,11 +548,11 @@ contract ClaimsReward is Iupgradable {
                 total = tokenForVoteId.add(total);
         }
         if (total > 0)
-            require(tk.transfer(msg.sender, total));
+            require(tk.transfer(_userAdd, total));
         if (lastClaimed == lengthVote) {
-            cd.setRewardDistributedIndexMV(msg.sender, i);
+            cd.setRewardDistributedIndexMV(_userAdd, i);
         } else {
-            cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
+            cd.setRewardDistributedIndexMV(_userAdd, lastClaimed);
         }
     }
 

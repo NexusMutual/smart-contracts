@@ -45,7 +45,7 @@
     "coveralls": "^3.0.2",
     "ethereum-bridge": "^0.6.1",
     "ethereumjs-abi": "^0.6.5",
-    "ganache-cli": "^6.1.8",
+    "ganache-cli": "^6.9.1",
     "husky": "^1.1.2",
     "lint-staged": "^7.2.2",
     "mocha": "^5.2.0",
@@ -53,7 +53,7 @@
     "solc": "^0.5.7",
     "solhint": "^1.5.1",
     "solidity-coverage": "^0.5.11",
-    "truffle": "^5.0.7",
+    "truffle": "^5.0.12",
     "truffle-hdwallet-provider": "0.0.5"
   }
 }

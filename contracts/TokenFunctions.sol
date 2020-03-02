@@ -73,7 +73,7 @@ contract TokenFunctions is Iupgradable {
         uint totalStakedOncontract = getTotalStakedTokensOnSmartContract(scAddress);
         if(burnNXMAmount > totalStakedOncontract)
             burnNXMAmount = totalStakedOncontract;
-        sd.pushClaimIdBurnedStake(_claimId, burnNXMAmount.mul(10000).div( totalStakedOncontract));
+        sd.pushClaimIdBurnedStake(_claimId, burnNXMAmount.mul(10000).div(totalStakedOncontract));
         uint totalStaker = sd.getTotalStakerAgainstSC(scAddress);
         for (uint i = 0; i < totalStaker; i++) {
             address stakerAdd;
@@ -94,14 +94,15 @@ contract TokenFunctions is Iupgradable {
      * @param amount additional stake to be added.
      */
     function increaseStake(address _user, uint amount) external {
+        address crAdd = ms.getLatestAddress("CR");
+        require((_user == msg.sender && sd.userMigrated(_user)) || msg.sender == crAdd);
 
-        require((_user == msg.sender && sd.userMigrated(_user)) || _user == ms.getLatestAddress("CR"));
-
-        (uint pendingCommission, , , ) = cr.getPendingPooledCommission(msg.sender, 100);
-        require(pendingCommission == 0);
+        (uint pendingCommission, , , ) = cr.getPendingPooledCommission(_user, 100);
+        require(pendingCommission == 0,"nope");
         uint globalBurn = tc.globalBurned(_user);
         uint updatedGlobalStake = sd.globalStake(_user).add(amount).sub(globalBurn);
-        require(updatedGlobalStake > sd.minStake());
+        if(msg.sender != crAdd)
+            require(updatedGlobalStake >= sd.minStake());
         if(tc.tokensLocked(_user, "RA") == 0)
         {
             tc.lockOf(_user, "RA", amount, uint(2 ** 251).sub(now)); // locking for indefinite time.
@@ -114,7 +115,7 @@ contract TokenFunctions is Iupgradable {
         tc.decreaseGlobalBurn(_user, globalBurn);
         sd.updateLastClaimedforCoverId(_user, qd.getCoverLength());
         
-        sd.updateLastBurnedforClaim(msg.sender, sd.getClaimIdBurnedStake());  // update last burned for claim id
+        sd.updateLastBurnedforClaim(_user, sd.getClaimIdBurnedStake());  // update last burned for claim id
         sd.callEvent(_user, address(0), amount, 4); 
     }
 
@@ -162,8 +163,8 @@ contract TokenFunctions is Iupgradable {
      */
     function increaseAllocation(address _user, address[] calldata scAdd, uint[] calldata percentx100) external {
         require(scAdd.length == percentx100.length);
-        require((_user == msg.sender && sd.userMigrated(_user)) || _user == ms.getLatestAddress("CR"));
-        (uint pendingCommission, , , ) = cr.getPendingPooledCommission(msg.sender, 100);
+        require((_user == msg.sender && sd.userMigrated(_user)) || msg.sender == ms.getLatestAddress("CR"));
+        (uint pendingCommission, , , ) = cr.getPendingPooledCommission(_user, 100);
         require(pendingCommission == 0);
         uint currentTotalAllocated = sd.userTotalAllocated(_user);
         uint totalAllocationPassed = 0;

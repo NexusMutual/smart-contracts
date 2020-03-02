@@ -68,7 +68,7 @@ contract ClaimsReward is Iupgradable {
             for (i = 0; i < stakedLen; i++) {
                 uint scIndex;
                 stakedAddresses[i] = td.getStakerStakedContractByIndex(_ra, i);
-                scIndex = td.getStakerStakedContractIndex(stakedAddresses[i], i);
+                scIndex = td.getStakerStakedContractIndex(_ra, i);
                 uint stakedAmount;
                 (, stakedAmount) = tf._unlockableBeforeBurningAndCanBurn(_ra, stakedAddresses[i], i);
                 stakedAllocations[i] = stakedAmount.mul(10000).div(snxm);

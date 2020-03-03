@@ -70,7 +70,7 @@ contract TokenFunctions is Iupgradable {
         (, scAddress) = qd.getscAddressOfCover(_coverId);
         uint tokenPrice = m1.calculateTokenPrice(curr);
         uint burnNXMAmount = qd.getCoverSumAssured(_coverId).mul(DECIMAL1E18).div(tokenPrice);
-        uint totalStakedOncontract = getTotalStakedTokensOnSmartContract(scAddress);
+        uint totalStakedOncontract = getTotalStakedTokensOnSmartContract(scAddress).mul(pointMultiplier);
         if(burnNXMAmount > totalStakedOncontract)
             burnNXMAmount = totalStakedOncontract;
         sd.pushClaimIdBurnedStake(_claimId, burnNXMAmount.mul(10000).div(totalStakedOncontract));
@@ -98,7 +98,7 @@ contract TokenFunctions is Iupgradable {
         require((_user == msg.sender && sd.userMigrated(_user)) || msg.sender == crAdd);
 
         (uint pendingCommission, , , ) = cr.getPendingPooledCommission(_user, 100);
-        require(pendingCommission == 0,"nope");
+        require(pendingCommission == 0);
         uint globalBurn = tc.globalBurned(_user);
         uint updatedGlobalStake = sd.globalStake(_user).add(amount).sub(globalBurn);
         if(msg.sender != crAdd)

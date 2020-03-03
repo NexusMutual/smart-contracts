@@ -525,6 +525,7 @@ contract StakedData {
             globalStake[stakedContractStakers[_stakedContractAddress][i].stakerAddress].sub(
             tc.globalBurned(stakedContractStakers[_stakedContractAddress][i].stakerAddress))));
         }
+        total = total.div(10000);
     }
 
     /**

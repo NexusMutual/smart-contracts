@@ -24,25 +24,16 @@ contract MasterAware is Initializable {
 
   INXMMaster internal master;
 
-  /**
-   * @dev Ensure the call is from internal contracts only
-   */
   modifier onlyInternal {
     require(master.isInternal(msg.sender), "Caller is not an internal contract");
     _;
   }
 
-  /**
-   * @dev Ensure the call is from internal members only
-   */
   modifier onlyMembers {
-    require(master.isInternal(msg.sender), "Caller is not a member");
+    require(master.isMember(msg.sender), "Caller is not a member");
     _;
   }
 
-  /**
-   * @dev Ensure the calling address is authorized to govern
-   */
   modifier onlyGoverned {
     require(
       master.checkIsAuthToGoverned(msg.sender),

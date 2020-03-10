@@ -93,10 +93,8 @@ contract PooledStaking is MasterAware {
     MasterAware.initialize(masterAddress);
   }
 
-  function stake(uint amount)
-  external
-  onlyMembers
-  {
+  function stake(uint amount) onlyMembers external {
+
     require(amount > MIN_DEPOSIT_AMOUNT, "Amount is less than minimum allowed");
 
     Staker storage staker = stakers[msg.sender];
@@ -116,13 +114,9 @@ contract PooledStaking is MasterAware {
     }
   }
 
-  function setAllocations(
-    address stakerAddress,
-    address[] calldata _contracts,
-    uint[] calldata _allocations
-  ) external onlyInternal {
+  function setAllocations(address[] calldata _contracts, uint[] calldata _allocations) onlyMembers external {
 
-    Staker storage staker = stakers[stakerAddress];
+    Staker storage staker = stakers[msg.sender];
 
     require(
       _contracts.length >= staker.contracts.length,
@@ -146,7 +140,7 @@ contract PooledStaking is MasterAware {
         require(oldAllocation <= _allocations[i], "New allocation is less than previous allocation");
       } else {
         staker.contracts.push(contractAddress);
-        contracts[contractAddress].stakers.push(stakerAddress);
+        contracts[contractAddress].stakers.push(msg.sender);
       }
 
       allocationTotal = allocationTotal.add(_allocations[i]);
@@ -163,46 +157,41 @@ contract PooledStaking is MasterAware {
     require(allocationTotal <= MAX_LEVERAGE, "Total allocation exceeds maximum allowed");
   }
 
-  function requestDeallocation(address stakerAddress, address contractAddress, uint amount)
-  external
-  onlyInternal
-  {
-    Staker storage staker = stakers[stakerAddress];
+  function requestDeallocation(address contractAddress, uint amount) external onlyMembers {
+
+    Staker storage staker = stakers[msg.sender];
     uint allowed = staker.allocations[contractAddress];
 
-    revert("NOT IMPLEMENTED");
+    allowed;
 
     require(
-      stakers[stakerAddress].allocations[contractAddress] >= amount,
+      stakers[msg.sender].allocations[contractAddress] >= amount,
       "Unable to deallocate more than allocated"
     );
-  }
 
-  function burn(address contractAddress, uint amount)
-  onlyInternal
-  external
-  {
     revert("NOT IMPLEMENTED");
   }
 
-  function reward(address contractAddress, uint amount)
-  onlyInternal
-  external
-  {
+  function burn(address contractAddress, uint amount) onlyInternal external {
+    contractAddress;
+    amount;
     revert("NOT IMPLEMENTED");
   }
 
-  function deallocate(address contractAddress, uint amount)
-  onlyInternal
-  external
-  {
+  function reward(address contractAddress, uint amount) onlyInternal external {
+    contractAddress;
+    amount;
     revert("NOT IMPLEMENTED");
   }
 
-  function updateParameter(ParamType param, uint value)
-  external
-  onlyGoverned
-  {
+  function deallocate(address contractAddress, uint amount) onlyInternal public {
+    contractAddress;
+    amount;
+    revert("NOT IMPLEMENTED");
+  }
+
+  function updateParameter(ParamType param, uint value) onlyGoverned external {
+
     if (param == ParamType.MIN_DEPOSIT_AMOUNT) {
       MIN_DEPOSIT_AMOUNT = value;
       return;

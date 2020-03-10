@@ -15,34 +15,27 @@
 
 pragma solidity ^0.5.7;
 
-contract INXMMaster {
-
-  address public tokenAddress;
-
-  address public owner;
-
-
-  uint public pauseTime;
+interface INXMMaster {
 
   function delegateCallBack(bytes32 myid) external;
 
-  function masterInitialized() public view returns (bool);
+  function masterInitialized() external view returns (bool);
 
-  function isInternal(address _add) public view returns (bool);
+  function isInternal(address _add) external view returns (bool);
 
-  function isPause() public view returns (bool check);
+  function isPause() external view returns (bool check);
 
-  function isOwner(address _add) public view returns (bool);
+  function isOwner(address _add) external view returns (bool);
 
-  function isMember(address _add) public view returns (bool);
+  function isMember(address _add) external view returns (bool);
 
-  function checkIsAuthToGoverned(address _add) public view returns (bool);
+  function checkIsAuthToGoverned(address _add) external view returns (bool);
 
-  function updatePauseTime(uint _time) public;
+  function updatePauseTime(uint _time) external;
 
-  function dAppLocker() public view returns (address _add);
+  function dAppLocker() external view returns (address _add);
 
-  function dAppToken() public view returns (address _add);
+  function dAppToken() external view returns (address _add);
 
-  function getLatestAddress(bytes2 _contractName) public view returns (address payable contractAddress);
+  function getLatestAddress(bytes2 _contractName) external view returns (address payable contractAddress);
 }

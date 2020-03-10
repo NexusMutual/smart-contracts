@@ -19,7 +19,7 @@ pragma solidity ^0.5.16;
 
 import "../interfaces/INXMMaster.sol";
 
-contract MasterMock {
+contract MasterMock is INXMMaster {
 
   enum Role {
     NonMember,
@@ -29,22 +29,57 @@ contract MasterMock {
   }
 
   mapping(address => Role) members;
-  address internalAddress;
-  address governedAddress;
+  mapping(address => bool) internalAddresses;
+  mapping(address => bool) governanceAddresses;
 
-  function enrollMember(address member, Role role) public {
-    members[member] = role;
+  /* utils */
+
+  function enrollGovernance(address newGov) public {
+    governanceAddresses[newGov] = true;
   }
 
+  function enrollInternal(address newInternal) public {
+    internalAddresses[newInternal] = true;
+  }
+
+  function enrollMember(address newMember, Role role) public {
+    members[newMember] = role;
+  }
+
+  /* mocked implementations */
+
   function checkIsAuthToGoverned(address caller) public view returns (bool) {
-    return governedAddress == caller;
+    return governanceAddresses[caller];
   }
 
   function isInternal(address caller) public view returns (bool) {
-    return internalAddress == caller;
+    return internalAddresses[caller];
   }
 
   function isMember(address caller) public view returns (bool) {
     return members[caller] >= Role.Member;
   }
+
+  /* unused functions */
+
+  modifier unused {
+    revert("Unexpected MasterMock call");
+    _;
+  }
+
+  function delegateCallBack(bytes32) unused external {}
+
+  function masterInitialized() unused public view returns (bool) {}
+
+  function isPause() unused public view returns (bool) {}
+
+  function isOwner(address) unused public view returns (bool) {}
+
+  function updatePauseTime(uint) unused public {}
+
+  function dAppLocker() unused public view returns (address) {}
+
+  function dAppToken() unused public view returns (address) {}
+
+  function getLatestAddress(bytes2) unused public view returns (address payable) {}
 }

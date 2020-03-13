@@ -1,41 +1,26 @@
-const { accounts, contract, web3 } = require('@openzeppelin/test-environment');
-const { BN, constants, expectEvent, expectRevert, ether } = require('@openzeppelin/test-helpers');
+const { expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { Role, ParamType } = require('../utils/constants');
+const accounts = require('../utils/accounts');
+const { ParamType } = require('../utils/constants');
+const setup = require('../utils/setup');
 
-const MasterMock = contract.fromArtifact('MasterMock');
-const PooledStaking = contract.fromArtifact('PooledStaking');
-
-const [
-  nonMember,
-  member,
-  abMember,
-  internal,
-  governance,
-] = accounts;
+const {
+  nonMembers: [nonMember],
+  members: [member],
+  advisoryBordMembers: [advisoryBordMember],
+  internalContracts: [internalContract],
+  governanceContracts: [governanceContract],
+} = accounts;
 
 describe('updateParameter', function () {
 
-  beforeEach(async function () {
-    const master = await MasterMock.new();
-    const staking = await PooledStaking.new();
-
-    await master.enrollMember(member, Role.Member);
-    await master.enrollMember(abMember, Role.AdvisoryBord);
-    await master.enrollInternal(internal);
-    await master.enrollGovernance(governance);
-
-    await staking.initialize(master.address);
-
-    this.master = master;
-    this.staking = staking;
-  });
+  beforeEach(setup);
 
   it('should revert when called by non governance addresses', async function () {
     const { staking } = this;
     const param = ParamType.MIN_DEPOSIT_AMOUNT;
-    const nonGov = [nonMember, member, abMember, internal];
+    const nonGov = [nonMember, member, advisoryBordMember, internalContract];
 
     for (const address of nonGov) {
       await expectRevert(
@@ -59,7 +44,7 @@ describe('updateParameter', function () {
       assert.notStrictEqual(before.toString(), value);
 
       const param = ParamType[paramName];
-      await staking.updateParameter(param, value, { from: governance });
+      await staking.updateParameter(param, value, { from: governanceContract });
       const actual = await staking[paramName]();
       assert.strictEqual(actual.toString(), value);
     }

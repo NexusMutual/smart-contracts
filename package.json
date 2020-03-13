@@ -21,11 +21,13 @@
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "mocha": "^7.1.0"
+    "mocha": "^7.1.0",
+    "nodemon": "^2.0.2"
   },
   "scripts": {
     "compile": "oz compile",
-    "test": "oz compile && mocha --exit"
+    "dev": "nodemon --ext js,sol -x 'oz compile && mocha --exit'",
+    "test": "mocha --exit"
   },
   "license": "ISC"
 }

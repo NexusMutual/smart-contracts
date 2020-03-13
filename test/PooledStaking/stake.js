@@ -7,7 +7,7 @@ const setup = require('../utils/setup');
 const {
   nonMembers: [nonMember],
   // members: [member],
-  // advisoryBordMembers: [advisoryBordMember],
+  // advisoryBoardMembers: [advisoryBoardMember],
   // internalContracts: [internalContract],
   // governanceContracts: [governanceContract],
 } = accounts;

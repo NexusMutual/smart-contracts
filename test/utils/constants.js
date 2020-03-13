@@ -8,7 +8,7 @@ const ParamType = {
 const Role = {
   NonMember: 0,
   Member: 1,
-  AdvisoryBord: 2,
+  AdvisoryBoard: 2,
   Owner: 3,
 };
 

@@ -15,8 +15,8 @@ async function setup () {
     await master.enrollMember(member, Role.Member);
   }
 
-  for (const advisoryBoardMember of accounts.advisoryBordMembers) {
-    await master.enrollMember(advisoryBoardMember, Role.AdvisoryBord);
+  for (const advisoryBoardMember of accounts.advisoryBoardMembers) {
+    await master.enrollMember(advisoryBoardMember, Role.AdvisoryBoard);
   }
 
   for (const internalContract of accounts.internalContracts) {

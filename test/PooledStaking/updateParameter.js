@@ -8,7 +8,7 @@ const setup = require('../utils/setup');
 const {
   nonMembers: [nonMember],
   members: [member],
-  advisoryBordMembers: [advisoryBordMember],
+  advisoryBoardMembers: [advisoryBoardMember],
   internalContracts: [internalContract],
   governanceContracts: [governanceContract],
 } = accounts;
@@ -20,7 +20,7 @@ describe('updateParameter', function () {
   it('should revert when called by non governance addresses', async function () {
     const { staking } = this;
     const param = ParamType.MIN_DEPOSIT_AMOUNT;
-    const nonGov = [nonMember, member, advisoryBordMember, internalContract];
+    const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {
       await expectRevert(

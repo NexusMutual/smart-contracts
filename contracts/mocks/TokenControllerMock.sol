@@ -21,22 +21,59 @@ import "../interfaces/IERC1132.sol";
 
 contract TokenControllerMock is IERC1132 {
 
-  function lock(bytes32 _reason, uint256 _amount, uint256 _time) public returns (bool);
+  bool lockShouldFail;
+  mapping(address => uint) locked;
 
-  function tokensLocked(address _of, bytes32 _reason) public view returns (uint256 amount);
+  /* utils */
 
-  function tokensLockedAtTime(address _of, bytes32 _reason, uint256 _time) public view returns (uint256 amount);
+  function setLockShouldFail(bool shouldFail) public {
+    lockShouldFail = shouldFail;
+  }
 
-  function totalBalanceOf(address _of) public view returns (uint256 amount);
+  /* mocked implementations */
 
-  function extendLock(bytes32 _reason, uint256 _time) public returns (bool);
+  function lockOf(address _of, bytes32 _reason, uint256 _amount, uint256 _time) public returns (bool) {
 
-  function increaseLockAmount(bytes32 _reason, uint256 _amount) public returns (bool);
+    require(_reason == "PS", "Lock reason should be PS (pooled staking)");
 
-  function tokensUnlockable(address _of, bytes32 _reason) public view returns (uint256 amount);
+    if (lockShouldFail) {
+      // trigger underflow
+      uint a = 0;
+      a.sub(1);
+    }
 
-  function unlock(address _of) public returns (uint256 unlockableTokens);
+    emit Locked(_of, _reason, _amount, now.add(_time));
+    return true;
+  }
 
-  function getUnlockableTokens(address _of) public view returns (uint256 unlockableTokens);
+  function increaseLockAmount(bytes32 _reason, uint256 _amount) public returns (bool) {
 
+    // increaseLockAmountOf is missing
+    // reduce then lock new amount?
+
+    revert('Not implemented');
+  }
+
+  /* unused functions */
+
+  modifier unused {
+    revert("Unexpected MasterMock call");
+    _;
+  }
+
+  function tokensLocked(address _of, bytes32 _reason) unused public view returns (uint256) {}
+
+  function tokensLockedAtTime(address _of, bytes32 _reason, uint256 _time) unused public view returns (uint256) {}
+
+  function totalBalanceOf(address _of) unused public view returns (uint256) {}
+
+  function extendLock(bytes32 _reason, uint256 _time) unused public returns (bool) {}
+
+  function increaseLockAmount(bytes32 _reason, uint256 _amount) unused public returns (bool) {}
+
+  function tokensUnlockable(address _of, bytes32 _reason) unused public view returns (uint256) {}
+
+  function unlock(address _of) unused public returns (uint256) {}
+
+  function getUnlockableTokens(address _of) unused public view returns (uint256) {}
 }

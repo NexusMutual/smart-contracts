@@ -63,7 +63,7 @@ contract MasterMock is INXMMaster {
   /* unused functions */
 
   modifier unused {
-    revert("Unexpected MasterMock call");
+    require(false, "Unexpected MasterMock call");
     _;
   }
 

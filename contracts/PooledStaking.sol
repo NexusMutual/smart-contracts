@@ -20,8 +20,9 @@ pragma solidity ^0.5.16;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./base/MasterAware.sol";
+import "./base/TokenAware.sol";
 
-contract PooledStaking is MasterAware {
+contract PooledStaking is MasterAware, TokenAware {
   using SafeMath for uint;
 
   enum ParamType {
@@ -82,8 +83,9 @@ contract PooledStaking is MasterAware {
   uint firstDeallocation;
   uint lastDeallocation;
 
-  function initialize(address masterAddress) initializer public {
+  function initialize(address masterAddress, address tokenAddress) initializer public {
     MasterAware.initialize(masterAddress);
+    TokenAware.initialize(tokenAddress);
   }
 
   /* getters */
@@ -101,6 +103,8 @@ contract PooledStaking is MasterAware {
   function stake(uint amount) onlyMembers external {
 
     require(amount > MIN_DEPOSIT_AMOUNT, "Amount is less than minimum allowed");
+
+    token.transferFrom(msg.sender, address(this), amount);
 
     Staker storage staker = stakers[msg.sender];
     uint oldStake = staker.staked;
@@ -189,7 +193,7 @@ contract PooledStaking is MasterAware {
     revert("NOT IMPLEMENTED");
   }
 
-  function deallocate(address contractAddress, uint amount) onlyInternal public {
+  function deallocate(address contractAddress, uint amount) public {
     contractAddress;
     amount;
     revert("NOT IMPLEMENTED");

@@ -18,31 +18,13 @@
 pragma solidity ^0.5.16;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "../interfaces/INXMMaster.sol";
+import "../abstract/NXMToken.sol";
 
-contract MasterAware is Initializable {
+contract TokenAware is Initializable {
 
-  INXMMaster public master;
+  NXMToken public token;
 
-  modifier onlyInternal {
-    require(master.isInternal(msg.sender), "Caller is not an internal contract");
-    _;
-  }
-
-  modifier onlyMembers {
-    require(master.isMember(msg.sender), "Caller is not a member");
-    _;
-  }
-
-  modifier onlyGoverned {
-    require(
-      master.checkIsAuthToGoverned(msg.sender),
-      "Caller is not authorized to govern"
-    );
-    _;
-  }
-
-  function initialize(address masterAddress) initializer public {
-    master = INXMMaster(masterAddress);
+  function initialize(address tokenAddress) initializer public {
+    token = NXMToken(tokenAddress);
   }
 }

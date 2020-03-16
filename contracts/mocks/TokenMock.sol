@@ -18,31 +18,26 @@
 pragma solidity ^0.5.16;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "../interfaces/INXMMaster.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../abstract/NXMToken.sol";
 
-contract MasterAware is Initializable {
+contract TokenMock is NXMToken, ERC20, Initializable {
 
-  INXMMaster public master;
+  address owner;
 
-  modifier onlyInternal {
-    require(master.isInternal(msg.sender), "Caller is not an internal contract");
-    _;
+  function initialize() initializer public {
+    owner = msg.sender;
+    // Mint 1000 NXM
+    _mint(msg.sender, 1000 ether);
   }
 
-  modifier onlyMembers {
-    require(master.isMember(msg.sender), "Caller is not a member");
-    _;
+  function burn(uint256 amount) public returns (bool) {
+    _burn(msg.sender, amount);
+    return true;
   }
 
-  modifier onlyGoverned {
-    require(
-      master.checkIsAuthToGoverned(msg.sender),
-      "Caller is not authorized to govern"
-    );
-    _;
-  }
-
-  function initialize(address masterAddress) initializer public {
-    master = INXMMaster(masterAddress);
+  function burnFrom(address from, uint256 value) public returns (bool) {
+    _burnFrom(from, value);
+    return true;
   }
 }

@@ -31,18 +31,6 @@ contract PooledStaking is MasterAware {
     UNSTAKE_LOCK_TIME
   }
 
-  // Minimum deposit
-  uint public MIN_DEPOSIT_AMOUNT;
-
-  // Minimum allowed stake percentage per contract
-  uint public MIN_STAKE_PERCENTAGE;
-
-  // Sum of all stakes should not exceed the total deposited amount times this number
-  uint public MAX_LEVERAGE;
-
-  // Lock period before unstaking takes place
-  uint public UNSTAKE_LOCK_TIME;
-
   struct Staker {
     uint staked; // total amount of staked nxm
     uint reward; // total amount that is ready to be claimed
@@ -71,6 +59,11 @@ contract PooledStaking is MasterAware {
     uint deallocateAt;
   }
 
+  uint public MIN_DEPOSIT_AMOUNT;   // Minimum deposit
+  uint public MIN_STAKE_PERCENTAGE; // Minimum allowed stake percentage per contract
+  uint public MAX_LEVERAGE;         // Sum of all stakes should not exceed the total deposited amount times this number
+  uint public UNSTAKE_LOCK_TIME;    // Lock period before unstaking takes place
+
   // List of all contract addresses
   address[] public contractAddresses;
 
@@ -92,6 +85,18 @@ contract PooledStaking is MasterAware {
   function initialize(address masterAddress) initializer public {
     MasterAware.initialize(masterAddress);
   }
+
+  /* getters */
+
+  function stakerContracts(address staker, uint contractIndex) public view returns (address) {
+    return stakers[staker].contracts[contractIndex];
+  }
+
+  function stakerContractsCount(address staker) public view returns (uint) {
+    return stakers[staker].contracts.length;
+  }
+
+  /* functions */
 
   function stake(uint amount) onlyMembers external {
 
@@ -157,7 +162,7 @@ contract PooledStaking is MasterAware {
     require(allocationTotal <= MAX_LEVERAGE, "Total allocation exceeds maximum allowed");
   }
 
-  function requestDeallocation(address contractAddress, uint amount) external onlyMembers {
+  function requestDeallocation(address contractAddress, uint amount) onlyMembers external {
 
     Staker storage staker = stakers[msg.sender];
     uint allowed = staker.allocations[contractAddress];

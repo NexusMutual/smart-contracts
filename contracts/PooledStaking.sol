@@ -96,15 +96,23 @@ contract PooledStaking is MasterAware, TokenAware {
 
   function stakerContractsCount(address staker) public view returns (uint) {
     return stakers[staker].contracts.length;
+  /* vault functions */
+
+  function deposit(address from, uint amount) internal {
+    token.transferFrom(from, address(this), amount);
   }
 
-  /* functions */
+  function widthdraw(address to, uint amount) internal {
+    token.transfer(to, amount);
+  }
+
+  /* staking functions */
 
   function stake(uint amount) onlyMembers external {
 
     require(amount > MIN_DEPOSIT_AMOUNT, "Amount is less than minimum allowed");
 
-    token.transferFrom(msg.sender, address(this), amount);
+    deposit(msg.sender, amount);
 
     Staker storage staker = stakers[msg.sender];
     uint oldStake = staker.staked;

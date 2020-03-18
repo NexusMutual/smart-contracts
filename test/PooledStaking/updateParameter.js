@@ -18,6 +18,7 @@ describe('updateParameter', function () {
   beforeEach(setup);
 
   it('should revert when called by non governance addresses', async function () {
+
     const { staking } = this;
     const param = ParamType.MIN_DEPOSIT_AMOUNT;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];

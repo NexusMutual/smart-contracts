@@ -1,5 +1,4 @@
 const { contract } = require('@openzeppelin/test-environment');
-const { ether } = require('@openzeppelin/test-helpers');
 
 const { Role } = require('./constants');
 const accounts = require('./accounts');

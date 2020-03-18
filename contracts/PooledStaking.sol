@@ -140,6 +140,11 @@ contract PooledStaking is MasterAware, TokenAware {
       "Allocating to fewer contracts is not allowed"
     );
 
+    require(
+      _contracts.length == _allocations.length,
+      "Contracts and allocations arrays should have the same length"
+    );
+
     uint previousLength = staker.contracts.length;
     uint allocationTotal;
 

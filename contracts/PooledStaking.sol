@@ -90,12 +90,18 @@ contract PooledStaking is MasterAware, TokenAware {
 
   /* getters */
 
-  function stakerContracts(address staker, uint contractIndex) public view returns (address) {
+  function stakerContractCount(address staker) public view returns (uint) {
+    return stakers[staker].contracts.length;
+  }
+
+  function stakerContractAtIndex(address staker, uint contractIndex) public view returns (address) {
     return stakers[staker].contracts[contractIndex];
   }
 
-  function stakerContractsCount(address staker) public view returns (uint) {
-    return stakers[staker].contracts.length;
+  function stakerContractAllocation(address staker, address contractAddress) public view returns (uint) {
+    return stakers[staker].allocations[contractAddress];
+  }
+
   /* vault functions */
 
   function deposit(address from, uint amount) internal {

@@ -90,6 +90,14 @@ contract PooledStaking is MasterAware, TokenAware {
 
   /* getters */
 
+  function contractStakerCount(address contractAddress) public view returns (uint) {
+    return contracts[contractAddress].stakers.length;
+  }
+
+  function contractStakerAtIndex(address contractAddress, uint stakerIndex) public view returns (address) {
+    return contracts[contractAddress].stakers[stakerIndex];
+  }
+
   function stakerContractCount(address staker) public view returns (uint) {
     return stakers[staker].contracts.length;
   }
@@ -132,8 +140,8 @@ contract PooledStaking is MasterAware, TokenAware {
       uint newAmount = staker.staked.mul(allocation).div(10000);
 
       contracts[contractAddress].staked = contracts[contractAddress].staked
-      .sub(oldAmount)
-      .add(newAmount);
+        .sub(oldAmount)
+        .add(newAmount);
     }
   }
 
@@ -151,7 +159,12 @@ contract PooledStaking is MasterAware, TokenAware {
       "Contracts and allocations arrays should have the same length"
     );
 
-    uint previousLength = staker.contracts.length;
+    require(
+      staker.staked > 0,
+      "Allocations can be set only when staked amount is non-zero"
+    );
+
+    uint oldLength = staker.contracts.length;
     uint allocationTotal;
 
     for (uint i = 0; i < _contracts.length; i++) {
@@ -162,7 +175,7 @@ contract PooledStaking is MasterAware, TokenAware {
       address contractAddress = _contracts[i];
       uint oldAllocation = staker.allocations[contractAddress];
 
-      if (i < previousLength) {
+      if (i < oldLength) {
         // we expect new contracts to be at the end
         require(contractAddress == staker.contracts[i], "Unexpected contract");
         require(oldAllocation <= _allocations[i], "New allocation is less than previous allocation");
@@ -177,9 +190,9 @@ contract PooledStaking is MasterAware, TokenAware {
 
       staker.allocations[contractAddress] = _allocations[i];
       contracts[contractAddress].staked = contracts[contractAddress]
-      .staked
-      .sub(oldAmount)
-      .add(newAmount);
+        .staked
+        .sub(oldAmount)
+        .add(newAmount);
     }
 
     require(allocationTotal <= MAX_LEVERAGE, "Total allocation exceeds maximum allowed");

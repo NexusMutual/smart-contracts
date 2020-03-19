@@ -142,10 +142,10 @@ describe('stake', function () {
     };
 
     const stakes = [
-      { from: memberOne, amount: ether('1') },
-      { from: memberTwo, amount: ether('4') },
-      { from: memberOne, amount: ether('3') },
-      { from: memberTwo, amount: ether('2') },
+      { from: memberOne, amount: ether('1'), allocate: true },
+      { from: memberTwo, amount: ether('4'), allocate: true },
+      { from: memberOne, amount: ether('3'), allocate: false },
+      { from: memberTwo, amount: ether('2'), allocate: false },
     ];
 
     const allExpectedAmounts = [
@@ -157,11 +157,6 @@ describe('stake', function () {
 
     await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
 
-    // set allocations for each account
-    for (const member of [memberOne, memberTwo]) {
-      await staking.setAllocations(contracts, allocations[member], { from: member });
-    }
-
     // fund accounts
     await token.transfer(memberOne, ether('10'));
     await token.transfer(memberTwo, ether('10'));
@@ -169,11 +164,15 @@ describe('stake', function () {
     // stake and check staked amounts for each contract
     for (let i = 0; i < stakes.length; i++) {
 
-      const { from, amount } = stakes[i];
+      const { from, amount, allocate } = stakes[i];
       const expectedAmounts = allExpectedAmounts[i];
 
       await token.approve(staking.address, amount, { from });
       await staking.stake(amount, { from });
+
+      if (allocate) {
+        await staking.setAllocations(contracts, allocations[from], { from });
+      }
 
       for (const contract of Object.keys(expectedAmounts)) {
 

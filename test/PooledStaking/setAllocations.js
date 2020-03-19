@@ -251,15 +251,7 @@ describe('setAllocations', function () {
   it('should correctly update staked amounts on allocation increase', async function () {
 
     const { staking, token } = this;
-    const maxLeverage = 1000 * 100; // 1000%
-
-    await staking.updateParameter(
-      ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract },
-    );
-
-    await token.transfer(member, ether('7')); // fund account
-    await token.approve(staking.address, ether('7'), { from: member });
-    await staking.stake(ether('7'), { from: member });
+    await stake(token, staking, [{ member, amount: ether('7') }]);
 
     const contracts = [firstContract, secondContract];
     const expectedAmounts = [

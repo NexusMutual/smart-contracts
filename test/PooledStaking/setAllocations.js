@@ -32,7 +32,7 @@ async function stake (token, staking, stakes, maxLeverage) {
   }
 }
 
-describe.only('setAllocations', function () {
+describe('setAllocations', function () {
 
   beforeEach(setup);
 

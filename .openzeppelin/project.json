@@ -12,7 +12,9 @@
       }
     },
     "typechain": {
-      "enabled": false
+      "enabled": true,
+      "outDir": "./types/contracts",
+      "target": "truffle"
     },
     "manager": "openzeppelin",
     "solcVersion": "0.5.16",

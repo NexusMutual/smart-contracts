@@ -2,7 +2,7 @@ const ParamType = {
   MIN_DEPOSIT_AMOUNT: 0,
   MIN_STAKE_PERCENTAGE: 1,
   MAX_LEVERAGE: 2,
-  UNSTAKE_LOCK_TIME: 3,
+  DEALLOCATE_LOCK_TIME: 3,
 };
 
 const Role = {

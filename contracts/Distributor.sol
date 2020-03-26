@@ -11,6 +11,7 @@ import * as INXMMaster from "./INXMMaster.sol";
 import * as Pool1 from "./Pool1.sol";
 import * as PoolData from "./PoolData.sol";
 import * as Claims from "./Claims.sol";
+import * as ClaimsData from "./ClaimsData.sol";
 import * as NXMToken from "./NXMToken.sol";
 import * as QuotationData from "./QuotationData.sol";
 
@@ -151,9 +152,10 @@ contract Distributor is
     Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
     claims.submitClaim(allTokenData[tokenId].coverId);
 
+    ClaimsData.ClaimsData claimsData = ClaimsData.ClaimsData(nxMaster.getLatestAddress("CD"));
+    uint claimId = claimsData.actualClaimLength() - 1;
     allTokenData[tokenId].claimInProgress = true;
-    // TODO: set to correct value once claim ID is available
-    allTokenData[tokenId].claimId = 1337;
+    allTokenData[tokenId].claimId = claimId;
   }
 
   function redeemClaim(

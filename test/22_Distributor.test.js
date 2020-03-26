@@ -20,11 +20,11 @@ const DSValue = artifacts.require('DSValueMock');
 
 const Distributor = artifacts.require('Distributor');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -167,29 +167,29 @@ contract('Distributor buy cover and claim', function([
     (await pd.capReached()).toString().should.be.equal((1).toString());
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.payJoiningFee(member3, {from: member3, value: fee});
     await mr.kycVerdict(member3, true);
-    await mr.payJoiningFee(staker1, { from: staker1, value: fee });
+    await mr.payJoiningFee(staker1, {from: staker1, value: fee});
     await mr.kycVerdict(staker1, true);
-    await mr.payJoiningFee(staker2, { from: staker2, value: fee });
+    await mr.payJoiningFee(staker2, {from: staker2, value: fee});
     await mr.kycVerdict(staker2, true);
-    await mr.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
+    await mr.payJoiningFee(coverHolder, {from: coverHolder, value: fee});
     await mr.kycVerdict(coverHolder, true);
     await mr.payJoiningFee(distributor.address, {
       from: coverHolder,
       value: fee
     });
     await mr.kycVerdict(distributor.address, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker2 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: staker1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: staker2});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder});
     await distributor.nxmTokenApprove(tc.address, UNLIMITED_ALLOWANCE, {
       from: coverHolder
     });
@@ -201,8 +201,8 @@ contract('Distributor buy cover and claim', function([
     await tk.transfer(distributor.address, ether(250));
     await tk.transfer(staker1, ether(250));
     await tk.transfer(staker2, ether(250));
-    await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
-    await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
+    await tf.addStake(smartConAdd, stakeTokens, {from: staker1});
+    await tf.addStake(smartConAdd, stakeTokens, {from: staker2});
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -242,7 +242,7 @@ contract('Distributor buy cover and claim', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: nftCoverHolder1, value: buyCoverValue.toString() }
+              {from: nftCoverHolder1, value: buyCoverValue.toString()}
             );
 
             firstTokenId = getCoverDataFromBuyCoverLogs(buyCoverResponse1.logs)
@@ -267,7 +267,7 @@ contract('Distributor buy cover and claim', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: nftCoverHolder1, value: buyCoverValue.toString() }
+              {from: nftCoverHolder1, value: buyCoverValue.toString()}
             );
 
             secondTokenId = getCoverDataFromBuyCoverLogs(buyCoverResponse2.logs)
@@ -285,9 +285,9 @@ contract('Distributor buy cover and claim', function([
             minTime = new BN(minVotingTime.toString()).add(
               new BN(now.toString())
             );
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getUserClaimByIndex(0, { from: distributor.address });
-            await cl.getClaimbyIndex(1, { from: distributor.address });
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getUserClaimByIndex(0, {from: distributor.address});
+            await cl.getClaimbyIndex(1, {from: distributor.address});
             claimId = (await cd.actualClaimLength()) - 1;
           });
 
@@ -302,6 +302,7 @@ contract('Distributor buy cover and claim', function([
             tokenData.coverDetails[1].should.be.equal(coverDetails[1]);
             tokenData.coverDetails[2].should.be.equal(coverDetails[2]);
             tokenData.coverDetails[3].should.be.equal(coverDetails[3]);
+            tokenData.claimId.should.be.equal(claimId.toString());
           });
 
           it('should return token data for token with no claim in progress', async () => {
@@ -327,9 +328,9 @@ contract('Distributor buy cover and claim', function([
           });
           it('should let claim assessors to vote for claim assessment', async function() {
             let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-            await cl.submitCAVote(claimId, -1, { from: member1 });
-            await cl.submitCAVote(claimId, -1, { from: member2 });
-            await cl.submitCAVote(claimId, -1, { from: member3 });
+            await cl.submitCAVote(claimId, -1, {from: member1});
+            await cl.submitCAVote(claimId, -1, {from: member2});
+            await cl.submitCAVote(claimId, -1, {from: member3});
             let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
             (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
               tokens * 3
@@ -341,11 +342,11 @@ contract('Distributor buy cover and claim', function([
             isBooked.should.be.equal(true);
           });
           it('should not let claim assessors to vote for 2nd time in same claim id', async function() {
-            await assertRevert(cl.submitCAVote(claimId, -1, { from: member2 }));
+            await assertRevert(cl.submitCAVote(claimId, -1, {from: member2}));
           });
           it('should not let member to vote for CA', async function() {
             await assertRevert(
-              cl.submitMemberVote(claimId, -1, { from: member1 })
+              cl.submitMemberVote(claimId, -1, {from: member1})
             );
           });
           it('should close voting after min time', async function() {
@@ -357,7 +358,7 @@ contract('Distributor buy cover and claim', function([
               .should.be.equal((1).toString());
           });
           it('should not able to vote after voting close', async function() {
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+            await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
           it('should be able to change claim status', async function() {
             let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -430,11 +431,11 @@ contract('Distributor buy cover and claim', function([
           });
 
           it('should let claim assessor to vote for claim assessment', async function() {
-            await cl.submitCAVote(claimId, 1, { from: member1 });
-            await cl.submitCAVote(claimId, 1, { from: member2 });
-            await cl.submitCAVote(claimId, 1, { from: member3 });
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getClaimFromNewStart(1, { from: member1 });
+            await cl.submitCAVote(claimId, 1, {from: member1});
+            await cl.submitCAVote(claimId, 1, {from: member2});
+            await cl.submitCAVote(claimId, 1, {from: member3});
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getClaimFromNewStart(1, {from: member1});
             await cd.getVoteToken(claimId, 0, 1);
             await cd.getVoteVoter(claimId, 1, 1);
             let verdict = await cd.getVoteVerdict(claimId, 1, 1);
@@ -449,7 +450,7 @@ contract('Distributor buy cover and claim', function([
             await increaseTimeTo(
               new BN(closingTime.toString()).add(new BN((6).toString()))
             );
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+            await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
         });
       });
@@ -488,7 +489,7 @@ contract('Distributor buy cover and claim', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: nftCoverHolder1 }
+              {from: nftCoverHolder1}
             );
 
             const tokenId = getCoverDataFromBuyCoverLogs(
@@ -507,9 +508,9 @@ contract('Distributor buy cover and claim', function([
             minTime = new BN(minVotingTime.toString()).add(
               new BN(now2.toString())
             );
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getUserClaimByIndex(0, { from: distributor.address });
-            await cl.getClaimbyIndex(1, { from: distributor.address });
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getUserClaimByIndex(0, {from: distributor.address});
+            await cl.getClaimbyIndex(1, {from: distributor.address});
             claimId = (await cd.actualClaimLength()) - 1;
           });
 
@@ -520,11 +521,11 @@ contract('Distributor buy cover and claim', function([
           });
 
           it('should let claim assessor to vote for claim assessment', async function() {
-            await cl.submitCAVote(claimId, 1, { from: member1 });
-            await cl.submitCAVote(claimId, 1, { from: member2 });
-            await cl.submitCAVote(claimId, 1, { from: member3 });
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getClaimFromNewStart(1, { from: member1 });
+            await cl.submitCAVote(claimId, 1, {from: member1});
+            await cl.submitCAVote(claimId, 1, {from: member2});
+            await cl.submitCAVote(claimId, 1, {from: member3});
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getClaimFromNewStart(1, {from: member1});
             await cd.getVoteToken(claimId, 0, 1);
             await cd.getVoteVoter(claimId, 1, 1);
             let verdict = await cd.getVoteVerdict(claimId, 1, 1);
@@ -539,7 +540,7 @@ contract('Distributor buy cover and claim', function([
             await increaseTimeTo(
               new BN(closingTime.toString()).add(new BN((6).toString()))
             );
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+            await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
           it('orcalise call should be able to change claim status', async function() {
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);

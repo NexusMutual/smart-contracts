@@ -29,6 +29,12 @@ contract Distributor is
     uint claimId;
   }
 
+  event PayoutReceived (
+    address sender,
+    uint value,
+    bytes4 currency
+  );
+
   uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
   uint public constant CLAIM_DEPOSIT_PERCENTAGE = 5;
 
@@ -255,5 +261,9 @@ contract Distributor is
     require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
     require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
     _;
+  }
+
+  function () payable external {
+    emit PayoutReceived(msg.sender, msg.value, "ETH");
   }
 }

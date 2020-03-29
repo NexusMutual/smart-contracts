@@ -363,7 +363,8 @@ contract('Distributor buy cover and claim', function([
           it('should be able to change claim status', async function() {
             let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
-            APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+            const apiCallId = (await pd.getApilCallLength()) - 1;
+            APIID = await pd.allAPIcall(apiCallId);
             await P1.__callback(APIID, '');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((6).toString());
@@ -416,7 +417,7 @@ contract('Distributor buy cover and claim', function([
               value: submitClaimDeposit
             });
 
-            coverID = await qd.getAllCoversOfUser(coverHolder);
+            coverID = await qd.getAllCoversOfUser(distributor.address);
             claimId = (await cd.actualClaimLength()) - 1;
             initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
               staker1,
@@ -451,6 +452,23 @@ contract('Distributor buy cover and claim', function([
               new BN(closingTime.toString()).add(new BN((6).toString()))
             );
             await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
+          });
+
+          it('should be able to change claim status', async function() {
+            const apiCallLength = (await pd.getApilCallLength()) - 1;
+            let apiid = await pd.allAPIcall(apiCallLength);
+
+            // let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+            priceinEther = await mcr.calculateTokenPrice(CA_ETH);
+            await P1.__callback(apiid, '');
+            const newCStatus = await cd.getClaimStatusNumber(claimId);
+            newCStatus[1].toString().should.be.equal((7).toString());
+          });
+
+          it('voting should be closed', async function() {
+            (await cl.checkVoteClosing(claimId))
+              .toString()
+              .should.be.equal((-1).toString());
           });
         });
       });
@@ -540,9 +558,11 @@ contract('Distributor buy cover and claim', function([
             await increaseTimeTo(
               new BN(closingTime.toString()).add(new BN((6).toString()))
             );
+
             await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
           it('orcalise call should be able to change claim status', async function() {
+            const oldClaimStatus = await cd.getClaimStatusNumber(claimId);
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             priceinEther = await mcr.calculateTokenPrice(CA_ETH);
             await P1.__callback(apiid, '');

@@ -463,6 +463,11 @@ contract('Distributor buy cover and claim', function([
             await P1.__callback(apiid, '');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((7).toString());
+            const claimData = await cl.getClaimbyIndex(claimId);
+            console.log(claimData);
+
+            claimData.finalVerdict.toString().should.be.equal((1).toString());
+            claimData.status.toString().should.be.equal((7).toString());
           });
 
           it('voting should be closed', async function() {

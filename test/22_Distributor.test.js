@@ -475,6 +475,32 @@ contract('Distributor buy cover and claim', function([
               .toString()
               .should.be.equal((-1).toString());
           });
+
+          it('token should be able to redeem claim', async function() {
+            const balancePreRedeem = new web3.utils.BN(
+              await web3.eth.getBalance(nftCoverHolder1)
+            );
+            const redeemClaimsResponse = await distributor.redeemClaim(
+              secondTokenId,
+              {
+                from: nftCoverHolder1
+              }
+            );
+
+            const logs = Array.from(redeemClaimsResponse.logs);
+            const claimRedeemedEvent = logs.filter(
+              log => log.event === 'ClaimRedeemed'
+            )[0];
+            console.log(claimRedeemedEvent);
+
+            const balancePostRedeem = new web3.utils.BN(
+              await web3.eth.getBalance(nftCoverHolder1)
+            );
+            const balanceGain = balancePostRedeem.sub(balancePreRedeem);
+            balanceGain
+              .toString()
+              .should.be.equal(toWei(coverDetails[0]).toString());
+          });
         });
       });
     });

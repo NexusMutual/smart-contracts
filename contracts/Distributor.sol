@@ -35,6 +35,12 @@ contract Distributor is
     bytes4 currency
   );
 
+  event ClaimRedeemed (
+    address receiver,
+    uint value,
+    bytes4 currency
+  );
+
   uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
   uint public constant CLAIM_DEPOSIT_PERCENTAGE = 5;
 
@@ -178,6 +184,38 @@ contract Distributor is
     uint sumAssured;
     (, coverStatus, sumAssured, , ) = quotationData.getCoverDetailsByCoverID2(allTokenData[tokenId].coverId);
 
+    if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimAccepted)) {
+      Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
+      uint256 status;
+      (, status, , , ) = claims.getClaimbyIndex(allTokenData[tokenId].claimId);
+
+      if (status == 14 || status == 7) {
+        uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
+        uint totalReturnedSum = sumAssured.add(deposit);
+        _burn(tokenId);
+        _sendAssuredSum(allTokenData[tokenId].coverCurrency, totalReturnedSum);
+        emit ClaimRedeemed(msg.sender, totalReturnedSum, allTokenData[tokenId].coverCurrency);
+      } else {
+        revert("Claim accepted but payout not completed");
+      }
+    } else {
+      revert("Claim is not accepted");
+    }
+  }
+
+  function burnFailedClaimToken(
+    uint256 tokenId
+  )
+    public
+    onlyOwner
+  {
+    require(allTokenData[tokenId].claimInProgress, "No claim is in progress");
+
+    QuotationData.QuotationData quotationData = QuotationData.QuotationData(nxMaster.getLatestAddress("QD"));
+    uint8 coverStatus;
+    uint sumAssured;
+    (, coverStatus, sumAssured, , ) = quotationData.getCoverDetailsByCoverID2(allTokenData[tokenId].coverId);
+
     if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimDenied)) {
       _burn(tokenId);
       uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
@@ -188,22 +226,8 @@ contract Distributor is
       } else {
         revert("Unsupported currency");
       }
-
-    } else if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimAccepted)) {
-      Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
-      int8 finalVerdict;
-      (, , finalVerdict, , ) = claims.getClaimbyIndex(allTokenData[tokenId].claimId);
-
-      if (finalVerdict == 14) {
-        uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
-        uint totalReturnedSum = sumAssured.add(deposit);
-        _sendAssuredSum(allTokenData[tokenId].coverCurrency, totalReturnedSum);
-        _burn(tokenId);
-      } else {
-        revert("Claim accepted but payout not completed");
-      }
     } else {
-      revert("Claim is neither accepted nor denied");
+      revert("Claim is not denied.");
     }
   }
 

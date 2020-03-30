@@ -375,7 +375,7 @@ contract('Distributor buy cover and claim', function([
               .should.be.equal((-1).toString());
           });
 
-          it('should be able to withdraw ETH fee from all bought covers', async function() {
+          it('distributor owner should be able to withdraw ETH fee from all bought covers', async function() {
             const feeReceiverBalancePreWithdrawal = new web3.utils.BN(
               await web3.eth.getBalance(distributorFeeReceiver)
             );
@@ -399,6 +399,14 @@ contract('Distributor buy cover and claim', function([
               feeReceiverBalancePreWithdrawal
             );
             gain.toString().should.be.equal(withdrawnSum);
+          });
+
+          it('cover holder should not be able to redeemClaim', async function() {
+            await assertRevert(
+              distributor.redeemClaim(firstTokenId, {
+                from: nftCoverHolder1
+              })
+            );
           });
         });
 

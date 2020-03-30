@@ -37,7 +37,7 @@ const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
-const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
+const coverDetails = [10, '3362445813369838', '744892736679184', '7972408607'];
 const v = 28;
 const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
 const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
@@ -464,7 +464,6 @@ contract('Distributor buy cover and claim', function([
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((7).toString());
             const claimData = await cl.getClaimbyIndex(claimId);
-            console.log(claimData);
 
             claimData.finalVerdict.toString().should.be.equal((1).toString());
             claimData.status.toString().should.be.equal((7).toString());
@@ -486,20 +485,35 @@ contract('Distributor buy cover and claim', function([
                 from: nftCoverHolder1
               }
             );
-
             const logs = Array.from(redeemClaimsResponse.logs);
             const claimRedeemedEvent = logs.filter(
               log => log.event === 'ClaimRedeemed'
             )[0];
-            console.log(claimRedeemedEvent);
+
+            const expectedTotalClaimValue = new web3.utils.BN(
+              coverDetails[0]
+            ).add(new web3.utils.BN(submitClaimDeposit));
+
+            claimRedeemedEvent.args.receiver.should.be.equal(nftCoverHolder1);
+            claimRedeemedEvent.args.value
+              .toString()
+              .should.be.equal(expectedTotalClaimValue.toString());
 
             const balancePostRedeem = new web3.utils.BN(
               await web3.eth.getBalance(nftCoverHolder1)
             );
-            const balanceGain = balancePostRedeem.sub(balancePreRedeem);
+
+            const tx = await web3.eth.getTransaction(redeemClaimsResponse.tx);
+            const gasCost = new web3.utils.BN(tx.gasPrice).mul(
+              new web3.utils.BN(redeemClaimsResponse.receipt.gasUsed)
+            );
+            const balanceGain = balancePostRedeem
+              .add(gasCost)
+              .sub(balancePreRedeem);
+
             balanceGain
               .toString()
-              .should.be.equal(toWei(coverDetails[0]).toString());
+              .should.be.equal(expectedTotalClaimValue.toString());
           });
         });
       });

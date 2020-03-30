@@ -408,6 +408,20 @@ contract('Distributor buy cover and claim', function([
               })
             );
           });
+
+          it('distributor owner should be able to burn failed claim and withdraw lost deposit', async function() {
+            await distributor.burnFailedClaimToken(firstTokenId, {
+              from: coverHolder
+            });
+
+            await distributor.withdrawETH(
+              distributorFeeReceiver,
+              submitClaimDeposit,
+              {
+                from: coverHolder
+              }
+            );
+          });
         });
 
         describe('All CAs accept claim', function() {

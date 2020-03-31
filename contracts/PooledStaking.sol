@@ -27,8 +27,8 @@ contract PooledStaking is MasterAware, TokenAware {
   using SafeMath for uint;
 
   enum ParamType {
-    MIN_DEPOSIT_AMOUNT,
-    MIN_STAKE_PERCENTAGE,
+    MIN_DEPOSIT_AMOUNT, // might want to nuke this
+    MIN_STAKE,
     MAX_LEVERAGE,
     DEALLOCATE_LOCK_TIME
   }
@@ -38,12 +38,10 @@ contract PooledStaking is MasterAware, TokenAware {
     uint reward; // total amount that is ready to be claimed
     address[] contracts; // list of contracts the staker has staked on
 
-    // Percentage of staked NXM amount on a contract
-    // All percentages have 2 decimal places, i.e. 100% is represented as 10000, and 33.33% as 3333
     mapping(address => uint) allocations;
 
     // amount to be subtracted after all deallocations will be processed
-    mapping(address => uint) deallocationAmounts;
+    mapping(address => uint) pendingDeallocations;
   }
 
   struct Contract {
@@ -59,8 +57,8 @@ contract PooledStaking is MasterAware, TokenAware {
     address stakerAddress;
   }
 
-  uint public MIN_DEPOSIT_AMOUNT;   // Minimum deposit
-  uint public MIN_STAKE_PERCENTAGE; // Minimum allowed stake percentage per contract
+  uint public MIN_DEPOSIT_AMOUNT;   // Minimum deposit. Considered for removal.
+  uint public MIN_STAKE;            // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;         // Sum of all stakes should not exceed the total deposited amount times this number
   uint public DEALLOCATE_LOCK_TIME; // Lock period before unstaking takes place
 
@@ -120,73 +118,33 @@ contract PooledStaking is MasterAware, TokenAware {
     stakerAddress = deallocation.stakerAddress;
   }
 
-  /* staking functions */
-
-  function stake(uint amount) onlyMembers external {
-
-    require(amount > MIN_DEPOSIT_AMOUNT, "Amount is less than minimum allowed");
-
-    Vault.deposit(token, msg.sender, amount);
-
-    Staker storage staker = stakers[msg.sender];
-    uint oldStake = staker.staked;
-    staker.staked = staker.staked.add(amount);
-
-    for (uint i = 0; i < staker.contracts.length; i++) {
-      address contractAddress = staker.contracts[i];
-      uint allocation = staker.allocations[contractAddress];
-
-      uint oldAmount = oldStake.mul(allocation).div(10000);
-      uint newAmount = staker.staked.mul(allocation).div(10000);
-
-      contracts[contractAddress].staked = contracts[contractAddress].staked.sub(oldAmount).add(newAmount);
-    }
-  }
-
-  function maxUnstakable(address stakerAddress) view public returns (uint) {
+  function getMaxUnstakable(address stakerAddress) view public returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];
 
     uint available = 0;
+    uint stake = staker.staked;
 
     for (uint i = 0; i < staker.contracts.length; i++) {
       address _contract = staker.contracts[i];
       uint allocation = staker.allocations[_contract];
-      uint maxAllocation = 10000;
-      uint left = maxAllocation.sub(allocation);
+      uint left = stake.sub(allocation);
       available = left < available ? left : available;
     }
 
-    return staker.staked.div(10000).mul(available);
+    return available;
   }
 
-  function unstake(uint amount) onlyMembers external {
+  /* staking functions */
 
-    uint unstakable = maxUnstakable(msg.sender);
-
-    require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
-
-    Staker storage staker = stakers[msg.sender];
-    uint oldStake = staker.staked;
-    staker.staked = staker.staked.sub(amount);
-
-    for (uint i = 0; i < staker.contracts.length; i++) {
-      address contractAddress = staker.contracts[i];
-      uint allocation = staker.allocations[contractAddress];
-
-      uint oldAmount = oldStake.mul(allocation).div(10000);
-      uint newAmount = staker.staked.mul(allocation).div(10000);
-
-      contracts[contractAddress].staked = contracts[contractAddress].staked.sub(oldAmount).add(newAmount);
-    }
-  }
-
-  function setAllocations(
+  function stake(
+    uint amount,
     address[] calldata _contracts,
     uint[] calldata _allocations
   ) onlyMembers external {
 
-    Staker storage staker = stakers[msg.sender];
+    // considering to remove this in favor of MIN_STAKE
+    require(amount > MIN_DEPOSIT_AMOUNT, "Amount is less than minimum allowed");
 
     require(
       _contracts.length >= staker.contracts.length,
@@ -203,23 +161,29 @@ contract PooledStaking is MasterAware, TokenAware {
       "Allocations can be set only when staked amount is non-zero"
     );
 
+    Vault.deposit(token, msg.sender, amount);
+
+    Staker storage staker = stakers[msg.sender];
+    uint oldStake = staker.staked;
+    staker.staked = staker.staked.add(amount);
+
     uint oldLength = staker.contracts.length;
-    uint allocationTotal;
+    uint totalAllocation;
 
     for (uint i = 0; i < _contracts.length; i++) {
 
       address contractAddress = _contracts[i];
+      uint oldAllocation = staker.allocations[contractAddress];
       uint newAllocation = _allocations[i];
       bool isNewAllocation = i >= oldLength;
-      uint oldAllocation = staker.allocations[contractAddress];
 
-      allocationTotal = allocationTotal.add(newAllocation);
+      totalAllocation = totalAllocation.add(newAllocation);
 
-      require(newAllocation >= MIN_STAKE_PERCENTAGE, "Allocation minimum not met");
-      require(newAllocation <= 10000, "Cannot allocate more than 100% per contract");
+      require(newAllocation >= MIN_STAKE, "Allocation minimum not met");
+      require(newAllocation <= staker.staked, "Cannot allocate more than 100% per contract");
 
       if (!isNewAllocation) {
-        require(contractAddress == staker.contracts[i], "Unexpected contract");
+        require(contractAddress == staker.contracts[i], "Unexpected contract order");
         require(oldAllocation <= newAllocation, "New allocation is less than previous allocation");
       }
 
@@ -233,14 +197,25 @@ contract PooledStaking is MasterAware, TokenAware {
         contracts[contractAddress].stakers.push(msg.sender);
       }
 
-      uint oldAmount = staker.staked.mul(oldAllocation).div(10000);
-      uint newAmount = staker.staked.mul(newAllocation).div(10000);
-
       staker.allocations[contractAddress] = newAllocation;
-      contracts[contractAddress].staked = contracts[contractAddress].staked.sub(oldAmount).add(newAmount);
+      contracts[contractAddress].staked = contracts[contractAddress]
+        .staked
+        .sub(oldAllocation)
+        .add(newAllocation);
     }
 
-    require(allocationTotal <= MAX_LEVERAGE, "Total allocation exceeds maximum allowed");
+    require(totalAllocation <= MAX_LEVERAGE, "Total allocation exceeds maximum allowed");
+  }
+
+  function unstake(uint amount) onlyMembers external {
+
+    uint unstakable = getMaxUnstakable(msg.sender);
+
+    require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
+
+    Staker storage staker = stakers[msg.sender];
+    uint oldStake = staker.staked;
+    staker.staked = staker.staked.sub(amount);
   }
 
   function requestDeallocation(
@@ -265,12 +240,12 @@ contract PooledStaking is MasterAware, TokenAware {
 
       address contractAddress = _contracts[i];
       uint allocated = staker.allocations[contractAddress];
-      uint pendingDeallocation = staker.deallocationAmounts[contractAddress];
+      uint pendingDeallocation = staker.pendingDeallocations[contractAddress];
       uint requested = _amounts[i];
 
       require(
-        allocated.sub(pendingDeallocation).sub(requested) >= MIN_STAKE_PERCENTAGE,
-        "Final allocation cannot be less then MIN_STAKE_PERCENTAGE"
+        allocated.sub(pendingDeallocation).sub(requested) >= MIN_STAKE,
+        "Final allocation cannot be less then MIN_STAKE"
       );
 
       uint deallocateAt = now.add(DEALLOCATE_LOCK_TIME);
@@ -305,8 +280,8 @@ contract PooledStaking is MasterAware, TokenAware {
       );
 
       // increase pending deallocation amount so we keep track of final allocation
-      uint newPending = staker.deallocationAmounts[contractAddress].add(requested);
-      staker.deallocationAmounts[contractAddress] = newPending;
+      uint newPending = staker.pendingDeallocations[contractAddress].add(requested);
+      staker.pendingDeallocations[contractAddress] = newPending;
     }
   }
 
@@ -325,7 +300,7 @@ contract PooledStaking is MasterAware, TokenAware {
       Staker storage staker = stakers[deallocation.stakerAddress];
 
       staker.allocations[contractAddress].sub(deallocation.amount);
-      staker.deallocationAmounts[contractAddress].add(deallocation.amount);
+      staker.pendingDeallocations[contractAddress].add(deallocation.amount);
 
       delete deallocationRequests[contractAddress][first];
       firstDeallocationRequest[contractAddress] = deallocation.next;
@@ -407,8 +382,8 @@ contract PooledStaking is MasterAware, TokenAware {
       return;
     }
 
-    if (param == ParamType.MIN_STAKE_PERCENTAGE) {
-      MIN_STAKE_PERCENTAGE = value;
+    if (param == ParamType.MIN_STAKE) {
+      MIN_STAKE = value;
       return;
     }
 

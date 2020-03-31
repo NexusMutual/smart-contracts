@@ -307,36 +307,52 @@ contract PooledStaking is MasterAware, TokenAware {
     }
   }
 
-  function burn(address contractAddress, uint amount) onlyInternal external {
+  function burn(address contractAddress, uint totalBurnAmount) internal {
 
     Contract storage _contract = contracts[contractAddress];
 
     uint burned = 0;
     uint newContractStake = 0;
 
-    require(amount > _contract.staked, "Cannot burn more than staked");
+    require(totalBurnAmount > _contract.staked, "Cannot burn more than staked");
 
     for (uint i = 0; i < _contract.stakers.length; i++) {
 
       Staker storage staker = stakers[_contract.stakers[i]];
 
       uint allocation = staker.allocations[contractAddress];
-      uint exposedAmount = staker.staked.mul(allocation).div(10000);
 
-      staker.staked = staker.staked.sub(exposedAmount);
-      uint newAmount = staker.staked.mul(allocation).div(10000);
+      // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
+      // reordered for precision loss prevention
+      uint stakerBurn = allocation.mul(totalBurnAmount).div(_contract.staked);
+      uint newStake = staker.staked.sub(stakerBurn);
 
-      newContractStake = newContractStake.add(newAmount);
-      burned = burned.add(exposedAmount);
+      // reduce other contracts' stakes if needed
+      for (uint j = 0; j < staker.contracts; j++) {
+
+        address _staker_contract = staker.contracts[j];
+        uint prevAllocation = staker.allocations[_staker_contract];
+
+        if (prevAllocation > newStake) {
+          staker.allocations[_staker_contract] = newStake;
+          uint prevContractStake = contracts[_staker_contract].staked;
+          contracts[_staker_contract].staked = prevContractStake.sub(prevAllocation).add(newStake);
+        }
+      }
+
+      burned = burned.add(stakerBurn);
+      newContractStake = newContractStake.add(stakerBurn);
+      staker.staked = newStake;
     }
 
-    require(amount == burned, "Burn amount mismatch");
+    // TODO: check for rounding issues
+    require(totalBurnAmount == burned, "Burn amount mismatch");
 
-    _contract.staked = _contract.staked.sub(amount).add(newContractStake);
-    Vault.burn(token, amount);
+    _contract.staked = _contract.staked.sub(totalBurnAmount).add(newContractStake);
+    Vault.burn(token, totalBurnAmount);
   }
 
-  function reward(address contractAddress, address from, uint amount) onlyInternal external {
+  function reward(address contractAddress, address from, uint amount) internal {
 
     // transfer tokens from specified contract to us
     // token transfer should be approved by the specified address

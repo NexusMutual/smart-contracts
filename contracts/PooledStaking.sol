@@ -51,10 +51,10 @@ contract PooledStaking is MasterAware, TokenAware {
   }
 
   struct DeallocationRequest {
-    uint next; // id of the next deallocation request in the linked list
     uint amount;
     uint deallocateAt;
     address stakerAddress;
+    uint next; // id of the next deallocation request in the linked list
   }
 
   uint public MIN_DEPOSIT_AMOUNT;   // Minimum deposit. Considered for removal.
@@ -108,14 +108,13 @@ contract PooledStaking is MasterAware, TokenAware {
   function deallocationRequestAtIndex(
     address contractAddress, uint deallocationId
   ) public view returns (
-    uint next, uint amount, uint deallocateAt, address stakerAddress
+    uint amount, uint deallocateAt, address stakerAddress, uint next
   ) {
     DeallocationRequest storage deallocation = deallocationRequests[contractAddress][deallocationId];
-    next = deallocation.next;
-    // next deallocation id in linked list
     amount = deallocation.amount;
     deallocateAt = deallocation.deallocateAt;
     stakerAddress = deallocation.stakerAddress;
+    next = deallocation.next; // next deallocation id in linked list
   }
 
   function getMaxUnstakable(address stakerAddress) view public returns (uint) {
@@ -276,7 +275,7 @@ contract PooledStaking is MasterAware, TokenAware {
       current.next = id;
 
       deallocationRequests[contractAddress][id] = DeallocationRequest(
-        next, requested, deallocateAt, msg.sender
+        requested, deallocateAt, msg.sender, next
       );
 
       // increase pending deallocation amount so we keep track of final allocation

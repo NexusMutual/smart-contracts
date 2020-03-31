@@ -122,12 +122,12 @@ contract PooledStaking is MasterAware, TokenAware {
 
     Staker storage staker = stakers[stakerAddress];
 
-    uint available = 0;
     uint stake = staker.staked;
+    uint available = stake;
 
     for (uint i = 0; i < staker.contracts.length; i++) {
-      address _contract = staker.contracts[i];
-      uint allocation = staker.allocations[_contract];
+      address contractAddress = staker.contracts[i];
+      uint allocation = staker.allocations[contractAddress];
       uint left = stake.sub(allocation);
       available = left < available ? left : available;
     }

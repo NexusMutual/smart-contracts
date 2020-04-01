@@ -50,7 +50,21 @@ contract PooledStaking is MasterAware, TokenAware {
     address[] stakers; // used for iteration
   }
 
-  struct DeallocationRequest {
+  struct Burn {
+    uint amount;
+    uint burnedAt;
+    address contractAddress;
+    uint next; // id of the next deallocation request in the linked list
+  }
+
+  struct Reward {
+    uint amount;
+    uint rewardedAt;
+    address contractAddress;
+    uint next; // id of the next deallocation request in the linked list
+  }
+
+  struct Deallocation {
     uint amount;
     uint deallocateAt;
     address stakerAddress;

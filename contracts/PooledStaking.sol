@@ -303,36 +303,70 @@ contract PooledStaking is MasterAware, TokenAware {
     }
   }
 
-  function processDeallocations(address contractAddress) public {
+  function pushBurn(address contractAddress, uint amount) onlyInternal external {
+    burns[burnCount] = Burn(amount, now, contractAddress, 0); // add new burn
+    burns[burnCount - 1].next = burnCount; // update previous burn's next pointer to current burn
+    ++burnCount; // update counter
+  }
 
+  function pushReward(address contractAddress, uint amount, address from) onlyInternal external {
+
+    // transfer tokens from specified contract to us
+    // token transfer should be approved by the specified address
+    Vault.deposit(token, from, amount);
+
+    rewards[rewardCount] = Reward(amount, now, contractAddress, 0); // add new reward
+    rewards[rewardCount - 1].next = rewardCount; // update previous reward's next pointer to current
+    ++rewardCount; // update counter
+  }
+
+  function processPendingActions() public {
     while (true) {
+      Burn storage burn = burns[firstBurn];
+      Deallocation storage deallocation = deallocations[firstDeallocation];
 
-      uint first = firstDeallocationRequest[contractAddress];
-      DeallocationRequest storage deallocation = deallocationRequests[contractAddress][first];
+      bool canBurn = burn.burnedAt != 0; // end not reached
+      bool canDeallocate = deallocation.deallocateAt != 0 && deallocation.deallocateAt <= now;
 
-      // deallocation deadline not met yet or list end reached
-      if (deallocation.deallocateAt == 0 || now < deallocation.deallocateAt) {
+      if (!canBurn && !canDeallocate) {
+        // everything is processed
         break;
       }
 
-      Staker storage staker = stakers[deallocation.stakerAddress];
+      // TODO: check if there's enough gas for the next iteration
 
-      staker.allocations[contractAddress].sub(deallocation.amount);
-      staker.pendingDeallocations[contractAddress].add(deallocation.amount);
+      // no burn to compare to or deallocation should happen before burn
+      if (!canBurn || deallocation.deallocateAt <= burn.burnedAt) {
+        _processFirstDeallocation();
+        continue;
+      }
 
-      delete deallocationRequests[contractAddress][first];
-      firstDeallocationRequest[contractAddress] = deallocation.next;
+      _processFirstBurn();
     }
   }
 
-  function burn(address contractAddress, uint totalBurnAmount) internal {
+  function _processFirstDeallocation() internal {
+    Deallocation storage deallocation = deallocations[firstDeallocation];
+    Staker storage staker = stakers[deallocation.stakerAddress];
 
-    Contract storage _contract = contracts[contractAddress];
+    address contractAddress = deallocation.contractAddress;
+    staker.allocations[contractAddress].sub(deallocation.amount);
+    staker.pendingDeallocations[contractAddress].add(deallocation.amount);
 
+    uint nextDeallocation = deallocation.next;
+    delete deallocations[firstDeallocation];
+    firstDeallocation = nextDeallocation;
+  }
+
+  function _processFirstBurn() internal {
+
+    Burn storage burn = burns[firstBurn];
+    Contract storage _contract = contracts[burn.contractAddress];
+    address contractAddress = burn.contractAddress;
+
+    uint burnAmount = burn.amount <= _contract.staked ? burn.amount : _contract.staked;
     uint burned = 0;
     uint newContractStake = 0;
-
-    require(totalBurnAmount > _contract.staked, "Cannot burn more than staked");
 
     for (uint i = 0; i < _contract.stakers.length; i++) {
 
@@ -342,11 +376,11 @@ contract PooledStaking is MasterAware, TokenAware {
 
       // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
       // reordered for precision loss prevention
-      uint stakerBurn = allocation.mul(totalBurnAmount).div(_contract.staked);
+      uint stakerBurn = allocation.mul(burnAmount).div(_contract.staked);
       uint newStake = staker.staked.sub(stakerBurn);
 
       // reduce other contracts' stakes if needed
-      for (uint j = 0; j < staker.contracts; j++) {
+      for (uint j = 0; j < staker.contracts.length; j++) {
 
         address _staker_contract = staker.contracts[j];
         uint prevAllocation = staker.allocations[_staker_contract];
@@ -364,17 +398,30 @@ contract PooledStaking is MasterAware, TokenAware {
     }
 
     // TODO: check for rounding issues
-    require(totalBurnAmount == burned, "Burn amount mismatch");
+    require(burnAmount == burned, "Burn amount mismatch");
 
-    _contract.staked = _contract.staked.sub(totalBurnAmount).add(newContractStake);
-    Vault.burn(token, totalBurnAmount);
+    _contract.staked = _contract.staked.sub(burnAmount).add(newContractStake);
+    Vault.burn(token, burnAmount);
+
+    uint nextBurn = burn.next;
+    delete burns[firstBurn];
+    firstBurn = nextBurn;
   }
 
-  function reward(address contractAddress, address from, uint amount) internal {
+  function processRewards() public {
 
-    // transfer tokens from specified contract to us
-    // token transfer should be approved by the specified address
-    Vault.deposit(token, from, amount);
+    while (true) {
+
+      Reward storage reward = rewards[firstReward];
+      _reward(reward.contractAddress, reward.amount);
+
+      uint nextReward = reward.next;
+      delete rewards[firstReward];
+      firstReward = nextReward;
+    }
+  }
+
+  function _reward(address contractAddress, uint amount) internal {
 
     Contract storage _contract = contracts[contractAddress];
     uint rewarded = 0;

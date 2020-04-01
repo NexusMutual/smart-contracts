@@ -398,12 +398,13 @@ contract PooledStaking is MasterAware, TokenAware {
 
       Staker storage staker = stakers[_contract.stakers[i]];
 
-      uint allocation = staker.allocations[contractAddress];
+      uint oldAllocation = staker.allocations[contractAddress];
 
       // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
       // reordered for precision loss prevention
-      uint stakerBurn = allocation.mul(burnAmount).div(_contract.staked);
+      uint stakerBurn = oldAllocation.mul(burnAmount).div(_contract.staked);
       uint newStake = staker.staked.sub(stakerBurn);
+      staker.allocations[contractAddress] = oldAllocation.sub(stakerBurn);
 
       // reduce other contracts' stakes if needed
       for (uint j = 0; j < staker.contracts.length; j++) {

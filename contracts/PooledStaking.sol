@@ -67,6 +67,7 @@ contract PooledStaking is MasterAware, TokenAware {
   struct Deallocation {
     uint amount;
     uint deallocateAt;
+    address contractAddress;
     address stakerAddress;
     uint next; // id of the next deallocation request in the linked list
   }
@@ -85,12 +86,23 @@ contract PooledStaking is MasterAware, TokenAware {
   // contracts mapping. contractAddress => Staker
   mapping(address => Contract) public contracts;
 
-  // deallocation requests mapping
-  // contractAddress => deallocation id => deallocation
-  mapping(address => mapping(uint => DeallocationRequest)) public deallocationRequests;
+  // burns mapping
+  // burn id => Burn
+  mapping(uint => Burn) public burns;
+  uint firstBurn; // linked list head element
+  uint burnCount; // used for getting next available id
 
-  mapping(address => uint) firstDeallocationRequest; // linked list head element
-  mapping(address => uint) deallocationRequestCount; // used for getting next available id
+  // rewards mapping
+  // reward id => Reward
+  mapping(uint => Reward) public rewards;
+  uint firstReward;
+  uint rewardCount;
+
+  // deallocation requests mapping
+  // contractAddress => deallocation id => Deallocation
+  mapping(uint => Deallocation) public deallocations;
+  uint firstDeallocation;
+  uint deallocationCount;
 
   function initialize(address masterAddress, address tokenAddress) initializer public {
     MasterAware.initialize(masterAddress);

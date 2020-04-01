@@ -29,6 +29,7 @@ contract PooledStaking is MasterAware, TokenAware {
   enum ParamType {
     MIN_STAKE,
     MAX_LEVERAGE,
+    MIN_ALLOWED_DEALLOCATION,
     DEALLOCATE_LOCK_TIME
   }
 
@@ -71,9 +72,10 @@ contract PooledStaking is MasterAware, TokenAware {
     uint next; // id of the next deallocation request in the linked list
   }
 
-  uint public MIN_STAKE;            // Minimum allowed stake per contract
-  uint public MAX_LEVERAGE;         // Stakes sum must be less than the deposited amount times this
-  uint public DEALLOCATE_LOCK_TIME; // Lock period before unstaking takes place
+  uint public MIN_STAKE;                // Minimum allowed stake per contract
+  uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
+  uint public MIN_ALLOWED_DEALLOCATION; // Forbid deallocation of small amounts to prevent spam
+  uint public DEALLOCATE_LOCK_TIME;     // Lock period before unstaking takes place
 
   // List of all contract addresses
   address[] public contractAddresses;
@@ -258,6 +260,11 @@ contract PooledStaking is MasterAware, TokenAware {
       uint allocated = staker.allocations[contractAddress];
       uint pendingDeallocation = staker.pendingDeallocations[contractAddress];
       uint requested = _amounts[i];
+
+      require(
+        requested >= MIN_ALLOWED_DEALLOCATION,
+        "Deallocation amount cannot be less then MIN_ALLOWED_DEALLOCATION"
+      );
 
       require(
         allocated.sub(pendingDeallocation).sub(requested) >= MIN_STAKE,
@@ -488,6 +495,11 @@ contract PooledStaking is MasterAware, TokenAware {
 
     if (param == ParamType.MAX_LEVERAGE) {
       MAX_LEVERAGE = value;
+      return;
+    }
+
+    if (param == ParamType.MIN_ALLOWED_DEALLOCATION) {
+      MIN_ALLOWED_DEALLOCATION = value;
       return;
     }
 

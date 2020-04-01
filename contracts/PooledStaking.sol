@@ -131,14 +131,13 @@ contract PooledStaking is MasterAware, TokenAware {
     return stakers[staker].allocations[contractAddress];
   }
 
-  function deallocationRequestAtIndex(
-    address contractAddress, uint deallocationId
-  ) public view returns (
-    uint amount, uint deallocateAt, address stakerAddress, uint next
+  function deallocationAtIndex(uint deallocationId) public view returns (
+    uint amount, uint deallocateAt, address contractAddress, address stakerAddress, uint next
   ) {
-    DeallocationRequest storage deallocation = deallocationRequests[contractAddress][deallocationId];
+    Deallocation storage deallocation = deallocations[deallocationId];
     amount = deallocation.amount;
     deallocateAt = deallocation.deallocateAt;
+    contractAddress = deallocation.contractAddress;
     stakerAddress = deallocation.stakerAddress;
     next = deallocation.next; // next deallocation id in linked list
   }
@@ -168,6 +167,8 @@ contract PooledStaking is MasterAware, TokenAware {
     uint[] calldata _allocations
   ) onlyMembers external {
 
+    Staker storage staker = stakers[msg.sender];
+
     // considering to remove this in favor of MIN_STAKE
     require(amount > MIN_DEPOSIT_AMOUNT, "Amount is less than minimum allowed");
 
@@ -187,9 +188,6 @@ contract PooledStaking is MasterAware, TokenAware {
     );
 
     Vault.deposit(token, msg.sender, amount);
-
-    Staker storage staker = stakers[msg.sender];
-    uint oldStake = staker.staked;
     staker.staked = staker.staked.add(amount);
 
     uint oldLength = staker.contracts.length;
@@ -233,14 +231,9 @@ contract PooledStaking is MasterAware, TokenAware {
   }
 
   function unstake(uint amount) onlyMembers external {
-
     uint unstakable = getMaxUnstakable(msg.sender);
-
     require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
-
-    Staker storage staker = stakers[msg.sender];
-    uint oldStake = staker.staked;
-    staker.staked = staker.staked.sub(amount);
+    stakers[msg.sender].staked = stakers[msg.sender].staked.sub(amount);
   }
 
   function requestDeallocation(

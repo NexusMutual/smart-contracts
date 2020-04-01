@@ -27,7 +27,6 @@ contract PooledStaking is MasterAware, TokenAware {
   using SafeMath for uint;
 
   enum ParamType {
-    MIN_DEPOSIT_AMOUNT, // might want to nuke this
     MIN_STAKE,
     MAX_LEVERAGE,
     DEALLOCATE_LOCK_TIME
@@ -72,7 +71,6 @@ contract PooledStaking is MasterAware, TokenAware {
     uint next; // id of the next deallocation request in the linked list
   }
 
-  uint public MIN_DEPOSIT_AMOUNT;   // Minimum deposit. Considered for removal.
   uint public MIN_STAKE;            // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;         // Sum of all stakes should not exceed the total deposited amount times this number
   uint public DEALLOCATE_LOCK_TIME; // Lock period before unstaking takes place
@@ -168,9 +166,6 @@ contract PooledStaking is MasterAware, TokenAware {
   ) onlyMembers external {
 
     Staker storage staker = stakers[msg.sender];
-
-    // considering to remove this in favor of MIN_STAKE
-    require(amount > MIN_DEPOSIT_AMOUNT, "Amount is less than minimum allowed");
 
     require(
       _contracts.length >= staker.contracts.length,
@@ -454,11 +449,6 @@ contract PooledStaking is MasterAware, TokenAware {
   }
 
   function updateParameter(ParamType param, uint value) onlyGoverned external {
-
-    if (param == ParamType.MIN_DEPOSIT_AMOUNT) {
-      MIN_DEPOSIT_AMOUNT = value;
-      return;
-    }
 
     if (param == ParamType.MIN_STAKE) {
       MIN_STAKE = value;

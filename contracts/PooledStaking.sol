@@ -277,31 +277,31 @@ contract PooledStaking is MasterAware, TokenAware {
       uint insertAfter = _insertAfter[i];
 
       // fetch request currently at target index
-      DeallocationRequest storage current = deallocationRequests[contractAddress][insertAfter];
+      Deallocation storage current = deallocations[insertAfter];
       require(
         deallocateAt >= current.deallocateAt,
         "Deallocation time must be greater or equal to previous deallocation"
       );
 
       if (current.next != 0) {
-        DeallocationRequest storage next = deallocationRequests[contractAddress][current.next];
+        Deallocation storage next = deallocations[current.next];
         require(
-        // require its deallocation time to be greater than new deallocation time
+          // require its deallocation time to be greater than new deallocation time
           next.deallocateAt > deallocateAt,
           "Deallocation time must be smaller than next deallocation"
         );
       }
 
       // get next available id
-      uint id = deallocationRequestCount[contractAddress];
-      deallocationRequestCount[contractAddress]++;
+      uint id = deallocationCount;
+      deallocationCount++;
 
       // point to our new deallocation
       uint next = current.next;
       current.next = id;
 
-      deallocationRequests[contractAddress][id] = DeallocationRequest(
-        requested, deallocateAt, msg.sender, next
+      deallocations[id] = Deallocation(
+        requested, deallocateAt, contractAddress, msg.sender, next
       );
 
       // increase pending deallocation amount so we keep track of final allocation

@@ -431,7 +431,14 @@ contract PooledStaking is MasterAware, TokenAware {
 
     while (true) {
 
+      // TODO: check if there's enough gas for the next iteration
+
       Reward storage reward = rewards[firstReward];
+
+      if (reward.rewardedAt == 0) {
+        break;
+      }
+
       _reward(reward.contractAddress, reward.amount);
 
       uint nextReward = reward.next;

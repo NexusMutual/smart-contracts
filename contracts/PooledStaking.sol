@@ -72,7 +72,7 @@ contract PooledStaking is MasterAware, TokenAware {
   }
 
   uint public MIN_STAKE;            // Minimum allowed stake per contract
-  uint public MAX_LEVERAGE;         // Sum of all stakes should not exceed the total deposited amount times this number
+  uint public MAX_LEVERAGE;         // Stakes sum must be less than the deposited amount times this
   uint public DEALLOCATE_LOCK_TIME; // Lock period before unstaking takes place
 
   // List of all contract addresses
@@ -198,7 +198,7 @@ contract PooledStaking is MasterAware, TokenAware {
       totalAllocation = totalAllocation.add(newAllocation);
 
       require(newAllocation >= MIN_STAKE, "Allocation minimum not met");
-      require(newAllocation <= staker.staked, "Cannot allocate more than 100% per contract");
+      require(newAllocation <= staker.staked, "Cannot allocate more than staked");
 
       if (!isNewAllocation) {
         require(contractAddress == staker.contracts[i], "Unexpected contract order");
@@ -222,7 +222,10 @@ contract PooledStaking is MasterAware, TokenAware {
         .add(newAllocation);
     }
 
-    require(totalAllocation <= MAX_LEVERAGE, "Total allocation exceeds maximum allowed");
+    require(
+      totalAllocation <= staker.staked.mul(MAX_LEVERAGE),
+      "Total allocation exceeds maximum allowed"
+    );
   }
 
   function unstake(uint amount) onlyMembers external {

@@ -302,8 +302,21 @@ contract PooledStaking is MasterAware, TokenAware {
   }
 
   function pushBurn(address contractAddress, uint amount) onlyInternal external {
+
     burns[burnCount] = Burn(amount, now, contractAddress, 0); // add new burn
-    burns[burnCount - 1].next = burnCount; // update previous burn's next pointer to current burn
+
+    // TODO: recheck this
+    // burnCount and firstBurn can be equal only when they're both 0
+    // i.e. when pushing the first burn ever
+    // if those are different, burnCount - 1 will be >= 0 (will not underflow)
+    // but we should check that it doesn't point to an empty slot (processed & deleted burn)
+    if (burnCount != firstBurn && burns[burnCount - 1].burnedAt > 0) {
+      burns[burnCount - 1].next = burnCount; // set previous burn's next to current burn id
+    } else {
+      // otherwise this is the only existing burn, therefore it is the first one as well
+      firstBurn = burnCount;
+    }
+
     ++burnCount; // update counter
   }
 
@@ -314,7 +327,15 @@ contract PooledStaking is MasterAware, TokenAware {
     Vault.deposit(token, from, amount);
 
     rewards[rewardCount] = Reward(amount, now, contractAddress, 0); // add new reward
-    rewards[rewardCount - 1].next = rewardCount; // update previous reward's next pointer to current
+
+    // TODO: recheck this
+    // similar to pushBurn
+    if (rewardCount != firstReward && rewards[rewardCount - 1].rewardedAt > 0) {
+      rewards[rewardCount - 1].next = rewardCount; // set previous reward's next to current id
+    } else {
+      firstReward = rewardCount;
+    }
+
     ++rewardCount; // update counter
   }
 

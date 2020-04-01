@@ -382,13 +382,11 @@ contract PooledStaking is MasterAware, TokenAware {
     for (uint i = 0; i < _contract.stakers.length; i++) {
 
       Staker storage staker = stakers[_contract.stakers[i]];
-
       uint allocation = staker.allocations[contractAddress];
-      uint exposedAmount = staker.staked.mul(allocation).div(10000);
 
-      // staker's share = total staked on contract / staker's stake on contract
-      // staker's reward = total reward amount * staker's share
-      uint stakerReward = amount.mul(exposedAmount).div(_contract.staked);
+      // staker's ratio = total staked on contract / staker's stake on contract
+      // staker's reward = total reward amount * staker's ratio
+      uint stakerReward = amount.mul(allocation).div(_contract.staked);
 
       staker.reward = staker.reward.add(stakerReward);
       rewarded = rewarded.add(stakerReward);
@@ -404,8 +402,7 @@ contract PooledStaking is MasterAware, TokenAware {
       "Requested withdraw amount exceeds available reward"
     );
 
-    Staker storage staker = stakers[msg.sender];
-    staker.reward = staker.reward.sub(amount);
+    stakers[msg.sender].reward = stakers[msg.sender].reward.sub(amount);
     Vault.withdraw(token, msg.sender, amount);
   }
 

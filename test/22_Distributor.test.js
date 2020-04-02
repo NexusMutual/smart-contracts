@@ -357,18 +357,19 @@ contract('Distributor buy cover and claim', function([
               .toString()
               .should.be.equal((1).toString());
           });
+
           it('should not able to vote after voting close', async function() {
             await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
-          it('should be able to change claim status', async function() {
-            let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
+          it('should be able to change claim status', async function() {
             const apiCallId = (await pd.getApilCallLength()) - 1;
             APIID = await pd.allAPIcall(apiCallId);
             await P1.__callback(APIID, '');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((6).toString());
           });
+
           it('voting should be closed', async function() {
             (await cl.checkVoteClosing(claimId))
               .toString()
@@ -488,6 +489,7 @@ contract('Distributor buy cover and claim', function([
             let verdict = await cd.getVoteVerdict(claimId, 1, 1);
             parseFloat(verdict).should.be.equal(1);
           });
+
           it('should not able to vote after voting closed', async function() {
             const now = await latestTime();
             const maxVotingTime = await cd.maxVotingTime();
@@ -640,6 +642,7 @@ contract('Distributor buy cover and claim', function([
             let verdict = await cd.getVoteVerdict(claimId, 1, 1);
             parseFloat(verdict).should.be.equal(1);
           });
+
           it('should not able to vote after voting closed', async function() {
             const now = await latestTime();
             const maxVotingTime = await cd.maxVotingTime();
@@ -652,7 +655,8 @@ contract('Distributor buy cover and claim', function([
 
             await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
-          it('orcalise call should be able to change claim status', async function() {
+
+          it('oraclise call should be able to change claim status', async function() {
             const oldClaimStatus = await cd.getClaimStatusNumber(claimId);
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             priceinEther = await mcr.calculateTokenPrice(CA_ETH);
@@ -686,7 +690,7 @@ contract('Distributor buy cover and claim', function([
             gain.toString().should.be.equal(withdrawnSum);
           });
 
-          // it(' voting should be closed', async function() {
+          // it('voting should be closed', async function() {
           //   (await cl.checkVoteClosing(claimId))
           //     .toString()
           //     .should.be.equal((-1).toString());

@@ -667,9 +667,10 @@ contract('Distributor buy cover and claim', function([
             );
             // 1 cover were bought
             const withdrawnSum = buyCoverDaiFee.toString();
-            const r = await distributor.withdrawDAI(
+            const r = await distributor.withdrawTokens(
               distributorFeeReceiver,
               withdrawnSum,
+              toHex('DAI'),
               {
                 from: coverHolder
               }

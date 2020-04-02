@@ -50,7 +50,7 @@ contract Distributor is
   mapping(uint256 => TokenData) internal allTokenData;
 
   uint public withdrawableETH;
-  uint public withdrawableDAI;
+  mapping(bytes4 => uint) withdrawableTokens;
 
   constructor(address _masterAddress, uint _priceLoadPercentage) public {
     nxMaster = INXMMaster.INXMMaster(_masterAddress);
@@ -103,7 +103,7 @@ contract Distributor is
     p1.makeCoverUsingCA(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
 
     // add fee to the withdrawable pool
-    withdrawableDAI = withdrawableDAI.add(requiredValue.sub(coverDetails[1]));
+    withdrawableTokens[coverCurrency] = withdrawableTokens[coverCurrency].add(requiredValue.sub(coverDetails[1]));
 
     _mintToken(coverCurrency, coverDetails, coverPeriod);
   }
@@ -147,7 +147,6 @@ contract Distributor is
     allowsClaims(tokenId)
   {
     require(!allTokenData[tokenId].claimInProgress, "Claim already in progress");
-    require(allTokenData[tokenId].coverCurrency == "DAI", "currency not DAI");
     uint depositAmount = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
     PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
     IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(allTokenData[tokenId].coverCurrency));
@@ -221,10 +220,8 @@ contract Distributor is
       uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
       if (allTokenData[tokenId].coverCurrency == "ETH") {
         withdrawableETH.add(deposit);
-      } else if (allTokenData[tokenId].coverCurrency == "DAI") {
-        withdrawableDAI.add(deposit);
       } else {
-        revert("Unsupported currency");
+        withdrawableTokens[allTokenData[tokenId].coverCurrency].add(deposit);
       }
     } else {
       revert("Claim is not denied.");
@@ -239,12 +236,10 @@ contract Distributor is
   {
     if (coverCurrency == "ETH") {
       msg.sender.transfer(sumAssured);
-    } else if (coverCurrency == "DAI") {
-      PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
-      IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress("DAI"));
-      require(erc20.transfer(msg.sender, sumAssured), "Transfer failed");
     } else {
-      revert("Unsupported currency.");
+      PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
+      IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(coverCurrency));
+      require(erc20.transfer(msg.sender, sumAssured), "Transfer failed");
     }
   }
 
@@ -269,15 +264,15 @@ contract Distributor is
     _recipient.transfer(_amount);
   }
 
-  function withdrawDAI(address payable _recipient, uint256 _amount)
+  function withdrawTokens(address payable _recipient, uint256 _amount, bytes4 _currency)
     external
     onlyOwner
   {
-    require(withdrawableDAI >= _amount, "Not enough DAI");
-    withdrawableDAI = withdrawableDAI.sub(_amount);
+    require(withdrawableTokens[_currency] >= _amount, "Not enough tokens");
+    withdrawableTokens[_currency] = withdrawableTokens[_currency].sub(_amount);
 
     PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
-    IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress("DAI"));
+    IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(_currency));
     require(erc20.transfer(_recipient, _amount), "Transfer failed");
   }
 

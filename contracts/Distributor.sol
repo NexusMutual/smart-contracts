@@ -10,6 +10,7 @@ import * as SafeMath from "./external/openzeppelin-solidity/math/SafeMath.sol";
 import * as INXMMaster from "./INXMMaster.sol";
 import * as Pool1 from "./Pool1.sol";
 import * as PoolData from "./PoolData.sol";
+import * as TokenDataContract from "./TokenData.sol";
 import * as Claims from "./Claims.sol";
 import * as ClaimsData from "./ClaimsData.sol";
 import * as NXMToken from "./NXMToken.sol";
@@ -41,7 +42,6 @@ contract Distributor is
     bytes4 currency
   );
 
-  uint public constant CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD = 30 days;
   uint public constant CLAIM_DEPOSIT_PERCENTAGE = 5;
 
   INXMMaster.INXMMaster internal nxMaster;
@@ -116,11 +116,13 @@ contract Distributor is
   internal
   {
     QuotationData.QuotationData quotationData = QuotationData.QuotationData(nxMaster.getLatestAddress("QD"));
+    TokenDataContract.TokenData tokenData = TokenDataContract.TokenData(nxMaster.getLatestAddress("TD"));
     // *assumes* the newly created claim is appended at the end of the list covers
     uint coverId = quotationData.getCoverLength().sub(1);
+    uint256 lockTokenTimeAfterCoverExpiry = tokenData.lockTokenTimeAfterCoverExp();
 
     uint256 nextTokenId = tokenIdCounter++;
-    uint expirationTimestamp = block.timestamp + CLAIM_VALIDITY_MAX_DAYS_OVER_COVER_PERIOD + coverPeriod * 1 days;
+    uint expirationTimestamp = block.timestamp + lockTokenTimeAfterCoverExpiry + coverPeriod * 1 days;
     allTokenData[nextTokenId] = TokenData(expirationTimestamp, coverCurrency, coverDetails, coverId, false, 0);
     _mint(msg.sender, nextTokenId);
   }

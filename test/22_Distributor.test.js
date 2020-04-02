@@ -409,18 +409,42 @@ contract('Distributor buy cover and claim', function([
             );
           });
 
-          it('distributor owner should be able to burn failed claim and withdraw lost deposit', async function() {
-            await distributor.burnFailedClaimToken(firstTokenId, {
+          // it('distributor owner should be able to burn failed claim and withdraw lost deposit', async function() {
+          //   await distributor.burnFailedClaimToken(firstTokenId, {
+          //     from: coverHolder
+          //   });
+          //
+          //   await distributor.withdrawETH(
+          //     distributorFeeReceiver,
+          //     submitClaimDeposit,
+          //     {
+          //       from: coverHolder
+          //     }
+          //   );
+          // });
+
+          it('distributor is able sell NXM tokens for ETH', async function() {
+            const maxSellTokens = await mcr.getMaxSellTokens();
+            const sellAmount = maxSellTokens;
+            const withdrawableETHPreSale = await distributor.withdrawableETH.call();
+            const balancePreSale = await web3.eth.getBalance(
+              distributor.address
+            );
+            await distributor.sellNXMTokens(sellAmount, {
               from: coverHolder
             });
-
-            await distributor.withdrawETH(
-              distributorFeeReceiver,
-              submitClaimDeposit,
-              {
-                from: coverHolder
-              }
+            const withdrawableETHPostSale = await distributor.withdrawableETH.call();
+            const balancePostSale = await web3.eth.getBalance(
+              distributor.address
             );
+
+            const balanceGain = new web3.utils.BN(balancePostSale).sub(
+              new web3.utils.BN(balancePreSale)
+            );
+            const withdrawableGain = withdrawableETHPostSale.sub(
+              withdrawableETHPreSale
+            );
+            withdrawableGain.toString().should.be.equal(balanceGain.toString());
           });
         });
 

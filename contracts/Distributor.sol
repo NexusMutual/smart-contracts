@@ -78,7 +78,7 @@ contract Distributor is
     // add fee to the withdrawable pool
     withdrawableETH = withdrawableETH.add(requiredValue.sub(coverDetails[1]));
 
-    mintToken(coverCurrency, coverDetails, coverPeriod);
+    _mintToken(coverCurrency, coverDetails, coverPeriod);
   }
 
   function buyCoverUsingCA(
@@ -105,10 +105,10 @@ contract Distributor is
     // add fee to the withdrawable pool
     withdrawableDAI = withdrawableDAI.add(requiredValue.sub(coverDetails[1]));
 
-    mintToken(coverCurrency, coverDetails, coverPeriod);
+    _mintToken(coverCurrency, coverDetails, coverPeriod);
   }
 
-  function mintToken(
+  function _mintToken(
     bytes4 coverCurrency,
     uint[] memory coverDetails,
     uint16 coverPeriod
@@ -279,6 +279,22 @@ contract Distributor is
     PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
     IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress("DAI"));
     require(erc20.transfer(_recipient, _amount), "Transfer failed");
+  }
+
+  function sellNXMTokens(uint amount)
+    external
+    onlyOwner
+  {
+    address payable pool1Address = nxMaster.getLatestAddress("P1");
+    Pool1.Pool1 p1 = Pool1.Pool1(pool1Address);
+
+    NXMToken.NXMToken nxmToken = NXMToken.NXMToken(nxMaster.tokenAddress());
+
+    uint ethValue = p1.getWei(amount);
+    nxmToken.approve(pool1Address, amount);
+    p1.sellNXMTokens(amount);
+
+    withdrawableETH = withdrawableETH.add(ethValue);
   }
 
   modifier allowsClaims(uint256 tokenId) {

@@ -38,9 +38,10 @@ contract PooledStaking is MasterAware, TokenAware {
     uint reward; // total amount that is ready to be claimed
     address[] contracts; // list of contracts the staker has staked on
 
+    // allocated stake amounts for each contract
     mapping(address => uint) allocations;
 
-    // amount to be subtracted after all deallocations will be processed
+    // amount pending to be subtracted after all deallocations will be processed
     mapping(address => uint) pendingDeallocations;
   }
 
@@ -80,31 +81,22 @@ contract PooledStaking is MasterAware, TokenAware {
   // List of all contract addresses
   address[] public contractAddresses;
 
-  // stakers mapping. stakerAddress => Staker
-  mapping(address => Staker) public stakers;
+  mapping(address => Staker) public stakers;     // stakerAddress => Staker
+  mapping(address => Contract) public contracts; // contractAddress => Contract
 
-  // contracts mapping. contractAddress => Staker
-  mapping(address => Contract) public contracts;
+  mapping(uint => Burn) public burns; // burn id => Burn
+  uint public firstBurn; // linked list head element
+  uint public burnCount; // used for getting next available id
 
-  // burns mapping
-  // burn id => Burn
-  mapping(uint => Burn) public burns;
-  uint firstBurn; // linked list head element
-  uint burnCount; // used for getting next available id
+  mapping(uint => Reward) public rewards; // reward id => Reward
+  uint public firstReward;
+  uint public rewardCount;
 
-  // rewards mapping
-  // reward id => Reward
-  mapping(uint => Reward) public rewards;
-  uint firstReward;
-  uint rewardCount;
+  mapping(uint => Deallocation) public deallocations; // deallocation id => Deallocation
+  uint public firstDeallocation;
+  uint public deallocationCount;
 
-  // deallocation requests mapping
-  // contractAddress => deallocation id => Deallocation
-  mapping(uint => Deallocation) public deallocations;
-  uint firstDeallocation;
-  uint deallocationCount;
-
-  function initialize(address masterAddress, address tokenAddress) initializer public {
+  function initialize(address masterAddress, address tokenAddress) public initializer {
     MasterAware.initialize(masterAddress);
     TokenAware.initialize(tokenAddress);
   }
@@ -142,7 +134,7 @@ contract PooledStaking is MasterAware, TokenAware {
     next = deallocation.next; // next deallocation id in linked list
   }
 
-  function getMaxUnstakable(address stakerAddress) view public returns (uint) {
+  function getMaxUnstakable(address stakerAddress) public view returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];
 
@@ -165,7 +157,7 @@ contract PooledStaking is MasterAware, TokenAware {
     uint amount,
     address[] calldata _contracts,
     uint[] calldata _allocations
-  ) onlyMembers external {
+  ) external onlyMembers {
 
     Staker storage staker = stakers[msg.sender];
 
@@ -230,7 +222,7 @@ contract PooledStaking is MasterAware, TokenAware {
     );
   }
 
-  function unstake(uint amount) onlyMembers external {
+  function unstake(uint amount) external onlyMembers {
     uint unstakable = getMaxUnstakable(msg.sender);
     require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
     stakers[msg.sender].staked = stakers[msg.sender].staked.sub(amount);
@@ -239,20 +231,16 @@ contract PooledStaking is MasterAware, TokenAware {
   function requestDeallocation(
     address[] calldata _contracts,
     uint[] calldata _amounts,
-    uint[] calldata _insertAfter // deallocation ids to insert deallocation at
-  ) onlyMembers external {
+    uint _insertAfter // deallocation id to insert the new deallocations after
+  ) external onlyMembers {
 
     require(
       _contracts.length == _amounts.length,
       "Contracts and amounts arrays should have the same length"
     );
 
-    require(
-      _contracts.length == _insertAfter.length,
-      "Contracts and _insertAfter arrays should have the same length"
-    );
-
     Staker storage staker = stakers[msg.sender];
+    uint insertAfter = _insertAfter;
 
     for (uint i = 0; i < _contracts.length; i++) {
 
@@ -260,19 +248,18 @@ contract PooledStaking is MasterAware, TokenAware {
       uint allocated = staker.allocations[contractAddress];
       uint pendingDeallocation = staker.pendingDeallocations[contractAddress];
       uint requested = _amounts[i];
+      uint max = pendingDeallocation > allocated ? 0 : allocated.sub(pendingDeallocation);
 
-      require(
-        requested >= MIN_ALLOWED_DEALLOCATION,
-        "Deallocation amount cannot be less then MIN_ALLOWED_DEALLOCATION"
-      );
+      require(max > 0, "Nothing to deallocate on this contract");
 
-      require(
-        allocated.sub(pendingDeallocation).sub(requested) >= MIN_STAKE,
-        "Final allocation cannot be less then MIN_STAKE"
-      );
+      // To prevent spam, Small stakes and deallocations are not allowed
+      // However, we allow the user to deallocate the entire amount
+      if (requested != max) {
+        require(requested >= MIN_ALLOWED_DEALLOCATION, "Deallocation cannot be less then MIN_ALLOWED_DEALLOCATION");
+        require(max.sub(requested) >= MIN_STAKE, "Final allocation cannot be less then MIN_STAKE");
+      }
 
       uint deallocateAt = now.add(DEALLOCATE_LOCK_TIME);
-      uint insertAfter = _insertAfter[i];
 
       // fetch request currently at target index
       Deallocation storage current = deallocations[insertAfter];
@@ -283,8 +270,8 @@ contract PooledStaking is MasterAware, TokenAware {
 
       if (current.next != 0) {
         Deallocation storage next = deallocations[current.next];
+        // next deallocation time should be greater than new deallocation time
         require(
-          // require its deallocation time to be greater than new deallocation time
           next.deallocateAt > deallocateAt,
           "Deallocation time must be smaller than next deallocation"
         );
@@ -294,9 +281,13 @@ contract PooledStaking is MasterAware, TokenAware {
       uint id = deallocationCount;
       deallocationCount++;
 
-      // point to our new deallocation
       uint next = current.next;
+
+      // point to our new deallocation
       current.next = id;
+
+      // insert next item after this one
+      insertAfter = id;
 
       deallocations[id] = Deallocation(
         requested, deallocateAt, contractAddress, msg.sender, next
@@ -308,9 +299,10 @@ contract PooledStaking is MasterAware, TokenAware {
     }
   }
 
-  function pushBurn(address contractAddress, uint amount) onlyInternal external {
+  function pushBurn(address contractAddress, uint amount) external onlyInternal {
 
-    burns[burnCount] = Burn(amount, now, contractAddress, 0); // add new burn
+    // add new burn
+    burns[burnCount] = Burn(amount, now, contractAddress, 0);
 
     // TODO: recheck this
     // burnCount and firstBurn can be equal only when they're both 0
@@ -318,70 +310,86 @@ contract PooledStaking is MasterAware, TokenAware {
     // if those are different, burnCount - 1 will be >= 0 (will not underflow)
     // but we should check that it doesn't point to an empty slot (processed & deleted burn)
     if (burnCount != firstBurn && burns[burnCount - 1].burnedAt > 0) {
-      burns[burnCount - 1].next = burnCount; // set previous burn's next to current burn id
-    } else {
-      // otherwise this is the only existing burn, therefore it is the first one as well
+      // set previous burn's next to current burn id
+      burns[burnCount - 1].next = burnCount;
+    } else {// otherwise this is the only existing burn, therefore it is the first one as well
       firstBurn = burnCount;
     }
 
-    ++burnCount; // update counter
+    // update counter
+    ++burnCount;
   }
 
-  function pushReward(address contractAddress, uint amount, address from) onlyInternal external {
+  function pushReward(address contractAddress, uint amount, address from) external onlyInternal {
 
     // transfer tokens from specified contract to us
     // token transfer should be approved by the specified address
     Vault.deposit(token, from, amount);
 
-    rewards[rewardCount] = Reward(amount, now, contractAddress, 0); // add new reward
+    // add new reward
+    rewards[rewardCount] = Reward(amount, now, contractAddress, 0);
 
     // TODO: recheck this
     // similar to pushBurn
     if (rewardCount != firstReward && rewards[rewardCount - 1].rewardedAt > 0) {
-      rewards[rewardCount - 1].next = rewardCount; // set previous reward's next to current id
+      // set previous reward's next pointer to current id
+      rewards[rewardCount - 1].next = rewardCount;
     } else {
       firstReward = rewardCount;
     }
 
-    ++rewardCount; // update counter
+    // update counter
+    ++rewardCount;
   }
 
-  function processPendingActions() public {
+  function processPendingActions() public returns (bool) {
+
     while (true) {
+
       Burn storage burn = burns[firstBurn];
       Deallocation storage deallocation = deallocations[firstDeallocation];
+      Reward storage reward = rewards[firstReward];
 
-      bool canBurn = burn.burnedAt != 0; // end not reached
+      bool canBurn = burn.burnedAt != 0;
       bool canDeallocate = deallocation.deallocateAt != 0 && deallocation.deallocateAt <= now;
+      bool canReward = reward.rewardedAt != 0;
 
-      if (!canBurn && !canDeallocate) {
+      if (!canBurn && !canDeallocate && !canReward) {
         // everything is processed
         break;
       }
 
-      // TODO: check if there's enough gas for the next iteration
+      if (
+        canBurn &&
+        (!canDeallocate || burn.burnedAt < deallocation.deallocateAt) &&
+        (!canReward || burn.burnedAt < reward.rewardedAt)
+      ) {
+        // O(n*m)
+        _processFirstBurn();
+        continue;
+      }
 
-      // no burn to compare to or deallocation should happen before burn
-      if (!canBurn || deallocation.deallocateAt <= burn.burnedAt) {
+      if (
+        canDeallocate &&
+        (!canReward || deallocation.deallocateAt < reward.rewardedAt)
+      ) {
+        // O(1)
         _processFirstDeallocation();
         continue;
       }
 
-      _processFirstBurn();
+      // O(n)
+      _processFirstReward();
+
+      // TODO: check if there's enough gas for the next iteration
+      // TODO: probably should implement this in _processFirst* functions
+      // TODO: run simulations to find a proper value
+      if (gasLeft() < 20 szabo) { // 20k gwei
+        return false;
+      }
     }
-  }
 
-  function _processFirstDeallocation() internal {
-    Deallocation storage deallocation = deallocations[firstDeallocation];
-    Staker storage staker = stakers[deallocation.stakerAddress];
-
-    address contractAddress = deallocation.contractAddress;
-    staker.allocations[contractAddress].sub(deallocation.amount);
-    staker.pendingDeallocations[contractAddress].add(deallocation.amount);
-
-    uint nextDeallocation = deallocation.next;
-    delete deallocations[firstDeallocation];
-    firstDeallocation = nextDeallocation;
+    return true;
   }
 
   function _processFirstBurn() internal {
@@ -435,28 +443,26 @@ contract PooledStaking is MasterAware, TokenAware {
     firstBurn = nextBurn;
   }
 
-  function processRewards() public {
+  function _processFirstDeallocation() internal {
+    Deallocation storage deallocation = deallocations[firstDeallocation];
+    Staker storage staker = stakers[deallocation.stakerAddress];
 
-    while (true) {
+    address contractAddress = deallocation.contractAddress;
+    uint allocation = staker.allocations[contractAddress];
+    allocation = deallocation.amount >= allocation ? 0 : allocation.sub(deallocation.amount);
 
-      // TODO: check if there's enough gas for the next iteration
+    staker.allocations[contractAddress] = allocation;
+    staker.pendingDeallocations[contractAddress].sub(deallocation.amount);
 
-      Reward storage reward = rewards[firstReward];
-
-      if (reward.rewardedAt == 0) {
-        break;
-      }
-
-      _reward(reward.contractAddress, reward.amount);
-
-      uint nextReward = reward.next;
-      delete rewards[firstReward];
-      firstReward = nextReward;
-    }
+    uint nextDeallocation = deallocation.next;
+    delete deallocations[firstDeallocation];
+    firstDeallocation = nextDeallocation;
   }
 
-  function _reward(address contractAddress, uint amount) internal {
+  function _processFirstReward() internal {
 
+    Reward storage reward = rewards[firstReward];
+    address contractAddress = reward.contractAddress;
     Contract storage _contract = contracts[contractAddress];
     uint rewarded = 0;
 
@@ -467,16 +473,20 @@ contract PooledStaking is MasterAware, TokenAware {
 
       // staker's ratio = total staked on contract / staker's stake on contract
       // staker's reward = total reward amount * staker's ratio
-      uint stakerReward = amount.mul(allocation).div(_contract.staked);
+      uint stakerReward = reward.amount.mul(allocation).div(_contract.staked);
 
       staker.reward = staker.reward.add(stakerReward);
       rewarded = rewarded.add(stakerReward);
     }
 
-    require(rewarded <= amount, "Reward amount mismatch");
+    uint nextReward = reward.next;
+    delete rewards[firstReward];
+    firstReward = nextReward;
+
+    require(rewarded <= reward.amount, "Reward amount mismatch");
   }
 
-  function withdrawReward(uint amount) onlyMembers external {
+  function withdrawReward(uint amount) external onlyMembers {
 
     require(
       stakers[msg.sender].reward >= amount,
@@ -487,7 +497,7 @@ contract PooledStaking is MasterAware, TokenAware {
     Vault.withdraw(token, msg.sender, amount);
   }
 
-  function updateParameter(ParamType param, uint value) onlyGoverned external {
+  function updateParameter(ParamType param, uint value) external onlyGoverned {
 
     if (param == ParamType.MIN_STAKE) {
       MIN_STAKE = value;

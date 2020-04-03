@@ -276,8 +276,7 @@ contract('Distributor buy cover and claim', function([
 
           it('allows submitting a claim for the cover', async () => {
             await distributor.submitClaim(firstTokenId, {
-              from: nftCoverHolder1,
-              value: submitClaimDeposit
+              from: nftCoverHolder1
             });
 
             const minVotingTime = await cd.minVotingTime();
@@ -460,8 +459,7 @@ contract('Distributor buy cover and claim', function([
             );
 
             await distributor.submitClaim(secondTokenId, {
-              from: nftCoverHolder1,
-              value: submitClaimDeposit
+              from: nftCoverHolder1
             });
 
             coverID = await qd.getAllCoversOfUser(distributor.address);
@@ -538,9 +536,7 @@ contract('Distributor buy cover and claim', function([
               log => log.event === 'ClaimRedeemed'
             )[0];
 
-            const expectedTotalClaimValue = new web3.utils.BN(
-              coverDetails[0]
-            ).add(new web3.utils.BN(submitClaimDeposit));
+            const expectedTotalClaimValue = new web3.utils.BN(coverDetails[0]);
 
             claimRedeemedEvent.args.receiver.should.be.equal(nftCoverHolder1);
             claimRedeemedEvent.args.value
@@ -607,10 +603,7 @@ contract('Distributor buy cover and claim', function([
               buyCoverUsingCAResponse.logs
             ).tokenId;
 
-            await cad.approve(distributor.address, submitClaimDaiDeposit, {
-              from: nftCoverHolder1
-            });
-            await distributor.submitClaimUsingCA(tokenId, {
+            await distributor.submitClaim(tokenId, {
               from: nftCoverHolder1
             });
 

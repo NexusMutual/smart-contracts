@@ -42,7 +42,6 @@ contract Distributor is
     bytes4 currency
   );
 
-  uint public constant CLAIM_DEPOSIT_PERCENTAGE = 5;
 
   INXMMaster.INXMMaster internal nxMaster;
   uint public priceLoadPercentage;
@@ -131,37 +130,11 @@ contract Distributor is
     uint256 tokenId
   )
     public
-    payable
-    allowsClaims(tokenId)
+    onlyTokenApprovedOrOwner(tokenId)
   {
     require(!allTokenData[tokenId].claimInProgress, "Claim already in progress");
-    require(allTokenData[tokenId].coverCurrency == "ETH", "currency not ETH");
-    uint coverAmount = allTokenData[tokenId].coverDetails[1];
-    require(msg.value == CLAIM_DEPOSIT_PERCENTAGE.mul(coverAmount).div(100), "Deposit value is incorrect");
+    require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
 
-    _submitClaim(tokenId);
-  }
-
-  function submitClaimUsingCA(
-    uint256 tokenId
-  )
-    public
-    allowsClaims(tokenId)
-  {
-    require(!allTokenData[tokenId].claimInProgress, "Claim already in progress");
-    uint depositAmount = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
-    PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
-    IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(allTokenData[tokenId].coverCurrency));
-    require(erc20.transferFrom(msg.sender, address(this), depositAmount), "Transfer failed");
-
-    _submitClaim(tokenId);
-  }
-
-  function _submitClaim(
-    uint256 tokenId
-  )
-    internal
-  {
     Claims.Claims claims = Claims.Claims(nxMaster.getLatestAddress("CL"));
     claims.submitClaim(allTokenData[tokenId].coverId);
 
@@ -171,11 +144,12 @@ contract Distributor is
     allTokenData[tokenId].claimId = claimId;
   }
 
+
   function redeemClaim(
     uint256 tokenId
   )
     public
-    allowsClaims(tokenId)
+    onlyTokenApprovedOrOwner(tokenId)
     nonReentrant
   {
     require(allTokenData[tokenId].claimInProgress, "No claim is in progress");
@@ -191,42 +165,14 @@ contract Distributor is
       (, status, , , ) = claims.getClaimbyIndex(allTokenData[tokenId].claimId);
 
       if (status == 14 || status == 7) {
-        uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
-        uint totalReturnedSum = sumAssured.add(deposit);
         _burn(tokenId);
-        _sendAssuredSum(allTokenData[tokenId].coverCurrency, totalReturnedSum);
-        emit ClaimRedeemed(msg.sender, totalReturnedSum, allTokenData[tokenId].coverCurrency);
+        _sendAssuredSum(allTokenData[tokenId].coverCurrency, sumAssured);
+        emit ClaimRedeemed(msg.sender, sumAssured, allTokenData[tokenId].coverCurrency);
       } else {
         revert("Claim accepted but payout not completed");
       }
     } else {
       revert("Claim is not accepted");
-    }
-  }
-
-  function burnFailedClaimToken(
-    uint256 tokenId
-  )
-    public
-    onlyOwner
-  {
-    require(allTokenData[tokenId].claimInProgress, "No claim is in progress");
-
-    QuotationData.QuotationData quotationData = QuotationData.QuotationData(nxMaster.getLatestAddress("QD"));
-    uint8 coverStatus;
-    uint sumAssured;
-    (, coverStatus, sumAssured, , ) = quotationData.getCoverDetailsByCoverID2(allTokenData[tokenId].coverId);
-
-    if (coverStatus == uint8(QuotationData.QuotationData.CoverStatus.ClaimDenied)) {
-      _burn(tokenId);
-      uint deposit = CLAIM_DEPOSIT_PERCENTAGE.mul(allTokenData[tokenId].coverDetails[1]).div(100);
-      if (allTokenData[tokenId].coverCurrency == "ETH") {
-        withdrawableETH.add(deposit);
-      } else {
-        withdrawableTokens[allTokenData[tokenId].coverCurrency].add(deposit);
-      }
-    } else {
-      revert("Claim is not denied.");
     }
   }
 
@@ -294,9 +240,8 @@ contract Distributor is
     withdrawableETH = withdrawableETH.add(ethValue);
   }
 
-  modifier allowsClaims(uint256 tokenId) {
+  modifier onlyTokenApprovedOrOwner(uint256 tokenId) {
     require(_isApprovedOrOwner(msg.sender, tokenId), "Not approved or owner");
-    require(allTokenData[tokenId].expirationTimestamp > block.timestamp, "Token is expired");
     _;
   }
 

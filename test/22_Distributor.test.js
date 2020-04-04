@@ -588,7 +588,7 @@ contract('Distributor buy cover and claim', function([
               qt.address
             );
 
-            const buyCoverUsingCAResponse = await distributor.buyCoverUsingCA(
+            const buyCoverUsingCAResponse = await distributor.buyCover(
               smartConAdd,
               toHex('DAI'),
               coverDetailsDai,

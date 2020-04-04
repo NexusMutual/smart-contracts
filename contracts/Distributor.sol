@@ -69,51 +69,30 @@ contract Distributor is
      payable
   {
     uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).div(100).add(coverDetails[1]);
-    require(msg.value == requiredValue, "Incorrect value sent");
 
-    Pool1.Pool1 p1 = Pool1.Pool1(nxMaster.getLatestAddress("P1"));
-    p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
+    if (coverCurrency == "ETH") {
+      require(msg.value == requiredValue, "Incorrect value sent");
 
-    // add fee to the withdrawable pool
-    withdrawableETH = withdrawableETH.add(requiredValue.sub(coverDetails[1]));
+      Pool1.Pool1 p1 = Pool1.Pool1(nxMaster.getLatestAddress("P1"));
+      p1.makeCoverBegin.value(coverDetails[1])(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
 
-    _mintToken(coverCurrency, coverDetails, coverPeriod);
-  }
+      // add fee to the withdrawable pool
+      withdrawableETH = withdrawableETH.add(requiredValue.sub(coverDetails[1]));
+    } else {
+      PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
+      IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(coverCurrency));
+      require(erc20.transferFrom(msg.sender, address(this), requiredValue), "Transfer failed");
 
-  function buyCoverUsingCA(
-        address coveredContractAddress,
-        bytes4 coverCurrency,
-        uint[] memory coverDetails,
-        uint16 coverPeriod,
-        uint8 _v,
-        bytes32 _r,
-        bytes32 _s
-  )
-    public
-  {
-    uint requiredValue = priceLoadPercentage.mul(coverDetails[1]).div(100).add(coverDetails[1]);
-    PoolData.PoolData pd = PoolData.PoolData(nxMaster.getLatestAddress("PD"));
-    IERC20.IERC20 erc20 = IERC20.IERC20(pd.getCurrencyAssetAddress(coverCurrency));
-    require(erc20.transferFrom(msg.sender, address(this), requiredValue), "Transfer failed");
+      address payable pool1Address = nxMaster.getLatestAddress("P1");
+      Pool1.Pool1 p1 = Pool1.Pool1(pool1Address);
+      erc20.approve(pool1Address, coverDetails[1]);
+      p1.makeCoverUsingCA(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
 
-    address payable pool1Address = nxMaster.getLatestAddress("P1");
-    Pool1.Pool1 p1 = Pool1.Pool1(pool1Address);
-    erc20.approve(pool1Address, coverDetails[1]);
-    p1.makeCoverUsingCA(coveredContractAddress, coverCurrency, coverDetails, coverPeriod, _v, _r, _s);
+      // add fee to the withdrawable pool
+      withdrawableTokens[coverCurrency] = withdrawableTokens[coverCurrency].add(requiredValue.sub(coverDetails[1]));
+    }
 
-    // add fee to the withdrawable pool
-    withdrawableTokens[coverCurrency] = withdrawableTokens[coverCurrency].add(requiredValue.sub(coverDetails[1]));
-
-    _mintToken(coverCurrency, coverDetails, coverPeriod);
-  }
-
-  function _mintToken(
-    bytes4 coverCurrency,
-    uint[] memory coverDetails,
-    uint16 coverPeriod
-  )
-  internal
-  {
+    // mint token
     QuotationData.QuotationData quotationData = QuotationData.QuotationData(nxMaster.getLatestAddress("QD"));
     TokenDataContract.TokenData tokenData = TokenDataContract.TokenData(nxMaster.getLatestAddress("TD"));
     // *assumes* the newly created claim is appended at the end of the list covers

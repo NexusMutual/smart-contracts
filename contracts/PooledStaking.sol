@@ -380,7 +380,7 @@ contract PooledStaking is MasterAware, TokenAware {
       // TODO: check if there's enough gas for the next iteration
       // TODO: probably should implement this in _processFirst* functions
       // TODO: run simulations to find a proper value
-      if (gasLeft() < 20 szabo) { // 20k gwei
+      if (gasleft() < 20 szabo) { // 20k gwei
         return false;
       }
     }

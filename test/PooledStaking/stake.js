@@ -27,8 +27,20 @@ describe('stake', function () {
     assert.strictEqual(await master.isMember(nonMember), false);
 
     await expectRevert(
-      staking.stake(ether('1'), [firstContract], [1], { from: nonMember }, ),
+      staking.stake(ether('1'), [firstContract], [1], { from: nonMember }),
       'Caller is not a member',
+    );
+  });
+
+  it('should revert when contracts and allocations arrays lengths differ', async function () {
+
+    const { master, staking } = this;
+
+    assert.strictEqual(await master.isMember(memberOne), true);
+
+    await expectRevert(
+      staking.stake(ether('7'), [firstContract, secondContract], [1], { from: memberOne }),
+      'Contracts and allocations arrays should have the same length',
     );
   });
 

@@ -17,6 +17,15 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
+async function stake (token, staking, amount, contracts, allocations, member) {
+  const maxLeverage = '10';
+  await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
+
+  await token.transfer(member, amount); // fund member account from default address
+  await token.approve(staking.address, amount, { from: member });
+  await staking.stake(amount, contracts, allocations, { from: member });
+}
+
 describe('stake', function () {
 
   beforeEach(setup);
@@ -32,11 +41,21 @@ describe('stake', function () {
     );
   });
 
+  it('should revert when allocating to fewer contracts', async function () {
+
+    const { staking, token } = this;
+
+    await stake(token, staking, ether('1'), [firstContract, secondContract], [1, 1], memberOne);
+
+    await expectRevert(
+      staking.stake(ether('1'), [thirdContract], [1], { from: memberOne }),
+      'Allocating to fewer contracts is not allowed',
+    );
+  });
+
   it('should revert when contracts and allocations arrays lengths differ', async function () {
 
-    const { master, staking } = this;
-
-    assert.strictEqual(await master.isMember(memberOne), true);
+    const { staking } = this;
 
     await expectRevert(
       staking.stake(ether('7'), [firstContract, secondContract], [1], { from: memberOne }),

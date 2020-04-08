@@ -17,16 +17,10 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function stake (token, staking, amount, contracts, allocations, member) {
+async function fundAndApprove (token, staking, amount, member) {
   const maxLeverage = '10';
   await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
 
-  await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
-  await staking.stake(amount, contracts, allocations, { from: member });
-}
-
-async function fundAccountAndApproveToken (token, staking, amount, member) {
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
 }
@@ -49,8 +43,10 @@ describe('stake', function () {
   it('should revert when allocating to fewer contracts', async function () {
 
     const { staking, token } = this;
+    const amount = ether('1');
 
-    await stake(token, staking, ether('1'), [firstContract, secondContract], [1, 1], memberOne);
+    await fundAndApprove(token, staking, amount, memberOne);
+    staking.stake(amount, [firstContract, secondContract], [1, 1], { from: memberOne });
 
     await expectRevert(
       staking.stake(ether('1'), [thirdContract], [1], { from: memberOne }),
@@ -75,7 +71,7 @@ describe('stake', function () {
     const minStake = 20;
 
     await staking.updateParameter(ParamType.MIN_STAKE, minStake, { from: governanceContract });
-    await fundAccountAndApproveToken(token, staking, amount, memberOne);
+    await fundAndApprove(token, staking, amount, memberOne);
 
     await expectRevert(
       staking.stake(amount, [firstContract], [5], { from: memberOne }),
@@ -83,16 +79,29 @@ describe('stake', function () {
     );
   });
 
+  it('should prevent allocating more than staked on a contract', async function () {
+
+    const { staking, token } = this;
+    const amount = ether('1');
+
+    await fundAndApprove(token, staking, amount, memberOne);
+
+    await expectRevert(
+      staking.stake(amount, [firstContract], [ether('2')], { from: memberOne }),
+      'Cannot allocate more than staked',
+    );
+  });
+
   it('should revert when contracts order has been changed', async function () {
 
     const { staking, token } = this;
+    const amount = ether('2');
 
-    await stake(token, staking, ether('1'), [firstContract, secondContract], [1, 1], memberOne);
+    await fundAndApprove(token, staking, amount, memberOne);
+    await staking.stake(ether('1'), [firstContract, secondContract], [1, 1], { from: memberOne });
 
-    const amount = ether('1');
-    await fundAccountAndApproveToken(token, staking, amount, memberOne);
     await expectRevert(
-      staking.stake(amount, [secondContract, firstContract], [1, 1], { from: memberOne }),
+      staking.stake(ether('1'), [secondContract, firstContract], [1, 1], { from: memberOne }),
       'Unexpected contract order',
     );
   });

@@ -7,7 +7,7 @@ const { ParamType } = require('../utils/constants');
 
 const {
   nonMembers: [nonMember],
-  members: [memberOne, memberTwo],
+  members: [memberOne, memberTwo, memberThree],
   // advisoryBoardMembers: [advisoryBoardMember],
   // internalContracts: [internalContract],
   governanceContracts: [governanceContract],
@@ -337,6 +337,5 @@ describe('stake', function () {
       assert(staker === memberOne, `staker at index 0 should be ${memberOne}`);
     }
   });
-
 
 });

@@ -49,7 +49,7 @@ describe('stake', function () {
     staking.stake(amount, [firstContract, secondContract], [1, 1], { from: memberOne });
 
     await expectRevert(
-      staking.stake(ether('1'), [thirdContract], [1], { from: memberOne }),
+      staking.stake(amount, [thirdContract], [1], { from: memberOne }),
       'Allocating to fewer contracts is not allowed',
     );
   });
@@ -67,14 +67,14 @@ describe('stake', function () {
   it('should prevent allocating less than MIN_STAKE', async function () {
 
     const { staking, token } = this;
-    const amount = ether('5');
+    const amount = ether('1');
     const minStake = 20;
 
     await staking.updateParameter(ParamType.MIN_STAKE, minStake, { from: governanceContract });
     await fundAndApprove(token, staking, amount, memberOne);
 
     await expectRevert(
-      staking.stake(amount, [firstContract], [5], { from: memberOne }),
+      staking.stake(amount, [firstContract], [1], { from: memberOne }),
       'Allocation minimum not met',
     );
   });
@@ -95,13 +95,14 @@ describe('stake', function () {
   it('should revert when contracts order has been changed', async function () {
 
     const { staking, token } = this;
-    const amount = ether('2');
+    const stakeAmount = ether('1');
+    const totalAmount = ether('2');
 
-    await fundAndApprove(token, staking, amount, memberOne);
-    await staking.stake(ether('1'), [firstContract, secondContract], [1, 1], { from: memberOne });
+    await fundAndApprove(token, staking, totalAmount, memberOne);
+    await staking.stake(stakeAmount, [firstContract, secondContract], [1, 1], { from: memberOne });
 
     await expectRevert(
-      staking.stake(ether('1'), [secondContract, firstContract], [1, 1], { from: memberOne }),
+      staking.stake(stakeAmount, [secondContract, firstContract], [1, 1], { from: memberOne }),
       'Unexpected contract order',
     );
   });
@@ -109,13 +110,14 @@ describe('stake', function () {
   it('should revert when new allocation is less than previous one', async function () {
 
     const { staking, token } = this;
-    const amount = ether('2');
+    const stakeAmount = ether('1');
+    const totalAmount = ether('2');
 
-    await fundAndApprove(token, staking, amount, memberOne);
-    await staking.stake(ether('1'), [firstContract], [10], { from: memberOne });
+    await fundAndApprove(token, staking, totalAmount, memberOne);
+    await staking.stake(stakeAmount, [firstContract], [10], { from: memberOne });
 
     await expectRevert(
-      staking.stake(ether('1'), [firstContract], [9], { from: memberOne }),
+      staking.stake(stakeAmount, [firstContract], [9], { from: memberOne }),
       'New allocation is less than previous allocation',
     );
   });
@@ -125,11 +127,11 @@ describe('stake', function () {
     const { staking, token } = this;
     const amount = ether('1');
 
-    await fundAndApprove(token, staking, amount, memberOne);
+    await fundAndApprove(token, staking, amount, memberOne); // MAX_LEVERAGE = 2
 
     await expectRevert(
       staking.stake(
-        ether('1'),
+        amount,
         [firstContract, secondContract, thirdContract],
         [ether('1'), ether('1'), ether('1')],
         { from: memberOne },
@@ -146,7 +148,7 @@ describe('stake', function () {
     await token.transfer(memberOne, stakeAmount);
 
     await expectRevert(
-      staking.stake(stakeAmount, { from: memberOne }),
+      staking.stake(stakeAmount, [firstContract], [1], { from: memberOne }),
       'ERC20: transfer amount exceeds allowance.',
     );
   });
@@ -160,19 +162,17 @@ describe('stake', function () {
 
     assert(stakedBefore.eqn(0), 'initial amount should be 0');
 
-    await token.transfer(memberOne, totalAmount); // fund account
+    await fundAndApprove(token, staking, totalAmount, memberOne);
 
     // stake 1 nxm
-    await token.approve(staking.address, ether('1'), { from: memberOne });
-    await staking.stake(stakeAmount, { from: memberOne });
+    await staking.stake(stakeAmount, [firstContract], [1], { from: memberOne });
 
     // check first stake
     const { staked: firstAmount } = await staking.stakers(memberOne, { from: memberOne });
     assert(firstAmount.eq(stakeAmount), 'amount should be equal to staked amount');
 
     // stake 1 nxm
-    await token.approve(staking.address, ether('1'), { from: memberOne });
-    await staking.stake(stakeAmount, { from: memberOne });
+    await staking.stake(stakeAmount, [firstContract], [1], { from: memberOne });
 
     // check final stake
     const { staked: finalAmount } = await staking.stakers(memberOne, { from: memberOne });

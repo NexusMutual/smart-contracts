@@ -304,15 +304,14 @@ contract PooledStaking is MasterAware, TokenAware {
     // add new burn
     burns[burnCount] = Burn(amount, now, contractAddress, 0);
 
-    // TODO: recheck this
-    // burnCount and firstBurn can be equal only when they're both 0
-    // i.e. when pushing the first burn ever
-    // if those are different, burnCount - 1 will be >= 0 (will not underflow)
-    // but we should check that it doesn't point to an empty slot (processed & deleted burn)
-    if (burnCount != firstBurn && burns[burnCount - 1].burnedAt > 0) {
-      // set previous burn's next to current burn id
+    // do we have a previous unprocessed burn?
+    bool previousExists = burnCount > 0 && burns[burnCount - 1].burnedAt > 0;
+
+    if (previousExists) {
+      // set previousBurn.next to current burn id
       burns[burnCount - 1].next = burnCount;
-    } else {// otherwise this is the only existing burn, therefore it is the first one as well
+    } else {
+      // otherwise this is the only unprocessed burn and it should be the first one
       firstBurn = burnCount;
     }
 
@@ -329,12 +328,14 @@ contract PooledStaking is MasterAware, TokenAware {
     // add new reward
     rewards[rewardCount] = Reward(amount, now, contractAddress, 0);
 
-    // TODO: recheck this
-    // similar to pushBurn
-    if (rewardCount != firstReward && rewards[rewardCount - 1].rewardedAt > 0) {
-      // set previous reward's next pointer to current id
+    // do we have a previous unprocessed reward?
+    bool previousExists = rewardCount > 0 && rewards[rewardCount - 1].rewardedAt > 0;
+
+    if (previousExists) {
+      // set previousReward.next to current reward id
       rewards[rewardCount - 1].next = rewardCount;
     } else {
+      // otherwise this is the only unprocessed reward and it should be the first one
       firstReward = rewardCount;
     }
 

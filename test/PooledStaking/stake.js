@@ -18,7 +18,7 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundAndApprove (token, staking, amount, member) {
-  const maxLeverage = '10';
+  const maxLeverage = '2';
   await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
@@ -117,6 +117,24 @@ describe('stake', function () {
     await expectRevert(
       staking.stake(ether('1'), [firstContract], [9], { from: memberOne }),
       'New allocation is less than previous allocation',
+    );
+  });
+
+  it('should revert when total allocation exceeds maximum allowed', async function () {
+
+    const { staking, token } = this;
+    const amount = ether('1');
+
+    await fundAndApprove(token, staking, amount, memberOne);
+
+    await expectRevert(
+      staking.stake(
+        ether('1'),
+        [firstContract, secondContract, thirdContract],
+        [ether('1'), ether('1'), ether('1')],
+        { from: memberOne },
+      ),
+      'Total allocation exceeds maximum allowed',
     );
   });
 

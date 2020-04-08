@@ -20,7 +20,7 @@ describe('updateParameter', function () {
   it('should revert when called by non governance addresses', async function () {
 
     const { staking } = this;
-    const param = ParamType.MIN_DEPOSIT_AMOUNT;
+    const param = ParamType.MIN_STAKE;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {
@@ -46,6 +46,7 @@ describe('updateParameter', function () {
 
       const param = ParamType[paramName];
       await staking.updateParameter(param, value, { from: governanceContract });
+
       const actual = await staking[paramName]();
       assert.strictEqual(actual.toString(), value);
     }

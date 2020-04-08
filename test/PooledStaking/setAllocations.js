@@ -87,13 +87,13 @@ describe('setAllocations', function () {
     );
   });
 
-  it('should prevent allocating less than MIN_STAKE_PERCENTAGE', async function () {
+  it('should prevent allocating less than MIN_STAKE', async function () {
 
     const { staking, token } = this;
     const minStakePercentage = 10 * 100; // 10% + 2 decimals
 
     await staking.updateParameter(
-      ParamType.MIN_STAKE_PERCENTAGE, minStakePercentage, { from: governanceContract },
+      ParamType.MIN_STAKE, minStakePercentage, { from: governanceContract },
     );
 
     await stake(token, staking, [{ member, amount: ether('7') }]);

@@ -9,6 +9,6 @@
     "function-order": "off",
     "blank-lines": "off",
     "arg-overflow": "off",
-    "no-block-members": "off"
+    "security/no-block-members": "off"
   }
 }

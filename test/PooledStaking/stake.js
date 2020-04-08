@@ -260,4 +260,120 @@ describe('stake', function () {
     }
   });
 
+  it('should properly set staker contracts and their allocations', async function () {
+    const { staking, token } = this;
+
+    const amount = ether('1');
+    const contracts = [firstContract, secondContract];
+    const allocations = [amount, amount];
+
+    await fundAndApprove(token, staking, amount, memberOne);
+    await staking.stake(amount, contracts, allocations, { from: memberOne});
+
+    const length = await staking.stakerContractCount(memberOne);
+    const actualContracts = [];
+    const actualAllocations = [];
+
+    for (let i = 0; i < length; i++) {
+      const contract = await staking.stakerContractAtIndex(memberOne, i);
+      const allocation = await staking.stakerContractAllocation(memberOne, contract);
+      actualContracts.push(contract);
+      actualAllocations.push(allocation);
+    }
+
+    assert.deepEqual(
+        allocations.map(alloc => alloc.toString()),
+        actualAllocations.map(alloc => alloc.toString()),
+        `found allocations ${actualAllocations} should be identical to allocated allocations ${allocations}`,
+    );
+
+    assert.deepEqual(
+        contracts, actualContracts,
+        'found contracts should be identical to allocated contracts',
+    );
+  });
+
+  it('should add staker to contract stakers array', async function () {
+
+    const { staking, token } = this;
+    const stakeAmount = ether('1');
+    const totalAmount = ether('7');
+
+    await fundAndApprove(token, staking, totalAmount, memberOne);
+
+    // first allocation
+    await staking.stake(stakeAmount, [firstContract], [10], { from: memberOne});
+
+    const count = await staking.contractStakerCount(firstContract);
+    const staker = await staking.contractStakerAtIndex(firstContract, 0);
+    assert(count.eqn(1), `staker count for ${firstContract} should be 1`);
+    assert(staker === memberOne, `staker at index 0 should match member address`);
+
+    // second allocation
+    const contracts = [firstContract, secondContract, thirdContract];
+    const allocations = [10, 20, 30];
+    await staking.stake(stakeAmount, contracts, allocations, { from: memberOne });
+
+    const counts = await Promise.all([
+      staking.contractStakerCount(firstContract),
+      staking.contractStakerCount(secondContract),
+      staking.contractStakerCount(thirdContract),
+    ]);
+
+    for (const count of counts) {
+      assert(count.eqn(1), `staker count should be 1, got ${count}`);
+    }
+
+    const stakers = await Promise.all([
+      staking.contractStakerAtIndex(firstContract, 0),
+      staking.contractStakerAtIndex(secondContract, 0),
+      staking.contractStakerAtIndex(thirdContract, 0),
+    ]);
+
+    for (const staker of stakers) {
+      assert(staker === memberOne, `staker at index 0 should be ${memberOne}`);
+    }
+  });
+
+  it('should correctly update staked amounts on allocation increase', async function () {
+
+    const { staking, token } = this;
+    const stakeAmount = ether('1');
+    const totalAmount = ether('7');
+
+    await fundAndApprove(token, staking, totalAmount, memberOne);
+
+    await stake(token, staking, [{ member, amount: ether('7') }]);
+
+    const contracts = [firstContract, secondContract];
+    const expectedAmounts = [
+      {
+        allocations: [25, 70].map(i => i * 100),
+        [firstContract]: ether('7').muln(2500).divn(10000),
+        [secondContract]: ether('7').muln(7000).divn(10000),
+      },
+      {
+        allocations: [2712, 7512],
+        [firstContract]: ether('7').muln(2712).divn(10000),
+        [secondContract]: ether('7').muln(7512).divn(10000),
+      },
+    ];
+
+    for (const round of expectedAmounts) {
+
+      const { allocations } = round;
+      await staking.setAllocations(contracts, allocations, { from: member });
+
+      for (const contract of contracts) {
+        const actualAmount = await staking.contracts(contract);
+        const expectedAmount = round[contract];
+        assert(
+            actualAmount.eq(expectedAmount),
+            `${contract} should have ${expectedAmount.toString()} staked`,
+        );
+      }
+    }
+
+  });
+
 });

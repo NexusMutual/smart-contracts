@@ -171,11 +171,6 @@ contract PooledStaking is MasterAware, TokenAware {
       "Contracts and allocations arrays should have the same length"
     );
 
-    require(
-      staker.staked > 0,
-      "Allocations can be set only when staked amount is non-zero"
-    );
-
     Vault.deposit(token, msg.sender, amount);
     staker.staked = staker.staked.add(amount);
 

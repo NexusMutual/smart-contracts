@@ -26,6 +26,11 @@ async function stake (token, staking, amount, contracts, allocations, member) {
   await staking.stake(amount, contracts, allocations, { from: member });
 }
 
+async function fundAccountAndApproveToken (token, staking, amount, member) {
+  await token.transfer(member, amount); // fund member account from default address
+  await token.approve(staking.address, amount, { from: member });
+}
+
 describe('stake', function () {
 
   beforeEach(setup);
@@ -63,21 +68,18 @@ describe('stake', function () {
     );
   });
 
-  it('should revert if staked amount is less than MIN_DEPOSIT_AMOUNT', async function () {
+  it('should revert when contracts order has been changed', async function () {
 
-    const { staking } = this;
+    const { staking, token } = this;
 
-    await staking.updateParameter(
-      ParamType.MIN_DEPOSIT_AMOUNT,
-      ether('10'),
-      { from: governanceContract },
-    );
+    await stake(token, staking, ether('1'), [firstContract, secondContract], [1, 1], memberOne);
 
+    const amount = ether('1');
+    await fundAccountAndApproveToken(token, staking, amount, memberOne);
     await expectRevert(
-      staking.stake(ether('1'), { from: memberOne }),
-      'Amount is less than minimum allowed',
+      staking.stake(amount, [secondContract, firstContract], [1, 1], { from: memberOne }),
+      'Unexpected contract order',
     );
-
   });
 
   it('should revert when staking without allowance', async function () {

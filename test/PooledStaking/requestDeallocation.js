@@ -44,7 +44,7 @@ describe('requestDeallocation', function () {
     );
   });
 
-  it.only('should revert when requested deallocation is greater than allocated', async function () {
+  it('should revert when requested deallocation is greater than allocated', async function () {
 
     const { staking, token } = this;
     const stakes = [{ member, amount: ether('10') }];

@@ -185,21 +185,20 @@ describe('stake', function () {
     let expectedBalance = ether('0');
 
     // fund accounts
-    await token.transfer(memberOne, ether('10'));
-    await token.transfer(memberTwo, ether('10'));
+    await fundAndApprove(token, staking, ether('10'), memberOne);
+    await fundAndApprove(token, staking, ether('10'), memberTwo);
 
     const stakes = [
-      { from: memberOne, amount: ether('1') },
-      { from: memberTwo, amount: ether('4') },
-      { from: memberOne, amount: ether('3') },
-      { from: memberTwo, amount: ether('2') },
+      { amount: ether('1'), contracts: [firstContract], allocations: [1], from: memberOne },
+      { amount: ether('2'), contracts: [firstContract, secondContract], allocations: [1, 2], from: memberOne },
+      { amount: ether('3'), contracts: [firstContract], allocations: [3], from: memberTwo },
+      { amount: ether('4'), contracts: [firstContract, secondContract], allocations: [3, 4], from: memberTwo },
     ];
 
     for (const stake of stakes) {
-      const { from, amount } = stake;
+      const { amount, contracts, allocations, from } = stake;
 
-      await token.approve(staking.address, amount, { from });
-      await staking.stake(amount, { from });
+      await staking.stake(amount, contracts, allocations, { from });
 
       expectedBalance = expectedBalance.add(amount);
       const currentBalance = await token.balanceOf(staking.address);
@@ -213,62 +212,41 @@ describe('stake', function () {
     const memberOneBalance = await token.balanceOf(memberOne);
     const memberTwoBalance = await token.balanceOf(memberTwo);
 
-    const memberOneExpectedBalance = ether('10').sub(ether('4'));
-    const memberTwoExpectedBalance = ether('10').sub(ether('4')).sub(ether('2'));
+    const memberOneExpectedBalance = ether('10').sub(ether('1')).sub(ether('2'));
+    const memberTwoExpectedBalance = ether('10').sub(ether('3')).sub(ether('4'));
 
     assert(memberOneBalance.eq(memberOneExpectedBalance), 'memberOne balance should be decreased accordingly');
     assert(memberTwoBalance.eq(memberTwoExpectedBalance), 'memberTwo balance should be decreased accordingly');
   });
 
   it('should properly increase staked amounts for each contract', async function () {
-
     const { staking, token } = this;
-    const maxLeverage = 1000 * 100; // 1000%
 
-    const firstContract = '0x0000000000000000000000000000000000000001';
-    const secondContract = '0x0000000000000000000000000000000000000002';
-    const contracts = [firstContract, secondContract];
-
-    const allocations = {
-      [memberOne]: [40, 70].map(i => i * 100),
-      [memberTwo]: [50, 60].map(i => i * 100),
-    };
+    // fund accounts
+    await fundAndApprove(token, staking, ether('10'), memberOne);
+    await fundAndApprove(token, staking, ether('10'), memberTwo);
 
     const stakes = [
-      { from: memberOne, amount: ether('1'), allocate: true },
-      { from: memberTwo, amount: ether('4'), allocate: true },
-      { from: memberOne, amount: ether('3'), allocate: false },
-      { from: memberTwo, amount: ether('2'), allocate: false },
+      { amount: ether('1'), contracts: [firstContract], allocations: [ether('1')], from: memberOne },
+      { amount: ether('2'), contracts: [firstContract, secondContract], allocations: [ether('1'), ether('2')], from: memberOne },
+      { amount: ether('3'), contracts: [firstContract], allocations: [ether('3')], from: memberTwo },
+      { amount: ether('4'), contracts: [firstContract, secondContract], allocations: [ether('3'), ether('4')], from: memberTwo },
     ];
 
     const allExpectedAmounts = [
-      { [firstContract]: ether('0.4'), [secondContract]: ether('0.7') },
-      { [firstContract]: ether('2.4'), [secondContract]: ether('3.1') },
-      { [firstContract]: ether('3.6'), [secondContract]: ether('5.2') },
-      { [firstContract]: ether('4.6'), [secondContract]: ether('6.4') },
+      { [firstContract]: ether('1'), [secondContract]: ether('0') },
+      { [firstContract]: ether('1'), [secondContract]: ether('2') },
+      { [firstContract]: ether('4'), [secondContract]: ether('2') },
+      { [firstContract]: ether('4'), [secondContract]: ether('6') },
     ];
 
-    await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
-
-    // fund accounts
-    await token.transfer(memberOne, ether('10'));
-    await token.transfer(memberTwo, ether('10'));
-
-    // stake and check staked amounts for each contract
     for (let i = 0; i < stakes.length; i++) {
-
-      const { from, amount, allocate } = stakes[i];
+      const { amount, contracts, allocations, from } = stakes[i];
       const expectedAmounts = allExpectedAmounts[i];
 
-      await token.approve(staking.address, amount, { from });
-      await staking.stake(amount, { from });
-
-      if (allocate) {
-        await staking.setAllocations(contracts, allocations[from], { from });
-      }
+      await staking.stake(amount, contracts, allocations, { from });
 
       for (const contract of Object.keys(expectedAmounts)) {
-
         // returns the staked value instead of the whole struct
         // because the struct contains only one primitive
         const actualAmount = await staking.contracts(contract);

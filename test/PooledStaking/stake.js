@@ -68,6 +68,21 @@ describe('stake', function () {
     );
   });
 
+  it('should prevent allocating less than MIN_STAKE', async function () {
+
+    const { staking, token } = this;
+    const amount = ether('5');
+    const minStake = 20;
+
+    await staking.updateParameter(ParamType.MIN_STAKE, minStake, { from: governanceContract });
+    await fundAccountAndApproveToken(token, staking, amount, memberOne);
+
+    await expectRevert(
+      staking.stake(amount, [firstContract], [5], { from: memberOne }),
+      'Allocation minimum not met',
+    );
+  });
+
   it('should revert when contracts order has been changed', async function () {
 
     const { staking, token } = this;

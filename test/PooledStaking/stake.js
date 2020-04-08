@@ -13,6 +13,10 @@ const {
   governanceContracts: [governanceContract],
 } = accounts;
 
+const firstContract = '0x0000000000000000000000000000000000000001';
+const secondContract = '0x0000000000000000000000000000000000000002';
+const thirdContract = '0x0000000000000000000000000000000000000003';
+
 describe('stake', function () {
 
   beforeEach(setup);
@@ -23,7 +27,7 @@ describe('stake', function () {
     assert.strictEqual(await master.isMember(nonMember), false);
 
     await expectRevert(
-      staking.stake(ether('1'), { from: nonMember }),
+      staking.stake(ether('1'), [firstContract], [1], { from: nonMember }, ),
       'Caller is not a member',
     );
   });

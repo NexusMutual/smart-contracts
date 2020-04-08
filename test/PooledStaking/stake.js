@@ -106,6 +106,20 @@ describe('stake', function () {
     );
   });
 
+  it('should revert when new allocation is less than previous one', async function () {
+
+    const { staking, token } = this;
+    const amount = ether('2');
+
+    await fundAndApprove(token, staking, amount, memberOne);
+    await staking.stake(ether('1'), [firstContract], [10], { from: memberOne });
+
+    await expectRevert(
+      staking.stake(ether('1'), [firstContract], [9], { from: memberOne }),
+      'New allocation is less than previous allocation',
+    );
+  });
+
   it('should revert when staking without allowance', async function () {
 
     const { staking, token } = this;

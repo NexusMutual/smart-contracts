@@ -251,6 +251,7 @@ contract PooledStaking is MasterAware, TokenAware {
       // However, we allow the user to deallocate the entire amount
       if (requested != max) {
         require(requested >= MIN_ALLOWED_DEALLOCATION, "Deallocation cannot be less then MIN_ALLOWED_DEALLOCATION");
+        require(requested <= max, "Cannot deallocate more than allocated");
         require(max.sub(requested) >= MIN_STAKE, "Final allocation cannot be less then MIN_STAKE");
       }
 

@@ -6,6 +6,7 @@ describe('PooledStaking', function () {
   require('./updateParameter');
   require('./stake');
   require('./unstake');
+  require('./withdrawReward');
   // require('./requestDeallocation');
 
 });

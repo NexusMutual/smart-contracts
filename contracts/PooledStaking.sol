@@ -479,7 +479,7 @@ contract PooledStaking is MasterAware, TokenAware {
     delete rewards[firstReward];
     firstReward = nextReward;
 
-    require(rewarded <= reward.amount, "Reward amount mismatch");
+//     require(rewarded <= reward.amount, "Reward amount mismatch");
   }
 
   function withdrawReward(uint amount) external onlyMembers {

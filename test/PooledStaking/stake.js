@@ -8,8 +8,6 @@ const { ParamType } = require('../utils/constants');
 const {
   nonMembers: [nonMember],
   members: [memberOne, memberTwo, memberThree],
-  // advisoryBoardMembers: [advisoryBoardMember],
-  // internalContracts: [internalContract],
   governanceContracts: [governanceContract],
 } = accounts;
 

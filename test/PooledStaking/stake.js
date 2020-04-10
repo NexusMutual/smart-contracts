@@ -7,7 +7,7 @@ const { ParamType } = require('../utils/constants');
 
 const {
   nonMembers: [nonMember],
-  members: [memberOne, memberTwo, memberThree],
+  members: [memberOne, memberTwo],
   governanceContracts: [governanceContract],
 } = accounts;
 
@@ -269,7 +269,7 @@ describe('stake', function () {
     const allocations = [amount, amount];
 
     await fundAndApprove(token, staking, amount, memberOne);
-    await staking.stake(amount, contracts, allocations, { from: memberOne});
+    await staking.stake(amount, contracts, allocations, { from: memberOne });
 
     const length = await staking.stakerContractCount(memberOne);
     const actualContracts = [];
@@ -283,14 +283,14 @@ describe('stake', function () {
     }
 
     assert.deepEqual(
-        allocations.map(alloc => alloc.toString()),
-        actualAllocations.map(alloc => alloc.toString()),
-        `found allocations ${actualAllocations} should be identical to allocated allocations ${allocations}`,
+      allocations.map(alloc => alloc.toString()),
+      actualAllocations.map(alloc => alloc.toString()),
+      `found allocations ${actualAllocations} should be identical to allocated allocations ${allocations}`,
     );
 
     assert.deepEqual(
-        contracts, actualContracts,
-        'found contracts should be identical to allocated contracts',
+      contracts, actualContracts,
+      'found contracts should be identical to allocated contracts',
     );
   });
 
@@ -303,7 +303,7 @@ describe('stake', function () {
     await fundAndApprove(token, staking, totalAmount, memberOne);
 
     // first allocation
-    await staking.stake(stakeAmount, [firstContract], [10], { from: memberOne});
+    await staking.stake(stakeAmount, [firstContract], [10], { from: memberOne });
 
     const count = await staking.contractStakerCount(firstContract);
     const staker = await staking.contractStakerAtIndex(firstContract, 0);

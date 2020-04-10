@@ -104,7 +104,7 @@ describe('unstake', function () {
     // Check max unstakable
     const expectedMaxUnstakable = totalAmount.sub(allocatedAmount);
     const maxUnstakable = await staking.getMaxUnstakable(memberOne);
-    assert(maxUnstakable.eq(expectedMaxUnstakable));
+    assert(maxUnstakable.eq(expectedMaxUnstakable), `Max unstakable is expected to be ${expectedMaxUnstakable.toString()} but is ${maxUnstakable.toString()}`);
 
     // Allocate all staked amount
     await staking.stake(ether('0'), [firstContract, secondContract], [totalAmount, totalAmount], { from: memberOne });

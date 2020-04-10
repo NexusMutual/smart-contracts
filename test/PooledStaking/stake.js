@@ -46,7 +46,7 @@ describe('stake', function () {
 
     await fundAndApprove(token, staking, amount, memberOne);
     // first stake
-    staking.stake(amount, [firstContract, secondContract], [1, 1], { from: memberOne });
+    await staking.stake(amount, [firstContract, secondContract], [1, 1], { from: memberOne });
 
     // second stake, allocating to incomplete list of contracts
     await expectRevert(
@@ -146,8 +146,8 @@ describe('stake', function () {
     const { staking, token } = this;
     const stakeAmount = ether('1');
 
+    // fund from default account
     await token.transfer(memberOne, stakeAmount);
-    // TODO: assert the token allowance is 0
 
     await expectRevert(
       staking.stake(stakeAmount, [firstContract], [1], { from: memberOne }),
@@ -157,11 +157,8 @@ describe('stake', function () {
 
   it('should add the staked amount to the total user stake', async function () {
     const { staking, token } = this;
-    const { staked: stakedBefore } = await staking.stakers(memberOne, { from: memberOne });
     const stakeAmount = ether('1');
     const totalAmount = ether('2');
-
-    assert(stakedBefore.eqn(0), 'initial amount should be 0');
 
     await fundAndApprove(token, staking, totalAmount, memberOne);
 

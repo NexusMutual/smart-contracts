@@ -47,7 +47,8 @@ contract PooledStaking is MasterAware, TokenAware {
 
   struct Contract {
     uint staked; // amount of nxm staked for this contract
-    // TODO: find a way to remove zero-amount stakers. Linked list?
+    uint burned; // sum of unprocessed burn amounts
+    // TODO: find a way to remove zero-amount stakers
     address[] stakers; // used for iteration
   }
 
@@ -85,8 +86,8 @@ contract PooledStaking is MasterAware, TokenAware {
   mapping(address => Contract) public contracts; // contractAddress => Contract
 
   mapping(uint => Burn) public burns; // burn id => Burn
-  uint public firstBurn; // linked list head element
-  uint public burnCount; // used for getting next available id
+  uint public firstBurn; // linked list head element. points to an empty slot if there are no burns
+  uint public burnCount; // amount of burns that have been pushed (including processed)
 
   mapping(uint => Reward) public rewards; // reward id => Reward
   uint public firstReward;
@@ -415,7 +416,6 @@ contract PooledStaking is MasterAware, TokenAware {
     for (uint i = 0; i < _contract.stakers.length; i++) {
 
       Staker storage staker = stakers[_contract.stakers[i]];
-
       uint oldAllocation = staker.allocations[contractAddress];
 
       // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn

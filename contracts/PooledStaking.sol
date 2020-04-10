@@ -344,6 +344,10 @@ contract PooledStaking is MasterAware, TokenAware {
     ++rewardCount;
   }
 
+  function hasPendingActions() public view returns (bool) {
+    return hasPendingBurns() || hasPendingDeallocations() || hasPendingRewards();
+  }
+
   function processPendingActions() public returns (bool) {
 
     while (true) {
@@ -392,6 +396,10 @@ contract PooledStaking is MasterAware, TokenAware {
     }
 
     return true;
+  }
+
+  function hasPendingBurns() public view returns (bool){
+    return burns[firstBurn].burnedAt != 0;
   }
 
   function _processFirstBurn() internal {
@@ -445,6 +453,10 @@ contract PooledStaking is MasterAware, TokenAware {
     firstBurn = nextBurn;
   }
 
+  function hasPendingDeallocations() public view returns (bool){
+    return deallocations[firstDeallocation].deallocateAt != 0;
+  }
+
   function _processFirstDeallocation() internal {
     Deallocation storage deallocation = deallocations[firstDeallocation];
     Staker storage staker = stakers[deallocation.stakerAddress];
@@ -459,6 +471,10 @@ contract PooledStaking is MasterAware, TokenAware {
     uint nextDeallocation = deallocation.next;
     delete deallocations[firstDeallocation];
     firstDeallocation = nextDeallocation;
+  }
+
+  function hasPendingRewards() public view returns (bool){
+    return rewards[firstReward].rewardedAt != 0;
   }
 
   function _processFirstReward() internal {

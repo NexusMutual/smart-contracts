@@ -1,6 +1,10 @@
 {
   "manifestVersion": "2.2",
-  "contracts": {},
+  "contracts": {
+    "PooledStaking": "PooledStaking",
+    "MasterMock": "MasterMock",
+    "TokenMock": "TokenMock"
+  },
   "dependencies": {},
   "name": "pooled-staking",
   "version": "1.0.0",

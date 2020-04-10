@@ -1,5 +1,6 @@
 .idea
+.openzeppelin/.session
+.env
 build
 node_modules
 
-.openzeppelin/.session

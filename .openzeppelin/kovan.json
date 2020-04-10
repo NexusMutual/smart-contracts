@@ -1,0 +1,633 @@
+{
+  "contracts": {
+    "PooledStaking": {
+      "address": "0x5faa4946b0cE7a5f08355606A818A27A3be3C8fD",
+      "constructorCode": "608060405234801561001057600080fd5b506148c1806100206000396000f3fe",
+      "bodyBytecodeHash": "fedbfaa35a336a21f7c22565c587f91baf215cc87092e51984c55eb1cae38703",
+      "localBytecodeHash": "240b198d4d444a869a6f4111641757e37d5d97368091385dd71bb5db6cec0f5e",
+      "deployedBytecodeHash": "240b198d4d444a869a6f4111641757e37d5d97368091385dd71bb5db6cec0f5e",
+      "types": {
+        "t_bool": {
+          "id": "t_bool",
+          "kind": "elementary",
+          "label": "bool"
+        },
+        "t_uint256": {
+          "id": "t_uint256",
+          "kind": "elementary",
+          "label": "uint256"
+        },
+        "t_array:50<t_uint256>": {
+          "id": "t_array:50<t_uint256>",
+          "valueType": "t_uint256",
+          "length": "50",
+          "kind": "array",
+          "label": "uint256[50]"
+        },
+        "t_address": {
+          "id": "t_address",
+          "kind": "elementary",
+          "label": "address"
+        },
+        "t_array:dyn<t_address>": {
+          "id": "t_array:dyn<t_address>",
+          "valueType": "t_address",
+          "length": "dyn",
+          "kind": "array",
+          "label": "address[]"
+        },
+        "t_struct<PooledStaking.Staker>": {
+          "id": "t_struct<PooledStaking.Staker>",
+          "kind": "struct",
+          "label": "PooledStaking.Staker",
+          "members": [
+            {
+              "label": "staked",
+              "astId": 777,
+              "type": "t_uint256",
+              "src": "1146:11:5"
+            },
+            {
+              "label": "reward",
+              "astId": 779,
+              "type": "t_uint256",
+              "src": "1193:11:5"
+            },
+            {
+              "label": "contracts",
+              "astId": 782,
+              "type": "t_array:dyn<t_address>",
+              "src": "1254:19:5"
+            },
+            {
+              "label": "allocations",
+              "astId": 786,
+              "type": "t_mapping<t_uint256>",
+              "src": "1375:36:5"
+            },
+            {
+              "label": "pendingDeallocations",
+              "astId": 790,
+              "type": "t_mapping<t_uint256>",
+              "src": "1499:45:5"
+            }
+          ]
+        },
+        "t_mapping<t_uint256>": {
+          "id": "t_mapping<t_uint256>",
+          "valueType": "t_uint256",
+          "label": "mapping(key => uint256)",
+          "kind": "mapping"
+        },
+        "t_mapping<t_struct<PooledStaking.Staker>>": {
+          "id": "t_mapping<t_struct<PooledStaking.Staker>>",
+          "valueType": "t_struct<PooledStaking.Staker>",
+          "label": "mapping(key => PooledStaking.Staker)",
+          "kind": "mapping"
+        },
+        "t_struct<PooledStaking.Contract>": {
+          "id": "t_struct<PooledStaking.Contract>",
+          "kind": "struct",
+          "label": "PooledStaking.Contract",
+          "members": [
+            {
+              "label": "staked",
+              "astId": 793,
+              "type": "t_uint256",
+              "src": "1575:11:5"
+            },
+            {
+              "label": "burned",
+              "astId": 795,
+              "type": "t_uint256",
+              "src": "1634:11:5"
+            },
+            {
+              "label": "stakers",
+              "astId": 798,
+              "type": "t_array:dyn<t_address>",
+              "src": "1740:17:5"
+            }
+          ]
+        },
+        "t_mapping<t_struct<PooledStaking.Contract>>": {
+          "id": "t_mapping<t_struct<PooledStaking.Contract>>",
+          "valueType": "t_struct<PooledStaking.Contract>",
+          "label": "mapping(key => PooledStaking.Contract)",
+          "kind": "mapping"
+        },
+        "t_struct<PooledStaking.Burn>": {
+          "id": "t_struct<PooledStaking.Burn>",
+          "kind": "struct",
+          "label": "PooledStaking.Burn",
+          "members": [
+            {
+              "label": "amount",
+              "astId": 801,
+              "type": "t_uint256",
+              "src": "1806:11:5"
+            },
+            {
+              "label": "burnedAt",
+              "astId": 803,
+              "type": "t_uint256",
+              "src": "1823:13:5"
+            },
+            {
+              "label": "contractAddress",
+              "astId": 805,
+              "type": "t_address",
+              "src": "1842:23:5"
+            },
+            {
+              "label": "next",
+              "astId": 807,
+              "type": "t_uint256",
+              "src": "1871:9:5"
+            }
+          ]
+        },
+        "t_mapping<t_struct<PooledStaking.Burn>>": {
+          "id": "t_mapping<t_struct<PooledStaking.Burn>>",
+          "valueType": "t_struct<PooledStaking.Burn>",
+          "label": "mapping(key => PooledStaking.Burn)",
+          "kind": "mapping"
+        },
+        "t_struct<PooledStaking.Reward>": {
+          "id": "t_struct<PooledStaking.Reward>",
+          "kind": "struct",
+          "label": "PooledStaking.Reward",
+          "members": [
+            {
+              "label": "amount",
+              "astId": 810,
+              "type": "t_uint256",
+              "src": "1967:11:5"
+            },
+            {
+              "label": "rewardedAt",
+              "astId": 812,
+              "type": "t_uint256",
+              "src": "1984:15:5"
+            },
+            {
+              "label": "contractAddress",
+              "astId": 814,
+              "type": "t_address",
+              "src": "2005:23:5"
+            },
+            {
+              "label": "next",
+              "astId": 816,
+              "type": "t_uint256",
+              "src": "2034:9:5"
+            }
+          ]
+        },
+        "t_mapping<t_struct<PooledStaking.Reward>>": {
+          "id": "t_mapping<t_struct<PooledStaking.Reward>>",
+          "valueType": "t_struct<PooledStaking.Reward>",
+          "label": "mapping(key => PooledStaking.Reward)",
+          "kind": "mapping"
+        },
+        "t_struct<PooledStaking.Deallocation>": {
+          "id": "t_struct<PooledStaking.Deallocation>",
+          "kind": "struct",
+          "label": "PooledStaking.Deallocation",
+          "members": [
+            {
+              "label": "amount",
+              "astId": 819,
+              "type": "t_uint256",
+              "src": "2136:11:5"
+            },
+            {
+              "label": "deallocateAt",
+              "astId": 821,
+              "type": "t_uint256",
+              "src": "2153:17:5"
+            },
+            {
+              "label": "contractAddress",
+              "astId": 823,
+              "type": "t_address",
+              "src": "2176:23:5"
+            },
+            {
+              "label": "stakerAddress",
+              "astId": 825,
+              "type": "t_address",
+              "src": "2205:21:5"
+            },
+            {
+              "label": "next",
+              "astId": 827,
+              "type": "t_uint256",
+              "src": "2232:9:5"
+            }
+          ]
+        },
+        "t_mapping<t_struct<PooledStaking.Deallocation>>": {
+          "id": "t_mapping<t_struct<PooledStaking.Deallocation>>",
+          "valueType": "t_struct<PooledStaking.Deallocation>",
+          "label": "mapping(key => PooledStaking.Deallocation)",
+          "kind": "mapping"
+        }
+      },
+      "storage": [
+        {
+          "contract": "Initializable",
+          "path": "@openzeppelin/upgrades/contracts/Initializable.sol",
+          "label": "initialized",
+          "astId": 691,
+          "type": "t_bool",
+          "src": "757:24:4"
+        },
+        {
+          "contract": "Initializable",
+          "path": "@openzeppelin/upgrades/contracts/Initializable.sol",
+          "label": "initializing",
+          "astId": 693,
+          "type": "t_bool",
+          "src": "876:25:4"
+        },
+        {
+          "contract": "Initializable",
+          "path": "@openzeppelin/upgrades/contracts/Initializable.sol",
+          "label": "______gap",
+          "astId": 755,
+          "type": "t_array:50<t_uint256>",
+          "src": "1982:29:4"
+        },
+        {
+          "contract": "MasterAware",
+          "path": "contracts/base/MasterAware.sol",
+          "label": "master",
+          "astId": 2388,
+          "type": "t_address",
+          "src": "865:24:7"
+        },
+        {
+          "contract": "TokenAware",
+          "path": "contracts/base/TokenAware.sol",
+          "label": "token",
+          "astId": 2450,
+          "type": "t_address",
+          "src": "860:21:8"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "MIN_STAKE",
+          "astId": 830,
+          "type": "t_uint256",
+          "src": "2308:21:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "MAX_LEVERAGE",
+          "astId": 832,
+          "type": "t_uint256",
+          "src": "2386:24:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "MIN_ALLOWED_DEALLOCATION",
+          "astId": 834,
+          "type": "t_uint256",
+          "src": "2490:36:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "DEALLOCATE_LOCK_TIME",
+          "astId": 836,
+          "type": "t_uint256",
+          "src": "2586:32:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "contractAddresses",
+          "astId": 839,
+          "type": "t_array:dyn<t_address>",
+          "src": "2707:34:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "stakers",
+          "astId": 843,
+          "type": "t_mapping<t_struct<PooledStaking.Staker>>",
+          "src": "2746:41:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "contracts",
+          "astId": 847,
+          "type": "t_mapping<t_struct<PooledStaking.Contract>>",
+          "src": "2822:45:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "burns",
+          "astId": 851,
+          "type": "t_mapping<t_struct<PooledStaking.Burn>>",
+          "src": "2903:34:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "firstBurn",
+          "astId": 853,
+          "type": "t_uint256",
+          "src": "2960:21:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "burnCount",
+          "astId": 855,
+          "type": "t_uint256",
+          "src": "3060:21:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "rewards",
+          "astId": 859,
+          "type": "t_mapping<t_struct<PooledStaking.Reward>>",
+          "src": "3149:38:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "firstReward",
+          "astId": 861,
+          "type": "t_uint256",
+          "src": "3214:23:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "rewardCount",
+          "astId": 863,
+          "type": "t_uint256",
+          "src": "3241:23:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "deallocations",
+          "astId": 867,
+          "type": "t_mapping<t_struct<PooledStaking.Deallocation>>",
+          "src": "3269:50:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "firstDeallocation",
+          "astId": 869,
+          "type": "t_uint256",
+          "src": "3358:29:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "deallocationCount",
+          "astId": 871,
+          "type": "t_uint256",
+          "src": "3391:29:5"
+        }
+      ],
+      "warnings": {
+        "hasConstructor": false,
+        "hasSelfDestruct": false,
+        "hasDelegateCall": false,
+        "hasInitialValuesInDeclarations": false,
+        "importsVanillaContracts": [
+          "math/SafeMath.sol",
+          "token/ERC20/IERC20.sol"
+        ],
+        "uninitializedBaseContracts": []
+      }
+    },
+    "MasterMock": {
+      "address": "0x271C1Ee8BFBb72C20137294b33605b128533596F",
+      "constructorCode": "608060405234801561001057600080fd5b50610b25806100206000396000f3fe",
+      "bodyBytecodeHash": "4dc270d69099e8c0609e7dfbc4ab851432976eaa2c0fcf82545f52c951fd51f4",
+      "localBytecodeHash": "789508aa6d59ae031e5042507c24d66be71be21df56bde51ec8eddb883c4c7cf",
+      "deployedBytecodeHash": "789508aa6d59ae031e5042507c24d66be71be21df56bde51ec8eddb883c4c7cf",
+      "types": {
+        "t_enum<MasterMock.Role>": {
+          "id": "t_enum<MasterMock.Role>",
+          "kind": "enum",
+          "label": "MasterMock.Role",
+          "members": [
+            "NonMember",
+            "Member",
+            "AdvisoryBord",
+            "Owner"
+          ]
+        },
+        "t_mapping<t_enum<MasterMock.Role>>": {
+          "id": "t_mapping<t_enum<MasterMock.Role>>",
+          "valueType": "t_enum<MasterMock.Role>",
+          "label": "mapping(key => MasterMock.Role)",
+          "kind": "mapping"
+        },
+        "t_bool": {
+          "id": "t_bool",
+          "kind": "elementary",
+          "label": "bool"
+        },
+        "t_mapping<t_bool>": {
+          "id": "t_mapping<t_bool>",
+          "valueType": "t_bool",
+          "label": "mapping(key => bool)",
+          "kind": "mapping"
+        }
+      },
+      "storage": [
+        {
+          "contract": "MasterMock",
+          "path": "contracts/mocks/MasterMock.sol",
+          "label": "members",
+          "astId": 2602,
+          "type": "t_mapping<t_enum<MasterMock.Role>>",
+          "src": "874:32:11"
+        },
+        {
+          "contract": "MasterMock",
+          "path": "contracts/mocks/MasterMock.sol",
+          "label": "internalAddresses",
+          "astId": 2606,
+          "type": "t_mapping<t_bool>",
+          "src": "910:42:11"
+        },
+        {
+          "contract": "MasterMock",
+          "path": "contracts/mocks/MasterMock.sol",
+          "label": "governanceAddresses",
+          "astId": 2610,
+          "type": "t_mapping<t_bool>",
+          "src": "956:44:11"
+        }
+      ],
+      "warnings": {
+        "hasConstructor": false,
+        "hasSelfDestruct": false,
+        "hasDelegateCall": false,
+        "hasInitialValuesInDeclarations": false,
+        "uninitializedBaseContracts": []
+      }
+    },
+    "TokenMock": {
+      "address": "0xec01e424759Bf334b09e4737dD5D2749880C00ee",
+      "constructorCode": "60806040526115cb806100136000396000f3fe",
+      "bodyBytecodeHash": "3f44b8597935bec63cf86fb01efbeec3ff754226ebb977a3d62869bf2675fcbf",
+      "localBytecodeHash": "cfb715aee0f5a9b2c51400890cb4d14ba074aab3dae440a89ce94a9137da147a",
+      "deployedBytecodeHash": "cfb715aee0f5a9b2c51400890cb4d14ba074aab3dae440a89ce94a9137da147a",
+      "types": {
+        "t_uint256": {
+          "id": "t_uint256",
+          "kind": "elementary",
+          "label": "uint256"
+        },
+        "t_mapping<t_uint256>": {
+          "id": "t_mapping<t_uint256>",
+          "valueType": "t_uint256",
+          "label": "mapping(key => uint256)",
+          "kind": "mapping"
+        },
+        "t_bool": {
+          "id": "t_bool",
+          "kind": "elementary",
+          "label": "bool"
+        },
+        "t_array:50<t_uint256>": {
+          "id": "t_array:50<t_uint256>",
+          "valueType": "t_uint256",
+          "length": "50",
+          "kind": "array",
+          "label": "uint256[50]"
+        },
+        "t_address": {
+          "id": "t_address",
+          "kind": "elementary",
+          "label": "address"
+        }
+      },
+      "storage": [
+        {
+          "contract": "ERC20",
+          "path": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+          "label": "_balances",
+          "astId": 229,
+          "type": "t_mapping<t_uint256>",
+          "src": "1341:46:2"
+        },
+        {
+          "contract": "ERC20",
+          "path": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+          "label": "_allowances",
+          "astId": 235,
+          "type": "t_mapping<t_uint256>",
+          "src": "1394:69:2"
+        },
+        {
+          "contract": "ERC20",
+          "path": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+          "label": "_totalSupply",
+          "astId": 237,
+          "type": "t_uint256",
+          "src": "1470:28:2"
+        },
+        {
+          "contract": "Initializable",
+          "path": "@openzeppelin/upgrades/contracts/Initializable.sol",
+          "label": "initialized",
+          "astId": 691,
+          "type": "t_bool",
+          "src": "757:24:4"
+        },
+        {
+          "contract": "Initializable",
+          "path": "@openzeppelin/upgrades/contracts/Initializable.sol",
+          "label": "initializing",
+          "astId": 693,
+          "type": "t_bool",
+          "src": "876:25:4"
+        },
+        {
+          "contract": "Initializable",
+          "path": "@openzeppelin/upgrades/contracts/Initializable.sol",
+          "label": "______gap",
+          "astId": 755,
+          "type": "t_array:50<t_uint256>",
+          "src": "1982:29:4"
+        },
+        {
+          "contract": "TokenMock",
+          "path": "contracts/mocks/TokenMock.sol",
+          "label": "owner",
+          "astId": 2778,
+          "type": "t_address",
+          "src": "932:13:12"
+        }
+      ],
+      "warnings": {
+        "hasConstructor": false,
+        "hasSelfDestruct": false,
+        "hasDelegateCall": false,
+        "hasInitialValuesInDeclarations": false,
+        "importsVanillaContracts": [
+          "token/ERC20/ERC20.sol",
+          "GSN/Context.sol",
+          "token/ERC20/IERC20.sol",
+          "math/SafeMath.sol"
+        ],
+        "uninitializedBaseContracts": []
+      }
+    }
+  },
+  "solidityLibs": {},
+  "proxies": {
+    "pooled-staking/MasterMock": [
+      {
+        "address": "0x41B4fF13a9AF459A33FF61baF0075cE51391b4EB",
+        "version": "1.0.0",
+        "implementation": "0x271C1Ee8BFBb72C20137294b33605b128533596F",
+        "admin": "0x63519146182e2E33F0Ec39e40D2d0689a44d8f47",
+        "kind": "Upgradeable"
+      }
+    ],
+    "pooled-staking/TokenMock": [
+      {
+        "address": "0x63d7bdcBF76e67B364963FC4f3BccCcDE571cF83",
+        "version": "1.0.0",
+        "implementation": "0xec01e424759Bf334b09e4737dD5D2749880C00ee",
+        "admin": "0x63519146182e2E33F0Ec39e40D2d0689a44d8f47",
+        "kind": "Upgradeable"
+      }
+    ],
+    "pooled-staking/PooledStaking": [
+      {
+        "address": "0x260132F913Ed8f014eC70326E7237a8c3eA74bd5",
+        "version": "1.0.0",
+        "implementation": "0x5faa4946b0cE7a5f08355606A818A27A3be3C8fD",
+        "admin": "0x63519146182e2E33F0Ec39e40D2d0689a44d8f47",
+        "kind": "Upgradeable"
+      }
+    ]
+  },
+  "manifestVersion": "2.2",
+  "version": "1.0.0",
+  "proxyAdmin": {
+    "address": "0x63519146182e2E33F0Ec39e40D2d0689a44d8f47"
+  }
+}

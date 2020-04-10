@@ -115,38 +115,38 @@ describe('requestDeallocation', function () {
     await staking.requestDeallocation([firstContract], [minAllowedDeallocation], 0, { from: memberOne });
   });
 
-  it('should revert when final allocation is less than MIN_STAKE', async function () {
+  it('should revert when final allocation is less than MIN_ALLOCATION', async function () {
 
     const { staking, token } = this;
     const minStake = ether('2');
 
-    await staking.updateParameter(ParamType.MIN_STAKE, minStake, { from: governanceContract });
+    await staking.updateParameter(ParamType.MIN_ALLOCATION, minStake, { from: governanceContract });
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('9')], 0, { from: memberOne }),
-      'Final allocation cannot be less then MIN_STAKE',
+      'Final allocation cannot be less then MIN_ALLOCATION',
     );
   });
 
-  it('should process if final allocation is greater than MIN_STAKE', async function () {
+  it('should process if final allocation is greater than MIN_ALLOCATION', async function () {
 
     const { staking, token } = this;
     const minStake = ether('2');
 
-    await staking.updateParameter(ParamType.MIN_STAKE, minStake, { from: governanceContract });
+    await staking.updateParameter(ParamType.MIN_ALLOCATION, minStake, { from: governanceContract });
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     await staking.requestDeallocation([firstContract], [ether('8')], 0, { from: memberOne });
   });
 
-  it('should process if final allocation is equal to MIN_STAKE', async function () {
+  it('should process if final allocation is equal to MIN_ALLOCATION', async function () {
 
     const { staking, token } = this;
     const minStake = ether('2');
     const totalStake = ether('10');
 
-    await staking.updateParameter(ParamType.MIN_STAKE, minStake, { from: governanceContract });
+    await staking.updateParameter(ParamType.MIN_ALLOCATION, minStake, { from: governanceContract });
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     await staking.requestDeallocation([firstContract], [totalStake.sub(minStake)], 0, { from: memberOne });

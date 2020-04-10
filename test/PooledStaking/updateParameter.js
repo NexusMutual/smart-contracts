@@ -20,7 +20,7 @@ describe('updateParameter', function () {
   it('should revert when called by non governance addresses', async function () {
 
     const { staking } = this;
-    const param = ParamType.MIN_STAKE;
+    const param = ParamType.MIN_ALLOCATION;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {

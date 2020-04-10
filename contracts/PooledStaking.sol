@@ -27,7 +27,7 @@ contract PooledStaking is MasterAware, TokenAware {
   using SafeMath for uint;
 
   enum ParamType {
-    MIN_STAKE,
+    MIN_ALLOCATION,
     MAX_LEVERAGE,
     MIN_ALLOWED_DEALLOCATION,
     DEALLOCATE_LOCK_TIME
@@ -73,7 +73,7 @@ contract PooledStaking is MasterAware, TokenAware {
     uint next; // id of the next deallocation request in the linked list
   }
 
-  uint public MIN_STAKE;                // Minimum allowed stake per contract
+  uint public MIN_ALLOCATION;                // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
   uint public MIN_ALLOWED_DEALLOCATION; // Forbid deallocation of small amounts to prevent spam
   uint public DEALLOCATE_LOCK_TIME;     // Lock period before unstaking takes place
@@ -186,7 +186,7 @@ contract PooledStaking is MasterAware, TokenAware {
 
       totalAllocation = totalAllocation.add(newAllocation);
 
-      require(newAllocation >= MIN_STAKE, "Allocation minimum not met");
+      require(newAllocation >= MIN_ALLOCATION, "Allocation minimum not met");
       require(newAllocation <= staker.staked, "Cannot allocate more than staked");
 
       if (!isNewAllocation) {
@@ -252,7 +252,7 @@ contract PooledStaking is MasterAware, TokenAware {
       if (requested != max) {
         require(requested >= MIN_ALLOWED_DEALLOCATION, "Deallocation cannot be less then MIN_ALLOWED_DEALLOCATION");
         require(requested <= max, "Cannot deallocate more than allocated");
-        require(max.sub(requested) >= MIN_STAKE, "Final allocation cannot be less then MIN_STAKE");
+        require(max.sub(requested) >= MIN_ALLOCATION, "Final allocation cannot be less then MIN_ALLOCATION");
       }
 
       uint deallocateAt = now.add(DEALLOCATE_LOCK_TIME);
@@ -496,8 +496,8 @@ contract PooledStaking is MasterAware, TokenAware {
 
   function updateParameter(ParamType param, uint value) external onlyGoverned {
 
-    if (param == ParamType.MIN_STAKE) {
-      MIN_STAKE = value;
+    if (param == ParamType.MIN_ALLOCATION) {
+      MIN_ALLOCATION = value;
       return;
     }
 

@@ -250,7 +250,7 @@ describe('stake', function () {
       for (const contract of Object.keys(expectedAmounts)) {
         // returns the staked value instead of the whole struct
         // because the struct contains only one primitive
-        const actualAmount = await staking.contracts(contract);
+        const { staked: actualAmount } = await staking.contracts(contract);
         const expectedAmount = expectedAmounts[contract];
 
         assert(

@@ -138,17 +138,22 @@ contract PooledStaking is MasterAware, TokenAware {
 
     Staker storage staker = stakers[stakerAddress];
 
-    uint stake = staker.staked;
-    uint available = stake;
+    uint maxAllocation = 0;
+    uint totalAllocation = 0;
 
     for (uint i = 0; i < staker.contracts.length; i++) {
       address contractAddress = staker.contracts[i];
       uint allocation = staker.allocations[contractAddress];
-      uint left = stake.sub(allocation);
-      available = left < available ? left : available;
+      totalAllocation = totalAllocation.add(allocation);
+      maxAllocation = allocation > maxAllocation ? allocation : maxAllocation;
     }
 
-    return available;
+    uint minRequiredStake = totalAllocation.div(MAX_LEVERAGE);
+    uint unusedLeverage = staker.staked.sub(minRequiredStake);
+    uint minUnusedAllocation = staker.staked.sub(maxAllocation);
+    uint safelyUnstakable = unusedLeverage < minUnusedAllocation ? unusedLeverage : minUnusedAllocation;
+
+    return safelyUnstakable;
   }
 
   /* staking functions */

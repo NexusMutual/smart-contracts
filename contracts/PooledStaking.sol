@@ -30,7 +30,10 @@ contract PooledStaking is MasterAware, TokenAware {
     MIN_ALLOCATION,
     MAX_LEVERAGE,
     MIN_ALLOWED_DEALLOCATION,
-    DEALLOCATE_LOCK_TIME
+    DEALLOCATE_LOCK_TIME,
+    BURN_CYCLE_GAS_LIMIT,
+    DEALLOCATION_CYCLE_GAS_LIMIT,
+    REWARD_CYCLE_GAS_LIMIT
   }
 
   struct Staker {
@@ -74,10 +77,13 @@ contract PooledStaking is MasterAware, TokenAware {
     uint next; // id of the next deallocation request in the linked list
   }
 
-  uint public MIN_ALLOCATION;                // Minimum allowed stake per contract
+  uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
   uint public MIN_ALLOWED_DEALLOCATION; // Forbid deallocation of small amounts to prevent spam
   uint public DEALLOCATE_LOCK_TIME;     // Lock period before unstaking takes place
+  uint public BURN_CYCLE_GAS_LIMIT;
+  uint public DEALLOCATION_CYCLE_GAS_LIMIT;
+  uint public REWARD_CYCLE_GAS_LIMIT;
 
   // List of all contract addresses
   address[] public contractAddresses;
@@ -96,6 +102,11 @@ contract PooledStaking is MasterAware, TokenAware {
   mapping(uint => Deallocation) public deallocations; // deallocation id => Deallocation
   uint public firstDeallocation;
   uint public deallocationCount;
+
+  uint public processedToStakerIndex; // we processed the action up this staker
+  uint public processedToContractIndex; // we processed the action up this contract
+
+  event ActionStatus(bool finished);
 
   function initialize(address masterAddress, address tokenAddress) public initializer {
     MasterAware.initialize(masterAddress);
@@ -349,7 +360,7 @@ contract PooledStaking is MasterAware, TokenAware {
     return hasPendingBurns() || hasPendingDeallocations() || hasPendingRewards();
   }
 
-  function processPendingActions() public returns (bool) {
+  function processPendingActions() public {
 
     while (true) {
 
@@ -371,8 +382,13 @@ contract PooledStaking is MasterAware, TokenAware {
         (!canDeallocate || burn.burnedAt < deallocation.deallocateAt) &&
         (!canReward || burn.burnedAt < reward.rewardedAt)
       ) {
+
         // O(n*m)
-        _processFirstBurn();
+        if (!_processFirstBurn()) {
+          emit ActionStatus(false);
+          return;
+        }
+
         continue;
       }
 
@@ -380,30 +396,33 @@ contract PooledStaking is MasterAware, TokenAware {
         canDeallocate &&
         (!canReward || deallocation.deallocateAt < reward.rewardedAt)
       ) {
+
+        // deallocation gas limit check here
+//        uint gas = gasleft();
+//        gas = gas - gasleft();
+//        emit ActionStatus(true);
+
         // O(1)
         _processFirstDeallocation();
         continue;
       }
 
       // O(n)
-      _processFirstReward();
-
-      // TODO: check if there's enough gas for the next iteration
-      // TODO: probably should implement this in _processFirst* functions
-      // TODO: run simulations to find a proper value
-      if (gasleft() < 20 szabo) { // 20k gwei
-        return false;
+      if (!_processFirstReward()) {
+        emit ActionStatus(false);
+        return;
       }
     }
 
-    return true;
+    // everything is processed!
+    emit ActionStatus(true);
   }
 
-  function hasPendingBurns() public view returns (bool){
+  function hasPendingBurns() public view returns (bool) {
     return burns[firstBurn].burnedAt != 0;
   }
 
-  function _processFirstBurn() internal {
+  function _processFirstBurn() internal returns (bool) {
 
     Burn storage burn = burns[firstBurn];
     Contract storage _contract = contracts[burn.contractAddress];
@@ -451,6 +470,8 @@ contract PooledStaking is MasterAware, TokenAware {
     uint nextBurn = burn.next;
     delete burns[firstBurn];
     firstBurn = nextBurn;
+
+    return true;
   }
 
   function hasPendingDeallocations() public view returns (bool){
@@ -477,14 +498,32 @@ contract PooledStaking is MasterAware, TokenAware {
     return rewards[firstReward].rewardedAt != 0;
   }
 
-  function _processFirstReward() internal {
+  function _processFirstReward() internal returns (bool) {
+
+    // 396262 - fn call with 14 loops
+    // 35048  - function without cycle
+    // 361214 - 14 cycles
+    // 25801  - average cycle
+
+    // -25801*14
+    // 26796 - whole cycle
+
+    // 27000 - 1 cycle
 
     Reward storage reward = rewards[firstReward];
     address contractAddress = reward.contractAddress;
     Contract storage _contract = contracts[contractAddress];
-    uint rewarded = 0;
+    uint length = _contract.stakers.length;
 
-    for (uint i = 0; i < _contract.stakers.length; i++) {
+    for (uint i = processedToStakerIndex; i < length; i++) {
+
+      uint gasLeft = gasleft();
+
+      // not last item and there's not enough gas for one more loop
+      if (i + 1 != length && gasLeft < REWARD_CYCLE_GAS_LIMIT) {
+        processedToStakerIndex = i;
+        return false;
+      }
 
       Staker storage staker = stakers[_contract.stakers[i]];
       uint allocation = staker.allocations[contractAddress];
@@ -492,16 +531,15 @@ contract PooledStaking is MasterAware, TokenAware {
       // staker's ratio = total staked on contract / staker's stake on contract
       // staker's reward = total reward amount * staker's ratio
       uint stakerReward = reward.amount.mul(allocation).div(_contract.staked);
-
       staker.reward = staker.reward.add(stakerReward);
-      rewarded = rewarded.add(stakerReward);
     }
-
-    require(rewarded <= reward.amount, "Reward amount mismatch");
 
     uint nextReward = reward.next;
     delete rewards[firstReward];
     firstReward = nextReward;
+    processedToStakerIndex = 0;
+
+    return true;
   }
 
   function withdrawReward(uint amount) external onlyMembers {
@@ -534,6 +572,21 @@ contract PooledStaking is MasterAware, TokenAware {
 
     if (param == ParamType.DEALLOCATE_LOCK_TIME) {
       DEALLOCATE_LOCK_TIME = value;
+      return;
+    }
+
+    if (param == ParamType.BURN_CYCLE_GAS_LIMIT) {
+      BURN_CYCLE_GAS_LIMIT = value;
+      return;
+    }
+
+    if (param == ParamType.DEALLOCATION_CYCLE_GAS_LIMIT) {
+      DEALLOCATION_CYCLE_GAS_LIMIT = value;
+      return;
+    }
+
+    if (param == ParamType.REWARD_CYCLE_GAS_LIMIT ) {
+      REWARD_CYCLE_GAS_LIMIT = value;
       return;
     }
   }

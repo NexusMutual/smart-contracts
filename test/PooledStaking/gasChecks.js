@@ -1,5 +1,6 @@
 const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
+const { contract } = require('@openzeppelin/test-environment');
 
 const accounts = require('../utils/accounts');
 const setup = require('../utils/setup');
@@ -27,13 +28,15 @@ async function enrollStakers (master, members) {
 async function stake (token, staking, amount, contracts, allocations, member) {
   const maxLeverage = '10';
   await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
-
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
   await staking.stake(amount, contracts, allocations, { from: member });
 }
 
 describe.only('gas checks', function () {
+
+  this.timeout(5000);
+  this.slow(2000);
 
   beforeEach(setup);
 
@@ -68,7 +71,6 @@ describe.only('gas checks', function () {
     assert.strictEqual(burn.burnedAt.toString(), timestamp.toString());
     assert.strictEqual(burn.contractAddress, firstContract);
     assert.strictEqual(burn.next.toString(), '0');
-
   });
 
   it('push reward and process it', async function () {
@@ -127,14 +129,23 @@ describe.only('gas checks', function () {
     assert.strictEqual(staker.reward.toString(), rewardAmount.toString());
   });
 
-  it.only('check multiple stakers rewards', async function () {
-    const { master, staking, token } = this;
-    const stakers = generalPurpose.slice(0, 20);
-    const rewardAmount = ether('50');
-    const stakeAmounts = ['10', '20', '24'].map(ether);
+  it('pushes reward and processes it for 10 users', async function () {
 
+    this.timeout(10000);
+    this.slow(5000);
+
+    const { master, staking, token } = this;
+    const stakers = generalPurpose.slice(0, 10);
+    const rewardAmount = ether('50');
+
+    await enrollStakers(master, stakers);
+
+    const initialContractInfo = await staking.contracts(secondContract);
+    assert.strictEqual(initialContractInfo.staked.toString(), '0');
+
+    const stakeAmounts = ['15', '25', '50'].map(ether);
     const possibleAllocations = [
-      ['1', '3', '2'].map(ether),
+      ['2', '3', '2'].map(ether),
       ['4', '6', '5'].map(ether),
       ['9', '8', '7'].map(ether),
     ];
@@ -147,9 +158,6 @@ describe.only('gas checks', function () {
 
     await enrollStakers(master, stakers);
     const expectedStake = ether('0');
-
-    const initialContractInfo = await staking.contracts(secondContract);
-    assert.strictEqual(initialContractInfo.staked.toString(), '0');
 
     for (const i in stakers) {
       const member = stakers[i];
@@ -177,11 +185,7 @@ describe.only('gas checks', function () {
     await staking.pushReward(secondContract, rewardAmount, internalContract, { from: internalContract });
 
     // process pending reward
-    const pendingActionsResult = await staking.processPendingActions();
-    console.log('pendingActionsResult', {
-      expected: pendingActionsResult.logs[0].args[0].toString(),
-      actual: pendingActionsResult.logs[0].args[1].toString(),
-    });
+    await staking.processPendingActions();
 
     for (const i in stakers) {
       const member = stakers[i];
@@ -205,9 +209,8 @@ describe.only('gas checks', function () {
     // withdraw rewards
     const staker = await staking.stakers(stakers[0]);
     const reward = staker.reward;
-    // console.log('Reward', reward.toString(), reward.div(ether('1')).toString());
 
-    const withdrawResult = await staking.withdrawReward(reward, { from: stakers[0] });
-    // console.log('withdrawResult', withdrawResult);
+    await staking.withdrawReward(reward, { from: stakers[0] });
   });
+
 });

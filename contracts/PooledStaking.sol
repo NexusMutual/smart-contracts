@@ -408,7 +408,7 @@ contract PooledStaking is MasterAware, TokenAware {
       }
 
       // O(n)
-      if (!_processFirstReward()) {
+      if (!_processFirstReward(reward)) {
         emit ActionStatus(false);
         return;
       }
@@ -498,32 +498,14 @@ contract PooledStaking is MasterAware, TokenAware {
     return rewards[firstReward].rewardedAt != 0;
   }
 
-  function _processFirstReward() internal returns (bool) {
+  function _processFirstReward(Reward storage reward) internal returns (bool) {
 
-    // 396262 - fn call with 14 loops
-    // 35048  - function without cycle
-    // 361214 - 14 cycles
-    // 25801  - average cycle
-
-    // -25801*14
-    // 26796 - whole cycle
-
-    // 27000 - 1 cycle
-
-    Reward storage reward = rewards[firstReward];
     address contractAddress = reward.contractAddress;
     Contract storage _contract = contracts[contractAddress];
     uint length = _contract.stakers.length;
 
+    // ~27000 gas each cycle
     for (uint i = processedToStakerIndex; i < length; i++) {
-
-      uint gasLeft = gasleft();
-
-      // not last item and there's not enough gas for one more loop
-      if (i + 1 != length && gasLeft < REWARD_CYCLE_GAS_LIMIT) {
-        processedToStakerIndex = i;
-        return false;
-      }
 
       Staker storage staker = stakers[_contract.stakers[i]];
       uint allocation = staker.allocations[contractAddress];
@@ -532,6 +514,15 @@ contract PooledStaking is MasterAware, TokenAware {
       // staker's reward = total reward amount * staker's ratio
       uint stakerReward = reward.amount.mul(allocation).div(_contract.staked);
       staker.reward = staker.reward.add(stakerReward);
+
+      uint nextIndex = i + 1;
+
+      // cycles left but gas is low
+      // recommended REWARD_CYCLE_GAS_LIMIT = 45000
+      if (nextIndex < length && gasleft() < REWARD_CYCLE_GAS_LIMIT) {
+        processedToStakerIndex = nextIndex;
+        return false;
+      }
     }
 
     uint nextReward = reward.next;

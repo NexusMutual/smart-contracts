@@ -7,6 +7,17 @@ import * as TruffleContracts from ".";
 
 declare global {
   namespace Truffle {
-    interface Artifacts {}
+    interface Artifacts {
+      require(name: "Context"): TruffleContracts.ContextContract;
+      require(name: "ERC20"): TruffleContracts.ERC20Contract;
+      require(name: "IERC20"): TruffleContracts.IERC20Contract;
+      require(name: "INXMMaster"): TruffleContracts.INXMMasterContract;
+      require(name: "MasterAware"): TruffleContracts.MasterAwareContract;
+      require(name: "MasterMock"): TruffleContracts.MasterMockContract;
+      require(name: "NXMToken"): TruffleContracts.NXMTokenContract;
+      require(name: "PooledStaking"): TruffleContracts.PooledStakingContract;
+      require(name: "TokenAware"): TruffleContracts.TokenAwareContract;
+      require(name: "TokenMock"): TruffleContracts.TokenMockContract;
+    }
   }
 }

@@ -173,6 +173,7 @@ describe.only('gas checks', function () {
           const { staking } = await setupFor(iterations, gasLimit);
           let finished = false;
           let counter = 0;
+          let consumed = 0;
 
           while (!finished) {
 
@@ -187,19 +188,16 @@ describe.only('gas checks', function () {
               throw error;
             }
 
+            consumed += result.gasUsed;
             finished = result.finished;
           }
 
-          console.log(`     - ${iterations} iterations finished in ${counter} calls`);
+          console.log(`     - ${iterations} iterations finished in ${counter} calls, consumed ${consumed} gas`);
         }
-
-        await to(setupAndMeasure(2, { gas, gasLimit }));
-        await to(setupAndMeasure(3, { gas, gasLimit }));
-        await to(setupAndMeasure(4, { gas, gasLimit }));
       }
     }
 
-    let gasLimit = 35000;
+    let gasLimit = 45000;
 
     while (true) {
       const [, error] = await to(runTests(gasLimit));

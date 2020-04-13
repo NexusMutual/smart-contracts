@@ -65,7 +65,6 @@ contract PooledStaking is MasterAware, TokenAware {
     uint amount;
     uint rewardedAt;
     address contractAddress;
-    uint next; // id of the next deallocation request in the linked list
   }
 
   struct Deallocation {
@@ -337,16 +336,12 @@ contract PooledStaking is MasterAware, TokenAware {
     Vault.deposit(token, from, amount);
 
     // add new reward
-    rewards[rewardCount] = Reward(amount, now, contractAddress, 0);
+    rewards[rewardCount] = Reward(amount, now, contractAddress);
 
     // do we have a previous unprocessed reward?
     bool previousExists = rewardCount > 0 && rewards[rewardCount - 1].rewardedAt > 0;
 
-    if (previousExists) {
-      // set previousReward.next to current reward id
-      rewards[rewardCount - 1].next = rewardCount;
-    } else {
-      // otherwise this is the only unprocessed reward and it should be the first one
+    if (!previousExists) {
       firstReward = rewardCount;
     }
 
@@ -538,9 +533,8 @@ contract PooledStaking is MasterAware, TokenAware {
       }
     }
 
-    uint nextReward = reward.next;
     delete rewards[firstReward];
-    firstReward = nextReward;
+    ++firstReward;
     processedToStakerIndex = 0;
 
     return true;

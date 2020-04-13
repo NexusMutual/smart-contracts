@@ -458,7 +458,7 @@ contract PooledStaking is MasterAware, TokenAware {
         uint prevAllocation = staker.allocations[_staker_contract];
 
         // can't have allocated more than staked
-        // branch won't be executed for the burned contact since we updated the allocation earlier
+        // branch won't be executed for the burned contract since we updated the allocation earlier
         if (prevAllocation > newStake) {
           staker.allocations[_staker_contract] = newStake;
           uint stakeDiff = prevAllocation.sub(newStake);

@@ -315,6 +315,9 @@ contract PooledStaking is MasterAware, TokenAware {
     Contract storage _contract = contracts[contractAddress];
     require(amount <= _contract.staked, 'Burn amount should not exceed total amount staked on contract');
 
+    Vault.burn(token, amount);
+    _contract.burned = _contract.burned.add(amount);
+
     // add new burn
     burns[burnCount] = Burn(amount, now, contractAddress);
 
@@ -459,6 +462,7 @@ contract PooledStaking is MasterAware, TokenAware {
         // recommended BURN_CYCLE_GAS_LIMIT = ?
         if (j + 1 < contractCount && gasleft() < BURN_CYCLE_GAS_LIMIT) {
           _contract.staked = _contract.staked.sub(burned);
+          _contract.burned = _contract.burned.sub(burned);
           processedToContractIndex = j + 1;
           return false;
         }
@@ -468,6 +472,7 @@ contract PooledStaking is MasterAware, TokenAware {
 
       if (i + 1 < stakerCount && gasleft() < BURN_CYCLE_GAS_LIMIT) {
         _contract.staked = _contract.staked.sub(burned);
+        _contract.burned = _contract.burned.sub(burned);
         processedToStakerIndex = i + 1;
         return false;
       }
@@ -478,6 +483,7 @@ contract PooledStaking is MasterAware, TokenAware {
 
     processedToStakerIndex = 0;
     _contract.staked = _contract.staked.sub(burned);
+    _contract.burned = _contract.burned.sub(burned);
 
     return true;
   }

@@ -314,6 +314,9 @@ contract PooledStaking is MasterAware, TokenAware {
 
   function pushBurn(address contractAddress, uint amount) external onlyInternal {
 
+    Contract storage _contract = contracts[contractAddress];
+    require(amount <= _contract.staked, 'Burn amount should not exceed total amount staked on contract');
+
     // add new burn
     burns[burnCount] = Burn(amount, now, contractAddress, 0);
 
@@ -425,47 +428,63 @@ contract PooledStaking is MasterAware, TokenAware {
   function _processFirstBurn() internal returns (bool) {
 
     Burn storage burn = burns[firstBurn];
-    Contract storage _contract = contracts[burn.contractAddress];
     address contractAddress = burn.contractAddress;
+    Contract storage _contract = contracts[contractAddress];
 
-    uint burnAmount = burn.amount <= _contract.staked ? burn.amount : _contract.staked;
+    uint stakerCount = _contract.stakers.length;
     uint burned = 0;
-    uint newContractStake = 0;
 
-    for (uint i = 0; i < _contract.stakers.length; i++) {
+    for (uint i = processedToStakerIndex; i < stakerCount; i++) {
 
       Staker storage staker = stakers[_contract.stakers[i]];
       uint oldAllocation = staker.allocations[contractAddress];
 
       // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
       // reordered for precision loss prevention
-      uint stakerBurn = oldAllocation.mul(burnAmount).div(_contract.staked);
+      uint stakerBurn = oldAllocation.mul(burn.amount).div(_contract.staked);
       uint newStake = staker.staked.sub(stakerBurn);
+      burned = burned.add(stakerBurn);
+
+      // update staker's stake and allocation
+      staker.staked = newStake;
       staker.allocations[contractAddress] = oldAllocation.sub(stakerBurn);
 
-      // reduce other contracts' stakes if needed
-      for (uint j = 0; j < staker.contracts.length; j++) {
+      uint contractCount = staker.contracts.length;
+
+      // if needed, reduce stakes for other contracts
+      for (uint j = processedToContractIndex; j < contractCount; j++) {
 
         address _staker_contract = staker.contracts[j];
         uint prevAllocation = staker.allocations[_staker_contract];
 
+        // can't have allocated more than staked
+        // branch won't be executed for the burned contact since we updated the allocation earlier
         if (prevAllocation > newStake) {
           staker.allocations[_staker_contract] = newStake;
-          uint prevContractStake = contracts[_staker_contract].staked;
-          contracts[_staker_contract].staked = prevContractStake.sub(prevAllocation).add(newStake);
+          uint stakeDiff = prevAllocation.sub(newStake);
+          contracts[_staker_contract].staked = contracts[_staker_contract].staked.sub(stakeDiff);
+        }
+
+        // cycles left but gas is low
+        // recommended BURN_CYCLE_GAS_LIMIT = ?
+        if (j + 1 < contractCount && gasleft() < BURN_CYCLE_GAS_LIMIT) {
+          _contract.staked = _contract.staked.sub(burned);
+          processedToContractIndex = j + 1;
+          return false;
         }
       }
 
-      burned = burned.add(stakerBurn);
-      newContractStake = newContractStake.add(stakerBurn);
-      staker.staked = newStake;
+      processedToContractIndex = 0;
+
+      if (i + 1 < stakerCount && gasleft() < BURN_CYCLE_GAS_LIMIT) {
+        _contract.staked = _contract.staked.sub(burned);
+        processedToStakerIndex = i + 1;
+        return false;
+      }
     }
 
-    // TODO: check for rounding issues
-    require(burnAmount == burned, "Burn amount mismatch");
-
-    _contract.staked = _contract.staked.sub(burnAmount).add(newContractStake);
-    Vault.burn(token, burnAmount);
+    processedToStakerIndex = 0;
+    _contract.staked = _contract.staked.sub(burned);
 
     uint nextBurn = burn.next;
     delete burns[firstBurn];
@@ -502,10 +521,10 @@ contract PooledStaking is MasterAware, TokenAware {
 
     address contractAddress = reward.contractAddress;
     Contract storage _contract = contracts[contractAddress];
-    uint length = _contract.stakers.length;
+    uint stakerCount = _contract.stakers.length;
 
     // ~27000 gas each cycle
-    for (uint i = processedToStakerIndex; i < length; i++) {
+    for (uint i = processedToStakerIndex; i < stakerCount; i++) {
 
       Staker storage staker = stakers[_contract.stakers[i]];
       uint allocation = staker.allocations[contractAddress];
@@ -519,7 +538,7 @@ contract PooledStaking is MasterAware, TokenAware {
 
       // cycles left but gas is low
       // recommended REWARD_CYCLE_GAS_LIMIT = 45000
-      if (nextIndex < length && gasleft() < REWARD_CYCLE_GAS_LIMIT) {
+      if (nextIndex < stakerCount && gasleft() < REWARD_CYCLE_GAS_LIMIT) {
         processedToStakerIndex = nextIndex;
         return false;
       }

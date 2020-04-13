@@ -59,7 +59,6 @@ contract PooledStaking is MasterAware, TokenAware {
     uint amount;
     uint burnedAt;
     address contractAddress;
-    uint next; // id of the next deallocation request in the linked list
   }
 
   struct Reward {
@@ -92,7 +91,7 @@ contract PooledStaking is MasterAware, TokenAware {
   mapping(address => Contract) public contracts; // contractAddress => Contract
 
   mapping(uint => Burn) public burns; // burn id => Burn
-  uint public firstBurn; // linked list head element. points to an empty slot if there are no burns
+  uint public firstBurn; // first burn to process. points to an empty slot if there are no burns
   uint public burnCount; // amount of burns that have been pushed (including processed)
 
   mapping(uint => Reward) public rewards; // reward id => Reward
@@ -318,16 +317,12 @@ contract PooledStaking is MasterAware, TokenAware {
     require(amount <= _contract.staked, 'Burn amount should not exceed total amount staked on contract');
 
     // add new burn
-    burns[burnCount] = Burn(amount, now, contractAddress, 0);
+    burns[burnCount] = Burn(amount, now, contractAddress);
 
     // do we have a previous unprocessed burn?
     bool previousExists = burnCount > 0 && burns[burnCount - 1].burnedAt > 0;
 
-    if (previousExists) {
-      // set previousBurn.next to current burn id
-      burns[burnCount - 1].next = burnCount;
-    } else {
-      // otherwise this is the only unprocessed burn and it should be the first one
+    if (!previousExists) {
       firstBurn = burnCount;
     }
 
@@ -483,12 +478,11 @@ contract PooledStaking is MasterAware, TokenAware {
       }
     }
 
+    delete burns[firstBurn];
+    ++firstBurn;
+
     processedToStakerIndex = 0;
     _contract.staked = _contract.staked.sub(burned);
-
-    uint nextBurn = burn.next;
-    delete burns[firstBurn];
-    firstBurn = nextBurn;
 
     return true;
   }

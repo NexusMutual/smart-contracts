@@ -1,4 +1,5 @@
-const { expectRevert, ether } = require('@openzeppelin/test-helpers');
+const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+
 const { assert } = require('chai');
 
 const accounts = require('../utils/accounts');
@@ -49,6 +50,30 @@ describe('requestDeallocation', function () {
     );
   });
 
+  it('should revert if insertAfter index is invalid', async function () {
+
+    const { staking, token } = this;
+
+    await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
+    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 90, { from: governanceContract });
+
+    // Insert first element after index 5
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 5, { from: memberOne }),
+      'Invalid insertion index provided',
+    );
+    // Insert first element after index 0
+    await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
+    // Insert first element after index 1
+    await staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne });
+    // Insert second element after index 3
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 3, { from: memberOne }),
+      'Invalid insertion index provided',
+    );
+  });
+
   it('should revert when there\'s nothing to deallocate on a contract', async function () {
 
     const { staking } = this;
@@ -58,7 +83,6 @@ describe('requestDeallocation', function () {
       ' Nothing to deallocate on this contract',
     );
 
-    // TODO: add more scenarios with some pendingDeallocations / allocations
   });
 
   it('should revert when deallocating more than allocated', async function () {
@@ -129,6 +153,18 @@ describe('requestDeallocation', function () {
     );
   });
 
+  it('should process if final allocation is equal to MIN_ALLOCATION', async function () {
+
+    const { staking, token } = this;
+    const minAllocation = ether('2');
+    const allocation = ether('10');
+
+    await staking.updateParameter(ParamType.MIN_ALLOCATION, minAllocation, { from: governanceContract });
+    await fundApproveStake(token, staking, allocation, [firstContract], [allocation], memberOne);
+
+    await staking.requestDeallocation([firstContract], [allocation.sub(minAllocation)], 0, { from: memberOne });
+  });
+
   it('should process if final allocation is greater than MIN_ALLOCATION', async function () {
 
     const { staking, token } = this;
@@ -140,16 +176,48 @@ describe('requestDeallocation', function () {
     await staking.requestDeallocation([firstContract], [ether('8')], 0, { from: memberOne });
   });
 
-  it('should process if final allocation is equal to MIN_ALLOCATION', async function () {
+  it('should revert if deallocation time is less than previous deallocation time', async function () {
 
     const { staking, token } = this;
-    const minAllocation = ether('2');
-    const allocation = ether('10');
 
-    await staking.updateParameter(ParamType.MIN_ALLOCATION, minAllocation, { from: governanceContract });
-    await fundApproveStake(token, staking, allocation, [firstContract], [allocation], memberOne);
+    await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
+    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
-    await staking.requestDeallocation([firstContract], [allocation.sub(minAllocation)], 0, { from: memberOne });
+    // DEALLOCATE_LOCK_TIME = 90
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 90, { from: governanceContract });
+    // First deallocation
+    await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
+
+    // DEALLOCATE_LOCK_TIME = 30
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 30, { from: governanceContract });
+    // Second deallocation
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne }),
+      'Deallocation time must be greater or equal to previous deallocation',
+    );
+  });
+
+  it('should revert if deallocation time is greater than next deallocation time', async function () {
+
+    const { staking, token } = this;
+
+    await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
+    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+
+    // DEALLOCATE_LOCK_TIME = 30
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 30, { from: governanceContract });
+    // Send a few deallocation requests
+    await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne });
+    await staking.requestDeallocation([firstContract], [ether('2')], 2, { from: memberOne });
+
+    // DEALLOCATE_LOCK_TIME = 90
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 90, { from: governanceContract });
+
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne }),
+      'Deallocation time must be smaller than next deallocation',
+    );
   });
 
 });

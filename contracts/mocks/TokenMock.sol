@@ -31,6 +31,11 @@ contract TokenMock is NXMToken, ERC20, Initializable {
     _mint(msg.sender, 1000 ether);
   }
 
+  // not public in actual implementation
+  function mint(address account, uint256 amount) public {
+    _mint(account, amount);
+  }
+
   function burn(uint256 amount) public returns (bool) {
     _burn(msg.sender, amount);
     return true;

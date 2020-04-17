@@ -1,11 +1,11 @@
 {
   "contracts": {
     "PooledStaking": {
-      "address": "0x5faa4946b0cE7a5f08355606A818A27A3be3C8fD",
-      "constructorCode": "608060405234801561001057600080fd5b506148c1806100206000396000f3fe",
-      "bodyBytecodeHash": "fedbfaa35a336a21f7c22565c587f91baf215cc87092e51984c55eb1cae38703",
-      "localBytecodeHash": "240b198d4d444a869a6f4111641757e37d5d97368091385dd71bb5db6cec0f5e",
-      "deployedBytecodeHash": "240b198d4d444a869a6f4111641757e37d5d97368091385dd71bb5db6cec0f5e",
+      "address": "0xe11221fc3A378262c9f6054Cb49B053c81FA5765",
+      "constructorCode": "608060405234801561001057600080fd5b50614bd8806100206000396000f3fe",
+      "bodyBytecodeHash": "baaa9a88bb3d82fc75033c9cf274bdf3289c4d538282c9f6cc9150b099641db3",
+      "localBytecodeHash": "e7e79d05bb7d70cb4862ce111e8e3314027617f6b275fa3a5858ad78e8590a15",
+      "deployedBytecodeHash": "e7e79d05bb7d70cb4862ce111e8e3314027617f6b275fa3a5858ad78e8590a15",
       "types": {
         "t_bool": {
           "id": "t_bool",
@@ -43,33 +43,33 @@
           "members": [
             {
               "label": "staked",
-              "astId": 777,
+              "astId": 780,
               "type": "t_uint256",
-              "src": "1146:11:5"
+              "src": "1239:11:5"
             },
             {
               "label": "reward",
-              "astId": 779,
+              "astId": 782,
               "type": "t_uint256",
-              "src": "1193:11:5"
+              "src": "1286:11:5"
             },
             {
               "label": "contracts",
-              "astId": 782,
+              "astId": 785,
               "type": "t_array:dyn<t_address>",
-              "src": "1254:19:5"
+              "src": "1347:19:5"
             },
             {
               "label": "allocations",
-              "astId": 786,
+              "astId": 789,
               "type": "t_mapping<t_uint256>",
-              "src": "1375:36:5"
+              "src": "1468:36:5"
             },
             {
               "label": "pendingDeallocations",
-              "astId": 790,
+              "astId": 793,
               "type": "t_mapping<t_uint256>",
-              "src": "1499:45:5"
+              "src": "1592:45:5"
             }
           ]
         },
@@ -92,21 +92,21 @@
           "members": [
             {
               "label": "staked",
-              "astId": 793,
+              "astId": 796,
               "type": "t_uint256",
-              "src": "1575:11:5"
+              "src": "1668:11:5"
             },
             {
               "label": "burned",
-              "astId": 795,
+              "astId": 798,
               "type": "t_uint256",
-              "src": "1634:11:5"
+              "src": "1727:11:5"
             },
             {
               "label": "stakers",
-              "astId": 798,
+              "astId": 801,
               "type": "t_array:dyn<t_address>",
-              "src": "1740:17:5"
+              "src": "1833:17:5"
             }
           ]
         },
@@ -123,27 +123,21 @@
           "members": [
             {
               "label": "amount",
-              "astId": 801,
+              "astId": 804,
               "type": "t_uint256",
-              "src": "1806:11:5"
+              "src": "1899:11:5"
             },
             {
               "label": "burnedAt",
-              "astId": 803,
+              "astId": 806,
               "type": "t_uint256",
-              "src": "1823:13:5"
+              "src": "1916:13:5"
             },
             {
               "label": "contractAddress",
-              "astId": 805,
+              "astId": 808,
               "type": "t_address",
-              "src": "1842:23:5"
-            },
-            {
-              "label": "next",
-              "astId": 807,
-              "type": "t_uint256",
-              "src": "1871:9:5"
+              "src": "1935:23:5"
             }
           ]
         },
@@ -160,27 +154,21 @@
           "members": [
             {
               "label": "amount",
-              "astId": 810,
+              "astId": 811,
               "type": "t_uint256",
-              "src": "1967:11:5"
+              "src": "1987:11:5"
             },
             {
               "label": "rewardedAt",
-              "astId": 812,
+              "astId": 813,
               "type": "t_uint256",
-              "src": "1984:15:5"
+              "src": "2004:15:5"
             },
             {
               "label": "contractAddress",
-              "astId": 814,
+              "astId": 815,
               "type": "t_address",
-              "src": "2005:23:5"
-            },
-            {
-              "label": "next",
-              "astId": 816,
-              "type": "t_uint256",
-              "src": "2034:9:5"
+              "src": "2025:23:5"
             }
           ]
         },
@@ -197,33 +185,33 @@
           "members": [
             {
               "label": "amount",
-              "astId": 819,
+              "astId": 818,
               "type": "t_uint256",
-              "src": "2136:11:5"
+              "src": "2083:11:5"
             },
             {
               "label": "deallocateAt",
-              "astId": 821,
+              "astId": 820,
               "type": "t_uint256",
-              "src": "2153:17:5"
+              "src": "2100:17:5"
             },
             {
               "label": "contractAddress",
-              "astId": 823,
+              "astId": 822,
               "type": "t_address",
-              "src": "2176:23:5"
+              "src": "2123:23:5"
             },
             {
               "label": "stakerAddress",
-              "astId": 825,
+              "astId": 824,
               "type": "t_address",
-              "src": "2205:21:5"
+              "src": "2152:21:5"
             },
             {
               "label": "next",
-              "astId": 827,
+              "astId": 826,
               "type": "t_uint256",
-              "src": "2232:9:5"
+              "src": "2179:9:5"
             }
           ]
         },
@@ -263,7 +251,7 @@
           "contract": "MasterAware",
           "path": "contracts/base/MasterAware.sol",
           "label": "master",
-          "astId": 2388,
+          "astId": 2545,
           "type": "t_address",
           "src": "865:24:7"
         },
@@ -271,137 +259,177 @@
           "contract": "TokenAware",
           "path": "contracts/base/TokenAware.sol",
           "label": "token",
-          "astId": 2450,
+          "astId": 2607,
           "type": "t_address",
           "src": "860:21:8"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
-          "label": "MIN_STAKE",
-          "astId": 830,
+          "label": "MIN_ALLOCATION",
+          "astId": 829,
           "type": "t_uint256",
-          "src": "2308:21:5"
+          "src": "2255:26:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "MAX_LEVERAGE",
-          "astId": 832,
+          "astId": 831,
           "type": "t_uint256",
-          "src": "2386:24:5"
+          "src": "2333:24:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "MIN_ALLOWED_DEALLOCATION",
-          "astId": 834,
+          "astId": 833,
           "type": "t_uint256",
-          "src": "2490:36:5"
+          "src": "2437:36:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "DEALLOCATE_LOCK_TIME",
-          "astId": 836,
+          "astId": 835,
           "type": "t_uint256",
-          "src": "2586:32:5"
+          "src": "2533:32:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "BURN_CYCLE_GAS_LIMIT",
+          "astId": 837,
+          "type": "t_uint256",
+          "src": "2617:32:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "DEALLOCATION_CYCLE_GAS_LIMIT",
+          "astId": 839,
+          "type": "t_uint256",
+          "src": "2653:40:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "REWARD_CYCLE_GAS_LIMIT",
+          "astId": 841,
+          "type": "t_uint256",
+          "src": "2697:34:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "contractAddresses",
-          "astId": 839,
+          "astId": 844,
           "type": "t_array:dyn<t_address>",
-          "src": "2707:34:5"
+          "src": "2772:34:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "stakers",
-          "astId": 843,
+          "astId": 848,
           "type": "t_mapping<t_struct<PooledStaking.Staker>>",
-          "src": "2746:41:5"
+          "src": "2811:41:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "contracts",
-          "astId": 847,
+          "astId": 852,
           "type": "t_mapping<t_struct<PooledStaking.Contract>>",
-          "src": "2822:45:5"
+          "src": "2887:45:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "burns",
-          "astId": 851,
+          "astId": 856,
           "type": "t_mapping<t_struct<PooledStaking.Burn>>",
-          "src": "2903:34:5"
+          "src": "2968:34:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "firstBurn",
-          "astId": 853,
+          "astId": 858,
           "type": "t_uint256",
-          "src": "2960:21:5"
+          "src": "3025:21:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "burnCount",
-          "astId": 855,
+          "astId": 860,
           "type": "t_uint256",
-          "src": "3060:21:5"
+          "src": "3122:21:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "rewards",
-          "astId": 859,
+          "astId": 864,
           "type": "t_mapping<t_struct<PooledStaking.Reward>>",
-          "src": "3149:38:5"
+          "src": "3211:38:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "firstReward",
-          "astId": 861,
+          "astId": 866,
           "type": "t_uint256",
-          "src": "3214:23:5"
+          "src": "3276:23:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "rewardCount",
-          "astId": 863,
+          "astId": 868,
           "type": "t_uint256",
-          "src": "3241:23:5"
+          "src": "3303:23:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "deallocations",
-          "astId": 867,
+          "astId": 872,
           "type": "t_mapping<t_struct<PooledStaking.Deallocation>>",
-          "src": "3269:50:5"
+          "src": "3331:50:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "firstDeallocation",
-          "astId": 869,
+          "astId": 874,
           "type": "t_uint256",
-          "src": "3358:29:5"
+          "src": "3420:29:5"
         },
         {
           "contract": "PooledStaking",
           "path": "contracts/PooledStaking.sol",
           "label": "deallocationCount",
-          "astId": 871,
+          "astId": 876,
           "type": "t_uint256",
-          "src": "3391:29:5"
+          "src": "3453:29:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "processedToStakerIndex",
+          "astId": 878,
+          "type": "t_uint256",
+          "src": "3487:34:5"
+        },
+        {
+          "contract": "PooledStaking",
+          "path": "contracts/PooledStaking.sol",
+          "label": "processedToContractIndex",
+          "astId": 880,
+          "type": "t_uint256",
+          "src": "3567:36:5"
         }
       ],
       "warnings": {
@@ -413,7 +441,132 @@
           "math/SafeMath.sol",
           "token/ERC20/IERC20.sol"
         ],
-        "uninitializedBaseContracts": []
+        "uninitializedBaseContracts": [],
+        "storageUncheckedVars": [
+          {
+            "contract": "PooledStaking",
+            "path": "contracts/PooledStaking.sol",
+            "label": "stakers",
+            "astId": 848,
+            "type": "t_mapping<t_struct<PooledStaking.Staker>>",
+            "src": "2811:41:5"
+          },
+          {
+            "contract": "PooledStaking",
+            "path": "contracts/PooledStaking.sol",
+            "label": "contracts",
+            "astId": 852,
+            "type": "t_mapping<t_struct<PooledStaking.Contract>>",
+            "src": "2887:45:5"
+          },
+          {
+            "contract": "PooledStaking",
+            "path": "contracts/PooledStaking.sol",
+            "label": "burns",
+            "astId": 856,
+            "type": "t_mapping<t_struct<PooledStaking.Burn>>",
+            "src": "2968:34:5"
+          },
+          {
+            "contract": "PooledStaking",
+            "path": "contracts/PooledStaking.sol",
+            "label": "rewards",
+            "astId": 864,
+            "type": "t_mapping<t_struct<PooledStaking.Reward>>",
+            "src": "3211:38:5"
+          },
+          {
+            "contract": "PooledStaking",
+            "path": "contracts/PooledStaking.sol",
+            "label": "deallocations",
+            "astId": 872,
+            "type": "t_mapping<t_struct<PooledStaking.Deallocation>>",
+            "src": "3331:50:5"
+          }
+        ],
+        "storageDiff": [
+          {
+            "action": "rename",
+            "updated": {
+              "index": 5,
+              "contract": "PooledStaking",
+              "path": "contracts/PooledStaking.sol",
+              "label": "MIN_ALLOCATION",
+              "astId": 829,
+              "type": "t_uint256",
+              "src": "2255:26:5"
+            },
+            "original": {
+              "index": 5,
+              "contract": "PooledStaking",
+              "path": "contracts/PooledStaking.sol",
+              "label": "MIN_STAKE",
+              "astId": 830,
+              "type": "t_uint256",
+              "src": "2308:21:5"
+            }
+          },
+          {
+            "action": "insert",
+            "updated": {
+              "index": 9,
+              "contract": "PooledStaking",
+              "path": "contracts/PooledStaking.sol",
+              "label": "BURN_CYCLE_GAS_LIMIT",
+              "astId": 837,
+              "type": "t_uint256",
+              "src": "2617:32:5"
+            }
+          },
+          {
+            "action": "insert",
+            "updated": {
+              "index": 10,
+              "contract": "PooledStaking",
+              "path": "contracts/PooledStaking.sol",
+              "label": "DEALLOCATION_CYCLE_GAS_LIMIT",
+              "astId": 839,
+              "type": "t_uint256",
+              "src": "2653:40:5"
+            }
+          },
+          {
+            "action": "insert",
+            "updated": {
+              "index": 11,
+              "contract": "PooledStaking",
+              "path": "contracts/PooledStaking.sol",
+              "label": "REWARD_CYCLE_GAS_LIMIT",
+              "astId": 841,
+              "type": "t_uint256",
+              "src": "2697:34:5"
+            }
+          },
+          {
+            "action": "append",
+            "updated": {
+              "index": 24,
+              "contract": "PooledStaking",
+              "path": "contracts/PooledStaking.sol",
+              "label": "processedToStakerIndex",
+              "astId": 878,
+              "type": "t_uint256",
+              "src": "3487:34:5"
+            }
+          },
+          {
+            "action": "append",
+            "updated": {
+              "index": 25,
+              "contract": "PooledStaking",
+              "path": "contracts/PooledStaking.sol",
+              "label": "processedToContractIndex",
+              "astId": 880,
+              "type": "t_uint256",
+              "src": "3567:36:5"
+            }
+          }
+        ]
       }
     },
     "MasterMock": {
@@ -487,11 +640,11 @@
       }
     },
     "TokenMock": {
-      "address": "0xec01e424759Bf334b09e4737dD5D2749880C00ee",
-      "constructorCode": "60806040526115cb806100136000396000f3fe",
-      "bodyBytecodeHash": "3f44b8597935bec63cf86fb01efbeec3ff754226ebb977a3d62869bf2675fcbf",
-      "localBytecodeHash": "cfb715aee0f5a9b2c51400890cb4d14ba074aab3dae440a89ce94a9137da147a",
-      "deployedBytecodeHash": "cfb715aee0f5a9b2c51400890cb4d14ba074aab3dae440a89ce94a9137da147a",
+      "address": "0xAba9a4D0794c2DBfD47d1215052801aB0EA927dD",
+      "constructorCode": "6080604052611632806100136000396000f3fe",
+      "bodyBytecodeHash": "9c9967f8c43794a4eca4454313f06537d755824da92b1512b4881b03787c2d85",
+      "localBytecodeHash": "a08f286fa4d34a83b313e6d3c0bbea9ea4f585c6dc0746095397157d1017dc32",
+      "deployedBytecodeHash": "a08f286fa4d34a83b313e6d3c0bbea9ea4f585c6dc0746095397157d1017dc32",
       "types": {
         "t_uint256": {
           "id": "t_uint256",
@@ -575,9 +728,9 @@
           "contract": "TokenMock",
           "path": "contracts/mocks/TokenMock.sol",
           "label": "owner",
-          "astId": 2778,
+          "astId": 2969,
           "type": "t_address",
-          "src": "932:13:12"
+          "src": "932:13:14"
         }
       ],
       "warnings": {
@@ -591,7 +744,9 @@
           "token/ERC20/IERC20.sol",
           "math/SafeMath.sol"
         ],
-        "uninitializedBaseContracts": []
+        "uninitializedBaseContracts": [],
+        "storageUncheckedVars": [],
+        "storageDiff": []
       }
     }
   },
@@ -610,7 +765,7 @@
       {
         "address": "0x63d7bdcBF76e67B364963FC4f3BccCcDE571cF83",
         "version": "1.0.0",
-        "implementation": "0xec01e424759Bf334b09e4737dD5D2749880C00ee",
+        "implementation": "0xAba9a4D0794c2DBfD47d1215052801aB0EA927dD",
         "admin": "0x63519146182e2E33F0Ec39e40D2d0689a44d8f47",
         "kind": "Upgradeable"
       }

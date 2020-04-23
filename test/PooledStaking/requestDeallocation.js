@@ -227,7 +227,7 @@ describe('requestDeallocation', function () {
     );
   });
 
-  it.only('ensure the requested deallocation is inserted in the right place', async function () {
+  it('ensure the requested deallocation is inserted in the right place', async function () {
 
     const { staking, token } = this;
     const lockTime = 90 * 24 * 3600; // 90 days
@@ -249,12 +249,5 @@ describe('requestDeallocation', function () {
     await staking.requestDeallocation([firstContract, secondContract], [ether('5'), ether('5')], 0, { from: memberOne });
     const lastDeallocationId = await staking.lastDeallocationId();
     assert(lastDeallocationId.eqn(2), `Last deallocation id should be 2, got ${lastDeallocationId}`);
-
-    const { firstAmount, firstDeallocateAt, firstDontractAddress, firstStakerAddress, firstNext } = staking.deallocationAtIndex(0);
-    // const secondDeallocation = await staking.deallocationAtIndex(2);
-
-    console.log(`hello: ${firstAmount, firstDeallocateAt,firstDontractAddress, firstStakerAddress, firstNext}`);
-    // console.log(`hello hello: ${secondDeallocation}`);
-
   });
 });

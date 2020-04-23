@@ -31,6 +31,9 @@ contract MasterMock is INXMMaster {
   mapping(address => Role) members;
   mapping(address => bool) internalAddresses;
   mapping(address => bool) governanceAddresses;
+  mapping(bytes2 => address payable) contractAddresses;
+
+  bool paused;
 
   /* utils */
 
@@ -44,6 +47,18 @@ contract MasterMock is INXMMaster {
 
   function enrollMember(address newMember, Role role) public {
     members[newMember] = role;
+  }
+
+  function setLatestAddress(bytes2 contractName, address payable contractAddress) public {
+    contractAddresses[contractName] = contractAddress;
+  }
+
+  function pause() public {
+    paused = true;
+  }
+
+  function unpause() public {
+    paused = false;
   }
 
   /* mocked implementations */
@@ -60,6 +75,14 @@ contract MasterMock is INXMMaster {
     return members[caller] >= Role.Member;
   }
 
+  function getLatestAddress(bytes2 contractName) public view returns (address payable) {
+    return contractAddresses[contractName];
+  }
+
+  function isPause() public view returns (bool) {
+    return paused;
+  }
+
   /* unused functions */
 
   modifier unused {
@@ -71,8 +94,6 @@ contract MasterMock is INXMMaster {
 
   function masterInitialized() unused public view returns (bool) {}
 
-  function isPause() unused public view returns (bool) {}
-
   function isOwner(address) unused public view returns (bool) {}
 
   function updatePauseTime(uint) unused public {}
@@ -81,5 +102,4 @@ contract MasterMock is INXMMaster {
 
   function dAppToken() unused public view returns (address) {}
 
-  function getLatestAddress(bytes2) unused public view returns (address payable) {}
 }

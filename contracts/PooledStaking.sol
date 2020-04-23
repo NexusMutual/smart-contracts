@@ -18,12 +18,11 @@
 pragma solidity ^0.5.16;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "./base/MasterAware.sol";
-import "./base/TokenAware.sol";
-import "./libraries/Vault.sol";
+import "./abstract/MasterAware.sol";
+import "./abstract/NXMToken.sol";
+import "./interfaces/ITokenController.sol";
 
-contract PooledStaking is MasterAware, TokenAware {
+contract PooledStaking is MasterAware {
   using SafeMath for uint;
 
   enum ParamType {
@@ -74,6 +73,9 @@ contract PooledStaking is MasterAware, TokenAware {
     address stakerAddress;
     uint next; // id of the next deallocation request in the linked list
   }
+
+  NXMToken token;
+  ITokenController tokenController;
 
   uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
@@ -186,7 +188,7 @@ contract PooledStaking is MasterAware, TokenAware {
       "Contracts and allocations arrays should have the same length"
     );
 
-    Vault.deposit(token, msg.sender, amount);
+    token.transferFrom(msg.sender, address(this), amount);
     staker.staked = staker.staked.add(amount);
 
     uint oldLength = staker.contracts.length;
@@ -594,4 +596,10 @@ contract PooledStaking is MasterAware, TokenAware {
       return;
     }
   }
+
+  function changeDependentContractAddress() public {
+    token = NXMToken(master.getLatestAddress("TK"));
+    tokenController = ITokenController(master.getLatestAddress("TC"));
+  }
+
 }

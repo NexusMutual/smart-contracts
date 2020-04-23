@@ -17,19 +17,20 @@
 
 pragma solidity ^0.5.16;
 
+import "../interfaces/ITokenController.sol";
+import "../abstract/MasterAware.sol";
 import "../abstract/NXMToken.sol";
 
-library Vault {
+contract TokenControllerMock is ITokenController, MasterAware {
 
-  function deposit(NXMToken token, address from, uint amount) internal {
-    token.transferFrom(from, address(this), amount);
+  NXMToken token;
+
+  function mint(address _member, uint256 _amount) public {
+    token.mint(_member, _amount);
   }
 
-  function withdraw(NXMToken token, address to, uint amount) internal {
-    token.transfer(to, amount);
+  function changeDependentContractAddress() public {
+    token = NXMToken(master.getLatestAddress("TK"));
   }
 
-  function burn(NXMToken token, uint amount) internal {
-    token.burn(amount);
-  }
 }

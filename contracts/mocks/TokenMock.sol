@@ -23,14 +23,6 @@ import "../abstract/NXMToken.sol";
 
 contract TokenMock is NXMToken, ERC20, Initializable {
 
-  address owner;
-
-  function initialize() initializer public {
-    owner = msg.sender;
-    // Mint 1000 NXM
-    _mint(msg.sender, 1000 ether);
-  }
-
   // not public in actual implementation
   function mint(address account, uint256 amount) public {
     _mint(account, amount);

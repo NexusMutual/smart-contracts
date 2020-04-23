@@ -17,24 +17,31 @@
 
 pragma solidity ^0.5.16;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "../interfaces/IMasterAware.sol";
 import "../interfaces/INXMMaster.sol";
 
-contract MasterAware is Initializable {
+contract MasterAware is IMasterAware {
 
   INXMMaster public master;
+
+  modifier onlyMember {
+    require(master.isMember(msg.sender), "Caller is not a member");
+    _;
+  }
 
   modifier onlyInternal {
     require(master.isInternal(msg.sender), "Caller is not an internal contract");
     _;
   }
 
-  modifier onlyMembers {
-    require(master.isMember(msg.sender), "Caller is not a member");
+  modifier onlyMaster {
+    if (address(master) != address(0)) {
+      require(address(master) == msg.sender, "Not master");
+    }
     _;
   }
 
-  modifier onlyGoverned {
+  modifier onlyGovernance {
     require(
       master.checkIsAuthToGoverned(msg.sender),
       "Caller is not authorized to govern"
@@ -42,7 +49,17 @@ contract MasterAware is Initializable {
     _;
   }
 
-  function initialize(address masterAddress) initializer public {
+  modifier whenPaused {
+    require(master.isPause());
+    _;
+  }
+
+  modifier whenNotPaused {
+    require(!master.isPause());
+    _;
+  }
+
+  function changeMasterAddress(address masterAddress) public onlyMaster {
     master = INXMMaster(masterAddress);
   }
 }

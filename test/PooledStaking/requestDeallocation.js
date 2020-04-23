@@ -14,6 +14,7 @@ const {
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
+const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundApproveStake (token, staking, amount, contracts, allocations, member) {
   const maxLeverage = '10';
@@ -226,4 +227,34 @@ describe('requestDeallocation', function () {
     );
   });
 
+  it.only('ensure the requested deallocation is inserted in the right place', async function () {
+
+    const { staking, token } = this;
+    const lockTime = 90 * 24 * 3600; // 90 days
+
+    await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
+
+    // Stake
+    await fundApproveStake(
+      token,
+      staking,
+      ether('20'),
+      [firstContract, secondContract, thirdContract],
+      [ether('5'), ether('10'), ether('20')],
+      memberOne,
+    );
+
+    // First Deallocation
+    await staking.requestDeallocation([firstContract, secondContract], [ether('5'), ether('5')], 0, { from: memberOne });
+    const lastDeallocationId = await staking.lastDeallocationId();
+    assert(lastDeallocationId.eqn(2), `Last deallocation id should be 2, got ${lastDeallocationId}`);
+
+    const { firstAmount, firstDeallocateAt, firstDontractAddress, firstStakerAddress, firstNext } = staking.deallocationAtIndex(0);
+    // const secondDeallocation = await staking.deallocationAtIndex(2);
+
+    console.log(`hello: ${firstAmount, firstDeallocateAt,firstDontractAddress, firstStakerAddress, firstNext}`);
+    // console.log(`hello hello: ${secondDeallocation}`);
+
+  });
 });

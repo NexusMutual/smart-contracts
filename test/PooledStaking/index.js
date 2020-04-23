@@ -9,5 +9,5 @@ describe('PooledStaking', function () {
   require('./unstake');
   require('./withdrawReward');
   require('./requestDeallocation');
-
+  require('./pushBurn');
 });

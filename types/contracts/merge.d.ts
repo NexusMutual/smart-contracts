@@ -11,12 +11,18 @@ declare global {
       require(name: "Context"): TruffleContracts.ContextContract;
       require(name: "ERC20"): TruffleContracts.ERC20Contract;
       require(name: "IERC20"): TruffleContracts.IERC20Contract;
+      require(name: "IMasterAware"): TruffleContracts.IMasterAwareContract;
       require(name: "INXMMaster"): TruffleContracts.INXMMasterContract;
+      require(
+        name: "ITokenController"
+      ): TruffleContracts.ITokenControllerContract;
       require(name: "MasterAware"): TruffleContracts.MasterAwareContract;
       require(name: "MasterMock"): TruffleContracts.MasterMockContract;
       require(name: "NXMToken"): TruffleContracts.NXMTokenContract;
       require(name: "PooledStaking"): TruffleContracts.PooledStakingContract;
-      require(name: "TokenAware"): TruffleContracts.TokenAwareContract;
+      require(
+        name: "TokenControllerMock"
+      ): TruffleContracts.TokenControllerMockContract;
       require(name: "TokenMock"): TruffleContracts.TokenMockContract;
     }
   }

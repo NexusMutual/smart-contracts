@@ -1,9 +1,10 @@
-const { expectRevert, ether } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils/accounts');
 const setup = require('../utils/setup');
 const { ParamType } = require('../utils/constants');
+const { parseLogs } = require('../utils/helpers');
 
 const {
   nonMembers: [nonMember],
@@ -226,9 +227,19 @@ describe('stake', function () {
 
     const stakes = [
       { amount: ether('1'), contracts: [firstContract], allocations: [ether('1')], from: memberOne },
-      { amount: ether('2'), contracts: [firstContract, secondContract], allocations: [ether('1'), ether('2')], from: memberOne },
+      {
+        amount: ether('2'),
+        contracts: [firstContract, secondContract],
+        allocations: [ether('1'), ether('2')],
+        from: memberOne,
+      },
       { amount: ether('3'), contracts: [firstContract], allocations: [ether('3')], from: memberTwo },
-      { amount: ether('4'), contracts: [firstContract, secondContract], allocations: [ether('3'), ether('4')], from: memberTwo },
+      {
+        amount: ether('4'),
+        contracts: [firstContract, secondContract],
+        allocations: [ether('3'), ether('4')],
+        from: memberTwo,
+      },
     ];
 
     const allExpectedAmounts = [

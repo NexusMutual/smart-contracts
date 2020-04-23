@@ -53,24 +53,30 @@ describe('requestDeallocation', function () {
   it('should revert if insertAfter index is invalid', async function () {
 
     const { staking, token } = this;
+    const lockTime = 90 * 24 * 3600; // 90 days
 
     await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
-    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 90, { from: governanceContract });
 
-    // Insert first element after index 5
+    // index does not exist
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('2')], 5, { from: memberOne }),
-      'Invalid insertion index provided',
+      'Invalid deallocation id provided.',
     );
-    // Insert first element after index 0
+
+    // insert first
     await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
-    // Insert first element after index 1
+    await staking.processPendingActions();
+
+    // insert second
     await staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne });
-    // Insert second element after index 3
+    await staking.processPendingActions();
+
+    // index does not exist
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('2')], 3, { from: memberOne }),
-      'Invalid insertion index provided',
+      'Invalid deallocation id provided.',
     );
   });
 
@@ -80,7 +86,7 @@ describe('requestDeallocation', function () {
 
     await expectRevert(
       staking.requestDeallocation([firstContract], [1], 0, { from: memberOne }),
-      ' Nothing to deallocate on this contract',
+      'Nothing to deallocate on this contract',
     );
 
   });
@@ -88,8 +94,6 @@ describe('requestDeallocation', function () {
   it('should revert when deallocating more than allocated', async function () {
 
     const { staking, token } = this;
-    const minAllowedDeallocation = ether('2');
-
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     await expectRevert(
@@ -97,7 +101,7 @@ describe('requestDeallocation', function () {
       'Cannot deallocate more than allocated',
     );
 
-    await staking.requestDeallocation([firstContract], [minAllowedDeallocation], 0, { from: memberOne });
+    await staking.requestDeallocation([firstContract], [ether('10')], 0, { from: memberOne });
   });
 
   it('should revert when requested deallocation is less than MIN_ALLOWED_DEALLOCATION', async function () {
@@ -106,7 +110,6 @@ describe('requestDeallocation', function () {
     const minAllowedDeallocation = ether('2');
 
     await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, minAllowedDeallocation, { from: governanceContract });
-
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     await expectRevert(
@@ -179,17 +182,18 @@ describe('requestDeallocation', function () {
   it('should revert if deallocation time is less than previous deallocation time', async function () {
 
     const { staking, token } = this;
+    const lockTime = 90 * 24 * 3600; // 90 days
 
     await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     // DEALLOCATE_LOCK_TIME = 90
-    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 90, { from: governanceContract });
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
     // First deallocation
     await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
 
     // DEALLOCATE_LOCK_TIME = 30
-    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 30, { from: governanceContract });
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime / 3, { from: governanceContract });
     // Second deallocation
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne }),
@@ -200,19 +204,21 @@ describe('requestDeallocation', function () {
   it('should revert if deallocation time is greater than next deallocation time', async function () {
 
     const { staking, token } = this;
+    const lockTime = 90 * 24 * 3600; // 90 days
 
     await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
     await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
 
-    // DEALLOCATE_LOCK_TIME = 30
-    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 30, { from: governanceContract });
+    // DEALLOCATE_LOCK_TIME = 30 days
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime / 3, { from: governanceContract });
+
     // Send a few deallocation requests
     await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
     await staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne });
     await staking.requestDeallocation([firstContract], [ether('2')], 2, { from: memberOne });
 
-    // DEALLOCATE_LOCK_TIME = 90
-    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 90, { from: governanceContract });
+    // DEALLOCATE_LOCK_TIME = 90 days
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
 
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne }),

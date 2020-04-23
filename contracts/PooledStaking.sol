@@ -85,32 +85,49 @@ contract PooledStaking is MasterAware {
   uint public DEALLOCATION_CYCLE_GAS_LIMIT;
   uint public REWARD_CYCLE_GAS_LIMIT;
 
-  // List of all contract addresses
+  // List of all coverable contract addresses
   address[] public contractAddresses;
 
   mapping(address => Staker) public stakers;     // stakerAddress => Staker
   mapping(address => Contract) public contracts; // contractAddress => Contract
 
   mapping(uint => Burn) public burns; // burn id => Burn
-  uint public firstBurn; // first burn to process. points to an empty slot if there are no burns
-  uint public burnCount; // amount of burns that have been pushed (including processed)
+  uint public firstBurn; // id of the first burn to process. zero if there are no unprocessed burns
+  uint public lastBurnId;
 
   mapping(uint => Reward) public rewards; // reward id => Reward
   uint public firstReward;
-  uint public rewardCount;
+  uint public lastRewardId;
 
   mapping(uint => Deallocation) public deallocations; // deallocation id => Deallocation
-  uint public firstDeallocation;
-  uint public deallocationCount;
+  // firstDeallocation is stored at deallocations[0].next
+  uint public lastDeallocationId;
 
   uint public processedToStakerIndex; // we processed the action up this staker
   uint public processedToContractIndex; // we processed the action up this contract
 
   event ActionStatus(bool finished);
 
-  function initialize(address masterAddress, address tokenAddress) public initializer {
-    MasterAware.initialize(masterAddress);
-    TokenAware.initialize(tokenAddress);
+  /* modifiers */
+
+  modifier noPendingActions {
+    require(!hasPendingActions(), 'Unable to execute request with unprocessed actions');
+    _;
+  }
+
+  modifier noPendingBurns {
+    require(!hasPendingBurns(), 'Unable to execute request with unprocessed burns');
+    _;
+  }
+
+  modifier noPendingDeallocations {
+    require(!hasPendingDeallocations(), 'Unable to execute request with unprocessed deallocations');
+    _;
+  }
+
+  modifier noPendingRewards {
+    require(!hasPendingRewards(), 'Unable to execute request with unprocessed rewards');
+    _;
   }
 
   /* getters */
@@ -149,23 +166,35 @@ contract PooledStaking is MasterAware {
   function getMaxUnstakable(address stakerAddress) public view returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];
-
-    uint maxAllocation = 0;
     uint totalAllocation = 0;
 
     for (uint i = 0; i < staker.contracts.length; i++) {
       address contractAddress = staker.contracts[i];
       uint allocation = staker.allocations[contractAddress];
       totalAllocation = totalAllocation.add(allocation);
-      maxAllocation = allocation > maxAllocation ? allocation : maxAllocation;
     }
 
-    uint minRequiredStake = totalAllocation.div(MAX_LEVERAGE);
-    uint unusedLeverage = staker.staked.sub(minRequiredStake);
-    uint minUnusedAllocation = staker.staked.sub(maxAllocation);
-    uint safelyUnstakable = unusedLeverage < minUnusedAllocation ? unusedLeverage : minUnusedAllocation;
+    if (staker.staked > totalAllocation) {
+      return staker.staked.sub(totalAllocation);
+    }
 
-    return safelyUnstakable;
+    return 0;
+  }
+
+  function hasPendingActions() public view returns (bool) {
+    return hasPendingBurns() || hasPendingDeallocations() || hasPendingRewards();
+  }
+
+  function hasPendingBurns() public view returns (bool) {
+    return burns[firstBurn].burnedAt != 0;
+  }
+
+  function hasPendingDeallocations() public view returns (bool){
+    return deallocations[0].next != 0;
+  }
+
+  function hasPendingRewards() public view returns (bool){
+    return rewards[firstReward].rewardedAt != 0;
   }
 
   /* staking functions */
@@ -174,7 +203,7 @@ contract PooledStaking is MasterAware {
     uint amount,
     address[] calldata _contracts,
     uint[] calldata _allocations
-  ) external onlyMembers {
+  ) external whenNotPaused onlyMember noPendingActions {
 
     Staker storage staker = stakers[msg.sender];
 
@@ -234,7 +263,7 @@ contract PooledStaking is MasterAware {
     );
   }
 
-  function unstake(uint amount) external onlyMembers {
+  function unstake(uint amount) external whenNotPaused onlyMember noPendingBurns {
     uint unstakable = getMaxUnstakable(msg.sender);
     require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
     stakers[msg.sender].staked = stakers[msg.sender].staked.sub(amount);
@@ -243,13 +272,15 @@ contract PooledStaking is MasterAware {
   function requestDeallocation(
     address[] calldata _contracts,
     uint[] calldata _amounts,
-    uint _insertAfter // deallocation id to insert the new deallocations after
-  ) external onlyMembers {
+    uint _insertAfter // deallocation id after which the new deallocations will be inserted
+  ) external whenNotPaused onlyMember {
 
     require(
       _contracts.length == _amounts.length,
       "Contracts and amounts arrays should have the same length"
     );
+
+    require(_insertAfter <= lastDeallocationId, 'Invalid deallocation id provided');
 
     Staker storage staker = stakers[msg.sender];
     uint insertAfter = _insertAfter;
@@ -291,15 +322,13 @@ contract PooledStaking is MasterAware {
       }
 
       // get next available id
-      uint id = deallocationCount;
-      deallocationCount++;
-
+      uint id = ++lastDeallocationId;
       uint next = current.next;
 
       // point to our new deallocation
       current.next = id;
 
-      // insert next item after this one
+      // insert next item in loop after this one
       insertAfter = id;
 
       deallocations[id] = Deallocation(
@@ -312,68 +341,61 @@ contract PooledStaking is MasterAware {
     }
   }
 
-  function pushBurn(address contractAddress, uint amount) external onlyInternal {
+  function withdrawReward(uint amount) external whenNotPaused onlyMember {
+
+    require(
+      stakers[msg.sender].reward >= amount,
+      "Requested withdraw amount exceeds available reward"
+    );
+
+    stakers[msg.sender].reward = stakers[msg.sender].reward.sub(amount);
+    token.transfer(msg.sender, amount);
+  }
+
+  function pushBurn(
+    address contractAddress, uint amount
+  ) external onlyInternal whenNotPaused noPendingBurns noPendingDeallocations {
 
     Contract storage _contract = contracts[contractAddress];
     require(amount <= _contract.staked, 'Burn amount should not exceed total amount staked on contract');
 
-    Vault.burn(token, amount);
+    burns[++lastBurnId] = Burn(amount, now, contractAddress);
+    token.burn(amount);
     _contract.burned = _contract.burned.add(amount);
 
-    // add new burn
-    burns[burnCount] = Burn(amount, now, contractAddress);
-
-    // do we have a previous unprocessed burn?
-    bool previousExists = burnCount > 0 && burns[burnCount - 1].burnedAt > 0;
-
-    if (!previousExists) {
-      firstBurn = burnCount;
+    if (firstBurn == 0) {
+      firstBurn = lastBurnId;
     }
-
-    // update counter
-    ++burnCount;
   }
 
-  function pushReward(address contractAddress, uint amount, address from) external onlyInternal {
+  function pushReward(address contractAddress, uint amount) external onlyInternal whenNotPaused {
 
-    // transfer tokens from specified contract to us
-    // token transfer should be approved by the specified address
-    Vault.deposit(token, from, amount);
+    rewards[++lastRewardId] = Reward(amount, now, contractAddress);
+    tokenController.mint(address(this), amount);
 
-    // add new reward
-    rewards[rewardCount] = Reward(amount, now, contractAddress);
-
-    // do we have a previous unprocessed reward?
-    bool previousExists = rewardCount > 0 && rewards[rewardCount - 1].rewardedAt > 0;
-
-    if (!previousExists) {
-      firstReward = rewardCount;
+    if (firstReward == 0) {
+      firstReward = lastRewardId;
     }
-
-    // update counter
-    ++rewardCount;
   }
 
-  function hasPendingActions() public view returns (bool) {
-    return hasPendingBurns() || hasPendingDeallocations() || hasPendingRewards();
-  }
-
-  function processPendingActions() public {
+  function processPendingActions() public whenNotPaused {
 
     while (true) {
+
+      uint firstDeallocation = deallocations[0].next;
+
+      if (firstBurn == 0 && firstDeallocation == 0 && firstReward == 0) {
+        // everything is processed
+        break;
+      }
 
       Burn storage burn = burns[firstBurn];
       Deallocation storage deallocation = deallocations[firstDeallocation];
       Reward storage reward = rewards[firstReward];
 
-      bool canBurn = burn.burnedAt != 0;
-      bool canDeallocate = deallocation.deallocateAt != 0 && deallocation.deallocateAt <= now;
-      bool canReward = reward.rewardedAt != 0;
-
-      if (!canBurn && !canDeallocate && !canReward) {
-        // everything is processed
-        break;
-      }
+      bool canBurn = burn.burnedAt > 0;
+      bool canDeallocate = deallocation.deallocateAt > 0;
+      bool canReward = reward.rewardedAt > 0;
 
       if (
         canBurn &&
@@ -395,10 +417,7 @@ contract PooledStaking is MasterAware {
         (!canReward || deallocation.deallocateAt < reward.rewardedAt)
       ) {
 
-        // deallocation gas limit check here
-//        uint gas = gasleft();
-//        gas = gas - gasleft();
-//        emit ActionStatus(true);
+        // TODO: implement deallocation gas limit check here
 
         // O(1)
         _processFirstDeallocation();
@@ -406,7 +425,7 @@ contract PooledStaking is MasterAware {
       }
 
       // O(n)
-      if (!_processFirstReward(reward)) {
+      if (!_processFirstReward()) {
         emit ActionStatus(false);
         return;
       }
@@ -414,10 +433,6 @@ contract PooledStaking is MasterAware {
 
     // everything is processed!
     emit ActionStatus(true);
-  }
-
-  function hasPendingBurns() public view returns (bool) {
-    return burns[firstBurn].burnedAt != 0;
   }
 
   function _processFirstBurn() internal returns (bool) {
@@ -483,6 +498,10 @@ contract PooledStaking is MasterAware {
     delete burns[firstBurn];
     ++firstBurn;
 
+    if (firstBurn > lastBurnId) {
+      firstBurn = 0;
+    }
+
     processedToStakerIndex = 0;
     _contract.staked = _contract.staked.sub(burned);
     _contract.burned = _contract.burned.sub(burned);
@@ -490,11 +509,11 @@ contract PooledStaking is MasterAware {
     return true;
   }
 
-  function hasPendingDeallocations() public view returns (bool){
-    return deallocations[firstDeallocation].deallocateAt != 0;
-  }
-
   function _processFirstDeallocation() internal {
+
+    uint firstDeallocation = deallocations[0].next;
+    require(firstDeallocation != 0, 'No pending deallocations');
+
     Deallocation storage deallocation = deallocations[firstDeallocation];
     Staker storage staker = stakers[deallocation.stakerAddress];
 
@@ -505,17 +524,14 @@ contract PooledStaking is MasterAware {
     staker.allocations[contractAddress] = allocation;
     staker.pendingDeallocations[contractAddress].sub(deallocation.amount);
 
-    uint nextDeallocation = deallocation.next;
+    // update pointer to first deallocation
+    deallocations[0].next = deallocation.next;
     delete deallocations[firstDeallocation];
-    firstDeallocation = nextDeallocation;
   }
 
-  function hasPendingRewards() public view returns (bool){
-    return rewards[firstReward].rewardedAt != 0;
-  }
+  function _processFirstReward() internal returns (bool) {
 
-  function _processFirstReward(Reward storage reward) internal returns (bool) {
-
+    Reward storage reward = rewards[firstReward];
     address contractAddress = reward.contractAddress;
     Contract storage _contract = contracts[contractAddress];
     uint stakerCount = _contract.stakers.length;
@@ -542,24 +558,17 @@ contract PooledStaking is MasterAware {
     }
 
     delete rewards[firstReward];
-    ++firstReward;
     processedToStakerIndex = 0;
+    ++firstReward;
+
+    if (firstReward > lastRewardId) {
+      firstReward = 0;
+    }
 
     return true;
   }
 
-  function withdrawReward(uint amount) external onlyMembers {
-
-    require(
-      stakers[msg.sender].reward >= amount,
-      "Requested withdraw amount exceeds available reward"
-    );
-
-    stakers[msg.sender].reward = stakers[msg.sender].reward.sub(amount);
-    Vault.withdraw(token, msg.sender, amount);
-  }
-
-  function updateParameter(ParamType param, uint value) external onlyGoverned {
+  function updateParameter(ParamType param, uint value) external onlyGovernance {
 
     if (param == ParamType.MIN_ALLOCATION) {
       MIN_ALLOCATION = value;

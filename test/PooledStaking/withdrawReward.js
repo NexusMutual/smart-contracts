@@ -50,7 +50,7 @@ describe('withdrawReward', function () {
 
     await expectRevert(
       staking.withdrawReward(ether('1'), { from: memberOne }),
-      'Requested withdraw amount exceeds available reward',
+      'Requested amount exceeds available reward',
     );
 
     const balanceBeforeStaking = await token.balanceOf(staking.address);
@@ -79,12 +79,12 @@ describe('withdrawReward', function () {
 
     await expectRevert(
       staking.withdrawReward(ether('2'), { from: memberOne }),
-      'Requested withdraw amount exceeds available reward',
+      'Requested amount exceeds available reward',
     );
 
     await expectRevert(
       staking.withdrawReward(ether('4'), { from: memberTwo }),
-      'Requested withdraw amount exceeds available reward',
+      'Requested amount exceeds available reward',
     );
 
     await staking.withdrawReward(ether('1'), { from: memberOne });
@@ -100,12 +100,12 @@ describe('withdrawReward', function () {
 
     await expectRevert(
       staking.withdrawReward('1', { from: memberOne }),
-      'Requested withdraw amount exceeds available reward.',
+      'Requested amount exceeds available reward.',
     );
 
     await expectRevert(
       staking.withdrawReward('1', { from: memberTwo }),
-      'Requested withdraw amount exceeds available reward.',
+      'Requested amount exceeds available reward.',
     );
   });
 

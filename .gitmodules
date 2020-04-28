@@ -1,0 +1,3 @@
+[submodule "nexusmutual-contracts"]
+	path = nexusmutual-contracts
+	url = git@github.com:NexusMutual/smart-contracts.git

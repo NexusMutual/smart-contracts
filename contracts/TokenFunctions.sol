@@ -17,6 +17,7 @@ pragma solidity 0.5.7;
 
 import "./NXMToken.sol";
 import "./Governance.sol";
+import "./interfaces/IPooledStaking.sol";
 
 
 contract TokenFunctions is Iupgradable {
@@ -31,6 +32,7 @@ contract TokenFunctions is Iupgradable {
     ClaimsReward internal cr;
     Governance internal gv;
     PoolData internal pd;
+    IPooledStaking pooledStaking;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -42,41 +44,8 @@ contract TokenFunctions is Iupgradable {
      * @param _premiumNXM premium of cover in NXM.
      */
     function updateStakerCommissions(address _scAddress, uint _premiumNXM) external onlyInternal {
-        uint commissionToBePaid = (_premiumNXM.mul(td.stakerCommissionPer())).div(100);
-        uint stakeLength = td.getStakedContractStakersLength(_scAddress);
-        address claimsRewardAddress = ms.getLatestAddress("CR");
-        for (uint i = td.stakedContractCurrentCommissionIndex(_scAddress); i < stakeLength; i++) {
-            if (commissionToBePaid > 0) {
-                address stakerAddress;
-                uint stakeAmt;
-                uint stakerIndex;
-                (stakerAddress, ) = td.stakedContractStakers(_scAddress, i);
-                stakerIndex = td.getStakedContractStakerIndex(_scAddress, i);
-                stakeAmt = td.getStakerInitialStakedAmountOnContract(stakerAddress, stakerIndex);
-                uint maxCommission = (stakeAmt.mul(td.stakerMaxCommissionPer())).div(100);
-                uint commissionEarned;
-                commissionEarned = td.getStakerEarnedStakeCommission(stakerAddress, stakerIndex);
-                if (maxCommission > commissionEarned) {
-                    if (maxCommission >= commissionEarned.add(commissionToBePaid)) {
-                        td.pushEarnedStakeCommissions(stakerAddress, _scAddress, 
-                            i, commissionToBePaid);
-                        tc.mint(claimsRewardAddress, commissionToBePaid);
-                        if (i > 0)
-                            td.setStakedContractCurrentCommissionIndex(_scAddress, i);
-                        commissionToBePaid = 0;
-                        break;
-                    } else {
-                        td.pushEarnedStakeCommissions(stakerAddress, _scAddress, i,
-                            maxCommission.sub(commissionEarned));
-                        tc.mint(claimsRewardAddress, maxCommission.sub(commissionEarned));
-                        commissionToBePaid = commissionToBePaid.sub(maxCommission.sub(commissionEarned));
-                    }
-                }
-            } else
-                break;
-        }
-        if (commissionToBePaid > 0 && stakeLength > 0)
-            td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
+        uint rewardValue = (_premiumNXM.mul(td.stakerCommissionPer())).div(100);
+        pooledStaking.pushReward(_scAddress, rewardValue);
     }
 
      /**
@@ -134,19 +103,7 @@ contract TokenFunctions is Iupgradable {
         view
         returns(uint amount)
     {
-        uint stakedAmount = 0;
-        address stakerAddress;
-        uint staketLen = td.getStakedContractStakersLength(_stakedContractAddress);
-        for (uint i = 0; i < staketLen; i++) {
-            stakerAddress = td.getStakedContractStakerByIndex(_stakedContractAddress, i);
-            uint stakerIndex = td.getStakedContractStakerIndex(
-            _stakedContractAddress, i);
-            uint currentlyStaked;
-            (, currentlyStaked) = _unlockableBeforeBurningAndCanBurn(stakerAddress, 
-            _stakedContractAddress, stakerIndex);
-            stakedAmount = stakedAmount.add(currentlyStaked);
-        } 
-        amount = stakedAmount;
+        return pooledStaking.contractStakedAmount(_stakedContractAddress);
     }
 
     /**

@@ -22,6 +22,7 @@ import "./ClaimsData.sol";
 import "./Governance.sol";
 import "./Claims.sol";
 import "./Pool1.sol";
+import "./interfaces/IPooledStaking.sol";
 
 
 contract ClaimsReward is Iupgradable {
@@ -38,6 +39,7 @@ contract ClaimsReward is Iupgradable {
     Pool2 internal p2;
     PoolData internal pd;
     Governance internal gv;
+    IPooledStaking internal pooledStaking;
 
     uint private constant DECIMAL1E18 = uint(10) ** 18;
   
@@ -53,6 +55,7 @@ contract ClaimsReward is Iupgradable {
         pd = PoolData(ms.getLatestAddress("PD"));
         qd = QuotationData(ms.getLatestAddress("QD"));
         gv = Governance(ms.getLatestAddress("GV"));
+        pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     }
 
     /// @dev Decides the next course of action for a given claim.
@@ -222,12 +225,10 @@ contract ClaimsReward is Iupgradable {
      */
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
         uint caReward = getRewardToBeDistributedByUser(_add);
-        uint commissionEarned = td.getStakerTotalEarnedStakeCommission(_add);
-        uint commissionReedmed = td.getStakerTotalReedmedStakeCommission(_add);
+        uint pooledStakingReward = pooledStaking.stakerReward(_add);
         uint unlockableStakedTokens = tf.getStakerAllUnlockableStakedTokens(_add);
         uint governanceReward = gv.getPendingReward(_add);
-        total = caReward.add(unlockableStakedTokens).add(commissionEarned.
-        sub(commissionReedmed)).add(governanceReward);
+        total = caReward.add(unlockableStakedTokens).add(pooledStakingReward).add(governanceReward);
     }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.

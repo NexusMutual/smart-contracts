@@ -57,37 +57,9 @@ contract TokenFunctions is Iupgradable {
         address scAddress;
         (, scAddress) = qd.getscAddressOfCover(coverid);
         uint tokenPrice = m1.calculateTokenPrice(curr);
-        uint totalStaker = td.getStakedContractStakersLength(scAddress);
         uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
-        address stakerAddress;
-        uint stakerStakedNXM;
-        for (uint i = td.stakedContractCurrentBurnIndex(scAddress); i < totalStaker; i++) {
-            if (burnNXMAmount > 0) {
-                stakerAddress = td.getStakedContractStakerByIndex(scAddress, i);
-                uint stakerIndex = td.getStakedContractStakerIndex(
-                scAddress, i);
-                uint v;
-                (v, stakerStakedNXM) = _unlockableBeforeBurningAndCanBurn(stakerAddress, scAddress, stakerIndex);
-                td.pushUnlockableBeforeLastBurnTokens(stakerAddress, stakerIndex, v);
-                if (stakerStakedNXM > 0) {
-                    if (stakerStakedNXM >= burnNXMAmount) {
-                        _burnStakerTokenLockedAgainstSmartContract(
-                            stakerAddress, scAddress, i, burnNXMAmount);
-                        if (i > 0)
-                            td.setStakedContractCurrentBurnIndex(scAddress, i);
-                        burnNXMAmount = 0;
-                        break;
-                    } else {
-                        _burnStakerTokenLockedAgainstSmartContract(
-                            stakerAddress, scAddress, i, stakerStakedNXM);
-                        burnNXMAmount = burnNXMAmount.sub(stakerStakedNXM);
-                    }
-                }
-            } else
-                break;
-        }
-        if (burnNXMAmount > 0 && totalStaker > 0)
-            td.setStakedContractCurrentBurnIndex(scAddress, totalStaker.sub(1));
+
+        pooledStaking.pushBurn(scAddress, burnNXMAmount);
     }
 
     /**

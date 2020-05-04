@@ -69,14 +69,14 @@ describe('stake', function () {
   it('should prevent allocating less than MIN_ALLOCATION', async function () {
 
     const { staking, token } = this;
-    const minStake = 20;
+    const minStake = ether('20');
     const amount = ether('1');
 
     await staking.updateParameter(ParamType.MIN_ALLOCATION, minStake, { from: governanceContract });
     await fundAndApprove(token, staking, amount, memberOne);
 
     await expectRevert(
-      staking.stake(amount, [firstContract], [1], { from: memberOne }),
+      staking.stake(amount, [firstContract], [ether('10')], { from: memberOne }),
       'Allocation minimum not met',
     );
   });
@@ -96,32 +96,32 @@ describe('stake', function () {
 
   it('should revert when contracts order has been changed', async function () {
     const { staking, token } = this;
-    const stakeAmount = ether('1');
-    const totalAmount = ether('2');
+    const stakeAmount = ether('10');
+    const totalAmount = ether('20');
 
     await fundAndApprove(token, staking, totalAmount, memberOne);
     // first stake
-    await staking.stake(stakeAmount, [firstContract, secondContract], [1, 1], { from: memberOne });
+    await staking.stake(stakeAmount, [firstContract, secondContract], [stakeAmount, stakeAmount], { from: memberOne });
 
     // second stake, with contracts passed in the wrong order
     await expectRevert(
-      staking.stake(stakeAmount, [secondContract, firstContract], [1, 1], { from: memberOne }),
+      staking.stake(stakeAmount, [secondContract, firstContract], [stakeAmount, stakeAmount], { from: memberOne }),
       'Unexpected contract order',
     );
   });
 
   it('should revert when new allocation is less than previous one', async function () {
     const { staking, token } = this;
-    const stakeAmount = ether('1');
-    const totalAmount = ether('2');
+    const stakeAmount = ether('10');
+    const totalAmount = ether('20');
 
     await fundAndApprove(token, staking, totalAmount, memberOne);
     // first stake
-    await staking.stake(stakeAmount, [firstContract], [10], { from: memberOne });
+    await staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // second stake, with a smaller allocation than the existing one
     await expectRevert(
-      staking.stake(stakeAmount, [firstContract], [9], { from: memberOne }),
+      staking.stake(stakeAmount, [firstContract], [ether('7')], { from: memberOne }),
       'New allocation is less than previous allocation',
     );
   });
@@ -132,6 +132,7 @@ describe('stake', function () {
 
     await fundAndApprove(token, staking, amount, memberOne); // MAX_LEVERAGE = 2
 
+    // Allocate 3x the staked amount, when MAX_LEVERAGE = 2
     await expectRevert(
       staking.stake(
         amount,
@@ -151,12 +152,12 @@ describe('stake', function () {
     await token.transfer(memberOne, stakeAmount);
 
     await expectRevert(
-      staking.stake(stakeAmount, [firstContract], [1], { from: memberOne }),
+      staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne }),
       'ERC20: transfer amount exceeds allowance.',
     );
   });
 
-  it('should add the staked amount to the total user stake', async function () {
+  it('should update the total staked amount of the staker', async function () {
     const { staking, token } = this;
     const stakeAmount = ether('1');
     const totalAmount = ether('2');
@@ -164,21 +165,48 @@ describe('stake', function () {
     await fundAndApprove(token, staking, totalAmount, memberOne);
 
     // stake 1 nxm
-    await staking.stake(stakeAmount, [firstContract], [1], { from: memberOne });
+    await staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // check first stake
     const { staked: firstAmount } = await staking.stakers(memberOne, { from: memberOne });
     assert(firstAmount.eq(stakeAmount), 'amount should be equal to staked amount');
 
     // stake 1 nxm
-    await staking.stake(stakeAmount, [firstContract], [1], { from: memberOne });
+    await staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // check final stake
     const { staked: finalAmount } = await staking.stakers(memberOne, { from: memberOne });
-    assert(totalAmount.eq(finalAmount), 'final amount should be equal to total staked amount');
+    assert(finalAmount.eq(totalAmount), 'final amount should be equal to total staked amount');
   });
 
-  it('should properly move tokens from each member to the PooledStaking contract', async function () {
+  it('should allow 0 stake amount', async function () {
+    const { staking, token } = this;
+
+    const amount = ether('10');
+    const contracts = [firstContract, secondContract];
+    const allocations = [ether('5'), ether('5')];
+
+    await fundAndApprove(token, staking, amount, memberOne);
+    // First stake
+    await staking.stake(amount, contracts, allocations, { from: memberOne });
+
+    // Allocate more on the contracts they already staked one, without increasing the stake amount
+    await staking.stake(0, contracts, [ether('6'), ether('6')], { from: memberOne });
+    const { staked: sameStake } = await staking.stakers(memberOne, { from: memberOne });
+    assert(sameStake.eq(amount), 'amount staked should be the same');
+
+    // Allocate to one more contract, without increasing the stake amount
+    await staking.stake(
+      0,
+      [firstContract, secondContract, thirdContract],
+      [ether('6'), ether('6'), ether('2')],
+      { from: memberOne },
+    );
+    const { staked: sameStakeAgain } = await staking.stakers(memberOne, { from: memberOne });
+    assert(sameStakeAgain.eq(amount), 'amount staked should be the same');
+  });
+
+  it('should move tokens from the caller to the PooledStaking contract', async function () {
 
     const { staking, token } = this;
     let expectedBalance = ether('0');
@@ -188,10 +216,10 @@ describe('stake', function () {
     await fundAndApprove(token, staking, ether('10'), memberTwo);
 
     const stakes = [
-      { amount: ether('1'), contracts: [firstContract], allocations: [1], from: memberOne },
-      { amount: ether('2'), contracts: [firstContract, secondContract], allocations: [1, 2], from: memberOne },
-      { amount: ether('3'), contracts: [firstContract], allocations: [3], from: memberTwo },
-      { amount: ether('4'), contracts: [firstContract, secondContract], allocations: [3, 4], from: memberTwo },
+      { amount: ether('1'), contracts: [firstContract], allocations: [ether('1')], from: memberOne },
+      { amount: ether('2'), contracts: [firstContract, secondContract], allocations: [ether('1'), ether('2')], from: memberOne },
+      { amount: ether('3'), contracts: [firstContract], allocations: [ether('3')], from: memberTwo },
+      { amount: ether('4'), contracts: [firstContract, secondContract], allocations: [ether('3'), ether('4')], from: memberTwo },
     ];
 
     for (const stake of stakes) {
@@ -218,7 +246,7 @@ describe('stake', function () {
     assert(memberTwoBalance.eq(memberTwoExpectedBalance), 'memberTwo balance should be decreased accordingly');
   });
 
-  it('should properly increase staked amounts for each contract', async function () {
+  it('should update the total staked amount for each contract given as input', async function () {
     const { staking, token } = this;
 
     // fund accounts
@@ -256,8 +284,6 @@ describe('stake', function () {
       await staking.stake(amount, contracts, allocations, { from });
 
       for (const contract of Object.keys(expectedAmounts)) {
-        // returns the staked value instead of the whole struct
-        // because the struct contains only one primitive
         const { staked: actualAmount } = await staking.contracts(contract);
         const expectedAmount = expectedAmounts[contract];
 
@@ -269,14 +295,66 @@ describe('stake', function () {
     }
   });
 
-  it('should properly set staker contracts and their allocations', async function () {
+  it('should update the staker allocation for each contract given as input', async function () {
+
     const { staking, token } = this;
 
-    const amount = ether('1');
+    // fund accounts
+    await fundAndApprove(token, staking, ether('10'), memberOne);
+    await fundAndApprove(token, staking, ether('10'), memberTwo);
+
+    const stakes = [
+      { amount: ether('1'), contracts: [firstContract], allocations: [ether('1')], from: memberOne },
+      {
+        amount: ether('2'),
+        contracts: [firstContract, secondContract],
+        allocations: [ether('1'), ether('2')],
+        from: memberOne,
+      },
+      { amount: ether('3'), contracts: [firstContract], allocations: [ether('3')], from: memberTwo },
+      {
+        amount: ether('4'),
+        contracts: [firstContract, secondContract],
+        allocations: [ether('3'), ether('4')],
+        from: memberTwo,
+      },
+    ];
+
+    const allExpectedAmounts = [
+      { [firstContract]: ether('1'), [secondContract]: ether('0') },
+      { [firstContract]: ether('1'), [secondContract]: ether('2') },
+      { [firstContract]: ether('3'), [secondContract]: ether('0') },
+      { [firstContract]: ether('3'), [secondContract]: ether('4') },
+    ];
+
+    for (let i = 0; i < stakes.length; i++) {
+      const { amount, contracts, allocations, from } = stakes[i];
+      const expectedAmounts = allExpectedAmounts[i];
+
+      await staking.stake(amount, contracts, allocations, { from });
+
+      for (const contract of Object.keys(expectedAmounts)) {
+        const actualAllocation = await staking.stakerContractAllocation(from, contract);
+        const expectedAllocation = expectedAmounts[contract];
+
+        assert(
+          actualAllocation.eq(expectedAllocation),
+          `staked amount for ${contract} expected to be ${expectedAllocation}, got ${actualAllocation}`,
+        );
+      }
+    }
+  });
+
+  it('should push new contracts to staker\`s contracts and contract\'s stakers', async function () {
+    const { staking, token } = this;
+
+    const amount = ether('10');
     const contracts = [firstContract, secondContract];
-    const allocations = [amount, amount];
+    const allocations = [ether('5'), ether('5')];
 
     await fundAndApprove(token, staking, amount, memberOne);
+
+    // Stake and allocate on 2 contracts
     await staking.stake(amount, contracts, allocations, { from: memberOne });
 
     const length = await staking.stakerContractCount(memberOne);
@@ -293,55 +371,41 @@ describe('stake', function () {
     assert.deepEqual(
       allocations.map(alloc => alloc.toString()),
       actualAllocations.map(alloc => alloc.toString()),
-      `found allocations ${actualAllocations} should be identical to allocated allocations ${allocations}`,
+      `found allocations ${actualAllocations} should be identical to actual allocations ${allocations}`,
     );
 
     assert.deepEqual(
       contracts, actualContracts,
-      'found contracts should be identical to allocated contracts',
+      'found contracts should be identical to actual contracts',
     );
-  });
 
-  it('should add staker to contract stakers array', async function () {
+    const newContracts = [firstContract, secondContract, thirdContract];
+    const newAllocations = [ether('5'), ether('5'), ether('6')];
 
-    const { staking, token } = this;
-    const stakeAmount = ether('1');
-    const totalAmount = ether('7');
+    // Allocate on 3 contracts
+    await staking.stake(0, newContracts, newAllocations, { from: memberOne });
 
-    await fundAndApprove(token, staking, totalAmount, memberOne);
+    const newLength = await staking.stakerContractCount(memberOne);
+    const newActualContracts = [];
+    const newActualAllocations = [];
 
-    // first allocation
-    await staking.stake(stakeAmount, [firstContract], [10], { from: memberOne });
-
-    const count = await staking.contractStakerCount(firstContract);
-    const staker = await staking.contractStakerAtIndex(firstContract, 0);
-    assert(count.eqn(1), `staker count for ${firstContract} should be 1`);
-    assert(staker === memberOne, `staker at index 0 should match member address`);
-
-    // second allocation
-    const contracts = [firstContract, secondContract, thirdContract];
-    const allocations = [10, 20, 30];
-    await staking.stake(stakeAmount, contracts, allocations, { from: memberOne });
-
-    const counts = await Promise.all([
-      staking.contractStakerCount(firstContract),
-      staking.contractStakerCount(secondContract),
-      staking.contractStakerCount(thirdContract),
-    ]);
-
-    for (const count of counts) {
-      assert(count.eqn(1), `staker count should be 1, got ${count}`);
+    for (let i = 0; i < newLength; i++) {
+      const contract = await staking.stakerContractAtIndex(memberOne, i);
+      const allocation = await staking.stakerContractAllocation(memberOne, contract);
+      newActualContracts.push(contract);
+      newActualAllocations.push(allocation);
     }
 
-    const stakers = await Promise.all([
-      staking.contractStakerAtIndex(firstContract, 0),
-      staking.contractStakerAtIndex(secondContract, 0),
-      staking.contractStakerAtIndex(thirdContract, 0),
-    ]);
+    assert.deepEqual(
+      newAllocations.map(alloc => alloc.toString()),
+      newActualAllocations.map(alloc => alloc.toString()),
+      `found new allocations ${newActualAllocations} should be identical to new actual allocations ${newAllocations}`,
+    );
 
-    for (const staker of stakers) {
-      assert(staker === memberOne, `staker at index 0 should be ${memberOne}`);
-    }
+    assert.deepEqual(
+      newContracts, newActualContracts,
+      'found new contracts should be identical to new actual contracts',
+    );
   });
 
 });

@@ -112,7 +112,7 @@ describe('withdrawReward', function () {
   it('should properly move tokens from the PooledStaking contract to the member\'s address', async function () {
     const { token, staking } = this;
 
-    // Fund account adn stake
+    // Fund account and stake
     const stakeAmount = ether('10');
     await fundAndApprove(token, staking, stakeAmount, memberOne);
     await staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
@@ -149,6 +149,35 @@ describe('withdrawReward', function () {
       userBalanceAfter.eq(expectedUserBalanceAfter),
       `user balance is ${userBalanceAfter}, but should be ${expectedUserBalanceAfter}}`,
     );
+  });
+
+  it('should update the total left reward amount for the caller ', async function () {
+    const { token, staking } = this;
+
+    // Fund account and stake
+    const stakeAmount = ether('10');
+    await fundAndApprove(token, staking, stakeAmount, memberOne);
+    await staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
+
+    // Generate reward and process it
+    const reward = ether('5');
+    await staking.pushReward(firstContract, reward, { from: internalContract });
+    await staking.processPendingActions();
+
+    // Withdraw partial reward
+    await staking.withdrawReward(ether('2'), { from: memberOne });
+
+    // Expect new staker's update to be ether('3)
+    const { reward: leftReward } = await staking.stakers(memberOne, { from: memberOne });
+    assert(leftReward.eq(ether('3')));
+
+    // Withdraw all left reward
+    await staking.withdrawReward(ether('3'), { from: memberOne });
+
+    // Expect new staker's update to be 0
+    const { reward: finalReward } = await staking.stakers(memberOne, { from: memberOne });
+    assert(finalReward.eq(ether('0')));
+
   });
 
 });

@@ -541,8 +541,6 @@ contract PooledStaking is MasterAware {
   function _processFirstDeallocation() internal {
 
     uint firstDeallocation = deallocations[0].next;
-    require(firstDeallocation != 0, 'No pending deallocations');
-
     Deallocation storage deallocation = deallocations[firstDeallocation];
     Staker storage staker = stakers[deallocation.stakerAddress];
 

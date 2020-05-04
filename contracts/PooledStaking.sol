@@ -292,6 +292,7 @@ contract PooledStaking is MasterAware {
     uint unstakable = getMaxUnstakable(msg.sender);
     require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
     stakers[msg.sender].staked = stakers[msg.sender].staked.sub(amount);
+    token.transfer(msg.sender, amount);
     emit Unstaked(msg.sender, amount);
   }
 

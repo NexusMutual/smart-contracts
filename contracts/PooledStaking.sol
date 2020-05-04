@@ -322,12 +322,12 @@ contract PooledStaking is MasterAware {
       uint max = pendingDeallocation > allocated ? 0 : allocated.sub(pendingDeallocation);
 
       require(max > 0, "Nothing to deallocate on this contract");
+      require(requestedAmount <= max, "Cannot deallocate more than allocated");
 
       // To prevent spam, Small stakes and deallocations are not allowed
       // However, we allow the user to deallocate the entire amount
       if (requestedAmount != max) {
         require(requestedAmount >= MIN_ALLOWED_DEALLOCATION, "Deallocation cannot be less then MIN_ALLOWED_DEALLOCATION");
-        require(requestedAmount <= max, "Cannot deallocate more than allocated");
         require(max.sub(requestedAmount) >= MIN_ALLOCATION, "Final allocation cannot be less then MIN_ALLOCATION");
       }
 

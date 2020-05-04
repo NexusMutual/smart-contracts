@@ -322,27 +322,6 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev releases unlockable staked tokens to staker 
-     */
-    function unlockStakerUnlockableTokens(address _stakerAddress) public onlyInternal {
-        uint unlockableAmount;
-        address scAddress;
-        bytes32 reason;
-        uint scIndex;
-        for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
-            scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
-            scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
-            unlockableAmount = _getStakerUnlockableTokensOnSmartContract(
-            _stakerAddress, scAddress,
-            scIndex);
-            td.setUnlockableBeforeLastBurnTokens(_stakerAddress, i, 0);
-            td.pushUnlockedStakedTokens(_stakerAddress, i, unlockableAmount);
-            reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
-            tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
-        }
-    }
-
-    /**
      * @dev to get tokens of staker locked before burning that are allowed to burn 
      * @param stakerAdd is the address of the staker 
      * @param stakedAdd is the address of staked contract in concern 

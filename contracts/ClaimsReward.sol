@@ -210,8 +210,10 @@ contract ClaimsReward is Iupgradable {
      */
     function claimAllPendingReward(uint records) public isMemberAndcheckPause {
         _claimRewardToBeDistributed(records);
-        _claimStakeCommission(records);
-        tf.unlockStakerUnlockableTokens(msg.sender); 
+
+        pooledStaking.withdrawReward(pooledStaking.stakerReward(msg.sender));
+        pooledStaking.unstake(pooledStaking.getMaxUnstakable(msg.sender));
+
         uint gvReward = gv.claimReward(msg.sender, records);
         if (gvReward > 0) {
             require(tk.transfer(msg.sender, gvReward));
@@ -434,40 +436,5 @@ contract ClaimsReward is Iupgradable {
             cd.setRewardDistributedIndexMV(msg.sender, i);
         else
             cd.setRewardDistributedIndexMV(msg.sender, lastClaimed);
-    }
-
-    /**
-     * @dev Function used to claim the commission earned by the staker.
-     */
-    function _claimStakeCommission(uint _records) internal {
-        uint total=0;
-        uint len = td.getStakerStakedContractLength(msg.sender);
-        uint lastCompletedStakeCommission = td.lastCompletedStakeCommission(msg.sender);
-        uint commissionEarned;
-        uint commissionRedeemed;
-        uint maxCommission;
-        uint lastCommisionRedeemed = len;
-        uint counter;
-        uint i;
-
-        for (i = lastCompletedStakeCommission; i < len && counter < _records; i++) {
-            commissionRedeemed = td.getStakerRedeemedStakeCommission(msg.sender, i);
-            commissionEarned = td.getStakerEarnedStakeCommission(msg.sender, i);
-            maxCommission = td.getStakerInitialStakedAmountOnContract(
-                msg.sender, i).mul(td.stakerMaxCommissionPer()).div(100);
-            if (lastCommisionRedeemed == len && maxCommission != commissionEarned)
-                lastCommisionRedeemed = i;
-            td.pushRedeemedStakeCommissions(msg.sender, i, commissionEarned.sub(commissionRedeemed));
-            total = total.add(commissionEarned.sub(commissionRedeemed));
-            counter++;
-        }
-            if(lastCommisionRedeemed == len)
-                td.setLastCompletedStakeCommissionIndex(msg.sender, i);
-            else
-                td.setLastCompletedStakeCommissionIndex(msg.sender, lastCommisionRedeemed); 
-
-        if (total > 0) 
-            require(tk.transfer(msg.sender, total)); //solhint-disable-line
-        
     }
 }

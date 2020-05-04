@@ -5,5 +5,6 @@ interface IPooledStaking {
 
     function contractStakedAmount(address contractAddress) external view returns (uint);
     function stakerReward(address staker) external view returns (uint);
+    function stakerStaked(address staker) external view returns (uint);
 }
 

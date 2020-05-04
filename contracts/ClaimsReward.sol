@@ -226,9 +226,9 @@ contract ClaimsReward is Iupgradable {
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint pooledStakingReward = pooledStaking.stakerReward(_add);
-        uint unlockableStakedTokens = tf.getStakerAllUnlockableStakedTokens(_add);
+        uint stakedTokens = pooledStaking.stakerStaked(_add);
         uint governanceReward = gv.getPendingReward(_add);
-        total = caReward.add(unlockableStakedTokens).add(pooledStakingReward).add(governanceReward);
+        total = caReward.add(stakedTokens).add(pooledStakingReward).add(governanceReward);
     }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.

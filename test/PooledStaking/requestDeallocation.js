@@ -32,7 +32,7 @@ async function fundApproveStake (token, staking, amount, contracts, allocations,
   await staking.stake(amount, contracts, allocations, { from: memberOne });
 }
 
-describe.only('requestDeallocation', function () {
+describe('requestDeallocation', function () {
 
   beforeEach(setup);
 

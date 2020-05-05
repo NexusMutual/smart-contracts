@@ -40,7 +40,7 @@ describe('stake', function () {
     );
   });
 
-  it('should revert when allocating to fewer contracts', async function () {
+  it('should revert when allocating to fewer contracts than already allocated', async function () {
 
     const { staking, token } = this;
     const amount = ether('1');
@@ -66,7 +66,7 @@ describe('stake', function () {
     );
   });
 
-  it('should prevent allocating less than MIN_ALLOCATION', async function () {
+  it('should prevent allocating < MIN_ALLOCATION', async function () {
 
     const { staking, token } = this;
     const minStake = ether('20');
@@ -81,7 +81,7 @@ describe('stake', function () {
     );
   });
 
-  it('should prevent allocating more than staked on a contract', async function () {
+  it('should prevent allocating > total staked on any one contract', async function () {
 
     const { staking, token } = this;
     const amount = ether('1');
@@ -126,7 +126,7 @@ describe('stake', function () {
     );
   });
 
-  it('should revert when total allocation exceeds maximum allowed', async function () {
+  it('should revert when total allocation exceeds maximum allowed (based on leverage)', async function () {
     const { staking, token } = this;
     const amount = ether('1');
 

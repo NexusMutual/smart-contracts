@@ -251,7 +251,9 @@ contract PooledStakingMock is MasterAware {
             "Contracts and allocations arrays should have the same length"
         );
 
+        revert("PRE TRANSFER FAIL");
         token.transferFrom(msg.sender, address(this), amount);
+
         staker.staked = staker.staked.add(amount);
 
         uint oldLength = staker.contracts.length;

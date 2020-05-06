@@ -19,6 +19,7 @@ const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
 const PooledStaking = artifacts.require('PooledStakingMock');
+const {toHex} = require('../test/utils/ethTools');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -52,6 +53,8 @@ module.exports = function(deployer, network, accounts) {
 
     const pooledStaking = await PooledStaking.deployed();
     await pooledStaking.changeMasterAddress(nxms.address);
+
+    console.log(`pooledStaking.address ${pooledStaking.address}`);
     // let gvAdd = await nxms.getLatestAddress("GV");
     // let mrAdd = await nxms.getLatestAddress("MR");
     // let pcAdd = await nxms.getLatestAddress("PC");
@@ -73,7 +76,13 @@ module.exports = function(deployer, network, accounts) {
       mr.address,
       pooledStaking.address
     ];
+
     await nxms.addNewVersion(addr);
+    console.log(
+      `nxms.getLatestAddress('PS') ${await nxms.getLatestAddress(toHex('PS'))}`
+    );
+
+    console.log(`tf.pooledStaking `);
     let pcAddress = await nxms.getLatestAddress('0x5043');
     pc = await ProposalCategory.at(pcAddress);
     await pc.proposalCategoryInitiate();

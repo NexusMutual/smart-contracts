@@ -354,1084 +354,1089 @@ contract('Quotation', function([
                     .toString()
                 );
             });
-            // it('6.10 should be revert if smart contract address is null', async function() {
-            //   coverDetails[4] = 7972408607114;
-            //   var vrsdata = await getQuoteValues(
-            //     coverDetails,
-            //     toHex('ETH'),
-            //     coverPeriod,
-            //     smartConAdd,
-            //     qt.address
-            //   );
-            //   await assertRevert(
-            //     P1.makeCoverBegin(
-            //       nullAddress,
-            //       toHex('ETH'),
-            //       coverDetails,
-            //       coverPeriod,
-            //       vrsdata[0],
-            //       vrsdata[1],
-            //       vrsdata[2],
-            //       { from: coverHolder, value: coverDetails[1] }
-            //     )
-            //   );
-            // });
-            // it('6.11 should return correct cover details', async function() {
-            //   const CID = await qd.getAllCoversOfUser(coverHolder);
-            //   let checkd = false;
-            //   const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
-            //   const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
-            //   let smartCACompare =
-            //     web3.utils.toChecksumAddress(cdetails1[2]) ==
-            //     web3.utils.toChecksumAddress(smartConAdd);
-            //   if (
-            //     cdetails1[3] == CA_ETH &&
-            //     cdetails1[1] == coverHolder &&
-            //     smartCACompare
-            //   ) {
-            //     checkd = true;
-            //   }
-            //   checkd.should.equal(true);
-            // });
           });
-
-          describe('Purchase Cover With NXM', function() {
-            const coverHolder = member4;
-            let initialTotalSA;
-            before(async function() {
-              await mr.payJoiningFee(coverHolder, {
-                from: coverHolder,
-                value: fee
-              });
-              await mr.kycVerdict(coverHolder, true);
-              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-                from: coverHolder
-              });
-              await tk.transfer(coverHolder, tokens);
-            });
-            it('6.12 should not have locked Cover Note initially', async function() {
-              const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
-                coverHolder
-              );
-              initialLockedCN.toString().should.be.equal((0).toString());
-            });
-            it('6.13 total sum assured should be 1 ETH initially', async function() {
-              initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
-              initialTotalSA.toString().should.be.equal((1).toString());
-            });
-            it('6.14 should be able to purchase cover', async function() {
-              const initialTokensOfCoverHolder = await tk.balanceOf(
-                coverHolder
-              );
-              initialTotalSupply = (await tk.totalSupply()).div(P_18);
-              coverDetails[4] = 7972408607001;
-              var vrsdata = await getQuoteValues(
-                coverDetails,
-                toHex('ETH'),
-                coverPeriod,
-                smartConAdd,
-                qt.address
-              );
-              await qt.makeCoverUsingNXMTokens(
-                coverDetails,
-                coverPeriod,
-                toHex('ETH'),
-                smartConAdd,
-                vrsdata[0],
-                vrsdata[1],
-                vrsdata[2],
-                {from: coverHolder}
-              );
-              const newLockedCN = new BN(BN_10.toString())
-                .mul(new BN(coverDetails[2].toString()))
-                .div(new BN(BN_100.toString()));
-              const newTotalSA = new BN(initialTotalSA.toString()).add(
-                new BN(coverDetails[0].toString())
-              );
-              const newTokensOfCoverHolder = new BN(
-                initialTokensOfCoverHolder.toString()
-              ).sub(new BN(coverDetails[2].toString()));
-              const newTotalSupply = new BN(initialTotalSupply.toString()).add(
-                new BN(newLockedCN.toString()).div(new BN(P_18.toString()))
-              );
-              newLockedCN
-                .toString()
-                .should.be.equal(
-                  (
-                    await tf.getUserAllLockedCNTokens.call(coverHolder)
-                  ).toString()
-                );
-              newTotalSA
-                .toString()
-                .should.be.equal(
-                  (await qd.getTotalSumAssured(CA_ETH)).toString()
-                );
-              newTokensOfCoverHolder
-                .toString()
-                .should.be.equal((await tk.balanceOf(coverHolder)).toString());
-              newTotalSupply.toString().should.be.equal(
-                new BN((await tk.totalSupply()).toString())
-                  .div(new BN(P_18.toString()))
-                  .add(new BN((1).toString()))
-                  .toString()
-              );
-            });
-            it('6.15 should return correct cover details', async function() {
-              const CID = await qd.getAllCoversOfUser(coverHolder);
-              let checkd = false;
-              const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
-              const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
-              let smartCACompare =
-                web3.utils.toChecksumAddress(cdetails1[2]) ==
-                web3.utils.toChecksumAddress(smartConAdd);
-              if (
-                cdetails1[3] == CA_ETH &&
-                cdetails1[1] == coverHolder &&
-                smartCACompare
-              ) {
-                checkd = true;
-              }
-              checkd.should.equal(true);
-            });
-          });
-
-          describe('Purchase Cover With DAI', function() {
-            const coverHolder = member5;
-            let initialTotalSA;
-            let initialPoolBalanceOfCA;
-            before(async function() {
-              await mr.payJoiningFee(coverHolder, {
-                from: coverHolder,
-                value: fee
-              });
-              await mr.kycVerdict(coverHolder, true);
-              await P1.buyToken({
-                from: coverHolder,
-                value: tokenAmount
-              });
-              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-                from: coverHolder
-              });
-              await cad.transfer(coverHolder, tokenDai);
-            });
-            it('6.16 should not have locked Cover Note initially', async function() {
-              const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
-                coverHolder
-              );
-              initialLockedCN.toString().should.be.equal((0).toString());
-            });
-            it('6.17 total sum assured should be 2 ETH initially', async function() {
-              initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
-              initialTotalSA.toString().should.be.equal((2).toString());
-            });
-            it('6.18 should able to purchase cover using currency assest i.e. DAI ', async function() {
-              const initialCAbalance = await cad.balanceOf(coverHolder);
-              initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
-              const initialTotalSupply = await tk.totalSupply();
-              coverDetailsDai[4] = 7972408607002;
-              var vrsdata = await getQuoteValues(
-                coverDetailsDai,
-                toHex('DAI'),
-                coverPeriod,
-                smartConAdd,
-                qt.address
-              );
-
-              await cad.approve(P1.address, coverDetailsDai[1], {
-                from: coverHolder
-              });
-              await P1.makeCoverUsingCA(
-                smartConAdd,
-                toHex('DAI'),
-                coverDetailsDai,
-                coverPeriod,
-                vrsdata[0],
-                vrsdata[1],
-                vrsdata[2],
-                {from: coverHolder}
-              );
-              const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
-                coverHolder
-              );
-              const presentCAbalance = await cad.balanceOf(coverHolder);
-              const presentTotalSupply = await tk.totalSupply();
-              const newLockedCN = BN_10.mul(
-                new BN(coverDetailsDai[2].toString()).div(BN_100)
-              );
-              const newTotalSupply = new BN(initialTotalSupply.toString()).add(
-                new BN(newLockedCN.toString())
-              );
-              presentCAbalance
-                .toString()
-                .should.be.equal(
-                  new BN(initialCAbalance.toString())
-                    .sub(new BN(coverDetailsDai[1].toString()))
-                    .toString()
-                );
-              var newLockedCNVal = newLockedCN.toString();
-              newLockedCNVal = newLockedCNVal.substring(
-                0,
-                newLockedCNVal.length - 1
-              );
-              var presentLockedCNVal = presentLockedCN.toString();
-              presentLockedCNVal = presentLockedCNVal.substring(
-                0,
-                presentLockedCNVal.length - 1
-              );
-              newLockedCNVal.should.be.equal(presentLockedCNVal.toString());
-              var newTotalSupplyVal = newTotalSupply.toString();
-              newTotalSupplyVal = newTotalSupplyVal.substring(
-                0,
-                newTotalSupplyVal.length - 2
-              );
-              var presentTotalSupplyVal = presentTotalSupply.toString();
-              var presentTotalSupplyVal = presentTotalSupplyVal.substring(
-                0,
-                presentTotalSupplyVal.length - 2
-              );
-              newTotalSupplyVal
-                .toString()
-                .should.be.equal(presentTotalSupplyVal.toString());
-            });
-            it('6.19 currency assest balance should increase after cover purchase', async function() {
-              const presentPoolBalanceOfCA = new BN(
-                coverDetailsDai[1].toString()
-              );
-              (await cad.balanceOf(P1.address))
-                .toString()
-                .should.be.equal(
-                  new BN(initialPoolBalanceOfCA.toString())
-                    .add(new BN(presentPoolBalanceOfCA.toString()))
-                    .toString()
-                );
-            });
-            it('6.20 should return correct cover details purchased with DAI', async function() {
-              const CID = await qd.getAllCoversOfUser(coverHolder);
-              let checkd = false;
-              const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
-              const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
-              let smartCACompare =
-                web3.utils.toChecksumAddress(cdetails1[2]) ==
-                web3.utils.toChecksumAddress(smartConAdd);
-              if (
-                cdetails1[3] == CA_DAI &&
-                cdetails1[1] == coverHolder &&
-                smartCACompare
-              ) {
-                checkd = true;
-              }
-              checkd.should.equal(true);
-            });
-          });
-        });
-
-        describe('If staker staked tokens on Smart Contract', function() {
-          const staker1 = member1;
-          const staker2 = member2;
-          let event;
-          before(async function() {
-            await mr.payJoiningFee(staker2, {
-              from: staker2,
-              value: fee
-            });
-            await mr.kycVerdict(staker2, true);
-            await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-              from: staker2
-            });
-            await tk.transfer(staker2, tokens);
-            await tk.transfer(staker1, tokens);
-            await tk.transfer(staker2, tokens);
-
-            await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
-              from: staker1
-            });
-
-            await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
-              from: staker2
-            });
-
-            console.log(`Processing pending actions..`);
-            await ps.processPendingActions();
-            console.log(`Finished processing pending actions.`);
-          });
-
-          describe('Purchase Cover With Ether', function() {
-            const coverHolder = member3;
-            let initialStakeCommissionOfS1;
-            let initialStakeCommissionOfS2;
-            it('6.21 should be able to purchase cover ', async function() {
-              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker1
-              );
-              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker2
-              );
-              coverDetails[4] = 7972408607003;
-              var vrsdata = await getQuoteValues(
-                coverDetails,
-                toHex('ETH'),
-                coverPeriod,
-                smartConAdd,
-                qt.address
-              );
-
-              await P1.makeCoverBegin(
-                smartConAdd,
-                toHex('ETH'),
-                coverDetails,
-                coverPeriod,
-                vrsdata[0],
-                vrsdata[1],
-                vrsdata[2],
-                {from: coverHolder, value: coverDetails[1]}
-              );
-              await assertRevert(
-                P1.makeCoverBegin(
-                  smartConAdd,
-                  toHex('ETH'),
-                  coverDetails,
-                  coverPeriod,
-                  vrsdata[0],
-                  vrsdata[1],
-                  vrsdata[2],
-                  {from: coverHolder, value: coverDetails[1]}
-                )
-              );
-            });
-
-            it('6.22 staker gets commission', async function() {
-              const commission =
-                (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
-              (await td.getStakerTotalEarnedStakeCommission.call(staker1))
-                .toString()
-                .should.be.equal(
-                  new BN(initialStakeCommissionOfS1.toString())
-                    .add(new BN(commission.toFixed(0).toString()))
-                    .toString()
-                );
-
-              (await td.getStakerTotalEarnedStakeCommission.call(staker2))
-                .toString()
-                .should.be.equal(initialStakeCommissionOfS2.toString());
-            });
-          });
-
-          describe('Purchase Cover With NXM', function() {
-            const coverHolder = member4;
-            let initialStakeCommissionOfS1;
-            let initialStakeCommissionOfS2;
-            it('6.23 should be able to purchase cover', async function() {
-              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker1
-              );
-              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker2
-              );
-              let newCDetails = coverDetails.slice();
-              newCDetails[3] = (await latestTime()) - 2;
-              await assertRevert(
-                qt.makeCoverUsingNXMTokens(
-                  newCDetails,
-                  coverPeriod,
-                  toHex('ETH'),
-                  smartConAdd,
-                  vrs[0],
-                  vrs[1],
-                  vrs[2],
-                  {from: coverHolder}
-                )
-              );
-              await assertRevert(
-                qt.makeCoverUsingNXMTokens(
-                  coverDetails,
-                  coverPeriod,
-                  toHex('ETH'),
-                  smartConAdd,
-                  27,
-                  vrs[1],
-                  vrs[2],
-                  {from: coverHolder}
-                )
-              );
-              coverDetails[4] = 7972408607004;
-              var vrsdata = await getQuoteValues(
-                coverDetails,
-                toHex('ETH'),
-                coverPeriod,
-                smartConAdd,
-                qt.address
-              );
-              await qt.makeCoverUsingNXMTokens(
-                coverDetails,
-                coverPeriod,
-                toHex('ETH'),
-                smartConAdd,
-                vrsdata[0],
-                vrsdata[1],
-                vrsdata[2],
-                {from: coverHolder}
-              );
-            });
-            it('6.24 staker gets commission', async function() {
-              const commission =
-                (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
-              (await td.getStakerTotalEarnedStakeCommission.call(staker1))
-                .toString()
-                .should.be.equal(
-                  new BN(initialStakeCommissionOfS1.toString())
-                    .add(new BN(commission.toFixed(0).toString()))
-                    .toString()
-                );
-
-              (await td.getStakerTotalEarnedStakeCommission.call(staker2))
-                .toString()
-                .should.be.equal(initialStakeCommissionOfS2.toString());
-            });
-          });
-
-          describe('Purchase Cover With DAI', function() {
-            const coverHolder = member5;
-            let initialPoolBalanceOfCA;
-            let initialStakeCommissionOfS1;
-            let initialStakeCommissionOfS2;
-            it('6.25 should able to purchase cover using currency assest i.e. DAI ', async function() {
-              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker1
-              );
-              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker2
-              );
-              await cad.approve(P1.address, coverDetailsDai[1], {
-                from: coverHolder
-              });
-              coverDetailsDai[4] = 7972408607005;
-              var vrsdata = await getQuoteValues(
-                coverDetailsDai,
-                toHex('DAI'),
-                coverPeriod,
-                smartConAdd,
-                qt.address
-              );
-              await P1.makeCoverUsingCA(
-                smartConAdd,
-                toHex('DAI'),
-                coverDetailsDai,
-                coverPeriod,
-                vrsdata[0],
-                vrsdata[1],
-                vrsdata[2],
-                {from: coverHolder}
-              );
-            });
-            it('6.26 staker gets commission', async function() {
-              const commission =
-                (coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
-                1;
-              (await td.getStakerTotalEarnedStakeCommission.call(staker1))
-                .toString()
-                .should.be.equal(
-                  new BN(initialStakeCommissionOfS1.toString())
-                    .add(new BN(commission.toFixed(0).toString()))
-                    .toString()
-                );
-              (await td.getStakerTotalEarnedStakeCommission.call(staker2))
-                .toString()
-                .should.be.equal(initialStakeCommissionOfS2.toString());
-            });
-            it('6.27 should able to purchase cover with cover period less than 60 ', async function() {
-              let coverLen = await qd.getCoverLength();
-              let totalSASC = await qd.getTotalSumAssuredSC(
-                smartConAdd,
-                toHex('DAI')
-              );
-              coverDetailsLess[4] = 7972408607006;
-              var vrsdata = await getQuoteValues(
-                coverDetailsLess,
-                toHex('DAI'),
-                coverPeriodLess,
-                smartConAdd,
-                qt.address
-              );
-              await cad.approve(P1.address, coverDetailsLess[1], {
-                from: coverHolder
-              });
-              await P1.makeCoverUsingCA(
-                smartConAdd,
-                toHex('DAI'),
-                coverDetailsLess,
-                coverPeriodLess,
-                vrsdata[0],
-                vrsdata[1],
-                vrsdata[2],
-                {from: coverHolder}
-              );
-              new BN(coverLen.toString())
-                .add(new BN((1).toString()))
-                .toString()
-                .should.be.equal((await qd.getCoverLength()).toString());
-              coverPeriodLess
-                .toString()
-                .should.be.equal(
-                  (
-                    await qd.getCoverPeriod((await qd.getCoverLength()) - 1)
-                  ).toString()
-                );
-              new BN(totalSASC.toString())
-                .add(new BN(coverDetailsLess[0].toString()))
-                .toString()
-                .should.be.equal(
-                  (
-                    await qd.getTotalSumAssuredSC(smartConAdd, toHex('DAI'))
-                  ).toString()
-                );
-            });
-          });
-        });
-      });
-    });
-
-    describe('If user is not a member', function() {
-      it('6.28 should return -1 if user have no holded Covers', async function() {
-        let holdedId = await qt.getRecentHoldedCoverIdStatus(member1);
-        holdedId.toString().should.be.equal((-1).toString());
-      });
-      it('6.29 should revert if member', async function() {
-        const totalFee = new BN(fee.toString()).add(
-          new BN(coverDetails[1].toString())
-        );
-        coverDetails[4] = 7972408607214;
-        var vrsdata = await getQuoteValues(
-          coverDetails,
-          toHex('ETH'),
-          coverPeriod,
-          smartConAdd,
-          qt.address
-        );
-        await assertRevert(
-          qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('ETH'),
-            coverDetails,
-            coverPeriod,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            {from: member1, value: totalFee}
-          )
-        );
-      });
-      describe('if do not want to join membership', function() {
-        it('6.30 reverts', async function() {
-          await assertRevert(
-            P1.makeCoverBegin(
-              smartConAdd,
-              toHex('ETH'),
-              coverDetails,
-              coverPeriod,
-              vrs[0],
-              vrs[1],
-              vrs[2],
-              {from: notMember, value: coverDetails[1]}
-            )
-          );
-
-          await assertRevert(
-            qt.makeCoverUsingNXMTokens(
-              coverDetails,
-              coverPeriod,
-              toHex('ETH'),
-              smartConAdd,
-              vrs[0],
-              vrs[1],
-              vrs[2],
-              {from: notMember}
-            )
-          );
-          await assertRevert(
-            P1.makeCoverUsingCA(
-              smartConAdd,
-              toHex('DAI'),
-              coverDetailsDai,
-              coverPeriod,
-              vrs_dai[0],
-              vrs_dai[1],
-              vrs_dai[2],
-              {from: notMember}
-            )
-          );
-          const totalFee = new BN(fee.toString()).add(
-            new BN(coverDetails[1].toString())
-          );
-          coverDetails[4] = 7972408607313;
-          var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await assertRevert(
-            qt.initiateMembershipAndCover(
-              smartConAdd,
-              toHex('ETH'),
-              coverDetails,
-              coverPeriod,
-              vrsdata[0],
-              vrsdata[1],
-              vrsdata[2],
-              {from: notMember, value: 1}
-            )
-          );
-          coverDetails[4] = 7972408607813;
-          var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await assertRevert(
-            qt.initiateMembershipAndCover(
-              smartConAdd,
-              toHex('ETH'),
-              coverDetails,
-              coverPeriod,
-              10,
-              vrsdata[1],
-              vrsdata[2],
-              {from: notMember, value: totalFee}
-            )
-          );
-          coverDetails[4] = 7972408607007;
-          var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('ETH'),
-            coverDetails,
-            coverPeriod,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            {from: notMember, value: totalFee}
-          );
-          await cad.transfer(qt.address, toWei(10));
-          let newQt = await Quotation.new();
-          let oldMR = await MemberRoles.at(
-            await nxms.getLatestAddress(toHex('MR'))
-          );
-          let oldGv = await Governance.at(
-            await nxms.getLatestAddress(toHex('GV'))
-          );
-          actionHash = encode(
-            'upgradeContract(bytes2,address)',
-            'QT',
-            newQt.address
-          );
-          await gvProp(29, actionHash, oldMR, oldGv, 2);
-          (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
-            newQt.address
-          );
-          qt = newQt;
-          await assertRevert(
-            qt.initiateMembershipAndCover(
-              smartConAdd,
-              toHex('ETH'),
-              coverDetails,
-              coverPeriod,
-              vrs[0],
-              vrs[1],
-              vrs[2],
-              {from: notMember, value: totalFee}
-            )
-          );
-          let hcl = await qd.getUserHoldedCoverLength(notMember);
-          await qt.kycVerdict(notMember, false);
-          await mr.payJoiningFee(notMember, {
-            from: notMember,
-            value: fee
-          });
-          await mr.kycVerdict(notMember, false);
-        });
-      });
-      describe('if want to join membership', function() {
-        it('6.31 should be able to join membership and purchase cover with ETH', async function() {
-          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-            from: newMember1
-          });
-          const totalFee = new BN(fee.toString()).add(
-            new BN(coverDetails[1].toString())
-          );
-          coverDetails[4] = 7972408607008;
-          var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('ETH'),
-            coverDetails,
-            coverPeriod,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            {from: newMember1, value: totalFee}
-          );
-          let holdedId = await qt.getRecentHoldedCoverIdStatus(newMember1);
-          holdedId.toNumber().should.be.above(0);
-          await qt.kycVerdict(newMember1, true);
-        });
-        it('6.32 should be able to join membership and purchase cover with DAI', async function() {
-          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-            from: newMember2
-          });
-          await cad.transfer(newMember2, tokenDai);
-          await cad.approve(qt.address, coverDetailsDai[1], {
-            from: newMember2
-          });
-          coverDetailsDai[4] = 7972408607009;
-          var vrsdata = await getQuoteValues(
-            coverDetailsDai,
-            toHex('DAI'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('DAI'),
-            coverDetailsDai,
-            coverPeriod,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            {from: newMember2, value: fee}
-          );
-          const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
-          await qt.kycVerdict(newMember2, true);
-        });
-
-        it('6.34 should revert if wallet address is not set', async function() {
-          let oldMR = await MemberRoles.at(
-            await nxms.getLatestAddress(toHex('MR'))
-          );
-          let oldGv = await Governance.at(
-            await nxms.getLatestAddress(toHex('GV'))
-          );
-          actionHash = encode(
-            'updateOwnerParameters(bytes8,address)',
-            'MSWALLET',
-            nullAddress
-          );
-          await gvProp(28, actionHash, oldMR, oldGv, 3);
-          (await td.walletAddress()).should.be.equal(nullAddress);
-          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-            from: newMember5
-          });
-          const totalFee = new BN(fee.toString()).add(
-            new BN(coverDetails[1].toString())
-          );
-          coverDetails[4] = 7972408607012;
-          var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('ETH'),
-            coverDetails,
-            coverPeriod,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            {from: newMember5, value: totalFee}
-          );
-          await assertRevert(qt.kycVerdict(newMember5, true));
-          actionHash = encode(
-            'updateOwnerParameters(bytes8,address)',
-            'MSWALLET',
-            owner
-          );
-          await gvProp(28, actionHash, oldMR, oldGv, 3);
-          (await td.walletAddress()).should.be.equal(owner);
-        });
-
-        it('6.35 should get membership but not cover if quote expires for ETH', async function() {
-          // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-          //   from: newMember4
-          // });
-          // const totalFee = new BN(fee.toString()).add(
-          //   new BN(coverDetails[1].toString())
-          // );
-          // coverDetails[4] = 7972408607013;
-          // var vrsdata = await getQuoteValues(
-          //   coverDetails,
-          //   toHex('ETH'),
-          //   coverPeriod,
-          //   smartConAdd,
-          //   qt.address
-          // );
-          // await qt.initiateMembershipAndCover(
-          //   smartConAdd,
-          //   toHex('ETH'),
-          //   coverDetails,
-          //   coverPeriod,
-          //   vrsdata[0],
-          //   vrsdata[1],
-          //   vrsdata[2],
-          //   { from: newMember4, value: totalFee }
-          // );
-          // console.log('Initiate membership and cover-1 succeded');
-          // await assertRevert(
-          //   qt.initiateMembershipAndCover(
-          //     smartConAdd,
-          //     toHex('ETH'),
-          //     coverDetails,
-          //     coverPeriod,
-          //     vrsdata[0],
-          //     vrsdata[1],
-          //     vrsdata[2],
-          //     { from: newMember4, value: totalFee }
-          //   )
-          // );
-          // coverDetails[4] = 7972408607213;
-          // var vrsdata = await getQuoteValues(
-          //   coverDetails,
-          //   toHex('ETH'),
-          //   coverPeriod,
-          //   smartConAdd,
-          //   qt.address
-          // );
-          // await assertRevert(
-          //   qt.initiateMembershipAndCover(
-          //     smartConAdd,
-          //     toHex('ETH'),
-          //     coverDetails,
-          //     coverPeriod,
-          //     vrsdata[0],
-          //     vrsdata[1],
-          //     vrsdata[2],
-          //     { from: newMember4, value: totalFee }
-          //   )
-          // );
-          // const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
-          // const newCoverDetails = coverDetails.slice();
-          // newCoverDetails[3] = (await latestTime()) - 100;
-          // await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          // console.log('changeHoldedCoverDetails succeded');
-          // await qt.kycVerdict(newMember4, true);
-        });
-
-        it('6.36 should revert if quote validity expires', async function() {
-          const newCoverDetails = coverDetails.slice();
-          const validity = await latestTime();
-          newCoverDetails[3] = validity - 2;
-          const totalFee = new BN(fee.toString()).add(
-            new BN(newCoverDetails[1].toString())
-          );
-          await assertRevert(
-            qt.initiateMembershipAndCover(
-              smartConAdd,
-              toHex('ETH'),
-              newCoverDetails,
-              coverPeriod,
-              vrs[0],
-              vrs[1],
-              vrs[2],
-              {from: notMember, value: totalFee}
-            )
-          );
-        });
-
-        it('6.37 should get membership but not cover if quote expires for DAI', async function() {
-          await assertRevert(
-            qt.initiateMembershipAndCover(
-              smartConAdd,
-              toHex('DAI'),
-              coverDetailsDai,
-              coverPeriod,
-              vrs_dai[0],
-              vrs_dai[1],
-              vrs_dai[2],
-              {from: notMember, value: fee}
-            )
-          );
-
-          await cad.transfer(notMember, coverDetailsDai[1]);
-          await cad.approve(qt.address, coverDetailsDai[1], {
-            from: notMember
-          });
-          coverDetailsDai[4] = 7972408607014;
-          var vrsdata = await getQuoteValues(
-            coverDetailsDai,
-            toHex('DAI'),
-            coverPeriod,
-            smartConAdd,
-            qt.address
-          );
-          await qt.initiateMembershipAndCover(
-            smartConAdd,
-            toHex('DAI'),
-            coverDetailsDai,
-            coverPeriod,
-            vrsdata[0],
-            vrsdata[1],
-            vrsdata[2],
-            {from: notMember, value: fee}
-          );
-          const hcid = await qd.getUserHoldedCoverByIndex(notMember, 1);
-          const newCoverDetails = coverDetailsDai.slice();
-          newCoverDetails[3] = (await latestTime()) - 3;
-          await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          await qt.kycVerdict(notMember, true);
         });
       });
     });
   });
-
-  describe('Cover Expire', function() {
-    let initialSumAssured;
-    let initialTokenBalance;
-    let validityofCover;
-    before(async function() {
-      initialTokenBalance = await tk.balanceOf(member3);
-      validityofCover = await qd.getValidityOfCover(1);
-    });
-    it('6.38 cover should not expired before validity', async function() {
-      (await qt.checkCoverExpired(1)).should.be.equal(false);
-      await increaseTimeTo(
-        new BN(validityofCover.toString()).add(new BN((1).toString()))
-      );
-    });
-
-    it('6.39 cover should be expired after validity expires', async function() {
-      initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
-      await qt.expireCover(1);
-      (await qt.checkCoverExpired(1)).should.be.equal(true);
-    });
-
-    it('6.40 Expired cover should not be expired again', async function() {
-      await assertRevert(qt.expireCover(1));
-    });
-
-    it('6.41 decrease sum assured', async function() {
-      const newSumAssured = await qd.getTotalSumAssured(CA_ETH);
-      newSumAssured
-        .toString()
-        .should.be.equal(
-          new BN(initialSumAssured.toString())
-            .sub(new BN((1).toString()))
-            .toString()
-        );
-    });
-    it('6.42 should change cover status', async function() {
-      (await qd.getCoverStatusNo(1)).toString().should.be.equal((3).toString());
-    });
-    it('6.43 should unlock locked cover note tokens', async function() {
-      const unLockedCN = new BN(BN_10.toString())
-        .mul(new BN(coverDetails[2].toString()))
-        .div(new BN(BN_100.toString()));
-      (await tk.balanceOf(member3))
-        .toString()
-        .should.be.equal(
-          new BN(initialTokenBalance.toString())
-            .add(new BN(unLockedCN.toString()))
-            .toString()
-        );
-    });
-  });
-
-  describe('Misc', function() {
-    describe('Change product params if owner', function() {
-      it('6.47 only governance call should be able to change Profit Margin', async function() {
-        let oldMR = await MemberRoles.at(
-          await nxms.getLatestAddress(toHex('MR'))
-        );
-        let oldGv = await Governance.at(
-          await nxms.getLatestAddress(toHex('GV'))
-        );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'PM', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await qd.pm()) / 1).should.be.equal(4);
-      });
-      it('6.48 only governance call should be able to change STLP', async function() {
-        let oldMR = await MemberRoles.at(
-          await nxms.getLatestAddress(toHex('MR'))
-        );
-        let oldGv = await Governance.at(
-          await nxms.getLatestAddress(toHex('GV'))
-        );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'STLP', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await qd.stlp()) / 1).should.be.equal(4);
-      });
-      it('6.49 only governance call should be able to change STL', async function() {
-        let oldMR = await MemberRoles.at(
-          await nxms.getLatestAddress(toHex('MR'))
-        );
-        let oldGv = await Governance.at(
-          await nxms.getLatestAddress(toHex('GV'))
-        );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'STL', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await qd.stl()) / 1).should.be.equal(4);
-      });
-      it('6.50 only governance call should be able to change minimum cover period', async function() {
-        let oldMR = await MemberRoles.at(
-          await nxms.getLatestAddress(toHex('MR'))
-        );
-        let oldGv = await Governance.at(
-          await nxms.getLatestAddress(toHex('GV'))
-        );
-        actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOMIND', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2);
-        ((await qd.minDays()) / 1).should.be.equal(4);
-      });
-    });
-    describe('if not internal contract address', function() {
-      it('6.51 should not be able to change master address', async function() {
-        await assertRevert(
-          qd.changeMasterAddress(qd.address, {from: notMember})
-        );
-        await assertRevert(
-          qt.changeMasterAddress(qd.address, {from: notMember})
-        );
-      });
-      it('6.52 should not be able to change cover status number', async function() {
-        const CID = await qd.getAllCoversOfUser(member3);
-        await assertRevert(
-          qd.changeCoverStatusNo(CID[0], 1, {from: notMember})
-        );
-      });
-      it('6.53 should fail add mcr if lower threshold not reached', async function() {
-        await mcr.addMCRData(
-          parseInt((await getValue(toWei(2), pd, mcr)) / 2),
-          toWei(100),
-          toWei(2),
-          ['0x455448', '0x444149'],
-          [100, 65407],
-          20181011
-        );
-        var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-        (await pd.getApiIdTypeOf(APIID)).should.be.equal('0x4d435246');
-      });
-      it('6.54 should throw if call kycVerdict with non authorised address', async function() {
-        await assertRevert(qt.kycVerdict(member1, true, {from: member1}));
-      });
-      it('6.55 should not able to update quoatation parameters directly', async function() {
-        await assertRevert(qd.updateUintParameters(toHex('STLP'), 1));
-      });
-    });
-  });
+  //           // it('6.10 should be revert if smart contract address is null', async function() {
+  //           //   coverDetails[4] = 7972408607114;
+  //           //   var vrsdata = await getQuoteValues(
+  //           //     coverDetails,
+  //           //     toHex('ETH'),
+  //           //     coverPeriod,
+  //           //     smartConAdd,
+  //           //     qt.address
+  //           //   );
+  //           //   await assertRevert(
+  //           //     P1.makeCoverBegin(
+  //           //       nullAddress,
+  //           //       toHex('ETH'),
+  //           //       coverDetails,
+  //           //       coverPeriod,
+  //           //       vrsdata[0],
+  //           //       vrsdata[1],
+  //           //       vrsdata[2],
+  //           //       { from: coverHolder, value: coverDetails[1] }
+  //           //     )
+  //           //   );
+  //           // });
+  //           // it('6.11 should return correct cover details', async function() {
+  //           //   const CID = await qd.getAllCoversOfUser(coverHolder);
+  //           //   let checkd = false;
+  //           //   const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
+  //           //   const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+  //           //   let smartCACompare =
+  //           //     web3.utils.toChecksumAddress(cdetails1[2]) ==
+  //           //     web3.utils.toChecksumAddress(smartConAdd);
+  //           //   if (
+  //           //     cdetails1[3] == CA_ETH &&
+  //           //     cdetails1[1] == coverHolder &&
+  //           //     smartCACompare
+  //           //   ) {
+  //           //     checkd = true;
+  //           //   }
+  //           //   checkd.should.equal(true);
+  //           // });
+  //         });
+  //
+  //         describe('Purchase Cover With NXM', function() {
+  //           const coverHolder = member4;
+  //           let initialTotalSA;
+  //           before(async function() {
+  //             await mr.payJoiningFee(coverHolder, {
+  //               from: coverHolder,
+  //               value: fee
+  //             });
+  //             await mr.kycVerdict(coverHolder, true);
+  //             await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+  //               from: coverHolder
+  //             });
+  //             await tk.transfer(coverHolder, tokens);
+  //           });
+  //           it('6.12 should not have locked Cover Note initially', async function() {
+  //             const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
+  //               coverHolder
+  //             );
+  //             initialLockedCN.toString().should.be.equal((0).toString());
+  //           });
+  //           it('6.13 total sum assured should be 1 ETH initially', async function() {
+  //             initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
+  //             initialTotalSA.toString().should.be.equal((1).toString());
+  //           });
+  //           it('6.14 should be able to purchase cover', async function() {
+  //             const initialTokensOfCoverHolder = await tk.balanceOf(
+  //               coverHolder
+  //             );
+  //             initialTotalSupply = (await tk.totalSupply()).div(P_18);
+  //             coverDetails[4] = 7972408607001;
+  //             var vrsdata = await getQuoteValues(
+  //               coverDetails,
+  //               toHex('ETH'),
+  //               coverPeriod,
+  //               smartConAdd,
+  //               qt.address
+  //             );
+  //             await qt.makeCoverUsingNXMTokens(
+  //               coverDetails,
+  //               coverPeriod,
+  //               toHex('ETH'),
+  //               smartConAdd,
+  //               vrsdata[0],
+  //               vrsdata[1],
+  //               vrsdata[2],
+  //               {from: coverHolder}
+  //             );
+  //             const newLockedCN = new BN(BN_10.toString())
+  //               .mul(new BN(coverDetails[2].toString()))
+  //               .div(new BN(BN_100.toString()));
+  //             const newTotalSA = new BN(initialTotalSA.toString()).add(
+  //               new BN(coverDetails[0].toString())
+  //             );
+  //             const newTokensOfCoverHolder = new BN(
+  //               initialTokensOfCoverHolder.toString()
+  //             ).sub(new BN(coverDetails[2].toString()));
+  //             const newTotalSupply = new BN(initialTotalSupply.toString()).add(
+  //               new BN(newLockedCN.toString()).div(new BN(P_18.toString()))
+  //             );
+  //             newLockedCN
+  //               .toString()
+  //               .should.be.equal(
+  //                 (
+  //                   await tf.getUserAllLockedCNTokens.call(coverHolder)
+  //                 ).toString()
+  //               );
+  //             newTotalSA
+  //               .toString()
+  //               .should.be.equal(
+  //                 (await qd.getTotalSumAssured(CA_ETH)).toString()
+  //               );
+  //             newTokensOfCoverHolder
+  //               .toString()
+  //               .should.be.equal((await tk.balanceOf(coverHolder)).toString());
+  //             newTotalSupply.toString().should.be.equal(
+  //               new BN((await tk.totalSupply()).toString())
+  //                 .div(new BN(P_18.toString()))
+  //                 .add(new BN((1).toString()))
+  //                 .toString()
+  //             );
+  //           });
+  //           it('6.15 should return correct cover details', async function() {
+  //             const CID = await qd.getAllCoversOfUser(coverHolder);
+  //             let checkd = false;
+  //             const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
+  //             const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+  //             let smartCACompare =
+  //               web3.utils.toChecksumAddress(cdetails1[2]) ==
+  //               web3.utils.toChecksumAddress(smartConAdd);
+  //             if (
+  //               cdetails1[3] == CA_ETH &&
+  //               cdetails1[1] == coverHolder &&
+  //               smartCACompare
+  //             ) {
+  //               checkd = true;
+  //             }
+  //             checkd.should.equal(true);
+  //           });
+  //         });
+  //
+  //         describe('Purchase Cover With DAI', function() {
+  //           const coverHolder = member5;
+  //           let initialTotalSA;
+  //           let initialPoolBalanceOfCA;
+  //           before(async function() {
+  //             await mr.payJoiningFee(coverHolder, {
+  //               from: coverHolder,
+  //               value: fee
+  //             });
+  //             await mr.kycVerdict(coverHolder, true);
+  //             await P1.buyToken({
+  //               from: coverHolder,
+  //               value: tokenAmount
+  //             });
+  //             await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+  //               from: coverHolder
+  //             });
+  //             await cad.transfer(coverHolder, tokenDai);
+  //           });
+  //           it('6.16 should not have locked Cover Note initially', async function() {
+  //             const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
+  //               coverHolder
+  //             );
+  //             initialLockedCN.toString().should.be.equal((0).toString());
+  //           });
+  //           it('6.17 total sum assured should be 2 ETH initially', async function() {
+  //             initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
+  //             initialTotalSA.toString().should.be.equal((2).toString());
+  //           });
+  //           it('6.18 should able to purchase cover using currency assest i.e. DAI ', async function() {
+  //             const initialCAbalance = await cad.balanceOf(coverHolder);
+  //             initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
+  //             const initialTotalSupply = await tk.totalSupply();
+  //             coverDetailsDai[4] = 7972408607002;
+  //             var vrsdata = await getQuoteValues(
+  //               coverDetailsDai,
+  //               toHex('DAI'),
+  //               coverPeriod,
+  //               smartConAdd,
+  //               qt.address
+  //             );
+  //
+  //             await cad.approve(P1.address, coverDetailsDai[1], {
+  //               from: coverHolder
+  //             });
+  //             await P1.makeCoverUsingCA(
+  //               smartConAdd,
+  //               toHex('DAI'),
+  //               coverDetailsDai,
+  //               coverPeriod,
+  //               vrsdata[0],
+  //               vrsdata[1],
+  //               vrsdata[2],
+  //               {from: coverHolder}
+  //             );
+  //             const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
+  //               coverHolder
+  //             );
+  //             const presentCAbalance = await cad.balanceOf(coverHolder);
+  //             const presentTotalSupply = await tk.totalSupply();
+  //             const newLockedCN = BN_10.mul(
+  //               new BN(coverDetailsDai[2].toString()).div(BN_100)
+  //             );
+  //             const newTotalSupply = new BN(initialTotalSupply.toString()).add(
+  //               new BN(newLockedCN.toString())
+  //             );
+  //             presentCAbalance
+  //               .toString()
+  //               .should.be.equal(
+  //                 new BN(initialCAbalance.toString())
+  //                   .sub(new BN(coverDetailsDai[1].toString()))
+  //                   .toString()
+  //               );
+  //             var newLockedCNVal = newLockedCN.toString();
+  //             newLockedCNVal = newLockedCNVal.substring(
+  //               0,
+  //               newLockedCNVal.length - 1
+  //             );
+  //             var presentLockedCNVal = presentLockedCN.toString();
+  //             presentLockedCNVal = presentLockedCNVal.substring(
+  //               0,
+  //               presentLockedCNVal.length - 1
+  //             );
+  //             newLockedCNVal.should.be.equal(presentLockedCNVal.toString());
+  //             var newTotalSupplyVal = newTotalSupply.toString();
+  //             newTotalSupplyVal = newTotalSupplyVal.substring(
+  //               0,
+  //               newTotalSupplyVal.length - 2
+  //             );
+  //             var presentTotalSupplyVal = presentTotalSupply.toString();
+  //             var presentTotalSupplyVal = presentTotalSupplyVal.substring(
+  //               0,
+  //               presentTotalSupplyVal.length - 2
+  //             );
+  //             newTotalSupplyVal
+  //               .toString()
+  //               .should.be.equal(presentTotalSupplyVal.toString());
+  //           });
+  //           it('6.19 currency assest balance should increase after cover purchase', async function() {
+  //             const presentPoolBalanceOfCA = new BN(
+  //               coverDetailsDai[1].toString()
+  //             );
+  //             (await cad.balanceOf(P1.address))
+  //               .toString()
+  //               .should.be.equal(
+  //                 new BN(initialPoolBalanceOfCA.toString())
+  //                   .add(new BN(presentPoolBalanceOfCA.toString()))
+  //                   .toString()
+  //               );
+  //           });
+  //           it('6.20 should return correct cover details purchased with DAI', async function() {
+  //             const CID = await qd.getAllCoversOfUser(coverHolder);
+  //             let checkd = false;
+  //             const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
+  //             const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+  //             let smartCACompare =
+  //               web3.utils.toChecksumAddress(cdetails1[2]) ==
+  //               web3.utils.toChecksumAddress(smartConAdd);
+  //             if (
+  //               cdetails1[3] == CA_DAI &&
+  //               cdetails1[1] == coverHolder &&
+  //               smartCACompare
+  //             ) {
+  //               checkd = true;
+  //             }
+  //             checkd.should.equal(true);
+  //           });
+  //         });
+  //       });
+  //
+  //       describe('If staker staked tokens on Smart Contract', function() {
+  //         const staker1 = member1;
+  //         const staker2 = member2;
+  //         let event;
+  //         before(async function() {
+  //           await mr.payJoiningFee(staker2, {
+  //             from: staker2,
+  //             value: fee
+  //           });
+  //           await mr.kycVerdict(staker2, true);
+  //           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+  //             from: staker2
+  //           });
+  //           await tk.transfer(staker2, tokens);
+  //           await tk.transfer(staker1, tokens);
+  //           await tk.transfer(staker2, tokens);
+  //
+  //           await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+  //             from: staker1
+  //           });
+  //
+  //           await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+  //             from: staker2
+  //           });
+  //
+  //           console.log(`Processing pending actions..`);
+  //           await ps.processPendingActions();
+  //           console.log(`Finished processing pending actions.`);
+  //         });
+  //
+  //         describe('Purchase Cover With Ether', function() {
+  //           const coverHolder = member3;
+  //           let initialStakeCommissionOfS1;
+  //           let initialStakeCommissionOfS2;
+  //           it('6.21 should be able to purchase cover ', async function() {
+  //             initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+  //               staker1
+  //             );
+  //             initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+  //               staker2
+  //             );
+  //             coverDetails[4] = 7972408607003;
+  //             var vrsdata = await getQuoteValues(
+  //               coverDetails,
+  //               toHex('ETH'),
+  //               coverPeriod,
+  //               smartConAdd,
+  //               qt.address
+  //             );
+  //
+  //             await P1.makeCoverBegin(
+  //               smartConAdd,
+  //               toHex('ETH'),
+  //               coverDetails,
+  //               coverPeriod,
+  //               vrsdata[0],
+  //               vrsdata[1],
+  //               vrsdata[2],
+  //               {from: coverHolder, value: coverDetails[1]}
+  //             );
+  //             await assertRevert(
+  //               P1.makeCoverBegin(
+  //                 smartConAdd,
+  //                 toHex('ETH'),
+  //                 coverDetails,
+  //                 coverPeriod,
+  //                 vrsdata[0],
+  //                 vrsdata[1],
+  //                 vrsdata[2],
+  //                 {from: coverHolder, value: coverDetails[1]}
+  //               )
+  //             );
+  //           });
+  //
+  //           it('6.22 staker gets commission', async function() {
+  //             const commission =
+  //               (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
+  //             (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+  //               .toString()
+  //               .should.be.equal(
+  //                 new BN(initialStakeCommissionOfS1.toString())
+  //                   .add(new BN(commission.toFixed(0).toString()))
+  //                   .toString()
+  //               );
+  //
+  //             (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+  //               .toString()
+  //               .should.be.equal(initialStakeCommissionOfS2.toString());
+  //           });
+  //         });
+  //
+  //         describe('Purchase Cover With NXM', function() {
+  //           const coverHolder = member4;
+  //           let initialStakeCommissionOfS1;
+  //           let initialStakeCommissionOfS2;
+  //           it('6.23 should be able to purchase cover', async function() {
+  //             initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+  //               staker1
+  //             );
+  //             initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+  //               staker2
+  //             );
+  //             let newCDetails = coverDetails.slice();
+  //             newCDetails[3] = (await latestTime()) - 2;
+  //             await assertRevert(
+  //               qt.makeCoverUsingNXMTokens(
+  //                 newCDetails,
+  //                 coverPeriod,
+  //                 toHex('ETH'),
+  //                 smartConAdd,
+  //                 vrs[0],
+  //                 vrs[1],
+  //                 vrs[2],
+  //                 {from: coverHolder}
+  //               )
+  //             );
+  //             await assertRevert(
+  //               qt.makeCoverUsingNXMTokens(
+  //                 coverDetails,
+  //                 coverPeriod,
+  //                 toHex('ETH'),
+  //                 smartConAdd,
+  //                 27,
+  //                 vrs[1],
+  //                 vrs[2],
+  //                 {from: coverHolder}
+  //               )
+  //             );
+  //             coverDetails[4] = 7972408607004;
+  //             var vrsdata = await getQuoteValues(
+  //               coverDetails,
+  //               toHex('ETH'),
+  //               coverPeriod,
+  //               smartConAdd,
+  //               qt.address
+  //             );
+  //             await qt.makeCoverUsingNXMTokens(
+  //               coverDetails,
+  //               coverPeriod,
+  //               toHex('ETH'),
+  //               smartConAdd,
+  //               vrsdata[0],
+  //               vrsdata[1],
+  //               vrsdata[2],
+  //               {from: coverHolder}
+  //             );
+  //           });
+  //           it('6.24 staker gets commission', async function() {
+  //             const commission =
+  //               (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
+  //             (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+  //               .toString()
+  //               .should.be.equal(
+  //                 new BN(initialStakeCommissionOfS1.toString())
+  //                   .add(new BN(commission.toFixed(0).toString()))
+  //                   .toString()
+  //               );
+  //
+  //             (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+  //               .toString()
+  //               .should.be.equal(initialStakeCommissionOfS2.toString());
+  //           });
+  //         });
+  //
+  //         describe('Purchase Cover With DAI', function() {
+  //           const coverHolder = member5;
+  //           let initialPoolBalanceOfCA;
+  //           let initialStakeCommissionOfS1;
+  //           let initialStakeCommissionOfS2;
+  //           it('6.25 should able to purchase cover using currency assest i.e. DAI ', async function() {
+  //             initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+  //               staker1
+  //             );
+  //             initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+  //               staker2
+  //             );
+  //             await cad.approve(P1.address, coverDetailsDai[1], {
+  //               from: coverHolder
+  //             });
+  //             coverDetailsDai[4] = 7972408607005;
+  //             var vrsdata = await getQuoteValues(
+  //               coverDetailsDai,
+  //               toHex('DAI'),
+  //               coverPeriod,
+  //               smartConAdd,
+  //               qt.address
+  //             );
+  //             await P1.makeCoverUsingCA(
+  //               smartConAdd,
+  //               toHex('DAI'),
+  //               coverDetailsDai,
+  //               coverPeriod,
+  //               vrsdata[0],
+  //               vrsdata[1],
+  //               vrsdata[2],
+  //               {from: coverHolder}
+  //             );
+  //           });
+  //           it('6.26 staker gets commission', async function() {
+  //             const commission =
+  //               (coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
+  //               1;
+  //             (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+  //               .toString()
+  //               .should.be.equal(
+  //                 new BN(initialStakeCommissionOfS1.toString())
+  //                   .add(new BN(commission.toFixed(0).toString()))
+  //                   .toString()
+  //               );
+  //             (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+  //               .toString()
+  //               .should.be.equal(initialStakeCommissionOfS2.toString());
+  //           });
+  //           it('6.27 should able to purchase cover with cover period less than 60 ', async function() {
+  //             let coverLen = await qd.getCoverLength();
+  //             let totalSASC = await qd.getTotalSumAssuredSC(
+  //               smartConAdd,
+  //               toHex('DAI')
+  //             );
+  //             coverDetailsLess[4] = 7972408607006;
+  //             var vrsdata = await getQuoteValues(
+  //               coverDetailsLess,
+  //               toHex('DAI'),
+  //               coverPeriodLess,
+  //               smartConAdd,
+  //               qt.address
+  //             );
+  //             await cad.approve(P1.address, coverDetailsLess[1], {
+  //               from: coverHolder
+  //             });
+  //             await P1.makeCoverUsingCA(
+  //               smartConAdd,
+  //               toHex('DAI'),
+  //               coverDetailsLess,
+  //               coverPeriodLess,
+  //               vrsdata[0],
+  //               vrsdata[1],
+  //               vrsdata[2],
+  //               {from: coverHolder}
+  //             );
+  //             new BN(coverLen.toString())
+  //               .add(new BN((1).toString()))
+  //               .toString()
+  //               .should.be.equal((await qd.getCoverLength()).toString());
+  //             coverPeriodLess
+  //               .toString()
+  //               .should.be.equal(
+  //                 (
+  //                   await qd.getCoverPeriod((await qd.getCoverLength()) - 1)
+  //                 ).toString()
+  //               );
+  //             new BN(totalSASC.toString())
+  //               .add(new BN(coverDetailsLess[0].toString()))
+  //               .toString()
+  //               .should.be.equal(
+  //                 (
+  //                   await qd.getTotalSumAssuredSC(smartConAdd, toHex('DAI'))
+  //                 ).toString()
+  //               );
+  //           });
+  //         });
+  //       });
+  //     });
+  //   });
+  //
+  //   describe('If user is not a member', function() {
+  //     it('6.28 should return -1 if user have no holded Covers', async function() {
+  //       let holdedId = await qt.getRecentHoldedCoverIdStatus(member1);
+  //       holdedId.toString().should.be.equal((-1).toString());
+  //     });
+  //     it('6.29 should revert if member', async function() {
+  //       const totalFee = new BN(fee.toString()).add(
+  //         new BN(coverDetails[1].toString())
+  //       );
+  //       coverDetails[4] = 7972408607214;
+  //       var vrsdata = await getQuoteValues(
+  //         coverDetails,
+  //         toHex('ETH'),
+  //         coverPeriod,
+  //         smartConAdd,
+  //         qt.address
+  //       );
+  //       await assertRevert(
+  //         qt.initiateMembershipAndCover(
+  //           smartConAdd,
+  //           toHex('ETH'),
+  //           coverDetails,
+  //           coverPeriod,
+  //           vrsdata[0],
+  //           vrsdata[1],
+  //           vrsdata[2],
+  //           {from: member1, value: totalFee}
+  //         )
+  //       );
+  //     });
+  //     describe('if do not want to join membership', function() {
+  //       it('6.30 reverts', async function() {
+  //         await assertRevert(
+  //           P1.makeCoverBegin(
+  //             smartConAdd,
+  //             toHex('ETH'),
+  //             coverDetails,
+  //             coverPeriod,
+  //             vrs[0],
+  //             vrs[1],
+  //             vrs[2],
+  //             {from: notMember, value: coverDetails[1]}
+  //           )
+  //         );
+  //
+  //         await assertRevert(
+  //           qt.makeCoverUsingNXMTokens(
+  //             coverDetails,
+  //             coverPeriod,
+  //             toHex('ETH'),
+  //             smartConAdd,
+  //             vrs[0],
+  //             vrs[1],
+  //             vrs[2],
+  //             {from: notMember}
+  //           )
+  //         );
+  //         await assertRevert(
+  //           P1.makeCoverUsingCA(
+  //             smartConAdd,
+  //             toHex('DAI'),
+  //             coverDetailsDai,
+  //             coverPeriod,
+  //             vrs_dai[0],
+  //             vrs_dai[1],
+  //             vrs_dai[2],
+  //             {from: notMember}
+  //           )
+  //         );
+  //         const totalFee = new BN(fee.toString()).add(
+  //           new BN(coverDetails[1].toString())
+  //         );
+  //         coverDetails[4] = 7972408607313;
+  //         var vrsdata = await getQuoteValues(
+  //           coverDetails,
+  //           toHex('ETH'),
+  //           coverPeriod,
+  //           smartConAdd,
+  //           qt.address
+  //         );
+  //         await assertRevert(
+  //           qt.initiateMembershipAndCover(
+  //             smartConAdd,
+  //             toHex('ETH'),
+  //             coverDetails,
+  //             coverPeriod,
+  //             vrsdata[0],
+  //             vrsdata[1],
+  //             vrsdata[2],
+  //             {from: notMember, value: 1}
+  //           )
+  //         );
+  //         coverDetails[4] = 7972408607813;
+  //         var vrsdata = await getQuoteValues(
+  //           coverDetails,
+  //           toHex('ETH'),
+  //           coverPeriod,
+  //           smartConAdd,
+  //           qt.address
+  //         );
+  //         await assertRevert(
+  //           qt.initiateMembershipAndCover(
+  //             smartConAdd,
+  //             toHex('ETH'),
+  //             coverDetails,
+  //             coverPeriod,
+  //             10,
+  //             vrsdata[1],
+  //             vrsdata[2],
+  //             {from: notMember, value: totalFee}
+  //           )
+  //         );
+  //         coverDetails[4] = 7972408607007;
+  //         var vrsdata = await getQuoteValues(
+  //           coverDetails,
+  //           toHex('ETH'),
+  //           coverPeriod,
+  //           smartConAdd,
+  //           qt.address
+  //         );
+  //         await qt.initiateMembershipAndCover(
+  //           smartConAdd,
+  //           toHex('ETH'),
+  //           coverDetails,
+  //           coverPeriod,
+  //           vrsdata[0],
+  //           vrsdata[1],
+  //           vrsdata[2],
+  //           {from: notMember, value: totalFee}
+  //         );
+  //         await cad.transfer(qt.address, toWei(10));
+  //         let newQt = await Quotation.new();
+  //         let oldMR = await MemberRoles.at(
+  //           await nxms.getLatestAddress(toHex('MR'))
+  //         );
+  //         let oldGv = await Governance.at(
+  //           await nxms.getLatestAddress(toHex('GV'))
+  //         );
+  //         actionHash = encode(
+  //           'upgradeContract(bytes2,address)',
+  //           'QT',
+  //           newQt.address
+  //         );
+  //         await gvProp(29, actionHash, oldMR, oldGv, 2);
+  //         (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
+  //           newQt.address
+  //         );
+  //         qt = newQt;
+  //         await assertRevert(
+  //           qt.initiateMembershipAndCover(
+  //             smartConAdd,
+  //             toHex('ETH'),
+  //             coverDetails,
+  //             coverPeriod,
+  //             vrs[0],
+  //             vrs[1],
+  //             vrs[2],
+  //             {from: notMember, value: totalFee}
+  //           )
+  //         );
+  //         let hcl = await qd.getUserHoldedCoverLength(notMember);
+  //         await qt.kycVerdict(notMember, false);
+  //         await mr.payJoiningFee(notMember, {
+  //           from: notMember,
+  //           value: fee
+  //         });
+  //         await mr.kycVerdict(notMember, false);
+  //       });
+  //     });
+  //     describe('if want to join membership', function() {
+  //       it('6.31 should be able to join membership and purchase cover with ETH', async function() {
+  //         await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+  //           from: newMember1
+  //         });
+  //         const totalFee = new BN(fee.toString()).add(
+  //           new BN(coverDetails[1].toString())
+  //         );
+  //         coverDetails[4] = 7972408607008;
+  //         var vrsdata = await getQuoteValues(
+  //           coverDetails,
+  //           toHex('ETH'),
+  //           coverPeriod,
+  //           smartConAdd,
+  //           qt.address
+  //         );
+  //         await qt.initiateMembershipAndCover(
+  //           smartConAdd,
+  //           toHex('ETH'),
+  //           coverDetails,
+  //           coverPeriod,
+  //           vrsdata[0],
+  //           vrsdata[1],
+  //           vrsdata[2],
+  //           {from: newMember1, value: totalFee}
+  //         );
+  //         let holdedId = await qt.getRecentHoldedCoverIdStatus(newMember1);
+  //         holdedId.toNumber().should.be.above(0);
+  //         await qt.kycVerdict(newMember1, true);
+  //       });
+  //       it('6.32 should be able to join membership and purchase cover with DAI', async function() {
+  //         await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+  //           from: newMember2
+  //         });
+  //         await cad.transfer(newMember2, tokenDai);
+  //         await cad.approve(qt.address, coverDetailsDai[1], {
+  //           from: newMember2
+  //         });
+  //         coverDetailsDai[4] = 7972408607009;
+  //         var vrsdata = await getQuoteValues(
+  //           coverDetailsDai,
+  //           toHex('DAI'),
+  //           coverPeriod,
+  //           smartConAdd,
+  //           qt.address
+  //         );
+  //         await qt.initiateMembershipAndCover(
+  //           smartConAdd,
+  //           toHex('DAI'),
+  //           coverDetailsDai,
+  //           coverPeriod,
+  //           vrsdata[0],
+  //           vrsdata[1],
+  //           vrsdata[2],
+  //           {from: newMember2, value: fee}
+  //         );
+  //         const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
+  //         await qt.kycVerdict(newMember2, true);
+  //       });
+  //
+  //       it('6.34 should revert if wallet address is not set', async function() {
+  //         let oldMR = await MemberRoles.at(
+  //           await nxms.getLatestAddress(toHex('MR'))
+  //         );
+  //         let oldGv = await Governance.at(
+  //           await nxms.getLatestAddress(toHex('GV'))
+  //         );
+  //         actionHash = encode(
+  //           'updateOwnerParameters(bytes8,address)',
+  //           'MSWALLET',
+  //           nullAddress
+  //         );
+  //         await gvProp(28, actionHash, oldMR, oldGv, 3);
+  //         (await td.walletAddress()).should.be.equal(nullAddress);
+  //         await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+  //           from: newMember5
+  //         });
+  //         const totalFee = new BN(fee.toString()).add(
+  //           new BN(coverDetails[1].toString())
+  //         );
+  //         coverDetails[4] = 7972408607012;
+  //         var vrsdata = await getQuoteValues(
+  //           coverDetails,
+  //           toHex('ETH'),
+  //           coverPeriod,
+  //           smartConAdd,
+  //           qt.address
+  //         );
+  //         await qt.initiateMembershipAndCover(
+  //           smartConAdd,
+  //           toHex('ETH'),
+  //           coverDetails,
+  //           coverPeriod,
+  //           vrsdata[0],
+  //           vrsdata[1],
+  //           vrsdata[2],
+  //           {from: newMember5, value: totalFee}
+  //         );
+  //         await assertRevert(qt.kycVerdict(newMember5, true));
+  //         actionHash = encode(
+  //           'updateOwnerParameters(bytes8,address)',
+  //           'MSWALLET',
+  //           owner
+  //         );
+  //         await gvProp(28, actionHash, oldMR, oldGv, 3);
+  //         (await td.walletAddress()).should.be.equal(owner);
+  //       });
+  //
+  //       it('6.35 should get membership but not cover if quote expires for ETH', async function() {
+  //         // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+  //         //   from: newMember4
+  //         // });
+  //         // const totalFee = new BN(fee.toString()).add(
+  //         //   new BN(coverDetails[1].toString())
+  //         // );
+  //         // coverDetails[4] = 7972408607013;
+  //         // var vrsdata = await getQuoteValues(
+  //         //   coverDetails,
+  //         //   toHex('ETH'),
+  //         //   coverPeriod,
+  //         //   smartConAdd,
+  //         //   qt.address
+  //         // );
+  //         // await qt.initiateMembershipAndCover(
+  //         //   smartConAdd,
+  //         //   toHex('ETH'),
+  //         //   coverDetails,
+  //         //   coverPeriod,
+  //         //   vrsdata[0],
+  //         //   vrsdata[1],
+  //         //   vrsdata[2],
+  //         //   { from: newMember4, value: totalFee }
+  //         // );
+  //         // console.log('Initiate membership and cover-1 succeded');
+  //         // await assertRevert(
+  //         //   qt.initiateMembershipAndCover(
+  //         //     smartConAdd,
+  //         //     toHex('ETH'),
+  //         //     coverDetails,
+  //         //     coverPeriod,
+  //         //     vrsdata[0],
+  //         //     vrsdata[1],
+  //         //     vrsdata[2],
+  //         //     { from: newMember4, value: totalFee }
+  //         //   )
+  //         // );
+  //         // coverDetails[4] = 7972408607213;
+  //         // var vrsdata = await getQuoteValues(
+  //         //   coverDetails,
+  //         //   toHex('ETH'),
+  //         //   coverPeriod,
+  //         //   smartConAdd,
+  //         //   qt.address
+  //         // );
+  //         // await assertRevert(
+  //         //   qt.initiateMembershipAndCover(
+  //         //     smartConAdd,
+  //         //     toHex('ETH'),
+  //         //     coverDetails,
+  //         //     coverPeriod,
+  //         //     vrsdata[0],
+  //         //     vrsdata[1],
+  //         //     vrsdata[2],
+  //         //     { from: newMember4, value: totalFee }
+  //         //   )
+  //         // );
+  //         // const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
+  //         // const newCoverDetails = coverDetails.slice();
+  //         // newCoverDetails[3] = (await latestTime()) - 100;
+  //         // await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
+  //         // console.log('changeHoldedCoverDetails succeded');
+  //         // await qt.kycVerdict(newMember4, true);
+  //       });
+  //
+  //       it('6.36 should revert if quote validity expires', async function() {
+  //         const newCoverDetails = coverDetails.slice();
+  //         const validity = await latestTime();
+  //         newCoverDetails[3] = validity - 2;
+  //         const totalFee = new BN(fee.toString()).add(
+  //           new BN(newCoverDetails[1].toString())
+  //         );
+  //         await assertRevert(
+  //           qt.initiateMembershipAndCover(
+  //             smartConAdd,
+  //             toHex('ETH'),
+  //             newCoverDetails,
+  //             coverPeriod,
+  //             vrs[0],
+  //             vrs[1],
+  //             vrs[2],
+  //             {from: notMember, value: totalFee}
+  //           )
+  //         );
+  //       });
+  //
+  //       it('6.37 should get membership but not cover if quote expires for DAI', async function() {
+  //         await assertRevert(
+  //           qt.initiateMembershipAndCover(
+  //             smartConAdd,
+  //             toHex('DAI'),
+  //             coverDetailsDai,
+  //             coverPeriod,
+  //             vrs_dai[0],
+  //             vrs_dai[1],
+  //             vrs_dai[2],
+  //             {from: notMember, value: fee}
+  //           )
+  //         );
+  //
+  //         await cad.transfer(notMember, coverDetailsDai[1]);
+  //         await cad.approve(qt.address, coverDetailsDai[1], {
+  //           from: notMember
+  //         });
+  //         coverDetailsDai[4] = 7972408607014;
+  //         var vrsdata = await getQuoteValues(
+  //           coverDetailsDai,
+  //           toHex('DAI'),
+  //           coverPeriod,
+  //           smartConAdd,
+  //           qt.address
+  //         );
+  //         await qt.initiateMembershipAndCover(
+  //           smartConAdd,
+  //           toHex('DAI'),
+  //           coverDetailsDai,
+  //           coverPeriod,
+  //           vrsdata[0],
+  //           vrsdata[1],
+  //           vrsdata[2],
+  //           {from: notMember, value: fee}
+  //         );
+  //         const hcid = await qd.getUserHoldedCoverByIndex(notMember, 1);
+  //         const newCoverDetails = coverDetailsDai.slice();
+  //         newCoverDetails[3] = (await latestTime()) - 3;
+  //         await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
+  //         await qt.kycVerdict(notMember, true);
+  //       });
+  //     });
+  //   });
+  // });
+  //
+  // describe('Cover Expire', function() {
+  //   let initialSumAssured;
+  //   let initialTokenBalance;
+  //   let validityofCover;
+  //   before(async function() {
+  //     initialTokenBalance = await tk.balanceOf(member3);
+  //     validityofCover = await qd.getValidityOfCover(1);
+  //   });
+  //   it('6.38 cover should not expired before validity', async function() {
+  //     (await qt.checkCoverExpired(1)).should.be.equal(false);
+  //     await increaseTimeTo(
+  //       new BN(validityofCover.toString()).add(new BN((1).toString()))
+  //     );
+  //   });
+  //
+  //   it('6.39 cover should be expired after validity expires', async function() {
+  //     initialSumAssured = await qd.getTotalSumAssured(CA_ETH);
+  //     await qt.expireCover(1);
+  //     (await qt.checkCoverExpired(1)).should.be.equal(true);
+  //   });
+  //
+  //   it('6.40 Expired cover should not be expired again', async function() {
+  //     await assertRevert(qt.expireCover(1));
+  //   });
+  //
+  //   it('6.41 decrease sum assured', async function() {
+  //     const newSumAssured = await qd.getTotalSumAssured(CA_ETH);
+  //     newSumAssured
+  //       .toString()
+  //       .should.be.equal(
+  //         new BN(initialSumAssured.toString())
+  //           .sub(new BN((1).toString()))
+  //           .toString()
+  //       );
+  //   });
+  //   it('6.42 should change cover status', async function() {
+  //     (await qd.getCoverStatusNo(1)).toString().should.be.equal((3).toString());
+  //   });
+  //   it('6.43 should unlock locked cover note tokens', async function() {
+  //     const unLockedCN = new BN(BN_10.toString())
+  //       .mul(new BN(coverDetails[2].toString()))
+  //       .div(new BN(BN_100.toString()));
+  //     (await tk.balanceOf(member3))
+  //       .toString()
+  //       .should.be.equal(
+  //         new BN(initialTokenBalance.toString())
+  //           .add(new BN(unLockedCN.toString()))
+  //           .toString()
+  //       );
+  //   });
+  // });
+  //
+  // describe('Misc', function() {
+  //   describe('Change product params if owner', function() {
+  //     it('6.47 only governance call should be able to change Profit Margin', async function() {
+  //       let oldMR = await MemberRoles.at(
+  //         await nxms.getLatestAddress(toHex('MR'))
+  //       );
+  //       let oldGv = await Governance.at(
+  //         await nxms.getLatestAddress(toHex('GV'))
+  //       );
+  //       actionHash = encode('updateUintParameters(bytes8,uint)', 'PM', 4);
+  //       await gvProp(23, actionHash, oldMR, oldGv, 2);
+  //       ((await qd.pm()) / 1).should.be.equal(4);
+  //     });
+  //     it('6.48 only governance call should be able to change STLP', async function() {
+  //       let oldMR = await MemberRoles.at(
+  //         await nxms.getLatestAddress(toHex('MR'))
+  //       );
+  //       let oldGv = await Governance.at(
+  //         await nxms.getLatestAddress(toHex('GV'))
+  //       );
+  //       actionHash = encode('updateUintParameters(bytes8,uint)', 'STLP', 4);
+  //       await gvProp(23, actionHash, oldMR, oldGv, 2);
+  //       ((await qd.stlp()) / 1).should.be.equal(4);
+  //     });
+  //     it('6.49 only governance call should be able to change STL', async function() {
+  //       let oldMR = await MemberRoles.at(
+  //         await nxms.getLatestAddress(toHex('MR'))
+  //       );
+  //       let oldGv = await Governance.at(
+  //         await nxms.getLatestAddress(toHex('GV'))
+  //       );
+  //       actionHash = encode('updateUintParameters(bytes8,uint)', 'STL', 4);
+  //       await gvProp(23, actionHash, oldMR, oldGv, 2);
+  //       ((await qd.stl()) / 1).should.be.equal(4);
+  //     });
+  //     it('6.50 only governance call should be able to change minimum cover period', async function() {
+  //       let oldMR = await MemberRoles.at(
+  //         await nxms.getLatestAddress(toHex('MR'))
+  //       );
+  //       let oldGv = await Governance.at(
+  //         await nxms.getLatestAddress(toHex('GV'))
+  //       );
+  //       actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOMIND', 4);
+  //       await gvProp(23, actionHash, oldMR, oldGv, 2);
+  //       ((await qd.minDays()) / 1).should.be.equal(4);
+  //     });
+  //   });
+  //   describe('if not internal contract address', function() {
+  //     it('6.51 should not be able to change master address', async function() {
+  //       await assertRevert(
+  //         qd.changeMasterAddress(qd.address, {from: notMember})
+  //       );
+  //       await assertRevert(
+  //         qt.changeMasterAddress(qd.address, {from: notMember})
+  //       );
+  //     });
+  //     it('6.52 should not be able to change cover status number', async function() {
+  //       const CID = await qd.getAllCoversOfUser(member3);
+  //       await assertRevert(
+  //         qd.changeCoverStatusNo(CID[0], 1, {from: notMember})
+  //       );
+  //     });
+  //     it('6.53 should fail add mcr if lower threshold not reached', async function() {
+  //       await mcr.addMCRData(
+  //         parseInt((await getValue(toWei(2), pd, mcr)) / 2),
+  //         toWei(100),
+  //         toWei(2),
+  //         ['0x455448', '0x444149'],
+  //         [100, 65407],
+  //         20181011
+  //       );
+  //       var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+  //       (await pd.getApiIdTypeOf(APIID)).should.be.equal('0x4d435246');
+  //     });
+  //     it('6.54 should throw if call kycVerdict with non authorised address', async function() {
+  //       await assertRevert(qt.kycVerdict(member1, true, {from: member1}));
+  //     });
+  //     it('6.55 should not able to update quoatation parameters directly', async function() {
+  //       await assertRevert(qd.updateUintParameters(toHex('STLP'), 1));
+  //     });
+  //   });
+  // });
 });

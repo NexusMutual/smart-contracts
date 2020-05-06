@@ -163,6 +163,10 @@ contract PooledStakingMock is MasterAware {
         return contracts[contractAddress].stakers[stakerIndex];
     }
 
+    function contractStakedAmount(address contractAddress) public view returns (uint) {
+        return contracts[contractAddress].staked;
+    }
+
     function stakerContractCount(address staker) public view returns (uint) {
         return stakers[staker].contracts.length;
     }
@@ -173,6 +177,13 @@ contract PooledStakingMock is MasterAware {
 
     function stakerContractAllocation(address staker, address contractAddress) public view returns (uint) {
         return stakers[staker].allocations[contractAddress];
+    }
+
+    function stakerReward(address staker) external view returns (uint) {
+        return stakers[staker].reward;
+    }
+    function stakerStaked(address staker) external view returns (uint) {
+        return stakers[staker].staked;
     }
 
     function deallocationAtIndex(uint deallocationId) public view returns (

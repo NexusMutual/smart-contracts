@@ -1,7 +1,7 @@
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
 const TokenData = artifacts.require('TokenDataMock');
@@ -18,6 +18,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const FactoryMock = artifacts.require('FactoryMock');
 const DSValue = artifacts.require('NXMDSValueMock');
 const DAI = artifacts.require('MockDAI');
+const PooledStaking = artifacts.require('PooledStakingMock');
 const INITIAL_SUPPLY = '1500000000000000000000000';
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 
@@ -44,5 +45,10 @@ module.exports = function(deployer, network, accounts) {
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
     await deployer.deploy(NXMaster, tk.address);
+
+    console.log(`Passed standard deployment.`);
+    await deployer.deploy(PooledStaking);
+
+    console.log(`Passed  PS deployment.`);
   });
 };

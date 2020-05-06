@@ -347,6 +347,8 @@ contract Quotation is Iupgradable {
         tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
         qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
+
+        revert("Reached before staked");
         if (tf.getTotalStakedTokensOnSmartContract(scAddress) > 0)
             tf.updateStakerCommissions(scAddress, coverDetails[2]);
         

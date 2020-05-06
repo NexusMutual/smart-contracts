@@ -2,16 +2,10 @@ pragma solidity 0.5.7;
 
 import "./Pool1Mock.sol";
 import "../ClaimsData.sol";
+import "../Governance.sol";
 
 
 contract TokenFunctionMock is TokenFunctions {
-
-    /**
-        * @dev Burns tokens staked against a Smart Contract Cover.
-        * Called when a claim submitted against this cover is accepted.
-    */
-    function burnStakerLockedToken(address scAddress, uint burnNXMAmount) external {
-    }
 
     function mint(address _member, uint _amount) external {
         tc.mint(_member, _amount);

@@ -3,7 +3,7 @@ const ClaimsData = artifacts.require('ClaimsDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('NXMDSValueMock');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -18,6 +18,7 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const FactoryMock = artifacts.require('FactoryMock');
+const PooledStaking = artifacts.require('PooledStakingMock');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -46,6 +47,11 @@ module.exports = function(deployer, network, accounts) {
     let propCat = await ProposalCategory.deployed();
     const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
+
+    console.log(`Passed deployment.`);
+
+    const pooledStaking = await PooledStaking.deployed();
+    await pooledStaking.changeMasterAddress(nxms.address);
     // let gvAdd = await nxms.getLatestAddress("GV");
     // let mrAdd = await nxms.getLatestAddress("MR");
     // let pcAdd = await nxms.getLatestAddress("PC");
@@ -64,7 +70,8 @@ module.exports = function(deployer, network, accounts) {
       mcr.address,
       gov.address,
       propCat.address,
-      mr.address
+      mr.address,
+      pooledStaking.address
     ];
     await nxms.addNewVersion(addr);
     let pcAddress = await nxms.getLatestAddress('0x5043');
@@ -73,8 +80,8 @@ module.exports = function(deployer, network, accounts) {
     const dai = await DAI.deployed();
     // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
     // await qd.changeInvestmentAssetAddress('0x444149', dai.address);
-    await pl1.sendEther({ from: Owner, value: POOL_ETHER });
-    await pl2.sendEther({ from: Owner, value: POOL_ETHER }); //
+    await pl1.sendEther({from: Owner, value: POOL_ETHER});
+    await pl2.sendEther({from: Owner, value: POOL_ETHER}); //
     await mcr.addMCRData(
       13000,
       '100000000000000000000',

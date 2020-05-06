@@ -141,6 +141,7 @@ contract TokenFunctions is Iupgradable {
         gv = Governance(ms.getLatestAddress("GV"));
         mr = MemberRoles(ms.getLatestAddress("MR"));
         pd = PoolData(ms.getLatestAddress("PD"));
+        pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     }
 
     /**

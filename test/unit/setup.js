@@ -1,9 +1,9 @@
 const { contract, defaultSender } = require('@openzeppelin/test-environment');
 const { ether } = require('@openzeppelin/test-helpers');
 
-const { Role } = require('./constants');
-const accounts = require('./accounts');
-const { hex } = require('./helpers');
+const { Role } = require('./utils').constants;
+const accounts = require('./utils').accounts;
+const { hex } = require('./utils').helpers;
 
 const MasterMock = contract.fromArtifact('MasterMock');
 const PooledStaking = contract.fromArtifact('PooledStaking');

@@ -1,1 +1,2 @@
-require('./PooledStaking');
+require('./unit');
+require('./integration');

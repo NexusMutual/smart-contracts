@@ -10,6 +10,7 @@
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/upgrades": "^2.8.0",
     "@truffle/hdwallet-provider": "^1.0.34",
+    "chai-bignumber": "^3.0.0",
     "dotenv": "^8.2.0",
     "eth-lightwallet": "^4.0.0"
   },
@@ -33,9 +34,13 @@
     "compile": "oz compile",
     "compile-all": "npm run compile && npm run nxm-compile && npm run nxm-copy-artifacts",
     "nxm-compile": "(cd nexusmutual-contracts && npx truffle compile)",
-    "nxm-copy-artifacts": "cp -n nexusmutual-contracts/build/contracts/*.json build/contracts/",
+    "nxm-copy-artifacts": "cp nexusmutual-contracts/build/contracts/*.json build/contracts/",
     "dev": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit'",
-    "test": "mocha --exit"
+    "dev-integration": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit test/integration/index.js'",
+    "dev-original": "nodemon --ext js,json -w build -w test -x 'mocha --exit test/original/index.js'",
+    "test": "mocha --exit test/unit",
+    "test-integration": "mocha --exit test/integration",
+    "test-original": "mocha --exit test/original"
   },
   "license": "ISC"
 }

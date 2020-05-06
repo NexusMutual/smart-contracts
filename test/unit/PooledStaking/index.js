@@ -1,4 +1,4 @@
-describe('PooledStaking', function () {
+describe('PooledStaking unit tests', function () {
 
   // this.timeout(0);
   this.timeout(5000);

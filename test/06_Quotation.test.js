@@ -354,445 +354,448 @@ contract('Quotation', function([
                     .toString()
                 );
             });
+            // it('6.10 should be revert if smart contract address is null', async function() {
+            //   coverDetails[4] = 7972408607114;
+            //   var vrsdata = await getQuoteValues(
+            //     coverDetails,
+            //     toHex('ETH'),
+            //     coverPeriod,
+            //     smartConAdd,
+            //     qt.address
+            //   );
+            //   await assertRevert(
+            //     P1.makeCoverBegin(
+            //       nullAddress,
+            //       toHex('ETH'),
+            //       coverDetails,
+            //       coverPeriod,
+            //       vrsdata[0],
+            //       vrsdata[1],
+            //       vrsdata[2],
+            //       { from: coverHolder, value: coverDetails[1] }
+            //     )
+            //   );
+            // });
+            // it('6.11 should return correct cover details', async function() {
+            //   const CID = await qd.getAllCoversOfUser(coverHolder);
+            //   let checkd = false;
+            //   const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
+            //   const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+            //   let smartCACompare =
+            //     web3.utils.toChecksumAddress(cdetails1[2]) ==
+            //     web3.utils.toChecksumAddress(smartConAdd);
+            //   if (
+            //     cdetails1[3] == CA_ETH &&
+            //     cdetails1[1] == coverHolder &&
+            //     smartCACompare
+            //   ) {
+            //     checkd = true;
+            //   }
+            //   checkd.should.equal(true);
+            // });
+          });
+
+          describe('Purchase Cover With NXM', function() {
+            const coverHolder = member4;
+            let initialTotalSA;
+            before(async function() {
+              await mr.payJoiningFee(coverHolder, {
+                from: coverHolder,
+                value: fee
+              });
+              await mr.kycVerdict(coverHolder, true);
+              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+                from: coverHolder
+              });
+              await tk.transfer(coverHolder, tokens);
+            });
+            it('6.12 should not have locked Cover Note initially', async function() {
+              const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
+                coverHolder
+              );
+              initialLockedCN.toString().should.be.equal((0).toString());
+            });
+            it('6.13 total sum assured should be 1 ETH initially', async function() {
+              initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
+              initialTotalSA.toString().should.be.equal((1).toString());
+            });
+            it('6.14 should be able to purchase cover', async function() {
+              const initialTokensOfCoverHolder = await tk.balanceOf(
+                coverHolder
+              );
+              initialTotalSupply = (await tk.totalSupply()).div(P_18);
+              coverDetails[4] = 7972408607001;
+              var vrsdata = await getQuoteValues(
+                coverDetails,
+                toHex('ETH'),
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
+              await qt.makeCoverUsingNXMTokens(
+                coverDetails,
+                coverPeriod,
+                toHex('ETH'),
+                smartConAdd,
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
+                {from: coverHolder}
+              );
+              const newLockedCN = new BN(BN_10.toString())
+                .mul(new BN(coverDetails[2].toString()))
+                .div(new BN(BN_100.toString()));
+              const newTotalSA = new BN(initialTotalSA.toString()).add(
+                new BN(coverDetails[0].toString())
+              );
+              const newTokensOfCoverHolder = new BN(
+                initialTokensOfCoverHolder.toString()
+              ).sub(new BN(coverDetails[2].toString()));
+              const newTotalSupply = new BN(initialTotalSupply.toString()).add(
+                new BN(newLockedCN.toString()).div(new BN(P_18.toString()))
+              );
+              newLockedCN
+                .toString()
+                .should.be.equal(
+                  (
+                    await tf.getUserAllLockedCNTokens.call(coverHolder)
+                  ).toString()
+                );
+              newTotalSA
+                .toString()
+                .should.be.equal(
+                  (await qd.getTotalSumAssured(CA_ETH)).toString()
+                );
+              newTokensOfCoverHolder
+                .toString()
+                .should.be.equal((await tk.balanceOf(coverHolder)).toString());
+              newTotalSupply.toString().should.be.equal(
+                new BN((await tk.totalSupply()).toString())
+                  .div(new BN(P_18.toString()))
+                  .add(new BN((1).toString()))
+                  .toString()
+              );
+            });
+            it('6.15 should return correct cover details', async function() {
+              const CID = await qd.getAllCoversOfUser(coverHolder);
+              let checkd = false;
+              const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
+              const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+              let smartCACompare =
+                web3.utils.toChecksumAddress(cdetails1[2]) ==
+                web3.utils.toChecksumAddress(smartConAdd);
+              if (
+                cdetails1[3] == CA_ETH &&
+                cdetails1[1] == coverHolder &&
+                smartCACompare
+              ) {
+                checkd = true;
+              }
+              checkd.should.equal(true);
+            });
+          });
+
+          describe('Purchase Cover With DAI', function() {
+            const coverHolder = member5;
+            let initialTotalSA;
+            let initialPoolBalanceOfCA;
+            before(async function() {
+              await mr.payJoiningFee(coverHolder, {
+                from: coverHolder,
+                value: fee
+              });
+              await mr.kycVerdict(coverHolder, true);
+              await P1.buyToken({
+                from: coverHolder,
+                value: tokenAmount
+              });
+              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+                from: coverHolder
+              });
+              await cad.transfer(coverHolder, tokenDai);
+            });
+            it('6.16 should not have locked Cover Note initially', async function() {
+              const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
+                coverHolder
+              );
+              initialLockedCN.toString().should.be.equal((0).toString());
+            });
+            it('6.17 total sum assured should be 2 ETH initially', async function() {
+              initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
+              initialTotalSA.toString().should.be.equal((2).toString());
+            });
+            it('6.18 should able to purchase cover using currency assest i.e. DAI ', async function() {
+              const initialCAbalance = await cad.balanceOf(coverHolder);
+              initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
+              const initialTotalSupply = await tk.totalSupply();
+              coverDetailsDai[4] = 7972408607002;
+              var vrsdata = await getQuoteValues(
+                coverDetailsDai,
+                toHex('DAI'),
+                coverPeriod,
+                smartConAdd,
+                qt.address
+              );
+
+              await cad.approve(P1.address, coverDetailsDai[1], {
+                from: coverHolder
+              });
+              await P1.makeCoverUsingCA(
+                smartConAdd,
+                toHex('DAI'),
+                coverDetailsDai,
+                coverPeriod,
+                vrsdata[0],
+                vrsdata[1],
+                vrsdata[2],
+                {from: coverHolder}
+              );
+              const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
+                coverHolder
+              );
+              const presentCAbalance = await cad.balanceOf(coverHolder);
+              const presentTotalSupply = await tk.totalSupply();
+              const newLockedCN = BN_10.mul(
+                new BN(coverDetailsDai[2].toString()).div(BN_100)
+              );
+              const newTotalSupply = new BN(initialTotalSupply.toString()).add(
+                new BN(newLockedCN.toString())
+              );
+              presentCAbalance
+                .toString()
+                .should.be.equal(
+                  new BN(initialCAbalance.toString())
+                    .sub(new BN(coverDetailsDai[1].toString()))
+                    .toString()
+                );
+              var newLockedCNVal = newLockedCN.toString();
+              newLockedCNVal = newLockedCNVal.substring(
+                0,
+                newLockedCNVal.length - 1
+              );
+              var presentLockedCNVal = presentLockedCN.toString();
+              presentLockedCNVal = presentLockedCNVal.substring(
+                0,
+                presentLockedCNVal.length - 1
+              );
+              newLockedCNVal.should.be.equal(presentLockedCNVal.toString());
+              var newTotalSupplyVal = newTotalSupply.toString();
+              newTotalSupplyVal = newTotalSupplyVal.substring(
+                0,
+                newTotalSupplyVal.length - 2
+              );
+              var presentTotalSupplyVal = presentTotalSupply.toString();
+              var presentTotalSupplyVal = presentTotalSupplyVal.substring(
+                0,
+                presentTotalSupplyVal.length - 2
+              );
+              newTotalSupplyVal
+                .toString()
+                .should.be.equal(presentTotalSupplyVal.toString());
+            });
+            it('6.19 currency assest balance should increase after cover purchase', async function() {
+              const presentPoolBalanceOfCA = new BN(
+                coverDetailsDai[1].toString()
+              );
+              (await cad.balanceOf(P1.address))
+                .toString()
+                .should.be.equal(
+                  new BN(initialPoolBalanceOfCA.toString())
+                    .add(new BN(presentPoolBalanceOfCA.toString()))
+                    .toString()
+                );
+            });
+            it('6.20 should return correct cover details purchased with DAI', async function() {
+              const CID = await qd.getAllCoversOfUser(coverHolder);
+              let checkd = false;
+              const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
+              const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
+              let smartCACompare =
+                web3.utils.toChecksumAddress(cdetails1[2]) ==
+                web3.utils.toChecksumAddress(smartConAdd);
+              if (
+                cdetails1[3] == CA_DAI &&
+                cdetails1[1] == coverHolder &&
+                smartCACompare
+              ) {
+                checkd = true;
+              }
+              checkd.should.equal(true);
+            });
+          });
+
+          describe('If staker staked tokens on Smart Contract', function() {
+            const staker1 = member1;
+            const staker2 = member2;
+            let event;
+            before(async function() {
+              await mr.payJoiningFee(staker2, {
+                from: staker2,
+                value: fee
+              });
+              await mr.kycVerdict(staker2, true);
+              await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
+                from: staker2
+              });
+              await tk.transfer(staker2, tokens);
+              await tk.transfer(staker1, tokens);
+              await tk.transfer(staker2, tokens);
+
+              console.log(`Pre-staking`);
+              await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+                from: staker1
+              });
+
+              await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+                from: staker2
+              });
+              console.log(`Post-staking`);
+
+              console.log(`Processing pending actions..`);
+              await ps.processPendingActions();
+              console.log(`Finished processing pending actions.`);
+            });
+
+            describe('Purchase Cover With Ether', function() {
+              const coverHolder = member3;
+              let initialStakeCommissionOfS1;
+              let initialStakeCommissionOfS2;
+              it('6.21 should be able to purchase cover ', async function() {
+                initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+                  staker1
+                );
+                initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+                  staker2
+                );
+                coverDetails[4] = 7972408607003;
+                var vrsdata = await getQuoteValues(
+                  coverDetails,
+                  toHex('ETH'),
+                  coverPeriod,
+                  smartConAdd,
+                  qt.address
+                );
+
+                await P1.makeCoverBegin(
+                  smartConAdd,
+                  toHex('ETH'),
+                  coverDetails,
+                  coverPeriod,
+                  vrsdata[0],
+                  vrsdata[1],
+                  vrsdata[2],
+                  {from: coverHolder, value: coverDetails[1]}
+                );
+                await assertRevert(
+                  P1.makeCoverBegin(
+                    smartConAdd,
+                    toHex('ETH'),
+                    coverDetails,
+                    coverPeriod,
+                    vrsdata[0],
+                    vrsdata[1],
+                    vrsdata[2],
+                    {from: coverHolder, value: coverDetails[1]}
+                  )
+                );
+              });
+
+              it('6.22 staker gets commission', async function() {
+                const commission =
+                  (coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                  1;
+                (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+                  .toString()
+                  .should.be.equal(
+                    new BN(initialStakeCommissionOfS1.toString())
+                      .add(new BN(commission.toFixed(0).toString()))
+                      .toString()
+                  );
+
+                (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+                  .toString()
+                  .should.be.equal(initialStakeCommissionOfS2.toString());
+              });
+            });
+
+            describe('Purchase Cover With NXM', function() {
+              const coverHolder = member4;
+              let initialStakeCommissionOfS1;
+              let initialStakeCommissionOfS2;
+              it('6.23 should be able to purchase cover', async function() {
+                initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+                  staker1
+                );
+                initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+                  staker2
+                );
+                let newCDetails = coverDetails.slice();
+                newCDetails[3] = (await latestTime()) - 2;
+                await assertRevert(
+                  qt.makeCoverUsingNXMTokens(
+                    newCDetails,
+                    coverPeriod,
+                    toHex('ETH'),
+                    smartConAdd,
+                    vrs[0],
+                    vrs[1],
+                    vrs[2],
+                    {from: coverHolder}
+                  )
+                );
+                await assertRevert(
+                  qt.makeCoverUsingNXMTokens(
+                    coverDetails,
+                    coverPeriod,
+                    toHex('ETH'),
+                    smartConAdd,
+                    27,
+                    vrs[1],
+                    vrs[2],
+                    {from: coverHolder}
+                  )
+                );
+                coverDetails[4] = 7972408607004;
+                var vrsdata = await getQuoteValues(
+                  coverDetails,
+                  toHex('ETH'),
+                  coverPeriod,
+                  smartConAdd,
+                  qt.address
+                );
+                await qt.makeCoverUsingNXMTokens(
+                  coverDetails,
+                  coverPeriod,
+                  toHex('ETH'),
+                  smartConAdd,
+                  vrsdata[0],
+                  vrsdata[1],
+                  vrsdata[2],
+                  {from: coverHolder}
+                );
+              });
+              it('6.24 staker gets commission', async function() {
+                const commission =
+                  (coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                  1;
+                (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+                  .toString()
+                  .should.be.equal(
+                    new BN(initialStakeCommissionOfS1.toString())
+                      .add(new BN(commission.toFixed(0).toString()))
+                      .toString()
+                  );
+
+                (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+                  .toString()
+                  .should.be.equal(initialStakeCommissionOfS2.toString());
+              });
+            });
           });
         });
       });
     });
   });
-  //           // it('6.10 should be revert if smart contract address is null', async function() {
-  //           //   coverDetails[4] = 7972408607114;
-  //           //   var vrsdata = await getQuoteValues(
-  //           //     coverDetails,
-  //           //     toHex('ETH'),
-  //           //     coverPeriod,
-  //           //     smartConAdd,
-  //           //     qt.address
-  //           //   );
-  //           //   await assertRevert(
-  //           //     P1.makeCoverBegin(
-  //           //       nullAddress,
-  //           //       toHex('ETH'),
-  //           //       coverDetails,
-  //           //       coverPeriod,
-  //           //       vrsdata[0],
-  //           //       vrsdata[1],
-  //           //       vrsdata[2],
-  //           //       { from: coverHolder, value: coverDetails[1] }
-  //           //     )
-  //           //   );
-  //           // });
-  //           // it('6.11 should return correct cover details', async function() {
-  //           //   const CID = await qd.getAllCoversOfUser(coverHolder);
-  //           //   let checkd = false;
-  //           //   const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
-  //           //   const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
-  //           //   let smartCACompare =
-  //           //     web3.utils.toChecksumAddress(cdetails1[2]) ==
-  //           //     web3.utils.toChecksumAddress(smartConAdd);
-  //           //   if (
-  //           //     cdetails1[3] == CA_ETH &&
-  //           //     cdetails1[1] == coverHolder &&
-  //           //     smartCACompare
-  //           //   ) {
-  //           //     checkd = true;
-  //           //   }
-  //           //   checkd.should.equal(true);
-  //           // });
-  //         });
-  //
-  //         describe('Purchase Cover With NXM', function() {
-  //           const coverHolder = member4;
-  //           let initialTotalSA;
-  //           before(async function() {
-  //             await mr.payJoiningFee(coverHolder, {
-  //               from: coverHolder,
-  //               value: fee
-  //             });
-  //             await mr.kycVerdict(coverHolder, true);
-  //             await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-  //               from: coverHolder
-  //             });
-  //             await tk.transfer(coverHolder, tokens);
-  //           });
-  //           it('6.12 should not have locked Cover Note initially', async function() {
-  //             const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
-  //               coverHolder
-  //             );
-  //             initialLockedCN.toString().should.be.equal((0).toString());
-  //           });
-  //           it('6.13 total sum assured should be 1 ETH initially', async function() {
-  //             initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
-  //             initialTotalSA.toString().should.be.equal((1).toString());
-  //           });
-  //           it('6.14 should be able to purchase cover', async function() {
-  //             const initialTokensOfCoverHolder = await tk.balanceOf(
-  //               coverHolder
-  //             );
-  //             initialTotalSupply = (await tk.totalSupply()).div(P_18);
-  //             coverDetails[4] = 7972408607001;
-  //             var vrsdata = await getQuoteValues(
-  //               coverDetails,
-  //               toHex('ETH'),
-  //               coverPeriod,
-  //               smartConAdd,
-  //               qt.address
-  //             );
-  //             await qt.makeCoverUsingNXMTokens(
-  //               coverDetails,
-  //               coverPeriod,
-  //               toHex('ETH'),
-  //               smartConAdd,
-  //               vrsdata[0],
-  //               vrsdata[1],
-  //               vrsdata[2],
-  //               {from: coverHolder}
-  //             );
-  //             const newLockedCN = new BN(BN_10.toString())
-  //               .mul(new BN(coverDetails[2].toString()))
-  //               .div(new BN(BN_100.toString()));
-  //             const newTotalSA = new BN(initialTotalSA.toString()).add(
-  //               new BN(coverDetails[0].toString())
-  //             );
-  //             const newTokensOfCoverHolder = new BN(
-  //               initialTokensOfCoverHolder.toString()
-  //             ).sub(new BN(coverDetails[2].toString()));
-  //             const newTotalSupply = new BN(initialTotalSupply.toString()).add(
-  //               new BN(newLockedCN.toString()).div(new BN(P_18.toString()))
-  //             );
-  //             newLockedCN
-  //               .toString()
-  //               .should.be.equal(
-  //                 (
-  //                   await tf.getUserAllLockedCNTokens.call(coverHolder)
-  //                 ).toString()
-  //               );
-  //             newTotalSA
-  //               .toString()
-  //               .should.be.equal(
-  //                 (await qd.getTotalSumAssured(CA_ETH)).toString()
-  //               );
-  //             newTokensOfCoverHolder
-  //               .toString()
-  //               .should.be.equal((await tk.balanceOf(coverHolder)).toString());
-  //             newTotalSupply.toString().should.be.equal(
-  //               new BN((await tk.totalSupply()).toString())
-  //                 .div(new BN(P_18.toString()))
-  //                 .add(new BN((1).toString()))
-  //                 .toString()
-  //             );
-  //           });
-  //           it('6.15 should return correct cover details', async function() {
-  //             const CID = await qd.getAllCoversOfUser(coverHolder);
-  //             let checkd = false;
-  //             const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
-  //             const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
-  //             let smartCACompare =
-  //               web3.utils.toChecksumAddress(cdetails1[2]) ==
-  //               web3.utils.toChecksumAddress(smartConAdd);
-  //             if (
-  //               cdetails1[3] == CA_ETH &&
-  //               cdetails1[1] == coverHolder &&
-  //               smartCACompare
-  //             ) {
-  //               checkd = true;
-  //             }
-  //             checkd.should.equal(true);
-  //           });
-  //         });
-  //
-  //         describe('Purchase Cover With DAI', function() {
-  //           const coverHolder = member5;
-  //           let initialTotalSA;
-  //           let initialPoolBalanceOfCA;
-  //           before(async function() {
-  //             await mr.payJoiningFee(coverHolder, {
-  //               from: coverHolder,
-  //               value: fee
-  //             });
-  //             await mr.kycVerdict(coverHolder, true);
-  //             await P1.buyToken({
-  //               from: coverHolder,
-  //               value: tokenAmount
-  //             });
-  //             await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-  //               from: coverHolder
-  //             });
-  //             await cad.transfer(coverHolder, tokenDai);
-  //           });
-  //           it('6.16 should not have locked Cover Note initially', async function() {
-  //             const initialLockedCN = await tf.getUserAllLockedCNTokens.call(
-  //               coverHolder
-  //             );
-  //             initialLockedCN.toString().should.be.equal((0).toString());
-  //           });
-  //           it('6.17 total sum assured should be 2 ETH initially', async function() {
-  //             initialTotalSA = await qd.getTotalSumAssured(CA_ETH);
-  //             initialTotalSA.toString().should.be.equal((2).toString());
-  //           });
-  //           it('6.18 should able to purchase cover using currency assest i.e. DAI ', async function() {
-  //             const initialCAbalance = await cad.balanceOf(coverHolder);
-  //             initialPoolBalanceOfCA = await cad.balanceOf(P1.address);
-  //             const initialTotalSupply = await tk.totalSupply();
-  //             coverDetailsDai[4] = 7972408607002;
-  //             var vrsdata = await getQuoteValues(
-  //               coverDetailsDai,
-  //               toHex('DAI'),
-  //               coverPeriod,
-  //               smartConAdd,
-  //               qt.address
-  //             );
-  //
-  //             await cad.approve(P1.address, coverDetailsDai[1], {
-  //               from: coverHolder
-  //             });
-  //             await P1.makeCoverUsingCA(
-  //               smartConAdd,
-  //               toHex('DAI'),
-  //               coverDetailsDai,
-  //               coverPeriod,
-  //               vrsdata[0],
-  //               vrsdata[1],
-  //               vrsdata[2],
-  //               {from: coverHolder}
-  //             );
-  //             const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
-  //               coverHolder
-  //             );
-  //             const presentCAbalance = await cad.balanceOf(coverHolder);
-  //             const presentTotalSupply = await tk.totalSupply();
-  //             const newLockedCN = BN_10.mul(
-  //               new BN(coverDetailsDai[2].toString()).div(BN_100)
-  //             );
-  //             const newTotalSupply = new BN(initialTotalSupply.toString()).add(
-  //               new BN(newLockedCN.toString())
-  //             );
-  //             presentCAbalance
-  //               .toString()
-  //               .should.be.equal(
-  //                 new BN(initialCAbalance.toString())
-  //                   .sub(new BN(coverDetailsDai[1].toString()))
-  //                   .toString()
-  //               );
-  //             var newLockedCNVal = newLockedCN.toString();
-  //             newLockedCNVal = newLockedCNVal.substring(
-  //               0,
-  //               newLockedCNVal.length - 1
-  //             );
-  //             var presentLockedCNVal = presentLockedCN.toString();
-  //             presentLockedCNVal = presentLockedCNVal.substring(
-  //               0,
-  //               presentLockedCNVal.length - 1
-  //             );
-  //             newLockedCNVal.should.be.equal(presentLockedCNVal.toString());
-  //             var newTotalSupplyVal = newTotalSupply.toString();
-  //             newTotalSupplyVal = newTotalSupplyVal.substring(
-  //               0,
-  //               newTotalSupplyVal.length - 2
-  //             );
-  //             var presentTotalSupplyVal = presentTotalSupply.toString();
-  //             var presentTotalSupplyVal = presentTotalSupplyVal.substring(
-  //               0,
-  //               presentTotalSupplyVal.length - 2
-  //             );
-  //             newTotalSupplyVal
-  //               .toString()
-  //               .should.be.equal(presentTotalSupplyVal.toString());
-  //           });
-  //           it('6.19 currency assest balance should increase after cover purchase', async function() {
-  //             const presentPoolBalanceOfCA = new BN(
-  //               coverDetailsDai[1].toString()
-  //             );
-  //             (await cad.balanceOf(P1.address))
-  //               .toString()
-  //               .should.be.equal(
-  //                 new BN(initialPoolBalanceOfCA.toString())
-  //                   .add(new BN(presentPoolBalanceOfCA.toString()))
-  //                   .toString()
-  //               );
-  //           });
-  //           it('6.20 should return correct cover details purchased with DAI', async function() {
-  //             const CID = await qd.getAllCoversOfUser(coverHolder);
-  //             let checkd = false;
-  //             const cdetails1 = await qd.getCoverDetailsByCoverID1(CID[0]);
-  //             const cdetails2 = await qd.getCoverDetailsByCoverID2(CID[0]);
-  //             let smartCACompare =
-  //               web3.utils.toChecksumAddress(cdetails1[2]) ==
-  //               web3.utils.toChecksumAddress(smartConAdd);
-  //             if (
-  //               cdetails1[3] == CA_DAI &&
-  //               cdetails1[1] == coverHolder &&
-  //               smartCACompare
-  //             ) {
-  //               checkd = true;
-  //             }
-  //             checkd.should.equal(true);
-  //           });
-  //         });
-  //       });
-  //
-  //       describe('If staker staked tokens on Smart Contract', function() {
-  //         const staker1 = member1;
-  //         const staker2 = member2;
-  //         let event;
-  //         before(async function() {
-  //           await mr.payJoiningFee(staker2, {
-  //             from: staker2,
-  //             value: fee
-  //           });
-  //           await mr.kycVerdict(staker2, true);
-  //           await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-  //             from: staker2
-  //           });
-  //           await tk.transfer(staker2, tokens);
-  //           await tk.transfer(staker1, tokens);
-  //           await tk.transfer(staker2, tokens);
-  //
-  //           await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
-  //             from: staker1
-  //           });
-  //
-  //           await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
-  //             from: staker2
-  //           });
-  //
-  //           console.log(`Processing pending actions..`);
-  //           await ps.processPendingActions();
-  //           console.log(`Finished processing pending actions.`);
-  //         });
-  //
-  //         describe('Purchase Cover With Ether', function() {
-  //           const coverHolder = member3;
-  //           let initialStakeCommissionOfS1;
-  //           let initialStakeCommissionOfS2;
-  //           it('6.21 should be able to purchase cover ', async function() {
-  //             initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-  //               staker1
-  //             );
-  //             initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-  //               staker2
-  //             );
-  //             coverDetails[4] = 7972408607003;
-  //             var vrsdata = await getQuoteValues(
-  //               coverDetails,
-  //               toHex('ETH'),
-  //               coverPeriod,
-  //               smartConAdd,
-  //               qt.address
-  //             );
-  //
-  //             await P1.makeCoverBegin(
-  //               smartConAdd,
-  //               toHex('ETH'),
-  //               coverDetails,
-  //               coverPeriod,
-  //               vrsdata[0],
-  //               vrsdata[1],
-  //               vrsdata[2],
-  //               {from: coverHolder, value: coverDetails[1]}
-  //             );
-  //             await assertRevert(
-  //               P1.makeCoverBegin(
-  //                 smartConAdd,
-  //                 toHex('ETH'),
-  //                 coverDetails,
-  //                 coverPeriod,
-  //                 vrsdata[0],
-  //                 vrsdata[1],
-  //                 vrsdata[2],
-  //                 {from: coverHolder, value: coverDetails[1]}
-  //               )
-  //             );
-  //           });
-  //
-  //           it('6.22 staker gets commission', async function() {
-  //             const commission =
-  //               (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
-  //             (await td.getStakerTotalEarnedStakeCommission.call(staker1))
-  //               .toString()
-  //               .should.be.equal(
-  //                 new BN(initialStakeCommissionOfS1.toString())
-  //                   .add(new BN(commission.toFixed(0).toString()))
-  //                   .toString()
-  //               );
-  //
-  //             (await td.getStakerTotalEarnedStakeCommission.call(staker2))
-  //               .toString()
-  //               .should.be.equal(initialStakeCommissionOfS2.toString());
-  //           });
-  //         });
-  //
-  //         describe('Purchase Cover With NXM', function() {
-  //           const coverHolder = member4;
-  //           let initialStakeCommissionOfS1;
-  //           let initialStakeCommissionOfS2;
-  //           it('6.23 should be able to purchase cover', async function() {
-  //             initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-  //               staker1
-  //             );
-  //             initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-  //               staker2
-  //             );
-  //             let newCDetails = coverDetails.slice();
-  //             newCDetails[3] = (await latestTime()) - 2;
-  //             await assertRevert(
-  //               qt.makeCoverUsingNXMTokens(
-  //                 newCDetails,
-  //                 coverPeriod,
-  //                 toHex('ETH'),
-  //                 smartConAdd,
-  //                 vrs[0],
-  //                 vrs[1],
-  //                 vrs[2],
-  //                 {from: coverHolder}
-  //               )
-  //             );
-  //             await assertRevert(
-  //               qt.makeCoverUsingNXMTokens(
-  //                 coverDetails,
-  //                 coverPeriod,
-  //                 toHex('ETH'),
-  //                 smartConAdd,
-  //                 27,
-  //                 vrs[1],
-  //                 vrs[2],
-  //                 {from: coverHolder}
-  //               )
-  //             );
-  //             coverDetails[4] = 7972408607004;
-  //             var vrsdata = await getQuoteValues(
-  //               coverDetails,
-  //               toHex('ETH'),
-  //               coverPeriod,
-  //               smartConAdd,
-  //               qt.address
-  //             );
-  //             await qt.makeCoverUsingNXMTokens(
-  //               coverDetails,
-  //               coverPeriod,
-  //               toHex('ETH'),
-  //               smartConAdd,
-  //               vrsdata[0],
-  //               vrsdata[1],
-  //               vrsdata[2],
-  //               {from: coverHolder}
-  //             );
-  //           });
-  //           it('6.24 staker gets commission', async function() {
-  //             const commission =
-  //               (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
-  //             (await td.getStakerTotalEarnedStakeCommission.call(staker1))
-  //               .toString()
-  //               .should.be.equal(
-  //                 new BN(initialStakeCommissionOfS1.toString())
-  //                   .add(new BN(commission.toFixed(0).toString()))
-  //                   .toString()
-  //               );
-  //
-  //             (await td.getStakerTotalEarnedStakeCommission.call(staker2))
-  //               .toString()
-  //               .should.be.equal(initialStakeCommissionOfS2.toString());
-  //           });
-  //         });
   //
   //         describe('Purchase Cover With DAI', function() {
   //           const coverHolder = member5;

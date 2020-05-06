@@ -200,19 +200,23 @@ contract PooledStakingMock is MasterAware {
     function getMaxUnstakable(address stakerAddress) public view returns (uint) {
 
         Staker storage staker = stakers[stakerAddress];
-        uint totalAllocation = 0;
+    uint totalAllocated;
+    uint maxAllocation;
 
         for (uint i = 0; i < staker.contracts.length; i++) {
             address contractAddress = staker.contracts[i];
             uint allocation = staker.allocations[contractAddress];
-            totalAllocation = totalAllocation.add(allocation);
+      totalAllocated = totalAllocated.add(allocation);
+
+      if (maxAllocation < allocation) {
+        maxAllocation = allocation;
+      }
         }
 
-        if (staker.staked > totalAllocation) {
-            return staker.staked.sub(totalAllocation);
-        }
+    uint minRequired = totalAllocated.div(MAX_LEVERAGE);
+    uint locked = maxAllocation > minRequired ? maxAllocation : minRequired;
 
-        return 0;
+    return staker.staked.sub(locked);
     }
 
     function hasPendingActions() public view returns (bool) {
@@ -305,6 +309,7 @@ contract PooledStakingMock is MasterAware {
         uint unstakable = getMaxUnstakable(msg.sender);
         require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
         stakers[msg.sender].staked = stakers[msg.sender].staked.sub(amount);
+        token.transfer(msg.sender, amount);
         emit Unstaked(msg.sender, amount);
     }
 
@@ -334,12 +339,12 @@ contract PooledStakingMock is MasterAware {
             uint max = pendingDeallocation > allocated ? 0 : allocated.sub(pendingDeallocation);
 
             require(max > 0, "Nothing to deallocate on this contract");
+            require(requestedAmount <= max, "Cannot deallocate more than allocated");
 
             // To prevent spam, Small stakes and deallocations are not allowed
             // However, we allow the user to deallocate the entire amount
             if (requestedAmount != max) {
                 require(requestedAmount >= MIN_ALLOWED_DEALLOCATION, "Deallocation cannot be less then MIN_ALLOWED_DEALLOCATION");
-                require(requestedAmount <= max, "Cannot deallocate more than allocated");
                 require(max.sub(requestedAmount) >= MIN_ALLOCATION, "Final allocation cannot be less then MIN_ALLOCATION");
             }
 
@@ -553,8 +558,6 @@ contract PooledStakingMock is MasterAware {
     function _processFirstDeallocation() internal {
 
         uint firstDeallocation = deallocations[0].next;
-        require(firstDeallocation != 0, 'No pending deallocations');
-
         Deallocation storage deallocation = deallocations[firstDeallocation];
         Staker storage staker = stakers[deallocation.stakerAddress];
 

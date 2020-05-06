@@ -189,19 +189,24 @@ contract PooledStaking is MasterAware {
   function getMaxUnstakable(address stakerAddress) public view returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];
-    uint totalAllocation = 0;
+    uint totalAllocated;
+    uint maxAllocation;
 
     for (uint i = 0; i < staker.contracts.length; i++) {
+
       address contractAddress = staker.contracts[i];
       uint allocation = staker.allocations[contractAddress];
-      totalAllocation = totalAllocation.add(allocation);
+      totalAllocated = totalAllocated.add(allocation);
+
+      if (maxAllocation < allocation) {
+        maxAllocation = allocation;
+      }
     }
 
-    if (staker.staked > totalAllocation) {
-      return staker.staked.sub(totalAllocation);
-    }
+    uint minRequired = totalAllocated.div(MAX_LEVERAGE);
+    uint locked = maxAllocation > minRequired ? maxAllocation : minRequired;
 
-    return 0;
+    return staker.staked.sub(locked);
   }
 
   function hasPendingActions() public view returns (bool) {

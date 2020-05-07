@@ -99,6 +99,8 @@ contract PooledStakingMock is MasterAware {
 
     /* Storage variables */
 
+    bool initialized;
+
     NXMToken token;
     TokenController tokenController;
 
@@ -228,7 +230,13 @@ contract PooledStakingMock is MasterAware {
     }
 
     function hasPendingDeallocations() public view returns (bool){
-        return deallocations[0].next != 0;
+        uint nextDeallocationIndex = deallocations[0].next;
+
+        if (nextDeallocationIndex == 0) {
+            return false;
+        }
+
+        return deallocations[nextDeallocationIndex].deallocateAt <= now;
     }
 
     function hasPendingRewards() public view returns (bool){
@@ -427,20 +435,20 @@ contract PooledStakingMock is MasterAware {
 
         while (true) {
 
-            uint firstDeallocation = deallocations[0].next;
+            uint firstDeallocationIndex = deallocations[0].next;
+            Deallocation storage deallocation = deallocations[firstDeallocationIndex];
 
-            if (firstBurn == 0 && firstDeallocation == 0 && firstReward == 0) {
+            bool canDeallocate = firstDeallocationIndex > 0 && deallocation.deallocateAt <= now;
+            bool canBurn = firstBurn != 0;
+            bool canReward = firstReward != 0;
+
+            if (!canBurn && !canDeallocate && !canReward) {
                 // everything is processed
                 break;
             }
 
             Burn storage burn = burns[firstBurn];
-            Deallocation storage deallocation = deallocations[firstDeallocation];
             Reward storage reward = rewards[firstReward];
-
-            bool canBurn = burn.burnedAt > 0;
-            bool canDeallocate = deallocation.deallocateAt > 0;
-            bool canReward = reward.rewardedAt > 0;
 
             if (
                 canBurn &&
@@ -611,7 +619,9 @@ contract PooledStakingMock is MasterAware {
         return true;
     }
 
-    function updateParameter(ParamType param, uint value) external onlyGovernance {
+    function updateParameter(uint paramIndex, uint value) external onlyGovernance {
+
+        ParamType param = ParamType(paramIndex);
 
         if (param == ParamType.MIN_ALLOCATION) {
             MIN_ALLOCATION = value;
@@ -649,16 +659,33 @@ contract PooledStakingMock is MasterAware {
         }
     }
 
+    function initialize() internal {
+
+        if (initialized) {
+            return;
+        }
+
+        initialized = true;
+
+        tokenController.addToWhitelist(address(this));
+
+        MIN_ALLOCATION = 20 ether;
+        MIN_ALLOWED_DEALLOCATION = 20 ether;
+        MAX_LEVERAGE = 10;
+        DEALLOCATE_LOCK_TIME = 90 days;
+
+        // TODO: To be estimated
+        // BURN_CYCLE_GAS_LIMIT = 0;
+        // DEALLOCATION_CYCLE_GAS_LIMIT = 0;
+        REWARD_CYCLE_GAS_LIMIT = 45000;
+
+        // TODO: implement staking migration here
+    }
+
     function changeDependentContractAddress() public {
         token = NXMToken(master.dAppToken());
         tokenController = TokenController(master.getLatestAddress("TC"));
-
-        // TODO: replace this with uprade function instead of these hardcoded vars
-        MIN_ALLOCATION = 2 ether; // 2 nxm
-        MAX_LEVERAGE = 2;
-        MIN_ALLOWED_DEALLOCATION = 1 ether;
-        DEALLOCATE_LOCK_TIME = 90 days;
-
+        initialize();
     }
 
     function getTokenAddress() public view returns (address) {

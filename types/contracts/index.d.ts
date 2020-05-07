@@ -1054,22 +1054,22 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
 
   updateParameter: {
     (
-      param: number | BigNumber | string,
+      paramIndex: number | BigNumber | string,
       value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      param: number | BigNumber | string,
+      paramIndex: number | BigNumber | string,
       value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      param: number | BigNumber | string,
+      paramIndex: number | BigNumber | string,
       value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      param: number | BigNumber | string,
+      paramIndex: number | BigNumber | string,
       value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;

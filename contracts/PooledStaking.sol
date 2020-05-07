@@ -606,7 +606,9 @@ contract PooledStaking is MasterAware {
     return true;
   }
 
-  function updateParameter(ParamType param, uint value) external onlyGovernance {
+  function updateParameter(uint paramIndex, uint value) external onlyGovernance {
+
+    ParamType param = ParamType(paramIndex);
 
     if (param == ParamType.MIN_ALLOCATION) {
       MIN_ALLOCATION = value;

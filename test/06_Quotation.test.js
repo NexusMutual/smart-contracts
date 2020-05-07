@@ -738,10 +738,10 @@ contract('Quotation', function([
               let initialStakeCommissionOfS1;
               let initialStakeCommissionOfS2;
               it('6.23 should be able to purchase cover', async function() {
-                initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+                initialStakeCommissionOfS1 = await ps.stakerReward.call(
                   staker1
                 );
-                initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+                initialStakeCommissionOfS2 = await ps.stakerReward.call(
                   staker2
                 );
                 let newCDetails = coverDetails.slice();
@@ -819,10 +819,10 @@ contract('Quotation', function([
               let initialStakeCommissionOfS1;
               let initialStakeCommissionOfS2;
               it('6.25 should able to purchase cover using currency assest i.e. DAI ', async function() {
-                initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+                initialStakeCommissionOfS1 = await ps.stakerReward.call(
                   staker1
                 );
-                initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+                initialStakeCommissionOfS2 = await ps.stakerReward.call(
                   staker2
                 );
                 await cad.approve(P1.address, coverDetailsDai[1], {
@@ -850,7 +850,8 @@ contract('Quotation', function([
               it('6.26 staker gets commission', async function() {
                 await ps.processPendingActions();
                 const commission =
-                  ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                  ((coverDetailsDai[2] * (await td.stakerCommissionPer())) /
+                    100 -
                     1) /
                   stakers.length;
                 (await ps.stakerReward.call(staker1))

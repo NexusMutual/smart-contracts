@@ -224,7 +224,7 @@ contract PooledStaking is MasterAware {
         return false;
     }
 
-    return deallocations[nextDeallocationIndex].deallocateAt > now;
+    return deallocations[nextDeallocationIndex].deallocateAt <= now;
   }
 
   function hasPendingRewards() public view returns (bool){

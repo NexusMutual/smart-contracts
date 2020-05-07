@@ -652,6 +652,13 @@ contract PooledStakingMock is MasterAware {
     function changeDependentContractAddress() public {
         token = NXMToken(master.dAppToken());
         tokenController = TokenController(master.getLatestAddress("TC"));
+
+        // TODO: replace this with uprade function instead of these hardcoded vars
+        MIN_ALLOCATION = 2 ether; // 2 nxm
+        MAX_LEVERAGE = 2;
+        MIN_ALLOWED_DEALLOCATION = 1 ether;
+        DEALLOCATE_LOCK_TIME = 90 days;
+
     }
 
     function getTokenAddress() public view returns (address) {

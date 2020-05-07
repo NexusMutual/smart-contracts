@@ -14,5 +14,8 @@ module.exports = {
     artifactsDir: 'build/contracts', // Directory where contract artifacts are stored
   },
 
-  blockGasLimit: 8e6, // Maximum gas per block
+  node: {
+    gasLimit: 8e6, // Maximum gas per block
+  },
+
 };

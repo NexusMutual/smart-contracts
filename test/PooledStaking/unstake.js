@@ -13,6 +13,7 @@ const {
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
+const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundAndApprove (token, staking, amount, member) {
   const maxLeverage = '2';
@@ -92,24 +93,30 @@ describe('unstake', function () {
     );
     await staking.unstake(ether('2'), { from: memberThree });
 
-    // Member 4: Stake 20 allocate [17, 15], such that max allocation < (stake * MAX_LEVERAGE - total allocated)
-    const amountFour = ether('20');
+    // Member 4: Stake 45, allocate [15, 15, 15], expect 22.5 unstakable
+    const amountFour = ether('45');
     await fundAndApprove(token, staking, amountFour, memberFour);
-    await staking.stake(amountFour, [firstContract, secondContract], [ether('19'), ether('15')], { from: memberFour });
+    await staking.stake(
+      amountFour,
+      [firstContract, secondContract, thirdContract],
+      [ether('15'), ether('15'), ether('15')],
+      { from: memberFour },
+    );
+
     const { staked: stakedMemberFour } = await staking.stakers(memberFour, { from: memberFour });
     assert(
       stakedMemberFour.eq(amountFour),
-      `expected staked amount for memberThree ${amountFour}, found ${stakedMemberFour}`,
+      `expected staked amount for memberFour ${amountFour}, found ${stakedMemberFour}`,
     );
 
-    // Can unstake 3
+    // Can unstake 22.5
     maxUnstakable = await staking.getMaxUnstakable(memberFour);
-    assert(maxUnstakable.eq(ether('2')), `expected max unstakable ${ether('2')}, found ${maxUnstakable}`);
+    assert(maxUnstakable.eq(ether('22.5')), `expected max unstakable ${ether('22.5')}, found ${maxUnstakable}`);
     await expectRevert(
-      staking.unstake(amountFour, { from: memberFour }),
+      staking.unstake(ether('22.501'), { from: memberFour }),
       'Requested amount exceeds max unstakable amount',
     );
-    await staking.unstake(ether('3'), { from: memberFour });
+    await staking.unstake(ether('22.5'), { from: memberFour });
   });
 
   it('should decrease the total stake amount of the staker', async function () {

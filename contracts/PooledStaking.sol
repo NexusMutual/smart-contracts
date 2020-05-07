@@ -99,6 +99,8 @@ contract PooledStaking is MasterAware {
 
   /* Storage variables */
 
+  bool initialized;
+
   NXMToken token;
   ITokenController tokenController;
 
@@ -221,7 +223,7 @@ contract PooledStaking is MasterAware {
     uint nextDeallocationIndex = deallocations[0].next;
 
     if (nextDeallocationIndex == 0) {
-        return false;
+      return false;
     }
 
     return deallocations[nextDeallocationIndex].deallocateAt <= now;
@@ -640,15 +642,39 @@ contract PooledStaking is MasterAware {
       return;
     }
 
-    if (param == ParamType.REWARD_CYCLE_GAS_LIMIT ) {
+    if (param == ParamType.REWARD_CYCLE_GAS_LIMIT) {
       REWARD_CYCLE_GAS_LIMIT = value;
       return;
     }
   }
 
+  function initialize() internal {
+
+    if (initialized) {
+      return;
+    }
+
+    initialized = true;
+
+    tokenController.addToWhitelist(address(this));
+
+    MIN_ALLOCATION = 20 ether;
+    MIN_ALLOWED_DEALLOCATION = 20 ether;
+    MAX_LEVERAGE = 10;
+    DEALLOCATE_LOCK_TIME = 90 days;
+
+    // TODO: To be estimated
+    // BURN_CYCLE_GAS_LIMIT = 0;
+    // DEALLOCATION_CYCLE_GAS_LIMIT = 0;
+    REWARD_CYCLE_GAS_LIMIT = 45000;
+
+    // TODO: implement staking migration here
+  }
+
   function changeDependentContractAddress() public {
     token = NXMToken(master.getLatestAddress("TK"));
     tokenController = ITokenController(master.getLatestAddress("TC"));
+    initialize();
   }
 
 }

@@ -422,20 +422,20 @@ contract PooledStaking is MasterAware {
 
     while (true) {
 
-      uint firstDeallocation = deallocations[0].next;
-      Deallocation storage deallocation = deallocations[firstDeallocation];
-      bool canDeallocate = deallocation.deallocateAt > 0 && deallocation.deallocateAt <= now;
+      uint firstDeallocationIndex = deallocations[0].next;
+      Deallocation storage deallocation = deallocations[firstDeallocationIndex];
 
-      if (firstBurn == 0 && !canDeallocate && firstReward == 0) {
+      bool canDeallocate = firstDeallocationIndex > 0 && deallocation.deallocateAt <= now;
+      bool canBurn = firstBurn != 0;
+      bool canReward = firstReward != 0;
+
+      if (!canBurn && !canDeallocate && !canReward) {
         // everything is processed
         break;
       }
 
       Burn storage burn = burns[firstBurn];
       Reward storage reward = rewards[firstReward];
-
-      bool canBurn = burn.burnedAt > 0;
-      bool canReward = reward.rewardedAt > 0;
 
       if (
         canBurn &&

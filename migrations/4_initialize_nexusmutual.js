@@ -77,12 +77,12 @@ module.exports = function(deployer, network, accounts) {
       pooledStaking.address
     ];
 
-    await nxms.addNewVersion(addr);
-    console.log(
-      `nxms.getLatestAddress('PS') ${await nxms.getLatestAddress(toHex('PS'))}`
-    );
+    // await pooledStaking.changeDependentContractAddress();
 
-    console.log(`tf.pooledStaking `);
+    console.log(await pooledStaking.getTokenAddress.call());
+    console.log(await pooledStaking.getMasterAddress.call());
+
+    await nxms.addNewVersion(addr);
     let pcAddress = await nxms.getLatestAddress('0x5043');
     pc = await ProposalCategory.at(pcAddress);
     await pc.proposalCategoryInitiate();
@@ -113,7 +113,15 @@ module.exports = function(deployer, network, accounts) {
       from: Owner,
       value: '2000000000000000'
     });
+
     await mrInstance.kycVerdict(Owner, true);
     await mrInstance.addInitialABMembers([Owner]);
+
+    await mrInstance.payJoiningFee(pooledStaking.address, {
+      from: Owner,
+      value: '2000000000000000'
+    });
+
+    await mrInstance.kycVerdict(pooledStaking.address, true);
   });
 };

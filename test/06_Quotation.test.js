@@ -641,16 +641,17 @@ contract('Quotation', function([
               await tk.transfer(staker1, tokens);
               await tk.transfer(staker2, tokens);
 
-              await tk.approve(ps.address, stakeTokens, {
+              await tk.approve(ps.address, UNLIMITED_ALLOWANCE, {
                 from: staker1
               });
+
               console.log(`Pre-staking`);
               await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
                 from: staker1
               });
 
               console.log(`Pre-staking number 2`);
-              await tk.approve(ps.address, stakeTokens, {
+              await tk.approve(ps.address, UNLIMITED_ALLOWANCE, {
                 from: staker2
               });
               await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {

@@ -255,7 +255,6 @@ contract PooledStakingMock is MasterAware {
             "Contracts and allocations arrays should have the same length"
         );
 
-        revert("PRE TRANSFER FAIL");
         token.transferFrom(msg.sender, address(this), amount);
 
         staker.staked = staker.staked.add(amount);
@@ -651,8 +650,15 @@ contract PooledStakingMock is MasterAware {
     }
 
     function changeDependentContractAddress() public {
-        token = NXMToken(master.getLatestAddress("TK"));
+        token = NXMToken(master.dAppToken());
         tokenController = TokenController(master.getLatestAddress("TC"));
     }
 
+    function getTokenAddress() public view returns (address) {
+        return address(token);
+    }
+
+    function getMasterAddress() public view returns (address) {
+        return address(master);
+    }
 }

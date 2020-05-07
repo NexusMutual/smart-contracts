@@ -627,6 +627,7 @@ contract('Quotation', function([
           describe('If staker staked tokens on Smart Contract', function() {
             const staker1 = member1;
             const staker2 = member2;
+            const stakers = [staker1, staker2];
             let event;
             before(async function() {
               await mr.payJoiningFee(staker2, {
@@ -669,10 +670,10 @@ contract('Quotation', function([
               let initialStakeCommissionOfS1;
               let initialStakeCommissionOfS2;
               it('6.21 should be able to purchase cover ', async function() {
-                initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+                initialStakeCommissionOfS1 = await ps.stakerReward.call(
                   staker1
                 );
-                initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+                initialStakeCommissionOfS2 = await ps.stakerReward.call(
                   staker2
                 );
                 coverDetails[4] = 7972408607003;
@@ -709,10 +710,12 @@ contract('Quotation', function([
               });
 
               it('6.22 staker gets commission', async function() {
+                await ps.processPendingActions();
                 const commission =
-                  (coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
-                  1;
-                (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+                  ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                    1) /
+                  stakers.length;
+                (await ps.stakerReward.call(staker1))
                   .toString()
                   .should.be.equal(
                     new BN(initialStakeCommissionOfS1.toString())
@@ -720,9 +723,13 @@ contract('Quotation', function([
                       .toString()
                   );
 
-                (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+                (await ps.stakerReward.call(staker2))
                   .toString()
-                  .should.be.equal(initialStakeCommissionOfS2.toString());
+                  .should.be.equal(
+                    new BN(initialStakeCommissionOfS2.toString())
+                      .add(new BN(commission.toFixed(0).toString()))
+                      .toString()
+                  );
               });
             });
 
@@ -783,10 +790,12 @@ contract('Quotation', function([
                 );
               });
               it('6.24 staker gets commission', async function() {
+                await ps.processPendingActions();
                 const commission =
-                  (coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
-                  1;
-                (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+                  ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                    1) /
+                  stakers.length;
+                (await ps.stakerReward.call(staker1))
                   .toString()
                   .should.be.equal(
                     new BN(initialStakeCommissionOfS1.toString())
@@ -794,9 +803,117 @@ contract('Quotation', function([
                       .toString()
                   );
 
-                (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+                (await ps.stakerReward.call(staker2))
                   .toString()
-                  .should.be.equal(initialStakeCommissionOfS2.toString());
+                  .should.be.equal(
+                    new BN(initialStakeCommissionOfS2.toString())
+                      .add(new BN(commission.toFixed(0).toString()))
+                      .toString()
+                  );
+              });
+            });
+
+            describe('Purchase Cover With DAI', function() {
+              const coverHolder = member5;
+              let initialPoolBalanceOfCA;
+              let initialStakeCommissionOfS1;
+              let initialStakeCommissionOfS2;
+              it('6.25 should able to purchase cover using currency assest i.e. DAI ', async function() {
+                initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
+                  staker1
+                );
+                initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
+                  staker2
+                );
+                await cad.approve(P1.address, coverDetailsDai[1], {
+                  from: coverHolder
+                });
+                coverDetailsDai[4] = 7972408607005;
+                var vrsdata = await getQuoteValues(
+                  coverDetailsDai,
+                  toHex('DAI'),
+                  coverPeriod,
+                  smartConAdd,
+                  qt.address
+                );
+                await P1.makeCoverUsingCA(
+                  smartConAdd,
+                  toHex('DAI'),
+                  coverDetailsDai,
+                  coverPeriod,
+                  vrsdata[0],
+                  vrsdata[1],
+                  vrsdata[2],
+                  {from: coverHolder}
+                );
+              });
+              it('6.26 staker gets commission', async function() {
+                await ps.processPendingActions();
+                const commission =
+                  ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                    1) /
+                  stakers.length;
+                (await ps.stakerReward.call(staker1))
+                  .toString()
+                  .should.be.equal(
+                    new BN(initialStakeCommissionOfS1.toString())
+                      .add(new BN(commission.toFixed(0).toString()))
+                      .toString()
+                  );
+                (await ps.stakerReward.call(staker2))
+                  .toString()
+                  .should.be.equal(
+                    new BN(initialStakeCommissionOfS2.toString())
+                      .add(new BN(commission.toFixed(0).toString()))
+                      .toString()
+                  );
+              });
+              it('6.27 should able to purchase cover with cover period less than 60 ', async function() {
+                let coverLen = await qd.getCoverLength();
+                let totalSASC = await qd.getTotalSumAssuredSC(
+                  smartConAdd,
+                  toHex('DAI')
+                );
+                coverDetailsLess[4] = 7972408607006;
+                var vrsdata = await getQuoteValues(
+                  coverDetailsLess,
+                  toHex('DAI'),
+                  coverPeriodLess,
+                  smartConAdd,
+                  qt.address
+                );
+                await cad.approve(P1.address, coverDetailsLess[1], {
+                  from: coverHolder
+                });
+                await P1.makeCoverUsingCA(
+                  smartConAdd,
+                  toHex('DAI'),
+                  coverDetailsLess,
+                  coverPeriodLess,
+                  vrsdata[0],
+                  vrsdata[1],
+                  vrsdata[2],
+                  {from: coverHolder}
+                );
+                new BN(coverLen.toString())
+                  .add(new BN((1).toString()))
+                  .toString()
+                  .should.be.equal((await qd.getCoverLength()).toString());
+                coverPeriodLess
+                  .toString()
+                  .should.be.equal(
+                    (
+                      await qd.getCoverPeriod((await qd.getCoverLength()) - 1)
+                    ).toString()
+                  );
+                new BN(totalSASC.toString())
+                  .add(new BN(coverDetailsLess[0].toString()))
+                  .toString()
+                  .should.be.equal(
+                    (
+                      await qd.getTotalSumAssuredSC(smartConAdd, toHex('DAI'))
+                    ).toString()
+                  );
               });
             });
           });
@@ -804,107 +921,6 @@ contract('Quotation', function([
       });
     });
   });
-  //
-  //         describe('Purchase Cover With DAI', function() {
-  //           const coverHolder = member5;
-  //           let initialPoolBalanceOfCA;
-  //           let initialStakeCommissionOfS1;
-  //           let initialStakeCommissionOfS2;
-  //           it('6.25 should able to purchase cover using currency assest i.e. DAI ', async function() {
-  //             initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-  //               staker1
-  //             );
-  //             initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-  //               staker2
-  //             );
-  //             await cad.approve(P1.address, coverDetailsDai[1], {
-  //               from: coverHolder
-  //             });
-  //             coverDetailsDai[4] = 7972408607005;
-  //             var vrsdata = await getQuoteValues(
-  //               coverDetailsDai,
-  //               toHex('DAI'),
-  //               coverPeriod,
-  //               smartConAdd,
-  //               qt.address
-  //             );
-  //             await P1.makeCoverUsingCA(
-  //               smartConAdd,
-  //               toHex('DAI'),
-  //               coverDetailsDai,
-  //               coverPeriod,
-  //               vrsdata[0],
-  //               vrsdata[1],
-  //               vrsdata[2],
-  //               {from: coverHolder}
-  //             );
-  //           });
-  //           it('6.26 staker gets commission', async function() {
-  //             const commission =
-  //               (coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
-  //               1;
-  //             (await td.getStakerTotalEarnedStakeCommission.call(staker1))
-  //               .toString()
-  //               .should.be.equal(
-  //                 new BN(initialStakeCommissionOfS1.toString())
-  //                   .add(new BN(commission.toFixed(0).toString()))
-  //                   .toString()
-  //               );
-  //             (await td.getStakerTotalEarnedStakeCommission.call(staker2))
-  //               .toString()
-  //               .should.be.equal(initialStakeCommissionOfS2.toString());
-  //           });
-  //           it('6.27 should able to purchase cover with cover period less than 60 ', async function() {
-  //             let coverLen = await qd.getCoverLength();
-  //             let totalSASC = await qd.getTotalSumAssuredSC(
-  //               smartConAdd,
-  //               toHex('DAI')
-  //             );
-  //             coverDetailsLess[4] = 7972408607006;
-  //             var vrsdata = await getQuoteValues(
-  //               coverDetailsLess,
-  //               toHex('DAI'),
-  //               coverPeriodLess,
-  //               smartConAdd,
-  //               qt.address
-  //             );
-  //             await cad.approve(P1.address, coverDetailsLess[1], {
-  //               from: coverHolder
-  //             });
-  //             await P1.makeCoverUsingCA(
-  //               smartConAdd,
-  //               toHex('DAI'),
-  //               coverDetailsLess,
-  //               coverPeriodLess,
-  //               vrsdata[0],
-  //               vrsdata[1],
-  //               vrsdata[2],
-  //               {from: coverHolder}
-  //             );
-  //             new BN(coverLen.toString())
-  //               .add(new BN((1).toString()))
-  //               .toString()
-  //               .should.be.equal((await qd.getCoverLength()).toString());
-  //             coverPeriodLess
-  //               .toString()
-  //               .should.be.equal(
-  //                 (
-  //                   await qd.getCoverPeriod((await qd.getCoverLength()) - 1)
-  //                 ).toString()
-  //               );
-  //             new BN(totalSASC.toString())
-  //               .add(new BN(coverDetailsLess[0].toString()))
-  //               .toString()
-  //               .should.be.equal(
-  //                 (
-  //                   await qd.getTotalSumAssuredSC(smartConAdd, toHex('DAI'))
-  //                 ).toString()
-  //               );
-  //           });
-  //         });
-  //       });
-  //     });
-  //   });
   //
   //   describe('If user is not a member', function() {
   //     it('6.28 should return -1 if user have no holded Covers', async function() {

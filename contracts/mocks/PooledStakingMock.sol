@@ -37,17 +37,17 @@ contract PooledStakingMock is MasterAware {
         REWARD_CYCLE_GAS_LIMIT
     }
 
-    struct Staker {
-        uint staked; // total amount of staked nxm
-        uint reward; // total amount that is ready to be claimed
-        address[] contracts; // list of contracts the staker has staked on
+        struct Staker {
+            uint staked; // total amount of staked nxm
+            uint reward; // total amount that is ready to be claimed
+            address[] contracts; // list of contracts the staker has staked on
 
-        // allocated stake amounts for each contract
-        mapping(address => uint) allocations;
+            // allocated stake amounts for each contract
+            mapping(address => uint) allocations;
 
-        // amount pending to be subtracted after all deallocations will be processed
-        mapping(address => uint) pendingDeallocations;
-    }
+            // amount pending to be subtracted after all deallocations will be processed
+            mapping(address => uint) pendingDeallocations;
+        }
 
     struct Contract {
         uint staked; // amount of nxm staked for this contract

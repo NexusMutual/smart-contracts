@@ -165,9 +165,6 @@ contract('Claim', function([
           from: staker
         });
       }
-      // await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
-      // await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
-      // await tf.addStake(smartConAdd, stakeTokens, { from: member3 });
     });
 
     describe('if member', function() {

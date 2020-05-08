@@ -210,10 +210,6 @@ contract ClaimsReward is Iupgradable {
      */
     function claimAllPendingReward(uint records) public isMemberAndcheckPause {
         _claimRewardToBeDistributed(records);
-
-        pooledStaking.withdrawReward(pooledStaking.stakerReward(msg.sender));
-        pooledStaking.unstake(pooledStaking.getMaxUnstakable(msg.sender));
-
         uint gvReward = gv.claimReward(msg.sender, records);
         if (gvReward > 0) {
             require(tk.transfer(msg.sender, gvReward));

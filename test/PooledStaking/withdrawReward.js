@@ -38,75 +38,56 @@ describe('withdrawReward', function () {
     );
   });
 
-  // TODO: Split this test in smaller tests as it currently does too many things
   it('should revert if requested amount exceeds available reward', async function () {
     const { token, staking } = this;
-    const initialReward = ether('0');
-
-    const { reward: actualInitialReward } = await staking.stakers(memberOne, { from: memberOne });
 
     // No rewards available
-    assert(actualInitialReward.eq(initialReward));
-
     await expectRevert(
       staking.withdrawReward(memberOne, ether('1'), { from: memberOne }),
       'Requested amount exceeds available reward',
     );
 
-    const balanceBeforeStaking = await token.balanceOf(staking.address);
-    assert(balanceBeforeStaking.eq(initialReward), 'Initial contract balance should be 0');
-
-    // Two members stake
+    // MemberOne stakes 10 on firstContract
     const stakeAmountOne = ether('10');
     await fundAndApprove(token, staking, stakeAmountOne, memberOne);
     await staking.stake(stakeAmountOne, [firstContract], [stakeAmountOne], { from: memberOne });
 
+    // MemberTwo stakes 20 on firstContract
     const stakeAmountTwo = ether('20');
     await fundAndApprove(token, staking, stakeAmountTwo, memberTwo);
     await staking.stake(stakeAmountTwo, [firstContract], [stakeAmountTwo], { from: memberTwo });
 
-    const balanceAfterStaking = await token.balanceOf(staking.address);
-    assert(balanceAfterStaking.eq(ether('30')), 'Balance should be equal to staked amount');
-
-    // Generate and process rewards
-    const reward = ether('3');
+    // Generate and process a reward
+    const reward = ether('4');
     await staking.pushReward(firstContract, reward, { from: internalContract });
-
-    const balanceAfterReward = await token.balanceOf(staking.address);
-    assert(balanceAfterReward.eq(ether('33')), 'Tokens should have been minted when pushing the reward');
-
     await staking.processPendingActions();
 
+    // MemberOne can withdraw: 4 * 10 / 30 = 1.(33)
+    const expectedRewardMemberOne = reward.mul(stakeAmountOne).div(ether('30'));
+    const { reward: rewardMemberOne } = await staking.stakers(memberOne, { from: memberOne });
+    assert(
+      rewardMemberOne.eq(expectedRewardMemberOne),
+      `expected reward for member one is ${expectedRewardMemberOne}, found ${rewardMemberOne}`,
+    );
     await expectRevert(
       staking.withdrawReward(memberOne, ether('2'), { from: memberOne }),
       'Requested amount exceeds available reward',
     );
+    await staking.withdrawReward(memberOne, expectedRewardMemberOne, { from: memberOne });
 
+    // MemberTwo can withdraw: 4 * 20 / 30 = 2.(66)
+    const expectedRewardMemberTwo = reward.mul(stakeAmountTwo).div(ether('30'));
+    const { reward: rewardMemberTwo } = await staking.stakers(memberTwo, { from: memberTwo });
+    assert(
+      rewardMemberTwo.eq(expectedRewardMemberTwo),
+      `expected reward for member one is ${expectedRewardMemberTwo}, found ${rewardMemberTwo}`,
+    );
     await expectRevert(
-      staking.withdrawReward(memberTwo, ether('4'), { from: memberTwo }),
+      staking.withdrawReward(memberTwo, ether('3'), { from: memberTwo }),
       'Requested amount exceeds available reward',
     );
+    await staking.withdrawReward(memberTwo, expectedRewardMemberTwo, { from: memberTwo });
 
-    await staking.withdrawReward(memberOne, ether('1'), { from: memberOne });
-    const memberOneBalance = await token.balanceOf(memberOne);
-    assert(memberOneBalance.eq(ether('1')), 'Balance of member one should have increased with withdrawn amount');
-
-    await staking.withdrawReward(memberTwo, ether('2'), { from: memberTwo });
-    const memberTwoBalance = await token.balanceOf(memberTwo);
-    assert(memberTwoBalance.eq(ether('2')), 'Balance of member two should have increased with withdrawn amount');
-
-    const balanceAfterWithdraw = await token.balanceOf(staking.address);
-    assert(balanceAfterWithdraw.eq(ether('30')), 'Tokens should have been subtracted from the contract');
-
-    await expectRevert(
-      staking.withdrawReward(memberOne, '1', { from: memberOne }),
-      'Requested amount exceeds available reward.',
-    );
-
-    await expectRevert(
-      staking.withdrawReward(memberTwo, '1', { from: memberTwo }),
-      'Requested amount exceeds available reward.',
-    );
   });
 
   it('should properly move tokens from the PooledStaking contract to the member\'s address', async function () {

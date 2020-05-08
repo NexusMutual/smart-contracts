@@ -18,6 +18,7 @@ pragma solidity 0.5.7;
 import "./Iupgradable.sol";
 import "./external/ERC1132/IERC1132.sol";
 import "./NXMToken.sol";
+import "./interfaces/IPooledStaking.sol";
 
 
 contract TokenController is IERC1132, Iupgradable {
@@ -26,22 +27,24 @@ contract TokenController is IERC1132, Iupgradable {
     event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
     NXMToken public token;
-    
+    IPooledStaking public pooledStaking;
+
     /**
     * @dev Just for interface
     */
     function changeDependentContractAddress() public {
         token = NXMToken(ms.tokenAddress());
+        pooledStaking = IPooledStaking(ms.getLatestAddress('PS'));
     }
 
     /**
-     * @dev to change the operator address 
+     * @dev to change the operator address
      * @param _newOperator is the new address of operator
      */
     function changeOperator(address _newOperator) public onlyInternal {
         token.changeOperator(_newOperator);
     }
-    
+
     /**
     * @dev Locks a specified amount of tokens,
     *    for a specified reason and time
@@ -75,7 +78,7 @@ contract TokenController is IERC1132, Iupgradable {
         _lock(_of, _reason, _amount, _time);
         return true;
     }
-  
+
     /**
     * @dev Extends lock for a specified reason and time
     * @param _reason The reason to lock tokens
@@ -102,7 +105,7 @@ contract TokenController is IERC1132, Iupgradable {
         _extendLock(_of, _reason, _time);
         return true;
     }
-    
+
     /**
     * @dev Increase number of tokens locked for a specified reason
     * @param _reason The reason to lock tokens
@@ -111,13 +114,13 @@ contract TokenController is IERC1132, Iupgradable {
     function increaseLockAmount(bytes32 _reason, uint256 _amount)
         public
         returns (bool)
-    {    
+    {
         _increaseLockAmount(msg.sender, _reason, _amount);
         return true;
     }
 
     /**
-     * @dev burns tokens of an address 
+     * @dev burns tokens of an address
      * @param _of is the address to burn tokens of
      * @param amount is the amount to burn
      * @return the boolean status of the burning process
@@ -125,9 +128,9 @@ contract TokenController is IERC1132, Iupgradable {
     function burnFrom (address _of, uint amount) public onlyInternal returns (bool) {
         return token.burnFrom(_of, amount);
     }
-    
+
     /**
-    * @dev Burns locked tokens of a user 
+    * @dev Burns locked tokens of a user
     * @param _of address whose tokens are to be burned
     * @param _reason lock reason for which tokens are to be burned
     * @param _amount amount of tokens to burn
@@ -144,7 +147,7 @@ contract TokenController is IERC1132, Iupgradable {
     */
     function reduceLock(address _of, bytes32 _reason, uint256 _time) public onlyInternal {
         _reduceLock(_of, _reason, _time);
-    } 
+    }
 
     /**
     * @dev Released locked tokens of an address locked for a specific reason
@@ -152,9 +155,9 @@ contract TokenController is IERC1132, Iupgradable {
     * @param _reason reason of the lock
     * @param _amount amount of tokens to release
     */
-    function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) 
-        public 
-        onlyInternal 
+    function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount)
+        public
+        onlyInternal
     {
         _releaseLockedTokens(_of, _reason, _amount);
     }
@@ -185,7 +188,7 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-     * @dev Lock the user's tokens 
+     * @dev Lock the user's tokens
      * @param _of user's address.
      */
     function lockForMemberVote(address _of, uint _days) public onlyInternal {
@@ -209,7 +212,7 @@ contract TokenController is IERC1132, Iupgradable {
                 locked[_of][lockReason[_of][i]].claimed = true;
                 emit Unlocked(_of, lockReason[_of][i], lockedTokens);
             }
-        }  
+        }
 
         if (unlockableTokens > 0)
             require(token.transfer(_of, unlockableTokens));
@@ -218,7 +221,7 @@ contract TokenController is IERC1132, Iupgradable {
     /**
     * @dev Gets the validity of locked tokens of a specified address
     * @param _of The address to query the validity
-    * @param reason reason for which tokens were locked 
+    * @param reason reason for which tokens were locked
     */
     function getLockedTokensValidity(address _of, bytes32 reason)
         public
@@ -239,7 +242,7 @@ contract TokenController is IERC1132, Iupgradable {
     {
         for (uint256 i = 0; i < lockReason[_of].length; i++) {
             unlockableTokens = unlockableTokens.add(_tokensUnlockable(_of, lockReason[_of][i]));
-        }  
+        }
     }
 
     /**
@@ -292,7 +295,11 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-    * @dev Returns total tokens held by an address (locked + transferable)
+    * @dev Returns the total amount of tokens held by an address:
+    *   transferable + locked + staked for pooled staking - pending burns.
+    *   Used by Claims and Governance in member voting to calculate the user's vote weight.
+    *
+    * @param _of The address to query the total balance of
     * @param _of The address to query the total balance of
     */
     function totalBalanceOf(address _of)
@@ -304,28 +311,28 @@ contract TokenController is IERC1132, Iupgradable {
 
         for (uint256 i = 0; i < lockReason[_of].length; i++) {
             amount = amount.add(_tokensLocked(_of, lockReason[_of][i]));
-        }   
+        }
+
+        amount = amount.add(pooledStaking.stakerProcessedStake());
     }
 
     /**
     * @dev Returns the total locked tokens at time
+    *   Returns the total amount of locked and staked tokens at a given time. Used by MemberRoles to check eligibility
+    *   for withdraw / switch membership. Includes tokens locked for Claim Assessment and staked for Risk Assessment.
+    *   Does not take into account pending burns.
+    *
     * @param _of member whose locked tokens are to be calculate
     * @param _time timestamp when the tokens should be locked
     */
     function totalLockedBalance(address _of, uint256 _time) public view returns (uint256 amount) {
-        amount = _totalLockedBalance(_of, _time);
-    }  
 
-    /**
-    * @dev Internal function to returns the total locked tokens at time
-    * @param _of member whose locked tokens are to be calculate
-    * @param _time timestamp when the tokens should be locked
-    */
-    function _totalLockedBalance(address _of, uint256 _time) internal view returns (uint256 amount) {
         for (uint256 i = 0; i < lockReason[_of].length; i++) {
             amount = amount.add(_tokensLockedAtTime(_of, lockReason[_of][i], _time));
         }
-    } 
+
+        amount = amount.add(pooledStaking.stakerStake());
+    }
 
     /**
     * @dev Locks a specified amount of tokens against an address,
@@ -348,7 +355,7 @@ contract TokenController is IERC1132, Iupgradable {
         locked[_of][_reason] = LockToken(_amount, validUntil, false);
         emit Locked(_of, _reason, _amount, validUntil);
     }
-    
+
     /**
     * @dev Returns tokens locked for a specified address for a
     *    specified reason
@@ -381,7 +388,7 @@ contract TokenController is IERC1132, Iupgradable {
         if (locked[_of][_reason].validity > _time)
             amount = locked[_of][_reason].amount;
     }
-    
+
     /**
     * @dev Extends lock for a specified reason and time
     * @param _of The address whose tokens are locked
@@ -407,7 +414,7 @@ contract TokenController is IERC1132, Iupgradable {
         locked[_of][_reason].validity = locked[_of][_reason].validity.sub(_time);
         emit Locked(_of, _reason, locked[_of][_reason].amount, locked[_of][_reason].validity);
     }
-    
+
     /**
     * @dev Increase number of tokens locked for a specified reason
     * @param _of The address whose tokens are locked
@@ -434,7 +441,7 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-    * @dev Burns locked tokens of a user 
+    * @dev Burns locked tokens of a user
     * @param _of address whose tokens are to be burned
     * @param _reason lock reason for which tokens are to be burned
     * @param _amount amount of tokens to burn
@@ -442,10 +449,10 @@ contract TokenController is IERC1132, Iupgradable {
     function _burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal {
         uint256 amount = _tokensLocked(_of, _reason);
         require(amount >= _amount);
-        
+
         if (amount == _amount)
             locked[_of][_reason].claimed = true;
-        
+
         locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
         token.burn(_amount);
         emit Burned(_of, _reason, _amount);
@@ -457,8 +464,8 @@ contract TokenController is IERC1132, Iupgradable {
     * @param _reason reason of the lock
     * @param _amount amount of tokens to release
     */
-    function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) 
-        internal 
+    function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount)
+        internal
     {
         uint256 amount = _tokensLocked(_of, _reason);
         require(amount >= _amount);

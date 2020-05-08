@@ -646,24 +646,16 @@ contract('Quotation', function([
             await tk.approve(ps.address, stakeTokens, {
               from: staker1
             });
-
-            console.log(`Pre-staking`);
             await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
               from: staker1
             });
-
-            console.log(`Pre-staking number 2`);
             await tk.approve(ps.address, stakeTokens, {
               from: staker2
             });
             await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
               from: staker2
             });
-            console.log(`Post-staking`);
-
-            console.log(`Processing pending actions..`);
             await ps.processPendingActions();
-            console.log(`Finished processing pending actions.`);
           });
 
           describe('Purchase Cover With Ether', function() {

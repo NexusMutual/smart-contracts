@@ -12,16 +12,17 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const DAI = artifacts.require('MockDAI');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
+const PooledStaking = artifacts.require('PooledStakingMock');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toWei, toHex } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toWei, toHex} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -54,6 +55,7 @@ let pd;
 let nxms;
 let mr;
 let mcr;
+let ps;
 const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
@@ -75,7 +77,7 @@ contract('Claim', function([
   govVoter4
 ]) {
   const P_18 = new BN(toWei(1).toString());
-  const stakeTokens = ether(2);
+  const stakeTokens = ether(20);
   const tokens = ether(200);
   const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
@@ -100,6 +102,7 @@ contract('Claim', function([
     nxms = await NXMaster.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    ps = await PooledStaking.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -136,32 +139,42 @@ contract('Claim', function([
 
   describe('Submit Claim', function() {
     before(async function() {
-      await mr.payJoiningFee(member1, { from: member1, value: fee });
+      await mr.payJoiningFee(member1, {from: member1, value: fee});
       await mr.kycVerdict(member1, true);
-      await mr.payJoiningFee(member2, { from: member2, value: fee });
+      await mr.payJoiningFee(member2, {from: member2, value: fee});
       await mr.kycVerdict(member2, true);
-      await mr.payJoiningFee(member3, { from: member3, value: fee });
+      await mr.payJoiningFee(member3, {from: member3, value: fee});
       await mr.kycVerdict(member3, true);
-      await mr.payJoiningFee(member4, { from: member4, value: fee });
+      await mr.payJoiningFee(member4, {from: member4, value: fee});
       await mr.kycVerdict(member4, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member4});
       await tk.transfer(member1, tokens);
       await tk.transfer(member2, tokens);
       await tk.transfer(member3, tokens);
       await tk.transfer(member4, tokens);
-      await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
-      await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
-      await tf.addStake(smartConAdd, stakeTokens, { from: member3 });
+
+      const stakers = [member1, member2, member3];
+      for (const staker of stakers) {
+        await tk.approve(ps.address, stakeTokens, {
+          from: staker
+        });
+        await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+          from: staker
+        });
+      }
+      // await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
+      // await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
+      // await tf.addStake(smartConAdd, stakeTokens, { from: member3 });
     });
 
     describe('if member', function() {
       let coverHolder = member1;
       describe('if does not purchased cover', function() {
         it('7.1 reverts', async function() {
-          await assertRevert(cl.submitClaim(0, { from: member1 }));
+          await assertRevert(cl.submitClaim(0, {from: member1}));
         });
       });
 
@@ -183,7 +196,7 @@ contract('Claim', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: coverHolder, value: coverDetails[1] }
+            {from: coverHolder, value: coverDetails[1]}
           );
           coverDetails[4] = 7972408607002;
           vrsdata = await getQuoteValues(
@@ -201,7 +214,7 @@ contract('Claim', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: coverHolder, value: coverDetails[1] }
+            {from: coverHolder, value: coverDetails[1]}
           );
         });
 
@@ -223,7 +236,7 @@ contract('Claim', function([
                   coverHolder
                 );
                 let initialClaimCount = await cd.getClaimLength();
-                await cl.submitClaim(coverID[0], { from: coverHolder });
+                await cl.submitClaim(coverID[0], {from: coverHolder});
                 new BN(initialUserClaimCount.toString())
                   .add(new BN((1).toString()))
                   .toString()
@@ -264,7 +277,7 @@ contract('Claim', function([
               it('7.5 reverts', async function() {
                 const coverID = await qd.getAllCoversOfUser(coverHolder);
                 await assertRevert(
-                  cl.submitClaim(coverID[0], { from: coverHolder })
+                  cl.submitClaim(coverID[0], {from: coverHolder})
                 );
               });
             });
@@ -309,7 +322,7 @@ contract('Claim', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder, value: coverDetails[1] }
+                {from: coverHolder, value: coverDetails[1]}
               );
               coverID = await qd.getAllCoversOfUser(coverHolder);
               var APIID = await pd.allAPIcall(
@@ -328,7 +341,7 @@ contract('Claim', function([
             it('7.7 reverts', async function() {
               coverID = await qd.getAllCoversOfUser(coverHolder);
               await assertRevert(
-                cl.submitClaim(coverID[1], { from: coverHolder })
+                cl.submitClaim(coverID[1], {from: coverHolder})
               );
             });
           });
@@ -352,13 +365,13 @@ contract('Claim', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: coverHolder }
+              {from: coverHolder}
             );
           });
           it('7.8 reverts', async function() {
             coverID = await qd.getAllCoversOfUser(coverHolder);
             await assertRevert(
-              cl.submitClaim(coverID[2], { from: notCoverHolder })
+              cl.submitClaim(coverID[2], {from: notCoverHolder})
             );
           });
         });
@@ -380,7 +393,7 @@ contract('Claim', function([
           'CAMINVT',
           0
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
         let val = await cd.getUintParameters(toHex('CAMINVT'));
         (val[1] / 1).should.be.equal(0);
       });
@@ -396,7 +409,7 @@ contract('Claim', function([
           'CAMAXVT',
           10
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
         let val = await cd.getUintParameters(toHex('CAMAXVT'));
         (val[1] / 1).should.be.equal(10);
       });
@@ -412,7 +425,7 @@ contract('Claim', function([
           'CAPRETRY',
           120
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
         let val = await cd.getUintParameters(toHex('CAPRETRY'));
         (val[1] / 1).should.be.equal(120);
       });
@@ -428,7 +441,7 @@ contract('Claim', function([
           'CADEPT',
           12
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
         let val = await cd.getUintParameters(toHex('CADEPT'));
         (val[1] / 1).should.be.equal(12);
       });
@@ -445,7 +458,7 @@ contract('Claim', function([
           'CAREWPER',
           36
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2);
+        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
         ((await cd.claimRewardPerc()) / 1).should.be.equal(36);
       });
       it('7.23 should revert if trying to update pendingClaimStart with low value', async function() {

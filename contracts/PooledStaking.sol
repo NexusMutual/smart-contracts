@@ -596,8 +596,8 @@ contract PooledStaking is MasterAware {
 
       // staker's ratio = total staked on contract / staker's stake on contract
       // staker's reward = total reward amount * staker's ratio
-      uint stakerReward = reward.amount.mul(allocation).div(_contract.staked);
-      staker.reward = staker.reward.add(stakerReward);
+      uint rewardedAmount = reward.amount.mul(allocation).div(_contract.staked);
+      staker.reward = staker.reward.add(rewardedAmount);
 
       uint nextIndex = i + 1;
 

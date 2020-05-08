@@ -652,6 +652,7 @@ contract('Claim: Assessment', function([
         if (i != 60) parseFloat(check).should.be.equal(1);
 
         apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
+        await ps.processPendingActions();
         await P1.__callback(apiid, '');
       }
       check = await cl.checkVoteClosing(clid);
@@ -698,11 +699,17 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 100);
       cStatus = await cd.getClaimStatusNumber(clid);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+      await ps.processPendingActions();
+
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
       await cad.transfer(P1.address, toWei(20));
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+      await ps.processPendingActions();
+
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (14).should.be.equal(parseFloat(cStatus[1]));
@@ -807,6 +814,7 @@ contract('Claim: Assessment', function([
       await P1.updateStakerCommissions(smartConAdd, 0);
     });
     it('8.41 should handle if burnNXMAmount is 0', async function() {
+      await ps.processPendingActions();
       await P1.burnStakerLockedToken(1, toHex('ETH'), 0);
     });
   });

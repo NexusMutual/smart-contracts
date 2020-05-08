@@ -45,10 +45,6 @@ module.exports = function(deployer, network, accounts) {
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
     await deployer.deploy(NXMaster, tk.address);
-
-    console.log(`Passed standard deployment.`);
     await deployer.deploy(PooledStaking);
-
-    console.log(`Passed  PS deployment.`);
   });
 };

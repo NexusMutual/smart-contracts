@@ -300,7 +300,6 @@ contract('Quotation', function([
                 smartConAdd,
                 qt.address
               );
-              console.log(`Before makeCoverBegin`);
               await P1.makeCoverBegin(
                 smartConAdd,
                 toHex('ETH'),
@@ -311,7 +310,6 @@ contract('Quotation', function([
                 vrsdata[2],
                 {from: coverHolder, value: coverDetails[1]}
               );
-              console.log(`After makeCoverBegin`);
 
               const newLockedCN = BN_10.mul(
                 new BN(coverDetails[2].toString())
@@ -324,7 +322,6 @@ contract('Quotation', function([
                 new BN(newLockedCN.toString()).div(new BN(P_18.toString()))
               );
 
-              console.log(`Before getUserLockedCNTokens`);
               newLockedCN
                 .toString()
                 .should.be.equal(
@@ -332,7 +329,6 @@ contract('Quotation', function([
                     await tf.getUserLockedCNTokens.call(coverHolder, 1)
                   ).toString()
                 );
-              console.log(`After getUserLockedCNTokens`);
               newPoolBalance
                 .toString()
                 .should.be.equal(
@@ -959,7 +955,6 @@ contract('Quotation', function([
             )
           );
 
-          console.log('DEBUG 25');
           await assertRevert(
             P1.makeCoverUsingCA(
               smartConAdd,
@@ -996,7 +991,6 @@ contract('Quotation', function([
             )
           );
 
-          console.log('DEBUG 40');
           coverDetails[4] = 7972408607813;
           var vrsdata = await getQuoteValues(
             coverDetails,
@@ -1025,7 +1019,6 @@ contract('Quotation', function([
             smartConAdd,
             qt.address
           );
-          console.log('DEBUG 50');
           await qt.initiateMembershipAndCover(
             smartConAdd,
             toHex('ETH'),
@@ -1038,12 +1031,10 @@ contract('Quotation', function([
           );
           await cad.transfer(qt.address, toWei(10));
 
-          console.log('DEBUG 55');
           let newQt = await Quotation.new();
           let oldMR = await MemberRoles.at(
             await nxms.getLatestAddress(toHex('MR'))
           );
-          console.log('DEBUG 60');
           let oldGv = await Governance.at(
             await nxms.getLatestAddress(toHex('GV'))
           );
@@ -1053,15 +1044,12 @@ contract('Quotation', function([
             newQt.address
           );
 
-          console.log('DEBUG 65');
           await gvProp(29, actionHash, oldMR, oldGv, 2, [ps]);
-          console.log('DEBUG 90');
           (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
             newQt.address
           );
           qt = newQt;
 
-          console.log('DEBUG 100');
           await assertRevert(
             qt.initiateMembershipAndCover(
               smartConAdd,

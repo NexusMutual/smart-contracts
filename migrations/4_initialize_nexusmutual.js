@@ -48,13 +48,10 @@ module.exports = function(deployer, network, accounts) {
     let propCat = await ProposalCategory.deployed();
     const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
-
-    console.log(`Passed deployment.`);
-
     const pooledStaking = await PooledStaking.deployed();
+
     await pooledStaking.changeMasterAddress(nxms.address);
 
-    console.log(`pooledStaking.address ${pooledStaking.address}`);
     // let gvAdd = await nxms.getLatestAddress("GV");
     // let mrAdd = await nxms.getLatestAddress("MR");
     // let pcAdd = await nxms.getLatestAddress("PC");
@@ -76,11 +73,6 @@ module.exports = function(deployer, network, accounts) {
       mr.address,
       pooledStaking.address
     ];
-
-    // await pooledStaking.changeDependentContractAddress();
-
-    console.log(await pooledStaking.getTokenAddress.call());
-    console.log(await pooledStaking.getMasterAddress.call());
 
     await nxms.addNewVersion(addr);
     let pcAddress = await nxms.getLatestAddress('0x5043');
@@ -116,12 +108,5 @@ module.exports = function(deployer, network, accounts) {
 
     await mrInstance.kycVerdict(Owner, true);
     await mrInstance.addInitialABMembers([Owner]);
-
-    await mrInstance.payJoiningFee(pooledStaking.address, {
-      from: Owner,
-      value: '2000000000000000'
-    });
-
-    await mrInstance.kycVerdict(pooledStaking.address, true);
   });
 };

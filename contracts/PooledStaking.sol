@@ -377,17 +377,17 @@ contract PooledStaking is MasterAware {
     }
   }
 
-  function withdrawReward(uint amount) external whenNotPaused onlyMember {
+  function withdrawReward(address staker, uint amount) external whenNotPaused onlyMember {
 
     require(
-      stakers[msg.sender].reward >= amount,
+      stakers[staker].reward >= amount,
       "Requested amount exceeds available reward"
     );
 
-    stakers[msg.sender].reward = stakers[msg.sender].reward.sub(amount);
-    token.transfer(msg.sender, amount);
+    stakers[staker].reward = stakers[staker].reward.sub(amount);
+    token.transfer(staker, amount);
 
-    emit RewardWithdrawn(msg.sender, amount);
+    emit RewardWithdrawn(staker, amount);
   }
 
   function pushBurn(

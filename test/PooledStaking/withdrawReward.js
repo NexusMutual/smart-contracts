@@ -33,7 +33,7 @@ describe('withdrawReward', function () {
     assert.strictEqual(await master.isMember(nonMember), false);
 
     await expectRevert(
-      staking.withdrawReward(ether('1'), { from: nonMember }),
+      staking.withdrawReward(nonMember, ether('1'), { from: nonMember }),
       'Caller is not a member',
     );
   });
@@ -49,7 +49,7 @@ describe('withdrawReward', function () {
     assert(actualInitialReward.eq(initialReward));
 
     await expectRevert(
-      staking.withdrawReward(ether('1'), { from: memberOne }),
+      staking.withdrawReward(memberOne, ether('1'), { from: memberOne }),
       'Requested amount exceeds available reward',
     );
 
@@ -78,20 +78,20 @@ describe('withdrawReward', function () {
     await staking.processPendingActions();
 
     await expectRevert(
-      staking.withdrawReward(ether('2'), { from: memberOne }),
+      staking.withdrawReward(memberOne, ether('2'), { from: memberOne }),
       'Requested amount exceeds available reward',
     );
 
     await expectRevert(
-      staking.withdrawReward(ether('4'), { from: memberTwo }),
+      staking.withdrawReward(memberTwo, ether('4'), { from: memberTwo }),
       'Requested amount exceeds available reward',
     );
 
-    await staking.withdrawReward(ether('1'), { from: memberOne });
+    await staking.withdrawReward(memberOne, ether('1'), { from: memberOne });
     const memberOneBalance = await token.balanceOf(memberOne);
     assert(memberOneBalance.eq(ether('1')), 'Balance of member one should have increased with withdrawn amount');
 
-    await staking.withdrawReward(ether('2'), { from: memberTwo });
+    await staking.withdrawReward(memberTwo, ether('2'), { from: memberTwo });
     const memberTwoBalance = await token.balanceOf(memberTwo);
     assert(memberTwoBalance.eq(ether('2')), 'Balance of member two should have increased with withdrawn amount');
 
@@ -99,12 +99,12 @@ describe('withdrawReward', function () {
     assert(balanceAfterWithdraw.eq(ether('30')), 'Tokens should have been subtracted from the contract');
 
     await expectRevert(
-      staking.withdrawReward('1', { from: memberOne }),
+      staking.withdrawReward(memberOne, '1', { from: memberOne }),
       'Requested amount exceeds available reward.',
     );
 
     await expectRevert(
-      staking.withdrawReward('1', { from: memberTwo }),
+      staking.withdrawReward(memberTwo, '1', { from: memberTwo }),
       'Requested amount exceeds available reward.',
     );
   });
@@ -132,7 +132,7 @@ describe('withdrawReward', function () {
       `staking contract balance is ${contractBalanceBefore}, but should be ${expectedContractBalanceBefore}`,
     );
 
-    await staking.withdrawReward(reward, { from: memberOne });
+    await staking.withdrawReward(memberOne, reward, { from: memberOne });
 
     const contractBalanceAfter = await token.balanceOf(staking.address);
     const expectedContractBalanceAfter = stakeAmount;
@@ -165,14 +165,14 @@ describe('withdrawReward', function () {
     await staking.processPendingActions();
 
     // Withdraw partial reward
-    await staking.withdrawReward(ether('2'), { from: memberOne });
+    await staking.withdrawReward(memberOne, ether('2'), { from: memberOne });
 
     // Expect new staker's update to be ether('3)
     const { reward: leftReward } = await staking.stakers(memberOne, { from: memberOne });
     assert(leftReward.eq(ether('3')));
 
     // Withdraw all left reward
-    await staking.withdrawReward(ether('3'), { from: memberOne });
+    await staking.withdrawReward(memberOne, ether('3'), { from: memberOne });
 
     // Expect new staker's update to be 0
     const { reward: finalReward } = await staking.stakers(memberOne, { from: memberOne });

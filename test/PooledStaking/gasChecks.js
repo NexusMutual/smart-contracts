@@ -210,7 +210,7 @@ describe.only('gas checks', function () {
     const staker = await staking.stakers(stakers[0]);
     const reward = staker.reward;
 
-    await staking.withdrawReward(reward, { from: stakers[0] });
+    await staking.withdrawReward(stakers[0], reward, { from: stakers[0] });
   });
 
 });

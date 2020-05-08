@@ -3,7 +3,8 @@
   "contracts": {
     "PooledStaking": "PooledStaking",
     "MasterMock": "MasterMock",
-    "TokenMock": "TokenMock"
+    "TokenMock": "TokenMock",
+    "TokenControllerMock": "TokenControllerMock"
   },
   "dependencies": {},
   "name": "pooled-staking",

@@ -34,6 +34,7 @@ contract MasterMock is INXMMaster {
   mapping(bytes2 => address payable) contractAddresses;
 
   bool paused;
+  address public tokenAddress;
 
   /* utils */
 
@@ -51,6 +52,10 @@ contract MasterMock is INXMMaster {
 
   function setLatestAddress(bytes2 contractName, address payable contractAddress) public {
     contractAddresses[contractName] = contractAddress;
+  }
+
+  function setTokenAddress(address _tokenAddress) public {
+    tokenAddress = _tokenAddress;
   }
 
   function pause() public {

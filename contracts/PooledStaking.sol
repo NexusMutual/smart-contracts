@@ -99,10 +99,10 @@ contract PooledStaking is MasterAware {
 
   /* Storage variables */
 
-  bool initialized;
+  bool public initialized;
 
-  NXMToken token;
-  ITokenController tokenController;
+  NXMToken public token;
+  ITokenController public tokenController;
 
   uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
@@ -708,7 +708,7 @@ contract PooledStaking is MasterAware {
   }
 
   function changeDependentContractAddress() public {
-    token = NXMToken(master.getLatestAddress("TK"));
+    token = NXMToken(master.tokenAddress());
     tokenController = ITokenController(master.getLatestAddress("TC"));
     initialize();
   }

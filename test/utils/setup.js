@@ -20,7 +20,7 @@ async function setup () {
   token.mint(defaultSender, ether('1000'));
 
   // set contract addresses
-  await master.setLatestAddress(hex('TK'), token.address);
+  await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
 
   // required to be able to whitelist itself

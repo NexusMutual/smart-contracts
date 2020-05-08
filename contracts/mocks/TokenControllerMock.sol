@@ -35,7 +35,7 @@ contract TokenControllerMock is ITokenController, MasterAware {
   }
 
   function changeDependentContractAddress() public {
-    token = NXMToken(master.getLatestAddress("TK"));
+    token = NXMToken(master.tokenAddress());
   }
 
 }

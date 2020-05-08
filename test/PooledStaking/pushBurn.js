@@ -4,7 +4,6 @@ const { assert } = require('chai');
 const accounts = require('../utils/accounts');
 const setup = require('../utils/setup');
 const { ParamType } = require('../utils/constants');
-const { parseLogs } = require('../utils/helpers');
 
 const {
   members: [memberOne],
@@ -152,8 +151,8 @@ describe('pushBurn', function () {
     const expectedBalance = stakeAmount.sub(burnAmount);
     const currentBalance = await token.balanceOf(staking.address);
     assert(
-        currentBalance.eq(expectedBalance),
-        `staking contract balance should be ${expectedBalance}, found ${currentBalance}`,
+      currentBalance.eq(expectedBalance),
+      `staking contract balance should be ${expectedBalance}, found ${currentBalance}`,
     );
   });
 

@@ -181,6 +181,10 @@ contract PooledStaking is MasterAware {
     return stakers[staker].allocations[contractAddress];
   }
 
+  function stakerContractPendingDeallocation(address staker, address contractAddress) public view returns (uint) {
+    return stakers[staker].pendingDeallocations[contractAddress];
+  }
+
   function stakerReward(address staker) external view returns (uint) {
     return stakers[staker].reward;
   }

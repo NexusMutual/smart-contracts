@@ -1062,7 +1062,7 @@ contract('Quotation', function([
           );
 
           console.log('DEBUG 65');
-          await gvProp(29, actionHash, oldMR, oldGv, 2);
+          await gvProp(29, actionHash, oldMR, oldGv, 2, [ps]);
           console.log('DEBUG 90');
           (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
             newQt.address

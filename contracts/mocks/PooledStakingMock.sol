@@ -20,6 +20,7 @@ pragma solidity ^0.5.7;
 import "../interfaces/MasterAware.sol";
 import "../NXMToken.sol";
 import "../TokenController.sol";
+import "../Governance.sol";
 import "../external/openzeppelin-solidity/math/SafeMath.sol";
 
 contract PooledStakingMock is MasterAware {
@@ -103,6 +104,7 @@ contract PooledStakingMock is MasterAware {
 
     NXMToken token;
     TokenController tokenController;
+    Governance governance;
 
     uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
     uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
@@ -685,6 +687,7 @@ contract PooledStakingMock is MasterAware {
     function changeDependentContractAddress() public {
         token = NXMToken(master.dAppToken());
         tokenController = TokenController(master.getLatestAddress("TC"));
+        governance = Governance(master.getLatestAddress("GV"));
         initialize();
     }
 
@@ -694,5 +697,9 @@ contract PooledStakingMock is MasterAware {
 
     function getMasterAddress() public view returns (address) {
         return address(master);
+    }
+
+    function submitVote(uint _proposalId, uint _solutionChosen) external {
+        governance.submitVote(_proposalId, _solutionChosen);
     }
 }

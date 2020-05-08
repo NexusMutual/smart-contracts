@@ -853,6 +853,11 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<string>;
 
+  contractStake(
+    contractAddress: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
   contractStakerAtIndex(
     contractAddress: string | BigNumber,
     stakerIndex: number | BigNumber | string,
@@ -1047,6 +1052,21 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
+  stakerProcessedStake(
+    stakerAddress: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
+  stakerReward(
+    staker: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
+  stakerStake(
+    staker: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
   stakers(
     arg0: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
@@ -1096,18 +1116,22 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
 
   withdrawReward: {
     (
+      staker: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
+      staker: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
+      staker: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
+      staker: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;

@@ -111,7 +111,7 @@ contract TokenFunctions is Iupgradable {
      * @param _stakerAddress address of the Staker.
      */ 
     function getStakerAllLockedTokens(address _stakerAddress) external view returns (uint amount) {
-        return pooledStaking.stakerStaked(_stakerAddress);
+        return pooledStaking.stakerStake(_stakerAddress);
     }
 
     /**

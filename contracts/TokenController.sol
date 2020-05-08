@@ -313,7 +313,7 @@ contract TokenController is IERC1132, Iupgradable {
             amount = amount.add(_tokensLocked(_of, lockReason[_of][i]));
         }
 
-        amount = amount.add(pooledStaking.stakerProcessedStake());
+        amount = amount.add(pooledStaking.stakerProcessedStake(_of));
     }
 
     /**
@@ -331,7 +331,7 @@ contract TokenController is IERC1132, Iupgradable {
             amount = amount.add(_tokensLockedAtTime(_of, lockReason[_of][i], _time));
         }
 
-        amount = amount.add(pooledStaking.stakerStake());
+        amount = amount.add(pooledStaking.stakerStake(_of));
     }
 
     /**

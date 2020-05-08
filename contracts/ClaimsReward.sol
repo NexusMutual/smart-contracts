@@ -224,7 +224,7 @@ contract ClaimsReward is Iupgradable {
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint pooledStakingReward = pooledStaking.stakerReward(_add);
-        uint stakedTokens = pooledStaking.stakerStaked(_add);
+        uint stakedTokens = pooledStaking.stakerStake(_add);
         uint governanceReward = gv.getPendingReward(_add);
         total = caReward.add(stakedTokens).add(pooledStakingReward).add(governanceReward);
     }

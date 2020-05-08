@@ -709,7 +709,7 @@ contract PooledStakingMock is MasterAware {
 
     function changeDependentContractAddress() public {
         token = NXMToken(master.tokenAddress());
-        tokenController = ITokenController(master.getLatestAddress("TC"));
+        tokenController = TokenController(master.getLatestAddress("TC"));
         initialize();
     }
 

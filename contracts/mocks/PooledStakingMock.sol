@@ -698,8 +698,4 @@ contract PooledStakingMock is MasterAware {
     function getMasterAddress() public view returns (address) {
         return address(master);
     }
-
-    function submitVote(uint _proposalId, uint _solutionChosen) external {
-        governance.submitVote(_proposalId, _solutionChosen);
-    }
 }

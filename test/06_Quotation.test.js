@@ -1044,7 +1044,7 @@ contract('Quotation', function([
             newQt.address
           );
 
-          await gvProp(29, actionHash, oldMR, oldGv, 2, [ps]);
+          await gvProp(29, actionHash, oldMR, oldGv, 2);
           (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
             newQt.address
           );
@@ -1374,7 +1374,7 @@ contract('Quotation', function([
           await nxms.getLatestAddress(toHex('GV'))
         );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'PM', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.pm()) / 1).should.be.equal(4);
       });
       it('6.48 only governance call should be able to change STLP', async function() {
@@ -1385,7 +1385,7 @@ contract('Quotation', function([
           await nxms.getLatestAddress(toHex('GV'))
         );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'STLP', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.stlp()) / 1).should.be.equal(4);
       });
       it('6.49 only governance call should be able to change STL', async function() {
@@ -1396,7 +1396,7 @@ contract('Quotation', function([
           await nxms.getLatestAddress(toHex('GV'))
         );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'STL', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.stl()) / 1).should.be.equal(4);
       });
       it('6.50 only governance call should be able to change minimum cover period', async function() {
@@ -1407,7 +1407,7 @@ contract('Quotation', function([
           await nxms.getLatestAddress(toHex('GV'))
         );
         actionHash = encode('updateUintParameters(bytes8,uint)', 'QUOMIND', 4);
-        await gvProp(23, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(23, actionHash, oldMR, oldGv, 2);
         ((await qd.minDays()) / 1).should.be.equal(4);
       });
     });

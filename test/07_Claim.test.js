@@ -390,7 +390,7 @@ contract('Claim', function([
           'CAMINVT',
           0
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
         let val = await cd.getUintParameters(toHex('CAMINVT'));
         (val[1] / 1).should.be.equal(0);
       });
@@ -406,7 +406,7 @@ contract('Claim', function([
           'CAMAXVT',
           10
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
         let val = await cd.getUintParameters(toHex('CAMAXVT'));
         (val[1] / 1).should.be.equal(10);
       });
@@ -422,7 +422,7 @@ contract('Claim', function([
           'CAPRETRY',
           120
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
         let val = await cd.getUintParameters(toHex('CAPRETRY'));
         (val[1] / 1).should.be.equal(120);
       });
@@ -438,7 +438,7 @@ contract('Claim', function([
           'CADEPT',
           12
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
         let val = await cd.getUintParameters(toHex('CADEPT'));
         (val[1] / 1).should.be.equal(12);
       });
@@ -455,7 +455,7 @@ contract('Claim', function([
           'CAREWPER',
           36
         );
-        await gvProp(24, actionHash, oldMR, oldGv, 2, [ps]);
+        await gvProp(24, actionHash, oldMR, oldGv, 2);
         ((await cd.claimRewardPerc()) / 1).should.be.equal(36);
       });
       it('7.23 should revert if trying to update pendingClaimStart with low value', async function() {

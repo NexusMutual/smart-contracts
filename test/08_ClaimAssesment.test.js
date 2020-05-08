@@ -763,13 +763,13 @@ contract('Claim: Assessment', function([
     });
     it('8.35 even if passed by governance should not trigger action for wrong code', async function() {
       actionHash = encode('updateUintParameters(bytes8,uint)', 'asd', 12);
-      await gvProp(24, actionHash, mr, gv, 2, [ps]);
+      await gvProp(24, actionHash, mr, gv, 2);
     });
     it('8.36 should able to propose to block CAs right to cast CA vote for 3 days', async function() {
       let val = await cd.userClaimVotePausedOn(member1);
       (val / 1).should.be.equal(0);
       actionHash = encode('setUserClaimVotePausedOn(address)', member1);
-      await gvProp(9, actionHash, mr, gv, 1, [ps]);
+      await gvProp(9, actionHash, mr, gv, 1);
       val = await cd.userClaimVotePausedOn(member1);
       (val / 1).should.not.be.equal(0);
     });

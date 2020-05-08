@@ -222,7 +222,7 @@ contract('ClaimsReward', function([
         'CR',
         newCr.address
       );
-      await gvProp(29, actionHash, mr, gv, 2, [ps]);
+      await gvProp(29, actionHash, mr, gv, 2);
       (await nxms.getLatestAddress(toHex('CR'))).should.be.equal(newCr.address);
       cr = newCr;
     });

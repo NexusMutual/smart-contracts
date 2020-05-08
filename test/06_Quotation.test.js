@@ -113,7 +113,7 @@ contract('Quotation', function([
   const tokens = ether(200);
   const tokenAmount = ether(1);
   const tokenDai = ether(4);
-  const stakeTokens = ether(2);
+  const stakeTokens = ether(20);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
@@ -966,6 +966,8 @@ contract('Quotation', function([
               {from: notMember}
             )
           );
+
+          console.log('DEBUG 25');
           await assertRevert(
             P1.makeCoverUsingCA(
               smartConAdd,
@@ -1001,6 +1003,8 @@ contract('Quotation', function([
               {from: notMember, value: 1}
             )
           );
+
+          console.log('DEBUG 40');
           coverDetails[4] = 7972408607813;
           var vrsdata = await getQuoteValues(
             coverDetails,
@@ -1029,6 +1033,7 @@ contract('Quotation', function([
             smartConAdd,
             qt.address
           );
+          console.log('DEBUG 50');
           await qt.initiateMembershipAndCover(
             smartConAdd,
             toHex('ETH'),
@@ -1040,10 +1045,13 @@ contract('Quotation', function([
             {from: notMember, value: totalFee}
           );
           await cad.transfer(qt.address, toWei(10));
+
+          console.log('DEBUG 55');
           let newQt = await Quotation.new();
           let oldMR = await MemberRoles.at(
             await nxms.getLatestAddress(toHex('MR'))
           );
+          console.log('DEBUG 60');
           let oldGv = await Governance.at(
             await nxms.getLatestAddress(toHex('GV'))
           );
@@ -1052,11 +1060,16 @@ contract('Quotation', function([
             'QT',
             newQt.address
           );
+
+          console.log('DEBUG 65');
           await gvProp(29, actionHash, oldMR, oldGv, 2);
+          console.log('DEBUG 90');
           (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
             newQt.address
           );
           qt = newQt;
+
+          console.log('DEBUG 100');
           await assertRevert(
             qt.initiateMembershipAndCover(
               smartConAdd,

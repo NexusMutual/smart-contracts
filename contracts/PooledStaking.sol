@@ -189,6 +189,25 @@ contract PooledStaking is MasterAware {
     return stakers[staker].staked;
   }
 
+  function stakerProcessedStake(address stakerAddress) external view returns (uint) {
+
+    Staker storage staker = stakers[stakerAddress];
+
+    if (firstBurn == 0) {
+      return staker.staked;
+    }
+
+    Burn storage burn = burns[firstBurn];
+    address contractAddress = burn.contractAddress;
+
+    uint totalContractStake = contracts[contractAddress].staked;
+    uint allocation = staker.allocations[contractAddress];
+    uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);
+    uint newStake = staker.staked.sub(stakerBurn);
+
+    return newStake;
+  }
+
   function deallocationAtIndex(uint deallocationId) public view returns (
     uint amount, uint deallocateAt, address contractAddress, address stakerAddress, uint next
   ) {
@@ -232,6 +251,7 @@ contract PooledStaking is MasterAware {
   }
 
   function hasPendingDeallocations() public view returns (bool){
+
     uint nextDeallocationIndex = deallocations[0].next;
 
     if (nextDeallocationIndex == 0) {

@@ -100,11 +100,10 @@ contract PooledStakingMock is MasterAware {
 
     /* Storage variables */
 
-    bool initialized;
+    bool public initialized;
 
-    NXMToken token;
-    TokenController tokenController;
-    Governance governance;
+    NXMToken public token;
+    TokenController public tokenController;
 
     uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
     uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
@@ -167,7 +166,7 @@ contract PooledStakingMock is MasterAware {
         return contracts[contractAddress].stakers[stakerIndex];
     }
 
-    function contractStakedAmount(address contractAddress) public view returns (uint) {
+    function contractStake(address contractAddress) public view returns (uint) {
         return contracts[contractAddress].staked;
     }
 
@@ -183,11 +182,35 @@ contract PooledStakingMock is MasterAware {
         return stakers[staker].allocations[contractAddress];
     }
 
+    function stakerContractPendingDeallocation(address staker, address contractAddress) public view returns (uint) {
+        return stakers[staker].pendingDeallocations[contractAddress];
+    }
+
     function stakerReward(address staker) external view returns (uint) {
         return stakers[staker].reward;
     }
-    function stakerStaked(address staker) external view returns (uint) {
+
+    function stakerStake(address staker) external view returns (uint) {
         return stakers[staker].staked;
+    }
+
+    function stakerProcessedStake(address stakerAddress) external view returns (uint) {
+
+        Staker storage staker = stakers[stakerAddress];
+
+        if (firstBurn == 0) {
+            return staker.staked;
+        }
+
+        Burn storage burn = burns[firstBurn];
+        address contractAddress = burn.contractAddress;
+
+        uint totalContractStake = contracts[contractAddress].staked;
+        uint allocation = staker.allocations[contractAddress];
+        uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);
+        uint newStake = staker.staked.sub(stakerBurn);
+
+        return newStake;
     }
 
     function deallocationAtIndex(uint deallocationId) public view returns (
@@ -390,17 +413,17 @@ contract PooledStakingMock is MasterAware {
         }
     }
 
-    function withdrawReward(uint amount) external whenNotPaused onlyMember {
+    function withdrawReward(address staker, uint amount) external whenNotPaused onlyMember {
 
         require(
-            stakers[msg.sender].reward >= amount,
+            stakers[staker].reward >= amount,
             "Requested amount exceeds available reward"
         );
 
-        stakers[msg.sender].reward = stakers[msg.sender].reward.sub(amount);
-        token.transfer(msg.sender, amount);
+        stakers[staker].reward = stakers[staker].reward.sub(amount);
+        token.transfer(staker, amount);
 
-        emit RewardWithdrawn(msg.sender, amount);
+        emit RewardWithdrawn(staker, amount);
     }
 
     function pushBurn(
@@ -597,8 +620,8 @@ contract PooledStakingMock is MasterAware {
 
             // staker's ratio = total staked on contract / staker's stake on contract
             // staker's reward = total reward amount * staker's ratio
-            uint stakerReward = reward.amount.mul(allocation).div(_contract.staked);
-            staker.reward = staker.reward.add(stakerReward);
+            uint rewardedAmount = reward.amount.mul(allocation).div(_contract.staked);
+            staker.reward = staker.reward.add(rewardedAmount);
 
             uint nextIndex = i + 1;
 
@@ -685,9 +708,8 @@ contract PooledStakingMock is MasterAware {
     }
 
     function changeDependentContractAddress() public {
-        token = NXMToken(master.dAppToken());
-        tokenController = TokenController(master.getLatestAddress("TC"));
-        governance = Governance(master.getLatestAddress("GV"));
+        token = NXMToken(master.tokenAddress());
+        tokenController = ITokenController(master.getLatestAddress("TC"));
         initialize();
     }
 

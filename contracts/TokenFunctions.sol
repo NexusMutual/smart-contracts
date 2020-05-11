@@ -75,7 +75,7 @@ contract TokenFunctions is Iupgradable {
         view
         returns(uint amount)
     {
-        return pooledStaking.contractStakedAmount(_stakedContractAddress);
+        return pooledStaking.contractStake(_stakedContractAddress);
     }
 
     /**

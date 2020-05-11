@@ -22,9 +22,8 @@ import "../NXMToken.sol";
 import "../TokenController.sol";
 import "../Governance.sol";
 import "../external/openzeppelin-solidity/math/SafeMath.sol";
-import "../interfaces/IPooledStaking.sol";
 
-contract PooledStakingMock is MasterAware, IPooledStaking {
+contract PooledStakingMock is MasterAware {
     using SafeMath for uint;
 
     /* Data types */

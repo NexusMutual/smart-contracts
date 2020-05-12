@@ -2,14 +2,14 @@ const Governance = artifacts.require('Governance');
 const MemberRoles = artifacts.require('MemberRoles');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const TokenController = artifacts.require('TokenController');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMToken = artifacts.require('NXMToken');
 const TokenData = artifacts.require('TokenDataMock');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const encode = require('./utils/encoder.js').encode;
-const { toHex, toWei } = require('./utils/ethTools.js');
+const {toHex, toWei} = require('./utils/ethTools.js');
 const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const Web3 = require('web3');
@@ -80,7 +80,7 @@ contract(
 
     it('15.3 Should not allow unauthorized to change master address', async function() {
       await assertRevert(
-        gv.changeMasterAddress(nxms.address, { from: notMember })
+        gv.changeMasterAddress(nxms.address, {from: notMember})
       );
       await gv.changeDependentContractAddress();
     });
@@ -99,7 +99,7 @@ contract(
           9,
           '',
           '0x',
-          { from: notMember }
+          {from: notMember}
         )
       );
     });
@@ -122,7 +122,7 @@ contract(
 
     it('15.6 Should not allow unauthorized person to categorize proposal', async function() {
       await assertRevert(
-        gv.categorizeProposal(proposalId, 1, 0, { from: notMember })
+        gv.categorizeProposal(proposalId, 1, 0, {from: notMember})
       );
     });
 
@@ -138,7 +138,7 @@ contract(
     });
 
     it('15.9 Should update proposal details', async function() {
-      let { logs } = await gv.updateProposal(
+      let {logs} = await gv.updateProposal(
         proposalId,
         'Addnewmember',
         'AddnewmemberSD',
@@ -167,7 +167,7 @@ contract(
           proposalId,
           'Addnewmember',
           '0xffa3992900000000000000000000000000000000000000000000000000000000000000004344000000000000000000000000000000000000000000000000000000000000',
-          { from: notMember }
+          {from: notMember}
         )
       );
       await gv.submitProposalWithSolution(
@@ -195,7 +195,7 @@ contract(
     });
 
     it('15.15 Should not allow unauthorized people to vote', async () => {
-      await assertRevert(gv.submitVote(proposalId, 1, { from: notMember }));
+      await assertRevert(gv.submitVote(proposalId, 1, {from: notMember}));
     });
 
     it('15.16 Should submit vote to valid solution', async function() {
@@ -301,7 +301,7 @@ contract(
     });
 
     it('Claim Rewards for maximum of 20 proposals', async function() {
-      await gv.setDelegationStatus(true, { from: ab1 });
+      await gv.setDelegationStatus(true, {from: ab1});
       let actionHash = encode(
         'updateUintParameters(bytes8,uint)',
         'MAXFOL',
@@ -333,7 +333,7 @@ contract(
       await mr.kycVerdict(mem1, true, {
         from: ab1
       });
-      await gv.delegateVote(ab1, { from: mem1 });
+      await gv.delegateVote(ab1, {from: mem1});
       await increaseTime(604805);
       let lastClaimedAb1 = await gv.lastRewardClaimed(ab1);
       let lastClaimedMem1 = await gv.lastRewardClaimed(mem1);
@@ -343,16 +343,16 @@ contract(
       for (let i = 0; i < 7; i++) {
         await gvProposalWithIncentive(22, actionHash, mr, gv, 1, 10);
       }
-      await cr.claimAllPendingReward(5, { from: mem1 });
+      await cr.claimAllPendingReward(5, {from: mem1});
       let lastClaimedMem2 = await gv.lastRewardClaimed(mem1);
       assert.equal(lastClaimedMem1.toNumber() + 5, lastClaimedMem2);
     });
 
     it('Last reward claimed should be updated when follower undelegates', async function() {
-      await cr.claimAllPendingReward(20, { from: ab1 });
-      await cr.claimAllPendingReward(20, { from: mem1 });
+      await cr.claimAllPendingReward(20, {from: ab1});
+      await cr.claimAllPendingReward(20, {from: mem1});
       // await gv.setDelegationStatus(false, { from: ab1 });
-      await gv.unDelegate({ from: mem1 });
+      await gv.unDelegate({from: mem1});
       await increaseTime(604900);
       let lastRewardClaimed = await gv.lastRewardClaimed(mem1);
       //Till now Member 1 hasn't voted on his own, so his vote count will be 0
@@ -369,13 +369,13 @@ contract(
       for (let i = 0; i < 6; i++) {
         await gvProposalWithIncentive(22, actionHash, mr, gv, 1, 10);
       }
-      await cr.claimAllPendingReward(4, { from: ab1 });
+      await cr.claimAllPendingReward(4, {from: ab1});
       let lastProposal = (await gv.getProposalLength()).toNumber() - 1;
       let lastVoteId = await gv.memberProposalVote(ab1, lastProposal);
       let lastClaimedAb1 = await gv.lastRewardClaimed(ab1);
       //Two proposals are pending to claim reward
       assert.equal(lastClaimedAb1.toNumber(), lastVoteId.toNumber() - 2);
-      await gv.delegateVote(ab1, { from: mem1 });
+      await gv.delegateVote(ab1, {from: mem1});
       await gvProposalWithIncentive(22, actionHash, mr, gv, 1, 10); //32 Member doesn't get rewards for this proposal
       await increaseTime(604805);
       let p1 = await gv.getProposalLength();
@@ -385,11 +385,11 @@ contract(
       await gv.createProposal('proposal', 'proposal', 'proposal', 0); //34
       await gv.categorizeProposal(p, 22, 10);
       await gv.submitProposalWithSolution(p, 'proposal', actionHash);
-      await gv.submitVote(p, 1, { from: ab1 });
+      await gv.submitVote(p, 1, {from: ab1});
       let p2 = await gv.getProposalLength();
       await gvProposalWithIncentive(22, actionHash, mr, gv, 1, 10); //35
       let p2Rewards = await gv.proposal(p2.toNumber());
-      await cr.claimAllPendingReward(5, { from: mem1 });
+      await cr.claimAllPendingReward(5, {from: mem1});
       // lastClaimedAb1 = await gv.lastRewardClaimed(ab1);
       let lastClaimedMem1 = await gv.lastRewardClaimed(mem1);
       assert.equal(lastClaimedMem1.toNumber(), p.toNumber() - 1);
@@ -400,16 +400,16 @@ contract(
         p2Rewards[4].toNumber() / 2;
       assert.equal(mem1Balance1, expectedBalance);
       await gv.closeProposal(p);
-      await cr.claimAllPendingReward(5, { from: mem1 });
+      await cr.claimAllPendingReward(5, {from: mem1});
       lastClaimedMem1 = await gv.lastRewardClaimed(mem1);
       let pRewards = await gv.proposal(p.toNumber());
       let mem1Balance2 = await nxmToken.balanceOf(mem1);
       expectedBalance = mem1Balance1.toNumber() + pRewards[4].toNumber() / 2;
       assert.equal(mem1Balance2.toNumber(), expectedBalance);
-      await cr.claimAllPendingReward(20, { from: ab1 });
-      await cr.claimAllPendingReward(20, { from: mem1 });
-      await gv.setDelegationStatus(false, { from: ab1 });
-      await gv.unDelegate({ from: mem1 });
+      await cr.claimAllPendingReward(20, {from: ab1});
+      await cr.claimAllPendingReward(20, {from: mem1});
+      await gv.setDelegationStatus(false, {from: ab1});
+      await gv.unDelegate({from: mem1});
     });
 
     it('Proposal should be closed if not categorized for more than 14 days', async function() {
@@ -430,7 +430,7 @@ contract(
     describe('Delegation cases', function() {
       it('15.24 Initialising Members', async function() {
         await increaseTime(604900);
-        await assertRevert(mr.changeMaxABCount(4, { from: ab2 }));
+        await assertRevert(mr.changeMaxABCount(4, {from: ab2}));
         await mr.payJoiningFee(ab2, {
           value: '2000000000000000',
           from: ab2
@@ -464,50 +464,50 @@ contract(
         }
       });
       it('15.25 Fllower cannot delegate vote if Leader is not open for delegation', async function() {
-        await assertRevert(gv.delegateVote(ab1, { from: mem1 }));
+        await assertRevert(gv.delegateVote(ab1, {from: mem1}));
       });
       it('15.26 AB member cannot delegate vote to AB', async function() {
-        await gv.setDelegationStatus(true, { from: ab1 });
-        await assertRevert(gv.delegateVote(ab1, { from: ab2 }));
+        await gv.setDelegationStatus(true, {from: ab1});
+        await assertRevert(gv.delegateVote(ab1, {from: ab2}));
       });
       it('15.27 Owner cannot delegate vote', async function() {
-        await gv.setDelegationStatus(true, { from: ab3 });
-        await assertRevert(gv.delegateVote(ab3, { from: ab1 }));
+        await gv.setDelegationStatus(true, {from: ab3});
+        await assertRevert(gv.delegateVote(ab3, {from: ab1}));
       });
       it('15.28 AB member cannot delegate vote to Member', async function() {
-        await gv.setDelegationStatus(true, { from: mem1 });
-        await assertRevert(gv.delegateVote(mem1, { from: ab4 }));
+        await gv.setDelegationStatus(true, {from: mem1});
+        await assertRevert(gv.delegateVote(mem1, {from: ab4}));
       });
       it('15.29 AB member cannot delegate vote to Non-Member', async function() {
-        await assertRevert(gv.delegateVote(notMember, { from: ab4 }));
+        await assertRevert(gv.delegateVote(notMember, {from: ab4}));
       });
       it('15.30 Non-Member cannot delegate vote', async function() {
-        await assertRevert(gv.delegateVote(ab1, { from: notMember }));
+        await assertRevert(gv.delegateVote(ab1, {from: notMember}));
       });
       it('15.31 AB member cannot delegate vote to AB who is follower', async function() {
-        await gv.setDelegationStatus(true, { from: ab2 });
-        await assertRevert(gv.delegateVote(ab2, { from: ab4 }));
+        await gv.setDelegationStatus(true, {from: ab2});
+        await assertRevert(gv.delegateVote(ab2, {from: ab4}));
       });
       it('15.32 Member can delegate vote to AB who is not a follower', async function() {
-        await gv.delegateVote(ab1, { from: mem1 });
+        await gv.delegateVote(ab1, {from: mem1});
         let alreadyDelegated = await gv.alreadyDelegated(ab1);
         assert.equal(alreadyDelegated, true);
       });
       it('15.34 Member can delegate vote to Member who is not follower', async function() {
-        await gv.setDelegationStatus(true, { from: mem3 });
-        await gv.delegateVote(mem3, { from: mem5 });
+        await gv.setDelegationStatus(true, {from: mem3});
+        await gv.delegateVote(mem3, {from: mem5});
         let followers = await gv.getFollowers(mem3);
         let delegationData = await gv.allDelegation(followers[0].toNumber());
         assert.equal(delegationData[0], mem5);
       });
       it('15.35 Leader cannot delegate vote', async function() {
-        await assertRevert(gv.delegateVote(ab3, { from: mem3 }));
+        await assertRevert(gv.delegateVote(ab3, {from: mem3}));
       });
       it('15.36 Member cannot delegate vote to Non-Member', async function() {
-        await assertRevert(gv.delegateVote(notMember, { from: mem2 }));
+        await assertRevert(gv.delegateVote(notMember, {from: mem2}));
       });
       it('15.37 Member cannot delegate vote to member who is follower', async function() {
-        await assertRevert(gv.delegateVote(mem5, { from: mem2 }));
+        await assertRevert(gv.delegateVote(mem5, {from: mem2}));
       });
       it('15.38 Create a proposal', async function() {
         pId = (await gv.getProposalLength()).toNumber();
@@ -520,35 +520,35 @@ contract(
         );
       });
       it('15.39 Ab cannot vote twice on a same proposal and cannot transfer nxm to others', async function() {
-        await gv.submitVote(pId, 1, { from: ab3 });
+        await gv.submitVote(pId, 1, {from: ab3});
         await assertRevert(nxmToken.transferFrom(ab3, ab2, toWei(1)));
-        await assertRevert(gv.submitVote(pId, 1, { from: ab3 }));
+        await assertRevert(gv.submitVote(pId, 1, {from: ab3}));
       });
       it('15.40 Member cannot vote twice on a same proposal', async function() {
-        await gv.submitVote(pId, 1, { from: mem4 });
-        await assertRevert(gv.submitVote(pId, 1, { from: mem4 }));
+        await gv.submitVote(pId, 1, {from: mem4});
+        await assertRevert(gv.submitVote(pId, 1, {from: mem4}));
       });
       it('15.41 Member cannot assign proxy if voted within 7 days', async function() {
-        await assertRevert(gv.delegateVote(ab1, { from: mem4 }));
+        await assertRevert(gv.delegateVote(ab1, {from: mem4}));
       });
       it('15.42 Follower cannot vote on a proposal', async function() {
-        await assertRevert(gv.submitVote(pId, 1, { from: mem5 }));
+        await assertRevert(gv.submitVote(pId, 1, {from: mem5}));
       });
       it('15.43 Member can assign proxy if voted more than 7 days earlier', async function() {
         await increaseTime(604850);
-        await gv.delegateVote(ab1, { from: mem4 });
+        await gv.delegateVote(ab1, {from: mem4});
       });
       it('15.44 Follower can undelegate vote if not voted since 7 days', async function() {
         await increaseTime(604800);
-        await gv.unDelegate({ from: mem5 });
+        await gv.unDelegate({from: mem5});
         await gv.alreadyDelegated(mem3);
         await increaseTime(259200);
       });
       it('15.45 Leader can change delegation status if there are no followers', async function() {
-        await gv.setDelegationStatus(false, { from: mem5 });
+        await gv.setDelegationStatus(false, {from: mem5});
       });
       it('15.46 Follower cannot assign new proxy if revoked proxy within 7 days', async function() {
-        await assertRevert(gv.delegateVote(ab1, { from: mem5 }));
+        await assertRevert(gv.delegateVote(ab1, {from: mem5}));
       });
       it('15.47 Undelegated Follower cannot vote within 7 days since undelegation', async function() {
         pId = (await gv.getProposalLength()).toNumber();
@@ -559,17 +559,17 @@ contract(
           'changes to pricing model',
           '0x'
         );
-        await assertRevert(gv.submitVote(pId, 1, { from: mem5 }));
+        await assertRevert(gv.submitVote(pId, 1, {from: mem5}));
         await increaseTime(432000); //7 days will be completed since revoking proxy
-        await gv.delegateVote(ab1, { from: mem7 });
+        await gv.delegateVote(ab1, {from: mem7});
       });
       it('15.48 Undelegated Follower can vote after 7 days', async function() {
         let lockedTime = await nxmToken.isLockedForMV(mem2);
-        await gv.submitVote(pId, 1, { from: ab1 });
-        await gv.submitVote(pId, 1, { from: ab3 });
-        await gv.submitVote(pId, 1, { from: mem2 });
-        await gv.submitVote(pId, 1, { from: mem3 });
-        await gv.submitVote(pId, 1, { from: mem5 });
+        await gv.submitVote(pId, 1, {from: ab1});
+        await gv.submitVote(pId, 1, {from: ab3});
+        await gv.submitVote(pId, 1, {from: mem2});
+        await gv.submitVote(pId, 1, {from: mem3});
+        await gv.submitVote(pId, 1, {from: mem5});
       });
       it('15.49 Tokens should be locked for 7 days after voting', async function() {
         let lockedTime = await nxmToken.isLockedForMV(mem2);
@@ -578,11 +578,11 @@ contract(
       it('15.50 should not withdraw membership if he have pending rewads to claim', async function() {
         await increaseTime(604810);
         await gv.closeProposal(pId);
-        await assertRevert(mr.withdrawMembership({ from: mem5 }));
+        await assertRevert(mr.withdrawMembership({from: mem5}));
       });
       it('15.51 Follower cannot undelegate if there are rewards pending to be claimed', async function() {
-        await assertRevert(gv.unDelegate({ from: mem5 }));
-        await cr.claimAllPendingReward(20, { from: mem5 });
+        await assertRevert(gv.unDelegate({from: mem5}));
+        await cr.claimAllPendingReward(20, {from: mem5});
       });
       it('15.52 Follower should not get reward if delegated within 7days', async function() {
         let pendingReward = await gv.getPendingReward(mem7);
@@ -590,7 +590,7 @@ contract(
       });
       it('15.53 Follower can assign new proxy if revoked proxy more than 7 days earlier', async function() {
         await increaseTime(604810);
-        await gv.delegateVote(ab1, { from: mem5 });
+        await gv.delegateVote(ab1, {from: mem5});
       });
       it('15.54 Should not get rewards if not participated in voting', async function() {
         let pendingReward = await gv.getPendingReward(mem6);
@@ -611,15 +611,15 @@ contract(
           'update max followers limit',
           actionHash
         );
-        await gv.submitVote(pId, 1, { from: ab1 });
-        await gv.submitVote(pId, 1, { from: ab2 });
-        await gv.submitVote(pId, 1, { from: ab3 });
-        await gv.submitVote(pId, 1, { from: mem2 });
-        await gv.submitVote(pId, 1, { from: mem3 });
-        await gv.submitVote(pId, 1, { from: mem6 });
+        await gv.submitVote(pId, 1, {from: ab1});
+        await gv.submitVote(pId, 1, {from: ab2});
+        await gv.submitVote(pId, 1, {from: ab3});
+        await gv.submitVote(pId, 1, {from: mem2});
+        await gv.submitVote(pId, 1, {from: mem3});
+        await gv.submitVote(pId, 1, {from: mem6});
         await increaseTime(604810);
         await gv.closeProposal(pId);
-        await assertRevert(gv.delegateVote(ab1, { from: mem6 }));
+        await assertRevert(gv.delegateVote(ab1, {from: mem6}));
       });
     });
   }

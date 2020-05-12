@@ -1,10 +1,10 @@
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const assertRevert = require('./utils/assertRevert').assertRevert;
-const { toHex, toWei } = require('./utils/ethTools');
+const {toHex, toWei} = require('./utils/ethTools');
 let pc;
 let gv;
 let tf;
@@ -36,7 +36,7 @@ contract('Proposal Category', function([owner, other]) {
   });
 
   it('14.2 should not allow unauthorized to change master address', async function() {
-    await assertRevert(pc.changeMasterAddress(nxms.address, { from: other }));
+    await assertRevert(pc.changeMasterAddress(nxms.address, {from: other}));
   });
 
   it('14.3 Should not add a proposal category if member roles are invalid', async function() {

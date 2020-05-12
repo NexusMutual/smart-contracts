@@ -5,16 +5,16 @@ const PoolData = artifacts.require('PoolDataMock');
 const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const DSValue = artifacts.require('NXMDSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
@@ -237,7 +237,7 @@ contract('MCR', function([owner, notOwner]) {
   describe('Misc', function() {
     it('11.15 should not be able to change master address', async function() {
       await assertRevert(
-        mcr.changeMasterAddress(mcr.address, { from: notOwner })
+        mcr.changeMasterAddress(mcr.address, {from: notOwner})
       );
     });
     it('11.16 should not be able to add mcr data if not notarise', async function() {
@@ -249,7 +249,7 @@ contract('MCR', function([owner, notOwner]) {
           ['0x455448', '0x444149'],
           [100, 65407],
           20181011,
-          { from: notOwner }
+          {from: notOwner}
         )
       );
     });
@@ -261,7 +261,7 @@ contract('MCR', function([owner, notOwner]) {
         ['0x455448', '0x444149'],
         [100, 65407],
         20181011,
-        { from: owner }
+        {from: owner}
       );
       ((await mcr.variableMincap()) / 1e18)
         .toString()
@@ -292,7 +292,7 @@ contract('MCR', function([owner, notOwner]) {
         ['0x455448', '0x444149'],
         [100, 65407],
         20181011,
-        { from: owner }
+        {from: owner}
       );
       ((await mcr.variableMincap()) / 1e18)
         .toString()
@@ -311,7 +311,7 @@ contract('MCR', function([owner, notOwner]) {
         ['0x455448', '0x444149'],
         [100, 65407],
         20181011,
-        { from: owner }
+        {from: owner}
       );
       ((await mcr.variableMincap()) / 1e18)
         .toString()
@@ -325,7 +325,7 @@ contract('MCR', function([owner, notOwner]) {
       await p1.__callback(APIID, '');
     });
     it('11.22 rebalancing trade if total risk balance is 0', async function() {
-      await p1.sendEther({ from: owner, value: toWei(2) });
+      await p1.sendEther({from: owner, value: toWei(2)});
 
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -344,7 +344,7 @@ contract('MCR', function([owner, notOwner]) {
         ['0x455448', '0x444149'],
         [100, 65407],
         20181012,
-        { from: owner }
+        {from: owner}
       );
       ((await mcr.variableMincap()) / 1e18)
         .toString()
@@ -357,7 +357,7 @@ contract('MCR', function([owner, notOwner]) {
         ['0x455448', '0x444149'],
         [100, 65407],
         20181013,
-        { from: owner }
+        {from: owner}
       );
       ((await mcr.variableMincap()) / 1e18)
         .toString()

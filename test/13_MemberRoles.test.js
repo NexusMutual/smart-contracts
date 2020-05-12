@@ -2,12 +2,12 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMToken = artifacts.require('NXMToken');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 const encode = require('./utils/encoder.js').encode;
-const { toHex, toWei } = require('./utils/ethTools');
+const {toHex, toWei} = require('./utils/ethTools');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 
 let mr;
@@ -47,18 +47,16 @@ contract('MemberRoles', function([
   });
   it('13.1 Should not be able to pay joining fee using ZERO_ADDRESS', async function() {
     await assertRevert(
-      mr.payJoiningFee(ZERO_ADDRESS, { from: owner, value: fee })
+      mr.payJoiningFee(ZERO_ADDRESS, {from: owner, value: fee})
     );
   });
   it('13.2 Should not allow a member(who has refund eligible) to pay joining fee', async function() {
-    mr.payJoiningFee(member2, { from: member2, value: fee });
-    await assertRevert(
-      mr.payJoiningFee(member2, { from: member2, value: fee })
-    );
+    mr.payJoiningFee(member2, {from: member2, value: fee});
+    await assertRevert(mr.payJoiningFee(member2, {from: member2, value: fee}));
     await mr.kycVerdict(member2, false);
   });
   it('13.3 Should not be able to pay joining fee for already a member', async function() {
-    await assertRevert(mr.payJoiningFee(owner, { value: '2000000000000000' }));
+    await assertRevert(mr.payJoiningFee(owner, {value: '2000000000000000'}));
   });
   it('13.4 Should not be able to trigger kyc using ZERO_ADDRESS', async function() {
     await assertRevert(mr.kycVerdict(ZERO_ADDRESS, true));
@@ -70,7 +68,7 @@ contract('MemberRoles', function([
     await assertRevert(mr.kycVerdict(member2, true));
   });
   it('13.7 Kyc declined, refund will be done', async function() {
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, false);
   });
   it('13.8 Should not be able to initiate member roles twice', async function() {
@@ -79,7 +77,7 @@ contract('MemberRoles', function([
   });
 
   it('13.9 Should not allow unauthorized to change master address', async function() {
-    await assertRevert(mr.changeMasterAddress(nxms.address, { from: other }));
+    await assertRevert(mr.changeMasterAddress(nxms.address, {from: other}));
   });
 
   it('13.10 Should have added initial member roles', async function() {
@@ -96,7 +94,7 @@ contract('MemberRoles', function([
   });
 
   it('13.12 Should not be able to update max AB count', async function() {
-    await assertRevert(mr.changeMaxABCount(1, { from: other }));
+    await assertRevert(mr.changeMaxABCount(1, {from: other}));
   });
 
   it('13.13 Should not add initial AB members more than defined max AB count', async function() {
@@ -143,7 +141,7 @@ contract('MemberRoles', function([
     var transaction = await mr.updateRole(member, 4, true);
     await assertRevert(mr.updateRole(member, 2, true));
     await assertRevert(mr.updateRole(member, 4, true));
-    await assertRevert(mr.updateRole(member, 2, false, { from: other }));
+    await assertRevert(mr.updateRole(member, 2, false, {from: other}));
     assert.equal(await mr.checkRole(member, 4), true, 'user not added to AB');
   });
 
@@ -197,9 +195,9 @@ contract('MemberRoles', function([
 
   it('13.23 Should not allow unauthorized people to update member roles', async function() {
     await mr.changeAuthorized(4, owner);
-    await assertRevert(mr.changeAuthorized(4, owner, { from: other }));
+    await assertRevert(mr.changeAuthorized(4, owner, {from: other}));
     await assertRevert(mr.changeAuthorized(1, owner));
-    await assertRevert(mr.updateRole(member, 4, true, { from: other }));
+    await assertRevert(mr.updateRole(member, 4, true, {from: other}));
   });
 
   it('13.24 Should change authorizedAddress when rquested by authorizedAddress', async function() {
@@ -223,7 +221,7 @@ contract('MemberRoles', function([
   });
 
   it('13.27 Should check role if user buys membership', async () => {
-    await mr.payJoiningFee(member, { value: '2000000000000000', from: member });
+    await mr.payJoiningFee(member, {value: '2000000000000000', from: member});
     await mr.kycVerdict(member, true);
     assert.equal(await mr.checkRole(member, 2), true);
     assert.equal(await mr.checkRole(other, 2), false);
@@ -234,7 +232,7 @@ contract('MemberRoles', function([
       mr.addMembersBeforeLaunch(
         [user1, user2, user3],
         [toWei(100), toWei(200), toWei(300)],
-        { from: member }
+        {from: member}
       )
     );
   });
@@ -244,7 +242,7 @@ contract('MemberRoles', function([
       mr.addMembersBeforeLaunch(
         [owner, user2, user3],
         [toWei(100), toWei(200), toWei(300)],
-        { from: owner }
+        {from: owner}
       )
     );
   });
@@ -253,7 +251,7 @@ contract('MemberRoles', function([
     await mr.addMembersBeforeLaunch(
       [user1, user2, user3],
       [toWei(100), toWei(200), toWei(300)],
-      { from: owner }
+      {from: owner}
     );
     assert.equal(await mr.checkRole(user1, 2), true);
     assert.equal(await mr.checkRole(user2, 2), true);
@@ -272,7 +270,7 @@ contract('MemberRoles', function([
       mr.addMembersBeforeLaunch(
         [user1, user2, user3],
         [toWei(100), toWei(200), toWei(300)],
-        { from: owner }
+        {from: owner}
       )
     );
   });
@@ -280,6 +278,6 @@ contract('MemberRoles', function([
     await assertRevert(mr.swapOwner(member));
   });
   it('13.33 Should not allow unauthorized address to set kyc status', async function() {
-    await assertRevert(mr.kycVerdict(member2, true, { from: member }));
+    await assertRevert(mr.kycVerdict(member2, true, {from: member}));
   });
 });

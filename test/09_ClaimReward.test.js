@@ -214,6 +214,8 @@ contract('ClaimsReward', function([
       claimed[1].should.be.equal(false);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(apiid, '');
+
+      await ps.processPendingActions();
     });
     it('9.1 should change claim reward contract', async function() {
       let newCr = await ClaimsReward.new();
@@ -264,12 +266,15 @@ contract('ClaimsReward', function([
     let initialBalance;
     let rewardToGet;
     let lockedStakedNXM;
+    let stakerRewardAmount;
 
     before(async function() {
       initialBalance = await tk.balanceOf(staker1);
       lockedStakedNXM = await tf.getStakerAllLockedTokens(staker1);
       await increaseTimeTo((await latestTime()) + duration.days(3));
+
       rewardToGet = await cr.getAllPendingRewardOfUser(staker1);
+      stakerRewardAmount = await ps.stakerReward(staker1);
 
       unlockableStakedNXM = await tf.getStakerAllUnlockableStakedTokens(
         staker1
@@ -278,18 +283,18 @@ contract('ClaimsReward', function([
     it('9.4 should be able to claim reward', async function() {
       let proposalIds = [];
       await cr.claimAllPendingReward(20, {from: staker1});
+      await ps.withdrawReward(staker1, stakerRewardAmount);
       (await cr.getAllPendingRewardOfUser(staker1))
         .toString()
-        .should.be.equal((0).toString());
+        .should.be.equal(stakeTokens.toString());
     });
     it('9.5 should increase balance of staker', async function() {
-      (await tk.balanceOf(staker1))
-        .toString()
-        .should.be.equal(
-          new BN(initialBalance.toString())
-            .add(new BN(rewardToGet.toString()))
-            .toString()
-        );
+      (await tk.balanceOf(staker1)).toString().should.be.equal(
+        new BN(initialBalance.toString())
+          .add(new BN(rewardToGet.toString()))
+          .sub(new BN(stakeTokens.toString()))
+          .toString()
+      );
     });
     it('9.6 should decrease locked staked tokens of staker', async function() {
       (await tf.getStakerAllLockedTokens(staker1))
@@ -317,18 +322,30 @@ contract('ClaimsReward', function([
     });
   });
 
-  describe('Test for claim reward for particular numbers of records', function() {
+  describe.only('Test for claim reward for particular numbers of records', function() {
     let apiidArr = [];
     let conAdds = [];
+    let totalCoverPrice = new BN(0);
     before(async function() {
       conAdds.push(smartConAdd1);
       conAdds.push(smartConAdd2);
       conAdds.push(smartConAdd3);
       conAdds.push(smartConAdd4);
       conAdds.push(smartConAdd5);
+
+      const stakeAmount = toWei(30).toString();
+      const stakeAmounts = [];
       for (let j = 0; j < conAdds.length; j++) {
-        await tf.addStake(conAdds[j], toWei(30), {from: newMember1});
+        stakeAmounts.push(stakeAmount);
       }
+
+      await tk.approve(ps.address, stakeAmount, {
+        from: newMember1
+      });
+      await ps.stake(stakeAmount, conAdds, stakeAmounts, {
+        from: newMember1
+      });
+
       let coverDetailsTest = [
         1,
         '3362445813369838',
@@ -336,6 +353,7 @@ contract('ClaimsReward', function([
         '7972408607',
         '7972408607201'
       ];
+
       for (let i = 0; i < conAdds.length; i++) {
         coverDetailsTest[4] = coverDetailsTest[4] / 1 + 1;
 
@@ -343,6 +361,8 @@ contract('ClaimsReward', function([
         if (i == 3) coverDetailsTest[2] = toWei(50) / 1;
 
         coverDetailsTest[2] = coverDetailsTest[2].toString();
+
+        totalCoverPrice = totalCoverPrice.add(new BN(coverDetailsTest[2]));
         var vrsdata = await getQuoteValues(
           coverDetailsTest,
           toHex('ETH'),
@@ -361,33 +381,22 @@ contract('ClaimsReward', function([
           {from: newMember2, value: coverDetailsTest[1].toString()}
         );
       }
+      await ps.processPendingActions();
     });
 
     it('9.10 should claim commision for covers', async function() {
-      assert.equal(
-        await td.getStakerTotalReedmedStakeCommission(newMember1),
-        0
-      );
-      let initialLastClaimed = await td.lastCompletedStakeCommission(
-        newMember1
-      );
-      await cr.claimAllPendingReward(3, {from: newMember1});
-      assert.equal(
-        await td.getStakerTotalReedmedStakeCommission(newMember1),
-        toWei(45)
-      );
-      assert.equal(
-        await td.lastCompletedStakeCommission(newMember1),
-        initialLastClaimed / 1 + 3
-      );
       let initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, {from: newMember1});
+      const stakerRewardAmount = await ps.stakerReward(newMember1);
+      await ps.withdrawReward(newMember1, stakerRewardAmount);
       let finalBal = await tk.balanceOf(newMember1);
-      assert.equal(finalBal - initialBal, toWei(25));
-      assert.equal(
-        await td.lastCompletedStakeCommission(newMember1),
-        initialLastClaimed / 1 + 3
-      );
+
+      const stakerRewardPercentage = await td.stakerCommissionPer();
+      const expectedTotalReward = totalCoverPrice
+        .mul(new BN(stakerRewardPercentage))
+        .div(new BN(100));
+
+      assert.equal(finalBal - initialBal, expectedTotalReward);
+
       let coverDetailsTest = [
         1,
         '3362445813369838',
@@ -395,7 +404,9 @@ contract('ClaimsReward', function([
         '7972408607',
         '7972408607501'
       ];
-      coverDetailsTest[2] = toWei(500);
+
+      const coverNXMPrice = toWei(500);
+      coverDetailsTest[2] = coverNXMPrice;
       var vrsdata = await getQuoteValues(
         coverDetailsTest,
         toHex('ETH'),
@@ -414,14 +425,16 @@ contract('ClaimsReward', function([
         {from: newMember2, value: coverDetailsTest[1].toString()}
       );
 
+      await ps.processPendingActions();
+
       initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(5, {from: newMember1});
+      const secondStakerRewardAmount = await ps.stakerReward(newMember1);
+      await ps.withdrawReward(newMember1, secondStakerRewardAmount);
       finalBal = await tk.balanceOf(newMember1);
-      assert.equal(finalBal - initialBal, toWei(5));
-      assert.equal(
-        await td.lastCompletedStakeCommission(newMember1),
-        initialLastClaimed / 1 + 5
-      );
+      const secondExpectedReward = new BN(coverNXMPrice.toString())
+        .mul(new BN(stakerRewardPercentage))
+        .div(new BN(100));
+      assert.equal(finalBal - initialBal, secondExpectedReward);
     });
 
     it('9.11 should claim reward for CA votes', async function() {

@@ -13,5 +13,7 @@ interface IPooledStaking {
     function getMaxUnstakable(address stakerAddress) external view returns (uint);
 
     function withdrawReward(uint amount) external;
+
+    function hasPendingActions() external view returns (bool);
 }
 

@@ -222,6 +222,7 @@ contract ClaimsReward is Iupgradable {
      * @return total reward amount of the user
      */
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
+        require(!pooledStaking.hasPendingActions(), "Pooled staking actions are not all processed yet.");
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint pooledStakingReward = pooledStaking.stakerReward(_add);
         uint stakedTokens = pooledStaking.stakerStake(_add);

@@ -1971,6 +1971,9 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: member1});
       await cr.claimAllPendingReward(20, {from: member2});
       await cr.claimAllPendingReward(20, {from: member3});
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
+      await tf.unlockStakerUnlockableTokens(member3);
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder1));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder1));
@@ -2249,6 +2252,12 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor4});
       await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+      await tf.unlockStakerUnlockableTokens(claimAssessor4);
+      await tf.unlockStakerUnlockableTokens(claimAssessor5);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -2275,6 +2284,9 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: member1});
       await cr.claimAllPendingReward(20, {from: member2});
       await cr.claimAllPendingReward(20, {from: member3});
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
+      await tf.unlockStakerUnlockableTokens(member3);
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder1));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder1));
@@ -2552,6 +2564,10 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor2});
       await cr.claimAllPendingReward(20, {from: claimAssessor3});
       await cr.claimAllPendingReward(20, {from: claimAssessor4});
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+      await tf.unlockStakerUnlockableTokens(claimAssessor4);
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2582,6 +2598,12 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: member3});
       await cr.claimAllPendingReward(20, {from: member4});
       await cr.claimAllPendingReward(20, {from: member5});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
+      await tf.unlockStakerUnlockableTokens(member3);
+      await tf.unlockStakerUnlockableTokens(member4);
+      await tf.unlockStakerUnlockableTokens(member5);
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder2));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder2));
@@ -2844,6 +2866,11 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor3});
       await cr.claimAllPendingReward(20, {from: claimAssessor4});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+      await tf.unlockStakerUnlockableTokens(claimAssessor4);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -2873,6 +2900,12 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: member3});
       await cr.claimAllPendingReward(20, {from: member4});
       await cr.claimAllPendingReward(20, {from: member5});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
+      await tf.unlockStakerUnlockableTokens(member3);
+      await tf.unlockStakerUnlockableTokens(member4);
+      await tf.unlockStakerUnlockableTokens(member5);
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder2));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder2));
@@ -3128,6 +3161,12 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor3});
       await cr.claimAllPendingReward(20, {from: claimAssessor4});
       await cr.claimAllPendingReward(20, {from: claimAssessor5});
+
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+      await tf.unlockStakerUnlockableTokens(claimAssessor4);
+      await tf.unlockStakerUnlockableTokens(claimAssessor5);
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3387,6 +3426,12 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor4});
       await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+      await tf.unlockStakerUnlockableTokens(claimAssessor4);
+      await tf.unlockStakerUnlockableTokens(claimAssessor5);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -3626,6 +3671,10 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor2});
       await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -3643,6 +3692,9 @@ contract('Claim: Assessment 2', function([
 
       await cr.claimAllPendingReward(20, {from: member1});
       await cr.claimAllPendingReward(20, {from: member2});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder6));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder6));
@@ -3868,6 +3920,10 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor2});
       await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -3885,6 +3941,9 @@ contract('Claim: Assessment 2', function([
 
       await cr.claimAllPendingReward(20, {from: member1});
       await cr.claimAllPendingReward(20, {from: member2});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder6));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder6));
@@ -4076,6 +4135,9 @@ contract('Claim: Assessment 2', function([
 
       await cr.claimAllPendingReward(20, {from: member1});
       await cr.claimAllPendingReward(20, {from: member2});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder7));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder7));
@@ -4293,6 +4355,12 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor4});
       await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+      await tf.unlockStakerUnlockableTokens(claimAssessor4);
+      await tf.unlockStakerUnlockableTokens(claimAssessor5);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -4319,6 +4387,10 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: member1});
       await cr.claimAllPendingReward(20, {from: member2});
       await cr.claimAllPendingReward(20, {from: member3});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
+      await tf.unlockStakerUnlockableTokens(member3);
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder7));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder7));
@@ -4589,6 +4661,12 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor4});
       await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+      await tf.unlockStakerUnlockableTokens(claimAssessor3);
+      await tf.unlockStakerUnlockableTokens(claimAssessor4);
+      await tf.unlockStakerUnlockableTokens(claimAssessor5);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -4615,6 +4693,10 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: member1});
       await cr.claimAllPendingReward(20, {from: member2});
       await cr.claimAllPendingReward(20, {from: member3});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
+      await tf.unlockStakerUnlockableTokens(member3);
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder8));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder8));
@@ -4855,6 +4937,9 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: claimAssessor1});
       await cr.claimAllPendingReward(20, {from: claimAssessor2});
 
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
+
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
       );
@@ -4881,6 +4966,13 @@ contract('Claim: Assessment 2', function([
       await cr.claimAllPendingReward(20, {from: member4});
       await cr.claimAllPendingReward(20, {from: member5});
       await cr.claimAllPendingReward(20, {from: member6});
+
+      await tf.unlockStakerUnlockableTokens(member1);
+      await tf.unlockStakerUnlockableTokens(member2);
+      await tf.unlockStakerUnlockableTokens(member3);
+      await tf.unlockStakerUnlockableTokens(member4);
+      await tf.unlockStakerUnlockableTokens(member5);
+      await tf.unlockStakerUnlockableTokens(member6);
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder9));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder9));
@@ -5094,6 +5186,9 @@ contract('Claim: Assessment 2', function([
       let proposalIds = [];
       await cr.claimAllPendingReward(20, {from: claimAssessor1});
       await cr.claimAllPendingReward(20, {from: claimAssessor2});
+
+      await tf.unlockStakerUnlockableTokens(claimAssessor1);
+      await tf.unlockStakerUnlockableTokens(claimAssessor2);
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)

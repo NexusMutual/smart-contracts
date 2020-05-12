@@ -4,14 +4,14 @@ const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenDataMock');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
 const expectEvent = require('./utils/expectEvent');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 
 // const ETH = '0x455448';
 const CLA = '0x434c41';
@@ -47,12 +47,12 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
     await tk.transfer(member1, tokens);
     await tk.transfer(member2, tokens);
   });
@@ -110,7 +110,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
       });
       it('4.5 emits Lock event', async function() {
         const lockTokens = ether(2);
-        const { logs } = await tc.lock(CLA, lockTokens, validity, {
+        const {logs} = await tc.lock(CLA, lockTokens, validity, {
           from: member2
         });
         const event = expectEvent.inLogs(logs, 'Locked', {
@@ -130,7 +130,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
     describe('Lock Tokens under CA more than once', function() {
       it('4.7 reverts', async function() {
         await assertRevert(
-          tc.lock(CLA, 5000, await latestTime(), { from: member1 })
+          tc.lock(CLA, 5000, await latestTime(), {from: member1})
         );
       });
     });
@@ -149,7 +149,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
             member1,
             CLA
           );
-          await tc.extendLock(CLA, extendValidity, { from: member1 });
+          await tc.extendLock(CLA, extendValidity, {from: member1});
           (await tc.getLockedTokensValidity(member1, CLA))
             .toString()
             .should.be.equal(
@@ -160,7 +160,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         });
         it('4.10 should not be able to extend lock if already unlocked all', async function() {
           await assertRevert(
-            tc.extendLock(CLA2, extendValidity, { from: member1 })
+            tc.extendLock(CLA2, extendValidity, {from: member1})
           );
         });
       });
@@ -172,7 +172,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
           );
         });
         it('4.11 increase validity', async function() {
-          await tc.extendLock(CLA, extendValidity, { from: member1 });
+          await tc.extendLock(CLA, extendValidity, {from: member1});
         });
       });
     });
@@ -181,14 +181,14 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
     describe('Increase amount of locked Tokens', function() {
       describe('Before validity expires', function() {
         before(async function() {
-          await mr.payJoiningFee(member3, { from: member3, value: fee });
+          await mr.payJoiningFee(member3, {from: member3, value: fee});
           await mr.kycVerdict(member3, true);
-          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
           await tk.transfer(member3, tokens);
           await tc.lock(CLA, lockTokens, validity, {
             from: member3
           });
-          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
+          await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: owner});
           await tk.transfer(owner, tokens);
           await tc.lock(CLA, lockTokens, validity, {
             from: owner
@@ -231,7 +231,7 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         });
         it('4.15 reverts', async function() {
           await assertRevert(
-            tc.increaseLockAmount(CLA, extendLockTokens, { from: member1 })
+            tc.increaseLockAmount(CLA, extendLockTokens, {from: member1})
           );
         });
       });

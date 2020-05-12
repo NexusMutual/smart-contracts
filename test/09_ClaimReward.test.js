@@ -14,11 +14,11 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -115,30 +115,30 @@ contract('ClaimsReward', function([
 
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.payJoiningFee(member3, {from: member3, value: fee});
     await mr.kycVerdict(member3, true);
-    await mr.payJoiningFee(staker1, { from: staker1, value: fee });
+    await mr.payJoiningFee(staker1, {from: staker1, value: fee});
     await mr.kycVerdict(staker1, true);
-    await mr.payJoiningFee(staker2, { from: staker2, value: fee });
+    await mr.payJoiningFee(staker2, {from: staker2, value: fee});
     await mr.kycVerdict(staker2, true);
-    await mr.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
+    await mr.payJoiningFee(coverHolder, {from: coverHolder, value: fee});
     await mr.kycVerdict(coverHolder, true);
-    await mr.payJoiningFee(newMember1, { from: newMember1, value: fee });
+    await mr.payJoiningFee(newMember1, {from: newMember1, value: fee});
     await mr.kycVerdict(newMember1, true);
-    await mr.payJoiningFee(newMember2, { from: newMember2, value: fee });
+    await mr.payJoiningFee(newMember2, {from: newMember2, value: fee});
     await mr.kycVerdict(newMember2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker2 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: newMember1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: newMember2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: staker1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: staker2});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: newMember1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: newMember2});
     await tk.transfer(member1, ether(150));
     await tk.transfer(member2, ether(150));
     await tk.transfer(member3, ether(150));
@@ -147,8 +147,8 @@ contract('ClaimsReward', function([
     await tk.transfer(coverHolder, ether(150));
     await tk.transfer(newMember1, ether(150));
     await tk.transfer(newMember2, ether(150));
-    await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
-    await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
+    await tf.addStake(smartConAdd, stakeTokens, {from: staker1});
+    await tf.addStake(smartConAdd, stakeTokens, {from: staker2});
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -157,9 +157,9 @@ contract('ClaimsReward', function([
     let initialBalance;
     let initialTokenBalance;
     before(async function() {
-      await tc.lock(CLA, tokens, validity, { from: member1 });
-      await tc.lock(CLA, tokens, validity, { from: member2 });
-      await tc.lock(CLA, tokens, validity, { from: member3 });
+      await tc.lock(CLA, tokens, validity, {from: member1});
+      await tc.lock(CLA, tokens, validity, {from: member2});
+      await tc.lock(CLA, tokens, validity, {from: member3});
       coverDetails[4] = 7972408607001;
       var vrsdata = await getQuoteValues(
         coverDetails,
@@ -176,20 +176,20 @@ contract('ClaimsReward', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder, value: coverDetails[1] }
+        {from: coverHolder, value: coverDetails[1]}
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[0], { from: coverHolder });
+      await cl.submitClaim(coverID[0], {from: coverHolder});
       claimId = (await cd.actualClaimLength()) - 1;
       const maxVotingTime = await cd.maxVotingTime();
       const now = await latestTime();
       closingTime = new BN(maxVotingTime.toString()).add(
         new BN(now.toString())
       );
-      await cl.submitCAVote(claimId, -1, { from: member1 });
-      await cl.submitCAVote(claimId, -1, { from: member2 });
-      await cl.submitCAVote(claimId, -1, { from: member3 });
-      await cr.claimAllPendingReward(20, { from: member1 });
+      await cl.submitCAVote(claimId, -1, {from: member1});
+      await cl.submitCAVote(claimId, -1, {from: member2});
+      await cl.submitCAVote(claimId, -1, {from: member3});
+      await cr.claimAllPendingReward(20, {from: member1});
       await increaseTimeTo(
         new BN(closingTime.toString()).add(new BN((2).toString()))
       );
@@ -219,9 +219,9 @@ contract('ClaimsReward', function([
       initialTokenBalance = await tk.balanceOf(cr.address);
       initialBalance = await tk.balanceOf(member1);
       rewardToGet = await cr.getAllPendingRewardOfUser(member1);
-      await assertRevert(cr.claimAllPendingReward(20, { from: notMember }));
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member1 });
+      await assertRevert(cr.claimAllPendingReward(20, {from: notMember}));
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member1});
       (await cr.getAllPendingRewardOfUser(member1))
         .toString()
         .should.be.equal((0).toString());
@@ -245,7 +245,7 @@ contract('ClaimsReward', function([
         );
       let proposalIds = [];
 
-      await cr.claimAllPendingReward(20, { from: member1 });
+      await cr.claimAllPendingReward(20, {from: member1});
     });
   });
   describe('Staker gets reward', function() {
@@ -263,9 +263,10 @@ contract('ClaimsReward', function([
         staker1
       );
     });
-    it('9.4 should be able to claim reward', async function() {
+    it('9.4 should be able to claim reward and unlock all unlockable tokens', async function() {
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: staker1 });
+      await cr.claimAllPendingReward(20, {from: staker1});
+      await tf.unlockStakerUnlockableTokens(staker1);
       (await cr.getAllPendingRewardOfUser(staker1))
         .toString()
         .should.be.equal((0).toString());
@@ -297,11 +298,11 @@ contract('ClaimsReward', function([
 
   describe('Misc', function() {
     it('9.8 should not be able change claim status', async function() {
-      await assertRevert(cr.changeClaimStatus(claimId, { from: notMember }));
+      await assertRevert(cr.changeClaimStatus(claimId, {from: notMember}));
     });
 
     it('9.9 should not be able call upgrade function of this contract', async function() {
-      await assertRevert(cr.upgrade(member1, { from: notMember }));
+      await assertRevert(cr.upgrade(member1, {from: notMember}));
     });
   });
 
@@ -315,7 +316,7 @@ contract('ClaimsReward', function([
       conAdds.push(smartConAdd4);
       conAdds.push(smartConAdd5);
       for (let j = 0; j < conAdds.length; j++) {
-        await tf.addStake(conAdds[j], toWei(30), { from: newMember1 });
+        await tf.addStake(conAdds[j], toWei(30), {from: newMember1});
       }
       let coverDetailsTest = [
         1,
@@ -346,7 +347,7 @@ contract('ClaimsReward', function([
           vrsdata[0],
           vrsdata[1],
           vrsdata[2],
-          { from: newMember2, value: coverDetailsTest[1].toString() }
+          {from: newMember2, value: coverDetailsTest[1].toString()}
         );
       }
     });
@@ -359,7 +360,7 @@ contract('ClaimsReward', function([
       let initialLastClaimed = await td.lastCompletedStakeCommission(
         newMember1
       );
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       assert.equal(
         await td.getStakerTotalReedmedStakeCommission(newMember1),
         toWei(45)
@@ -369,7 +370,7 @@ contract('ClaimsReward', function([
         initialLastClaimed / 1 + 3
       );
       let initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       let finalBal = await tk.balanceOf(newMember1);
       assert.equal(finalBal - initialBal, toWei(25));
       assert.equal(
@@ -399,11 +400,11 @@ contract('ClaimsReward', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: newMember2, value: coverDetailsTest[1].toString() }
+        {from: newMember2, value: coverDetailsTest[1].toString()}
       );
 
       initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(5, { from: newMember1 });
+      await cr.claimAllPendingReward(5, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
       assert.equal(finalBal - initialBal, toWei(5));
       assert.equal(
@@ -416,7 +417,7 @@ contract('ClaimsReward', function([
       coverID = await qd.getAllCoversOfUser(newMember2);
       let initialLastClaimed = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(initialLastClaimed[0], 0);
-      await tc.lock(CLA, toWei(40), validity, { from: newMember1 });
+      await tc.lock(CLA, toWei(40), validity, {from: newMember1});
       let returnData = await claimAssesmentVoting(
         1,
         coverID,
@@ -429,21 +430,21 @@ contract('ClaimsReward', function([
         '2000'
       );
       let initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       let finalBal = await tk.balanceOf(newMember1);
       assert.equal(parseFloat(returnData[0]), toWei(180));
       assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(180));
       let newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[0], initialLastClaimed[0] / 1 + 3);
       initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[0], initialLastClaimed[0] / 1 + 3);
       assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(30));
       await P1.__callback(returnData[1], '');
       initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[0], initialLastClaimed[0] / 1 + 5);
@@ -466,21 +467,21 @@ contract('ClaimsReward', function([
         '2000'
       );
       let initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       let finalBal = await tk.balanceOf(newMember1);
       assert.equal(parseFloat(returnData[0]), toWei(180));
       assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(180));
       let newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[1], initialLastClaimed[1] / 1 + 3);
       initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[1], initialLastClaimed[1] / 1 + 3);
       assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(30));
       await P1.__callback(returnData[1], '');
       initialBal = await tk.balanceOf(newMember1);
-      await cr.claimAllPendingReward(3, { from: newMember1 });
+      await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[1], initialLastClaimed[1] / 1 + 5);
@@ -506,8 +507,8 @@ async function claimAssesmentVoting(
 
   claimId = await cd.actualClaimLength();
   for (let i = 0; i < 5; i++) {
-    await cl.submitClaim(coverid[i], { from: newMember2 });
-    if (ca == 1) await cl.submitCAVote(claimId, -1, { from: newMember1 });
+    await cl.submitClaim(coverid[i], {from: newMember2});
+    if (ca == 1) await cl.submitCAVote(claimId, -1, {from: newMember1});
     let now = await latestTime();
     closingTime = new BN(_increaseTime.toString()).add(new BN(now.toString()));
     await increaseTimeTo(
@@ -517,7 +518,7 @@ async function claimAssesmentVoting(
     if (i != 3 || ca != 1) await P1.__callback(apiid, '');
     else pendingClaimAPIId = apiid;
     if (ca != 1) {
-      await cl.submitMemberVote(claimId, -1, { from: newMember1 });
+      await cl.submitMemberVote(claimId, -1, {from: newMember1});
       now = await latestTime();
       closingTime = new BN(_increaseTime.toString()).add(
         new BN(now.toString())

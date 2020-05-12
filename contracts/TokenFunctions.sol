@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 NexusMutual.io
+/* Copyright (C) 2020 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -61,8 +61,9 @@ contract TokenFunctions is Iupgradable {
                         td.pushEarnedStakeCommissions(stakerAddress, _scAddress, 
                             i, commissionToBePaid);
                         tc.mint(claimsRewardAddress, commissionToBePaid);
-                        if (i > 0)
+                        if (i > 0) {
                             td.setStakedContractCurrentCommissionIndex(_scAddress, i);
+                        }
                         commissionToBePaid = 0;
                         break;
                     } else {
@@ -75,8 +76,9 @@ contract TokenFunctions is Iupgradable {
             } else
                 break;
         }
-        if (commissionToBePaid > 0 && stakeLength > 0)
+        if (commissionToBePaid > 0 && stakeLength > 0) {
             td.setStakedContractCurrentCommissionIndex(_scAddress, stakeLength.sub(1));
+        }
     }
 
      /**
@@ -104,8 +106,9 @@ contract TokenFunctions is Iupgradable {
                     if (stakerStakedNXM >= burnNXMAmount) {
                         _burnStakerTokenLockedAgainstSmartContract(
                             stakerAddress, scAddress, i, burnNXMAmount);
-                        if (i > 0)
+                        if (i > 0) {
                             td.setStakedContractCurrentBurnIndex(scAddress, i);
+                        }
                         burnNXMAmount = 0;
                         break;
                     } else {
@@ -114,11 +117,13 @@ contract TokenFunctions is Iupgradable {
                         burnNXMAmount = burnNXMAmount.sub(stakerStakedNXM);
                     }
                 }
-            } else
+            } else {
                 break;
+            }
         }
-        if (burnNXMAmount > 0 && totalStaker > 0)
+        if (burnNXMAmount > 0 && totalStaker > 0) {
             td.setStakedContractCurrentBurnIndex(scAddress, totalStaker.sub(1));
+        }
     }
 
     /**
@@ -287,11 +292,13 @@ contract TokenFunctions is Iupgradable {
      * @param coverId id of cover
      */ 
     function unlockCN(uint coverId) public onlyInternal {
-        address _of = qd.getCoverMemberAddress(coverId);
+        (, bool isDeposited) = td.depositedCN(coverId);
+        require(!isDeposited,"Cover note is deposited and can not be released");
         uint lockedCN = _getLockedCNAgainstCover(coverId);
         if (lockedCN != 0) {
-            bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-            tc.releaseLockedTokens(_of, reason, lockedCN);
+            address coverHolder = qd.getCoverMemberAddress(coverId);
+            bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
+            tc.releaseLockedTokens(coverHolder, reason, lockedCN);
         }
     }
 
@@ -324,7 +331,7 @@ contract TokenFunctions is Iupgradable {
         public
         onlyInternal
     {
-        uint validity = now.add(coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
+        uint validity = (coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
         td.setDepositCNAmount(coverId, coverNoteAmount);
         tc.lockOf(_of, reason, coverNoteAmount, validity);
@@ -395,7 +402,7 @@ contract TokenFunctions is Iupgradable {
     /**
      * @dev releases unlockable staked tokens to staker 
      */
-    function unlockStakerUnlockableTokens(address _stakerAddress) public onlyInternal {
+    function unlockStakerUnlockableTokens(address _stakerAddress) public checkPause {
         uint unlockableAmount;
         address scAddress;
         bytes32 reason;
@@ -411,6 +418,23 @@ contract TokenFunctions is Iupgradable {
             reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
             tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
         }
+    }
+
+    function fixUnlockRecord(address _stakerAddress, uint index) public onlyOwner {
+        (address scAddress, 
+            uint scIndex, 
+            , 
+            uint initialStake, 
+            uint unlockedAmount, 
+            uint totalBurnt, 
+            ) = td.stakerStakedContracts(_stakerAddress, index);
+        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
+        uint locked = tc.tokensLocked(_stakerAddress, reason);
+        uint _amount = initialStake.sub(totalBurnt).sub(unlockedAmount);
+        _amount = _amount.sub(locked);
+        require(_amount > 0,"Not spoiled record");
+        td.setUnlockableBeforeLastBurnTokens(_stakerAddress, index, 0);
+        td.pushUnlockedStakedTokens(_stakerAddress, index, _amount);
     }
 
     /**
@@ -442,11 +466,13 @@ contract TokenFunctions is Iupgradable {
             td.getStakerUnlockedStakedTokens(stakerAdd, stakerIndex)) - (ub));
         uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
             stakerAdd, stakedAdd, td.getStakerStakedContractIndex(stakerAdd, stakerIndex));
-        if (v < 0)
+        if (v < 0) {
             v = 0;
+        }
         amount = uint(v);
-        if (canBurn > currentLockedTokens.sub(amount).sub(ub))
+        if (canBurn > currentLockedTokens.sub(amount).sub(ub)) {
             canBurn = currentLockedTokens.sub(amount).sub(ub);
+        }
     }
 
     /**
@@ -539,8 +565,9 @@ contract TokenFunctions is Iupgradable {
         if (_validDays > _stakeDays) {
             uint rf = ((_validDays.sub(_stakeDays)).mul(100000)).div(_validDays);
             amount = (rf.mul(_stakeAmount)).div(100000);
-        } else 
+        } else {
             amount = 0;
+        }
     }
 
     /**

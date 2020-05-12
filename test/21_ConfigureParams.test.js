@@ -1,7 +1,7 @@
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const PoolData = artifacts.require('PoolDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const TokenController = artifacts.require('TokenController');
@@ -24,7 +24,7 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const Web3 = require('web3');
 const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545')); // Hardcoded development port
 // const { toWei } = require('./utils/ethTools');
-const { toHex, toWei } = require('./utils/ethTools');
+const {toHex, toWei} = require('./utils/ethTools');
 
 let mcr;
 let tf;

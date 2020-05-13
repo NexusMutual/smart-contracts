@@ -148,8 +148,8 @@ contract('ClaimsReward', function([
     await tk.transfer(staker1, ether(450));
     await tk.transfer(staker2, ether(450));
     await tk.transfer(coverHolder, ether(150));
-    await tk.transfer(newMember1, ether(150));
-    await tk.transfer(newMember2, ether(150));
+    await tk.transfer(newMember1, ether(450));
+    await tk.transfer(newMember2, ether(450));
 
     const stakers = [staker1, staker2];
     for (const staker of stakers) {
@@ -322,7 +322,7 @@ contract('ClaimsReward', function([
     });
   });
 
-  describe.only('Test for claim reward for particular numbers of records', function() {
+  describe('Test for claim reward for particular numbers of records', function() {
     let apiidArr = [];
     let conAdds = [];
     let totalCoverPrice = new BN(0);

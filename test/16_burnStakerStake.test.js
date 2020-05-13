@@ -4,14 +4,15 @@ const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenDataMock');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
+const PooledStaking = artifacts.require('PooledStakingMock');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 
 const stakedContract = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 
@@ -23,6 +24,7 @@ let P1;
 let nxms;
 let mr;
 let cr;
+let ps;
 const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
@@ -47,17 +49,18 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
     cr = await ClaimsReward.deployed();
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    ps = await PooledStaking.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await mr.payJoiningFee(UW1, { from: UW1, value: fee });
+    await mr.payJoiningFee(UW1, {from: UW1, value: fee});
     await mr.kycVerdict(UW1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: UW1 });
-    await mr.payJoiningFee(UW2, { from: UW2, value: fee });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: UW1});
+    await mr.payJoiningFee(UW2, {from: UW2, value: fee});
     await mr.kycVerdict(UW2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: UW2 });
-    await mr.payJoiningFee(UW3, { from: UW3, value: fee });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: UW2});
+    await mr.payJoiningFee(UW3, {from: UW3, value: fee});
     await mr.kycVerdict(UW3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: UW3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: UW3});
     await tk.transfer(UW1, tokens);
     await tk.transfer(UW2, tokens);
     await tk.transfer(UW3, tokens);
@@ -71,12 +74,13 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
 
         describe('At day 0', function() {
           it('16.1 UW1 to add stake on Smart Contracts', async function() {
-            await tf.addStake(stakedContract, stakeTokens, { from: UW1 });
-            (await tf.getStakerLockedTokensOnSmartContract(
-              UW1,
-              stakedContract,
-              0
-            ))
+            await tk.approve(ps.address, stakeTokens, {
+              from: UW1
+            });
+            await ps.stake(stakeTokens, [stakedContract], [stakeTokens], {
+              from: UW1
+            });
+            (await ps.stakerContractAllocation(UW1, stakedContract))
               .toString()
               .should.be.equal(stakeTokens.toString());
           });
@@ -87,8 +91,13 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
             let time = await latestTime();
             time = time + (await duration.days(10));
             await increaseTimeTo(time + 10);
-            await tf.addStake(stakedContract, stakeTokens, { from: UW2 });
-            await cr.claimAllPendingReward(20, { from: UW1 });
+            await tk.approve(ps.address, stakeTokens, {
+              from: UW1
+            });
+            await ps.stake(stakeTokens, [stakedContract], [stakeTokens], {
+              from: UW1
+            });
+            await cr.claimAllPendingReward(20, {from: UW1});
             let newBal = await tk.balanceOf(UW1);
             console.log(
               'initialBal ',
@@ -96,11 +105,13 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' newBal ',
               parseFloat(newBal)
             );
-            (await tf.getStakerLockedTokensOnSmartContract(
-              UW2,
-              stakedContract,
-              1
-            ))
+            (
+              await tf.getStakerLockedTokensOnSmartContract(
+                UW2,
+                stakedContract,
+                1
+              )
+            )
               .toString()
               .should.be.equal(stakeTokens.toString());
             (newBal / 1).should.be.equal(initialBal / 1 + 100 * toWei(1));
@@ -111,7 +122,7 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
             let time = await latestTime();
             time = time + (await duration.days(10));
             await increaseTimeTo(time + 10);
-            await tf.addStake(stakedContract, stakeTokens, { from: UW3 });
+            await tf.addStake(stakedContract, stakeTokens, {from: UW3});
             await tf.burnStakerLockedToken(stakedContract, 0);
             let tx = await tf.burnStakerLockedToken(
               stakedContract,
@@ -126,11 +137,13 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' burnedUW2 ',
               burnedUW2[5] / 1
             );
-            (await tf.getStakerLockedTokensOnSmartContract(
-              UW3,
-              stakedContract,
-              2
-            ))
+            (
+              await tf.getStakerLockedTokensOnSmartContract(
+                UW3,
+                stakedContract,
+                2
+              )
+            )
               .toString()
               .should.be.equal(stakeTokens.toString());
             (burnedUW1[5] / 1).should.be.equal(2300 * toWei(1));
@@ -164,9 +177,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward(20, { from: UW1 });
-            await cr.claimAllPendingReward(20, { from: UW2 });
-            await cr.claimAllPendingReward(20, { from: UW3 });
+            await cr.claimAllPendingReward(20, {from: UW1});
+            await cr.claimAllPendingReward(20, {from: UW2});
+            await cr.claimAllPendingReward(20, {from: UW3});
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -214,9 +227,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward(20, { from: UW1 });
-            await cr.claimAllPendingReward(20, { from: UW2 });
-            await cr.claimAllPendingReward(20, { from: UW3 });
+            await cr.claimAllPendingReward(20, {from: UW1});
+            await cr.claimAllPendingReward(20, {from: UW2});
+            await cr.claimAllPendingReward(20, {from: UW3});
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -296,9 +309,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward(20, { from: UW1 });
-            await cr.claimAllPendingReward(20, { from: UW2 });
-            await cr.claimAllPendingReward(20, { from: UW3 });
+            await cr.claimAllPendingReward(20, {from: UW1});
+            await cr.claimAllPendingReward(20, {from: UW2});
+            await cr.claimAllPendingReward(20, {from: UW3});
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -349,9 +362,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward(20, { from: UW1 });
-            await cr.claimAllPendingReward(20, { from: UW2 });
-            await cr.claimAllPendingReward(20, { from: UW3 });
+            await cr.claimAllPendingReward(20, {from: UW1});
+            await cr.claimAllPendingReward(20, {from: UW2});
+            await cr.claimAllPendingReward(20, {from: UW3});
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);
@@ -402,9 +415,9 @@ contract('NXMToken:Staking', function([owner, UW1, UW2, UW3]) {
               ' unlockableUW3 ',
               parseFloat(unlockableUW3)
             );
-            await cr.claimAllPendingReward(20, { from: UW1 });
-            await cr.claimAllPendingReward(20, { from: UW2 });
-            await cr.claimAllPendingReward(20, { from: UW3 });
+            await cr.claimAllPendingReward(20, {from: UW1});
+            await cr.claimAllPendingReward(20, {from: UW2});
+            await cr.claimAllPendingReward(20, {from: UW3});
             let newBalUW1 = await tk.balanceOf(UW1);
             let newBalUW2 = await tk.balanceOf(UW2);
             let newBalUW3 = await tk.balanceOf(UW3);

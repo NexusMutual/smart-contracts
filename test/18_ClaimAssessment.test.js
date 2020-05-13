@@ -15,8 +15,9 @@ const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const DAI = artifacts.require('MockDAI');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const Governance = artifacts.require('Governance');
+const PooledStaking = artifacts.require('PooledStakingMock');
 
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
@@ -60,6 +61,7 @@ let mr;
 let gv;
 let APIID;
 let qt;
+let ps;
 const BN = web3.utils.BN;
 
 const BigNumber = web3.BigNumber;
@@ -131,6 +133,7 @@ contract('Claim: Assessment 2', function([
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
+    ps = await PooledStaking.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await DSV.setRate(25);
@@ -342,7 +345,7 @@ contract('Claim: Assessment 2', function([
           toWei(4000),
           toWei(7000),
           toWei(40),
-          toWei(10)
+          toWei(20)
         ],
         from: underWriter3
       },
@@ -352,7 +355,7 @@ contract('Claim: Assessment 2', function([
           toWei(7000),
           toWei(6000),
           toWei(30),
-          toWei(5)
+          toWei(20)
         ],
         from: underWriter4
       },
@@ -362,18 +365,21 @@ contract('Claim: Assessment 2', function([
           toWei(6000),
           toWei(5000),
           toWei(50),
-          toWei(15)
+          toWei(20)
         ],
-        from: underWriter4
+        from: underWriter5
       }
     ];
 
     for (const stake of stakes) {
-      const stakeTokens = Math.max(stake.allocations.map(a => a.toString()));
+      console.log(stake);
+      const allocations = stake.allocations.map(a => new BN(a.toString()));
+      const stakeTokens = allocations.reduce((a, b) => BN.max(a, b), new BN(0));
+      console.log(stakeTokens);
       await tk.approve(ps.address, stakeTokens, {
         from: stake.from
       });
-      await ps.stake(stakeTokens, contracts, stake.allocations, {
+      await ps.stake(stakeTokens, contracts, allocations, {
         from: stake.from
       });
     }
@@ -5220,7 +5226,14 @@ contract('Claim: Assessment 2', function([
   });
   describe('Burning 0 tokens of a staker', function() {
     it('18.24 successful', async function() {
-      tf.addStake(SC1, toWei(200), {from: underWriter6});
+      const stakeTokens = toWei(200);
+      await tk.approve(ps.address, stakeTokens, {
+        from: underWriter6
+      });
+      await ps.stake(stakeTokens, [SC1], [stakeTokens], {
+        from: underWriter6
+      });
+
       coverID = await qd.getAllCoversOfUser(coverHolder5);
 
       await tf.burnStakerLockedToken(SC1, 0);

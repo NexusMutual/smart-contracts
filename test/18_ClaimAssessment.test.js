@@ -18,11 +18,11 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const Governance = artifacts.require('Governance');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -136,7 +136,7 @@ contract('Claim: Assessment 2', function([
     await DSV.setRate(25);
     await pd.changeCurrencyAssetBaseMin(ethereum_string, toWei(30));
     await tf.upgradeCapitalPool(dai.address);
-    await p1.sendEther({ from: owner, value: toWei(2500) });
+    await p1.sendEther({from: owner, value: toWei(2500)});
     await pd.changeCurrencyAssetBaseMin(dai_string, toWei(750));
     await dai.transfer(p1.address, toWei(1250));
     await mcr.addMCRData(
@@ -154,7 +154,7 @@ contract('Claim: Assessment 2', function([
     // await td.changeBookTime(60);
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: owner});
     // if ((await tk.totalSupply()) < 600000 * toWei(1))
     //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
     // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
@@ -164,190 +164,219 @@ contract('Claim: Assessment 2', function([
 
     // let ia_pool_eth = await web3.eth.getBalance(p2.address);
     // let ia_pool_dai = await dai.balanceOf(p2.address);
-    await mr.payJoiningFee(underWriter1, { from: underWriter1, value: fee });
+    await mr.payJoiningFee(underWriter1, {from: underWriter1, value: fee});
     await mr.kycVerdict(underWriter1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: underWriter1});
 
-    await mr.payJoiningFee(underWriter2, { from: underWriter2, value: fee });
+    await mr.payJoiningFee(underWriter2, {from: underWriter2, value: fee});
     await mr.kycVerdict(underWriter2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: underWriter2});
 
-    await mr.payJoiningFee(underWriter3, { from: underWriter3, value: fee });
+    await mr.payJoiningFee(underWriter3, {from: underWriter3, value: fee});
     await mr.kycVerdict(underWriter3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: underWriter3});
 
-    await mr.payJoiningFee(underWriter4, { from: underWriter4, value: fee });
+    await mr.payJoiningFee(underWriter4, {from: underWriter4, value: fee});
     await mr.kycVerdict(underWriter4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter4 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: underWriter4});
 
-    await mr.payJoiningFee(underWriter5, { from: underWriter5, value: fee });
+    await mr.payJoiningFee(underWriter5, {from: underWriter5, value: fee});
     await mr.kycVerdict(underWriter5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter5 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: underWriter5});
 
-    await mr.payJoiningFee(underWriter6, { from: underWriter6, value: fee });
+    await mr.payJoiningFee(underWriter6, {from: underWriter6, value: fee});
     await mr.kycVerdict(underWriter6, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: underWriter6 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: underWriter6});
 
     await mr.payJoiningFee(claimAssessor1, {
       from: claimAssessor1,
       value: fee
     });
     await mr.kycVerdict(claimAssessor1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: claimAssessor1});
 
     await mr.payJoiningFee(claimAssessor2, {
       from: claimAssessor2,
       value: fee
     });
     await mr.kycVerdict(claimAssessor2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: claimAssessor2});
 
     await mr.payJoiningFee(claimAssessor3, {
       from: claimAssessor3,
       value: fee
     });
     await mr.kycVerdict(claimAssessor3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: claimAssessor3});
 
     await mr.payJoiningFee(claimAssessor4, {
       from: claimAssessor4,
       value: fee
     });
     await mr.kycVerdict(claimAssessor4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor4 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: claimAssessor4});
 
     await mr.payJoiningFee(claimAssessor5, {
       from: claimAssessor5,
       value: fee
     });
     await mr.kycVerdict(claimAssessor5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: claimAssessor5 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: claimAssessor5});
 
-    await mr.payJoiningFee(coverHolder1, { from: coverHolder1, value: fee });
+    await mr.payJoiningFee(coverHolder1, {from: coverHolder1, value: fee});
     await mr.kycVerdict(coverHolder1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder1});
 
-    await mr.payJoiningFee(coverHolder2, { from: coverHolder2, value: fee });
+    await mr.payJoiningFee(coverHolder2, {from: coverHolder2, value: fee});
     await mr.kycVerdict(coverHolder2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder2});
 
-    await mr.payJoiningFee(coverHolder3, { from: coverHolder3, value: fee });
+    await mr.payJoiningFee(coverHolder3, {from: coverHolder3, value: fee});
     await mr.kycVerdict(coverHolder3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder3});
 
-    await mr.payJoiningFee(coverHolder4, { from: coverHolder4, value: fee });
+    await mr.payJoiningFee(coverHolder4, {from: coverHolder4, value: fee});
     await mr.kycVerdict(coverHolder4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder4 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder4});
 
-    await mr.payJoiningFee(coverHolder5, { from: coverHolder5, value: fee });
+    await mr.payJoiningFee(coverHolder5, {from: coverHolder5, value: fee});
     await mr.kycVerdict(coverHolder5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder5 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder5});
 
-    await mr.payJoiningFee(coverHolder6, { from: coverHolder6, value: fee });
+    await mr.payJoiningFee(coverHolder6, {from: coverHolder6, value: fee});
     await mr.kycVerdict(coverHolder6, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder6 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder6});
 
-    await mr.payJoiningFee(coverHolder7, { from: coverHolder7, value: fee });
+    await mr.payJoiningFee(coverHolder7, {from: coverHolder7, value: fee});
     await mr.kycVerdict(coverHolder7, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder7 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder7});
 
-    await mr.payJoiningFee(coverHolder8, { from: coverHolder8, value: fee });
+    await mr.payJoiningFee(coverHolder8, {from: coverHolder8, value: fee});
     await mr.kycVerdict(coverHolder8, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder8 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder8});
 
-    await mr.payJoiningFee(coverHolder9, { from: coverHolder9, value: fee });
+    await mr.payJoiningFee(coverHolder9, {from: coverHolder9, value: fee});
     await mr.kycVerdict(coverHolder9, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder9 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder9});
 
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
 
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
 
-    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.payJoiningFee(member3, {from: member3, value: fee});
     await mr.kycVerdict(member3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
 
-    await mr.payJoiningFee(member4, { from: member4, value: fee });
+    await mr.payJoiningFee(member4, {from: member4, value: fee});
     await mr.kycVerdict(member4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member4});
 
-    await mr.payJoiningFee(member5, { from: member5, value: fee });
+    await mr.payJoiningFee(member5, {from: member5, value: fee});
     await mr.kycVerdict(member5, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member5 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member5});
 
-    await mr.payJoiningFee(member6, { from: member6, value: fee });
+    await mr.payJoiningFee(member6, {from: member6, value: fee});
     await mr.kycVerdict(member6, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member6 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member6});
 
-    await tk.transfer(underWriter1, toWei(19095), { from: owner });
-    await tk.transfer(underWriter2, toWei(16080), { from: owner });
-    await tk.transfer(underWriter3, toWei(15050), { from: owner });
-    await tk.transfer(underWriter4, toWei(18035), { from: owner });
-    await tk.transfer(underWriter5, toWei(17065), { from: owner });
-    await tk.transfer(underWriter6, toWei(19095), { from: owner });
+    await tk.transfer(underWriter1, toWei(19095), {from: owner});
+    await tk.transfer(underWriter2, toWei(16080), {from: owner});
+    await tk.transfer(underWriter3, toWei(15050), {from: owner});
+    await tk.transfer(underWriter4, toWei(18035), {from: owner});
+    await tk.transfer(underWriter5, toWei(17065), {from: owner});
+    await tk.transfer(underWriter6, toWei(19095), {from: owner});
 
-    await tk.transfer(claimAssessor1, toWei(50000), { from: owner });
-    await tk.transfer(claimAssessor2, toWei(30000), { from: owner });
-    await tk.transfer(claimAssessor3, toWei(20000), { from: owner });
-    await tk.transfer(claimAssessor4, toWei(60000), { from: owner });
-    await tk.transfer(claimAssessor5, toWei(50000), { from: owner });
+    await tk.transfer(claimAssessor1, toWei(50000), {from: owner});
+    await tk.transfer(claimAssessor2, toWei(30000), {from: owner});
+    await tk.transfer(claimAssessor3, toWei(20000), {from: owner});
+    await tk.transfer(claimAssessor4, toWei(60000), {from: owner});
+    await tk.transfer(claimAssessor5, toWei(50000), {from: owner});
 
-    await tk.transfer(coverHolder1, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder2, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder3, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder4, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder5, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder6, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder7, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder8, toWei(1000), { from: owner });
-    await tk.transfer(coverHolder9, toWei(1000), { from: owner });
+    await tk.transfer(coverHolder1, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder2, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder3, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder4, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder5, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder6, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder7, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder8, toWei(1000), {from: owner});
+    await tk.transfer(coverHolder9, toWei(1000), {from: owner});
 
-    await tk.transfer(member1, toWei(30000), { from: owner });
-    await tk.transfer(member2, toWei(20000), { from: owner });
-    await tk.transfer(member3, toWei(10000), { from: owner });
-    await tk.transfer(member4, toWei(20000), { from: owner });
-    await tk.transfer(member5, toWei(30000), { from: owner });
-    await tk.transfer(member6, toWei(150000), { from: owner });
+    await tk.transfer(member1, toWei(30000), {from: owner});
+    await tk.transfer(member2, toWei(20000), {from: owner});
+    await tk.transfer(member3, toWei(10000), {from: owner});
+    await tk.transfer(member4, toWei(20000), {from: owner});
+    await tk.transfer(member5, toWei(30000), {from: owner});
+    await tk.transfer(member6, toWei(150000), {from: owner});
 
-    // now stake the tokens from the underwriters to the contracts
-    // Smart contract 1
-    tf.addStake(SC1, toWei(2000), { from: underWriter1 });
-    tf.addStake(SC1, toWei(3000), { from: underWriter2 });
-    tf.addStake(SC1, toWei(4000), { from: underWriter3 });
-    tf.addStake(SC1, toWei(5000), { from: underWriter4 });
-    tf.addStake(SC1, toWei(6000), { from: underWriter5 });
+    const contracts = [SC1, SC2, SC3, SC4, SC5];
 
-    // Smart contract 2
-    tf.addStake(SC2, toWei(4000), { from: underWriter3 });
-    tf.addStake(SC2, toWei(5000), { from: underWriter2 });
-    tf.addStake(SC2, toWei(6000), { from: underWriter5 });
-    tf.addStake(SC2, toWei(7000), { from: underWriter4 });
-    tf.addStake(SC2, toWei(8000), { from: underWriter1 });
+    const stakes = [
+      {
+        allocations: [
+          toWei(2000),
+          toWei(8000),
+          toWei(9000),
+          toWei(70),
+          toWei(25)
+        ],
+        from: underWriter1
+      },
+      {
+        allocations: [
+          toWei(3000),
+          toWei(5000),
+          toWei(8000),
+          toWei(60),
+          toWei(20)
+        ],
+        from: underWriter2
+      },
+      {
+        allocations: [
+          toWei(4000),
+          toWei(4000),
+          toWei(7000),
+          toWei(40),
+          toWei(10)
+        ],
+        from: underWriter3
+      },
+      {
+        allocations: [
+          toWei(5000),
+          toWei(7000),
+          toWei(6000),
+          toWei(30),
+          toWei(5)
+        ],
+        from: underWriter4
+      },
+      {
+        allocations: [
+          toWei(6000),
+          toWei(6000),
+          toWei(5000),
+          toWei(50),
+          toWei(15)
+        ],
+        from: underWriter4
+      }
+    ];
 
-    // Smart contract 3
-    tf.addStake(SC3, toWei(5000), { from: underWriter5 });
-    tf.addStake(SC3, toWei(6000), { from: underWriter4 });
-    tf.addStake(SC3, toWei(7000), { from: underWriter3 });
-    tf.addStake(SC3, toWei(8000), { from: underWriter2 });
-    tf.addStake(SC3, toWei(9000), { from: underWriter1 });
-
-    // Smart contract 4
-    tf.addStake(SC4, toWei(30), { from: underWriter4 });
-    tf.addStake(SC4, toWei(40), { from: underWriter3 });
-    tf.addStake(SC4, toWei(50), { from: underWriter5 });
-    tf.addStake(SC4, toWei(60), { from: underWriter2 });
-    tf.addStake(SC4, toWei(70), { from: underWriter1 });
-
-    // Smart contract 5
-    tf.addStake(SC5, toWei(5), { from: underWriter4 });
-    tf.addStake(SC5, toWei(10), { from: underWriter3 });
-    tf.addStake(SC5, toWei(15), { from: underWriter5 });
-    tf.addStake(SC5, toWei(20), { from: underWriter2 });
-    tf.addStake(SC5, toWei(25), { from: underWriter1 });
+    for (const stake of stakes) {
+      const stakeTokens = Math.max(stake.allocations.map(a => a.toString()));
+      await tk.approve(ps.address, stakeTokens, {
+        from: stake.from
+      });
+      await ps.stake(stakeTokens, contracts, stake.allocations, {
+        from: stake.from
+      });
+    }
 
     actionHash = encode('updateUintParameters(bytes8,uint)', 'A', 10);
     await gvProp(26, actionHash, mr, gv, 2);
@@ -406,7 +435,7 @@ contract('Claim: Assessment 2', function([
       }
       function claimAllUWRewards() {
         for (let i = 0; i < UWarray.length; i++)
-          cr.claimAllPendingReward(20, { from: UWarray[i] });
+          cr.claimAllPendingReward(20, {from: UWarray[i]});
       }
       // buy cover 1
 
@@ -437,7 +466,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder5, value: '6570841889000000' }
+        {from: coverHolder5, value: '6570841889000000'}
       );
       let lockedCN = await tf.getLockedCNAgainstCover(1);
       claimAllUWRewards();
@@ -483,7 +512,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder3 }
+        {from: coverHolder3}
       );
       lockedCN = await tf.getLockedCNAgainstCover(2);
       claimAllUWRewards();
@@ -525,7 +554,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder1, value: '26283367556000000' }
+        {from: coverHolder1, value: '26283367556000000'}
       );
       lockedCN = await tf.getLockedCNAgainstCover(3);
       claimAllUWRewards();
@@ -571,7 +600,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder2 }
+        {from: coverHolder2}
       );
       lockedCN = await tf.getLockedCNAgainstCover(4);
       claimAllUWRewards();
@@ -613,7 +642,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder4, value: '59137577002000000' }
+        {from: coverHolder4, value: '59137577002000000'}
       );
       lockedCN = await tf.getLockedCNAgainstCover(5);
       claimAllUWRewards();
@@ -659,7 +688,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder6 }
+        {from: coverHolder6}
       );
       lockedCN = await tf.getLockedCNAgainstCover(6);
       claimAllUWRewards();
@@ -701,7 +730,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder7, value: '105133470226000000' }
+        {from: coverHolder7, value: '105133470226000000'}
       );
       lockedCN = await tf.getLockedCNAgainstCover(7);
       claimAllUWRewards();
@@ -747,7 +776,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder8 }
+        {from: coverHolder8}
       );
       lockedCN = await tf.getLockedCNAgainstCover(8);
       claimAllUWRewards();
@@ -790,7 +819,7 @@ contract('Claim: Assessment 2', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder9, value: '164271047228000000' }
+        {from: coverHolder9, value: '164271047228000000'}
       );
       lockedCN = await tf.getLockedCNAgainstCover(9);
       claimAllUWRewards();
@@ -806,7 +835,7 @@ contract('Claim: Assessment 2', function([
         );
 
       await tf.upgradeCapitalPool(dai.address);
-      await p1.sendEther({ from: owner, value: 50 * toWei(1) });
+      await p1.sendEther({from: owner, value: 50 * toWei(1)});
       await dai.transfer(p1.address, toWei(1250));
       let lockCNFlag = 1;
       for (let i = 0; i < UWarray.length; i++) {
@@ -853,26 +882,26 @@ contract('Claim: Assessment 2', function([
         UWTotalBalanceBefore[i] =
           parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
       }
-      await tc.lock(CLA, toWei(50000), validity, { from: claimAssessor1 });
-      await tc.lock(CLA, toWei(30000), validity, { from: claimAssessor2 });
-      await tc.lock(CLA, toWei(20000), validity, { from: claimAssessor3 });
+      await tc.lock(CLA, toWei(50000), validity, {from: claimAssessor1});
+      await tc.lock(CLA, toWei(30000), validity, {from: claimAssessor2});
+      await tc.lock(CLA, toWei(20000), validity, {from: claimAssessor3});
       // cannot withdraw/switch membership as it has staked tokens
-      await assertRevert(mr.withdrawMembership({ from: claimAssessor1 }));
+      await assertRevert(mr.withdrawMembership({from: claimAssessor1}));
       await assertRevert(
-        mr.switchMembership(tc.address, { from: claimAssessor1 })
+        mr.switchMembership(tc.address, {from: claimAssessor1})
       );
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
 
       // try submitting an invalid cover ID
-      await assertRevert(tf.depositCN(46, { from: owner }));
+      await assertRevert(tf.depositCN(46, {from: owner}));
 
-      await cl.submitClaim(coverID[0], { from: coverHolder5 });
+      await cl.submitClaim(coverID[0], {from: coverHolder5});
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
       // await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
-      await assertRevert(td.setDepositCN(coverID[0], true, { from: owner }));
+      await assertRevert(td.setDepositCN(coverID[0], true, {from: owner}));
 
       let now = await latestTime();
       claimID = (await cd.actualClaimLength()) - 1;
@@ -890,9 +919,9 @@ contract('Claim: Assessment 2', function([
       // tries to burn CA votes, but reverts as not auth to governed
       await assertRevert(tf.burnCAToken(claimID, 10, claimAssessor1));
 
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -966,9 +995,9 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1078,7 +1107,7 @@ contract('Claim: Assessment 2', function([
       // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
 
       coverID = await qd.getAllCoversOfUser(coverHolder5);
-      await cl.submitClaim(coverID[0], { from: coverHolder5 });
+      await cl.submitClaim(coverID[0], {from: coverHolder5});
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimID = (await cd.actualClaimLength()) - 1;
@@ -1093,9 +1122,9 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor3, CLA)
       );
 
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor3});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1174,9 +1203,9 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1326,7 +1355,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder3);
-      await cl.submitClaim(coverID[0], { from: coverHolder3 });
+      await cl.submitClaim(coverID[0], {from: coverHolder3});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -1340,9 +1369,9 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor3, CLA)
       );
 
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor3});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1386,13 +1415,13 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, -1, { from: member1 });
-      await cl.submitMemberVote(claimID, -1, { from: member2 });
-      await cl.submitMemberVote(claimID, 1, { from: member3 });
+      await cl.submitMemberVote(claimID, -1, {from: member1});
+      await cl.submitMemberVote(claimID, -1, {from: member2});
+      await cl.submitMemberVote(claimID, 1, {from: member3});
 
       // cannot withdraw/switch membership as member has voted
-      await assertRevert(mr.withdrawMembership({ from: member1 }));
-      await assertRevert(mr.switchMembership(tc.address, { from: member1 }));
+      await assertRevert(mr.withdrawMembership({from: member1}));
+      await assertRevert(mr.switchMembership(tc.address, {from: member1}));
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
@@ -1407,9 +1436,9 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1428,9 +1457,9 @@ contract('Claim: Assessment 2', function([
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
 
       let balanceAfter = await dai.balanceOf(coverHolder3);
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder3));
@@ -1572,7 +1601,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder3);
-      await cl.submitClaim(coverID[0], { from: coverHolder3 });
+      await cl.submitClaim(coverID[0], {from: coverHolder3});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -1586,9 +1615,9 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor3, CLA)
       );
 
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1632,9 +1661,9 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
-      await cl.submitMemberVote(claimID, -1, { from: member3 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
+      await cl.submitMemberVote(claimID, -1, {from: member3});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -1650,9 +1679,9 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1671,9 +1700,9 @@ contract('Claim: Assessment 2', function([
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder3));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder3));
@@ -1800,8 +1829,8 @@ contract('Claim: Assessment 2', function([
       // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
       // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
 
-      await tc.lock(CLA, toWei(60000), validity, { from: claimAssessor4 });
-      await tc.lock(CLA, toWei(50000), validity, { from: claimAssessor5 });
+      await tc.lock(CLA, toWei(60000), validity, {from: claimAssessor4});
+      await tc.lock(CLA, toWei(50000), validity, {from: claimAssessor5});
 
       for (let i = 0; i < UWarray.length; i++) {
         UWTotalBalanceBefore[i] =
@@ -1828,7 +1857,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder1);
-      await cl.submitClaim(coverID[0], { from: coverHolder1 });
+      await cl.submitClaim(coverID[0], {from: coverHolder1});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -1847,11 +1876,11 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor4 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor5 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor4});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor5});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1907,9 +1936,9 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
-      await cl.submitMemberVote(claimID, 1, { from: member3 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
+      await cl.submitMemberVote(claimID, 1, {from: member3});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -1925,11 +1954,11 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor5 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
+      await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -1954,9 +1983,9 @@ contract('Claim: Assessment 2', function([
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder1));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder1));
@@ -2132,7 +2161,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder1);
-      await cl.submitClaim(coverID[0], { from: coverHolder1 });
+      await cl.submitClaim(coverID[0], {from: coverHolder1});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -2151,11 +2180,11 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor4 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor5 });
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor4});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor5});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2211,9 +2240,9 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
-      await cl.submitMemberVote(claimID, 1, { from: member3 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
+      await cl.submitMemberVote(claimID, 1, {from: member3});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -2229,11 +2258,11 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor5 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
+      await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2258,9 +2287,9 @@ contract('Claim: Assessment 2', function([
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder1));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder1));
@@ -2444,7 +2473,7 @@ contract('Claim: Assessment 2', function([
       // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor5});
 
       coverID = await qd.getAllCoversOfUser(coverHolder2);
-      await cl.submitClaim(coverID[0], { from: coverHolder2 });
+      await cl.submitClaim(coverID[0], {from: coverHolder2});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -2461,10 +2490,10 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor4, CLA)
       );
 
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor4 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor4});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2514,11 +2543,11 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, -1, { from: member1 });
-      await cl.submitMemberVote(claimID, -1, { from: member2 });
-      await cl.submitMemberVote(claimID, -1, { from: member3 });
-      await cl.submitMemberVote(claimID, -1, { from: member4 });
-      await cl.submitMemberVote(claimID, 1, { from: member5 });
+      await cl.submitMemberVote(claimID, -1, {from: member1});
+      await cl.submitMemberVote(claimID, -1, {from: member2});
+      await cl.submitMemberVote(claimID, -1, {from: member3});
+      await cl.submitMemberVote(claimID, -1, {from: member4});
+      await cl.submitMemberVote(claimID, 1, {from: member5});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -2534,10 +2563,10 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2563,11 +2592,11 @@ contract('Claim: Assessment 2', function([
       member5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
-      await cr.claimAllPendingReward(20, { from: member4 });
-      await cr.claimAllPendingReward(20, { from: member5 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
+      await cr.claimAllPendingReward(20, {from: member4});
+      await cr.claimAllPendingReward(20, {from: member5});
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder2));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder2));
@@ -2735,7 +2764,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder2);
-      await cl.submitClaim(coverID[0], { from: coverHolder2 });
+      await cl.submitClaim(coverID[0], {from: coverHolder2});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -2752,10 +2781,10 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor4, CLA)
       );
 
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor4 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor4});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2805,11 +2834,11 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
-      await cl.submitMemberVote(claimID, 1, { from: member3 });
-      await cl.submitMemberVote(claimID, 1, { from: member4 });
-      await cl.submitMemberVote(claimID, -1, { from: member5 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
+      await cl.submitMemberVote(claimID, 1, {from: member3});
+      await cl.submitMemberVote(claimID, 1, {from: member4});
+      await cl.submitMemberVote(claimID, -1, {from: member5});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -2825,10 +2854,10 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -2854,11 +2883,11 @@ contract('Claim: Assessment 2', function([
       member5Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
-      await cr.claimAllPendingReward(20, { from: member4 });
-      await cr.claimAllPendingReward(20, { from: member5 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
+      await cr.claimAllPendingReward(20, {from: member4});
+      await cr.claimAllPendingReward(20, {from: member5});
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder2));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder2));
@@ -3011,7 +3040,7 @@ contract('Claim: Assessment 2', function([
         );
       }
       coverID = await qd.getAllCoversOfUser(coverHolder4);
-      await cl.submitClaim(coverID[0], { from: coverHolder4 });
+      await cl.submitClaim(coverID[0], {from: coverHolder4});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -3031,11 +3060,11 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
 
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor4 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor5 });
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor4});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor5});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3109,11 +3138,11 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor5 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
+      await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3269,7 +3298,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder4);
-      await cl.submitClaim(coverID[0], { from: coverHolder4 });
+      await cl.submitClaim(coverID[0], {from: coverHolder4});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -3289,11 +3318,11 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
 
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor4 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor5 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor4});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor5});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3367,11 +3396,11 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor5 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
+      await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3531,7 +3560,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder6);
-      await cl.submitClaim(coverID[0], { from: coverHolder6 });
+      await cl.submitClaim(coverID[0], {from: coverHolder6});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -3545,9 +3574,9 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor3, CLA)
       );
 
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3591,8 +3620,8 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -3608,9 +3637,9 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3627,8 +3656,8 @@ contract('Claim: Assessment 2', function([
       member2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder6));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder6));
@@ -3773,7 +3802,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder6);
-      await cl.submitClaim(coverID[0], { from: coverHolder6 });
+      await cl.submitClaim(coverID[0], {from: coverHolder6});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -3787,9 +3816,9 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor3, CLA)
       );
 
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor3});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3833,8 +3862,8 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -3850,9 +3879,9 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -3869,8 +3898,8 @@ contract('Claim: Assessment 2', function([
       member2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder6));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder6));
@@ -4011,7 +4040,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder7);
-      await cl.submitClaim(coverID[0], { from: coverHolder7 });
+      await cl.submitClaim(coverID[0], {from: coverHolder7});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -4037,8 +4066,8 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -4060,8 +4089,8 @@ contract('Claim: Assessment 2', function([
       member2Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder7));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder7));
@@ -4176,7 +4205,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder7);
-      await cl.submitClaim(coverID[0], { from: coverHolder7 });
+      await cl.submitClaim(coverID[0], {from: coverHolder7});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -4195,11 +4224,11 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor4 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor5 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor4});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor5});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4255,9 +4284,9 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
-      await cl.submitMemberVote(claimID, 1, { from: member3 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
+      await cl.submitMemberVote(claimID, 1, {from: member3});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -4273,11 +4302,11 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor5 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
+      await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4302,9 +4331,9 @@ contract('Claim: Assessment 2', function([
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder7));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder7));
@@ -4472,7 +4501,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder8);
-      await cl.submitClaim(coverID[0], { from: coverHolder8 });
+      await cl.submitClaim(coverID[0], {from: coverHolder8});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -4491,11 +4520,11 @@ contract('Claim: Assessment 2', function([
       claimAssessor5Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor4 });
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor5 });
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor3});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor4});
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor5});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4551,9 +4580,9 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
-      await cl.submitMemberVote(claimID, 1, { from: member3 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
+      await cl.submitMemberVote(claimID, 1, {from: member3});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -4569,11 +4598,11 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor3 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor4 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor5 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
+      await cr.claimAllPendingReward(20, {from: claimAssessor3});
+      await cr.claimAllPendingReward(20, {from: claimAssessor4});
+      await cr.claimAllPendingReward(20, {from: claimAssessor5});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4598,9 +4627,9 @@ contract('Claim: Assessment 2', function([
       member3Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
 
       let balanceAfter = parseFloat(await dai.balanceOf(coverHolder8));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder8));
@@ -4768,7 +4797,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder9);
-      await cl.submitClaim(coverID[0], { from: coverHolder9 });
+      await cl.submitClaim(coverID[0], {from: coverHolder9});
       claimID = (await cd.actualClaimLength()) - 1;
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
@@ -4778,8 +4807,8 @@ contract('Claim: Assessment 2', function([
       claimAssessor2Object.initialDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor2, CLA)
       );
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4817,12 +4846,12 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, -1, { from: member1 });
-      await cl.submitMemberVote(claimID, -1, { from: member2 });
-      await cl.submitMemberVote(claimID, -1, { from: member3 });
-      await cl.submitMemberVote(claimID, -1, { from: member4 });
-      await cl.submitMemberVote(claimID, 1, { from: member5 });
-      await cl.submitMemberVote(claimID, -1, { from: member6 });
+      await cl.submitMemberVote(claimID, -1, {from: member1});
+      await cl.submitMemberVote(claimID, -1, {from: member2});
+      await cl.submitMemberVote(claimID, -1, {from: member3});
+      await cl.submitMemberVote(claimID, -1, {from: member4});
+      await cl.submitMemberVote(claimID, 1, {from: member5});
+      await cl.submitMemberVote(claimID, -1, {from: member6});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -4838,8 +4867,8 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -4861,12 +4890,12 @@ contract('Claim: Assessment 2', function([
       member6Object.rewardRecieved =
         parseFloat(await cr.getRewardToBeDistributedByUser(member6)) / toWei(1);
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
-      await cr.claimAllPendingReward(20, { from: member4 });
-      await cr.claimAllPendingReward(20, { from: member5 });
-      await cr.claimAllPendingReward(20, { from: member6 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
+      await cr.claimAllPendingReward(20, {from: member4});
+      await cr.claimAllPendingReward(20, {from: member5});
+      await cr.claimAllPendingReward(20, {from: member6});
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder9));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder9));
@@ -5007,7 +5036,7 @@ contract('Claim: Assessment 2', function([
       }
 
       coverID = await qd.getAllCoversOfUser(coverHolder9);
-      await cl.submitClaim(coverID[0], { from: coverHolder9 });
+      await cl.submitClaim(coverID[0], {from: coverHolder9});
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       claimID = (await cd.actualClaimLength()) - 1;
@@ -5018,8 +5047,8 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor2, CLA)
       );
 
-      await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
-      await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
+      await cl.submitCAVote(claimID, 1, {from: claimAssessor1});
+      await cl.submitCAVote(claimID, -1, {from: claimAssessor2});
 
       claimAssessor1Object.newLockDate = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -5057,12 +5086,12 @@ contract('Claim: Assessment 2', function([
         toWei(1);
 
       // now member voting started
-      await cl.submitMemberVote(claimID, 1, { from: member1 });
-      await cl.submitMemberVote(claimID, 1, { from: member2 });
-      await cl.submitMemberVote(claimID, 1, { from: member3 });
-      await cl.submitMemberVote(claimID, 1, { from: member4 });
-      await cl.submitMemberVote(claimID, -1, { from: member5 });
-      await cl.submitMemberVote(claimID, 1, { from: member6 });
+      await cl.submitMemberVote(claimID, 1, {from: member1});
+      await cl.submitMemberVote(claimID, 1, {from: member2});
+      await cl.submitMemberVote(claimID, 1, {from: member3});
+      await cl.submitMemberVote(claimID, 1, {from: member4});
+      await cl.submitMemberVote(claimID, -1, {from: member5});
+      await cl.submitMemberVote(claimID, 1, {from: member6});
 
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
@@ -5078,8 +5107,8 @@ contract('Claim: Assessment 2', function([
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
-      await cr.claimAllPendingReward(20, { from: claimAssessor1 });
-      await cr.claimAllPendingReward(20, { from: claimAssessor2 });
+      await cr.claimAllPendingReward(20, {from: claimAssessor1});
+      await cr.claimAllPendingReward(20, {from: claimAssessor2});
 
       claimAssessor1Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor1, CLA)
@@ -5106,15 +5135,15 @@ contract('Claim: Assessment 2', function([
       );
 
       // cannot withdraw/switch membership as it has not claimed Pending reward
-      await assertRevert(mr.withdrawMembership({ from: member1 }));
-      await assertRevert(mr.switchMembership(tc.address, { from: member1 }));
+      await assertRevert(mr.withdrawMembership({from: member1}));
+      await assertRevert(mr.switchMembership(tc.address, {from: member1}));
 
-      await cr.claimAllPendingReward(20, { from: member1 });
-      await cr.claimAllPendingReward(20, { from: member2 });
-      await cr.claimAllPendingReward(20, { from: member3 });
-      await cr.claimAllPendingReward(20, { from: member4 });
-      await cr.claimAllPendingReward(20, { from: member5 });
-      await cr.claimAllPendingReward(20, { from: member6 });
+      await cr.claimAllPendingReward(20, {from: member1});
+      await cr.claimAllPendingReward(20, {from: member2});
+      await cr.claimAllPendingReward(20, {from: member3});
+      await cr.claimAllPendingReward(20, {from: member4});
+      await cr.claimAllPendingReward(20, {from: member5});
+      await cr.claimAllPendingReward(20, {from: member6});
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder9));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder9));
@@ -5191,7 +5220,7 @@ contract('Claim: Assessment 2', function([
   });
   describe('Burning 0 tokens of a staker', function() {
     it('18.24 successful', async function() {
-      tf.addStake(SC1, toWei(200), { from: underWriter6 });
+      tf.addStake(SC1, toWei(200), {from: underWriter6});
       coverID = await qd.getAllCoversOfUser(coverHolder5);
 
       await tf.burnStakerLockedToken(SC1, 0);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 NexusMutual.io
+/* Copyright (C) 2020 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -58,7 +58,6 @@ contract TokenFunctions is Iupgradable {
         (, scAddress) = qd.getscAddressOfCover(coverid);
         uint tokenPrice = m1.calculateTokenPrice(curr);
         uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
-
         pooledStaking.pushBurn(scAddress, burnNXMAmount);
     }
 
@@ -197,11 +196,13 @@ contract TokenFunctions is Iupgradable {
      * @param coverId id of cover
      */ 
     function unlockCN(uint coverId) public onlyInternal {
-        address _of = qd.getCoverMemberAddress(coverId);
+        (, bool isDeposited) = td.depositedCN(coverId);
+        require(!isDeposited,"Cover note is deposited and can not be released");
         uint lockedCN = _getLockedCNAgainstCover(coverId);
         if (lockedCN != 0) {
-            bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-            tc.releaseLockedTokens(_of, reason, lockedCN);
+            address coverHolder = qd.getCoverMemberAddress(coverId);
+            bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
+            tc.releaseLockedTokens(coverHolder, reason, lockedCN);
         }
     }
 
@@ -234,7 +235,7 @@ contract TokenFunctions is Iupgradable {
         public
         onlyInternal
     {
-        uint validity = now.add(coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
+        uint validity = (coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
         td.setDepositCNAmount(coverId, coverNoteAmount);
         tc.lockOf(_of, reason, coverNoteAmount, validity);
@@ -298,6 +299,133 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
+     * @dev releases unlockable staked tokens to staker 
+     */
+    function unlockStakerUnlockableTokens(address _stakerAddress) public checkPause {
+        uint unlockableAmount;
+        address scAddress;
+        bytes32 reason;
+        uint scIndex;
+        for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
+            scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
+            scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
+            unlockableAmount = _getStakerUnlockableTokensOnSmartContract(
+            _stakerAddress, scAddress,
+            scIndex);
+            td.setUnlockableBeforeLastBurnTokens(_stakerAddress, i, 0);
+            td.pushUnlockedStakedTokens(_stakerAddress, i, unlockableAmount);
+            reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
+            tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
+        }
+    }
+
+    function fixUnlockRecord(address _stakerAddress, uint index) public onlyOwner {
+        (address scAddress, 
+            uint scIndex, 
+            , 
+            uint initialStake, 
+            uint unlockedAmount, 
+            uint totalBurnt, 
+            ) = td.stakerStakedContracts(_stakerAddress, index);
+        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
+        uint locked = tc.tokensLocked(_stakerAddress, reason);
+        uint _amount = initialStake.sub(totalBurnt).sub(unlockedAmount);
+        _amount = _amount.sub(locked);
+        require(_amount > 0,"Not spoiled record");
+        td.setUnlockableBeforeLastBurnTokens(_stakerAddress, index, 0);
+        td.pushUnlockedStakedTokens(_stakerAddress, index, _amount);
+    }
+
+    /**
+     * @dev to get tokens of staker locked before burning that are allowed to burn 
+     * @param stakerAdd is the address of the staker 
+     * @param stakedAdd is the address of staked contract in concern 
+     * @param stakerIndex is the staker index in concern
+     * @return amount of unlockable tokens
+     * @return amount of tokens that can burn
+     */
+    function _unlockableBeforeBurningAndCanBurn(
+        address stakerAdd, 
+        address stakedAdd, 
+        uint stakerIndex
+    )
+    internal 
+    view 
+    returns
+    (uint amount, uint canBurn) {
+
+        uint dateAdd;
+        uint initialStake;
+        uint totalBurnt;
+        uint ub;
+        (, , dateAdd, initialStake, , totalBurnt, ub) = td.stakerStakedContracts(stakerAdd, stakerIndex);
+        canBurn = _calculateStakedTokens(initialStake, (now.sub(dateAdd)).div(1 days), td.scValidDays());
+        // Can't use SafeMaths for int.
+        int v = int(initialStake - (canBurn) - (totalBurnt) - (
+            td.getStakerUnlockedStakedTokens(stakerAdd, stakerIndex)) - (ub));
+        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
+            stakerAdd, stakedAdd, td.getStakerStakedContractIndex(stakerAdd, stakerIndex));
+        if (v < 0) {
+            v = 0;
+        }
+        amount = uint(v);
+        if (canBurn > currentLockedTokens.sub(amount).sub(ub)) {
+            canBurn = currentLockedTokens.sub(amount).sub(ub);
+        }
+    }
+
+    /**
+     * @dev to get tokens of staker that are unlockable
+     * @param _stakerAddress is the address of the staker 
+     * @param _stakedContractAddress is the address of staked contract in concern 
+     * @param _stakedContractIndex is the staked contract index in concern
+     * @return amount of unlockable tokens
+     */
+    function _getStakerUnlockableTokensOnSmartContract (
+        address _stakerAddress,
+        address _stakedContractAddress,
+        uint _stakedContractIndex
+    ) 
+        internal
+        view
+        returns
+        (uint amount)
+    {   
+        uint initialStake;
+        uint stakerIndex = td.getStakedContractStakerIndex(
+            _stakedContractAddress, _stakedContractIndex);
+        uint burnt;
+        (, , , initialStake, , burnt,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
+        uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex);
+        uint currentStakedTokens;
+        (, currentStakedTokens) = _unlockableBeforeBurningAndCanBurn(_stakerAddress, 
+            _stakedContractAddress, stakerIndex);
+        amount = initialStake.sub(currentStakedTokens).sub(alreadyUnlocked).sub(burnt);
+    }
+
+    /**
+     * @dev Internal function to get the amount of locked NXM tokens,
+     * staked against smartcontract by index
+     * @param _stakerAddress address of user
+     * @param _stakedContractAddress staked contract address
+     * @param _stakedContractIndex index of staking
+     */
+    function _getStakerLockedTokensOnSmartContract (
+        address _stakerAddress,
+        address _stakedContractAddress,
+        uint _stakedContractIndex
+    )
+        internal
+        view
+        returns
+        (uint amount)
+    {   
+        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress,
+            _stakedContractAddress, _stakedContractIndex));
+        amount = tc.tokensLocked(_stakerAddress, reason);
+    }
+
+    /**
      * @dev Returns amount of NXM Tokens locked as Cover Note for given coverId.
      * @param _coverId coverId of the cover.
      */
@@ -336,7 +464,30 @@ contract TokenFunctions is Iupgradable {
         if (_validDays > _stakeDays) {
             uint rf = ((_validDays.sub(_stakeDays)).mul(100000)).div(_validDays);
             amount = (rf.mul(_stakeAmount)).div(100000);
-        } else 
+        } else {
             amount = 0;
+        }
+    }
+
+    /**
+     * @dev Gets the total staked NXM tokens against Smart contract 
+     * by all stakers
+     * @param _stakedContractAddress smart contract address.
+     * @return amount total staked NXM tokens.
+     */
+    function _burnStakerTokenLockedAgainstSmartContract(
+        address _stakerAddress,
+        address _stakedContractAddress,
+        uint _stakedContractIndex,
+        uint _amount
+    ) 
+        internal
+    {
+        uint stakerIndex = td.getStakedContractStakerIndex(
+            _stakedContractAddress, _stakedContractIndex);
+        td.pushBurnedTokens(_stakerAddress, stakerIndex, _amount);
+        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress,
+            _stakedContractAddress, _stakedContractIndex));
+        tc.burnLockedTokens(_stakerAddress, reason, _amount);
     }
 }

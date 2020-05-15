@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 NexusMutual.io
+/* Copyright (C) 2020 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,8 @@ contract TokenController is IERC1132, Iupgradable {
 
     NXMToken public token;
     IPooledStaking public pooledStaking;
-
+    uint public minCALockTime = uint(30).mul(1 days);
+    bytes32 private constant CLA = bytes32("CLA");
     /**
     * @dev Just for interface
     */
@@ -47,13 +48,15 @@ contract TokenController is IERC1132, Iupgradable {
 
     /**
     * @dev Locks a specified amount of tokens,
-    *    for a specified reason and time
-    * @param _reason The reason to lock tokens
+    *    for CLA reason and for a specified time
+    * @param _reason The reason to lock tokens, currently restricted to CLA
     * @param _amount Number of tokens to be locked
     * @param _time Lock time in seconds
     */
-    function lock(bytes32 _reason, uint256 _amount, uint256 _time) public returns (bool)
+    function lock(bytes32 _reason, uint256 _amount, uint256 _time) public checkPause returns (bool)
     {
+        require(_reason == CLA,"Restricted to reason CLA");
+        require(minCALockTime <= _time,"Should lock for minimum time");
         // If tokens are already locked, then functions extendLock or
         // increaseLockAmount should be used to make any changes
         _lock(msg.sender, _reason, _amount, _time);
@@ -80,14 +83,16 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-    * @dev Extends lock for a specified reason and time
-    * @param _reason The reason to lock tokens
+    * @dev Extends lock for reason CLA for a specified time
+    * @param _reason The reason to lock tokens, currently restricted to CLA
     * @param _time Lock extension time in seconds
     */
     function extendLock(bytes32 _reason, uint256 _time)
         public
+        checkPause
         returns (bool)
     {
+        require(_reason == CLA,"Restricted to reason CLA");
         _extendLock(msg.sender, _reason, _time);
         return true;
     }
@@ -107,15 +112,21 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-    * @dev Increase number of tokens locked for a specified reason
-    * @param _reason The reason to lock tokens
+    * @dev Increase number of tokens locked for a CLA reason
+    * @param _reason The reason to lock tokens, currently restricted to CLA
     * @param _amount Number of tokens to be increased
     */
     function increaseLockAmount(bytes32 _reason, uint256 _amount)
         public
+        checkPause
         returns (bool)
-    {
-        _increaseLockAmount(msg.sender, _reason, _amount);
+    {    
+        require(_reason == CLA,"Restricted to reason CLA");
+        require(_tokensLocked(msg.sender, _reason) > 0);
+        token.operatorTransfer(msg.sender, _amount);
+
+        locked[msg.sender][_reason].amount = locked[msg.sender][_reason].amount.add(_amount);
+        emit Locked(msg.sender, _reason, _amount, locked[msg.sender][_reason].validity);
         return true;
     }
 
@@ -196,26 +207,34 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-    * @dev Unlocks the unlockable tokens of a specified address
-    * @param _of Address of user, claiming back unlockable tokens
+    * @dev Unlocks the unlockable tokens against CLA of a specified address
+    * @param _of Address of user, claiming back unlockable tokens against CLA
     */
     function unlock(address _of)
         public
+        checkPause
         returns (uint256 unlockableTokens)
     {
-        uint256 lockedTokens;
-
-        for (uint256 i = 0; i < lockReason[_of].length; i++) {
-            lockedTokens = _tokensUnlockable(_of, lockReason[_of][i]);
-            if (lockedTokens > 0) {
-                unlockableTokens = unlockableTokens.add(lockedTokens);
-                locked[_of][lockReason[_of][i]].claimed = true;
-                emit Unlocked(_of, lockReason[_of][i], lockedTokens);
-            }
-        }
-
-        if (unlockableTokens > 0)
+        unlockableTokens = _tokensUnlockable(_of, CLA);
+        if (unlockableTokens > 0) {
+            locked[_of][CLA].claimed = true;
+            emit Unlocked(_of, CLA, unlockableTokens);
             require(token.transfer(_of, unlockableTokens));
+        }
+    }
+
+    /**
+     * @dev Updates Uint Parameters of a code
+     * @param code whose details we want to update
+     * @param val value to set
+     */
+    function updateUintParameters(bytes8 code, uint val) public {
+        require(ms.checkIsAuthToGoverned(msg.sender));
+        if (code == "MNCLT") {
+            minCALockTime = val.mul(1 days);
+        } else {
+            revert("Invalid param code");
+        }
     }
 
     /**
@@ -330,7 +349,6 @@ contract TokenController is IERC1132, Iupgradable {
         for (uint256 i = 0; i < lockReason[_of].length; i++) {
             amount = amount.add(_tokensLockedAtTime(_of, lockReason[_of][i], _time));
         }
-
         amount = amount.add(pooledStaking.stakerStake(_of));
     }
 
@@ -346,8 +364,9 @@ contract TokenController is IERC1132, Iupgradable {
         require(_tokensLocked(_of, _reason) == 0);
         require(_amount != 0);
 
-        if (locked[_of][_reason].amount == 0)
+        if (locked[_of][_reason].amount == 0) {
             lockReason[_of].push(_reason);
+        }
 
         require(token.operatorTransfer(_of, _amount));
 
@@ -368,8 +387,9 @@ contract TokenController is IERC1132, Iupgradable {
         view
         returns (uint256 amount)
     {
-        if (!locked[_of][_reason].claimed)
+        if (!locked[_of][_reason].claimed) {
             amount = locked[_of][_reason].amount;
+        }
     }
 
     /**
@@ -385,8 +405,9 @@ contract TokenController is IERC1132, Iupgradable {
         view
         returns (uint256 amount)
     {
-        if (locked[_of][_reason].validity > _time)
+        if (locked[_of][_reason].validity > _time) {
             amount = locked[_of][_reason].amount;
+        }
     }
 
     /**
@@ -416,28 +437,15 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
-    * @dev Increase number of tokens locked for a specified reason
-    * @param _of The address whose tokens are locked
-    * @param _reason The reason to lock tokens
-    * @param _amount Number of tokens to be increased
-    */
-    function _increaseLockAmount(address _of, bytes32 _reason, uint256 _amount) internal {
-        require(_tokensLocked(_of, _reason) > 0);
-        token.operatorTransfer(msg.sender, _amount);
-
-        locked[_of][_reason].amount = locked[_of][_reason].amount.add(_amount);
-        emit Locked(_of, _reason, _amount, locked[_of][_reason].validity);
-    }
-
-    /**
     * @dev Returns unlockable tokens for a specified address for a specified reason
     * @param _of The address to query the the unlockable token count of
     * @param _reason The reason to query the unlockable tokens for
     */
     function _tokensUnlockable(address _of, bytes32 _reason) internal view returns (uint256 amount)
     {
-      if (locked[_of][_reason].validity <= now && !locked[_of][_reason].claimed) //solhint-disable-line
+        if (locked[_of][_reason].validity <= now && !locked[_of][_reason].claimed) {
             amount = locked[_of][_reason].amount;
+        }
     }
 
     /**
@@ -449,11 +457,13 @@ contract TokenController is IERC1132, Iupgradable {
     function _burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal {
         uint256 amount = _tokensLocked(_of, _reason);
         require(amount >= _amount);
-
-        if (amount == _amount)
+        if (amount == _amount) {
             locked[_of][_reason].claimed = true;
-
+        }
         locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
+        if (locked[_of][_reason].amount == 0) {
+            _removeReason(_of, _reason);
+        }
         token.burn(_amount);
         emit Burned(_of, _reason, _amount);
     }
@@ -464,17 +474,32 @@ contract TokenController is IERC1132, Iupgradable {
     * @param _reason reason of the lock
     * @param _amount amount of tokens to release
     */
-    function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount)
-        internal
+
+    function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal
     {
         uint256 amount = _tokensLocked(_of, _reason);
         require(amount >= _amount);
 
-        if (amount == _amount)
+        if (amount == _amount) {
             locked[_of][_reason].claimed = true;
+        }
 
         locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
+        if (locked[_of][_reason].amount == 0) {
+            _removeReason(_of, _reason);
+        }
         require(token.transfer(_of, _amount));
         emit Unlocked(_of, _reason, _amount);
+    }
+
+    function _removeReason(address _of, bytes32 _reason) internal {
+        uint len = lockReason[_of].length;
+        for (uint i = 0; i < len; i++) {
+            if (lockReason[_of][i] == _reason) {
+                lockReason[_of][i] = lockReason[_of][len.sub(1)];
+                lockReason[_of].pop();
+                break;
+            }
+        }   
     }
 }

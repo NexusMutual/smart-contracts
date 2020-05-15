@@ -160,7 +160,6 @@ contract('ClaimsReward', function([
         from: staker
       });
     }
-
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -280,10 +279,11 @@ contract('ClaimsReward', function([
         staker1
       );
     });
-    it('9.4 should be able to claim reward', async function() {
+    it('9.4 should be able to claim reward and unlock all unlockable tokens', async function() {
       let proposalIds = [];
       await cr.claimAllPendingReward(20, {from: staker1});
       await ps.withdrawReward(staker1, stakerRewardAmount);
+      await tf.unlockStakerUnlockableTokens(staker1);
       (await cr.getAllPendingRewardOfUser(staker1))
         .toString()
         .should.be.equal(stakeTokens.toString());
@@ -324,25 +324,25 @@ contract('ClaimsReward', function([
 
   describe('Test for claim reward for particular numbers of records', function() {
     let apiidArr = [];
-    let conAdds = [];
+    let contractAddresses = [
+      smartConAdd1,
+      smartConAdd2,
+      smartConAdd3,
+      smartConAdd4,
+      smartConAdd5
+    ];
     let totalCoverPrice = new BN(0);
     before(async function() {
-      conAdds.push(smartConAdd1);
-      conAdds.push(smartConAdd2);
-      conAdds.push(smartConAdd3);
-      conAdds.push(smartConAdd4);
-      conAdds.push(smartConAdd5);
-
       const stakeAmount = toWei(30).toString();
       const stakeAmounts = [];
-      for (let j = 0; j < conAdds.length; j++) {
+      for (let j = 0; j < contractAddresses.length; j++) {
         stakeAmounts.push(stakeAmount);
       }
 
       await tk.approve(ps.address, stakeAmount, {
         from: newMember1
       });
-      await ps.stake(stakeAmount, conAdds, stakeAmounts, {
+      await ps.stake(stakeAmount, contractAddresses, stakeAmounts, {
         from: newMember1
       });
 
@@ -354,7 +354,7 @@ contract('ClaimsReward', function([
         '7972408607201'
       ];
 
-      for (let i = 0; i < conAdds.length; i++) {
+      for (let i = 0; i < contractAddresses.length; i++) {
         coverDetailsTest[4] = coverDetailsTest[4] / 1 + 1;
 
         coverDetailsTest[2] = coverDetailsTest[2] / 1 + toWei(100) / 1;
@@ -367,11 +367,11 @@ contract('ClaimsReward', function([
           coverDetailsTest,
           toHex('ETH'),
           coverPeriod,
-          conAdds[i],
+          contractAddresses[i],
           qt.address
         );
         await P1.makeCoverBegin(
-          conAdds[i],
+          contractAddresses[i],
           toHex('ETH'),
           coverDetailsTest,
           coverPeriod,
@@ -411,11 +411,11 @@ contract('ClaimsReward', function([
         coverDetailsTest,
         toHex('ETH'),
         coverPeriod,
-        conAdds[3],
+        contractAddresses[3],
         qt.address
       );
       await P1.makeCoverBegin(
-        conAdds[3],
+        contractAddresses[3],
         toHex('ETH'),
         coverDetailsTest,
         coverPeriod,

@@ -1,11 +1,15 @@
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const { ether } = require('@openzeppelin/test-helpers');
 const { setupLoader } = require('@openzeppelin/contract-loader');
 
 const { hex } = require('../test/utils/helpers');
 const { ParamType, Role } = require('../test/utils/constants');
+
+const { NETWORK = 'PERSONAL' } = process.env;
 
 function getenv (key, fallback = false) {
 
@@ -20,7 +24,6 @@ function getenv (key, fallback = false) {
 
 const init = async () => {
 
-  const { NETWORK = 'KOVAN' } = process.env;
   console.log(`Using ${NETWORK} network`);
 
   const account = getenv(`${NETWORK}_ACCOUNT`);
@@ -48,6 +51,28 @@ const deploy = async (loader, contract) => {
   console.log(`${contract} deployed at ${instance.address}`);
 
   return instance;
+};
+
+const updateOzConfig = addresses => {
+
+  const network = NETWORK.toLowerCase();
+  const file = path.join(process.cwd(), '.openzeppelin', `${network}.json`);
+
+  if (!fs.existsSync(file)) {
+    console.log(`Config update skipped: .openzeppelin/${network}.json does not exist`);
+    return;
+  }
+
+  const data = JSON.parse(fs.readFileSync(file));
+
+  for (const contract of Object.keys(addresses)) {
+    const key = `pooled-staking/${contract}`;
+    const address = addresses[contract];
+    data.proxies[key] = { address, kind: 'NonProxy' };
+  }
+
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+  console.log(`Config updated: .openzeppelin/${network}.json`);
 };
 
 async function run () {
@@ -87,6 +112,13 @@ async function run () {
   await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, 20);
   await staking.updateParameter(ParamType.MAX_LEVERAGE, 2);
   await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 300); // 5 minutes
+
+  updateOzConfig({
+    MasterMock: master.address,
+    PooledStaking: staking.address,
+    TokenMock: token.address,
+    TokenControllerMock: tokenController.address,
+  });
 }
 
 run()

@@ -18,6 +18,11 @@ module.exports = {
       networkId: 42,
       provider: () => new HDWalletProvider(kovanMnemonic, 'https://parity.govblocks.io'),
     },
+    personal: {
+      gasPrice: 5e9,
+      networkId: 42,
+      provider: () => new HDWalletProvider(kovanMnemonic, 'https://parity.govblocks.io'),
+    },
     development: {
       protocol: 'http',
       host: 'localhost',

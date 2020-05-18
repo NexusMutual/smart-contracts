@@ -298,6 +298,11 @@ contract PooledStaking is MasterAware {
     for (uint i = 0; i < _contracts.length; i++) {
 
       address contractAddress = _contracts[i];
+
+      for (uint j = 0; j < i; j++) {
+        require(_contracts[j] != contractAddress, "Contracts array should not contain duplicates");
+      }
+
       uint oldAllocation = staker.allocations[contractAddress];
       uint newAllocation = _allocations[i];
       bool isNewAllocation = i >= oldLength;

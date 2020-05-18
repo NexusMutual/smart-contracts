@@ -56,6 +56,26 @@ describe('stake', function () {
     );
   });
 
+  it('should revert when input array contains duplicate values', async function () {
+
+    const { staking, token } = this;
+    const amount = ether('3');
+
+    await fundAndApprove(token, staking, amount.muln(2), memberOne);
+
+    await expectRevert(
+      staking.stake(amount, [firstContract, secondContract, secondContract], [1, 1, 1], { from: memberOne }),
+      'Contracts array should not contain duplicates',
+    );
+
+    await staking.stake(amount, [firstContract, secondContract], [1, 1], { from: memberOne });
+
+    await expectRevert(
+      staking.stake(amount, [firstContract, secondContract, firstContract], [2, 2, 2], { from: memberOne }),
+      'Contracts array should not contain duplicates',
+    );
+  });
+
   it('should revert when contracts and allocations arrays lengths differ', async function () {
 
     const { staking } = this;

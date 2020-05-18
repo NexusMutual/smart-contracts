@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@openzeppelin/cli": "^2.8.2",
+    "@openzeppelin/contract-loader": "^0.6.1",
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/upgrades": "^2.8.0",
     "@truffle/hdwallet-provider": "^1.0.34",
@@ -32,7 +33,8 @@
   "scripts": {
     "compile": "oz compile",
     "dev": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit'",
-    "test": "mocha --exit"
+    "test": "mocha --exit",
+    "mock-deploy": "oz compile && node scripts/mock-deploy.js"
   },
   "license": "ISC"
 }

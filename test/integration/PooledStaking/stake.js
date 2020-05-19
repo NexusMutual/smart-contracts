@@ -37,7 +37,7 @@ describe('stake', function () {
 
   async function initMembers () {
 
-    const { mr, mcr, pd, tk, tf, cd, tc, master } = this;
+    const { mr, mcr, pd, tk, tc } = this;
 
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);

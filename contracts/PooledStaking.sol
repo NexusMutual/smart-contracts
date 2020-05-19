@@ -436,7 +436,10 @@ contract PooledStaking is MasterAware {
   ) external onlyInternal whenNotPaused noPendingBurns noPendingDeallocations {
 
     Contract storage _contract = contracts[contractAddress];
-    require(amount <= _contract.staked, 'Burn amount should not exceed total amount staked on contract');
+
+    if (amount < _contract.staked) {
+      amount = _contract.staked;
+    }
 
     burns[++lastBurnId] = Burn(amount, now, contractAddress);
     token.burn(amount);

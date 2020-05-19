@@ -57,18 +57,18 @@ const updateOzConfig = addresses => {
 
   const network = NETWORK.toLowerCase();
   const file = path.join(process.cwd(), '.openzeppelin', `${network}.json`);
+  let data;
 
   if (!fs.existsSync(file)) {
-    console.log(`Config update skipped: .openzeppelin/${network}.json does not exist`);
-    return;
+    data = { solidityLibs: {}, proxies: {}, manifestVersion: '2.2', version: '1.0.0' };
+  } else {
+    data = JSON.parse(fs.readFileSync(file));
   }
-
-  const data = JSON.parse(fs.readFileSync(file));
 
   for (const contract of Object.keys(addresses)) {
     const key = `pooled-staking/${contract}`;
     const address = addresses[contract];
-    data.proxies[key] = { address, kind: 'NonProxy' };
+    data.proxies[key] = [{ address, kind: 'NonProxy' }];
   }
 
   fs.writeFileSync(file, JSON.stringify(data, null, 2));

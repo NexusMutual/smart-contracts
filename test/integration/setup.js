@@ -30,6 +30,7 @@ const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const INITIAL_SUPPLY = ether('1500000');
 const EXCHANGE_TOKEN = ether('10000');
 const EXCHANGE_ETHER = ether('10');
+const POOL_ETHER = ether('3500');
 
 async function setup () {
 
@@ -60,7 +61,7 @@ async function setup () {
   const p2 = await Pool2.new(factory.address);
   const pd = await PoolData.new(owner, dsv.address, dai.address);
 
-  const mc = await MCR.new();
+  const mcr = await MCR.new();
 
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const tc = await TokenController.new();
@@ -88,7 +89,7 @@ async function setup () {
     cr.address,
     p1.address,
     p2.address,
-    mc.address,
+    mcr.address,
     gv.address,
     pc.address,
     mr.address,
@@ -102,15 +103,15 @@ async function setup () {
   await pcProxy.proposalCategoryInitiate();
 
   // fund pools
-  await p1.sendEther({ from: owner, value: ether('35') });
-  await p2.sendEther({ from: owner, value: ether('35') });
+  await p1.sendEther({ from: owner, value: POOL_ETHER });
+  await p2.sendEther({ from: owner, value: POOL_ETHER });
   await dai.transfer(p2.address, ether('50'));
 
   // add mcr
-  await mc.addMCRData(
+  await mcr.addMCRData(
     13000,
-    ether('100'),
-    ether('7000'),
+    ether('1000'),
+    ether('70000'),
     [hex('ETH'), hex('DAI')],
     [100, 15517],
     20190103,
@@ -129,7 +130,7 @@ async function setup () {
   };
 
   const external = { dai, mkr, dsv, factory, exchange, exchangeMKR };
-  const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mc };
+  const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr };
   const proxies = {
     tc: await proxy(TokenController, 'TC'),
     gv: await proxy(Governance, 'GV'),

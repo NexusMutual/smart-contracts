@@ -25,12 +25,17 @@ contract TokenControllerMock is ITokenController, MasterAware {
 
   NXMToken token;
 
-  function mint(address _member, uint256 _amount) public {
+  function mint(address _member, uint256 _amount) public onlyInternal {
     token.mint(_member, _amount);
   }
 
+  function addToWhitelist(address _member) public onlyInternal {
+    // noop
+    _member;
+  }
+
   function changeDependentContractAddress() public {
-    token = NXMToken(master.getLatestAddress("TK"));
+    token = NXMToken(master.tokenAddress());
   }
 
 }

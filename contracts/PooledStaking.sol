@@ -99,8 +99,10 @@ contract PooledStaking is MasterAware {
 
   /* Storage variables */
 
-  NXMToken token;
-  ITokenController tokenController;
+  bool public initialized;
+
+  NXMToken public token;
+  ITokenController public tokenController;
 
   uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
@@ -163,6 +165,10 @@ contract PooledStaking is MasterAware {
     return contracts[contractAddress].stakers[stakerIndex];
   }
 
+  function contractStake(address contractAddress) public view returns (uint) {
+    return contracts[contractAddress].staked;
+  }
+
   function stakerContractCount(address staker) public view returns (uint) {
     return stakers[staker].contracts.length;
   }
@@ -173,6 +179,37 @@ contract PooledStaking is MasterAware {
 
   function stakerContractAllocation(address staker, address contractAddress) public view returns (uint) {
     return stakers[staker].allocations[contractAddress];
+  }
+
+  function stakerContractPendingDeallocation(address staker, address contractAddress) public view returns (uint) {
+    return stakers[staker].pendingDeallocations[contractAddress];
+  }
+
+  function stakerReward(address staker) external view returns (uint) {
+    return stakers[staker].reward;
+  }
+
+  function stakerStake(address staker) external view returns (uint) {
+    return stakers[staker].staked;
+  }
+
+  function stakerProcessedStake(address stakerAddress) external view returns (uint) {
+
+    Staker storage staker = stakers[stakerAddress];
+
+    if (firstBurn == 0) {
+      return staker.staked;
+    }
+
+    Burn storage burn = burns[firstBurn];
+    address contractAddress = burn.contractAddress;
+
+    uint totalContractStake = contracts[contractAddress].staked;
+    uint allocation = staker.allocations[contractAddress];
+    uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);
+    uint newStake = staker.staked.sub(stakerBurn);
+
+    return newStake;
   }
 
   function deallocationAtIndex(uint deallocationId) public view returns (
@@ -189,19 +226,24 @@ contract PooledStaking is MasterAware {
   function getMaxUnstakable(address stakerAddress) public view returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];
-    uint totalAllocation = 0;
+    uint totalAllocated;
+    uint maxAllocation;
 
     for (uint i = 0; i < staker.contracts.length; i++) {
+
       address contractAddress = staker.contracts[i];
       uint allocation = staker.allocations[contractAddress];
-      totalAllocation = totalAllocation.add(allocation);
+      totalAllocated = totalAllocated.add(allocation);
+
+      if (maxAllocation < allocation) {
+        maxAllocation = allocation;
+      }
     }
 
-    if (staker.staked > totalAllocation) {
-      return staker.staked.sub(totalAllocation);
-    }
+    uint minRequired = totalAllocated.div(MAX_LEVERAGE);
+    uint locked = maxAllocation > minRequired ? maxAllocation : minRequired;
 
-    return 0;
+    return staker.staked.sub(locked);
   }
 
   function hasPendingActions() public view returns (bool) {
@@ -213,7 +255,14 @@ contract PooledStaking is MasterAware {
   }
 
   function hasPendingDeallocations() public view returns (bool){
-    return deallocations[0].next != 0;
+
+    uint nextDeallocationIndex = deallocations[0].next;
+
+    if (nextDeallocationIndex == 0) {
+      return false;
+    }
+
+    return deallocations[nextDeallocationIndex].deallocateAt <= now;
   }
 
   function hasPendingRewards() public view returns (bool){
@@ -364,17 +413,17 @@ contract PooledStaking is MasterAware {
     }
   }
 
-  function withdrawReward(uint amount) external whenNotPaused onlyMember {
+  function withdrawReward(address staker, uint amount) external whenNotPaused onlyMember {
 
     require(
-      stakers[msg.sender].reward >= amount,
+      stakers[staker].reward >= amount,
       "Requested amount exceeds available reward"
     );
 
-    stakers[msg.sender].reward = stakers[msg.sender].reward.sub(amount);
-    token.transfer(msg.sender, amount);
+    stakers[staker].reward = stakers[staker].reward.sub(amount);
+    token.transfer(staker, amount);
 
-    emit RewardWithdrawn(msg.sender, amount);
+    emit RewardWithdrawn(staker, amount);
   }
 
   function pushBurn(
@@ -411,20 +460,20 @@ contract PooledStaking is MasterAware {
 
     while (true) {
 
-      uint firstDeallocation = deallocations[0].next;
+      uint firstDeallocationIndex = deallocations[0].next;
+      Deallocation storage deallocation = deallocations[firstDeallocationIndex];
 
-      if (firstBurn == 0 && firstDeallocation == 0 && firstReward == 0) {
+      bool canDeallocate = firstDeallocationIndex > 0 && deallocation.deallocateAt <= now;
+      bool canBurn = firstBurn != 0;
+      bool canReward = firstReward != 0;
+
+      if (!canBurn && !canDeallocate && !canReward) {
         // everything is processed
         break;
       }
 
       Burn storage burn = burns[firstBurn];
-      Deallocation storage deallocation = deallocations[firstDeallocation];
       Reward storage reward = rewards[firstReward];
-
-      bool canBurn = burn.burnedAt > 0;
-      bool canDeallocate = deallocation.deallocateAt > 0;
-      bool canReward = reward.rewardedAt > 0;
 
       if (
         canBurn &&
@@ -571,8 +620,8 @@ contract PooledStaking is MasterAware {
 
       // staker's ratio = total staked on contract / staker's stake on contract
       // staker's reward = total reward amount * staker's ratio
-      uint stakerReward = reward.amount.mul(allocation).div(_contract.staked);
-      staker.reward = staker.reward.add(stakerReward);
+      uint rewardedAmount = reward.amount.mul(allocation).div(_contract.staked);
+      staker.reward = staker.reward.add(rewardedAmount);
 
       uint nextIndex = i + 1;
 
@@ -595,7 +644,9 @@ contract PooledStaking is MasterAware {
     return true;
   }
 
-  function updateParameter(ParamType param, uint value) external onlyGovernance {
+  function updateParameter(uint paramIndex, uint value) external onlyGovernance {
+
+    ParamType param = ParamType(paramIndex);
 
     if (param == ParamType.MIN_ALLOCATION) {
       MIN_ALLOCATION = value;
@@ -627,15 +678,39 @@ contract PooledStaking is MasterAware {
       return;
     }
 
-    if (param == ParamType.REWARD_CYCLE_GAS_LIMIT ) {
+    if (param == ParamType.REWARD_CYCLE_GAS_LIMIT) {
       REWARD_CYCLE_GAS_LIMIT = value;
       return;
     }
   }
 
+  function initialize() internal {
+
+    if (initialized) {
+      return;
+    }
+
+    initialized = true;
+
+    tokenController.addToWhitelist(address(this));
+
+    MIN_ALLOCATION = 20 ether;
+    MIN_ALLOWED_DEALLOCATION = 20 ether;
+    MAX_LEVERAGE = 10;
+    DEALLOCATE_LOCK_TIME = 90 days;
+
+    // TODO: To be estimated
+    // BURN_CYCLE_GAS_LIMIT = 0;
+    // DEALLOCATION_CYCLE_GAS_LIMIT = 0;
+    REWARD_CYCLE_GAS_LIMIT = 45000;
+
+    // TODO: implement staking migration here
+  }
+
   function changeDependentContractAddress() public {
-    token = NXMToken(master.getLatestAddress("TK"));
+    token = NXMToken(master.tokenAddress());
     tokenController = ITokenController(master.getLatestAddress("TC"));
+    initialize();
   }
 
 }

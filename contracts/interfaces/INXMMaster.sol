@@ -37,5 +37,7 @@ interface INXMMaster {
 
   function dAppToken() external view returns (address _add);
 
+  function tokenAddress() external view returns (address);
+
   function getLatestAddress(bytes2 _contractName) external view returns (address payable contractAddress);
 }

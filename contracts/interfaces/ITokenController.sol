@@ -18,5 +18,6 @@ pragma solidity ^0.5.7;
 interface ITokenController {
 
   function mint(address _member, uint256 _amount) external;
+  function addToWhitelist(address _member) external;
 
 }

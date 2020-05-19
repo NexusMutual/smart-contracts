@@ -1,7 +1,7 @@
 const { contract, defaultSender } = require('@openzeppelin/test-environment');
 const { ether } = require('@openzeppelin/test-helpers');
 
-const { Role } = require('./utils').constants;
+const { Role, ParamType } = require('./utils').constants;
 const accounts = require('./utils').accounts;
 const { hex } = require('./utils').helpers;
 
@@ -20,8 +20,11 @@ async function setup () {
   token.mint(defaultSender, ether('1000'));
 
   // set contract addresses
-  await master.setLatestAddress(hex('TK'), token.address);
+  await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
+
+  // required to be able to whitelist itself
+  await master.enrollInternal(staking.address);
 
   // set master address
   await staking.changeMasterAddress(master.address);
@@ -43,9 +46,17 @@ async function setup () {
     await master.enrollInternal(internalContract);
   }
 
+  // there is only one in reality, but it doesn't matter
   for (const governanceContract of accounts.governanceContracts) {
     await master.enrollGovernance(governanceContract);
   }
+
+  // revert initialized values for unit tests
+  const firstGovernanceAddress = accounts.governanceContracts[0];
+  await staking.updateParameter(ParamType.MIN_ALLOCATION, 0, { from: firstGovernanceAddress });
+  await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, 0, { from: firstGovernanceAddress });
+  await staking.updateParameter(ParamType.MAX_LEVERAGE, 0, { from: firstGovernanceAddress });
+  await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 0, { from: firstGovernanceAddress });
 
   this.master = master;
   this.token = token;

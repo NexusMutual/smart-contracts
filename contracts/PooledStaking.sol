@@ -609,7 +609,8 @@ contract PooledStaking is MasterAware {
     _contract.staked = _contract.staked.sub(deallocation.amount);
 
     staker.allocations[contractAddress] = allocation;
-    staker.pendingDeallocations[contractAddress].sub(deallocation.amount);
+    uint currentPendingDeallocations = staker.pendingDeallocations[contractAddress];
+    staker.pendingDeallocations[contractAddress] = currentPendingDeallocations.sub(deallocation.amount);
 
     // update pointer to first deallocation
     deallocations[0].next = deallocation.next;

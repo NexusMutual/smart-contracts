@@ -97,7 +97,7 @@ describe('stake', function () {
     });
 
     it('sends rewards to staker on cover purchase', async function () {
-      const { qt, p1 } = this;
+      const { qt, p1, ps, td } = this;
 
       coverDetails[4] = 7972408607001;
       const vrsData = await getQuoteValues(
@@ -117,6 +117,19 @@ describe('stake', function () {
         vrsData[2],
         { from: coverHolder, value: coverDetails[1] }
       );
+
+      const stakerRewardPreProcessing = await ps.stakerReward(staker1);
+      await ps.processPendingActions();
+      const stakerRewardPostProcessing = await ps.stakerReward(staker1);
+
+      const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
+      const stakerRewardPercentage = await td.stakerCommissionPer();
+      const coverPrice = new BN(coverDetails[2]);
+      const expectedTotalReward = coverPrice
+        .mul(new BN(stakerRewardPercentage))
+        .div(new BN(100));
+
+      rewardValue.toString().should.be.equal(expectedTotalReward.toString());
     });
 
     it('triggers burn on vote closing by oraclize', async function () {
@@ -142,8 +155,8 @@ describe('stake', function () {
       (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
         tokens * 3
       );
-      let all_votes = await cd.getAllVotesForClaim(claimId);
-      expectedVotes = all_votes[1].length;
+      let allVotes = await cd.getAllVotesForClaim(claimId);
+      expectedVotes = allVotes[1].length;
       expectedVotes.should.be.equal(3);
       let isBooked = await td.isCATokensBooked(member1);
       isBooked.should.be.equal(true);

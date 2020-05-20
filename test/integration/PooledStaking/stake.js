@@ -17,7 +17,7 @@ function coverToCoverDetailsArray(cover) {
   return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
 }
 
-describe('stake', function () {
+describe('burns', function () {
 
   this.timeout(10000);
   const owner = defaultSender;
@@ -43,7 +43,6 @@ describe('stake', function () {
     (await mr.launched()).should.be.equal(true);
 
     const minimumCapitalRequirementPercentage = await getValue(ether('2'), pd, mcr);
-    console.log(`mcrP ${minimumCapitalRequirementPercentage}`);
     await mcr.addMCRData(
       minimumCapitalRequirementPercentage,
       ether('100'),
@@ -97,7 +96,7 @@ describe('stake', function () {
     isBooked.should.be.equal(true);
   }
 
-  async function concludeClaimWithOraclize(now) {
+  async function concludeClaimWithOraclize(now, expectedClaimStatusNumber) {
     const { cl, pd, cd, p1 } = this;
     const minVotingTime = await cd.minVotingTime();
     const minTime = new BN(minVotingTime.toString()).add(
@@ -114,7 +113,7 @@ describe('stake', function () {
     APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
     await p1.__callback(APIID, '');
     const newCStatus = await cd.getClaimStatusNumber(claimId);
-    newCStatus[1].toString().should.be.equal((7).toString());
+    newCStatus[1].toString().should.be.equal(expectedClaimStatusNumber);
 
     (await cl.checkVoteClosing(claimId))
       .toString()
@@ -122,7 +121,7 @@ describe('stake', function () {
   }
 
 
-  describe.only('claim is approved and claim burn amount is lower than staked amount', function () {
+  describe('claim is approved and claim burn amount is lower than staked amount', function () {
 
     before(setup);
     before(initMembers);
@@ -191,14 +190,14 @@ describe('stake', function () {
     });
 
     it('triggers burn on vote closing by oraclize', async function () {
-      const { qd, cl, cd, td, pd, p1, mcr, ps } = this;
+      const { qd, cl, mcr, ps } = this;
 
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], {from: coverHolder});
 
       const now = await time.latest();
       await submitMemberVotes.call(this, 1);
-      await concludeClaimWithOraclize.call(this, now)
+      await concludeClaimWithOraclize.call(this, now, '7');
 
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
@@ -207,8 +206,8 @@ describe('stake', function () {
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
-    })
-  })
+    });
+  });
   describe('claim is rejected', function () {
 
     before(setup);
@@ -229,7 +228,7 @@ describe('stake', function () {
 
     before(async function () {
 
-      const {ps, tk, td, p1, at } = this;
+      const {ps, tk, p1, qt, qd, cl } = this;
 
       const stakeTokens = ether('20');
 
@@ -259,10 +258,19 @@ describe('stake', function () {
       );
 
       await ps.processPendingActions();
+      const coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[0], {from: coverHolder});
     });
 
-    it('', async function () {
+    it('does not burn any tokens on claim conclusion', async function () {
+      const { ps } = this;
+      const now = await time.latest();
+      await submitMemberVotes.call(this, -1);
+      await concludeClaimWithOraclize.call(this, now, '6');
+      await ps.processPendingActions();
 
+      const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
+      storedTotalBurn.toString().should.be.equal('0');
     })
   })
 });

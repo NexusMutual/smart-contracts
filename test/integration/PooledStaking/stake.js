@@ -2,6 +2,7 @@ const { accounts, defaultSender, web3 } = require('@openzeppelin/test-environmen
 const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
 require('chai').should();
 const { getQuoteValues, getValue } = require('../external');
+const { hex } = require('../utils').helpers
 const setup = require('../setup');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -15,6 +16,7 @@ const fee = ether('0.002');
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
 const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
+const LOCK_REASON_CLAIM = '0x434c41';
 
 describe('stake', function () {
 
@@ -26,12 +28,9 @@ describe('stake', function () {
     member3,
     staker1,
     staker2,
-    coverHolder,
-    nftCoverHolder1,
-    distributorFeeReceiver,
+    coverHolder
   ] = accounts;
 
-  const stakeTokens = ether('5');
   const tokens = ether('60');
   const validity = 30 * 24 * 60 * 60; // 30 days
   const UNLIMITED_ALLOWANCE = new BN('2')
@@ -39,7 +38,7 @@ describe('stake', function () {
     .sub(new BN('1'));
 
   async function initMembers () {
-    const { mr, mcr, pd, tk, tc } = this;
+    const { mr, mcr, pd, tk, tc, cd } = this;
 
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -58,7 +57,7 @@ describe('stake', function () {
     );
     (await pd.capReached()).toString().should.be.equal('1');
 
-    const members = [member1, member2, member3, staker1, staker2];
+    const members = [member1, member2, member3, staker1, staker2, coverHolder];
 
     for (let member of members) {
       await mr.payJoiningFee(member, { from: member, value: fee });
@@ -67,7 +66,16 @@ describe('stake', function () {
       await tk.transfer(member, ether('250'));
     }
 
-    console.log('done');
+    maxVotingTime = await cd.maxVotingTime();
+    await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+      from: member1,
+    });
+    await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+      from: member2,
+    });
+    await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+      from: member3,
+    });
   }
 
 
@@ -77,24 +85,21 @@ describe('stake', function () {
     before(initMembers);
     before(async function () {
 
-      const { p1, ps, tc } = this;
-      await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
-      await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
-      maxVotingTime = await cd.maxVotingTime();
-      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-        from: member1,
+      const { p1, ps, tc, tk, qt } = this;
+
+      const stakeTokens = ether('20');
+
+      await tk.approve(ps.address, stakeTokens, {
+        from: staker1
       });
-      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-        from: member2,
-      });
-      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-        from: member3,
+      await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+        from: staker1
       });
 
       coverDetails[4] = 7972408607001;
       const vrsData = await getQuoteValues(
         coverDetails,
-        toHex('ETH'),
+        hex('ETH'),
         coverPeriod,
         smartConAdd,
         qt.address
@@ -102,7 +107,7 @@ describe('stake', function () {
 
       await p1.makeCoverBegin(
         smartConAdd,
-        toHex('ETH'),
+        hex('ETH'),
         coverDetails,
         coverPeriod,
         vrsData[0],

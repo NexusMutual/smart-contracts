@@ -140,6 +140,7 @@ async function setup () {
     gv: await proxy(Governance, 'GV'),
     pc: await proxy(ProposalCategory, 'PC'),
     mr: await proxy(MemberRoles, 'MR'),
+    ps: await proxy(PooledStaking, 'PS')
   };
 
   await proxies.mr.payJoiningFee(owner, { from: owner, value: ether('0.002') });

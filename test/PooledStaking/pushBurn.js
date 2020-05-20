@@ -95,24 +95,6 @@ describe('pushBurn', function () {
     );
   });
 
-  it('should revert when burn amount exceeds total amount staked on contract', async function () {
-
-    const { token, staking } = this;
-
-    // Set parameters
-    await setLockTime(staking, 90 * 24 * 3600); // 90 days
-
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
-
-    // Burn 15
-    await expectRevert(
-      staking.pushBurn(firstContract, ether('15'), { from: internalContract }),
-      'Burn amount should not exceed total amount staked on contract',
-    );
-  });
-
-
   it('should update the burned amount for the given contract', async function () {
 
     const { token, staking } = this;
@@ -235,7 +217,7 @@ describe('pushBurn', function () {
     );
     assert(
       burnedAt.eq(now),
-      `Expected burned contract to be ${now}, found ${burnedAt}`,
+      `Expected burn time to be ${now}, found ${burnedAt}`,
     );
   });
 

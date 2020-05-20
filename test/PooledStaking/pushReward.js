@@ -24,7 +24,7 @@ async function fundAndStake (token, staking, amount, contract, member) {
   await staking.stake(amount, [contract], [amount], { from: member });
 }
 
-describe.only('pushReward', function () {
+describe('pushReward', function () {
 
   beforeEach(setup);
 

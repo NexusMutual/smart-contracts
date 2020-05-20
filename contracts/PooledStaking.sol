@@ -221,8 +221,7 @@ contract PooledStaking is MasterAware {
     Burn storage burn = burns[firstBurn];
     address contractAddress = burn.contractAddress;
 
-    // TODO: we have to recalculate staked amount
-    uint totalContractStake = contracts[contractAddress].staked;
+    uint totalContractStake = contractStake(contractAddress);
     uint allocation = staker.allocations[contractAddress];
     uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);
     uint newStake = staker.staked.sub(stakerBurn);
@@ -239,7 +238,6 @@ contract PooledStaking is MasterAware {
     contractAddress = deallocation.contractAddress;
     stakerAddress = deallocation.stakerAddress;
     next = deallocation.next;
-    // next deallocation id in linked list
   }
 
   function getMaxUnstakable(address stakerAddress) public view returns (uint) {

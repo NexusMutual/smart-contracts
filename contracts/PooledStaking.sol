@@ -169,6 +169,10 @@ contract PooledStaking is MasterAware {
     return contracts[contractAddress].staked;
   }
 
+  function contractBurn(address contractAddress) public view returns (uint) {
+    return contracts[contractAddress].burned;
+  }
+
   function stakerContractCount(address staker) public view returns (uint) {
     return stakers[staker].contracts.length;
   }

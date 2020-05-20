@@ -77,8 +77,52 @@ describe('stake', function () {
     });
   }
 
+  async function submitMemberVotes(voteValue) {
+    const { cd, td, cl } = this;
+    claimId = (await cd.actualClaimLength()) - 1;
 
-  describe('claim amount is higher than stake amount', function () {
+    let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+    for (let member of [member1, member2, member3]) {
+      await cl.submitCAVote(claimId, voteValue, {from: member });
+    }
+
+    let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+    (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
+      tokens * 3
+    );
+    let allVotes = await cd.getAllVotesForClaim(claimId);
+    expectedVotes = allVotes[1].length;
+    expectedVotes.should.be.equal(3);
+    let isBooked = await td.isCATokensBooked(member1);
+    isBooked.should.be.equal(true);
+  }
+
+  async function concludeClaimWithOraclize(now) {
+    const { cl, pd, cd, p1 } = this;
+    const minVotingTime = await cd.minVotingTime();
+    const minTime = new BN(minVotingTime.toString()).add(
+      new BN(now.toString())
+    );
+    await time.increaseTo(
+      new BN(minTime.toString()).add(new BN((2).toString()))
+    );
+    (await cl.checkVoteClosing(claimId))
+      .toString()
+      .should.be.equal((1).toString());
+    let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+    APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+    await p1.__callback(APIID, '');
+    const newCStatus = await cd.getClaimStatusNumber(claimId);
+    newCStatus[1].toString().should.be.equal((7).toString());
+
+    (await cl.checkVoteClosing(claimId))
+      .toString()
+      .should.be.equal((-1).toString());
+  }
+
+
+  describe.only('claim is approved and claim burn amount is lower than staked amount', function () {
 
     before(setup);
     before(initMembers);
@@ -151,45 +195,10 @@ describe('stake', function () {
 
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], {from: coverHolder});
-      const minVotingTime = await cd.minVotingTime();
+
       const now = await time.latest();
-      minTime = new BN(minVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await cl.getClaimFromNewStart(0, {from: member1});
-      await cl.getUserClaimByIndex(0, {from: coverHolder});
-      await cl.getClaimbyIndex(1, {from: coverHolder});
-      claimId = (await cd.actualClaimLength()) - 1;
-
-      let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-      await cl.submitCAVote(claimId, 1, {from: member1});
-      await cl.submitCAVote(claimId, 1, {from: member2});
-      await cl.submitCAVote(claimId, 1, {from: member3});
-      let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-      (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
-        tokens * 3
-      );
-      let allVotes = await cd.getAllVotesForClaim(claimId);
-      expectedVotes = allVotes[1].length;
-      expectedVotes.should.be.equal(3);
-      let isBooked = await td.isCATokensBooked(member1);
-      isBooked.should.be.equal(true);
-      await time.increaseTo(
-        new BN(minTime.toString()).add(new BN((2).toString()))
-      );
-      (await cl.checkVoteClosing(claimId))
-        .toString()
-        .should.be.equal((1).toString());
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await p1.__callback(APIID, '');
-      const newCStatus = await cd.getClaimStatusNumber(claimId);
-      newCStatus[1].toString().should.be.equal((7).toString());
-
-      (await cl.checkVoteClosing(claimId))
-        .toString()
-        .should.be.equal((-1).toString());
+      await submitMemberVotes.call(this, 1);
+      await concludeClaimWithOraclize.call(this, now)
 
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
@@ -198,6 +207,62 @@ describe('stake', function () {
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
+    })
+  })
+  describe('claim is rejected', function () {
+
+    before(setup);
+    before(initMembers);
+
+    const currency = hex('ETH');
+
+    const cover = {
+      amount: 1,
+      price: '3362445813369838',
+      priceNXM: '744892736679184',
+      expireTime: '7972408607',
+      generationTime: '7972408607001',
+      currency,
+      period: 61,
+      contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'
+    };
+
+    before(async function () {
+
+      const {ps, tk, td, p1, at } = this;
+
+      const stakeTokens = ether('20');
+
+      await tk.approve(ps.address, stakeTokens, {
+        from: staker1
+      });
+      await ps.stake(stakeTokens, [cover.contractAddress], [stakeTokens], {
+        from: staker1
+      });
+
+      const vrsData = await getQuoteValues(
+        coverToCoverDetailsArray(cover),
+        cover.currency,
+        cover.period,
+        cover.contractAddress,
+        qt.address
+      );
+      await p1.makeCoverBegin(
+        cover.contractAddress,
+        cover.currency,
+        coverToCoverDetailsArray(cover),
+        cover.period,
+        vrsData[0],
+        vrsData[1],
+        vrsData[2],
+        { from: coverHolder, value: cover.price }
+      );
+
+      await ps.processPendingActions();
+    });
+
+    it('', async function () {
+
     })
   })
 });

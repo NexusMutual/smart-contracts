@@ -12,6 +12,9 @@ function toWei (value) {
 }
 
 const fee = ether('0.002');
+const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
+const coverPeriod = 61;
+const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
 
 describe('stake', function () {
 
@@ -36,7 +39,6 @@ describe('stake', function () {
     .sub(new BN('1'));
 
   async function initMembers () {
-
     const { mr, mcr, pd, tk, tc } = this;
 
     await mr.addMembersBeforeLaunch([], []);
@@ -65,21 +67,6 @@ describe('stake', function () {
       await tk.transfer(member, ether('250'));
     }
 
-
-
-    // await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
-    // await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
-    // maxVotingTime = await cd.maxVotingTime();
-    // await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-    //   from: member1,
-    // });
-    // await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-    //   from: member2,
-    // });
-    // await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-    //   from: member3,
-    // });
-
     console.log('done');
   }
 
@@ -88,8 +75,45 @@ describe('stake', function () {
 
     before(setup);
     before(initMembers);
+    before(async function () {
 
-    it('should do nothing', async function () {
+      const { p1, ps, tc } = this;
+      await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
+      await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
+      maxVotingTime = await cd.maxVotingTime();
+      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+        from: member1,
+      });
+      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+        from: member2,
+      });
+      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+        from: member3,
+      });
+
+      coverDetails[4] = 7972408607001;
+      const vrsData = await getQuoteValues(
+        coverDetails,
+        toHex('ETH'),
+        coverPeriod,
+        smartConAdd,
+        qt.address
+      );
+
+      await p1.makeCoverBegin(
+        smartConAdd,
+        toHex('ETH'),
+        coverDetails,
+        coverPeriod,
+        vrsData[0],
+        vrsData[1],
+        vrsData[2],
+        { from: coverHolder, value: coverDetails[1] }
+      );
+
+    });
+
+    it('does nothing', async function () {
       await sleep(2000);
     });
   })

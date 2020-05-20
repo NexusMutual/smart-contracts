@@ -9,7 +9,7 @@ const FactoryMock = contract.fromArtifact('FactoryMock');
 const ExchangeMock = contract.fromArtifact('ExchangeMock');
 const ExchangeMKRMock = contract.fromArtifact('ExchangeMock');
 const NXMToken = contract.fromArtifact('NXMToken');
-const NXMaster = contract.fromArtifact('NXMaster');
+const NXMaster = contract.fromArtifact('NXMasterMock');
 const Claims = contract.fromArtifact('Claims');
 const ClaimsData = contract.fromArtifact('ClaimsDataMock');
 const ClaimsReward = contract.fromArtifact('ClaimsReward');
@@ -25,6 +25,7 @@ const QuotationDataMock = contract.fromArtifact('QuotationDataMock');
 const Governance = contract.fromArtifact('Governance');
 const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const MemberRoles = contract.fromArtifact('MemberRoles');
+const PooledStaking = contract.fromArtifact('PooledStaking');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const INITIAL_SUPPLY = ether('1500000');
@@ -75,6 +76,8 @@ async function setup () {
   const pc = await ProposalCategory.new();
   const mr = await MemberRoles.new();
 
+  const ps = await PooledStaking.new();
+
   const master = await NXMaster.new(tk.address);
 
   const addresses = [
@@ -93,6 +96,7 @@ async function setup () {
     gv.address,
     pc.address,
     mr.address,
+    ps.address
   ];
 
   await master.addNewVersion(addresses);

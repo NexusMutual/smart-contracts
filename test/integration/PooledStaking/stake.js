@@ -8,10 +8,6 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const BN = web3.utils.BN;
 
-function toWei (value) {
-  return web3.utils.toWei(value, 'ether');
-}
-
 const fee = ether('0.002');
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
@@ -43,12 +39,12 @@ describe('stake', function () {
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
 
-    const minimumCapitalRequirementPercentage = await getValue(toWei('2'), pd, mcr);
+    const minimumCapitalRequirementPercentage = await getValue(ether('2'), pd, mcr);
     console.log(`mcrP ${minimumCapitalRequirementPercentage}`);
     await mcr.addMCRData(
       minimumCapitalRequirementPercentage,
-      toWei('100'),
-      toWei('2'),
+      ether('100'),
+      ether('2'),
       ['0x455448', '0x444149'],
       [100, 65407],
       20181011, {
@@ -96,6 +92,13 @@ describe('stake', function () {
         from: staker1
       });
 
+
+
+    });
+
+    it('sends rewards to staker on cover purchase', async function () {
+      const { qt, p1 } = this;
+
       coverDetails[4] = 7972408607001;
       const vrsData = await getQuoteValues(
         coverDetails,
@@ -104,7 +107,6 @@ describe('stake', function () {
         smartConAdd,
         qt.address
       );
-
       await p1.makeCoverBegin(
         smartConAdd,
         hex('ETH'),
@@ -115,11 +117,52 @@ describe('stake', function () {
         vrsData[2],
         { from: coverHolder, value: coverDetails[1] }
       );
-
     });
 
-    it('does nothing', async function () {
-      await sleep(2000);
-    });
+    it('triggers burn on vote closing by oraclize', async function () {
+      const { qd, cl, cd, td, pd, p1 } = this;
+
+      const coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[0], {from: coverHolder});
+      const minVotingTime = await cd.minVotingTime();
+      const now = await time.latest();
+      minTime = new BN(minVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await cl.getClaimFromNewStart(0, {from: member1});
+      await cl.getUserClaimByIndex(0, {from: coverHolder});
+      await cl.getClaimbyIndex(1, {from: coverHolder});
+      claimId = (await cd.actualClaimLength()) - 1;
+
+      let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+      await cl.submitCAVote(claimId, -1, {from: member1});
+      await cl.submitCAVote(claimId, -1, {from: member2});
+      await cl.submitCAVote(claimId, -1, {from: member3});
+      let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+      (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
+        tokens * 3
+      );
+      let all_votes = await cd.getAllVotesForClaim(claimId);
+      expectedVotes = all_votes[1].length;
+      expectedVotes.should.be.equal(3);
+      let isBooked = await td.isCATokensBooked(member1);
+      isBooked.should.be.equal(true);
+      await time.increaseTo(
+        new BN(minTime.toString()).add(new BN((2).toString()))
+      );
+      (await cl.checkVoteClosing(claimId))
+        .toString()
+        .should.be.equal((1).toString());
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      await p1.__callback(APIID, '');
+      const newCStatus = await cd.getClaimStatusNumber(claimId);
+      newCStatus[1].toString().should.be.equal((6).toString());
+
+      (await cl.checkVoteClosing(claimId))
+        .toString()
+        .should.be.equal((-1).toString());
+    })
   })
 });

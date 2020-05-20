@@ -142,7 +142,7 @@ describe('burns', function () {
   }
 
 
-  describe('claim is approved and claim burn amount is lower than staked amount', function () {
+  describe('claim is accepted and claim burn amount is lower than staked amount', function () {
 
     before(setup);
     before(initMembers);
@@ -209,6 +209,7 @@ describe('burns', function () {
       const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
+      console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
@@ -262,7 +263,7 @@ describe('burns', function () {
     });
   });
 
-  describe('claim is rejected', function () {
+  describe.only('claim is accepted and claim burn amount is higher than staked amount', function () {
 
     before(setup);
     before(initMembers);
@@ -279,12 +280,11 @@ describe('burns', function () {
       period: 61,
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'
     };
+    const stakeTokens = ether('20');
 
     before(async function () {
 
-      const {ps, tk, qd, cl } = this;
-
-      const stakeTokens = ether('20');
+      const { ps, tk } = this;
 
       await tk.approve(ps.address, stakeTokens, {
         from: staker1
@@ -296,19 +296,25 @@ describe('burns', function () {
       await buyCover.call(this, cover, coverHolder);
 
       await ps.processPendingActions();
-      const coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[0], {from: coverHolder});
     });
 
-    it('does not burn any tokens on claim closing with oraclize call', async function () {
-      const { ps } = this;
+    it('triggers burn on claim closing with oraclize call and burns only staked tokens', async function () {
+      const { qd, cl, mcr, ps } = this;
+
+      const coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[0], {from: coverHolder});
+
       const now = await time.latest();
-      await submitMemberVotes.call(this, -1);
-      await concludeClaimWithOraclize.call(this, now, '6');
-      await ps.processPendingActions();
+      await submitMemberVotes.call(this, 1);
+      await concludeClaimWithOraclize.call(this, now, '7');
+
+      const tokenPrice = await mcr.calculateTokenPrice(currency);
+      const sumAssured = new BN(ether(cover.amount.toString()));
+      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      storedTotalBurn.toString().should.be.equal('0');
+      console.log(`storedTotalBurn ${storedTotalBurn}`);
+      storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
 });

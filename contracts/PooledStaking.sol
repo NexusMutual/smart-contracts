@@ -574,14 +574,14 @@ contract PooledStaking is MasterAware {
     for (uint i = processedToStakerIndex; i < stakerCount; i++) {
 
       Staker storage staker = stakers[_contract.stakers[i]];
-      uint stake = staker.staked;
+      uint staked = staker.staked;
       uint initialAllocation = staker.allocations[contractAddress];
-      uint allocation = stake <= initialAllocation ? stake : initialAllocation;
+      uint allocation = staked <= initialAllocation ? staked : initialAllocation;
 
       // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
       // reordered for precision loss prevention
       uint stakerBurn = allocation.mul(burnTargetAmount).div(stakedOnContract);
-      uint newStake = stake.sub(stakerBurn);
+      uint newStake = staked.sub(stakerBurn);
       amountToBurn = amountToBurn.add(stakerBurn);
 
       // update staker's stake
@@ -626,7 +626,7 @@ contract PooledStaking is MasterAware {
     uint allocation = staked < initialAllocation ? staked : initialAllocation;
 
     uint deallocationAmount = deallocation.amount;
-    uint deallocationAmount = allocation < deallocationAmount ? allocation : deallocationAmount;
+    deallocationAmount = allocation < deallocationAmount ? allocation : deallocationAmount;
     staker.allocations[contractAddress] = allocation.sub(deallocationAmount);
 
     uint pendingDeallocations = staker.pendingDeallocations[contractAddress];

@@ -76,6 +76,27 @@ describe('burns', function () {
     });
   }
 
+  async function buyCover(cover, coverHolder) {
+    const { qt, p1 } = this;
+    const vrsData = await getQuoteValues(
+      coverToCoverDetailsArray(cover),
+      cover.currency,
+      cover.period,
+      cover.contractAddress,
+      qt.address
+    );
+    await p1.makeCoverBegin(
+      cover.contractAddress,
+      cover.currency,
+      coverToCoverDetailsArray(cover),
+      cover.period,
+      vrsData[0],
+      vrsData[1],
+      vrsData[2],
+      { from: coverHolder, value: cover.price }
+    );
+  }
+
   async function submitMemberVotes(voteValue) {
     const { cd, td, cl } = this;
     claimId = (await cd.actualClaimLength()) - 1;
@@ -155,25 +176,9 @@ describe('burns', function () {
     });
 
     it('sends rewards to staker on cover purchase', async function () {
-      const { qt, p1, ps, td } = this;
+      const { ps, td } = this;
 
-      const vrsData = await getQuoteValues(
-        coverToCoverDetailsArray(cover),
-        cover.currency,
-        cover.period,
-        cover.contractAddress,
-        qt.address
-      );
-      await p1.makeCoverBegin(
-        cover.contractAddress,
-        cover.currency,
-        coverToCoverDetailsArray(cover),
-        cover.period,
-        vrsData[0],
-        vrsData[1],
-        vrsData[2],
-        { from: coverHolder, value: cover.price }
-      );
+      await buyCover.call(this, cover, coverHolder);
 
       const stakerRewardPreProcessing = await ps.stakerReward(staker1);
       await ps.processPendingActions();
@@ -198,7 +203,6 @@ describe('burns', function () {
       const now = await time.latest();
       await submitMemberVotes.call(this, 1);
       await concludeClaimWithOraclize.call(this, now, '7');
-
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
       const sumAssured = new BN(ether(cover.amount.toString()));
@@ -228,7 +232,7 @@ describe('burns', function () {
 
     before(async function () {
 
-      const {ps, tk, p1, qt, qd, cl } = this;
+      const {ps, tk, qd, cl } = this;
 
       const stakeTokens = ether('20');
 
@@ -239,23 +243,7 @@ describe('burns', function () {
         from: staker1
       });
 
-      const vrsData = await getQuoteValues(
-        coverToCoverDetailsArray(cover),
-        cover.currency,
-        cover.period,
-        cover.contractAddress,
-        qt.address
-      );
-      await p1.makeCoverBegin(
-        cover.contractAddress,
-        cover.currency,
-        coverToCoverDetailsArray(cover),
-        cover.period,
-        vrsData[0],
-        vrsData[1],
-        vrsData[2],
-        { from: coverHolder, value: cover.price }
-      );
+      await buyCover.call(this, cover, coverHolder);
 
       await ps.processPendingActions();
       const coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -271,6 +259,6 @@ describe('burns', function () {
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
       storedTotalBurn.toString().should.be.equal('0');
-    })
-  })
+    });
+  });
 });

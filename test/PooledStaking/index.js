@@ -11,5 +11,7 @@ describe('PooledStaking', function () {
   require('./requestDeallocation');
   require('./pushBurn');
   require('./pushReward');
+  require('./processFirstReward');
+  require('./processFirstDeallocation');
   require('./getters');
 });

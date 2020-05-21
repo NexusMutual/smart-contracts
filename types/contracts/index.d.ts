@@ -947,10 +947,6 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
 
-  processedToContractIndex(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
   processedToStakerIndex(
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;

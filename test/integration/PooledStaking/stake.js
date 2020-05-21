@@ -464,7 +464,7 @@ describe('burns', function () {
       });
 
       const deallocateLockTime = await ps.DEALLOCATE_LOCK_TIME();
-      await time.increase(deallocateLockTime.add(new BN(24 * 60 * 60)).toString());
+      await time.increase(deallocateLockTime.addn(24 * 60 * 60).toString());
 
       await ps.processPendingActions();
 

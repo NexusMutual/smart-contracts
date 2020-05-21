@@ -1,5 +1,6 @@
 const { accounts, defaultSender, web3 } = require('@openzeppelin/test-environment');
 const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+const { exec } = require('child_process');
 require('chai').should();
 const { getQuoteValues, getValue } = require('../external');
 const { hex } = require('../utils').helpers
@@ -17,9 +18,30 @@ function coverToCoverDetailsArray(cover) {
   return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
 }
 
+
+async function debugTx(promise) {
+  try {
+    await promise;
+  } catch (e) {
+    if (e.tx) {
+      console.error(`Tx ${e.tx} failed. ${e.stack}`);
+      console.log(web3.eth.currentProvider)
+      const rpc = web3.eth.currentProvider.wrappedProvider.host.replace(/^http:\/\//, '');
+      const cmd = `tenderly export ${e.tx} --debug --rpc ${rpc}`;
+      console.log(`Executing ${cmd}`);
+      exec(cmd);
+
+      await sleep(1000000000);
+    } else {
+      throw e;
+    }
+  }
+
+}
+
 describe('burns', function () {
 
-  this.timeout(10000);
+  this.timeout(10000000);
   const owner = defaultSender;
   const [
     member1,
@@ -39,7 +61,7 @@ describe('burns', function () {
   ] = accounts;
 
   const tokens = ether('60');
-  const validity = 30 * 24 * 60 * 60; // 30 days
+  const validity = 360 * 24 * 60 * 60; // 360 days
   const UNLIMITED_ALLOWANCE = new BN('2')
     .pow(new BN('256'))
     .sub(new BN('1'));
@@ -113,6 +135,7 @@ describe('burns', function () {
     claimId = (await cd.actualClaimLength()) - 1;
 
     let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
+
     for (let member of [member1, member2, member3]) {
       await cl.submitCAVote(claimId, voteValue, {from: member });
     }
@@ -440,13 +463,13 @@ describe('burns', function () {
         from: staker1
       });
 
-      const now = await time.latest();
-      const deallocationProcessingDays = 91 * 24 * 60 * 60;
-      await time.increaseTo(
-        new BN(now.toString()).add(new BN(deallocationProcessingDays))
-      );
+      const deallocateLockTime = await ps.DEALLOCATE_LOCK_TIME();
+      await time.increase(deallocateLockTime.add(new BN(1)).toString());
 
       await ps.processPendingActions();
+
+      const hasPendingDeallocations = await ps.hasPendingDeallocations();
+      hasPendingDeallocations.should.be.equal(false);
 
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], {from: coverHolder});

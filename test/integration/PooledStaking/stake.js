@@ -27,6 +27,14 @@ describe('burns', function () {
     member3,
     staker1,
     staker2,
+    staker3,
+    staker4,
+    staker5,
+    staker6,
+    staker7,
+    staker8,
+    staker9,
+    staker10,
     coverHolder
   ] = accounts;
 
@@ -55,7 +63,10 @@ describe('burns', function () {
     );
     (await pd.capReached()).toString().should.be.equal('1');
 
-    const members = [member1, member2, member3, staker1, staker2, coverHolder];
+    this.allStakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
+    const members = [member1, member2, member3];
+    members.push(...this.allStakers);
+    members.push(coverHolder);
 
     for (let member of members) {
       await mr.payJoiningFee(member, { from: member, value: fee });
@@ -213,6 +224,59 @@ describe('burns', function () {
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
+
+  describe.only('claim is accepted for 10 stakers and claim', function () {
+    before(setup);
+    before(initMembers);
+
+    const currency = hex('ETH');
+
+    const cover = {
+      amount: 1,
+      price: '3362445813369838',
+      priceNXM: '744892736679184',
+      expireTime: '7972408607',
+      generationTime: '7972408607001',
+      currency,
+      period: 61,
+      contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'
+    };
+    const stakeTokens = ether('20');
+
+    before(async function() {
+      const { tk, ps } = this;
+
+      for (let staker of this.allStakers) {
+        await tk.approve(ps.address, stakeTokens, {
+          from: staker
+        });
+        await ps.stake(stakeTokens, [cover.contractAddress], [stakeTokens], {
+          from: staker
+        });
+      }
+    });
+
+    it('sends rewards to 10 stakers on cover purchase', async function () {
+      const { ps, td } = this;
+
+      await buyCover.call(this, cover, coverHolder);
+
+      const stakerRewardPreProcessing = await ps.stakerReward(staker1);
+      await ps.processPendingActions();
+      const stakerRewardPostProcessing = await ps.stakerReward(staker1);
+
+      const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
+      const stakerRewardPercentage = await td.stakerCommissionPer();
+      const coverPrice = new BN(cover.priceNXM);
+      const expectedRewardPerStaker = coverPrice
+        .mul(new BN(stakerRewardPercentage))
+        .div(new BN(100)).div(new BN(this.allStakers.length));
+
+      rewardValue.toString().should.be.equal(expectedRewardPerStaker.toString());
+    });
+
+  });
+
   describe('claim is rejected', function () {
 
     before(setup);
@@ -263,7 +327,7 @@ describe('burns', function () {
     });
   });
 
-  describe.only('claim is accepted and claim burn amount is higher than staked amount', function () {
+  describe('claim is accepted and claim burn amount is higher than staked amount', function () {
 
     before(setup);
     before(initMembers);

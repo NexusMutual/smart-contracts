@@ -153,7 +153,7 @@ describe('burns', function () {
   }
 
 
-  describe('claim is accepted and claim burn amount is lower than staked amount', function () {
+  describe('claim is accepted for contract whose staker that staked on multiple contracts', function () {
 
     before(setup);
     before(initMembers);
@@ -171,6 +171,8 @@ describe('burns', function () {
       contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'
     };
 
+    const secondCoveredAddress = '0xd01236c54dbc68db5db3a091b171a77407ff7234'
+
     before(async function () {
 
       const { ps, tk } = this;
@@ -180,7 +182,7 @@ describe('burns', function () {
       await tk.approve(ps.address, stakeTokens, {
         from: staker1
       });
-      await ps.stake(stakeTokens, [cover.contractAddress], [stakeTokens], {
+      await ps.stake(stakeTokens, [cover.contractAddress, secondCoveredAddress], [stakeTokens, stakeTokens], {
         from: staker1
       });
 
@@ -225,7 +227,7 @@ describe('burns', function () {
     });
   });
 
-  describe.only('claim is accepted for 10 stakers and claim', function () {
+  describe('claim is accepted for 10 stakers', function () {
     before(setup);
     before(initMembers);
 
@@ -256,7 +258,7 @@ describe('burns', function () {
       }
     });
 
-    it('sends rewards to 10 stakers on cover purchase', async function () {
+    it('sends rewards to all 10 stakers on cover purchase', async function () {
       const { ps, td } = this;
 
       await buyCover.call(this, cover, coverHolder);
@@ -273,6 +275,26 @@ describe('burns', function () {
         .div(new BN(100)).div(new BN(this.allStakers.length));
 
       rewardValue.toString().should.be.equal(expectedRewardPerStaker.toString());
+    });
+
+
+    it('triggers burn on claim closing with oraclize call', async function () {
+      const { qd, cl, mcr, ps } = this;
+
+      const coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[0], {from: coverHolder});
+
+      const now = await time.latest();
+      await submitMemberVotes.call(this, 1);
+      await concludeClaimWithOraclize.call(this, now, '7');
+
+      const tokenPrice = await mcr.calculateTokenPrice(currency);
+      const sumAssured = new BN(ether(cover.amount.toString()));
+      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
+
+      const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
+      console.log(`storedTotalBurn ${storedTotalBurn}`);
+      storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
 
   });

@@ -633,34 +633,26 @@
   "proxies": {
     "pooled-staking/TokenMock": [
       {
-        "address": "0x63d7bdcBF76e67B364963FC4f3BccCcDE571cF83",
-        "version": "1.0.0",
-        "implementation": "0xAba9a4D0794c2DBfD47d1215052801aB0EA927dD",
-        "admin": "0x63519146182e2E33F0Ec39e40D2d0689a44d8f47",
-        "kind": "Upgradeable"
+        "address": "0x18221Be4b95d4D10016fDd94A216039EA10F764E",
+        "kind": "NonProxy"
       }
     ],
     "pooled-staking/MasterMock": [
       {
-        "address": "0x4cf5a67cddcaD44af90f81757408fc0ae61FC372",
-        "version": "1.0.0",
-        "implementation": "0x76D70969607FA2FF79858da8Edb0cbE452339ecB",
-        "admin": "0x63519146182e2E33F0Ec39e40D2d0689a44d8f47",
-        "kind": "Upgradeable"
+        "address": "0x08FB9Cb070DC543c56be7Bde30E40e7b7D177203",
+        "kind": "NonProxy"
       }
     ],
     "pooled-staking/TokenControllerMock": [
       {
-        "address": "0xDC7280c864ebCbe32a69fF016B1f95Cc52e65309",
-        "kind": "NonProxy",
-        "bytecodeHash": "ff6489c4cd596a0a5fbb7cf0a5449b37f19aed57cf14bf54df5225c031db694c"
+        "address": "0x1Dc37f12c3B0b43Be727106e9fCc9c12F98857a9",
+        "kind": "NonProxy"
       }
     ],
     "pooled-staking/PooledStaking": [
       {
-        "address": "0x9DC67c0d7D13B1d506446462B620a342fe895177",
-        "kind": "NonProxy",
-        "bytecodeHash": "4ea32c022d82a2f0730a4b8e9ebef9864d35617fcc789c3408cff3a58918d7a8"
+        "address": "0x9b190b0AeB1C8859fb163BB09Ed9241eEc9439f2",
+        "kind": "NonProxy"
       }
     ]
   },

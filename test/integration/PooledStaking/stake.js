@@ -349,7 +349,7 @@ describe('burns', function () {
     });
   });
 
-  describe.only('claim is accepted and burn happens after an unprocessed deallocation request by staker', function () {
+  describe('claim is accepted and burn happens after an unprocessed deallocation request by staker', function () {
     before(setup);
     before(initMembers);
 
@@ -383,6 +383,70 @@ describe('burns', function () {
       await ps.requestDeallocation([cover.contractAddress], [stakeTokens], 0, {
        from: staker1
       });
+
+      const coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[0], {from: coverHolder});
+    });
+
+    it('triggers burn on claim closing with oraclize call', async function () {
+      const { mcr, ps } = this;
+
+      const now = await time.latest();
+      await submitMemberVotes.call(this, 1);
+      await concludeClaimWithOraclize.call(this, now, '7');
+
+      const tokenPrice = await mcr.calculateTokenPrice(currency);
+      const sumAssured = new BN(ether(cover.amount.toString()));
+      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
+
+      const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
+      console.log(`storedTotalBurn ${storedTotalBurn}`);
+      storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
+    });
+  });
+
+  describe.only('claim is accepted and burn happens after an deallocation request by staker is processed', function () {
+    before(setup);
+    before(initMembers);
+
+    const currency = hex('ETH');
+
+    const cover = {
+      amount: 1,
+      price: '3362445813369838',
+      priceNXM: '744892736679184',
+      expireTime: '7972408607',
+      generationTime: '7972408607001',
+      currency,
+      period: 120,
+      contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'
+    };
+    const stakeTokens = ether('20');
+
+    before(async function () {
+
+      const { ps, tk, qd, cl } = this;
+
+      await tk.approve(ps.address, stakeTokens, {
+        from: staker1
+      });
+      await ps.stake(stakeTokens, [cover.contractAddress], [stakeTokens], {
+        from: staker1
+      });
+      await buyCover.call(this, cover, coverHolder);
+      await ps.processPendingActions();
+
+      await ps.requestDeallocation([cover.contractAddress], [stakeTokens], 0, {
+        from: staker1
+      });
+
+      const now = await time.latest();
+      const deallocationProcessingDays = 91 * 24 * 60 * 60;
+      await time.increaseTo(
+        new BN(now.toString()).add(new BN(deallocationProcessingDays))
+      );
+
+      await ps.processPendingActions();
 
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], {from: coverHolder});

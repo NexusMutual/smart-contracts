@@ -464,12 +464,15 @@ describe('burns', function () {
       });
 
       const deallocateLockTime = await ps.DEALLOCATE_LOCK_TIME();
-      await time.increase(deallocateLockTime.add(new BN(1)).toString());
+      await time.increase(deallocateLockTime.add(new BN(24 * 60 * 60)).toString());
 
       await ps.processPendingActions();
 
       const hasPendingDeallocations = await ps.hasPendingDeallocations();
       hasPendingDeallocations.should.be.equal(false);
+
+      const currentTotalStake = await ps.contractStake(cover.contractAddress);
+      currentTotalStake.toString().should.be.equal('0');
 
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], {from: coverHolder});

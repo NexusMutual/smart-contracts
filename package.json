@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@openzeppelin/cli": "^2.8.2",
+    "@openzeppelin/contract-loader": "^0.6.1",
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/upgrades": "^2.8.0",
     "@truffle/hdwallet-provider": "^1.0.34",
@@ -38,9 +39,10 @@
     "dev": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit'",
     "dev-integration": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit test/integration/index.js'",
     "dev-original": "nodemon --ext js,json -w build -w test -x 'mocha --exit test/original/index.js'",
-    "test": "mocha --exit test/unit",
     "test-integration": "mocha --exit test/integration",
-    "test-original": "mocha --exit test/original"
+    "test-original": "mocha --exit test/original",
+    "test": "mocha --exit",
+    "mock-deploy": "oz compile && node scripts/mock-deploy.js"
   },
   "license": "ISC"
 }

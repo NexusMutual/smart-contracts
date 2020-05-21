@@ -302,6 +302,11 @@ contract PooledStaking is MasterAware {
     for (uint i = 0; i < _contracts.length; i++) {
 
       address contractAddress = _contracts[i];
+
+      for (uint j = 0; j < i; j++) {
+        require(_contracts[j] != contractAddress, "Contracts array should not contain duplicates");
+      }
+
       uint oldAllocation = staker.allocations[contractAddress];
       uint newAllocation = _allocations[i];
       bool isNewAllocation = i >= oldLength;
@@ -365,6 +370,15 @@ contract PooledStaking is MasterAware {
     Staker storage staker = stakers[msg.sender];
     uint insertAfter = _insertAfter;
     uint deallocateAt = now.add(DEALLOCATE_LOCK_TIME);
+    uint firstDeallocationId = deallocations[0].next;
+
+    Deallocation storage current = deallocations[insertAfter];
+
+    // Forbid insertion after an empty slot when there are non-empty slots
+    // insertAfter != 0 allows inserting on the first position (in case lock time has been reduced)
+    if (firstDeallocationId != 0 && insertAfter != 0) {
+      require(current.deallocateAt != 0, "Provided deallocation id should not be an empty slot");
+    }
 
     for (uint i = 0; i < _contracts.length; i++) {
 
@@ -384,8 +398,8 @@ contract PooledStaking is MasterAware {
         require(max.sub(requestedAmount) >= MIN_ALLOCATION, "Final allocation cannot be less then MIN_ALLOCATION");
       }
 
-      // fetch request currently at target index
-      Deallocation storage current = deallocations[insertAfter];
+      // Get the reference to the dealocation at target index
+      current = deallocations[insertAfter];
       require(
         deallocateAt >= current.deallocateAt,
         "Deallocation time must be greater or equal to previous deallocation"
@@ -404,9 +418,16 @@ contract PooledStaking is MasterAware {
       uint id = ++lastDeallocationId;
       uint next = current.next;
 
-      // point to our new deallocation and insert next item in loop after this one
-      current.next = id;
+      // insert next item in loop after the freshly created one
       insertAfter = id;
+
+      // point to our new deallocation
+      if (firstDeallocationId == 0) {
+        deallocations[0].next = id;
+        firstDeallocationId = id;
+      } else {
+        current.next = id;
+      }
 
       deallocations[id] = Deallocation(requestedAmount, deallocateAt, contractAddress, msg.sender, next);
       emit DeallocationRequested(contractAddress, msg.sender, requestedAmount, deallocateAt);
@@ -435,7 +456,10 @@ contract PooledStaking is MasterAware {
   ) external onlyInternal whenNotPaused noPendingBurns noPendingDeallocations {
 
     Contract storage _contract = contracts[contractAddress];
-    require(amount <= _contract.staked, 'Burn amount should not exceed total amount staked on contract');
+
+    if (amount < _contract.staked) {
+      amount = _contract.staked;
+    }
 
     burns[++lastBurnId] = Burn(amount, now, contractAddress);
     token.burn(amount);
@@ -601,8 +625,12 @@ contract PooledStaking is MasterAware {
     uint allocation = staker.allocations[contractAddress];
     allocation = deallocation.amount >= allocation ? 0 : allocation.sub(deallocation.amount);
 
+    Contract storage _contract = contracts[contractAddress];
+    _contract.staked = _contract.staked.sub(deallocation.amount);
+
     staker.allocations[contractAddress] = allocation;
-    staker.pendingDeallocations[contractAddress].sub(deallocation.amount);
+    uint currentPendingDeallocations = staker.pendingDeallocations[contractAddress];
+    staker.pendingDeallocations[contractAddress] = currentPendingDeallocations.sub(deallocation.amount);
 
     // update pointer to first deallocation
     deallocations[0].next = deallocation.next;

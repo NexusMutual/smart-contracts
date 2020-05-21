@@ -618,7 +618,8 @@ contract PooledStaking is MasterAware {
 
     uint firstDeallocation = deallocations[0].next;
     Deallocation storage deallocation = deallocations[firstDeallocation];
-    Staker storage staker = stakers[deallocation.stakerAddress];
+    address stakerAddress = deallocation.stakerAddress;
+    Staker storage staker = stakers[stakerAddress];
 
     address contractAddress = deallocation.contractAddress;
     uint staked = staker.staked;
@@ -635,6 +636,8 @@ contract PooledStaking is MasterAware {
     // update pointer to first deallocation
     deallocations[0].next = deallocation.next;
     delete deallocations[firstDeallocation];
+
+    emit Deallocated(contractAddress, stakerAddress, deallocationAmount);
   }
 
   function _processFirstReward() internal returns (bool) {

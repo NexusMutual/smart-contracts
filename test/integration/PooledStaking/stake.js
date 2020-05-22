@@ -1,5 +1,5 @@
 const { accounts, defaultSender, web3 } = require('@openzeppelin/test-environment');
-const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 const { exec } = require('child_process');
 require('chai').should();
 const { getQuoteValues, getValue } = require('../external');
@@ -459,9 +459,18 @@ describe('burns', function () {
       await buyCover.call(this, cover, coverHolder);
       await ps.processPendingActions();
 
-      await ps.requestDeallocation([cover.contractAddress], [stakeTokens], 0, {
+      const deallocation = await ps.requestDeallocation([cover.contractAddress], [stakeTokens], 0, {
         from: staker1
       });
+
+     const latestBlockTime = await time.latest();
+     const expectedDeallocateTime = latestBlockTime.addn(90 * 24 * 3600);
+
+     expectEvent(deallocation, 'DeallocationRequested', {
+       staker: staker1,
+       amount: stakeTokens,
+       deallocateAt: expectedDeallocateTime
+     });
 
       const deallocateLockTime = await ps.DEALLOCATE_LOCK_TIME();
       await time.increase(deallocateLockTime.addn(24 * 60 * 60).toString());

@@ -425,7 +425,7 @@ contract PooledStaking is MasterAware {
         // next deallocation time should be greater than new deallocation time
         require(
           next.deallocateAt > deallocateAt,
-          "Deallocation time must be smaller than next deallocation"
+          "Next deallocation time must be greater than new deallocation time"
         );
       }
 

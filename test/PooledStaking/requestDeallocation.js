@@ -231,7 +231,7 @@ describe('requestDeallocation', function () {
     // can't be inserted after 1
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne }),
-      'Deallocation time must be smaller than next deallocation',
+      'Next deallocation time must be greater than new deallocation time',
     );
 
     // Fourth deallocation, due at the same time as index 2 (same lock time, same block),
@@ -249,7 +249,7 @@ describe('requestDeallocation', function () {
     // it's due after the request at index 2, but also after the request at index 3
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('2')], 2, { from: memberOne }),
-      'Deallocation time must be smaller than next deallocation',
+      'Next deallocation time must be greater than new deallocation time',
     );
   });
 

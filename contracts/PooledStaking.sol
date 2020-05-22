@@ -92,6 +92,7 @@ contract PooledStaking is MasterAware {
   event Burned(address indexed contractAddress, uint amount);
 
   // rewards
+  event RewardRequested(address indexed contractAddress, uint amount);
   event Rewarded(address indexed contractAddress, uint amount);
   event RewardWithdrawn(address indexed staker, uint amount);
 
@@ -107,7 +108,7 @@ contract PooledStaking is MasterAware {
 
   uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
   uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
-  uint public MIN_DEALLOCATION; // Forbid deallocation of small amounts to prevent spam
+  uint public MIN_DEALLOCATION;         // Forbid deallocation of small amounts to prevent spam
   uint public DEALLOCATE_LOCK_TIME;     // Lock period in seconds before unstaking takes place
   uint public BURN_CYCLE_GAS_LIMIT;
   uint public DEALLOCATION_CYCLE_GAS_LIMIT;
@@ -487,7 +488,7 @@ contract PooledStaking is MasterAware {
       firstReward = lastRewardId;
     }
 
-    emit Rewarded(contractAddress, amount);
+    emit RewardRequested(contractAddress, amount);
   }
 
   function processPendingActions() public whenNotPaused {
@@ -676,6 +677,8 @@ contract PooledStaking is MasterAware {
     if (firstReward > lastRewardId) {
       firstReward = 0;
     }
+
+    emit Rewarded(contractAddress, rewardAmount);
 
     return true;
   }

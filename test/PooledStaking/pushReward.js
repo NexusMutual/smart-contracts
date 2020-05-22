@@ -51,7 +51,14 @@ describe('pushReward', function () {
     const rewardAmount = ether('2');
     const reward = await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
 
-    expectEvent(reward, 'Rewarded', {
+    expectEvent(reward, 'RewardRequested', {
+      contractAddress: firstContract,
+      amount: rewardAmount,
+    });
+
+    const process = await staking.processPendingActions();
+
+    expectEvent(process, 'Rewarded', {
       contractAddress: firstContract,
       amount: rewardAmount,
     });

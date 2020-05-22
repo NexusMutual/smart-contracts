@@ -32,7 +32,7 @@ async function setRewardCycleGasLimit (staking, gasLimit) {
 }
 
 async function setMinAllowedDeallocation(staking, amount) {
-  return staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, amount, { from: governanceContract });
+  return staking.updateParameter(ParamType.MIN_DEALLOCATION, amount, { from: governanceContract });
 }
 
 async function setDeallocateLockTime(staking, lockTime) {

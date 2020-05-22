@@ -22,7 +22,7 @@ async function fundApproveStake (token, staking, amount, contracts, allocations,
   const minAllocation = ether('2');
 
   await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
-  await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, ether('2'), { from: governanceContract });
+  await staking.updateParameter(ParamType.MIN_DEALLOCATION, ether('2'), { from: governanceContract });
   await staking.updateParameter(ParamType.MIN_ALLOCATION, minAllocation, { from: governanceContract });
   await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
 
@@ -135,20 +135,20 @@ describe('requestDeallocation', function () {
 
   });
 
-  it('should revert when requested deallocation < MIN_ALLOWED_DEALLOCATION', async function () {
+  it('should revert when requested deallocation < MIN_DEALLOCATION', async function () {
 
     const { staking, token } = this;
 
-    // Stake 10 and allocate 10 on firstContract; MIN_ALLOWED_DEALLOCATION = 2
+    // Stake 10 and allocate 10 on firstContract; MIN_DEALLOCATION = 2
     await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
-    // Request deallocation of 1 (< MIN_ALLOWED_DEALLOCATION)
+    // Request deallocation of 1 (< MIN_DEALLOCATION)
     await expectRevert(
       staking.requestDeallocation([firstContract], [ether('1')], 0, { from: memberOne }),
-      'Deallocation cannot be less then MIN_ALLOWED_DEALLOCATION',
+      'Deallocation cannot be less then MIN_DEALLOCATION',
     );
 
-    // Request deallocation of 2 (= MIN_ALLOWED_DEALLOCATION)
+    // Request deallocation of 2 (= MIN_DEALLOCATION)
     await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
   });
 

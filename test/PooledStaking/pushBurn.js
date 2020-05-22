@@ -103,16 +103,18 @@ describe('pushBurn', function () {
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    const initialStake = ether('10');
+    await fundAndStake(token, staking, initialStake, firstContract, memberOne);
 
     // Burn 3
     const burnAmount = ether('3');
     await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
+    await staking.processPendingActions();
 
     // Expect contract.burned to be 3
-    const { burned: actualBurned } = await staking.contracts(firstContract);
+    const newStake = await staking.contractStake(firstContract);
+    const actualBurned = initialStake.sub(newStake);
     assert(actualBurned.eq(burnAmount), `Expected burned amount ${burnAmount}, found ${actualBurned}`);
-
   });
 
   it('should burn the correct amount of tokens', async function () {
@@ -129,8 +131,33 @@ describe('pushBurn', function () {
     // Push a burn of 6
     const burnAmount = ether('6');
     await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
+    await staking.processPendingActions();
 
     const expectedBalance = stakeAmount.sub(burnAmount);
+    const currentBalance = await token.balanceOf(staking.address);
+    assert(
+      currentBalance.eq(expectedBalance),
+      `staking contract balance should be ${expectedBalance}, found ${currentBalance}`,
+    );
+  });
+
+  it('should burn up to contract stake if requested a bigger burn than available', async function () {
+
+    const { token, staking } = this;
+
+    // Set parameters
+    await setLockTime(staking, 90 * 24 * 3600); // 90 days
+
+    // Fund account and stake 10
+    const stakeAmount = ether('10');
+    await fundAndStake(token, staking, stakeAmount, firstContract, memberOne);
+
+    // Push a burn of 100
+    const burnAmount = ether('100');
+    await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
+    await staking.processPendingActions();
+
+    const expectedBalance = ether('0');
     const currentBalance = await token.balanceOf(staking.address);
     assert(
       currentBalance.eq(expectedBalance),
@@ -221,7 +248,7 @@ describe('pushBurn', function () {
     );
   });
 
-  it('should emit Burned event', async function () {
+  it('should emit BurnRequested and Burned events', async function () {
 
     const { token, staking } = this;
 
@@ -235,7 +262,14 @@ describe('pushBurn', function () {
     const burnAmount = ether('2');
     const burn = await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
 
-    expectEvent(burn, 'Burned', {
+    expectEvent(burn, 'BurnRequested', {
+      contractAddress: firstContract,
+      amount: burnAmount,
+    });
+
+    const process = await staking.processPendingActions();
+
+    expectEvent(process, 'Burned', {
       contractAddress: firstContract,
       amount: burnAmount,
     });

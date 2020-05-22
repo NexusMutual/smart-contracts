@@ -304,7 +304,7 @@ describe('stake', function () {
       await staking.stake(amount, contracts, allocations, { from });
 
       for (const contract of Object.keys(expectedAmounts)) {
-        const { staked: actualAmount } = await staking.contracts(contract);
+        const actualAmount = await staking.contractStake(contract);
         const expectedAmount = expectedAmounts[contract];
 
         assert(

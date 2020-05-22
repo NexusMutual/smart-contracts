@@ -500,7 +500,7 @@ describe('burns', function () {
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
       console.log(`storedTotalBurn ${storedTotalBurn}`);
-      storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
+      storedTotalBurn.toString().should.be.equal('0');
     });
   });
 

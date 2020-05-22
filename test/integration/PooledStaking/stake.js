@@ -98,15 +98,12 @@ describe('burns', function () {
     }
 
     maxVotingTime = await cd.maxVotingTime();
-    await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-      from: member1,
-    });
-    await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-      from: member2,
-    });
-    await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
-      from: member3,
-    });
+
+    for (let member of members) {
+      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+        from: member,
+      });
+    }
   }
 
   async function buyCover(cover, coverHolder) {
@@ -428,6 +425,55 @@ describe('burns', function () {
     });
   });
 
+  describe('claim is accepted and burn happens when the final vote is submitted', function () {
+    before(setup);
+    before(initMembers);
+
+    const currency = hex('ETH');
+
+    const cover = {
+      amount: 1,
+      price: '3362445813369838',
+      priceNXM: '744892736679184',
+      expireTime: '7972408607',
+      generationTime: '7972408607001',
+      currency,
+      period: 120,
+      contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'
+    };
+    const stakeTokens = ether('20');
+
+    before(async function () {
+
+      const { ps, tk, qd, cl } = this;
+
+      await tk.approve(ps.address, stakeTokens, {
+        from: staker1
+      });
+      await ps.stake(stakeTokens, [cover.contractAddress], [stakeTokens], {
+        from: staker1
+      });
+      await buyCover.call(this, cover, coverHolder);
+      await ps.processPendingActions();
+      const coverID = await qd.getAllCoversOfUser(coverHolder);
+      await cl.submitClaim(coverID[0], {from: coverHolder});
+    });
+
+    it('triggers burn on last vote', async function () {
+      const { ps } = this;
+
+      const now = await time.latest();
+      await submitMemberVotes.call(this, 1);
+      await concludeClaimWithOraclize.call(this, now, '7');
+
+      const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
+      console.log(`storedTotalBurn ${storedTotalBurn}`);
+      storedTotalBurn.toString().should.be.equal('0');
+    });
+  });
+
+
+
   describe('claim is accepted and burn happens after an deallocation request by staker is processed', function () {
     before(setup);
     before(initMembers);
@@ -488,15 +534,11 @@ describe('burns', function () {
     });
 
     it('triggers burn on claim closing with oraclize call', async function () {
-      const { mcr, ps } = this;
+      const { ps } = this;
 
       const now = await time.latest();
       await submitMemberVotes.call(this, 1);
       await concludeClaimWithOraclize.call(this, now, '7');
-
-      const tokenPrice = await mcr.calculateTokenPrice(currency);
-      const sumAssured = new BN(ether(cover.amount.toString()));
-      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
       console.log(`storedTotalBurn ${storedTotalBurn}`);

@@ -453,11 +453,11 @@ contract PooledStaking is MasterAware {
 
   function pushBurn(
     address contractAddress, uint amount
-  ) external onlyInternal whenNotPaused noPendingBurns noPendingDeallocations {
+  ) public onlyInternal whenNotPaused noPendingBurns noPendingDeallocations {
 
     Contract storage _contract = contracts[contractAddress];
 
-    if (amount < _contract.staked) {
+    if (amount > _contract.staked) {
       amount = _contract.staked;
     }
 

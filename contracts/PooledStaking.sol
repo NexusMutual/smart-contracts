@@ -221,6 +221,7 @@ contract PooledStaking is MasterAware {
     Burn storage burn = burns[firstBurn];
     address contractAddress = burn.contractAddress;
 
+    // TODO: might block the call to this function if there's pending burn for this user
     uint totalContractStake = contractStake(contractAddress);
     uint allocation = staker.allocations[contractAddress];
     uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);

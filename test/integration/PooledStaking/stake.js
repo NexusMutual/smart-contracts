@@ -104,6 +104,8 @@ describe('burns', function () {
         from: member,
       });
     }
+
+    this.allMembers = members;
   }
 
   async function buyCover(cover, coverHolder) {
@@ -127,23 +129,26 @@ describe('burns', function () {
     );
   }
 
-  async function submitMemberVotes(voteValue) {
+  async function submitMemberVotes(voteValue, allMembersVote) {
     const { cd, td, cl } = this;
-    claimId = (await cd.actualClaimLength()) - 1;
+    const claimId = (await cd.actualClaimLength()) - 1;
 
     let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
 
-    for (let member of [member1, member2, member3]) {
+    const voters = allMembersVote ? this.allMembers : [member1, member2, member3];
+
+    for (let member of voters) {
+      console.log(`${member} voting...`);
       await cl.submitCAVote(claimId, voteValue, {from: member });
     }
 
     let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
     (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
-      tokens * 3
+      tokens * voters.length
     );
     let allVotes = await cd.getAllVotesForClaim(claimId);
     expectedVotes = allVotes[1].length;
-    expectedVotes.should.be.equal(3);
+    expectedVotes.should.be.equal(voters.length);
     let isBooked = await td.isCATokensBooked(member1);
     isBooked.should.be.equal(true);
   }
@@ -425,7 +430,7 @@ describe('burns', function () {
     });
   });
 
-  describe('claim is accepted and burn happens when the final vote is submitted', function () {
+  describe.only('claim is accepted and burn happens when the final vote is submitted', function () {
     before(setup);
     before(initMembers);
 
@@ -445,7 +450,7 @@ describe('burns', function () {
 
     before(async function () {
 
-      const { ps, tk, qd, cl } = this;
+      const { ps, tk, qd, cl, cd } = this;
 
       await tk.approve(ps.address, stakeTokens, {
         from: staker1
@@ -460,18 +465,24 @@ describe('burns', function () {
     });
 
     it('triggers burn on last vote', async function () {
-      const { ps } = this;
+      const { ps, cl, cd } = this;
 
       const now = await time.latest();
-      await submitMemberVotes.call(this, 1);
-      await concludeClaimWithOraclize.call(this, now, '7');
+      await submitMemberVotes.call(this, 1, true);
+
+      const claimId = (await cd.actualClaimLength()) - 1;
+      const claimStatus = await cd.getClaimStatusNumber(claimId);
+      console.log(claimStatus);
+
+      (await cl.checkVoteClosing(claimId))
+        .toString()
+        .should.be.equal((-1).toString());
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
       console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal('0');
     });
   });
-
 
 
   describe('claim is accepted and burn happens after an deallocation request by staker is processed', function () {

@@ -109,7 +109,7 @@ async function setup () {
   // fund pools
   await p1.sendEther({ from: owner, value: POOL_ETHER });
   await p2.sendEther({ from: owner, value: POOL_ETHER });
-  await dai.transfer(p2.address, ether('50'));
+  await dai.transfer(p2.address, ether('900000'));
 
   // add mcr
   await mcr.addMCRData(

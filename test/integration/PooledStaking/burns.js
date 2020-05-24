@@ -106,6 +106,10 @@ describe('burns', function () {
     }
 
     this.allMembers = members;
+
+    const currency = hex('ETH');
+    const tokenPrice = await mcr.calculateTokenPrice(currency);
+    console.log(`tokenPrice ${tokenPrice}`);
   }
 
   async function buyCover(cover, coverHolder) {

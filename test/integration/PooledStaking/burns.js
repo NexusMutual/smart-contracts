@@ -60,7 +60,7 @@ describe('burns', function () {
     coverHolder
   ] = accounts;
 
-  const tokens = ether('60');
+  const tokensLockedForVoting = ether('200');
   const validity = 360 * 24 * 60 * 60; // 360 days
   const UNLIMITED_ALLOWANCE = new BN('2')
     .pow(new BN('256'))
@@ -100,7 +100,7 @@ describe('burns', function () {
     maxVotingTime = await cd.maxVotingTime();
 
     for (let member of members) {
-      await tc.lock(LOCK_REASON_CLAIM, tokens, validity, {
+      await tc.lock(LOCK_REASON_CLAIM, tokensLockedForVoting, validity, {
         from: member,
       });
     }
@@ -144,7 +144,7 @@ describe('burns', function () {
 
     let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
     (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
-      tokens * voters.length
+      tokensLockedForVoting * voters.length
     );
     let allVotes = await cd.getAllVotesForClaim(claimId);
     expectedVotes = allVotes[1].length;
@@ -155,6 +155,9 @@ describe('burns', function () {
 
   async function concludeClaimWithOraclize(now, expectedClaimStatusNumber) {
     const { cl, pd, cd, p1 } = this;
+
+    const claimId = (await cd.actualClaimLength()) - 1;
+
     const minVotingTime = await cd.minVotingTime();
     const minTime = new BN(minVotingTime.toString()).add(
       new BN(now.toString())
@@ -430,7 +433,7 @@ describe('burns', function () {
     });
   });
 
-  describe.only('claim is accepted and burn happens when the final vote is submitted', function () {
+  describe('claim is accepted and burn happens when the final vote is submitted', function () {
     before(setup);
     before(initMembers);
 
@@ -450,7 +453,11 @@ describe('burns', function () {
 
     before(async function () {
 
-      const { ps, tk, qd, cl, cd } = this;
+      const { ps, tk, qd, cl, mcr } = this;
+
+      const tokenPrice = await mcr.calculateTokenPrice(currency);
+
+      console.log(`tokenPrice ${tokenPrice}`);
 
       await tk.approve(ps.address, stakeTokens, {
         from: staker1

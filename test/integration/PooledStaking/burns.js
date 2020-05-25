@@ -25,7 +25,6 @@ async function debugTx(promise) {
   } catch (e) {
     if (e.tx) {
       console.error(`Tx ${e.tx} failed. ${e.stack}`);
-      console.log(web3.eth.currentProvider)
       const rpc = web3.eth.currentProvider.wrappedProvider.host.replace(/^http:\/\//, '');
       const cmd = `tenderly export ${e.tx} --debug --rpc ${rpc}`;
       console.log(`Executing ${cmd}`);
@@ -111,7 +110,6 @@ describe('burns', function () {
 
     const currency = hex('ETH');
     const tokenPrice = await mcr.calculateTokenPrice(currency);
-    console.log(`tokenPrice ${tokenPrice}`);
   }
 
   async function buyCover(cover, coverHolder) {
@@ -145,7 +143,6 @@ describe('burns', function () {
     const voters = maxVotingMembers ? baseMembers.slice(0, maxVotingMembers) : baseMembers;
 
     for (let member of voters) {
-      console.log(`${member} voting...`);
       await cl.submitCAVote(claimId, voteValue, {from: member });
     }
 
@@ -170,11 +167,11 @@ describe('burns', function () {
       new BN(now.toString())
     );
     await time.increaseTo(
-      new BN(minTime.toString()).add(new BN((2).toString()))
+      new BN(minTime.toString()).add(new BN('2'))
     );
     (await cl.checkVoteClosing(claimId))
       .toString()
-      .should.be.equal((1).toString());
+      .should.be.equal('1');
     let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
     APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -184,7 +181,7 @@ describe('burns', function () {
 
     (await cl.checkVoteClosing(claimId))
       .toString()
-      .should.be.equal((-1).toString());
+      .should.be.equal('-1');
   }
 
 
@@ -257,7 +254,6 @@ describe('burns', function () {
       const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
@@ -328,7 +324,6 @@ describe('burns', function () {
       const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
 
@@ -435,12 +430,11 @@ describe('burns', function () {
       const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
 
-  describe.only('claim is accepted and burn happens when the final vote is submitted', function () {
+  describe('claim is accepted and burn happens when the final vote is submitted', function () {
     before(setup);
     before(initMembers);
 
@@ -462,10 +456,6 @@ describe('burns', function () {
 
       const { ps, tk, qd, cl, mcr } = this;
 
-      const tokenPrice = await mcr.calculateTokenPrice(currency);
-
-      console.log(`tokenPrice ${tokenPrice}`);
-
       await tk.approve(ps.address, stakeTokens, {
         from: staker1
       });
@@ -479,7 +469,7 @@ describe('burns', function () {
     });
 
     it('triggers burn on last vote', async function () {
-      const { ps, cl, cd, mcr, qd } = this;
+      const { ps, cl, cd, mcr } = this;
 
       let now = await time.latest();
 
@@ -494,75 +484,18 @@ describe('burns', function () {
       await submitMemberVotes.call(this, 1, 1);
 
       const claimId = (await cd.actualClaimLength()) - 1;
-      let claimStatus = await cd.getClaimStatusNumber(claimId);
-      console.log(claimStatus);
-
-      // function _checkVoteClosingFinal(uint claimId, uint status) internal view returns(int8 close) {
-
-        let close = 0;
-        const { status } = await cd.getClaimStatusNumber(claimId);
-        const dateUpd = await cd.getClaimDateUpd(claimId);
-        const payoutRetryTime = await cd.payoutRetryTime();
-        if (status === 12 && dateUpd.add(payoutRetryTime) < now) {
-
-          console.log(`Checking getClaimState12Count`);
-          // if (cd.getClaimState12Count(claimId) < 60)
-          //   close = 1;
-        }
-
-        now = await time.latest();
-        if (status > 5 && status !== 12) {
-          close = -1;
-        }  else if (status !== 12 && dateUpd.add(await cd.maxVotingTime()).lte(now)) {
-          close = 1;
-        } else if (status !== 12 && dateUpd.add(await cd.minVotingTime()).gte(now)) {
-          close = 0;
-        } else if (status === 0 || (status >= 1 && status <= 5)) {
-          console.log(`calling _checkVoteClosingFinal`);
-          // close = _checkVoteClosingFinal(claimId, status);
-        }
-
-        console.log(`close ${close}`);
-
-        const { coverid } = await cd.getClaimCoverId(claimId);
-        const coverId = coverid;
-        console.log(`coverId ${coverid}`);
-        const DECIMAL1E18 = new BN(10).pow(new BN(18));
-        const tokenx1e18 = await mcr.calculateTokenPrice(currency);
-        let { accept, deny } = await cd.getClaimsTokenCA(claimId);
-
-        console.log(`accept ${accept.toString()} deny ${deny.toString()}`)
-        const caTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
-        // { accept, deny } = await cd.getClaimsTokenMV(claimId);
-        // const mvTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
-        const sumassured = (await qd.getCoverSumAssured(coverId)).mul(DECIMAL1E18);
-        console.log(`caTokens ${caTokens.toString()}`);
-        console.log(`sumassured ${sumassured.toString()}`);
-        if (caTokens.gt(sumassured.mul( new BN(10)))) {
-          console.log(`Sufficient to close`);
-        } else {
-          console.log(`Not sufficient to close vote.`);
-        }
-
-
-      claimStatus = await cd.getClaimStatusNumber(claimId);
-      console.log(`claimStatus ${JSON.stringify(claimStatus)}`);
-
       (await cl.checkVoteClosing(claimId))
         .toString()
-        .should.be.equal((-1).toString());
+        .should.be.equal('-1');
 
-
-      claimStatus = await cd.getClaimStatusNumber(claimId);
-      claimStatus.statno.should.be.equal('7');
-
+      const claimStatus = await cd.getClaimStatusNumber(claimId);
+      claimStatus.statno.toString().should.be.equal('7');
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
       const sumAssured = new BN(ether(cover.amount.toString()));
       const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
@@ -635,7 +568,6 @@ describe('burns', function () {
       await concludeClaimWithOraclize.call(this, now, '7');
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal('0');
     });
   });
@@ -688,7 +620,6 @@ describe('burns', function () {
       const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
 
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      console.log(`storedTotalBurn ${storedTotalBurn}`);
       storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });

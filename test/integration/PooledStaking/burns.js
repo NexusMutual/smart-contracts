@@ -66,6 +66,8 @@ describe('burns', function () {
     .pow(new BN('256'))
     .sub(new BN('1'));
 
+  const initialMemberFunds = ether('2500');
+
   async function initMembers () {
     const { mr, mcr, pd, tk, tc, cd } = this;
 
@@ -94,7 +96,7 @@ describe('burns', function () {
       await mr.payJoiningFee(member, { from: member, value: fee });
       await mr.kycVerdict(member, true);
       await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
-      await tk.transfer(member, ether('250'));
+      await tk.transfer(member, initialMemberFunds);
     }
 
     maxVotingTime = await cd.maxVotingTime();
@@ -133,13 +135,14 @@ describe('burns', function () {
     );
   }
 
-  async function submitMemberVotes(voteValue, allMembersVote) {
+  async function submitMemberVotes(voteValue, maxVotingMembers) {
     const { cd, td, cl } = this;
     const claimId = (await cd.actualClaimLength()) - 1;
 
     let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
 
-    const voters = allMembersVote ? this.allMembers : [member1, member2, member3];
+    const baseMembers = [member1, member2, member3];
+    const voters = maxVotingMembers ? baseMembers.slice(0, maxVotingMembers) : baseMembers;
 
     for (let member of voters) {
       console.log(`${member} voting...`);
@@ -437,7 +440,7 @@ describe('burns', function () {
     });
   });
 
-  describe('claim is accepted and burn happens when the final vote is submitted', function () {
+  describe.only('claim is accepted and burn happens when the final vote is submitted', function () {
     before(setup);
     before(initMembers);
 
@@ -476,22 +479,91 @@ describe('burns', function () {
     });
 
     it('triggers burn on last vote', async function () {
-      const { ps, cl, cd } = this;
+      const { ps, cl, cd, mcr, qd } = this;
 
-      const now = await time.latest();
-      await submitMemberVotes.call(this, 1, true);
+      let now = await time.latest();
+
+      const minVotingTime = await cd.minVotingTime();
+      const minTime = new BN(minVotingTime.toString()).add(
+        new BN(now.toString())
+      );
+      await time.increaseTo(
+        new BN(minTime.toString()).add(new BN((2).toString()))
+      );
+
+      await submitMemberVotes.call(this, 1, 1);
 
       const claimId = (await cd.actualClaimLength()) - 1;
-      const claimStatus = await cd.getClaimStatusNumber(claimId);
+      let claimStatus = await cd.getClaimStatusNumber(claimId);
       console.log(claimStatus);
+
+      // function _checkVoteClosingFinal(uint claimId, uint status) internal view returns(int8 close) {
+
+        let close = 0;
+        const { status } = await cd.getClaimStatusNumber(claimId);
+        const dateUpd = await cd.getClaimDateUpd(claimId);
+        const payoutRetryTime = await cd.payoutRetryTime();
+        if (status === 12 && dateUpd.add(payoutRetryTime) < now) {
+
+          console.log(`Checking getClaimState12Count`);
+          // if (cd.getClaimState12Count(claimId) < 60)
+          //   close = 1;
+        }
+
+        now = await time.latest();
+        if (status > 5 && status !== 12) {
+          close = -1;
+        }  else if (status !== 12 && dateUpd.add(await cd.maxVotingTime()).lte(now)) {
+          close = 1;
+        } else if (status !== 12 && dateUpd.add(await cd.minVotingTime()).gte(now)) {
+          close = 0;
+        } else if (status === 0 || (status >= 1 && status <= 5)) {
+          console.log(`calling _checkVoteClosingFinal`);
+          // close = _checkVoteClosingFinal(claimId, status);
+        }
+
+        console.log(`close ${close}`);
+
+        const { coverid } = await cd.getClaimCoverId(claimId);
+        const coverId = coverid;
+        console.log(`coverId ${coverid}`);
+        const DECIMAL1E18 = new BN(10).pow(new BN(18));
+        const tokenx1e18 = await mcr.calculateTokenPrice(currency);
+        let { accept, deny } = await cd.getClaimsTokenCA(claimId);
+
+        console.log(`accept ${accept.toString()} deny ${deny.toString()}`)
+        const caTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
+        // { accept, deny } = await cd.getClaimsTokenMV(claimId);
+        // const mvTokens = ((accept.add(deny)).mul(tokenx1e18)).div(DECIMAL1E18);
+        const sumassured = (await qd.getCoverSumAssured(coverId)).mul(DECIMAL1E18);
+        console.log(`caTokens ${caTokens.toString()}`);
+        console.log(`sumassured ${sumassured.toString()}`);
+        if (caTokens.gt(sumassured.mul( new BN(10)))) {
+          console.log(`Sufficient to close`);
+        } else {
+          console.log(`Not sufficient to close vote.`);
+        }
+
+
+      claimStatus = await cd.getClaimStatusNumber(claimId);
+      console.log(`claimStatus ${JSON.stringify(claimStatus)}`);
 
       (await cl.checkVoteClosing(claimId))
         .toString()
         .should.be.equal((-1).toString());
 
+
+      claimStatus = await cd.getClaimStatusNumber(claimId);
+      claimStatus.statno.should.be.equal('7');
+
+
+      const tokenPrice = await mcr.calculateTokenPrice(currency);
+      const sumAssured = new BN(ether(cover.amount.toString()));
+      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
+
       const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
       console.log(`storedTotalBurn ${storedTotalBurn}`);
-      storedTotalBurn.toString().should.be.equal('0');
+      storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
 

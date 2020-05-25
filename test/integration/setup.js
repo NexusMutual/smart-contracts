@@ -32,6 +32,7 @@ const INITIAL_SUPPLY = ether('1500000');
 const EXCHANGE_TOKEN = ether('10000');
 const EXCHANGE_ETHER = ether('10');
 const POOL_ETHER = ether('3500');
+const POOL_DAI = ether('900000');
 
 async function setup () {
 
@@ -109,7 +110,7 @@ async function setup () {
   // fund pools
   await p1.sendEther({ from: owner, value: POOL_ETHER });
   await p2.sendEther({ from: owner, value: POOL_ETHER });
-  await dai.transfer(p2.address, ether('900000'));
+  await dai.transfer(p2.address, POOL_DAI);
 
   // add mcr
   await mcr.addMCRData(

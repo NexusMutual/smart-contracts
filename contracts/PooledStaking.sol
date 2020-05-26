@@ -50,8 +50,8 @@ contract PooledStaking is MasterAware {
   }
 
   struct Contract {
-    uint staked; // amount of nxm staked for this contract
-    uint burned; // sum of unprocessed burn amounts
+    uint staked; // temporary variable used while processing burns and rewards
+    uint burned; // temporary variable used while processing burns
     // TODO: find a way to remove zero-amount stakers
     address[] stakers; // used for iteration
   }
@@ -183,10 +183,6 @@ contract PooledStaking is MasterAware {
     }
 
     return stakedOnContract;
-  }
-
-  function contractBurn(address contractAddress) public view returns (uint) {
-    return contracts[contractAddress].burned;
   }
 
   function stakerContractCount(address staker) public view returns (uint) {

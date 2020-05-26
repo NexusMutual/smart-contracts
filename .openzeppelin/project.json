@@ -22,7 +22,7 @@
       "target": "truffle"
     },
     "manager": "openzeppelin",
-    "solcVersion": "0.5.7",
+    "solcVersion": "0.5.17",
     "artifactsDir": "build/contracts",
     "contractsDir": "contracts"
   },

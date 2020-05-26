@@ -240,21 +240,27 @@ describe('burns', function () {
     });
 
     it('triggers burn on claim closing with oraclize call', async function () {
-      const { qd, cl, mcr, ps } = this;
+      const { qd, cl, mcr, ps, tk } = this;
 
       const coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[0], {from: coverHolder});
+      await cl.submitClaim(coverID[0], { from: coverHolder });
 
       const now = await time.latest();
       await submitMemberVotes.call(this, 1);
+
+      const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
+      await ps.processPendingActions();
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
-      const sumAssured = new BN(ether(cover.amount.toString()));
-      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
+      const sumAssured = ether(cover.amount.toString());
+      const expectedBurnedNXMAmount = sumAssured.mul(ether('1')).div(new BN(tokenPrice));
 
-      const storedTotalBurn = await ps.contractBurn(cover.contractAddress);
-      storedTotalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
+      const balanceAfter = await tk.balanceOf(ps.address);
+      const totalBurn = balanceBefore.sub(balanceAfter);
+
+      console.log(`Total burn: ${totalBurn}, expected: ${expectedBurnedNXMAmount}`);
+      totalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
 

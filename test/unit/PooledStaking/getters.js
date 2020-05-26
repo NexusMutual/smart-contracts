@@ -1,10 +1,10 @@
 const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const accounts = require('../utils/accounts');
-const setup = require('../utils/setup');
-const { ParamType } = require('../utils/constants');
-const { parseLogs } = require('../utils/helpers');
+const { accounts, constants, helpers } = require('../utils');
+const setup = require('../setup');
+const { ParamType } = constants;
+const { parseLogs } = helpers;
 
 const {
   nonMembers: [nonMember],

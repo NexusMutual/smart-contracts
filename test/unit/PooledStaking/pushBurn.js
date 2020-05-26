@@ -55,7 +55,8 @@ describe('pushBurn', function () {
 
     // First Burn
     await staking.pushBurn(firstContract, ether('5'), { from: internalContract });
-    const { amount: firstAmount, contractAddress: firstAddress } = await staking.burns(1);
+    const { amount: firstAmount, contractAddress: firstAddress } = await staking.burn();
+
     assert(firstAmount.eq(ether('5')), `Expected burned contract to be ${ether('5')}, found ${firstAmount}`);
     assert(firstAddress === firstContract, `Expected burned contract to be ${firstContract}, found ${firstAddress}`);
 
@@ -165,58 +166,7 @@ describe('pushBurn', function () {
     );
   });
 
-  it('should set firstBurn correctly', async function () {
-
-    const { token, staking } = this;
-
-    // Set parameters
-    await setLockTime(staking, 90 * 24 * 3600); // 90 days
-
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
-
-    let firstBurn = await staking.firstBurn();
-    assert(firstBurn.eqn(0), `Expected firstBurn to be 0, found ${firstBurn}`);
-
-    // Push first burn
-    await staking.pushBurn(firstContract, ether('2'), { from: internalContract });
-    firstBurn = await staking.firstBurn();
-    assert(firstBurn.eqn(1), `Expected firstBurn to be 1, found ${firstBurn}`);
-
-    await staking.processPendingActions();
-
-    // Push second burn
-    await staking.pushBurn(firstContract, ether('4'), { from: internalContract });
-    firstBurn = await staking.firstBurn();
-    assert(firstBurn.eqn(2), `Expected firstBurn to be 2, found ${firstBurn}`);
-  });
-
-  it('should set lastBurnId correctly', async function () {
-
-    const { token, staking } = this;
-
-    // Set parameters
-    await setLockTime(staking, 90 * 24 * 3600); // 90 days
-
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
-    let lastBurnId = await staking.lastBurnId();
-    assert(lastBurnId.eqn(0), `Expected lastBurnId to be 0, found ${lastBurnId}`);
-
-    // Push first burn
-    await staking.pushBurn(firstContract, ether('5'), { from: internalContract });
-    lastBurnId = await staking.lastBurnId();
-    assert(lastBurnId.eqn(1), `Expected lastBurnId to be 1, found ${lastBurnId}`);
-
-    await staking.processPendingActions();
-
-    // Push second burn
-    await staking.pushBurn(firstContract, ether('1'), { from: internalContract });
-    lastBurnId = await staking.lastBurnId();
-    assert(lastBurnId.eqn(2), `Expected lastBurnId to be 2, found ${lastBurnId}`);
-  });
-
-  it('should update burns mapping correctly', async function () {
+  it('should update burn variable correctly', async function () {
 
     const { token, staking } = this;
 
@@ -231,17 +181,20 @@ describe('pushBurn', function () {
     await staking.pushBurn(firstContract, firstBurnAmount, { from: internalContract });
 
     // Check the Burn has been pushed to the burns mapping
-    const { amount, burnedAt, contractAddress } = await staking.burns(1);
+    const { amount, burnedAt, contractAddress } = await staking.burn();
     const now = await time.latest();
+
     assert(
       amount.eq(firstBurnAmount),
       `Expected firstburned amount to be ${firstBurnAmount}, found ${amount}`,
     );
+
     assert.equal(
       contractAddress,
       firstContract,
       `Expected burned contract to be ${firstContract}, found ${contractAddress}`,
     );
+
     assert(
       burnedAt.eq(now),
       `Expected burn time to be ${now}, found ${burnedAt}`,

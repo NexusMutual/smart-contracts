@@ -120,9 +120,8 @@ contract PooledStaking is MasterAware {
   mapping(address => Staker) public stakers;     // stakerAddress => Staker
   mapping(address => Contract) public contracts; // contractAddress => Contract
 
-  mapping(uint => Burn) public burns; // burn id => Burn
-  uint public firstBurn; // id of the first burn to process. zero if there are no unprocessed burns
-  uint public lastBurnId;
+  // there can be only one pending burn
+  Burn public burn;
 
   mapping(uint => Reward) public rewards; // reward id => Reward
   uint public firstReward;
@@ -216,14 +215,13 @@ contract PooledStaking is MasterAware {
     Staker storage staker = stakers[stakerAddress];
     uint staked = staker.staked;
 
-    if (firstBurn == 0) {
+    if (burn.burnedAt == 0) {
       return staked;
     }
 
-    Burn storage burn = burns[firstBurn];
     address contractAddress = burn.contractAddress;
 
-    // TODO: might block the call to this function if there's pending burn for this user
+    // TODO: might block the call to this function if there's a pending burn for this user
     uint totalContractStake = contractStake(contractAddress);
     uint initialAllocation = staker.allocations[contractAddress];
     uint allocation = staked < initialAllocation ? staked : initialAllocation;
@@ -275,7 +273,7 @@ contract PooledStaking is MasterAware {
   }
 
   function hasPendingBurns() public view returns (bool) {
-    return burns[firstBurn].burnedAt != 0;
+    return burn.burnedAt != 0;
   }
 
   function hasPendingDeallocations() public view returns (bool){
@@ -497,11 +495,9 @@ contract PooledStaking is MasterAware {
     address contractAddress, uint amount
   ) public onlyInternal whenNotPaused noPendingBurns noPendingDeallocations {
 
-    burns[++lastBurnId] = Burn(amount, now, contractAddress);
-
-    if (firstBurn == 0) {
-      firstBurn = lastBurnId;
-    }
+    burn.amount = amount;
+    burn.burnedAt = now;
+    burn.contractAddress = contractAddress;
 
     emit BurnRequested(contractAddress, amount);
   }
@@ -524,9 +520,15 @@ contract PooledStaking is MasterAware {
 
       uint firstDeallocationIndex = deallocations[0].next;
       Deallocation storage deallocation = deallocations[firstDeallocationIndex];
+      Reward storage reward = rewards[firstReward];
 
-      bool canDeallocate = firstDeallocationIndex > 0 && deallocation.deallocateAt <= now;
-      bool canBurn = firstBurn != 0;
+      // read storage and cache in memory
+      uint burnedAt = burn.burnedAt;
+      uint rewardedAt = reward.rewardedAt;
+      uint deallocateAt = deallocation.deallocateAt;
+
+      bool canDeallocate = firstDeallocationIndex > 0 && deallocateAt <= now;
+      bool canBurn = burn.burnedAt != 0;
       bool canReward = firstReward != 0;
 
       if (!canBurn && !canDeallocate && !canReward) {
@@ -534,13 +536,10 @@ contract PooledStaking is MasterAware {
         break;
       }
 
-      Burn storage burn = burns[firstBurn];
-      Reward storage reward = rewards[firstReward];
-
       if (
         canBurn &&
-        (!canDeallocate || burn.burnedAt < deallocation.deallocateAt) &&
-        (!canReward || burn.burnedAt < reward.rewardedAt)
+        (!canDeallocate || burnedAt < deallocateAt) &&
+        (!canReward || burnedAt < rewardedAt)
       ) {
 
         // O(n)
@@ -554,7 +553,7 @@ contract PooledStaking is MasterAware {
 
       if (
         canDeallocate &&
-        (!canReward || deallocation.deallocateAt < reward.rewardedAt)
+        (!canReward || deallocateAt < rewardedAt)
       ) {
 
         // TODO: implement deallocation gas limit check here
@@ -577,7 +576,6 @@ contract PooledStaking is MasterAware {
 
   function _processFirstBurn() internal returns (bool) {
 
-    Burn storage burn = burns[firstBurn];
     address contractAddress = burn.contractAddress;
     Contract storage _contract = contracts[contractAddress];
 
@@ -624,21 +622,13 @@ contract PooledStaking is MasterAware {
       }
     }
 
-    delete burns[firstBurn];
-    ++firstBurn;
-
-    if (firstBurn > lastBurnId) {
-      firstBurn = 0;
-    }
+    delete burn;
+    processedToStakerIndex = 0;
 
     amountToBurn = amountToBurn.add(_contract.burned);
     token.burn(amountToBurn);
 
     emit Burned(contractAddress, amountToBurn);
-
-    processedToStakerIndex = 0;
-    _contract.staked = _contract.staked.sub(_contract.burned);
-    _contract.burned = 0;
 
     return true;
   }

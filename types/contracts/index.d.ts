@@ -163,8 +163,8 @@ export interface ERC20Instance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      spender: string | BigNumber,
-      subtractedValue: number | BigNumber | string,
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -227,7 +227,35 @@ export interface IERC20Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  balanceOf(
+    account: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
   totalSupply(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
+  transfer: {
+    (
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+    sendTransaction(
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   transferFrom: {
     (
@@ -255,40 +283,6 @@ export interface IERC20Instance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
-
-  balanceOf(
-    account: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  transfer: {
-    (
-      recipient: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      recipient: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-    sendTransaction(
-      recipient: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      recipient: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  allowance(
-    owner: string | BigNumber,
-    spender: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
 }
 
 export interface IMasterAwareInstance extends Truffle.ContractInstance {
@@ -322,41 +316,14 @@ export interface IMasterAwareInstance extends Truffle.ContractInstance {
 }
 
 export interface INXMMasterInstance extends Truffle.ContractInstance {
-  getLatestAddress(
-    _contractName: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<string>;
-
-  isOwner(
+  checkIsAuthToGoverned(
     _add: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
   dAppLocker(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  checkIsAuthToGoverned(
-    _add: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  updatePauseTime: {
-    (
-      _time: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      _time: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _time: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _time: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
+  dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   delegateCallBack: {
     (myid: string | BigNumber, txDetails?: Truffle.TransactionDetails): Promise<
@@ -376,26 +343,72 @@ export interface INXMMasterInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  getLatestAddress(
+    _contractName: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<string>;
+
   isInternal(
     _add: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
-
-  tokenAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   isMember(
     _add: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
-  masterInitialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
-
-  dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
+  isOwner(
+    _add: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
 
   isPause(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
+  masterInitialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
+  tokenAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  updatePauseTime: {
+    (
+      _time: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      _time: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _time: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _time: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 }
 
 export interface ITokenControllerInstance extends Truffle.ContractInstance {
+  addToWhitelist: {
+    (
+      _member: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      _member: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _member: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _member: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   mint: {
     (
       _member: string | BigNumber,
@@ -415,25 +428,6 @@ export interface ITokenControllerInstance extends Truffle.ContractInstance {
     estimateGas(
       _member: string | BigNumber,
       _amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  addToWhitelist: {
-    (
-      _member: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      _member: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _member: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _member: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -472,97 +466,14 @@ export interface MasterAwareInstance extends Truffle.ContractInstance {
 }
 
 export interface MasterMockInstance extends Truffle.ContractInstance {
-  getLatestAddress(
-    contractName: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<string>;
-
-  setTokenAddress: {
-    (
-      _tokenAddress: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      _tokenAddress: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _tokenAddress: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _tokenAddress: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  isOwner(
-    arg0: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  dAppLocker(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  unpause: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   checkIsAuthToGoverned(
     caller: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
-  enrollGovernance: {
-    (
-      newGov: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      newGov: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      newGov: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      newGov: string | BigNumber,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
+  dAppLocker(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  updatePauseTime: {
-    (
-      arg0: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      arg0: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      arg0: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      arg0: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  pause: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
+  dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   delegateCallBack: {
     (arg0: string | BigNumber, txDetails?: Truffle.TransactionDetails): Promise<
@@ -582,37 +493,21 @@ export interface MasterMockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  isInternal(
-    caller: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  tokenAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  isMember(
-    caller: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<boolean>;
-
-  setLatestAddress: {
+  enrollGovernance: {
     (
-      contractName: string | BigNumber,
-      contractAddress: string | BigNumber,
+      newGov: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      contractName: string | BigNumber,
-      contractAddress: string | BigNumber,
+      newGov: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      contractName: string | BigNumber,
-      contractAddress: string | BigNumber,
+      newGov: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      contractName: string | BigNumber,
-      contractAddress: string | BigNumber,
+      newGov: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -635,8 +530,6 @@ export interface MasterMockInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
-
-  masterInitialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
 
   enrollMember: {
     (
@@ -661,12 +554,119 @@ export interface MasterMockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
+  getLatestAddress(
+    contractName: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<string>;
+
+  isInternal(
+    caller: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
+
+  isMember(
+    caller: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
+
+  isOwner(
+    arg0: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
 
   isPause(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
+  masterInitialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
+  pause: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
+
+  setLatestAddress: {
+    (
+      contractName: string | BigNumber,
+      contractAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      contractName: string | BigNumber,
+      contractAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      contractName: string | BigNumber,
+      contractAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      contractName: string | BigNumber,
+      contractAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  setTokenAddress: {
+    (
+      _tokenAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      _tokenAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _tokenAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _tokenAddress: string | BigNumber,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  tokenAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  unpause: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
+
+  updatePauseTime: {
+    (
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 }
 
 export interface NXMTokenInstance extends Truffle.ContractInstance {
+  allowance(
+    owner: string | BigNumber,
+    spender: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
   approve: {
     (
       spender: string | BigNumber,
@@ -690,31 +690,49 @@ export interface NXMTokenInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  totalSupply(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+  balanceOf(
+    account: string | BigNumber,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
 
-  transferFrom: {
+  burn: {
     (
-      sender: string | BigNumber,
-      recipient: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      sender: string | BigNumber,
-      recipient: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
     sendTransaction(
-      sender: string | BigNumber,
-      recipient: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      sender: string | BigNumber,
-      recipient: string | BigNumber,
       amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  burnFrom: {
+    (
+      from: string | BigNumber,
+      value: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      from: string | BigNumber,
+      value: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+    sendTransaction(
+      from: string | BigNumber,
+      value: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      from: string | BigNumber,
+      value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -742,52 +760,7 @@ export interface NXMTokenInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  burn: {
-    (
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-    sendTransaction(
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  balanceOf(
-    account: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  burnFrom: {
-    (
-      from: string | BigNumber,
-      value: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      from: string | BigNumber,
-      value: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-    sendTransaction(
-      from: string | BigNumber,
-      value: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      from: string | BigNumber,
-      value: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
+  totalSupply(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   transfer: {
     (
@@ -812,18 +785,60 @@ export interface NXMTokenInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  allowance(
-    owner: string | BigNumber,
-    spender: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
+  transferFrom: {
+    (
+      sender: string | BigNumber,
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      sender: string | BigNumber,
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+    sendTransaction(
+      sender: string | BigNumber,
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      sender: string | BigNumber,
+      recipient: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 }
 
 export interface PooledStakingInstance extends Truffle.ContractInstance {
-  stakerReward(
-    staker: string | BigNumber,
+  BURN_CYCLE_GAS_LIMIT(
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
+
+  DEALLOCATE_LOCK_TIME(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
+  DEALLOCATION_CYCLE_GAS_LIMIT(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
+  MAX_LEVERAGE(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
+  MIN_ALLOCATION(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
+  MIN_DEALLOCATION(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
+  REWARD_CYCLE_GAS_LIMIT(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
+  burn(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BigNumber, BigNumber, string]>;
 
   changeDependentContractAddress: {
     (txDetails?: Truffle.TransactionDetails): Promise<
@@ -834,123 +849,60 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
 
-  lastDeallocationId(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  DEALLOCATION_CYCLE_GAS_LIMIT(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  BURN_CYCLE_GAS_LIMIT(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  REWARD_CYCLE_GAS_LIMIT(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  initialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
-
-  processedToStakerIndex(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  pushReward: {
+  changeMasterAddress: {
     (
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
+      masterAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
+      masterAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
+      masterAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
+      masterAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
-
-  hasPendingActions(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
-
-  deallocations(
-    arg0: number | BigNumber | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BigNumber, BigNumber, string, string, BigNumber]>;
-
-  stakerContractAllocation(
-    staker: string | BigNumber,
-    contractAddress: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  unstake: {
-    (
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  firstReward(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   contractAddresses(
     arg0: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<string>;
 
-  stakerStake(
-    staker: string | BigNumber,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  firstBurn(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
-
-  contractBurn(
+  contractStake(
     contractAddress: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
-  stakerContractPendingDeallocation(
-    staker: string | BigNumber,
+  contractStakerAtIndex(
+    contractAddress: string | BigNumber,
+    stakerIndex: number | BigNumber | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<string>;
+
+  contractStakerCount(
     contractAddress: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
-  getMaxUnstakable(
-    stakerAddress: string | BigNumber,
+  contracts(
+    arg0: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
+  ): Promise<[BigNumber, BigNumber]>;
 
-  DEALLOCATE_LOCK_TIME(
+  deallocationAtIndex(
+    deallocationId: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
+  ): Promise<[BigNumber, BigNumber, string, string, BigNumber]>;
 
   deallocations(
     arg0: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<[BigNumber, BigNumber, string, string, BigNumber]>;
-
-  firstBurn(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   firstReward(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
@@ -970,8 +922,6 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
   hasPendingRewards(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
 
   initialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
-
-  lastBurnId(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   lastDeallocationId(
     txDetails?: Truffle.TransactionDetails
@@ -996,22 +946,45 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
 
   pushBurn: {
     (
-      staker: string | BigNumber,
+      contractAddress: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      staker: string | BigNumber,
+      contractAddress: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      staker: string | BigNumber,
+      contractAddress: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      staker: string | BigNumber,
+      contractAddress: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  pushReward: {
+    (
+      contractAddress: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      contractAddress: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      contractAddress: string | BigNumber,
+      amount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      contractAddress: string | BigNumber,
       amount: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
@@ -1019,29 +992,6 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
 
   requestDeallocation: {
     (
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse>;
-    call(
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      contractAddress: string | BigNumber,
-      amount: number | BigNumber | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  updateParameter: {
-    (
       _contracts: (string | BigNumber)[],
       _amounts: (number | BigNumber | string)[],
       _insertAfter: number | BigNumber | string,
@@ -1067,12 +1017,12 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  contractStake(
-    contractAddress: string | BigNumber,
+  rewards(
+    arg0: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
+  ): Promise<[BigNumber, BigNumber, string]>;
 
-  pushBurn: {
+  stake: {
     (
       amount: number | BigNumber | string,
       _contracts: (string | BigNumber)[],
@@ -1109,10 +1059,10 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     staker: string | BigNumber,
     contractIndex: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<[BigNumber, BigNumber]>;
+  ): Promise<string>;
 
-  stakerProcessedStake(
-    stakerAddress: string | BigNumber,
+  stakerContractCount(
+    staker: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
@@ -1122,13 +1072,13 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
-  deallocationAtIndex(
-    deallocationId: number | BigNumber | string,
+  stakerProcessedStake(
+    stakerAddress: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<[BigNumber, BigNumber, string, string, BigNumber]>;
+  ): Promise<BigNumber>;
 
-  contractStakerCount(
-    contractAddress: string | BigNumber,
+  stakerReward(
+    staker: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
@@ -1142,9 +1092,9 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<[BigNumber, BigNumber]>;
 
-  MAX_LEVERAGE(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+  token(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  hasPendingRewards(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+  tokenController(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   unstake: {
     (
@@ -1340,48 +1290,48 @@ export interface TokenMockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  increaseAllowance: {
+  burnFrom: {
     (
-      spender: string | BigNumber,
-      addedValue: number | BigNumber | string,
+      from: string | BigNumber,
+      value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      spender: string | BigNumber,
-      addedValue: number | BigNumber | string,
+      from: string | BigNumber,
+      value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
     sendTransaction(
-      spender: string | BigNumber,
-      addedValue: number | BigNumber | string,
+      from: string | BigNumber,
+      value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      spender: string | BigNumber,
-      addedValue: number | BigNumber | string,
+      from: string | BigNumber,
+      value: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
-  mint: {
+  decreaseAllowance: {
     (
-      account: string | BigNumber,
-      amount: number | BigNumber | string,
+      spender: string | BigNumber,
+      subtractedValue: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      account: string | BigNumber,
-      amount: number | BigNumber | string,
+      spender: string | BigNumber,
+      subtractedValue: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
+    ): Promise<boolean>;
     sendTransaction(
-      account: string | BigNumber,
-      amount: number | BigNumber | string,
+      spender: string | BigNumber,
+      subtractedValue: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      account: string | BigNumber,
-      amount: number | BigNumber | string,
+      spender: string | BigNumber,
+      subtractedValue: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };

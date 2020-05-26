@@ -54,7 +54,7 @@ async function setup () {
   // revert initialized values for unit tests
   const firstGovernanceAddress = accounts.governanceContracts[0];
   await staking.updateParameter(ParamType.MIN_ALLOCATION, 0, { from: firstGovernanceAddress });
-  await staking.updateParameter(ParamType.MIN_ALLOWED_DEALLOCATION, 0, { from: firstGovernanceAddress });
+  await staking.updateParameter(ParamType.MIN_DEALLOCATION, 0, { from: firstGovernanceAddress });
   await staking.updateParameter(ParamType.MAX_LEVERAGE, 0, { from: firstGovernanceAddress });
   await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 0, { from: firstGovernanceAddress });
 

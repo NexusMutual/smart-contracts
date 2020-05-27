@@ -326,6 +326,7 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
+      await ps.processPendingActions();
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
@@ -384,6 +385,7 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '6');
+      await ps.processPendingActions();
       const balanceAfter = await tk.balanceOf(ps.address);
       await ps.processPendingActions();
 
@@ -440,6 +442,7 @@ describe('burns', function () {
       await submitMemberVotes.call(this, 1);
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
+      await ps.processPendingActions();
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
@@ -501,6 +504,7 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await submitMemberVotes.call(this, 1, 1);
+      await ps.processPendingActions();
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const claimId = (await cd.actualClaimLength()) - 1;
@@ -522,7 +526,7 @@ describe('burns', function () {
   });
 
 
-  describe('claim is accepted and burn happens after an deallocation request by staker is processed', function () {
+  describe.only('claim is accepted and burn happens after an deallocation request by staker is processed', function () {
     before(setup);
     before(initMembers);
 
@@ -589,65 +593,11 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
+      await ps.processPendingActions();
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const totalBurn = balanceBefore.sub(balanceAfter);
       totalBurn.toString().should.be.equal('0');
-    });
-  });
-
-  describe('claim is accepted and claim burn amount is higher than staked amount', function () {
-
-    before(setup);
-    before(initMembers);
-
-    const currency = hex('ETH');
-
-    const cover = {
-      amount: 1,
-      price: '3362445813369838',
-      priceNXM: '744892736679184',
-      expireTime: '7972408607',
-      generationTime: '7972408607001',
-      currency,
-      period: 61,
-      contractAddress: '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf'
-    };
-    const stakeTokens = ether('20');
-
-    before(async function () {
-
-      const { ps, tk } = this;
-
-      await tk.approve(ps.address, stakeTokens, {
-        from: staker1
-      });
-      await ps.stake(stakeTokens, [cover.contractAddress], [stakeTokens], {
-        from: staker1
-      });
-      await buyCover.call(this, cover, coverHolder);
-      await ps.processPendingActions();
-    });
-
-    it('triggers burn on claim closing with oraclize call and burns only staked tokens', async function () {
-      const { qd, cl, mcr, ps, tk } = this;
-
-      const coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[0], {from: coverHolder});
-
-      const now = await time.latest();
-      await submitMemberVotes.call(this, 1);
-
-      const balanceBefore = await tk.balanceOf(ps.address);
-      await concludeClaimWithOraclize.call(this, now, '7');
-      const balanceAfter = await tk.balanceOf(ps.address);
-
-      const tokenPrice = await mcr.calculateTokenPrice(currency);
-      const sumAssured = new BN(ether(cover.amount.toString()));
-      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div( new BN(tokenPrice));
-
-      const totalBurn = balanceBefore.sub(balanceAfter);
-      totalBurn.toString().should.be.equal(expectedBurnedNXMAmount.toString());
     });
   });
 });

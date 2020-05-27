@@ -530,7 +530,7 @@ contract PooledStaking is MasterAware {
       uint deallocateAt = deallocation.deallocateAt;
 
       bool canDeallocate = firstDeallocationIndex > 0 && deallocateAt <= now;
-      bool canBurn = burn.burnedAt != 0;
+      bool canBurn = burnedAt != 0;
       bool canReward = firstReward != 0;
 
       if (!canBurn && !canDeallocate && !canReward) {

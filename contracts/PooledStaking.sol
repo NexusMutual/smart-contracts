@@ -165,6 +165,10 @@ contract PooledStaking is MasterAware {
     return contracts[contractAddress].stakers[stakerIndex];
   }
 
+  function contractStakers(address contractAddress) public view returns (address[] memory _stakers) {
+    return contracts[contractAddress].stakers;
+  }
+
   function contractStake(address contractAddress) public view returns (uint) {
 
     Contract storage _contract = contracts[contractAddress];
@@ -190,6 +194,10 @@ contract PooledStaking is MasterAware {
 
   function stakerContractAtIndex(address staker, uint contractIndex) public view returns (address) {
     return stakers[staker].contracts[contractIndex];
+  }
+
+  function stakerContracts(address staker) public view returns (address[] memory) {
+    return stakers[staker].contracts;
   }
 
   function stakerContractAllocation(address staker, address contractAddress) public view returns (uint) {

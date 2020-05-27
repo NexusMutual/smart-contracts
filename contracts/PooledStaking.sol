@@ -356,6 +356,7 @@ contract PooledStaking is MasterAware {
 
         // update allocation to reflect decreased stake due to previous burns
         if (initialAllocation != oldAllocation) {
+          // TODO: This might break remove 0-amount stakers feature. Needs tests!!!
           staker.allocations[contractAddress] = oldAllocation;
         }
 
@@ -365,6 +366,9 @@ contract PooledStaking is MasterAware {
 
       if (isNewAllocation) {
         staker.contracts.push(contractAddress);
+      }
+
+      if (isNewAllocation || oldAllocation == 0) {
         contracts[contractAddress].stakers.push(msg.sender);
       }
 
@@ -616,6 +620,18 @@ contract PooledStaking is MasterAware {
       (stakerBurn, newAllocation) = _burnStaker(
         _contract.stakers[i], contractAddress, totalBurnAmount, stakedOnContract
       );
+
+      if (newAllocation == 0) {
+        // when the allocation is explicitly set to 0
+        // the staker is removed from the contract stakers array
+        // we will later check the allocation and read the staker if he stakes again
+        _contract.stakers[i] = _contract.stakers[stakerCount - 1];
+        _contract.stakers.pop();
+        // i-- might underflow to MAX_UINT
+        // but that's fine since it will be incremented back to 0 on the next loop
+        i--;
+        stakerCount--;
+      }
 
       amountToBurn = amountToBurn.add(stakerBurn);
 

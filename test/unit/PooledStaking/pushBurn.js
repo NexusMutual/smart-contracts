@@ -6,19 +6,19 @@ const { ParamType } = require('../utils').constants;
 const setup = require('../setup');
 
 const {
-  members: [memberOne],
+  members: [memberOne, memberTwo, memberThree],
   internalContracts: [internalContract],
   nonInternalContracts: [nonInternal],
   governanceContracts: [governanceContract],
 } = accounts;
 
 const firstContract = '0x0000000000000000000000000000000000000001';
+const secondContract = '0x0000000000000000000000000000000000000002';
+const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundAndStake (token, staking, amount, contract, member) {
   await staking.updateParameter(ParamType.MAX_LEVERAGE, ether('2'), { from: governanceContract });
-
   await token.transfer(member, amount); // fund member account from default address
-
   await token.approve(staking.address, amount, { from: member });
   await staking.stake(amount, [contract], [amount], { from: member });
 }
@@ -227,4 +227,89 @@ describe('pushBurn', function () {
       amount: burnAmount,
     });
   });
+
+  it.only('should remove and re-add 0-account stakers', async function () {
+
+    const { token, staking } = this;
+
+    await staking.updateParameter(ParamType.MAX_LEVERAGE, ether('2'), { from: governanceContract });
+
+    const stakes = {
+      [memberOne]: { amount: '10', on: [firstContract, secondContract, thirdContract], amounts: ['10', '10', '10'] },
+      [memberTwo]: { amount: '20', on: [secondContract, thirdContract], amounts: ['20', '20'] },
+      [memberThree]: { amount: '30', on: [firstContract, thirdContract], amounts: ['30', '30'] },
+    };
+
+    for (const member in stakes) {
+      const stake = stakes[member];
+      await token.transfer(member, ether(stake.amount));
+      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await staking.stake(
+        ether(stake.amount),
+        stake.on,
+        stake.amounts.map(ether),
+        { from: member },
+      );
+    }
+
+    const expectedFirstContractStake = ether('40');
+    const actulFirstContractStake = await staking.contractStake(firstContract);
+    assert(
+      expectedFirstContractStake.eq(actulFirstContractStake),
+      `firstContract stake should be ${expectedFirstContractStake} but found ${actulFirstContractStake}`,
+    );
+
+    const initialStakers = await staking.contractStakers(firstContract);
+    const expectedInitialStakers = [memberOne, memberThree];
+    assert.deepEqual(
+      initialStakers,
+      expectedInitialStakers,
+      `expected initial stakers to be "${expectedInitialStakers.join(',')}" but found "${initialStakers.join(',')}"`,
+    );
+
+    // burn everything on the first contract
+    await staking.pushBurn(firstContract, ether('40'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const firstContractStake = await staking.contractStake(firstContract);
+    assert(ether('0').eq(firstContractStake), `firstContract stake should be 0 but found ${firstContractStake}`);
+
+    const secondTestStakers = await staking.contractStakers(firstContract);
+    const expectedSecondTestStakers = [];
+    assert.deepEqual(
+      secondTestStakers,
+      expectedSecondTestStakers,
+      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(',')}"`,
+    );
+
+    // push a small burn on secondContract and expect firstStaker to be "removed
+    await staking.pushBurn(secondContract, ether('1'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const finalStakers = await staking.contractStakers(secondContract);
+    const finalExpectedStakers = [memberTwo];
+    assert.deepEqual(
+      finalStakers,
+      finalExpectedStakers,
+      `expected initial stakers to be "${finalStakers.join(',')}" but found "${finalStakers.join(',')}"`,
+    );
+
+    await token.transfer(memberOne, ether('5'));
+    await token.approve(staking.address, ether('5'), { from: memberOne });
+    await staking.stake(
+      ether('5'),
+      [firstContract, secondContract, thirdContract],
+      [0, ether('5'), ether('5')],
+      { from: memberOne },
+    );
+
+    const newStakers = await staking.contractStakers(secondContract);
+    const newExpectedStakers = [memberTwo, memberOne];
+    assert.deepEqual(
+      newStakers,
+      newExpectedStakers,
+      `expected initial stakers to be "${newExpectedStakers.join(',')}" but found "${newStakers.join(',')}"`,
+    );
+  });
+
 });

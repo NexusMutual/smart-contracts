@@ -581,7 +581,7 @@ contract PooledStaking is MasterAware {
     address contractAddress = burn.contractAddress;
     Contract storage _contract = contracts[contractAddress];
 
-    uint burnTargetAmount = burn.amount;
+    uint totalBurnAmount = burn.amount;
     uint stakedOnContract;
     uint amountToBurn;
 
@@ -594,28 +594,22 @@ contract PooledStaking is MasterAware {
       stakedOnContract = _contract.staked;
     }
 
-    if (burnTargetAmount > stakedOnContract) {
-      burnTargetAmount = stakedOnContract;
+    if (totalBurnAmount > stakedOnContract) {
+      totalBurnAmount = stakedOnContract;
     }
 
     uint stakerCount = _contract.stakers.length;
 
     for (uint i = processedToStakerIndex; i < stakerCount; i++) {
 
-      Staker storage staker = stakers[_contract.stakers[i]];
-      uint staked = staker.staked;
-      uint initialAllocation = staker.allocations[contractAddress];
-      uint allocation = staked < initialAllocation ? staked : initialAllocation;
+      uint stakerBurn;
+      uint newAllocation;
 
-      // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
-      // reordered for precision loss prevention
-      uint stakerBurn = allocation.mul(burnTargetAmount).div(stakedOnContract);
-      uint newStake = staked.sub(stakerBurn);
+      (stakerBurn, newAllocation) = _burnStaker(
+        _contract.stakers[i], contractAddress, totalBurnAmount, stakedOnContract
+      );
+
       amountToBurn = amountToBurn.add(stakerBurn);
-
-      // update staker's stake
-      staker.staked = newStake;
-      staker.allocations[contractAddress] = allocation.sub(stakerBurn);
 
       if (i + 1 < stakerCount && gasleft() < BURN_CYCLE_GAS_LIMIT) {
         _contract.burned = _contract.burned.add(amountToBurn);
@@ -633,6 +627,35 @@ contract PooledStaking is MasterAware {
     emit Burned(contractAddress, amountToBurn);
 
     return true;
+  }
+
+  function _burnStaker(
+    address stakerAddress, address contractAddress, uint totalBurnAmount, uint totalStakedOnContract
+  ) internal returns (
+    uint burnedAmount, uint newAllocation
+  ) {
+
+    Staker storage staker = stakers[stakerAddress];
+    uint allocation = staker.allocations[contractAddress];
+    uint staked = staker.staked;
+
+    if (allocation > staked) {
+      allocation = staked;
+    }
+
+    if (totalStakedOnContract == 0) {
+      staker.allocations[contractAddress] = 0;
+      return (0, 0);
+    }
+
+    // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
+    // reordered for precision loss prevention
+    burnedAmount = allocation.mul(totalBurnAmount).div(totalStakedOnContract);
+
+    // update staker's stake
+    staker.staked = staked.sub(burnedAmount);
+    newAllocation = allocation.sub(burnedAmount);
+    staker.allocations[contractAddress] = newAllocation;
   }
 
   function _processFirstDeallocation() internal {

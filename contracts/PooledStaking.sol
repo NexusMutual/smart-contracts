@@ -221,15 +221,17 @@ contract PooledStaking is MasterAware {
 
     address contractAddress = burn.contractAddress;
 
-    // TODO: might block the call to this function if there's a pending burn for this user
+    // TODO: block the call to this function if there's a pending burn for this user
     uint totalContractStake = contractStake(contractAddress);
-    uint initialAllocation = staker.allocations[contractAddress];
-    uint allocation = staked < initialAllocation ? staked : initialAllocation;
+    uint allocation = staker.allocations[contractAddress];
+    allocation = staked < allocation ? staked : allocation;
 
-    uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);
-    uint newStake = staker.staked.sub(stakerBurn);
+    if (totalContractStake != 0) {
+      uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);
+      staked = staked.sub(stakerBurn);
+    }
 
-    return newStake;
+    return staked;
   }
 
   function deallocationAtIndex(uint deallocationId) public view returns (

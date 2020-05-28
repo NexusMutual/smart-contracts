@@ -349,7 +349,7 @@ contract TokenFunctions is Iupgradable {
         address stakedAdd, 
         uint stakerIndex
     )
-    public
+    internal 
     view 
     returns
     (uint amount, uint canBurn) {

@@ -31,10 +31,7 @@ contract PooledStaking is MasterAware {
     MIN_ALLOCATION,
     MAX_LEVERAGE,
     MIN_DEALLOCATION,
-    DEALLOCATE_LOCK_TIME,
-    BURN_CYCLE_GAS_LIMIT,
-    DEALLOCATION_CYCLE_GAS_LIMIT,
-    REWARD_CYCLE_GAS_LIMIT
+    DEALLOCATE_LOCK_TIME
   }
 
   struct Staker {
@@ -110,9 +107,6 @@ contract PooledStaking is MasterAware {
   uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
   uint public MIN_DEALLOCATION;         // Forbid deallocation of small amounts to prevent spam
   uint public DEALLOCATE_LOCK_TIME;     // Lock period in seconds before unstaking takes place
-  uint public BURN_CYCLE_GAS_LIMIT;
-  uint public DEALLOCATION_CYCLE_GAS_LIMIT;
-  uint public REWARD_CYCLE_GAS_LIMIT;
 
   // List of all coverable contract addresses
   address[] public contractAddresses;
@@ -841,21 +835,6 @@ contract PooledStaking is MasterAware {
       DEALLOCATE_LOCK_TIME = value;
       return;
     }
-
-    if (param == ParamType.BURN_CYCLE_GAS_LIMIT) {
-      BURN_CYCLE_GAS_LIMIT = value;
-      return;
-    }
-
-    if (param == ParamType.DEALLOCATION_CYCLE_GAS_LIMIT) {
-      DEALLOCATION_CYCLE_GAS_LIMIT = value;
-      return;
-    }
-
-    if (param == ParamType.REWARD_CYCLE_GAS_LIMIT) {
-      REWARD_CYCLE_GAS_LIMIT = value;
-      return;
-    }
   }
 
   function initialize() internal {
@@ -872,11 +851,6 @@ contract PooledStaking is MasterAware {
     MIN_DEALLOCATION = 20 ether;
     MAX_LEVERAGE = 10;
     DEALLOCATE_LOCK_TIME = 90 days;
-
-    // TODO: To be estimated
-    // BURN_CYCLE_GAS_LIMIT = 0;
-    // DEALLOCATION_CYCLE_GAS_LIMIT = 0;
-    REWARD_CYCLE_GAS_LIMIT = 45000;
 
     // TODO: implement staking migration here
   }

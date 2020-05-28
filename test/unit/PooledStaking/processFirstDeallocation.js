@@ -23,14 +23,6 @@ async function fundAndStake (token, staking, amount, contract, member) {
   await staking.stake(amount, [contract], [amount], { from: member });
 }
 
-async function setBurnCycleGasLimit (staking, gasLimit) {
-  return staking.updateParameter(ParamType.BURN_CYCLE_GAS_LIMIT, gasLimit, { from: governanceContract });
-}
-
-async function setRewardCycleGasLimit (staking, gasLimit) {
-  return staking.updateParameter(ParamType.REWARD_CYCLE_GAS_LIMIT, gasLimit, { from: governanceContract });
-}
-
 async function setMinAllowedDeallocation(staking, amount) {
   return staking.updateParameter(ParamType.MIN_DEALLOCATION, amount, { from: governanceContract });
 }
@@ -51,8 +43,6 @@ describe('processFirstDeallocation', function () {
     await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
 
     // Set parameters
-    await setBurnCycleGasLimit(staking, 50000000);
-    await setRewardCycleGasLimit(staking, 50000000);
     await setMinAllowedDeallocation(staking, ether('1'));
     await setDeallocateLockTime(staking, 90 * 24 * 3600); // 90 days
 

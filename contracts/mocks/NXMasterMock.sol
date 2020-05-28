@@ -11,4 +11,9 @@ contract NXMasterMock is NXMaster {
         super._addContractNames();
         allContractNames.push("PS");
     }
+
+    function setContractAddress(bytes2 contractName, address payable contractAddress) external {
+        contractsActive[contractAddress] == true;
+        allContractVersions[contractName] = contractAddress;
+    }
 }

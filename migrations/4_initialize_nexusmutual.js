@@ -75,6 +75,10 @@ module.exports = function(deployer, network, accounts) {
     ];
 
     await nxms.addNewVersion(addr);
+
+    // reduntant action of setting contract address
+    await nxms.setContractAddress(toHex('PS'), pooledStaking.address);
+
     let pcAddress = await nxms.getLatestAddress('0x5043');
     pc = await ProposalCategory.at(pcAddress);
     await pc.proposalCategoryInitiate();

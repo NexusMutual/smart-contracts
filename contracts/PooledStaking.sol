@@ -49,7 +49,6 @@ contract PooledStaking is MasterAware {
   struct Contract {
     uint staked; // temporary variable used while processing burns and rewards
     uint burned; // temporary variable used while processing burns
-    // TODO: find a way to remove zero-amount stakers
     address[] stakers; // used for iteration
   }
 
@@ -790,6 +789,18 @@ contract PooledStaking is MasterAware {
       uint staked = staker.staked;
       uint initialAllocation = staker.allocations[contractAddress];
       uint allocation = staked < initialAllocation ? staked : initialAllocation;
+
+      // remove 0-amount stakers, similar to what we're doing when processing burns
+      if (allocation == 0) {
+        staker.allocations[contractAddress] = 0;
+        _contract.stakers[i] = _contract.stakers[stakerCount - 1];
+        _contract.stakers.pop();
+        i--;
+        stakerCount--;
+
+        // since the allocation is 0, there's no reward to give
+        continue;
+      }
 
       // staker's ratio = total staked on contract / staker's stake on contract
       // staker's reward = total reward amount * staker's ratio

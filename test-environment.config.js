@@ -15,7 +15,6 @@ module.exports = {
   },
 
   node: {
-    vmErrorsOnRPCResponse: false,
     gasLimit: 8e6, // Maximum gas per block
   },
 

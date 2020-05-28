@@ -525,8 +525,7 @@ describe('burns', function () {
     });
   });
 
-
-  describe.only('claim is accepted and burn happens after an deallocation request by staker is processed', function () {
+  describe('claim is accepted and burn happens after an deallocation request by staker is processed', function () {
     before(setup);
     before(initMembers);
 

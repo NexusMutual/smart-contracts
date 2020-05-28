@@ -228,7 +228,7 @@ describe('pushBurn', function () {
     });
   });
 
-  it.only('should remove and re-add 0-account stakers', async function () {
+  it('should remove and re-add 0-account stakers', async function () {
 
     const { token, staking } = this;
 

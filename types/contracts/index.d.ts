@@ -814,15 +814,7 @@ export interface NXMTokenInstance extends Truffle.ContractInstance {
 }
 
 export interface PooledStakingInstance extends Truffle.ContractInstance {
-  BURN_CYCLE_GAS_LIMIT(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
   DEALLOCATE_LOCK_TIME(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
-  DEALLOCATION_CYCLE_GAS_LIMIT(
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
@@ -831,10 +823,6 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
   MIN_ALLOCATION(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   MIN_DEALLOCATION(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
-
-  REWARD_CYCLE_GAS_LIMIT(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
 
   burn(
     txDetails?: Truffle.TransactionDetails
@@ -877,6 +865,10 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     contractAddress: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
+
+  contractStakeCalculated(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<boolean>;
 
   contractStakerAtIndex(
     contractAddress: string | BigNumber,
@@ -940,7 +932,7 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse
     >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    call(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
     sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };

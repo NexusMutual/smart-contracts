@@ -454,7 +454,7 @@ contract ClaimsReward is Iupgradable {
         }
     }
 
-    function _claimStakeCommission(uint _records, address _user) internal {
+    function _claimStakeCommission(uint _records, address _user) external onlyInternal {
         uint total=0;
         uint len = td.getStakerStakedContractLength(_user);
         uint lastCompletedStakeCommission = td.lastCompletedStakeCommission(_user);

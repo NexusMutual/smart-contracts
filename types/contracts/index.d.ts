@@ -856,10 +856,7 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  contractAddresses(
-    arg0: number | BigNumber | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<string>;
+  contractBurned(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   contractStake(
     contractAddress: string | BigNumber,
@@ -869,6 +866,8 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
   contractStakeCalculated(
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
+
+  contractStaked(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   contractStakerAtIndex(
     contractAddress: string | BigNumber,
@@ -886,10 +885,11 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<string[]>;
 
-  contracts(
+  contractsStakers(
     arg0: string | BigNumber,
+    arg1: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<[BigNumber, BigNumber]>;
+  ): Promise<string>;
 
   deallocationAtIndex(
     deallocationId: number | BigNumber | string,

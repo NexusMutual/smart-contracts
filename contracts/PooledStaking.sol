@@ -399,13 +399,12 @@ contract PooledStaking is MasterAware {
     uint staked = staker.staked;
     uint previousId = _insertAfter;
     uint deallocateAt = now.add(DEALLOCATE_LOCK_TIME);
-    uint firstDeallocationId = deallocations[0].next;
 
     Deallocation storage previousDeallocation = deallocations[previousId];
 
     // Forbid insertion after an empty slot when there are non-empty slots
     // previousId != 0 allows inserting on the first position (in case lock time has been reduced)
-    if (firstDeallocationId != 0 && previousId != 0) {
+    if (previousId != 0) {
       require(previousDeallocation.deallocateAt != 0, "Provided deallocation id should not be an empty slot");
     }
 
@@ -461,12 +460,7 @@ contract PooledStaking is MasterAware {
       );
 
       // point to our new deallocation
-      if (firstDeallocationId == 0) {
-        deallocations[0].next = previousId;
-        firstDeallocationId = previousId;
-      } else {
-        previousDeallocation.next = previousId;
-      }
+      previousDeallocation.next = previousId;
 
       emit DeallocationRequested(contractAddress, msg.sender, requestedAmount, deallocateAt);
 

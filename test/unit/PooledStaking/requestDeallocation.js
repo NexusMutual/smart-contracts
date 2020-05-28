@@ -392,10 +392,8 @@ describe('requestDeallocation', function () {
     assert(nextIndexThree.eqn(3), `expected next index to be 2, found ${nextIndexThree}`);
   });
 
-  it.only('ensure the request is inserted correctly when entry at indexAfter is empty', async function () {
+  it('ensure the request is inserted correctly when entry at indexAfter is empty', async function () {
     const { staking, token } = this;
-
-    let insertAfter;
 
     // Stake 20 and allocate 20 on firstContract, DEALLOCATE_LOCK_TIME = 90 days
     await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
@@ -405,33 +403,65 @@ describe('requestDeallocation', function () {
     await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
 
     // First deallocation
-    insertAfter = 0;
-    await staking.requestDeallocation([firstContract], [ether('2')], insertAfter, { from: memberOne });
+    await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
     await staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne });
 
-    // New state: 0 -> 1 -> 0
     // Next pointer of request at insertAfter should be 1
-    const { next: nextIndexOne } = await staking.deallocationAtIndex(insertAfter);
+    const { next: nextIndexOne } = await staking.deallocationAtIndex(0);
     assert(nextIndexOne.eqn(1), `expected next index to be 1, found ${nextIndexOne}`);
 
-    // Time to process the first deallocation request
+    // Time to process the first two deallocation requests
     await time.increase(lockTime + 1);
     await staking.processPendingActions();
 
     const hasPendingActions = await staking.hasPendingActions();
     assert.isFalse(hasPendingActions);
 
-    const lastDeallocationId = await staking.lastDeallocationId();
-    console.log(lastDeallocationId);
+    // Test invalid insertion points
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne }),
+      'Provided deallocation id should not be an empty slot',
+    );
 
-    // Second deallocation, after index 1
-    insertAfter = 0;
-    await staking.requestDeallocation([firstContract], [ether('2')], insertAfter, { from: memberOne });
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 2, { from: memberOne }),
+      'Provided deallocation id should not be an empty slot',
+    );
 
-    // New state: 0 -> 1 -> 0
-    // Next pointer of request at insertAfter should be 2
-    const { next: nextIndexTwo } = await staking.deallocationAtIndex(insertAfter);
-    assert(nextIndexTwo.eqn(0), `expected next index to be 0, found ${nextIndexTwo}`);
+    // Third deallocation, after index 0
+    await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
+    const { next: nextIndexThree } = await staking.deallocationAtIndex(0);
+    assert(nextIndexThree.eqn(3), `expected next index to be 3, found ${nextIndexThree}`);
+
+    // Test invalid insertion points
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne }),
+      'Next deallocation time must be greater than new deallocation time',
+    );
+
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne }),
+      'Provided deallocation id should not be an empty slot',
+    );
+
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 2, { from: memberOne }),
+      'Provided deallocation id should not be an empty slot',
+    );
+
+    await expectRevert(
+      staking.requestDeallocation([firstContract], [ether('2')], 4, { from: memberOne }),
+      'Invalid deallocation id provided',
+    );
+
+    // Fourth deallocation, after index 3
+    await staking.requestDeallocation([firstContract], [ether('2')], 3, { from: memberOne });
+
+    const { next: firstDeallocationId } = await staking.deallocationAtIndex(0);
+    assert(firstDeallocationId.eqn(3), `expected next index to be 3, found ${firstDeallocationId}`);
+
+    const { next: nextIndexFour } = await staking.deallocationAtIndex(3);
+    assert(nextIndexFour.eqn(4), `expected next index to be 4, found ${nextIndexFour}`);
   });
 
   it('should emit DeallocationRequested event', async function () {

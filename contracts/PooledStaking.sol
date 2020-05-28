@@ -46,12 +46,6 @@ contract PooledStaking is MasterAware {
     mapping(address => uint) pendingDeallocations;
   }
 
-  struct Contract {
-    uint staked; // temporary variable used while processing burns and rewards
-    uint burned; // temporary variable used while processing burns
-    address[] stakers; // used for iteration
-  }
-
   struct Burn {
     uint amount;
     uint burnedAt;
@@ -107,11 +101,11 @@ contract PooledStaking is MasterAware {
   uint public MIN_DEALLOCATION;         // Forbid deallocation of small amounts to prevent spam
   uint public DEALLOCATE_LOCK_TIME;     // Lock period in seconds before unstaking takes place
 
-  // List of all coverable contract addresses
-  address[] public contractAddresses;
-
   mapping(address => Staker) public stakers;     // stakerAddress => Staker
-  mapping(address => Contract) public contracts; // contractAddress => Contract
+
+  uint public contractStaked; // temporary variable used while processing burns and rewards
+  uint public contractBurned; // temporary variable used while processing burns
+  mapping(address => address[]) public contractsStakers; // used for iteration
 
   // there can be only one pending burn
   Burn public burn;
@@ -152,25 +146,26 @@ contract PooledStaking is MasterAware {
   /* Getters and view functions */
 
   function contractStakerCount(address contractAddress) public view returns (uint) {
-    return contracts[contractAddress].stakers.length;
+    return contractsStakers[contractAddress].length;
   }
 
   function contractStakerAtIndex(address contractAddress, uint stakerIndex) public view returns (address) {
-    return contracts[contractAddress].stakers[stakerIndex];
+    return contractsStakers[contractAddress][stakerIndex];
   }
 
   function contractStakers(address contractAddress) public view returns (address[] memory _stakers) {
-    return contracts[contractAddress].stakers;
+    // TODO: is this view actually needed?
+    return contractsStakers[contractAddress];
   }
 
   function contractStake(address contractAddress) public view returns (uint) {
 
-    Contract storage _contract = contracts[contractAddress];
-    uint stakerCount = _contract.stakers.length;
+    address[] storage _stakers = contractsStakers[contractAddress];
+    uint stakerCount = _stakers.length;
     uint stakedOnContract;
 
     for (uint i = 0; i < stakerCount; i++) {
-      Staker storage staker = stakers[_contract.stakers[i]];
+      Staker storage staker = stakers[_stakers[i]];
       uint stake = staker.staked;
       uint allocation = staker.allocations[contractAddress];
 
@@ -356,7 +351,7 @@ contract PooledStaking is MasterAware {
       }
 
       if (isNewAllocation || oldAllocation == 0) {
-        contracts[contractAddress].stakers.push(msg.sender);
+        contractsStakers[contractAddress].push(msg.sender);
       }
 
       staker.allocations[contractAddress] = newAllocation;
@@ -576,10 +571,10 @@ contract PooledStaking is MasterAware {
     address contractAddress = burn.contractAddress;
     uint totalBurnAmount = burn.amount;
 
-    Contract storage _contract = contracts[contractAddress];
-    uint stakerCount = _contract.stakers.length;
+    address[] storage _stakers = contractsStakers[contractAddress];
+    uint stakerCount = _stakers.length;
 
-    uint actualBurnAmount = _contract.burned;
+    uint actualBurnAmount = contractBurned;
     uint stakedOnContract;
     uint previousGas = gasleft();
 
@@ -597,20 +592,20 @@ contract PooledStaking is MasterAware {
 
         previousGas = gasleft();
 
-        Staker storage staker = stakers[_contract.stakers[i]];
+        Staker storage staker = stakers[_stakers[i]];
         uint staked = staker.staked;
         uint allocation = staker.allocations[contractAddress];
         allocation = staked < allocation ? staked : allocation;
         stakedOnContract = stakedOnContract.add(allocation);
       }
 
-      _contract.staked = stakedOnContract;
+      contractStaked = stakedOnContract;
       contractStakeCalculated = true;
       processedToStakerIndex = 0;
 
     } else {
       // use previously calculated staked amount
-      stakedOnContract = _contract.staked;
+      stakedOnContract = contractStaked;
     }
 
     if (totalBurnAmount > stakedOnContract) {
@@ -620,7 +615,7 @@ contract PooledStaking is MasterAware {
     for (uint i = processedToStakerIndex; i < stakerCount; i++) {
 
       if (5 * gasleft() < 4 * previousGas) {
-        _contract.burned = actualBurnAmount;
+        contractBurned = actualBurnAmount;
         processedToStakerIndex = i;
         return false;
       }
@@ -631,15 +626,15 @@ contract PooledStaking is MasterAware {
       uint newAllocation;
 
       (stakerBurn, newAllocation) = _burnStaker(
-        _contract.stakers[i], contractAddress, totalBurnAmount, stakedOnContract
+        _stakers[i], contractAddress, totalBurnAmount, stakedOnContract
       );
 
       if (newAllocation == 0) {
         // when the allocation is explicitly set to 0
         // the staker is removed from the contract stakers array
         // we will re-add the staker if he stakes again
-        _contract.stakers[i] = _contract.stakers[stakerCount - 1];
-        _contract.stakers.pop();
+        _stakers[i] = _stakers[stakerCount - 1];
+        _stakers.pop();
         // i-- might underflow to MAX_UINT
         // but that's fine since it will be incremented back to 0 on the next loop
         i--;
@@ -728,8 +723,7 @@ contract PooledStaking is MasterAware {
     address contractAddress = reward.contractAddress;
     uint rewardAmount = reward.amount;
 
-    Contract storage _contract = contracts[contractAddress];
-    uint stakerCount = _contract.stakers.length;
+    uint stakerCount = contractsStakers[contractAddress].length;
     uint stakedOnContract;
     uint previousGas = gasleft();
 
@@ -747,20 +741,22 @@ contract PooledStaking is MasterAware {
 
         previousGas = gasleft();
 
-        Staker storage staker = stakers[_contract.stakers[i]];
+        address stakerAddress = contractsStakers[contractAddress][i];
+        Staker storage staker = stakers[stakerAddress];
+
         uint staked = staker.staked;
         uint allocation = staker.allocations[contractAddress];
         allocation = staked < allocation ? staked : allocation;
         stakedOnContract = stakedOnContract.add(allocation);
       }
 
-      _contract.staked = stakedOnContract;
+      contractStaked = stakedOnContract;
       contractStakeCalculated = true;
       processedToStakerIndex = 0;
 
     } else {
       // use previously calculated staked amount
-      stakedOnContract = _contract.staked;
+      stakedOnContract = contractStaked;
     }
 
     for (uint i = processedToStakerIndex; i < stakerCount; i++) {
@@ -772,7 +768,8 @@ contract PooledStaking is MasterAware {
 
       previousGas = gasleft();
 
-      Staker storage staker = stakers[_contract.stakers[i]];
+      address stakerAddress = contractsStakers[contractAddress][i];
+      Staker storage staker = stakers[stakerAddress];
       uint staked = staker.staked;
       uint initialAllocation = staker.allocations[contractAddress];
       uint allocation = staked < initialAllocation ? staked : initialAllocation;
@@ -780,8 +777,8 @@ contract PooledStaking is MasterAware {
       // remove 0-amount stakers, similar to what we're doing when processing burns
       if (allocation == 0) {
         staker.allocations[contractAddress] = 0;
-        _contract.stakers[i] = _contract.stakers[stakerCount - 1];
-        _contract.stakers.pop();
+        contractsStakers[contractAddress][i] = contractsStakers[contractAddress][stakerCount - 1];
+        contractsStakers[contractAddress].pop();
         i--;
         stakerCount--;
 

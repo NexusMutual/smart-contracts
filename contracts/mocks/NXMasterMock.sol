@@ -13,7 +13,7 @@ contract NXMasterMock is NXMaster {
     }
 
     function setContractAddress(bytes2 contractName, address payable contractAddress) external {
-        contractsActive[contractAddress] == true;
+        contractsActive[contractAddress] = true;
         allContractVersions[contractName] = contractAddress;
     }
 }

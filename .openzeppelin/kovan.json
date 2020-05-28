@@ -633,25 +633,25 @@
   "proxies": {
     "pooled-staking/TokenMock": [
       {
-        "address": "0x18221Be4b95d4D10016fDd94A216039EA10F764E",
+        "address": "0x2f334044Cb8653d983FBC00CFa68B67D91752737",
         "kind": "NonProxy"
       }
     ],
     "pooled-staking/MasterMock": [
       {
-        "address": "0x08FB9Cb070DC543c56be7Bde30E40e7b7D177203",
+        "address": "0xe56248D85c0f9Dd6EC6ad68435AFd4440D295AA8",
         "kind": "NonProxy"
       }
     ],
     "pooled-staking/TokenControllerMock": [
       {
-        "address": "0x1Dc37f12c3B0b43Be727106e9fCc9c12F98857a9",
+        "address": "0xa9024A5A35b018de27A082824b32D3bFc86Ff434",
         "kind": "NonProxy"
       }
     ],
     "pooled-staking/PooledStaking": [
       {
-        "address": "0x9b190b0AeB1C8859fb163BB09Ed9241eEc9439f2",
+        "address": "0xd6E32e9350317700486674770A47d029d5Dd4C24",
         "kind": "NonProxy"
       }
     ]

@@ -72,7 +72,8 @@ describe('pushReward', function () {
 
     // Push reward
     const rewardAmount = ether('2');
-    const reward = await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
+    await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
+    await staking.processPendingActions();
 
     const currentBalance = await token.balanceOf(staking.address);
     const expectedBalance = ether('12');

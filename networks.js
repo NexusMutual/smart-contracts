@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const kovanMnemonic = process.env.KOVAN_MNEMONIC;
+const kovanProviderURL = process.env.KOVAN_PROVIDER_URL || 'https://parity.govblocks.io';
 
 module.exports = {
   networks: {
@@ -16,12 +17,12 @@ module.exports = {
     kovan: {
       gasPrice: 5e9,
       networkId: 42,
-      provider: () => new HDWalletProvider(kovanMnemonic, 'https://parity.govblocks.io'),
+      provider: () => new HDWalletProvider(kovanMnemonic, kovanProviderURL),
     },
     personal: {
       gasPrice: 5e9,
       networkId: 42,
-      provider: () => new HDWalletProvider(kovanMnemonic, 'https://parity.govblocks.io'),
+      provider: () => new HDWalletProvider(kovanMnemonic, kovanProviderURL),
     },
     development: {
       protocol: 'http',

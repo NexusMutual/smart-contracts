@@ -347,13 +347,6 @@ contract PooledStaking is MasterAware {
       }
 
       if (oldAllocation == newAllocation) {
-
-        // update allocation to reflect decreased stake due to previous burns
-        if (initialAllocation != oldAllocation) {
-          // TODO: This might break remove 0-amount stakers feature. Needs tests!!!
-          staker.allocations[contractAddress] = oldAllocation;
-        }
-
         // no other changes to this contract
         continue;
       }

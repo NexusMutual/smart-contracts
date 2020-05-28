@@ -392,23 +392,47 @@ describe('requestDeallocation', function () {
     assert(nextIndexThree.eqn(3), `expected next index to be 2, found ${nextIndexThree}`);
   });
 
-  // it('ensure the total pending deallocations amount of the staker for the given contract is updated', async function () {
-  //   // uint newPending = staker.pendingDeallocations[contractAddress].add(requestedAmount);
-  //   // staker.pendingDeallocations[contractAddress] = newPending;
-  //
-  //   const { staking, token } = this;
-  //
-  //   // Stake 20 and allocate 20 on firstContract, DEALLOCATE_LOCK_TIME = 90 days
-  //   await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
-  //
-  //   // First deallocation
-  //   await staking.requestDeallocation([firstContract], [ether('2')], 0, { from: memberOne });
-  //
-  //   const { pendingDeallocations: deallocationsMemberOne  } = await staking.stakers(
-  //       memberOne,
-  //       { from: memberOne },
-  //   );
-  // });
+  it.only('ensure the request is inserted correctly when entry at indexAfter is empty', async function () {
+    const { staking, token } = this;
+
+    let insertAfter;
+
+    // Stake 20 and allocate 20 on firstContract, DEALLOCATE_LOCK_TIME = 90 days
+    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+
+    // Set DEALLOCATE_LOCK_TIME to 30 days
+    const lockTime = 30 * 24 * 3600; // 30 days
+    await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
+
+    // First deallocation
+    insertAfter = 0;
+    await staking.requestDeallocation([firstContract], [ether('2')], insertAfter, { from: memberOne });
+    await staking.requestDeallocation([firstContract], [ether('2')], 1, { from: memberOne });
+
+    // New state: 0 -> 1 -> 0
+    // Next pointer of request at insertAfter should be 1
+    const { next: nextIndexOne } = await staking.deallocationAtIndex(insertAfter);
+    assert(nextIndexOne.eqn(1), `expected next index to be 1, found ${nextIndexOne}`);
+
+    // Time to process the first deallocation request
+    await time.increase(lockTime + 1);
+    await staking.processPendingActions();
+
+    const hasPendingActions = await staking.hasPendingActions();
+    assert.isFalse(hasPendingActions);
+
+    const lastDeallocationId = await staking.lastDeallocationId();
+    console.log(lastDeallocationId);
+
+    // Second deallocation, after index 1
+    insertAfter = 0;
+    await staking.requestDeallocation([firstContract], [ether('2')], insertAfter, { from: memberOne });
+
+    // New state: 0 -> 1 -> 0
+    // Next pointer of request at insertAfter should be 2
+    const { next: nextIndexTwo } = await staking.deallocationAtIndex(insertAfter);
+    assert(nextIndexTwo.eqn(0), `expected next index to be 0, found ${nextIndexTwo}`);
+  });
 
   it('should emit DeallocationRequested event', async function () {
     const { staking, token } = this;
@@ -428,6 +452,5 @@ describe('requestDeallocation', function () {
       amount: ether('2'),
       deallocateAt: expectedDeallocateTime,
     });
-
   });
 });

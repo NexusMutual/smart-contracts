@@ -858,6 +858,8 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
 
   contractBurned(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
+  contractRewarded(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
   contractStake(
     contractAddress: string | BigNumber,
     txDetails?: Truffle.TransactionDetails

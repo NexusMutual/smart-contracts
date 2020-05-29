@@ -21,7 +21,7 @@ const Pool1 = contract.fromArtifact('Pool1Mock');
 const Pool2 = contract.fromArtifact('Pool2');
 const PoolData = contract.fromArtifact('PoolDataMock');
 const Quotation = contract.fromArtifact('Quotation');
-const QuotationDataMock = contract.fromArtifact('QuotationDataMock');
+const QuotationData = contract.fromArtifact('QuotationData');
 const Governance = contract.fromArtifact('Governance');
 const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const MemberRoles = contract.fromArtifact('MemberRoles');
@@ -71,7 +71,7 @@ async function setup () {
   const tf = await TokenFunctions.new();
 
   const qt = await Quotation.new();
-  const qd = await QuotationDataMock.new(QE, owner);
+  const qd = await QuotationData.new(QE, owner);
 
   const gv = await Governance.new();
   const pc = await ProposalCategory.new();

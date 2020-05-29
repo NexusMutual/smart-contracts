@@ -1,15 +1,30 @@
+const BN = require('bn.js');
 const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const { web3 } = require('@openzeppelin/test-environment');
+const exec = util.promisify(require('child_process').exec);
 
 const hex = string => '0x' + Buffer.from(string).toString('hex');
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const formatJSON = json => JSON.stringify(json, null, 2);
+const logEvents = async call => parseLogs(await call);
 
-const parseLogs = tx => {
-  return tx.logs.map(log => {
-    console.log(log);
-    return log;
-  });
+const filterArgsKeys = args => {
+  const params = {};
+  for (const key of Object.keys(args)) {
+    if (isNaN(key) && key !== '__length__') {
+      const value = args[key];
+      params[key] = BN.isBN(value) ? value.toString() : value;
+    }
+  }
+  return params;
 };
+
+const parseLogs = tx => tx.logs.map(log => {
+  const { event, args } = log;
+  const params = filterArgsKeys(args);
+  console.log(`Event emitted: ${event}(${formatJSON(params)}`);
+  return log;
+});
 
 const tenderly = async tx => {
   const provider = web3.currentProvider;
@@ -23,4 +38,12 @@ const to = promise => new Promise(resolve => {
     .catch(e => resolve([null, e]));
 });
 
-module.exports = { hex, parseLogs, tenderly, to };
+module.exports = {
+  filterArgsKeys,
+  hex,
+  logEvents,
+  sleep,
+  parseLogs,
+  tenderly,
+  to,
+};

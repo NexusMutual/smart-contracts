@@ -10,7 +10,7 @@ const setup = require('../setup');
 
 const {
   nonMembers: [nonMember],
-  members: [memberOne],
+  members: [memberOne, memberTwo],
   governanceContracts: [governanceContract],
 } = accounts;
 
@@ -29,14 +29,18 @@ async function fundApproveStake (token, staking, amount, contracts, allocations,
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
 
-  await staking.stake(amount, contracts, allocations, { from: memberOne });
+  await staking.stake(amount, contracts, allocations, { from: member });
 }
 
 async function setDeallocateLockTime (staking, lockTime) {
   return staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
-describe('requestDeallocation', function () {
+async function setMinDeallocation (staking, amount) {
+  return staking.updateParameter(ParamType.MIN_DEALLOCATION, amount, { from: governanceContract });
+}
+
+describe.only('requestDeallocation', function () {
 
   beforeEach(setup);
 
@@ -533,5 +537,89 @@ describe('requestDeallocation', function () {
       amount: ether('2'),
       deallocateAt: expectedDeallocateTime,
     });
+  });
+
+  it('should allow multiple deallocations in the same block', async function () {
+    const { staking, token } = this;
+
+    const lockTime = 30 * 24 * 3600; // 30 days
+    await setDeallocateLockTime(staking, lockTime);
+
+    await setMinDeallocation(staking, ether('2'));
+
+    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
+    await fundApproveStake(token, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
+
+    for (let i = 0; i < 80; i++) {
+      await staking.requestDeallocation([firstContract], [ether('3')], i, { from: memberOne });
+      await staking.requestDeallocation([secondContract], [ether('5')], i, { from: memberTwo });
+      await time.increase(3600);
+    }
+  });
+
+  it('should allow multiple sequential deallocations', async function () {
+    const { staking, token } = this;
+
+    const lockTime = 30 * 24 * 3600; // 30 days
+    await setDeallocateLockTime(staking, lockTime);
+
+    await setMinDeallocation(staking, ether('2'));
+
+    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
+    await fundApproveStake(token, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
+
+    for (let i = 0; i < 80; i=+2) {
+      await staking.requestDeallocation([firstContract], [ether('3')], i, { from: memberOne });
+      await time.increase(3600);
+      await staking.requestDeallocation([secondContract], [ether('5')], i+1, { from: memberTwo });
+      await time.increase(3600);
+    }
+  });
+
+  it('should allow multiple deallocations after some were processed', async function () {
+    const { staking, token } = this;
+
+    const lockTime = 30 * 24 * 3600; // 30 days
+    await setDeallocateLockTime(staking, lockTime);
+
+    await setMinDeallocation(staking, ether('2'));
+
+    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
+
+    for (let i = 0; i < 20; i++) {
+      await staking.requestDeallocation([firstContract], [ether('3')], i, { from: memberOne });
+      await time.increase(3600);
+    }
+
+    await time.increase(60 * 24 * 3600);
+    await staking.processPendingActions();
+
+    for (let i = 0; i < 40; i++) {
+      await staking.requestDeallocation([firstContract], [ether('3')], i, { from: memberOne });
+      await time.increase(3600);
+    }
+  });
+
+  it('should allow multiple sequential deallocations in between stakes', async function () {
+    const { staking, token } = this;
+
+    const lockTime = 30 * 24 * 3600; // 30 days
+    await setDeallocateLockTime(staking, lockTime);
+
+    await setMinDeallocation(staking, ether('2'));
+
+    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
+
+    for (let i = 0; i < 10; i++) {
+      await staking.requestDeallocation([firstContract], [ether('10')], i, { from: memberOne });
+      await time.increase(3600);
+    }
+
+    await fundApproveStake(token, staking, ether('200'), [firstContract], [ether('1200')], memberOne);
+
+    for (let i = 10; i < 20; i++) {
+      await staking.requestDeallocation([firstContract], [ether('8')], i, { from: memberOne });
+      await time.increase(3600);
+    }
   });
 });

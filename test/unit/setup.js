@@ -17,7 +17,7 @@ async function setup () {
   const token = await TokenMock.new();
   const tokenController = await TokenControllerMock.new();
 
-  token.mint(defaultSender, ether('1000'));
+  token.mint(defaultSender, ether('10000'));
 
   // set contract addresses
   await master.setTokenAddress(token.address);

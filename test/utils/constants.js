@@ -1,8 +1,8 @@
 const ParamType = {
-  MIN_ALLOCATION: 0,
-  MAX_LEVERAGE: 1,
-  MIN_DEALLOCATION: 2,
-  DEALLOCATE_LOCK_TIME: 3,
+  MIN_STAKE: 0,
+  MAX_EXPOSURE: 1,
+  MIN_UNSTAKE: 2,
+  UNSTAKE_LOCK_TIME: 3,
 };
 
 const Role = {

@@ -15,14 +15,14 @@ const {
 const firstContract = '0x0000000000000000000000000000000000000001';
 
 async function fundAndApprove (token, staking, amount, member) {
-  const maxLeverage = '2';
-  await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
+  const maxExposure = '2';
+  await staking.updateParameter(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
 }
 
-describe('withdrawReward', function () {
+describe.only('withdrawReward', function () {
 
   beforeEach(setup);
 
@@ -50,12 +50,12 @@ describe('withdrawReward', function () {
     // MemberOne stakes 10 on firstContract
     const stakeAmountOne = ether('10');
     await fundAndApprove(token, staking, stakeAmountOne, memberOne);
-    await staking.stake(stakeAmountOne, [firstContract], [stakeAmountOne], { from: memberOne });
+    await staking.depositAndStake(stakeAmountOne, [firstContract], [stakeAmountOne], { from: memberOne });
 
     // MemberTwo stakes 20 on firstContract
     const stakeAmountTwo = ether('20');
     await fundAndApprove(token, staking, stakeAmountTwo, memberTwo);
-    await staking.stake(stakeAmountTwo, [firstContract], [stakeAmountTwo], { from: memberTwo });
+    await staking.depositAndStake(stakeAmountTwo, [firstContract], [stakeAmountTwo], { from: memberTwo });
 
     // Generate and process a reward
     const reward = ether('4');
@@ -64,7 +64,7 @@ describe('withdrawReward', function () {
 
     // MemberOne can withdraw: 4 * 10 / 30 = 1.(33)
     const expectedRewardMemberOne = reward.mul(stakeAmountOne).div(ether('30'));
-    const { reward: rewardMemberOne } = await staking.stakers(memberOne, { from: memberOne });
+    const rewardMemberOne = await staking.stakerReward(memberOne);
     assert(
       rewardMemberOne.eq(expectedRewardMemberOne),
       `expected reward for member one is ${expectedRewardMemberOne}, found ${rewardMemberOne}`,
@@ -77,17 +77,18 @@ describe('withdrawReward', function () {
 
     // MemberTwo can withdraw: 4 * 20 / 30 = 2.(66)
     const expectedRewardMemberTwo = reward.mul(stakeAmountTwo).div(ether('30'));
-    const { reward: rewardMemberTwo } = await staking.stakers(memberTwo, { from: memberTwo });
+    const rewardMemberTwo = await staking.stakerReward(memberTwo);
     assert(
       rewardMemberTwo.eq(expectedRewardMemberTwo),
       `expected reward for member one is ${expectedRewardMemberTwo}, found ${rewardMemberTwo}`,
     );
+
     await expectRevert(
       staking.withdrawReward(memberTwo, ether('3'), { from: memberTwo }),
       'Requested amount exceeds available reward',
     );
-    await staking.withdrawReward(memberTwo, expectedRewardMemberTwo, { from: memberTwo });
 
+    await staking.withdrawReward(memberTwo, expectedRewardMemberTwo, { from: memberTwo });
   });
 
   it('should properly move tokens from the PooledStaking contract to the member\'s address', async function () {
@@ -96,7 +97,7 @@ describe('withdrawReward', function () {
     // Fund account and stake
     const stakeAmount = ether('10');
     await fundAndApprove(token, staking, stakeAmount, memberOne);
-    await staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
+    await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // Generate reward and process it
     const reward = ether('2');
@@ -138,7 +139,7 @@ describe('withdrawReward', function () {
     // Fund account and stake
     const stakeAmount = ether('10');
     await fundAndApprove(token, staking, stakeAmount, memberOne);
-    await staking.stake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
+    await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // Generate reward and process it
     const reward = ether('5');
@@ -148,17 +149,16 @@ describe('withdrawReward', function () {
     // Withdraw partial reward
     await staking.withdrawReward(memberOne, ether('2'), { from: memberOne });
 
-    // Expect new staker's update to be ether('3)
-    const { reward: leftReward } = await staking.stakers(memberOne, { from: memberOne });
+    // Expect new staker's reward to be ether('3)
+    const leftReward = await staking.stakerReward(memberOne);
     assert(leftReward.eq(ether('3')));
 
     // Withdraw all left reward
     await staking.withdrawReward(memberOne, ether('3'), { from: memberOne });
 
     // Expect new staker's update to be 0
-    const { reward: finalReward } = await staking.stakers(memberOne, { from: memberOne });
+    const finalReward = await staking.stakerReward(memberOne);
     assert(finalReward.eq(ether('0')));
-
   });
 
 });

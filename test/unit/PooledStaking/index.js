@@ -9,9 +9,10 @@ describe('PooledStaking unit tests', function () {
   require('./unstake');
   require('./withdrawReward');
   require('./requestDeallocation');
+  require('./processFirstDeallocation');
   require('./pushBurn');
+  require('./processFirstBurn');
   require('./pushReward');
   require('./processFirstReward');
-  require('./processFirstDeallocation');
   require('./getters');
 });

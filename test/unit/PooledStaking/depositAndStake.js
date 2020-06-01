@@ -24,7 +24,7 @@ async function fundAndApprove (token, staking, amount, member) {
   await token.approve(staking.address, amount, { from: member });
 }
 
-describe('stake', function () {
+describe('depositAndStake', function () {
 
   beforeEach(setup);
 
@@ -223,12 +223,17 @@ describe('stake', function () {
     assert(sameDeposit.eq(amount), 'amount staked should be the same');
 
     // Stake on one more contract, without increasing the deposit amount
-    await staking.depositAndStake(
+    const tx = await staking.depositAndStake(
       0,
       [firstContract, secondContract, thirdContract],
       [ether('6'), ether('6'), ether('2')],
       { from: memberOne },
     );
+
+    expectEvent(tx, 'Staked');
+    const events = tx.logs.map(log => log.event);
+    assert.isFalse(events.includes('Deposited'), 'should not emit Deposited when depositAndStake with 0 amount');
+
     const sameDepositAgain = await staking.stakerDeposit(memberOne);
     assert(sameDepositAgain.eq(amount), 'deposited amount should be the same');
   });

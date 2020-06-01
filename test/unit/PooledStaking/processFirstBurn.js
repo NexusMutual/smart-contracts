@@ -337,9 +337,6 @@ describe('processFirstBurn', function () {
       await fundAndStake(token, staking, ether('10'), firstContract, account);
     }
 
-    const stakers = await staking.contractStakerCount(firstContract);
-    console.log(stakers);
-
     await staking.pushBurn(firstContract, ether('9'), { from: internalContract });
 
     let process = await staking.processPendingActions({ gas: 650000 });
@@ -352,7 +349,7 @@ describe('processFirstBurn', function () {
   });
 
   it('should emit Burned event', async function () {
-      
+
     const { token, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
     await fundAndStake(token, staking, ether('10'), firstContract, memberOne);

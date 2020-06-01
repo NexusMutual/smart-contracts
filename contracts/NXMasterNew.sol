@@ -31,6 +31,12 @@ contract NXMasterNew is Governed {
     bytes4 by;
   }
 
+  event NewInternalContractAdded (
+    bytes2 _contractName,
+    address payable _contractAddress,
+    uint _type
+  );
+
   EmergencyPause[] public emergencyPaused;
 
   bytes2[] internal allContractNames;
@@ -144,6 +150,7 @@ contract NXMasterNew is Governed {
     up = Iupgradable(allContractVersions[_contractName]);
     up.changeMasterAddress(address(this));
     up.changeDependentContractAddress();
+    emit NewInternalContractAdded(_contractName, _contractAddress, _type);
   }
 
   /**

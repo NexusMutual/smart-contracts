@@ -22,7 +22,7 @@ async function fundAndApprove (token, staking, amount, member) {
   await token.approve(staking.address, amount, { from: member });
 }
 
-describe.only('withdrawReward', function () {
+describe('withdrawReward', function () {
 
   beforeEach(setup);
 

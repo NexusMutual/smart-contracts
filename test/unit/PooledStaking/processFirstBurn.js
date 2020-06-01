@@ -6,7 +6,7 @@ const { ParamType, Role } = require('../utils').constants;
 const setup = require('../setup');
 
 const {
-  members: [memberOne, memberTwo, memberThree, fourthContract],
+  members: [memberOne, memberTwo, memberThree],
   internalContracts: [internalContract],
   nonInternalContracts: [nonInternal],
   governanceContracts: [governanceContract],
@@ -15,6 +15,7 @@ const {
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
+const fourthContract = '0x0000000000000000000000000000000000000004';
 
 async function fundAndStake (token, staking, amount, contract, member) {
   await staking.updateParameter(ParamType.MAX_LEVERAGE, ether('2'), { from: governanceContract });

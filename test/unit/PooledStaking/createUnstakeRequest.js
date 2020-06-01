@@ -315,27 +315,21 @@ describe('createUnstakeRequest', function () {
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
 
-    const latestBlockTime = await time.latest();
-    const unstakeTime = latestBlockTime.addn(90 * 24 * 3600);
-
     const unstakeRequests = [
       {
         amount: ether('2'),
-        unstakeAt: unstakeTime,
         contractAddress: firstContract,
         stakerAddress: memberOne,
         next: '2',
       },
       {
         amount: ether('3'),
-        unstakeAt: unstakeTime,
         contractAddress: firstContract,
         stakerAddress: memberOne,
         next: '3',
       },
       {
         amount: ether('4'),
-        unstakeAt: unstakeTime,
         contractAddress: firstContract,
         stakerAddress: memberOne,
         next: '0',
@@ -346,12 +340,14 @@ describe('createUnstakeRequest', function () {
     for (let i = 0; i < unstakeRequests.length; i++) {
       const { contractAddress, amount } = unstakeRequests[i];
       await staking.createUnstakeRequest([contractAddress], [amount], i, { from: memberOne });
+      unstakeRequests[i].unstakeAt = (await time.latest()).addn(90 * 24 * 3600);
     }
 
     // Fetch the actual unstake requests (always starting with index 1) and check their content is as expected
     for (let i = 1; i <= unstakeRequests.length; i++) {
       const actualRequest = await staking.unstakeRequestAtIndex(i);
-      assert.deepEqual(filterArgsKeys(actualRequest), filterArgsKeys(unstakeRequests[i - 1]));
+      const expectedRequest = filterArgsKeys(unstakeRequests[i - 1]);
+      assert.deepEqual(filterArgsKeys(actualRequest), expectedRequest);
     }
   });
 

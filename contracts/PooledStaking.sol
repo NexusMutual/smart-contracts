@@ -334,7 +334,7 @@ contract PooledStaking is MasterAware {
       uint newStake = _stakes[i];
       bool isNewStake = i >= oldLength;
 
-      require(newStake >= MIN_STAKE, "Stake minimum not met");
+      require(newStake >= MIN_STAKE, "Minimum stake amount not met");
       require(newStake <= newDeposit, "Cannot stake more than deposited");
 
       if (!isNewStake) {

@@ -8,7 +8,7 @@ describe('PooledStaking unit tests', function () {
   require('./depositAndStake');
   require('./withdraw');
   require('./withdrawReward');
-  require('./requestDeallocation');
+  require('./createUnstakeRequest');
   require('./processFirstDeallocation');
   require('./pushBurn');
   require('./processFirstBurn');

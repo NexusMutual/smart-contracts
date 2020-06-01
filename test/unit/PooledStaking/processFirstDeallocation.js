@@ -299,4 +299,6 @@ describe('processFirstDeallocation', function () {
       amount: ether('30'),
     });
   });
+
+  // TODO: Add test for gas limit
 });

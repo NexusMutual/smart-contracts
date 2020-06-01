@@ -535,7 +535,7 @@ contract PooledStaking is MasterAware {
       ) {
 
         // O(n)
-        if (!_processFirstBurn()) {
+        if (!_processBurn()) {
           emit PendingActionsProcessed(false);
           return false;
         }
@@ -568,7 +568,7 @@ contract PooledStaking is MasterAware {
     return true;
   }
 
-  function _processFirstBurn() internal returns (bool) {
+  function _processBurn() internal returns (bool) {
 
     address _contractAddress = burn.contractAddress;
     address[] storage _contractStakers = contractsStakers[_contractAddress];

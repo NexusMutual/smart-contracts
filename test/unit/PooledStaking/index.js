@@ -6,7 +6,7 @@ describe('PooledStaking unit tests', function () {
 
   require('./updateParameter');
   require('./depositAndStake');
-  require('./unstake');
+  require('./withdraw');
   require('./withdrawReward');
   require('./requestDeallocation');
   require('./processFirstDeallocation');

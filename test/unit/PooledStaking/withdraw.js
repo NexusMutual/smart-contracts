@@ -1,4 +1,4 @@
-const { expectRevert, ether } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
@@ -16,14 +16,14 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundAndApprove (token, staking, amount, member) {
-  const maxLeverage = '2';
+  const maxExposure = '2';
 
-  await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
+  await staking.updateParameter(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
 }
 
-describe('unstake', function () {
+describe('withdraw', function () {
 
   beforeEach(setup);
 
@@ -34,139 +34,140 @@ describe('unstake', function () {
     assert.strictEqual(await master.isMember(nonMember), false);
 
     await expectRevert(
-      staking.unstake(ether('1'), { from: nonMember }),
+      staking.withdraw(ether('1'), { from: nonMember }),
       'Caller is not a member',
     );
   });
 
-  it('should revert if requested amount exceeds max unstakable amount', async function () {
+  it('should revert if requested amount exceeds max withdrawable amount', async function () {
 
     const { token, staking } = this;
-    let maxUnstakable;
+    let maxWithdrawable;
 
-    // Member 1: Stake 10 and allocate the entire stake, up to max leverage
+    // member 1: deposit 10 and stake the entire deposit, up to max exposure
     const amountOne = ether('10');
     await fundAndApprove(token, staking, amountOne, memberOne);
-    await staking.stake(amountOne, [firstContract, secondContract], [amountOne, amountOne], { from: memberOne });
-    const { staked: stakedMemberOne } = await staking.stakers(memberOne, { from: memberOne });
-    assert(stakedMemberOne.eq(amountOne), `expected staked amount for memberOne ${amountOne}, found ${stakedMemberOne}`);
+    await staking.depositAndStake(amountOne, [firstContract, secondContract], [amountOne, amountOne], { from: memberOne });
+    const memberOneDeposit = await staking.stakerDeposit(memberOne);
+    assert(memberOneDeposit.eq(amountOne), `expected deposit for memberOne ${amountOne}, found ${memberOneDeposit}`);
 
-    // Nothing to unstake
-    maxUnstakable = await staking.getMaxUnstakable(memberOne);
-    assert(maxUnstakable.eq(ether('0')));
+    // nothing to withdraw
+    maxWithdrawable = await staking.getMaxWithdrawable(memberOne);
+    assert(maxWithdrawable.eq(ether('0')));
     await expectRevert(
-      staking.unstake(amountOne, { from: memberOne }),
-      'Requested amount exceeds max unstakable amount',
+      staking.withdraw(amountOne, { from: memberOne }),
+      'Requested amount exceeds max withdrawable amount',
     );
 
-    // Member 2: Stake 8 and allocate the entire stake on 1 contract (unleveraged)
+    // member 2: deposit 8 and stake the entire deposit on 1 contract (exposure = 1)
     const amountTwo = ether('8');
     await fundAndApprove(token, staking, amountTwo, memberTwo);
-    await staking.stake(amountTwo, [firstContract], [amountTwo], { from: memberTwo });
-    const { staked: stakedMemberTwo } = await staking.stakers(memberTwo, { from: memberTwo });
-    assert(stakedMemberTwo.eq(amountTwo), `expected staked amount for memberTwo ${amountTwo}, found ${stakedMemberTwo}`);
+    await staking.depositAndStake(amountTwo, [firstContract], [amountTwo], { from: memberTwo });
+    const memberTwoDeposit = await staking.stakerDeposit(memberTwo);
+    assert(memberTwoDeposit.eq(amountTwo), `expected deposit for memberTwo ${amountTwo}, found ${memberTwoDeposit}`);
 
-    // Nothing to unstake
-    maxUnstakable = await staking.getMaxUnstakable(memberTwo);
-    assert(maxUnstakable.eq(ether('0')));
+    // nothing to withdraw
+    maxWithdrawable = await staking.getMaxWithdrawable(memberTwo);
+    assert(maxWithdrawable.eq(ether('0')));
     await expectRevert(
-      staking.unstake(amountTwo, { from: memberTwo }),
-      'Requested amount exceeds max unstakable amount',
+      staking.withdraw(amountTwo, { from: memberTwo }),
+      'Requested amount exceeds max withdrawable amount',
     );
 
-    // Member 3: Stake 7 and allocate [5, 3] on two contracts
+    // member 3: deposit 7 and stake [5, 3] on two contracts
     const amountThree = ether('7');
     await fundAndApprove(token, staking, amountThree, memberThree);
-    await staking.stake(amountThree, [firstContract, secondContract], [ether('5'), ether('3')], { from: memberThree });
-    const { staked: stakedMemberThree } = await staking.stakers(memberThree, { from: memberThree });
+    await staking.depositAndStake(amountThree, [firstContract, secondContract], [ether('5'), ether('3')], { from: memberThree });
+    const memberThreeDeposit = await staking.stakerDeposit(memberThree);
     assert(
-      stakedMemberThree.eq(amountThree),
-      `expected staked amount for memberThree ${amountThree}, found ${stakedMemberThree}`,
+      memberThreeDeposit.eq(amountThree),
+      `expected deposit for memberThree ${amountThree}, found ${memberThreeDeposit}`,
     );
 
-    // Can unstake 2
-    maxUnstakable = await staking.getMaxUnstakable(memberThree);
-    assert(maxUnstakable.eq(ether('2')), `expected max unstakable ${ether('2')}, found ${maxUnstakable}`);
+    // can withdraw 2
+    maxWithdrawable = await staking.getMaxWithdrawable(memberThree);
+    assert(maxWithdrawable.eq(ether('2')), `expected max withdrawable ${ether('2')}, found ${maxWithdrawable}`);
     await expectRevert(
-      staking.unstake(amountThree, { from: memberThree }),
-      'Requested amount exceeds max unstakable amount',
+      staking.withdraw(amountThree, { from: memberThree }),
+      'Requested amount exceeds max withdrawable amount',
     );
-    await staking.unstake(ether('2'), { from: memberThree });
+    await staking.withdraw(ether('2'), { from: memberThree });
 
-    // Member 4: Stake 45, allocate [15, 15, 15], expect 22.5 unstakable
+    // member 4: deposit 45, stake [15, 15, 15], expect 22.5 withdrawable
     const amountFour = ether('45');
     await fundAndApprove(token, staking, amountFour, memberFour);
-    await staking.stake(
+    await staking.depositAndStake(
       amountFour,
       [firstContract, secondContract, thirdContract],
       [ether('15'), ether('15'), ether('15')],
       { from: memberFour },
     );
 
-    const { staked: stakedMemberFour } = await staking.stakers(memberFour, { from: memberFour });
+    const memberFourDeposit = await staking.stakerDeposit(memberFour);
     assert(
-      stakedMemberFour.eq(amountFour),
-      `expected staked amount for memberFour ${amountFour}, found ${stakedMemberFour}`,
+      memberFourDeposit.eq(amountFour),
+      `expected deposit for memberFour ${amountFour}, found ${memberFourDeposit}`,
     );
 
-    // Can unstake 22.5
-    maxUnstakable = await staking.getMaxUnstakable(memberFour);
-    assert(maxUnstakable.eq(ether('22.5')), `expected max unstakable ${ether('22.5')}, found ${maxUnstakable}`);
+    // can withdraw 22.5
+    maxWithdrawable = await staking.getMaxWithdrawable(memberFour);
+    assert(maxWithdrawable.eq(ether('22.5')), `expected max withdrawable ${ether('22.5')}, found ${maxWithdrawable}`);
     await expectRevert(
-      staking.unstake(ether('22.501'), { from: memberFour }),
-      'Requested amount exceeds max unstakable amount',
+      staking.withdraw(ether('22.501'), { from: memberFour }),
+      'Requested amount exceeds max withdrawable amount',
     );
-    await staking.unstake(ether('22.5'), { from: memberFour });
+    await staking.withdraw(ether('22.5'), { from: memberFour });
   });
 
-  it('should decrease the total stake amount of the staker', async function () {
+  it('should decrease the total deposit amount of the staker and emit Withdrawn event', async function () {
     const { token, staking } = this;
     const totalAmount = ether('10');
-    const unstakeAmount = ether('2');
+    const withdrawAmount = ether('2');
 
-    // Fund accounts
+    // fund accounts
     await fundAndApprove(token, staking, totalAmount, memberOne);
 
-    // Stake 10 and allocate 6 on one contract
-    await staking.stake(totalAmount, [firstContract], [ether('6')], { from: memberOne });
-    const { staked: stakedBefore } = await staking.stakers(memberOne, { from: memberOne });
-    assert(stakedBefore.eq(totalAmount), `expected staked amount ${totalAmount}, found ${stakedBefore}`);
+    // deposit 10 and stake 6 on one contract
+    await staking.depositAndStake(totalAmount, [firstContract], [ether('6')], { from: memberOne });
+    const depositedBefore = await staking.stakerDeposit(memberOne);
+    assert(depositedBefore.eq(totalAmount), `expected staked amount ${totalAmount}, found ${depositedBefore}`);
 
-    // Unstake 2
-    await staking.unstake(unstakeAmount, { from: memberOne });
+    // withdraw 2
+    const tx = await staking.withdraw(withdrawAmount, { from: memberOne });
+    expectEvent(tx, 'Withdrawn');
 
-    // Expect 8 staked left
-    const { staked: stakedAfter } = await staking.stakers(memberOne, { from: memberOne });
-    const expectedStakedAfter = totalAmount.sub(unstakeAmount);
-    assert(stakedAfter.eq(expectedStakedAfter), `expected remaining staked amount ${expectedStakedAfter}, found ${stakedAfter}`);
+    // expect 8 deposited left
+    const depositAfter = await staking.stakerDeposit(memberOne);
+    const expectedDepositAfter = totalAmount.sub(withdrawAmount);
+    assert(depositAfter.eq(expectedDepositAfter), `expected remaining staked amount ${expectedDepositAfter}, found ${depositAfter}`);
   });
 
-  it('should move the unstaked tokens from the PooledStaking contract to the caller\'s address', async function () {
+  it("should move the withdrawn tokens from the PooledStaking contract to the caller's address", async function () {
 
     const { token, staking } = this;
-    const totalAmount = ether('10');
-    const allocatedAmount = ether('6');
+    const depositAmount = ether('10');
+    const stakedAmount = ether('6');
 
-    // fund account, MAX_LEVERAGE = 2
-    await fundAndApprove(token, staking, totalAmount, memberOne);
+    // fund account, MAX_EXPOSURE = 2
+    await fundAndApprove(token, staking, depositAmount, memberOne);
 
-    // Stake 10 and allocate 6 on one contract
-    await staking.stake(totalAmount, [firstContract], [allocatedAmount], { from: memberOne });
-    const { staked: stakedMemberOne } = await staking.stakers(memberOne, { from: memberOne });
-    assert(stakedMemberOne.eq(totalAmount), `expected staked amount ${totalAmount}, found ${stakedMemberOne}`);
+    // deposit 10 and stake 6 on one contract
+    await staking.depositAndStake(depositAmount, [firstContract], [stakedAmount], { from: memberOne });
+    const memberOneDeposit = await staking.stakerDeposit(memberOne);
+    assert(memberOneDeposit.eq(depositAmount), `expected deposit amount ${depositAmount}, found ${memberOneDeposit}`);
 
-    // Max unstakable should be 4
-    const expectedMaxUnstakable = totalAmount.sub(allocatedAmount);
-    const maxUnstakable = await staking.getMaxUnstakable(memberOne);
+    // max withdrawable should be 4
+    const expectedMaxWithdrawable = depositAmount.sub(stakedAmount);
+    const maxWithdrawable = await staking.getMaxWithdrawable(memberOne);
     assert(
-      maxUnstakable.eq(expectedMaxUnstakable),
-      `Max unstakable is expected to be ${expectedMaxUnstakable.toString()} but is ${maxUnstakable.toString()}`,
+      maxWithdrawable.eq(expectedMaxWithdrawable),
+      `max withdrawable is expected to be ${expectedMaxWithdrawable.toString()} but is ${maxWithdrawable.toString()}`,
     );
 
-    // Unstake 4
-    await staking.unstake(ether('4'), { from: memberOne });
+    // withdraw 4
+    await staking.withdraw(ether('4'), { from: memberOne });
 
-    // Expect memberOne to have a balance of 4
+    // expect memberOne to have a balance of 4
     const memberOneBalance = await token.balanceOf(memberOne);
     const memberOneExpectedBalance = ether('4');
     assert(

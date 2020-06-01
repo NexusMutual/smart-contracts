@@ -40,7 +40,7 @@ async function setMinDeallocation (staking, amount) {
   return staking.updateParameter(ParamType.MIN_DEALLOCATION, amount, { from: governanceContract });
 }
 
-describe.only('requestDeallocation', function () {
+describe('requestDeallocation', function () {
 
   beforeEach(setup);
 
@@ -539,7 +539,7 @@ describe.only('requestDeallocation', function () {
     });
   });
 
-  it('should allow multiple deallocations in the same block', async function () {
+  it('should allow multiple sequential deallocation requests', async function () {
     const { staking, token } = this;
 
     const lockTime = 30 * 24 * 3600; // 30 days
@@ -550,33 +550,15 @@ describe.only('requestDeallocation', function () {
     await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
     await fundApproveStake(token, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
 
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 80; i += 2) {
       await staking.requestDeallocation([firstContract], [ether('3')], i, { from: memberOne });
-      await staking.requestDeallocation([secondContract], [ether('5')], i, { from: memberTwo });
+      await time.increase(3600);
+      await staking.requestDeallocation([secondContract], [ether('5')], i + 1, { from: memberTwo });
       await time.increase(3600);
     }
   });
 
-  it('should allow multiple sequential deallocations', async function () {
-    const { staking, token } = this;
-
-    const lockTime = 30 * 24 * 3600; // 30 days
-    await setDeallocateLockTime(staking, lockTime);
-
-    await setMinDeallocation(staking, ether('2'));
-
-    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
-    await fundApproveStake(token, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
-
-    for (let i = 0; i < 80; i=+2) {
-      await staking.requestDeallocation([firstContract], [ether('3')], i, { from: memberOne });
-      await time.increase(3600);
-      await staking.requestDeallocation([secondContract], [ether('5')], i+1, { from: memberTwo });
-      await time.increase(3600);
-    }
-  });
-
-  it('should allow multiple deallocations after some were processed', async function () {
+  it('should allow multiple deallocation requests after some were processed', async function () {
     const { staking, token } = this;
 
     const lockTime = 30 * 24 * 3600; // 30 days
@@ -594,13 +576,14 @@ describe.only('requestDeallocation', function () {
     await time.increase(60 * 24 * 3600);
     await staking.processPendingActions();
 
-    for (let i = 0; i < 40; i++) {
-      await staking.requestDeallocation([firstContract], [ether('3')], i, { from: memberOne });
+    for (let i = 20; i < 60; i++) {
+      const insertAfter = i === 20 ? 0 : i;
+      await staking.requestDeallocation([firstContract], [ether('3')], insertAfter, { from: memberOne });
       await time.increase(3600);
     }
   });
 
-  it('should allow multiple sequential deallocations in between stakes', async function () {
+  it('should allow multiple sequential deallocation requests in between stakes', async function () {
     const { staking, token } = this;
 
     const lockTime = 30 * 24 * 3600; // 30 days

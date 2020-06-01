@@ -2,11 +2,11 @@ const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-h
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
-const { ParamType } = require('../utils').constants;
+const { ParamType, Role } = require('../utils').constants;
 const setup = require('../setup');
 
 const {
-  members: [memberOne, memberTwo, memberThree],
+  members: [memberOne, memberTwo, memberThree, fourthContract],
   internalContracts: [internalContract],
   nonInternalContracts: [nonInternal],
   governanceContracts: [governanceContract],
@@ -263,8 +263,96 @@ describe('processFirstBurn', function () {
     );
   });
 
-  it('should emit Burned event', async function () {
+  it('should prevent the other contracts\' allocations to exceed remaining stake', async function () {
 
+    const { token, staking } = this;
+    await setLockTime(staking, 90 * 24 * 3600); // 90 days
+
+    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
+    const contracts = [firstContract, secondContract, thirdContract, fourthContract];
+    const amounts = [ether('300'), ether('50'), ether('100'), ether('120')];
+    await staking.stake(ether('0'), contracts, amounts, { from: memberOne });
+
+    // Push a burn of 200
+    await staking.pushBurn(firstContract, ether('200'), { from: internalContract });
+    await staking.processPendingActions();
+
+    // Check no allocation is greater than the stake
+    const stake = await staking.stakerStake(memberOne);
+    for (let i = 0; i < contracts.length; i++) {
+      const allocation = await staking.stakerContractAllocation(memberOne, contracts[i]);
+      assert(allocation.lte(stake));
+    }
+  });
+
+  it('should delete the burn object after processing it', async function () {
+
+    const { token, staking } = this;
+    await setLockTime(staking, 90 * 24 * 3600); // 90 days
+
+    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
+    await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const { amount: burnAmount, contractAddress: contract, burnedAt: burnTimestamp } = await staking.burn();
+    assert(burnAmount.eqn(0), `Expected burned amount to be 0, found ${burnAmount}`);
+    assert(contract === '0x0000000000000000000000000000000000000000', `Expected contractAddress to be 0x, found ${contract}`);
+    assert(burnTimestamp.eqn(0), `Expected burn timestamp to be 0, found ${burnTimestamp}`);
+  });
+
+  it('should reset processedToStakerIndex', async function () {
+
+    const { token, staking } = this;
+    await setLockTime(staking, 90 * 24 * 3600); // 90 days
+
+    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
+    await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const processedToStakerIndex = await staking.processedToStakerIndex();
+    assert(processedToStakerIndex.eqn(0), `Expected processedToStakerIndex to be 0, found ${processedToStakerIndex}`);
+  });
+
+  it('should reset contractStakeCalculated', async function () {
+
+    const { token, staking } = this;
+    await setLockTime(staking, 90 * 24 * 3600); // 90 days
+
+    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
+    await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const contractStakeCalculated = await staking.contractStakeCalculated();
+    assert.isFalse(contractStakeCalculated, `Expected contractStakeCalculated to be false, found ${contractStakeCalculated}`);
+  });
+
+  it('should batch process if gas is not enough', async function () {
+
+    this.timeout(0);
+    const { token, master, staking } = this;
+    await setLockTime(staking, 90 * 24 * 3600); // 90 days
+
+    for (const account of accounts.generalPurpose) {
+      await master.enrollMember(account, Role.Member);
+      await fundAndStake(token, staking, ether('10'), firstContract, account);
+    }
+
+    const stakers = await staking.contractStakerCount(firstContract);
+    console.log(stakers);
+
+    await staking.pushBurn(firstContract, ether('9'), { from: internalContract });
+
+    let process = await staking.processPendingActions({ gas: 650000 });
+    expectEvent(process, 'PendingActionsProcessed', { finished: false });
+
+    process = await staking.processPendingActions({ gas: 1000000 });
+    expectEvent(process, 'PendingActionsProcessed', { finished: true });
+    const processedToStakerIndex = await staking.processedToStakerIndex();
+    assert(processedToStakerIndex.eqn(0), `Expected processedToStakerIndex to be 0, found ${processedToStakerIndex}`);
+  });
+
+  it('should emit Burned event', async function () {
+      
     const { token, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
     await fundAndStake(token, staking, ether('10'), firstContract, memberOne);

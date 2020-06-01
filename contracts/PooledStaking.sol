@@ -425,7 +425,7 @@ contract PooledStaking is MasterAware {
       // To prevent spam, small stakes and unstake requests are not allowed
       // However, we allow the user to unstake the entire amount
       if (requestedAmount != max) {
-        require(requestedAmount >= MIN_UNSTAKE, "Unstake cannot be less then minimum unstake amount");
+        require(requestedAmount >= MIN_UNSTAKE, "Unstaked amount cannot be less than minimum unstake amount");
         require(max.sub(requestedAmount) >= MIN_STAKE, "Remaining stake cannot be less than minimum unstake amount");
       }
 

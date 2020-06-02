@@ -1,4 +1,4 @@
-const { ether, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
@@ -9,6 +9,7 @@ const {
   nonMembers: [nonMember],
   members: [memberOne, memberTwo, memberThree, memberFour],
   governanceContracts: [governanceContract],
+  internalContracts: [internalContract],
 } = accounts;
 
 const firstContract = '0x0000000000000000000000000000000000000001';
@@ -176,4 +177,23 @@ describe('withdraw', function () {
     );
   });
 
+  it('should revert if called with pending burns', async function () {
+    const { token, staking } = this;
+
+    await fundAndApprove(token, staking, ether('10'), memberOne);
+    await staking.depositAndStake(ether('10'), [firstContract], [ether('6')], { from: memberOne });
+    await time.increase(24 * 3600); // 1 day
+
+    await staking.pushBurn(secondContract, ether('100'), { from: internalContract });
+    await time.increase(3600); // 1 h
+
+    await expectRevert(
+      staking.withdraw(ether('2'), { from: memberOne }),
+      'Unable to execute request with unprocessed burns',
+    );
+
+    await staking.processPendingActions();
+    await time.increase(3600); // 1 h
+    await staking.withdraw(ether('2'), { from: memberOne });
+  });
 });

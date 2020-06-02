@@ -11,7 +11,7 @@ describe('PooledStaking unit tests', function () {
   require('./requestUnstake');
   require('./processFirstUnstakeRequest');
   require('./pushBurn');
-  require('./processFirstBurn');
+  require('./processBurn');
   require('./pushReward');
   require('./processFirstReward');
   require('./getters');

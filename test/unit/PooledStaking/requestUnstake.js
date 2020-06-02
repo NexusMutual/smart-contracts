@@ -39,7 +39,7 @@ async function setMinUnstake (staking, amount) {
   return staking.updateParameter(ParamType.MIN_UNSTAKE, amount, { from: governanceContract });
 }
 
-describe('createUnstakeRequest', function () {
+describe('requestUnstake', function () {
 
   beforeEach(setup);
 
@@ -49,7 +49,7 @@ describe('createUnstakeRequest', function () {
     assert.strictEqual(await master.isMember(nonMember), false);
 
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [1], 0, { from: nonMember }),
+      staking.requestUnstake([firstContract], [1], 0, { from: nonMember }),
       'Caller is not a member',
     );
   });
@@ -59,7 +59,7 @@ describe('createUnstakeRequest', function () {
     const { staking } = this;
 
     await expectRevert(
-      staking.createUnstakeRequest([firstContract, secondContract], [1], 0, { from: memberOne }),
+      staking.requestUnstake([firstContract, secondContract], [1], 0, { from: memberOne }),
       'Contracts and amounts arrays should have the same length',
     );
   });
@@ -74,25 +74,25 @@ describe('createUnstakeRequest', function () {
 
     // index does not exist
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 5, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 5, { from: memberOne }),
       'Invalid unstake request id provided',
     );
 
     // insert first request
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
     // expect last unstake request id to be 1
     let lastUnstakeRequestId = await staking.lastUnstakeRequestId();
     assert(lastUnstakeRequestId.eqn(1), `expected last unstake request id to be 1, found ${lastUnstakeRequestId}`);
 
     // insert second
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne });
     // expect last unstake request id to be 2
     lastUnstakeRequestId = await staking.lastUnstakeRequestId();
     assert(lastUnstakeRequestId.eqn(2), `expected last unstake request id to be 2, found ${lastUnstakeRequestId}`);
 
     // expect insertAfter = 3 to be invalid
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 3, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 3, { from: memberOne }),
       'Invalid unstake request id provided',
     );
   });
@@ -106,8 +106,8 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // push 2 unstake requests
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
-    await staking.createUnstakeRequest([firstContract], [ether('3')], 1, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('3')], 1, { from: memberOne });
 
     // 91 days pass and process pending actions
     const targetTime = lockTime + (24 * 3600); // 91 days
@@ -116,12 +116,12 @@ describe('createUnstakeRequest', function () {
 
     // can't insert after an empty slot
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('4')], 1, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('4')], 1, { from: memberOne }),
       'Provided unstake request id should not be an empty slot',
     );
 
     // can insert after index 0
-    await staking.createUnstakeRequest([firstContract], [ether('5')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('5')], 0, { from: memberOne });
   });
 
   it('should revert when there\'s nothing to deallocate on a contract', async function () {
@@ -130,7 +130,7 @@ describe('createUnstakeRequest', function () {
 
     // Nothing staked on the contract
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('1')], 0, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('1')], 0, { from: memberOne }),
       'Nothing to unstake on this contract',
     );
 
@@ -141,11 +141,11 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // request unstake of 10 on firstcontract
-    await staking.createUnstakeRequest([firstContract], [ether('10')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('10')], 0, { from: memberOne });
 
     // request unstake of 1 on firstContract
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('1')], 1, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('1')], 1, { from: memberOne }),
       'Nothing to unstake on this contract',
     );
   });
@@ -162,16 +162,16 @@ describe('createUnstakeRequest', function () {
 
     // Request unstake of 11 on firstContract
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('11')], 0, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('11')], 0, { from: memberOne }),
       'Cannot unstake more than staked',
     );
 
     // Request unstake of 7 on firstContract
-    await staking.createUnstakeRequest([firstContract], [ether('7')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('7')], 0, { from: memberOne });
 
     // Request unstake of 4, (staked = 10; pending unstake requests = 7; max that can be unstaked is 3)
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('4')], 0, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('4')], 0, { from: memberOne }),
       'Cannot unstake more than staked',
     );
   });
@@ -188,12 +188,12 @@ describe('createUnstakeRequest', function () {
 
     // Request unstake of 1 (< MIN_UNSTAKE)
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('1')], 0, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('1')], 0, { from: memberOne }),
       'Unstaked amount cannot be less than minimum unstake amount',
     );
 
     // Request unstake of 2 (= MIN_UNSTAKE)
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
   });
 
   it('should revert when final allocation is less than MIN_STAKE', async function () {
@@ -208,12 +208,12 @@ describe('createUnstakeRequest', function () {
 
     // request unstake of 9 that would decrease stake to 1 (< MIN_STAKE)
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('9')], 0, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('9')], 0, { from: memberOne }),
       'Remaining stake cannot be less than minimum unstake amount',
     );
 
     // request unstake of 9, that would decrease stake to 2 (= MIN_STAKE)
-    staking.createUnstakeRequest([firstContract], [ether('8')], 0, { from: memberOne });
+    staking.requestUnstake([firstContract], [ether('8')], 0, { from: memberOne });
   });
 
   it('should revert if requested unstake time < unstake time at insertAfter index', async function () {
@@ -227,7 +227,7 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // first unstake request, with lock time 90
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
 
     // 1h passes
     time.increase(3600);
@@ -238,18 +238,18 @@ describe('createUnstakeRequest', function () {
 
     // second unstake request can't be inserted after 1 (due time < due time at index 1)
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne }),
       'Unstake request time must be greater or equal to previous unstake request',
     );
 
     // third unstake request requested successfully when added after index 0
     // new state: 2 -> 1
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
 
     // fourth unstake request requested inserted successfully after index 2,
     // as unstakeAt is the same for both (same block)
     // new state: 2 -> 3 -> 1
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 2, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 2, { from: memberOne });
   });
 
   it('should revert if requested unstake time >= unstake time at next of insertAfter index', async function () {
@@ -265,7 +265,7 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // First unstake request
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
     // lastUnstakeRequestId should be 1
     lastUnstakeRequestId = await staking.lastUnstakeRequestId();
     assert(lastUnstakeRequestId.eqn(1));
@@ -275,7 +275,7 @@ describe('createUnstakeRequest', function () {
 
     // Second unstake request, can be inserted after index 1
     // New state: 1 -> 2
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne });
     // lastUnstakeRequestId should be 2
     lastUnstakeRequestId = await staking.lastUnstakeRequestId();
     assert(lastUnstakeRequestId.eqn(2));
@@ -283,14 +283,14 @@ describe('createUnstakeRequest', function () {
     // Third unstake request, due at the same time index 2 (same lock time, same block),
     // can't be inserted after 1
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne }),
       'Next unstake request time must be greater than new unstake request time',
     );
 
     // Fourth unstake request, due at the same time as index 2 (same lock time, same block),
     // it can be inserted after index 2
     // New state: 1 -> 2 -> 3
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 2, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 2, { from: memberOne });
     // lastUnstakeRequestId should be 3
     lastUnstakeRequestId = await staking.lastUnstakeRequestId();
     assert(lastUnstakeRequestId.eqn(3));
@@ -301,7 +301,7 @@ describe('createUnstakeRequest', function () {
     // Fifth unstake request, cannot be inserted after index 2, as
     // it's due after the request at index 2, but also after the request at index 3
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 2, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 2, { from: memberOne }),
       'Next unstake request time must be greater than new unstake request time',
     );
   });
@@ -339,7 +339,7 @@ describe('createUnstakeRequest', function () {
     // create a few unstake requests
     for (let i = 0; i < unstakeRequests.length; i++) {
       const { contractAddress, amount } = unstakeRequests[i];
-      await staking.createUnstakeRequest([contractAddress], [amount], i, { from: memberOne });
+      await staking.requestUnstake([contractAddress], [amount], i, { from: memberOne });
       unstakeRequests[i].unstakeAt = (await time.latest()).addn(90 * 24 * 3600);
     }
 
@@ -365,7 +365,7 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // First unstake request
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
 
     // New state: 0 -> 1 -> 0
     // Next pointer should be 0
@@ -379,7 +379,7 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // Second unstake request, after index 1
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne });
 
     // New state: 0 -> 1 -> 2 -> 0
     // Next pointer should be 0
@@ -393,7 +393,7 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // Third unstake request, after index 1
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne });
 
     // New state: 0 -> 1 -> 3 -> 2 -> 0
     // Next pointer for 3 should be 2
@@ -418,7 +418,7 @@ describe('createUnstakeRequest', function () {
 
     // First unstake request
     insertAfter = 0;
-    await staking.createUnstakeRequest([firstContract], [ether('2')], insertAfter, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], insertAfter, { from: memberOne });
 
     // New state: 0 -> 1 -> 0
     // Next pointer of request at insertAfter should be 1
@@ -431,7 +431,7 @@ describe('createUnstakeRequest', function () {
 
     // Second unstake request, after index 1
     insertAfter = 1;
-    await staking.createUnstakeRequest([firstContract], [ether('2')], insertAfter, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], insertAfter, { from: memberOne });
 
     // New state: 0 -> 1 -> 2 -> 0
     // Next pointer of request at insertAfter should be 2
@@ -444,7 +444,7 @@ describe('createUnstakeRequest', function () {
 
     // Third unstake request, after index 1
     insertAfter = 1;
-    await staking.createUnstakeRequest([firstContract], [ether('2')], insertAfter, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], insertAfter, { from: memberOne });
 
     // New state: 0 -> 1 -> 3 -> 2 -> 0
     // Next pointer of request at indexAfter should be 3
@@ -463,8 +463,8 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // First unstake request
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne });
 
     // Next pointer of request at insertAfter should be 1
     const { next: nextIndexOne } = await staking.unstakeRequestAtIndex(0);
@@ -479,43 +479,43 @@ describe('createUnstakeRequest', function () {
 
     // Test invalid insertion points
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne }),
       'Provided unstake request id should not be an empty slot',
     );
 
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 2, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 2, { from: memberOne }),
       'Provided unstake request id should not be an empty slot',
     );
 
     // Third unstake request, after index 0
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
     const { next: nextIndexThree } = await staking.unstakeRequestAtIndex(0);
     assert(nextIndexThree.eqn(3), `expected next index to be 3, found ${nextIndexThree}`);
 
     // Test invalid insertion points
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne }),
       'Next unstake request time must be greater than new unstake request time',
     );
 
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 1, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 1, { from: memberOne }),
       'Provided unstake request id should not be an empty slot',
     );
 
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 2, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 2, { from: memberOne }),
       'Provided unstake request id should not be an empty slot',
     );
 
     await expectRevert(
-      staking.createUnstakeRequest([firstContract], [ether('2')], 4, { from: memberOne }),
+      staking.requestUnstake([firstContract], [ether('2')], 4, { from: memberOne }),
       'Invalid unstake request id provided',
     );
 
     // Fourth unstake request, after index 3
-    await staking.createUnstakeRequest([firstContract], [ether('2')], 3, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('2')], 3, { from: memberOne });
 
     const { next: firstDeallocationId } = await staking.unstakeRequestAtIndex(0);
     assert(firstDeallocationId.eqn(3), `expected next index to be 3, found ${firstDeallocationId}`);
@@ -534,7 +534,7 @@ describe('createUnstakeRequest', function () {
     await setUnstakeLockTime(staking, lockTime);
 
     // request unstake
-    const request = await staking.createUnstakeRequest([firstContract], [ether('2')], 0, { from: memberOne });
+    const request = await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
 
     const latestBlockTime = await time.latest();
     const expectedDeallocateTime = latestBlockTime.addn(lockTime);
@@ -559,9 +559,9 @@ describe('createUnstakeRequest', function () {
     await fundApproveStake(token, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
 
     for (let i = 0; i < 80; i += 2) {
-      await staking.createUnstakeRequest([firstContract], [ether('3')], i, { from: memberOne });
+      await staking.requestUnstake([firstContract], [ether('3')], i, { from: memberOne });
       await time.increase(3600);
-      await staking.createUnstakeRequest([secondContract], [ether('5')], i + 1, { from: memberTwo });
+      await staking.requestUnstake([secondContract], [ether('5')], i + 1, { from: memberTwo });
       await time.increase(3600);
     }
   });
@@ -577,7 +577,7 @@ describe('createUnstakeRequest', function () {
     await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
 
     for (let i = 0; i < 20; i++) {
-      await staking.createUnstakeRequest([firstContract], [ether('3')], i, { from: memberOne });
+      await staking.requestUnstake([firstContract], [ether('3')], i, { from: memberOne });
       await time.increase(3600);
     }
 
@@ -586,7 +586,7 @@ describe('createUnstakeRequest', function () {
 
     for (let i = 20; i < 60; i++) {
       const insertAfter = i === 20 ? 0 : i;
-      await staking.createUnstakeRequest([firstContract], [ether('3')], insertAfter, { from: memberOne });
+      await staking.requestUnstake([firstContract], [ether('3')], insertAfter, { from: memberOne });
       await time.increase(3600);
     }
   });
@@ -602,14 +602,14 @@ describe('createUnstakeRequest', function () {
     await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
 
     for (let i = 0; i < 10; i++) {
-      await staking.createUnstakeRequest([firstContract], [ether('10')], i, { from: memberOne });
+      await staking.requestUnstake([firstContract], [ether('10')], i, { from: memberOne });
       await time.increase(3600);
     }
 
     await fundApproveStake(token, staking, ether('200'), [firstContract], [ether('1200')], memberOne);
 
     for (let i = 10; i < 20; i++) {
-      await staking.createUnstakeRequest([firstContract], [ether('8')], i, { from: memberOne });
+      await staking.requestUnstake([firstContract], [ether('8')], i, { from: memberOne });
       await time.increase(3600);
     }
   });

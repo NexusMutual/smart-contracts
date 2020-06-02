@@ -52,7 +52,7 @@ describe('withdraw', function () {
     assert(memberOneDeposit.eq(amountOne), `expected deposit for memberOne ${amountOne}, found ${memberOneDeposit}`);
 
     // nothing to withdraw
-    maxWithdrawable = await staking.getMaxWithdrawable(memberOne);
+    maxWithdrawable = await staking.stakerMaxWithdrawable(memberOne);
     assert(maxWithdrawable.eq(ether('0')));
     await expectRevert(
       staking.withdraw(amountOne, { from: memberOne }),
@@ -67,7 +67,7 @@ describe('withdraw', function () {
     assert(memberTwoDeposit.eq(amountTwo), `expected deposit for memberTwo ${amountTwo}, found ${memberTwoDeposit}`);
 
     // nothing to withdraw
-    maxWithdrawable = await staking.getMaxWithdrawable(memberTwo);
+    maxWithdrawable = await staking.stakerMaxWithdrawable(memberTwo);
     assert(maxWithdrawable.eq(ether('0')));
     await expectRevert(
       staking.withdraw(amountTwo, { from: memberTwo }),
@@ -85,7 +85,7 @@ describe('withdraw', function () {
     );
 
     // can withdraw 2
-    maxWithdrawable = await staking.getMaxWithdrawable(memberThree);
+    maxWithdrawable = await staking.stakerMaxWithdrawable(memberThree);
     assert(maxWithdrawable.eq(ether('2')), `expected max withdrawable ${ether('2')}, found ${maxWithdrawable}`);
     await expectRevert(
       staking.withdraw(amountThree, { from: memberThree }),
@@ -110,7 +110,7 @@ describe('withdraw', function () {
     );
 
     // can withdraw 22.5
-    maxWithdrawable = await staking.getMaxWithdrawable(memberFour);
+    maxWithdrawable = await staking.stakerMaxWithdrawable(memberFour);
     assert(maxWithdrawable.eq(ether('22.5')), `expected max withdrawable ${ether('22.5')}, found ${maxWithdrawable}`);
     await expectRevert(
       staking.withdraw(ether('22.501'), { from: memberFour }),
@@ -158,7 +158,7 @@ describe('withdraw', function () {
 
     // max withdrawable should be 4
     const expectedMaxWithdrawable = depositAmount.sub(stakedAmount);
-    const maxWithdrawable = await staking.getMaxWithdrawable(memberOne);
+    const maxWithdrawable = await staking.stakerMaxWithdrawable(memberOne);
     assert(
       maxWithdrawable.eq(expectedMaxWithdrawable),
       `max withdrawable is expected to be ${expectedMaxWithdrawable.toString()} but is ${maxWithdrawable.toString()}`,

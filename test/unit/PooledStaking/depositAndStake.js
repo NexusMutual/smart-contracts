@@ -387,7 +387,7 @@ describe('depositAndStake', function () {
     }
   });
 
-  it('should push new contracts to staker\'s contracts and contract\'s stakers', async function () {
+  it("should push new contracts to staker's contracts and contract's stakers", async function () {
     const { staking, token } = this;
 
     const amount = ether('10');

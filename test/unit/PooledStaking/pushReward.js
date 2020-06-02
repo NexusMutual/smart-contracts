@@ -16,12 +16,12 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 
 async function fundAndStake (token, staking, amount, contract, member) {
-  await staking.updateParameter(ParamType.MAX_LEVERAGE, ether('2'), { from: governanceContract });
+  await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
-
   await token.approve(staking.address, amount, { from: member });
-  await staking.stake(amount, [contract], [amount], { from: member });
+
+  await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
 describe('pushReward', function () {
@@ -40,7 +40,7 @@ describe('pushReward', function () {
     );
   });
 
-  it('should emit Rewarded event', async function () {
+  it('should emit RewardRequested event', async function () {
 
     const { token, staking } = this;
 
@@ -55,33 +55,6 @@ describe('pushReward', function () {
       contractAddress: firstContract,
       amount: rewardAmount,
     });
-
-    const process = await staking.processPendingActions();
-
-    expectEvent(process, 'Rewarded', {
-      contractAddress: firstContract,
-      amount: rewardAmount,
-    });
-  });
-
-  it('should mint the reward amount in the PS contract', async function () {
-    const { token, staking } = this;
-
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
-
-    // Push reward
-    const rewardAmount = ether('2');
-    await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
-    await staking.processPendingActions();
-
-    const currentBalance = await token.balanceOf(staking.address);
-    const expectedBalance = ether('12');
-
-    assert(
-      currentBalance.eq(expectedBalance),
-      `Expected balance of staking contract ${expectedBalance}, found ${currentBalance}`,
-    );
   });
 
   it('should update the rewards mapping correctly', async function () {

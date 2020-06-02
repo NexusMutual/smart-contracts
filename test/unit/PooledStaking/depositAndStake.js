@@ -1,20 +1,23 @@
-const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
-const { filterArgsKeys } = require('../utils').helpers;
 const setup = require('../setup');
 
 const {
   nonMembers: [nonMember],
   members: [memberOne, memberTwo],
   governanceContracts: [governanceContract],
+  internalContracts: [internalContract],
 } = accounts;
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
+const fourthContract = '0x0000000000000000000000000000000000000004';
+const fifthContract = '0x0000000000000000000000000000000000000005';
+const sixthContract = '0x0000000000000000000000000000000000000006';
 
 async function fundAndApprove (token, staking, amount, member) {
   const maxExposure = '2';
@@ -22,6 +25,10 @@ async function fundAndApprove (token, staking, amount, member) {
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
+}
+
+async function setUnstakeLockTime (staking, lockTime) {
+  return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('depositAndStake', function () {
@@ -450,4 +457,81 @@ describe('depositAndStake', function () {
     );
   });
 
+  it('should revert when called with pending actions', async function () {
+    const { staking, token } = this;
+
+    await fundAndApprove(token, staking, ether('20'), memberOne); // MAX_EXPOSURE = 2
+    await setUnstakeLockTime(staking, 90 * 24 * 3600); // UNSTAKE_LOCK_TIME = 90 days
+
+    // Push reward
+    await staking.pushReward(firstContract, ether('10'), { from: internalContract });
+    await expectRevert(
+      staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
+      'Unable to execute request with unprocessed actions',
+    );
+    await staking.processPendingActions();
+    await time.increase(3600); // 1h
+
+    // Push burn
+    await staking.pushBurn(firstContract, ether('2'), { from: internalContract });
+    await expectRevert(
+      staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
+      'Unable to execute request with unprocessed actions',
+    );
+    await staking.processPendingActions();
+    await time.increase(3600); // 1h
+
+    // Deposit and stake
+    await staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
+    await staking.requestUnstake([firstContract], [ether('3')], 0, { from: memberOne });
+    await staking.depositAndStake(ether('3'), [firstContract, secondContract], [ether('18'), ether('18')], { from: memberOne });
+
+    await time.increase(91 * 24 * 3600); // 91 days pass
+    expectRevert(
+      staking.depositAndStake(ether('1'), [firstContract, secondContract], [ether('19'), ether('19')], { from: memberOne }),
+      'Unable to execute request with unprocessed actions',
+    );
+
+    await staking.processPendingActions();
+    await staking.depositAndStake(ether('2'), [firstContract, secondContract], [ether('20'), ether('20')], { from: memberOne });
+  });
+
+  it('should stake successfully after unstake', async function () {
+    const { staking, token } = this;
+
+    await setUnstakeLockTime(staking, 90 * 24 * 3600); // UNSTAKE_LOCK_TIME = 90 days
+    await fundAndApprove(token, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2
+
+    // Deposit and stake
+    let contracts = [firstContract, secondContract, thirdContract, fourthContract, fifthContract, sixthContract];
+    let amounts = [ether('10'), ether('20'), ether('15'), ether('7'), ether('10'), ether('12')];
+    await staking.depositAndStake(ether('50'), contracts, amounts, { from: memberOne });
+
+    await time.increase(10 * 24 * 3600); // 10 days
+
+    // Unstake
+    await staking.requestUnstake([firstContract, thirdContract], [ether('10'), ether('10')], 0, { from: memberOne });
+    await time.increase(91 * 24 * 3600); // 91 days
+    await staking.processPendingActions();
+
+    // Check new stake amounts
+    const stakerContracts = await staking.stakerContractsArray(memberOne);
+    assert.deepEqual(stakerContracts, contracts, `Expect staker contracts to be${contracts}, found ${stakerContracts}`);
+    const amountOne = await staking.stakerContractStake(memberOne, firstContract);
+    assert(amountOne.eq(ether('0')), `Expected amount one ${ether('0')}, found ${amountOne}`);
+    const amountThree = await staking.stakerContractStake(memberOne, thirdContract);
+    assert(amountThree.eq(ether('5')), `Expected amount three ${ether('5')}, found ${amountThree}`);
+
+    // Stake again
+    amounts = [ether('20'), ether('10'), ether('7'), ether('10'), ether('12')];
+    contracts = [secondContract, thirdContract, fourthContract, fifthContract, sixthContract];
+    await expectRevert(
+      staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne }),
+      `Staking on fewer contracts is not allowed.`,
+    );
+
+    amounts = [ether('0'), ether('20'), ether('10'), ether('7'), ether('10'), ether('12')];
+    contracts = [firstContract, secondContract, thirdContract, fourthContract, fifthContract, sixthContract];
+    await staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne });
+  });
 });

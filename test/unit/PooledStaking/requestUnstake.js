@@ -124,7 +124,7 @@ describe('requestUnstake', function () {
     await staking.requestUnstake([firstContract], [ether('5')], 0, { from: memberOne });
   });
 
-  it('should revert when there\'s nothing to deallocate on a contract', async function () {
+  it('should revert when there\'s nothing to unstake on a contract', async function () {
 
     const { staking, token } = this;
 
@@ -150,7 +150,7 @@ describe('requestUnstake', function () {
     );
   });
 
-  it('should revert when deallocating more than allocated', async function () {
+  it('should revert when unstaking more than staked', async function () {
 
     const { staking, token } = this;
 
@@ -196,7 +196,7 @@ describe('requestUnstake', function () {
     await staking.requestUnstake([firstContract], [ether('2')], 0, { from: memberOne });
   });
 
-  it('should revert when final allocation is less than MIN_STAKE', async function () {
+  it('should revert when remaining stake is less than MIN_STAKE', async function () {
 
     const { staking, token } = this;
 
@@ -306,7 +306,7 @@ describe('requestUnstake', function () {
     );
   });
 
-  it('ensure the created unstake request is inserted in the unstakeRequests mapping', async function () {
+  it('ensure the unstake request is inserted in the unstakeRequests mapping', async function () {
 
     const { staking, token } = this;
 
@@ -612,5 +612,16 @@ describe('requestUnstake', function () {
       await staking.requestUnstake([firstContract], [ether('8')], i, { from: memberOne });
       await time.increase(3600);
     }
+  });
+
+  it('should update pending unstake requests total for staker', async function () {
+    const { staking, token } = this;
+
+    await setUnstakeLockTime(staking, 30 * 24 * 3600); // 30 days
+    await fundApproveStake(token, staking, ether('100'), [firstContract], [ether('100')], memberOne);
+
+    await staking.requestUnstake([firstContract], [ether('10')], 0, { from: memberOne });
+    const pendingUnstake = await staking.stakerContractPendingUnstakeTotal(memberOne, firstContract);
+    assert(pendingUnstake.eq(ether('10')), `Expect pending unstake to be ${ether('10')}, found ${pendingUnstake}`);
   });
 });

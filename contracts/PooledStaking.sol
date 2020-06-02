@@ -122,8 +122,8 @@ contract PooledStaking is MasterAware {
   // firstUnstakeRequest is stored at unstakeRequests[0].next
   uint public lastUnstakeRequestId;
 
-  uint processedToStakerIndex; // we processed the action up this staker
-  bool contractStakeCalculated; // flag to indicate whether staked amount is up to date or not
+  uint public processedToStakerIndex; // we processed the action up this staker
+  bool public isContractStakeCalculated; // flag to indicate whether staked amount is up to date or not
 
   /* Modifiers */
 
@@ -581,7 +581,7 @@ contract PooledStaking is MasterAware {
     uint _stakedOnContract;
     uint previousGas = gasleft();
 
-    if (!contractStakeCalculated) {
+    if (!isContractStakeCalculated) {
 
       // calculate amount staked on contract
       for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
@@ -603,7 +603,7 @@ contract PooledStaking is MasterAware {
       }
 
       contractStaked = _stakedOnContract;
-      contractStakeCalculated = true;
+      isContractStakeCalculated = true;
       processedToStakerIndex = 0;
 
     } else {
@@ -622,6 +622,8 @@ contract PooledStaking is MasterAware {
         processedToStakerIndex = i;
         return false;
       }
+
+      previousGas = gasleft();
 
       (uint _stakerBurnAmount, uint _newStake) = _burnStaker(
         _contractStakers[i], _contractAddress, _totalBurnAmount, _stakedOnContract
@@ -644,7 +646,7 @@ contract PooledStaking is MasterAware {
 
     delete burn;
     processedToStakerIndex = 0;
-    contractStakeCalculated = false;
+    isContractStakeCalculated = false;
 
     token.burn(_actualBurnAmount);
     emit Burned(_contractAddress, _actualBurnAmount);
@@ -728,7 +730,7 @@ contract PooledStaking is MasterAware {
     uint _stakedOnContract;
     uint previousGas = gasleft();
 
-    if (!contractStakeCalculated) {
+    if (!isContractStakeCalculated) {
 
       // calculate amount staked on contract
       for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
@@ -752,7 +754,7 @@ contract PooledStaking is MasterAware {
       }
 
       contractStaked = _stakedOnContract;
-      contractStakeCalculated = true;
+      isContractStakeCalculated = true;
       processedToStakerIndex = 0;
 
     } else {
@@ -790,7 +792,7 @@ contract PooledStaking is MasterAware {
 
     delete rewards[firstReward];
     processedToStakerIndex = 0;
-    contractStakeCalculated = false;
+    isContractStakeCalculated = false;
 
     if (++firstReward > lastRewardId) {
       firstReward = 0;

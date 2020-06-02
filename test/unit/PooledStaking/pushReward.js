@@ -15,7 +15,7 @@ const {
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 
-async function fundAndStake (token, staking, amount, contract, member) {
+async function fundApproveDepositStake (token, staking, amount, contract, member) {
   await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
@@ -44,8 +44,7 @@ describe('pushReward', function () {
 
     const { token, staking } = this;
 
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
 
     // Push reward
     const rewardAmount = ether('2');
@@ -60,8 +59,7 @@ describe('pushReward', function () {
   it('should update the rewards mapping correctly', async function () {
     const { token, staking } = this;
 
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
 
     // Push first reward
     const firstRewardAmount = ether('2');
@@ -89,8 +87,8 @@ describe('pushReward', function () {
 
     const { token, staking } = this;
 
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
+
     let lastRewardId = await staking.lastRewardId();
     assert(lastRewardId.eqn(0), `Expected lastRewardId to be 0, found ${lastRewardId}`);
 
@@ -111,8 +109,7 @@ describe('pushReward', function () {
 
     const { token, staking } = this;
 
-    // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
 
     let firstReward = await staking.firstReward();
     assert(firstReward.eqn(0), `Expected firstReward to be 0, found ${firstReward}`);

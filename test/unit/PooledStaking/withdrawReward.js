@@ -1,4 +1,4 @@
-const { expectRevert, ether } = require('@openzeppelin/test-helpers');
+const { expectRevert, ether, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
@@ -133,7 +133,7 @@ describe('withdrawReward', function () {
     );
   });
 
-  it('should update the total left reward amount for the caller ', async function () {
+  it('should update the total left reward amount for the caller and emit RewardWithdrawn', async function () {
     const { token, staking } = this;
 
     // Fund account and stake
@@ -154,7 +154,9 @@ describe('withdrawReward', function () {
     assert(leftReward.eq(ether('3')));
 
     // Withdraw all left reward
-    await staking.withdrawReward(memberOne, ether('3'), { from: memberOne });
+    const withdrawAmount = ether('3');
+    const tx = await staking.withdrawReward(memberOne, withdrawAmount, { from: memberOne });
+    expectEvent(tx, 'RewardWithdrawn', { staker: memberOne, amount: withdrawAmount });
 
     // Expect new staker's update to be 0
     const finalReward = await staking.stakerReward(memberOne);

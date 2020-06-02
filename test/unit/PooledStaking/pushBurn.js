@@ -17,14 +17,14 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundAndStake (token, staking, amount, contract, member) {
-  await staking.updateParameter(ParamType.MAX_LEVERAGE, ether('2'), { from: governanceContract });
+  await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
-  await staking.stake(amount, [contract], [amount], { from: member });
+  await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
 async function setLockTime (staking, lockTime) {
-  return staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('pushBurn', function () {
@@ -66,20 +66,20 @@ describe('pushBurn', function () {
     );
   });
 
-  it('should revert when called with pending deallocations', async function () {
+  it('should revert when called with pending unstake requests', async function () {
 
     const { token, staking } = this;
 
     // Set parameters
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
-    // Fund account and stake; DEALLOCATE_LOCK_TIME = 90 days
+    // Fund account and stake; UNSTAKE_LOCK_TIME = 90 days
     await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
 
-    // Request deallocation due in 90 days
-    await staking.requestDeallocation([firstContract], [ether('3')], 0, { from: memberOne });
+    // Request unstake due in 90 days
+    await staking.requestUnstake([firstContract], [ether('3')], 0, { from: memberOne });
 
-    // No deallocations that were already due, should be able to push burn
+    // No unstake requests that were already due, should be able to push burn
     await staking.pushBurn(firstContract, ether('1'), { from: internalContract });
 
     // 1 hour passes
@@ -89,10 +89,10 @@ describe('pushBurn', function () {
     // 90 days pass
     await time.increase(90 * 24 * 3600);
 
-    // One deallocation due, can't push a burn
+    // One unstake request due, can't push a burn
     await expectRevert(
       staking.pushBurn(firstContract, ether('2'), { from: internalContract }),
-      'Unable to execute request with unprocessed deallocations',
+      'Unable to execute request with unprocessed unstake requests',
     );
   });
 
@@ -153,4 +153,89 @@ describe('pushBurn', function () {
       amount: burnAmount,
     });
   });
+
+  it('should remove and re-add 0-account stakers', async function () {
+
+    const { token, staking } = this;
+
+    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+
+    const stakes = {
+      [memberOne]: { amount: '10', on: [firstContract, secondContract, thirdContract], amounts: ['10', '10', '10'] },
+      [memberTwo]: { amount: '20', on: [secondContract, thirdContract], amounts: ['20', '20'] },
+      [memberThree]: { amount: '30', on: [firstContract, thirdContract], amounts: ['30', '30'] },
+    };
+
+    for (const member in stakes) {
+      const stake = stakes[member];
+      await token.transfer(member, ether(stake.amount));
+      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await staking.depositAndStake(
+        ether(stake.amount),
+        stake.on,
+        stake.amounts.map(ether),
+        { from: member },
+      );
+    }
+
+    const expectedFirstContractStake = ether('40');
+    const actulFirstContractStake = await staking.contractStake(firstContract);
+    assert(
+      expectedFirstContractStake.eq(actulFirstContractStake),
+      `firstContract stake should be ${expectedFirstContractStake} but found ${actulFirstContractStake}`,
+    );
+
+    const initialStakers = await staking.contractStakersArray(firstContract);
+    const expectedInitialStakers = [memberOne, memberThree];
+    assert.deepEqual(
+      initialStakers,
+      expectedInitialStakers,
+      `expected initial stakers to be "${expectedInitialStakers.join(',')}" but found "${initialStakers.join(',')}"`,
+    );
+
+    // burn everything on the first contract
+    await staking.pushBurn(firstContract, ether('40'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const firstContractStake = await staking.contractStake(firstContract);
+    assert(ether('0').eq(firstContractStake), `firstContract stake should be 0 but found ${firstContractStake}`);
+
+    const secondTestStakers = await staking.contractStakersArray(firstContract);
+    const expectedSecondTestStakers = [];
+    assert.deepEqual(
+      secondTestStakers,
+      expectedSecondTestStakers,
+      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(',')}"`,
+    );
+
+    // push a small burn on secondContract and expect firstStaker to be "removed
+    await staking.pushBurn(secondContract, ether('1'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const finalStakers = await staking.contractStakersArray(secondContract);
+    const finalExpectedStakers = [memberTwo];
+    assert.deepEqual(
+      finalStakers,
+      finalExpectedStakers,
+      `expected initial stakers to be "${finalStakers.join(',')}" but found "${finalStakers.join(',')}"`,
+    );
+
+    await token.transfer(memberOne, ether('5'));
+    await token.approve(staking.address, ether('5'), { from: memberOne });
+    await staking.depositAndStake(
+      ether('5'),
+      [firstContract, secondContract, thirdContract],
+      [0, ether('5'), ether('5')],
+      { from: memberOne },
+    );
+
+    const newStakers = await staking.contractStakersArray(secondContract);
+    const newExpectedStakers = [memberTwo, memberOne];
+    assert.deepEqual(
+      newStakers,
+      newExpectedStakers,
+      `expected initial stakers to be "${newExpectedStakers.join(',')}" but found "${newStakers.join(',')}"`,
+    );
+  });
+
 });

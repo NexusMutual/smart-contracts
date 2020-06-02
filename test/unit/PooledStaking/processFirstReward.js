@@ -1,14 +1,16 @@
 const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { accounts, constants } = require('../utils');
+const {
+  accounts,
+  constants: { ParamType },
+} = require('../utils');
+
 const setup = require('../setup');
-const { ParamType } = constants;
 
 const {
   members: [memberOne, memberTwo, memberThree],
   internalContracts: [internalContract],
-  nonInternalContracts: [nonInternal],
   governanceContracts: [governanceContract],
 } = accounts;
 
@@ -18,10 +20,8 @@ const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundApproveDepositStake (token, staking, amount, contract, member) {
   await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
-
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
-
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
@@ -144,7 +144,7 @@ describe('processFirstReward', function () {
     );
   });
 
-  it.only('should reward staker correctly, after a burn on another contract', async function () {
+  it('should reward staker correctly, after a burn on another contract', async function () {
     const { token, staking } = this;
 
     // Deposit and stake
@@ -170,19 +170,19 @@ describe('processFirstReward', function () {
 
     // Push reward 20 on secondContract
     await staking.pushReward(secondContract, ether('20'), { from: internalContract });
-    await time.advanceBlock();
+    await time.increase(60);
 
     // Burn 100 on firstContract
     await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
-    await time.advanceBlock();
+    await time.increase(60);
 
     // Push reward 30 on thirdContract
     await staking.pushReward(thirdContract, ether('30'), { from: internalContract });
-    await time.advanceBlock();
+    await time.increase(60);
 
     // Process Actions
     await staking.processPendingActions();
-    await time.advanceBlock();
+    await time.increase(60);
 
     stakerOneDeposit = await staking.stakerDeposit(memberOne);
     assert(
@@ -260,7 +260,7 @@ describe('processFirstReward', function () {
     await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
 
     const rewardAmount = ether('2');
-    const reward = await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
+    await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
     const process = await staking.processPendingActions();
 
     expectEvent(process, 'Rewarded', {

@@ -91,7 +91,7 @@ describe('withdrawReward', function () {
     await staking.withdrawReward(memberTwo, expectedRewardMemberTwo, { from: memberTwo });
   });
 
-  it('should properly move tokens from the PooledStaking contract to the member\'s address', async function () {
+  it("should properly move tokens from the PooledStaking contract to the member's address", async function () {
     const { token, staking } = this;
 
     // Fund account and stake

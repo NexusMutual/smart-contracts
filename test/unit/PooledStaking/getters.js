@@ -18,8 +18,8 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundAndApprove (token, staking, amount, member) {
-  const maxLeverage = '2';
-  await staking.updateParameter(ParamType.MAX_LEVERAGE, maxLeverage, { from: governanceContract });
+  const maxExposure = '2';
+  await staking.updateParameter(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
@@ -29,7 +29,7 @@ describe('getters', function () {
 
   beforeEach(setup);
 
-  it('should calculate correctly stakerProcessedStake', async function () {
+  it('should calculate correctly stakerProcessedDeposit', async function () {
 
     const { staking, token } = this;
     const amount = ether('10');
@@ -39,39 +39,39 @@ describe('getters', function () {
     await fundAndApprove(token, staking, amount, memberThree);
 
     // Stake
-    await staking.stake(ether('6'), [firstContract], [ether('6')], { from: memberOne });
-    await staking.stake(
+    await staking.depositAndStake(ether('6'), [firstContract], [ether('6')], { from: memberOne });
+    await staking.depositAndStake(
       ether('10'),
       [firstContract, secondContract, thirdContract],
       [ether('4'), ether('5'), ether('10')],
       { from: memberTwo },
     );
-    await staking.stake(
+    await staking.depositAndStake(
       ether('7'),
       [firstContract, thirdContract],
       [ether('5'), ether('7')],
       { from: memberThree },
     );
 
-    const totalAllocatedFirstContract = await staking.contractStake(firstContract);
+    const totalStakedFirstContract = await staking.contractStake(firstContract);
 
     // Burn firstContract for 12
     const burnAmount = ether('12');
     await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
 
-    // Check stakerProcessedStake for memberOne
-    const stakerProcessedStakeOne = await staking.stakerProcessedStake(memberOne, { from: internalContract });
-    const expectedStakeOne = ether('6').sub(burnAmount.mul(ether('6')).div(totalAllocatedFirstContract));
-    assert(stakerProcessedStakeOne.eq(expectedStakeOne));
+    // Check stakerProcessedDeposit for memberOne
+    const stakerProcessedStakeOne = await staking.stakerProcessedDeposit(memberOne, { from: internalContract });
+    const expectedDepositOne = ether('6').sub(burnAmount.mul(ether('6')).div(totalStakedFirstContract));
+    assert(stakerProcessedStakeOne.eq(expectedDepositOne));
 
-    // Check stakerProcessedStake for memberTwo
-    const stakerProcessedStakeTwo = await staking.stakerProcessedStake(memberTwo, { from: internalContract });
-    const expectedStakeTwo = ether('10').sub(burnAmount.mul(ether('4')).div(totalAllocatedFirstContract));
-    assert(stakerProcessedStakeTwo.eq(expectedStakeTwo));
+    // Check stakerProcessedDeposit for memberTwo
+    const stakerProcessedStakeTwo = await staking.stakerProcessedDeposit(memberTwo, { from: internalContract });
+    const expectedDepositTwo = ether('10').sub(burnAmount.mul(ether('4')).div(totalStakedFirstContract));
+    assert(stakerProcessedStakeTwo.eq(expectedDepositTwo));
 
-    // Check stakerProcessedStake for memberThree
-    const stakerProcessedStakeThree = await staking.stakerProcessedStake(memberThree, { from: internalContract });
-    const expectedStakeThree = ether('7').sub(burnAmount.mul(ether('5')).div(totalAllocatedFirstContract));
-    assert(stakerProcessedStakeTwo.eq(expectedStakeTwo));
+    // Check stakerProcessedDeposit for memberThree
+    const stakerProcessedStakeThree = await staking.stakerProcessedDeposit(memberThree, { from: internalContract });
+    const expectedDepositThree = ether('7').sub(burnAmount.mul(ether('5')).div(totalStakedFirstContract));
+    assert(stakerProcessedStakeThree.eq(expectedDepositThree));
   });
 });

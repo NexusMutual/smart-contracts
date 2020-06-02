@@ -101,12 +101,15 @@ contract PooledStaking is MasterAware {
   uint public MIN_UNSTAKE;       // Forbid unstake of small amounts to prevent spam
   uint public UNSTAKE_LOCK_TIME; // Lock period in seconds before unstaking takes place
 
-  mapping(address => Staker) public stakers;     // stakerAddress => Staker
+  mapping(address => Staker) stakers;     // stakerAddress => Staker
 
-  uint public contractStaked; // temporary variable used while processing burns and rewards
-  uint public contractBurned; // temporary variable used while processing burns
-  uint public contractRewarded; // temporary variable used while processing rewards
-  mapping(address => address[]) public contractsStakers; // list of stakers for all contracts
+  // temporary variables
+  uint contractStaked;   // used when processing burns and rewards
+  uint contractBurned;   // used when processing burns
+  uint contractRewarded; // used when processing rewards
+
+  // list of stakers for all contracts
+  mapping(address => address[]) contractStakers;
 
   // there can be only one pending burn
   Burn public burn;
@@ -119,8 +122,8 @@ contract PooledStaking is MasterAware {
   // firstUnstakeRequest is stored at unstakeRequests[0].next
   uint public lastUnstakeRequestId;
 
-  uint public processedToStakerIndex; // we processed the action up this staker
-  bool public contractStakeCalculated; // flag to indicate whether staked amount is up to date or not
+  uint processedToStakerIndex; // we processed the action up this staker
+  bool contractStakeCalculated; // flag to indicate whether staked amount is up to date or not
 
   /* Modifiers */
 
@@ -147,21 +150,20 @@ contract PooledStaking is MasterAware {
   /* Getters and view functions */
 
   function contractStakerCount(address contractAddress) public view returns (uint) {
-    return contractsStakers[contractAddress].length;
+    return contractStakers[contractAddress].length;
   }
 
   function contractStakerAtIndex(address contractAddress, uint stakerIndex) public view returns (address) {
-    return contractsStakers[contractAddress][stakerIndex];
+    return contractStakers[contractAddress][stakerIndex];
   }
 
-  function contractStakers(address contractAddress) public view returns (address[] memory _stakers) {
-    // TODO: is this view actually needed?
-    return contractsStakers[contractAddress];
+  function contractStakersArray(address contractAddress) public view returns (address[] memory _stakers) {
+    return contractStakers[contractAddress];
   }
 
   function contractStake(address contractAddress) public view returns (uint) {
 
-    address[] storage _stakers = contractsStakers[contractAddress];
+    address[] storage _stakers = contractStakers[contractAddress];
     uint stakerCount = _stakers.length;
     uint stakedOnContract;
 
@@ -186,7 +188,7 @@ contract PooledStaking is MasterAware {
     return stakers[staker].contracts[contractIndex];
   }
 
-  function stakerContracts(address staker) public view returns (address[] memory) {
+  function stakerContractsArray(address staker) public view returns (address[] memory) {
     return stakers[staker].contracts;
   }
 
@@ -196,7 +198,7 @@ contract PooledStaking is MasterAware {
     return stake < deposit ? stake : deposit;
   }
 
-  function stakerContractPendingUnstakeRequestsTotal(address staker, address contractAddress) public view returns (uint) {
+  function stakerContractPendingUnstakeTotal(address staker, address contractAddress) public view returns (uint) {
     return stakers[staker].pendingUnstakeRequestsTotal[contractAddress];
   }
 
@@ -232,18 +234,7 @@ contract PooledStaking is MasterAware {
     return deposit;
   }
 
-  function unstakeRequestAtIndex(uint unstakeRequestId) public view returns (
-    uint amount, uint unstakeAt, address contractAddress, address stakerAddress, uint next
-  ) {
-    UnstakeRequest storage unstakeRequest = unstakeRequests[unstakeRequestId];
-    amount = unstakeRequest.amount;
-    unstakeAt = unstakeRequest.unstakeAt;
-    contractAddress = unstakeRequest.contractAddress;
-    stakerAddress = unstakeRequest.stakerAddress;
-    next = unstakeRequest.next;
-  }
-
-  function getMaxWithdrawable(address stakerAddress) public view returns (uint) {
+  function stakerMaxWithdrawable(address stakerAddress) public view returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];
     uint deposit = staker.deposit;
@@ -266,6 +257,17 @@ contract PooledStaking is MasterAware {
     uint locked = maxStake > minRequired ? maxStake : minRequired;
 
     return deposit.sub(locked);
+  }
+
+  function unstakeRequestAtIndex(uint unstakeRequestId) public view returns (
+    uint amount, uint unstakeAt, address contractAddress, address stakerAddress, uint next
+  ) {
+    UnstakeRequest storage unstakeRequest = unstakeRequests[unstakeRequestId];
+    amount = unstakeRequest.amount;
+    unstakeAt = unstakeRequest.unstakeAt;
+    contractAddress = unstakeRequest.contractAddress;
+    stakerAddress = unstakeRequest.stakerAddress;
+    next = unstakeRequest.next;
   }
 
   function hasPendingActions() public view returns (bool) {
@@ -352,7 +354,7 @@ contract PooledStaking is MasterAware {
       }
 
       if (isNewStake || oldStake == 0) {
-        contractsStakers[contractAddress].push(msg.sender);
+        contractStakers[contractAddress].push(msg.sender);
       }
 
       staker.stakes[contractAddress] = newStake;
@@ -373,14 +375,14 @@ contract PooledStaking is MasterAware {
   }
 
   function withdraw(uint amount) external whenNotPaused onlyMember noPendingBurns {
-    uint limit = getMaxWithdrawable(msg.sender);
+    uint limit = stakerMaxWithdrawable(msg.sender);
     require(limit >= amount, "Requested amount exceeds max withdrawable amount");
     stakers[msg.sender].deposit = stakers[msg.sender].deposit.sub(amount);
     token.transfer(msg.sender, amount);
     emit Withdrawn(msg.sender, amount);
   }
 
-  function createUnstakeRequest(
+  function requestUnstake(
     address[] calldata _contracts,
     uint[] calldata _amounts,
     uint _insertAfter // unstake request id after which the new unstake request will be inserted
@@ -571,7 +573,7 @@ contract PooledStaking is MasterAware {
   function _processBurn() internal returns (bool) {
 
     address _contractAddress = burn.contractAddress;
-    address[] storage _contractStakers = contractsStakers[_contractAddress];
+    address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
 
     uint _totalBurnAmount = burn.amount;
@@ -719,7 +721,7 @@ contract PooledStaking is MasterAware {
     address _contractAddress = reward.contractAddress;
     uint _totalRewardAmount = reward.amount;
 
-    address[] storage _contractStakers = contractsStakers[_contractAddress];
+    address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
 
     uint _actualRewardAmount = contractRewarded;

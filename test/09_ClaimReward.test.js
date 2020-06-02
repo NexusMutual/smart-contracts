@@ -269,7 +269,7 @@ contract('ClaimsReward', function([
 
     before(async function() {
       initialBalance = await tk.balanceOf(staker1);
-      lockedStakedNXM = await tf.getStakerAllLockedTokens(staker1);
+      lockedStakedNXM = await ps.stakerStake(staker1);
       await increaseTimeTo((await latestTime()) + duration.days(3));
 
       rewardToGet = await cr.getAllPendingRewardOfUser(staker1);
@@ -297,7 +297,7 @@ contract('ClaimsReward', function([
       );
     });
     it('9.6 should decrease locked staked tokens of staker', async function() {
-      (await tf.getStakerAllLockedTokens(staker1))
+      (await ps.stakerStake(staker1))
         .toString()
         .should.be.equal(
           new BN(lockedStakedNXM.toString())

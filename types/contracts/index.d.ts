@@ -1125,23 +1125,19 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
 
   withdrawReward: {
     (
-      staker: string | BigNumber,
-      amount: number | BigNumber | string,
+      stakerAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      staker: string | BigNumber,
-      amount: number | BigNumber | string,
+      stakerAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      staker: string | BigNumber,
-      amount: number | BigNumber | string,
+      stakerAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      staker: string | BigNumber,
-      amount: number | BigNumber | string,
+      stakerAddress: string | BigNumber,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };

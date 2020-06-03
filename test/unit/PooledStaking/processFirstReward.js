@@ -297,6 +297,94 @@ describe('processFirstReward', function () {
     assert(processedToStakerIndex.eqn(0), `Expected processedToStakerIndex to be 0, found ${processedToStakerIndex}`);
   });
 
+  it('should remove and re-add 0-account stakers', async function () {
+
+    const { token, staking } = this;
+
+    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+
+    const stakes = {
+      [memberOne]: {
+        amount: '10',
+        on: [firstContract, secondContract, thirdContract],
+        amounts: ['10', '10', '10'],
+      },
+      [memberTwo]: { amount: '20', on: [secondContract, thirdContract], amounts: ['20', '20'] },
+      [memberThree]: { amount: '30', on: [firstContract, thirdContract], amounts: ['30', '30'] },
+    };
+
+    for (const member in stakes) {
+      const stake = stakes[member];
+      await token.transfer(member, ether(stake.amount));
+      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await staking.depositAndStake(
+        ether(stake.amount),
+        stake.on,
+        stake.amounts.map(ether),
+        { from: member },
+      );
+    }
+
+    const expectedFirstContractStake = ether('40');
+    const actualFirstContractStake = await staking.contractStake(firstContract);
+    assert(
+      expectedFirstContractStake.eq(actualFirstContractStake),
+      `firstContract stake should be ${expectedFirstContractStake} but found ${actualFirstContractStake}`,
+    );
+
+    const initialStakers = await staking.contractStakersArray(firstContract);
+    const expectedInitialStakers = [memberOne, memberThree];
+    assert.deepEqual(
+      initialStakers,
+      expectedInitialStakers,
+      `expected initial stakers to be "${expectedInitialStakers.join(',')}" but found "${initialStakers.join(',')}"`,
+    );
+
+    // burn everything on the first contract
+    await staking.pushBurn(firstContract, ether('40'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const firstContractStake = await staking.contractStake(firstContract);
+    assert(ether('0').eq(firstContractStake), `firstContract stake should be 0 but found ${firstContractStake}`);
+
+    const secondTestStakers = await staking.contractStakersArray(firstContract);
+    const expectedSecondTestStakers = [];
+    assert.deepEqual(
+      secondTestStakers,
+      expectedSecondTestStakers,
+      `expected initial stakers to be "${expectedSecondTestStakers.join(',')}" but found "${secondTestStakers.join(',')}"`,
+    );
+
+    // push a small reward on secondContract and expect firstStaker to be removed
+    await staking.pushReward(secondContract, ether('1'), { from: internalContract });
+    await staking.processPendingActions();
+
+    const finalStakers = await staking.contractStakersArray(secondContract);
+    const finalExpectedStakers = [memberTwo];
+    assert.deepEqual(
+      finalStakers,
+      finalExpectedStakers,
+      `expected initial stakers to be "${finalStakers.join(',')}" but found "${finalStakers.join(',')}"`,
+    );
+
+    await token.transfer(memberOne, ether('5'));
+    await token.approve(staking.address, ether('5'), { from: memberOne });
+    await staking.depositAndStake(
+      ether('5'),
+      [firstContract, secondContract, thirdContract],
+      [0, ether('5'), ether('5')],
+      { from: memberOne },
+    );
+
+    const newStakers = await staking.contractStakersArray(secondContract);
+    const newExpectedStakers = [memberTwo, memberOne];
+    assert.deepEqual(
+      newStakers,
+      newExpectedStakers,
+      `expected initial stakers to be "${newExpectedStakers.join(',')}" but found "${newStakers.join(',')}"`,
+    );
+  });
+
   it('should emit Rewarded event', async function () {
 
     const { token, staking } = this;

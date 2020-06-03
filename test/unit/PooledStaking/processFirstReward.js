@@ -289,8 +289,13 @@ describe('processFirstReward', function () {
     let process = await staking.processPendingActions({ gas: Math.ceil(estimate / 2) });
     expectEvent(process, 'PendingActionsProcessed', { finished: false });
 
-    estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
-    process = await staking.processPendingActions({ gas: estimate });
+    // console.log(`Ran processPendingActions consuming ${process.receipt.gasUsed} out of estimated ${estimate}`);
+
+    while (await staking.hasPendingActions()) {
+      estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
+      process = await staking.processPendingActions({ gas: estimate });
+      // console.log(`Ran processPendingActions consuming ${process.receipt.gasUsed} out of estimated ${estimate}`);
+    }
 
     expectEvent(process, 'PendingActionsProcessed', { finished: true });
     const processedToStakerIndex = await staking.processedToStakerIndex();

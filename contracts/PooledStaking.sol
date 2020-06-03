@@ -745,44 +745,16 @@ contract PooledStaking is MasterAware {
     address _contractAddress = reward.contractAddress;
     uint _totalRewardAmount = reward.amount;
 
+    (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
+
+    if (!finished) {
+      return false;
+    }
+
     address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
-
     uint _actualRewardAmount = contractRewarded;
-    uint _stakedOnContract;
     uint previousGas = gasleft();
-
-    if (!isContractStakeCalculated) {
-
-      // calculate amount staked on contract
-      for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
-
-        // stop if the cycle consumed more than 20% of the remaning gas
-        // gasleft() < previousGas * 4/5
-        if (5 * gasleft() < 4 * previousGas) {
-          processedToStakerIndex = i;
-          return false;
-        }
-
-        previousGas = gasleft();
-
-        address stakerAddress = _contractStakers[i];
-        Staker storage staker = stakers[stakerAddress];
-
-        uint deposit = staker.deposit;
-        uint stake = staker.stakes[_contractAddress];
-        stake = deposit < stake ? deposit : stake;
-        _stakedOnContract = _stakedOnContract.add(stake);
-      }
-
-      contractStaked = _stakedOnContract;
-      isContractStakeCalculated = true;
-      processedToStakerIndex = 0;
-
-    } else {
-      // use previously calculated staked amount
-      _stakedOnContract = contractStaked;
-    }
 
     for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 

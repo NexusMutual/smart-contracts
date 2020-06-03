@@ -217,6 +217,182 @@ describe('processBurn', function () {
     );
   });
 
+  it('should remove stakers when burning 0-deposit stakers', async function () {
+
+    const { token, staking } = this;
+    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+
+    const stakes = {
+      [memberOne]: { amount: '100', on: [firstContract, secondContract], amounts: ['100', '100'] },
+      [memberTwo]: { amount: '100', on: [firstContract, secondContract], amounts: ['50', '100'] },
+    };
+
+    for (const member in stakes) {
+      const stake = stakes[member];
+      await token.transfer(member, ether(stake.amount));
+      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await staking.depositAndStake(ether(stake.amount), stake.on, stake.amounts.map(ether), { from: member });
+    }
+
+    // push 200 burn (which should actually burn 150)
+    await staking.pushBurn(firstContract, ether('200'), { from: internalContract });
+    await staking.processPendingActions();
+
+    // check stakes
+    let actualStake = await staking.contractStake(firstContract);
+    let expectedStake = ether('0');
+    assert(expectedStake.eq(actualStake), `Expected ${expectedStake} staked but found ${actualStake}`);
+
+    actualStake = await staking.contractStake(secondContract);
+    expectedStake = ether('50');
+    assert(expectedStake.eq(actualStake), `Expected ${expectedStake} staked but found ${actualStake}`);
+
+    // check stakers
+    let actualStakers = await staking.contractStakersArray(firstContract);
+    let expectedStakers = [];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    actualStakers = await staking.contractStakersArray(secondContract);
+    expectedStakers = [memberOne, memberTwo];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    // push 10 burn
+    await staking.pushBurn(secondContract, ether('10'), { from: internalContract });
+    await staking.processPendingActions();
+
+    // check stakes
+    actualStake = await staking.contractStake(firstContract);
+    expectedStake = ether('0');
+    assert(expectedStake.eq(actualStake), `Expected ${expectedStake} staked but found ${actualStake}`);
+
+    actualStake = await staking.contractStake(secondContract);
+    expectedStake = ether('40');
+    assert(expectedStake.eq(actualStake), `Expected ${expectedStake} staked but found ${actualStake}`);
+
+    // check stakers
+    actualStakers = await staking.contractStakersArray(firstContract);
+    expectedStakers = [];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    actualStakers = await staking.contractStakersArray(secondContract);
+    expectedStakers = [memberTwo];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    await token.transfer(memberOne, ether('100'));
+    await token.approve(staking.address, ether('100'), { from: memberOne });
+    await staking.depositAndStake(
+      ether('100'),
+      [firstContract, secondContract],
+      ['0', ether('100')],
+      { from: memberOne },
+    );
+
+    actualStakers = await staking.contractStakersArray(firstContract);
+    expectedStakers = [];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    actualStakers = await staking.contractStakersArray(secondContract);
+    expectedStakers = [memberTwo, memberOne];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+  });
+
+  it('should not add duplicate stakers when staking on non-zero stake but zero deposit', async function () {
+
+    const { token, staking } = this;
+    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+
+    const stakes = {
+      [memberOne]: { amount: '100', on: [firstContract, secondContract], amounts: ['100', '100'] },
+      [memberTwo]: { amount: '100', on: [firstContract, secondContract], amounts: ['50', '100'] },
+    };
+
+    for (const member in stakes) {
+      const stake = stakes[member];
+      await token.transfer(member, ether(stake.amount));
+      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await staking.depositAndStake(ether(stake.amount), stake.on, stake.amounts.map(ether), { from: member });
+    }
+
+    // push 200 burn (which should actually burn 150)
+    await staking.pushBurn(firstContract, ether('200'), { from: internalContract });
+    await staking.processPendingActions();
+
+    // check stakes
+    let actualStake = await staking.contractStake(firstContract);
+    let expectedStake = ether('0');
+    assert(expectedStake.eq(actualStake), `Expected ${expectedStake} staked but found ${actualStake}`);
+
+    actualStake = await staking.contractStake(secondContract);
+    expectedStake = ether('50');
+    assert(expectedStake.eq(actualStake), `Expected ${expectedStake} staked but found ${actualStake}`);
+
+    // check stakers
+    let actualStakers = await staking.contractStakersArray(firstContract);
+    let expectedStakers = [];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    actualStakers = await staking.contractStakersArray(secondContract);
+    expectedStakers = [memberOne, memberTwo];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    await token.transfer(memberOne, ether('100'));
+    await token.approve(staking.address, ether('100'), { from: memberOne });
+    await staking.depositAndStake(
+      ether('100'),
+      [firstContract, secondContract],
+      ['0', ether('100')],
+      { from: memberOne },
+    );
+
+    actualStakers = await staking.contractStakersArray(firstContract);
+    expectedStakers = [];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+
+    actualStakers = await staking.contractStakersArray(secondContract);
+    expectedStakers = [memberOne, memberTwo];
+    assert.deepEqual(
+      actualStakers,
+      expectedStakers,
+      `Expected stakers [${expectedStakers.join(',')}] but found [${actualStakers.join(',')}]`,
+    );
+  });
+
   it('should burn the correct amount of tokens', async function () {
 
     const { token, staking } = this;

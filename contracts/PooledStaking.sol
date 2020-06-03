@@ -353,7 +353,7 @@ contract PooledStaking is MasterAware {
         staker.contracts.push(contractAddress);
       }
 
-      if (isNewStake || oldStake == 0) {
+      if (isNewStake || initialStake == 0) {
         contractStakers[contractAddress].push(msg.sender);
       }
 
@@ -839,7 +839,7 @@ contract PooledStaking is MasterAware {
     }
 
     // prevent division by zero and set stake to zero
-    if (totalStakedOnContract == 0) {
+    if (totalStakedOnContract == 0 || stake == 0) {
       staker.stakes[contractAddress] = 0;
       return (0, 0);
     }

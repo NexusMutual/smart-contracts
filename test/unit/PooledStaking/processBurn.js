@@ -32,7 +32,7 @@ describe('processFirstBurn', function () {
 
   beforeEach(setup);
 
-  it('should update staker deposit & staked stake correctly', async function () {
+  it('should update staker deposit & stake correctly', async function () {
 
     const { token, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
@@ -62,7 +62,7 @@ describe('processFirstBurn', function () {
     assert(newStake.eq(ether('0')), `Expected new deposit to be ${ether('0')}, found ${newStake}`);
   });
 
-  it('should update staker deposit & staked stake correctly for multiple stakers', async function () {
+  it('should update staker deposit & stake correctly for multiple stakers', async function () {
 
     const { token, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
@@ -263,28 +263,6 @@ describe('processFirstBurn', function () {
       currentBalance.eq(expectedBalance),
       `staking contract balance should be ${expectedBalance}, found ${currentBalance}`,
     );
-  });
-
-  it('should prevent the other stakes on other contracts to exceed remaining deposit', async function () {
-
-    const { token, staking } = this;
-    await setLockTime(staking, 90 * 24 * 3600); // 90 days
-
-    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
-    const contracts = [firstContract, secondContract, thirdContract, fourthContract];
-    const amounts = [ether('300'), ether('50'), ether('100'), ether('120')];
-    await staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne });
-
-    // Push a burn of 200
-    await staking.pushBurn(firstContract, ether('200'), { from: internalContract });
-    await staking.processPendingActions();
-
-    // Check no stake is greater than the deposit
-    const deposit = await staking.stakerDeposit(memberOne);
-    for (let i = 0; i < contracts.length; i++) {
-      const stake = await staking.stakerContractStake(memberOne, contracts[i]);
-      assert(stake.lte(deposit));
-    }
   });
 
   it('should delete the burn object after processing it', async function () {

@@ -179,10 +179,10 @@ describe('pushBurn', function () {
     }
 
     const expectedFirstContractStake = ether('40');
-    const actulFirstContractStake = await staking.contractStake(firstContract);
+    const actualFirstContractStake = await staking.contractStake(firstContract);
     assert(
-      expectedFirstContractStake.eq(actulFirstContractStake),
-      `firstContract stake should be ${expectedFirstContractStake} but found ${actulFirstContractStake}`,
+      expectedFirstContractStake.eq(actualFirstContractStake),
+      `firstContract stake should be ${expectedFirstContractStake} but found ${actualFirstContractStake}`,
     );
 
     const initialStakers = await staking.contractStakersArray(firstContract);

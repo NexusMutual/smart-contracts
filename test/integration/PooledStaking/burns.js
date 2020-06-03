@@ -244,12 +244,11 @@ describe('burns', function () {
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
       await ps.processPendingActions();
+      const balanceAfter = await tk.balanceOf(ps.address);
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
       const sumAssured = ether(cover.amount.toString());
       const expectedBurnedNXMAmount = sumAssured.mul(ether('1')).div(new BN(tokenPrice));
-
-      const balanceAfter = await tk.balanceOf(ps.address);
       const totalBurn = balanceBefore.sub(balanceAfter);
 
       totalBurn.toString().should.be.equal(
@@ -325,15 +324,23 @@ describe('burns', function () {
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
       const sumAssured = new BN(ether(cover.amount.toString()));
-      const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
-      const totalBurn = balanceBefore.sub(balanceAfter);
+      const actualBurn = balanceBefore.sub(balanceAfter);
 
-      totalBurn.toString().should.be.equal(
+      const pushedBurnAmount = sumAssured.mul(ether('1')).div(tokenPrice);
+      const stakedOnContract = await ps.contractStake(cover.contractAddress);
+      let expectedBurnedNXMAmount = ether('0');
+
+      for (const staker of this.allStakers) {
+        const stakerStake = await ps.stakerContractStake(staker, cover.contractAddress);
+        const stakerBurn = stakerStake.mul(pushedBurnAmount).div(stakedOnContract);
+        expectedBurnedNXMAmount = expectedBurnedNXMAmount.add(stakerBurn);
+      }
+
+      actualBurn.toString().should.be.equal(
         expectedBurnedNXMAmount.toString(),
-        `Total burn: ${totalBurn}, expected: ${expectedBurnedNXMAmount}`,
+        `Total burn: ${actualBurn}, expected: ${expectedBurnedNXMAmount}`,
       );
     });
-
   });
 
   describe('claim is rejected', function () {

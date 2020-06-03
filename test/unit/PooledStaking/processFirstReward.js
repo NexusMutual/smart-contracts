@@ -3,7 +3,7 @@ const { assert } = require('chai');
 
 const {
   accounts,
-  constants: { ParamType },
+  constants: { ParamType, Role },
 } = require('../utils');
 
 const setup = require('../setup');
@@ -252,6 +252,49 @@ describe('processFirstReward', function () {
       postRewardBalance.eq(preRewardBalance),
       `Expected post reward balance of staking contract ${preRewardBalance}, found ${postRewardBalance}`,
     );
+  });
+
+  it('should delete the item from the rewards mapping after processing it', async function () {
+
+    const { token, staking } = this;
+
+    await fundApproveDepositStake(token, staking, ether('300'), firstContract, memberOne);
+    await staking.pushReward(firstContract, ether('10'), { from: internalContract });
+
+    let hasPendingRewards = await staking.hasPendingRewards();
+    assert.isTrue(hasPendingRewards, `Expect hasPendingRewards to be true`);
+
+    const tx = await staking.processPendingActions();
+    expectEvent(tx, 'PendingActionsProcessed', { finished: true });
+
+    hasPendingRewards = await staking.hasPendingRewards();
+    assert.isFalse(hasPendingRewards, `Expect hasPendingRewards to be false`);
+  });
+
+  it('should batch process if gas is not enough', async function () {
+
+    this.timeout(0);
+
+    const { token, master, staking } = this;
+    const oneBillion = 1e9;
+
+    for (const account of accounts.generalPurpose) {
+      await master.enrollMember(account, Role.Member);
+      await fundApproveDepositStake(token, staking, ether('10'), firstContract, account);
+    }
+
+    await staking.pushReward(firstContract, ether('2'), { from: internalContract });
+
+    let estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
+    let process = await staking.processPendingActions({ gas: Math.ceil(estimate / 2) });
+    expectEvent(process, 'PendingActionsProcessed', { finished: false });
+
+    estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
+    process = await staking.processPendingActions({ gas: estimate });
+
+    expectEvent(process, 'PendingActionsProcessed', { finished: true });
+    const processedToStakerIndex = await staking.processedToStakerIndex();
+    assert(processedToStakerIndex.eqn(0), `Expected processedToStakerIndex to be 0, found ${processedToStakerIndex}`);
   });
 
   it('should emit Rewarded event', async function () {

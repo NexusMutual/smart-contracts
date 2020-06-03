@@ -573,43 +573,18 @@ contract PooledStaking is MasterAware {
   function _processBurn() internal returns (bool) {
 
     address _contractAddress = burn.contractAddress;
+    (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
+
+    if (!finished) {
+      return false;
+    }
+
     address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
 
     uint _totalBurnAmount = burn.amount;
     uint _actualBurnAmount = contractBurned;
-    uint _stakedOnContract;
     uint previousGas = gasleft();
-
-    if (!isContractStakeCalculated) {
-
-      // calculate amount staked on contract
-      for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
-
-        // stop if the cycle consumed more than 20% of the remaning gas
-        // gasleft() < previousGas * 4/5
-        if (5 * gasleft() < 4 * previousGas) {
-          processedToStakerIndex = i;
-          return false;
-        }
-
-        previousGas = gasleft();
-
-        Staker storage staker = stakers[_contractStakers[i]];
-        uint deposit = staker.deposit;
-        uint stake = staker.stakes[_contractAddress];
-        stake = deposit < stake ? deposit : stake;
-        _stakedOnContract = _stakedOnContract.add(stake);
-      }
-
-      contractStaked = _stakedOnContract;
-      isContractStakeCalculated = true;
-      processedToStakerIndex = 0;
-
-    } else {
-      // use previously calculated staked amount
-      _stakedOnContract = contractStaked;
-    }
 
     if (_totalBurnAmount > _stakedOnContract) {
       _totalBurnAmount = _stakedOnContract;
@@ -625,23 +600,27 @@ contract PooledStaking is MasterAware {
 
       previousGas = gasleft();
 
-      (uint _stakerBurnAmount, uint _newStake) = _burnStaker(
-        _contractStakers[i], _contractAddress, _totalBurnAmount, _stakedOnContract
-      );
+      Staker storage staker = stakers[_contractStakers[i]];
+      uint _stakerBurnAmount;
+      uint _newStake;
 
-      if (_newStake == 0) {
-        // when the stake is explicitly set to 0
-        // the staker is removed from the contract stakers array
-        // we will re-add the staker if he stakes again
-        _contractStakers[i] = _contractStakers[_stakerCount - 1];
-        _contractStakers.pop();
-        // i-- might underflow to MAX_UINT
-        // but that's fine since it will be incremented back to 0 on the next loop
-        i--;
-        _stakerCount--;
+      (_stakerBurnAmount, _newStake) = _burnStaker(staker, _contractAddress, _stakedOnContract, _totalBurnAmount);
+      _actualBurnAmount = _actualBurnAmount.add(_stakerBurnAmount);
+
+      if (_newStake != 0) {
+        continue;
       }
 
-      _actualBurnAmount = _actualBurnAmount.add(_stakerBurnAmount);
+      // if we got here, the stake is explicitly set to 0
+      // the staker is removed from the contract stakers array
+      // and we will add the staker back if he stakes again
+      _contractStakers[i] = _contractStakers[_stakerCount - 1];
+      _contractStakers.pop();
+
+      // i-- might underflow to MAX_UINT
+      // but that's fine since it will be incremented back to 0 on the next loop
+      i--;
+      _stakerCount--;
     }
 
     delete burn;
@@ -655,33 +634,79 @@ contract PooledStaking is MasterAware {
   }
 
   function _burnStaker(
-    address stakerAddress, address contractAddress, uint totalBurnAmount, uint totalStakedOnContract
+    Staker storage staker, address _contractAddress, uint _stakedOnContract, uint _totalBurnAmount
   ) internal returns (
-    uint burnedAmount, uint newStake
+    uint _stakerBurnAmount, uint _newStake
   ) {
 
-    Staker storage staker = stakers[stakerAddress];
-    uint deposit = staker.deposit;
-    uint stake = staker.stakes[contractAddress];
+    uint _currentDeposit;
+    uint _currentStake;
 
-    if (stake > deposit) {
-      stake = deposit;
+    // silence compiler warning
+    _newStake = 0;
+
+    // do we need a storage read?
+    if (_stakedOnContract != 0) {
+      _currentDeposit = staker.deposit;
+      _currentStake = staker.stakes[_contractAddress];
+
+      if (_currentStake > _currentDeposit) {
+        _currentStake = _currentDeposit;
+      }
     }
 
-    // prevent division by zero and set stake to zero
-    if (totalStakedOnContract == 0) {
-      staker.stakes[contractAddress] = 0;
-      return (0, 0);
+    if (_stakedOnContract != _totalBurnAmount) {
+      // formula: staker_burn = staker_stake / total_contract_stake * contract_burn
+      // reordered for precision loss prevention
+      _stakerBurnAmount = _currentStake.mul(_totalBurnAmount).div(_stakedOnContract);
+      _newStake = _currentStake.sub(_stakerBurnAmount);
+    } else {
+      // it's the whole stake
+      _stakerBurnAmount = _currentStake;
     }
 
-    // formula: staker_burn = staker_stake / total_contract_stake * contract_burn
-    // reordered for precision loss prevention
-    burnedAmount = stake.mul(totalBurnAmount).div(totalStakedOnContract);
+    if (_stakerBurnAmount != 0) {
+      staker.deposit = _currentDeposit.sub(_stakerBurnAmount);
+    }
 
-    // update staker's deposit
-    staker.deposit = deposit.sub(burnedAmount);
-    newStake = stake.sub(burnedAmount);
-    staker.stakes[contractAddress] = newStake;
+    staker.stakes[_contractAddress] = _newStake;
+  }
+
+  function _calculateContractStake(address _contractAddress) internal returns (uint _stakedOnContract, bool finished) {
+
+    if (isContractStakeCalculated) {
+      // use previously calculated staked amount
+      return (contractStaked, true);
+    }
+
+    address[] storage _contractStakers = contractStakers[_contractAddress];
+    uint _stakerCount = _contractStakers.length;
+    uint previousGas = gasleft();
+
+    // calculate amount staked on contract
+    for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
+
+      // stop if the cycle consumed more than 20% of the remaning gas
+      // gasleft() < previousGas * 4/5
+      if (5 * gasleft() < 4 * previousGas) {
+        processedToStakerIndex = i;
+        return (_stakedOnContract, false);
+      }
+
+      previousGas = gasleft();
+
+      Staker storage staker = stakers[_contractStakers[i]];
+      uint deposit = staker.deposit;
+      uint stake = staker.stakes[_contractAddress];
+      stake = deposit < stake ? deposit : stake;
+      _stakedOnContract = _stakedOnContract.add(stake);
+    }
+
+    contractStaked = _stakedOnContract;
+    isContractStakeCalculated = true;
+    processedToStakerIndex = 0;
+
+    return (_stakedOnContract, true);
   }
 
   function _processFirstUnstakeRequest() internal returns (bool) {

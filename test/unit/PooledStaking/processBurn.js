@@ -28,7 +28,7 @@ async function setLockTime (staking, lockTime) {
   return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
-describe('processFirstBurn', function () {
+describe('processBurn', function () {
 
   beforeEach(setup);
 

@@ -344,6 +344,8 @@ contract PooledStaking is MasterAware {
           staker.stakes[contractAddress] = newStake;
         }
 
+        totalStaked = totalStaked.add(newStake);
+
         // no other changes to this contract
         continue;
       }

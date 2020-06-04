@@ -601,4 +601,25 @@ describe('depositAndStake', function () {
     await expectMemberState(staking, memberOne, [firstContract, secondContract], [ether('0'), ether('0')]);
   });
 
+  it('should prevent staking more than deposit * MAX_EXPOSURE on successive staking operations', async function () {
+
+    const { staking, token } = this;
+
+    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await fundAndApprove(token, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2;
+
+    // stake 10 on 2 contracts
+    let contracts = [firstContract, secondContract];
+    let amounts = [ether('10'), ether('10')];
+    await staking.depositAndStake(ether('10'), contracts, amounts, { from: memberOne });
+
+    // stake the same 10 on 2 more contracts
+    contracts = [firstContract, secondContract, thirdContract, fourthContract];
+    amounts = [ether('10'), ether('10'), ether('10'), ether('10')];
+    await expectRevert(
+      staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne }),
+      'Total stake exceeds maximum allowed',
+    );
+  });
+
 });

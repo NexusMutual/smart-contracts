@@ -108,10 +108,10 @@ async function run () {
 
   // revert initialized values for unit tests
   console.log('Set pooled staking parameters');
-  await staking.updateParameter(ParamType.MIN_ALLOCATION, 20);
-  await staking.updateParameter(ParamType.MIN_DEALLOCATION, 20);
-  await staking.updateParameter(ParamType.MAX_LEVERAGE, 2);
-  await staking.updateParameter(ParamType.DEALLOCATE_LOCK_TIME, 300); // 5 minutes
+  await staking.updateUintParameters(ParamType.MIN_STAKE, 20);
+  await staking.updateUintParameters(ParamType.MIN_UNSTAKE, 20);
+  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, 2);
+  await staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, 300); // 5 minutes
 
   updateOzConfig({
     MasterMock: master.address,

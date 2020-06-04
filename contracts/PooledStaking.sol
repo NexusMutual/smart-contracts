@@ -37,6 +37,9 @@ contract PooledStaking is MasterAware {
 
     // amount pending to be subtracted after all unstake requests will be processed
     mapping(address => uint) pendingUnstakeRequestsTotal;
+
+    // flag to indicate the presence of this staker in the array of stakers of each contract
+    mapping(address => bool) isInContractStakers;
   }
 
   struct Burn {
@@ -329,24 +332,31 @@ contract PooledStaking is MasterAware {
       uint newStake = _stakes[i];
       bool isNewStake = i >= oldLength;
 
-      require(newStake >= MIN_STAKE, "Minimum stake amount not met");
-      require(newStake <= newDeposit, "Cannot stake more than deposited");
-
       if (!isNewStake) {
         require(contractAddress == staker.contracts[i], "Unexpected contract order");
         require(oldStake <= newStake, "New stake is less than previous stake");
       }
 
       if (oldStake == newStake) {
+
+        // if there were burns but the stake was not updated, update it now
+        if (initialStake != newStake) {
+          staker.stakes[contractAddress] = newStake;
+        }
+
         // no other changes to this contract
         continue;
       }
+
+      require(newStake >= MIN_STAKE, "Minimum stake amount not met");
+      require(newStake <= newDeposit, "Cannot stake more than deposited");
 
       if (isNewStake) {
         staker.contracts.push(contractAddress);
       }
 
-      if (isNewStake || initialStake == 0) {
+      if (isNewStake || staker.isInContractStakers[contractAddress] == false) {
+        staker.isInContractStakers[contractAddress] = true;
         contractStakers[contractAddress].push(msg.sender);
       }
 
@@ -604,6 +614,7 @@ contract PooledStaking is MasterAware {
       // if we got here, the stake is explicitly set to 0
       // the staker is removed from the contract stakers array
       // and we will add the staker back if he stakes again
+      staker.isInContractStakers[_contractAddress] = false;
       _contractStakers[i] = _contractStakers[_stakerCount - 1];
       _contractStakers.pop();
 
@@ -758,13 +769,20 @@ contract PooledStaking is MasterAware {
       }
 
       previousGas = gasleft();
+      address _stakerAddress = _contractStakers[i];
 
       (uint _stakerRewardAmount, uint _stake) = _rewardStaker(
-        _contractStakers[i], _contractAddress, _totalRewardAmount, _stakedOnContract
+        _stakerAddress, _contractAddress, _totalRewardAmount, _stakedOnContract
       );
 
       // remove 0-amount stakers, similar to what we're doing when processing burns
       if (_stake == 0) {
+
+        // mark the user as not present in contract stakers array
+        Staker storage staker = stakers[_stakerAddress];
+        staker.isInContractStakers[_contractAddress] = false;
+
+        // remove the staker from the contract stakers array
         _contractStakers[i] = _contractStakers[_stakerCount - 1];
         _contractStakers.pop();
         i--;

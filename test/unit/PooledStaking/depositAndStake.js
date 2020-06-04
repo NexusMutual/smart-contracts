@@ -31,6 +31,39 @@ async function setUnstakeLockTime (staking, lockTime) {
   return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
+const expectContractState = async (staking, contract, expectedStake, expectedStakers) => {
+
+  const actualContractStake = await staking.contractStake(contract);
+  const contractStakers = await staking.contractStakersArray(contract);
+  const str = array => `[${array.join(',')}]`;
+
+  assert(
+    actualContractStake.eq(expectedStake),
+    `Expected contract stake to be ${actualContractStake}, found ${actualContractStake}`,
+  );
+
+  assert.deepEqual(
+    contractStakers,
+    expectedStakers,
+    `Expected contract stakers to be ${str(expectedStakers)}, found ${str(contractStakers)}`,
+  );
+};
+
+const expectMemberState = async (staking, staker, contracts, stakes) => {
+
+  for (let i = 0; i < contracts.length; i++) {
+
+    const contract = contracts[i];
+    const expectedStake = stakes[i];
+    const actualStake = await staking.stakerContractStake(staker, contract);
+
+    assert(
+      actualStake.eq(expectedStake),
+      `Expected staker stake to be ${expectedStake}, found ${actualStake}`,
+    );
+  }
+};
+
 describe('depositAndStake', function () {
 
   beforeEach(setup);
@@ -394,7 +427,7 @@ describe('depositAndStake', function () {
     }
   });
 
-  it("should push new contracts to staker's contracts and contract's stakers", async function () {
+  it('should push new contracts to staker\'s contracts and contract\'s stakers', async function () {
     const { staking, token } = this;
 
     const amount = ether('10');
@@ -483,7 +516,7 @@ describe('depositAndStake', function () {
 
     // Deposit and stake
     await staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
-    await staking.requestUnstake([firstContract], [ether('3')], 0, { from: memberOne });
+      await staking.requestUnstake([firstContract], [ether('3')], 0, { from: memberOne });
     await staking.depositAndStake(ether('3'), [firstContract, secondContract], [ether('18'), ether('18')], { from: memberOne });
 
     await time.increase(91 * 24 * 3600); // 91 days pass
@@ -534,4 +567,38 @@ describe('depositAndStake', function () {
     contracts = [firstContract, secondContract, thirdContract, fourthContract, fifthContract, sixthContract];
     await staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne });
   });
+
+  it('should keep a 0-amount contract at 0 while allowing staking on new ones', async function () {
+
+    const { staking, token } = this;
+
+    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await fundAndApprove(token, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2
+
+    // stake 10 on 2 contracts
+    let contracts = [firstContract, secondContract];
+    let amounts = [ether('10'), ether('10')];
+    await staking.depositAndStake(ether('10'), contracts, amounts, { from: memberOne });
+
+    // Fully burn the first contract
+    await staking.pushBurn(firstContract, ether('10'), { from: internalContract });
+    await staking.processPendingActions();
+
+    await expectContractState(staking, firstContract, ether('0'), []);
+    await expectContractState(staking, secondContract, ether('0'), [memberOne]);
+    await expectMemberState(staking, memberOne, [firstContract, secondContract], [ether('0'), ether('0')]);
+
+    // should let the user stake on new contracts
+    contracts = [firstContract, secondContract, thirdContract, fourthContract];
+    amounts = [ether('0'), ether('0'), ether('10'), ether('10')];
+    await staking.depositAndStake(ether('10'), contracts, amounts, { from: memberOne });
+
+    // check first contract
+    await expectContractState(staking, firstContract, ether('0'), []);
+    await expectContractState(staking, secondContract, ether('0'), [memberOne]);
+    await expectContractState(staking, thirdContract, ether('10'), [memberOne]);
+    await expectContractState(staking, fourthContract, ether('10'), [memberOne]);
+    await expectMemberState(staking, memberOne, [firstContract, secondContract], [ether('0'), ether('0')]);
+  });
+
 });

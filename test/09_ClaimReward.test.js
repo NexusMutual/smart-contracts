@@ -275,9 +275,7 @@ contract('ClaimsReward', function([
       rewardToGet = await cr.getAllPendingRewardOfUser(staker1);
       stakerRewardAmount = await ps.stakerReward(staker1);
 
-      unlockableStakedNXM = await tf.getStakerAllUnlockableStakedTokens(
-        staker1
-      );
+      unlockableStakedNXM = await ps.stakerMaxWithdrawable(staker1);
     });
     it('9.4 should be able to claim reward and unlock all unlockable tokens', async function() {
       let proposalIds = [];
@@ -306,7 +304,7 @@ contract('ClaimsReward', function([
         );
     });
     it('9.7 should return zero unlockable staked tokens of staker', async function() {
-      (await tf.getStakerAllUnlockableStakedTokens(staker1))
+      (await ps.stakerMaxWithdrawable(staker1))
         .toString()
         .should.be.equal((0).toString());
     });

@@ -126,15 +126,25 @@ contract TokenFunctions is Iupgradable {
     /**
      * @dev Returns total unlockable amount of staked NXM Tokens on all smart contract .
      * @param _stakerAddress address of the Staker.
-     */ 
+     */
     function getStakerAllUnlockableStakedTokens(
         address _stakerAddress
     )
-        external
-        view
-        returns (uint)
+    external
+    view
+    returns (uint amount)
     {
-        return pooledStaking.stakerMaxWithdrawable(_stakerAddress);
+        uint unlockableAmount = 0;
+        address scAddress;
+        uint scIndex;
+        for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
+            scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
+            scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
+            unlockableAmount = unlockableAmount.add(
+                _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress,
+                scIndex));
+        }
+        amount = unlockableAmount;
     }
 
     /**

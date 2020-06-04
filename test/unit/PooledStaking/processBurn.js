@@ -18,14 +18,14 @@ const thirdContract = '0x0000000000000000000000000000000000000003';
 const fourthContract = '0x0000000000000000000000000000000000000004';
 
 async function fundAndStake (token, staking, amount, contract, member) {
-  await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
 async function setLockTime (staking, lockTime) {
-  return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('processBurn', function () {
@@ -133,7 +133,7 @@ describe('processBurn', function () {
 
     const { token, staking } = this;
 
-    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+    await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
       [memberOne]: {
@@ -220,7 +220,7 @@ describe('processBurn', function () {
   it('should remove stakers when burning 0-deposit stakers', async function () {
 
     const { token, staking } = this;
-    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+    await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
       [memberOne]: { amount: '100', on: [firstContract, secondContract], amounts: ['100', '100'] },
@@ -323,7 +323,7 @@ describe('processBurn', function () {
   it('should not add duplicate stakers when staking on non-zero stake but zero deposit', async function () {
 
     const { token, staking } = this;
-    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+    await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
       [memberOne]: { amount: '100', on: [firstContract, secondContract], amounts: ['100', '100'] },

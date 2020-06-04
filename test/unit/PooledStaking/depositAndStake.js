@@ -21,14 +21,14 @@ const sixthContract = '0x0000000000000000000000000000000000000006';
 
 async function fundAndApprove (token, staking, amount, member) {
   const maxExposure = '2';
-  await staking.updateParameter(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
 }
 
 async function setUnstakeLockTime (staking, lockTime) {
-  return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('depositAndStake', function () {
@@ -99,7 +99,7 @@ describe('depositAndStake', function () {
     const minStake = ether('20');
     const amount = ether('1');
 
-    await staking.updateParameter(ParamType.MIN_STAKE, minStake, { from: governanceContract });
+    await staking.updateUintParameters(ParamType.MIN_STAKE, minStake, { from: governanceContract });
     await fundAndApprove(token, staking, amount, memberOne);
 
     await expectRevert(

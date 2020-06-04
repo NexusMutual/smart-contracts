@@ -21,9 +21,9 @@ async function fundApproveStake (token, staking, amount, contracts, allocations,
   const maxExposure = '10';
   const minAllocation = ether('2');
 
-  await staking.updateParameter(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
-  await staking.updateParameter(ParamType.MIN_UNSTAKE, ether('2'), { from: governanceContract });
-  await staking.updateParameter(ParamType.MIN_STAKE, minAllocation, { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MIN_UNSTAKE, ether('2'), { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MIN_STAKE, minAllocation, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
@@ -32,11 +32,11 @@ async function fundApproveStake (token, staking, amount, contracts, allocations,
 }
 
 async function setUnstakeLockTime (staking, lockTime) {
-  return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 async function setMinUnstake (staking, amount) {
-  return staking.updateParameter(ParamType.MIN_UNSTAKE, amount, { from: governanceContract });
+  return staking.updateUintParameters(ParamType.MIN_UNSTAKE, amount, { from: governanceContract });
 }
 
 describe('requestUnstake', function () {

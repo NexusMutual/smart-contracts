@@ -19,7 +19,7 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundApproveDepositStake (token, staking, amount, contract, member) {
-  await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
@@ -306,7 +306,7 @@ describe('processFirstReward', function () {
 
     const { token, staking } = this;
 
-    await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+    await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
       [memberOne]: {

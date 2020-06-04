@@ -16,18 +16,18 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 
 async function fundAndStake (token, staking, amount, contract, member) {
-  await staking.updateParameter(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
 async function setMinAllowedUnstake (staking, amount) {
-  return staking.updateParameter(ParamType.MIN_UNSTAKE, amount, { from: governanceContract });
+  return staking.updateUintParameters(ParamType.MIN_UNSTAKE, amount, { from: governanceContract });
 }
 
 async function setUnstakeLockTime (staking, lockTime) {
-  return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('processUnstakeRequest', function () {

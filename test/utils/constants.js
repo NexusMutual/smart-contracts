@@ -1,8 +1,10 @@
+const { hex } = require('./helpers');
+
 const ParamType = {
-  MIN_STAKE: 0,
-  MAX_EXPOSURE: 1,
-  MIN_UNSTAKE: 2,
-  UNSTAKE_LOCK_TIME: 3,
+  MIN_STAKE: hex('MIN_STAK'),
+  MAX_EXPOSURE: hex('MAX_EXPO'),
+  MIN_UNSTAKE: hex('MIN_UNST'),
+  UNSTAKE_LOCK_TIME: hex('UNST_LKT'),
 };
 
 const Role = {

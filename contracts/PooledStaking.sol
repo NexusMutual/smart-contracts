@@ -27,13 +27,6 @@ contract PooledStaking is MasterAware {
 
   /* Data types */
 
-  enum ParamType {
-    MIN_STAKE,
-    MAX_EXPOSURE,
-    MIN_UNSTAKE,
-    UNSTAKE_LOCK_TIME
-  }
-
   struct Staker {
     uint deposit; // total amount of deposit nxm
     uint reward; // total amount that is ready to be claimed
@@ -821,26 +814,24 @@ contract PooledStaking is MasterAware {
     staker.reward = staker.reward.add(rewardedAmount);
   }
 
-  function updateParameter(uint paramIndex, uint value) external onlyGovernance {
+  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
 
-    ParamType param = ParamType(paramIndex);
-
-    if (param == ParamType.MIN_STAKE) {
+    if (code == "MIN_STAK") {
       MIN_STAKE = value;
       return;
     }
 
-    if (param == ParamType.MAX_EXPOSURE) {
+    if (code == "MAX_EXPO") {
       MAX_EXPOSURE = value;
       return;
     }
 
-    if (param == ParamType.MIN_UNSTAKE) {
+    if (code == "MIN_UNST") {
       MIN_UNSTAKE = value;
       return;
     }
 
-    if (param == ParamType.UNSTAKE_LOCK_TIME) {
+    if (code == "UNST_LKT") {
       UNSTAKE_LOCK_TIME = value;
       return;
     }

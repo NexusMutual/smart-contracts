@@ -20,14 +20,14 @@ const fourthContract = '0x0000000000000000000000000000000000000004';
 
 async function fundAndApprove (token, staking, amount, member) {
   const maxExposure = '2';
-  await staking.updateParameter(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
+  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(staking.address, amount, { from: member });
 }
 
 async function setLockTime (staking, lockTime) {
-  return staking.updateParameter(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('getters', function () {

@@ -13,7 +13,7 @@ const {
   governanceContracts: [governanceContract],
 } = accounts;
 
-describe('updateParameter', function () {
+describe('updateUintParameters', function () {
 
   beforeEach(setup);
 
@@ -25,7 +25,7 @@ describe('updateParameter', function () {
 
     for (const address of nonGov) {
       await expectRevert(
-        staking.updateParameter(param, 0, { from: address }),
+        staking.updateUintParameters(param, 0, { from: address }),
         'Caller is not authorized to govern',
       );
     }
@@ -45,7 +45,7 @@ describe('updateParameter', function () {
       assert.notStrictEqual(before.toString(), value);
 
       const param = ParamType[paramName];
-      await staking.updateParameter(param, value, { from: governanceContract });
+      await staking.updateUintParameters(param, value, { from: governanceContract });
 
       const actual = await staking[paramName]();
       assert.strictEqual(actual.toString(), value);

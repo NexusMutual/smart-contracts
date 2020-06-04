@@ -125,7 +125,7 @@ contract('Pool', function([
     await tk.approve(ps.address, stakeTokens, {
       from: member1
     });
-    await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+    await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
       from: member1
     });
 

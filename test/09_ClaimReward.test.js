@@ -156,7 +156,7 @@ contract('ClaimsReward', function([
       await tk.approve(ps.address, stakeTokens, {
         from: staker
       });
-      await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+      await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
         from: staker
       });
     }
@@ -269,7 +269,7 @@ contract('ClaimsReward', function([
 
     before(async function() {
       initialBalance = await tk.balanceOf(staker1);
-      lockedStakedNXM = await ps.stakerStake(staker1);
+      lockedStakedNXM = await ps.stakerDeposit(staker1);
       await increaseTimeTo((await latestTime()) + duration.days(3));
 
       rewardToGet = await cr.getAllPendingRewardOfUser(staker1);
@@ -282,7 +282,7 @@ contract('ClaimsReward', function([
     it('9.4 should be able to claim reward and unlock all unlockable tokens', async function() {
       let proposalIds = [];
       await cr.claimAllPendingReward(20, {from: staker1});
-      await ps.withdrawReward(staker1, stakerRewardAmount);
+      await ps.withdrawReward(staker1);
       await tf.unlockStakerUnlockableTokens(staker1);
       (await cr.getAllPendingRewardOfUser(staker1))
         .toString()
@@ -297,7 +297,7 @@ contract('ClaimsReward', function([
       );
     });
     it('9.6 should decrease locked staked tokens of staker', async function() {
-      (await ps.stakerStake(staker1))
+      (await ps.stakerDeposit(staker1))
         .toString()
         .should.be.equal(
           new BN(lockedStakedNXM.toString())
@@ -342,7 +342,7 @@ contract('ClaimsReward', function([
       await tk.approve(ps.address, stakeAmount, {
         from: newMember1
       });
-      await ps.stake(stakeAmount, contractAddresses, stakeAmounts, {
+      await ps.depositAndStake(stakeAmount, contractAddresses, stakeAmounts, {
         from: newMember1
       });
 
@@ -386,8 +386,7 @@ contract('ClaimsReward', function([
 
     it('9.10 should claim commision for covers', async function() {
       let initialBal = await tk.balanceOf(newMember1);
-      const stakerRewardAmount = await ps.stakerReward(newMember1);
-      await ps.withdrawReward(newMember1, stakerRewardAmount);
+      await ps.withdrawReward(newMember1);
       let finalBal = await tk.balanceOf(newMember1);
 
       const stakerRewardPercentage = await td.stakerCommissionPer();
@@ -428,8 +427,7 @@ contract('ClaimsReward', function([
       await ps.processPendingActions();
 
       initialBal = await tk.balanceOf(newMember1);
-      const secondStakerRewardAmount = await ps.stakerReward(newMember1);
-      await ps.withdrawReward(newMember1, secondStakerRewardAmount);
+      await ps.withdrawReward(newMember1);
       finalBal = await tk.balanceOf(newMember1);
       const secondExpectedReward = new BN(coverNXMPrice.toString())
         .mul(new BN(stakerRewardPercentage))

@@ -134,7 +134,7 @@ contract TokenFunctions is Iupgradable {
         view
         returns (uint)
     {
-        return pooledStaking.getMaxUnstakable(_stakerAddress);
+        return pooledStaking.stakerMaxWithdrawable(_stakerAddress);
     }
 
     /**

@@ -6,12 +6,12 @@ interface IPooledStaking {
 
     function contractStake(address contractAddress) external view returns (uint);
     function stakerReward(address staker) external view returns (uint);
-    function stakerStake(address staker) external view returns (uint);
-    function stakerProcessedStake(address staker) external view returns (uint);
-    function stakerContractAllocation(address staker, address contractAddress) external view returns (uint);
+    function stakerDeposit(address staker) external view returns (uint);
+    function stakerProcessedDeposit(address staker) external view returns (uint);
+    function stakerContractStake(address staker, address contractAddress) external view returns (uint);
 
-    function unstake(uint amount) external;
-    function getMaxUnstakable(address stakerAddress) external view returns (uint);
+    function withdraw(uint amount) external;
+    function stakerMaxWithdrawable(address stakerAddress) external view returns (uint);
 
     function withdrawReward(uint amount) external;
 

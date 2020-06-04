@@ -161,7 +161,7 @@ contract('Claim', function([
         await tk.approve(ps.address, stakeTokens, {
           from: staker
         });
-        await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+        await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
           from: staker
         });
       }

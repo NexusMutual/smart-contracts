@@ -165,7 +165,7 @@ contract('Claim: Assessment', function([
       await tk.approve(ps.address, stakeTokens, {
         from: staker
       });
-      await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+      await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
         from: staker
       });
     }
@@ -301,11 +301,11 @@ contract('Claim: Assessment', function([
             coverID = await qd.getAllCoversOfUser(coverHolder);
             await cl.submitClaim(coverID[1], {from: coverHolder});
             claimId = (await cd.actualClaimLength()) - 1;
-            initialStakedTokens1 = await ps.stakerContractAllocation(
+            initialStakedTokens1 = await ps.stakerContractStake(
               staker1,
               smartConAdd
             );
-            initialStakedTokens2 = await ps.stakerContractAllocation(
+            initialStakedTokens2 = await ps.stakerContractStake(
               staker2,
               smartConAdd
             );

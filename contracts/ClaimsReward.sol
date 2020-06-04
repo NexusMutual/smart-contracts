@@ -229,7 +229,7 @@ contract ClaimsReward is Iupgradable {
         require(!pooledStaking.hasPendingActions(), "Pooled staking actions are not all processed yet.");
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint pooledStakingReward = pooledStaking.stakerReward(_add);
-        uint stakedTokens = pooledStaking.stakerStake(_add);
+        uint stakedTokens = pooledStaking.stakerDeposit(_add);
         uint governanceReward = gv.getPendingReward(_add);
         uint lockedCA = tc.tokensUnlockable(_add, "CLA");
         total = caReward.add(stakedTokens).add(pooledStakingReward)

@@ -150,7 +150,7 @@ contract('NXMaster: Emergency Pause', function([
       await tk.approve(ps.address, stakeTokens, {
         from: staker
       });
-      await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+      await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
         from: staker
       });
     }
@@ -378,7 +378,7 @@ contract('NXMaster: Emergency Pause', function([
         from: member3
       });
       await assertRevert(
-        ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
+        ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
           from: member3
         })
       );

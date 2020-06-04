@@ -642,15 +642,25 @@ contract('Quotation', function([
             await tk.approve(ps.address, stakeTokens, {
               from: staker1
             });
-            await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
-              from: staker1
-            });
+            await ps.depositAndStake(
+              stakeTokens,
+              [smartConAdd],
+              [stakeTokens],
+              {
+                from: staker1
+              }
+            );
             await tk.approve(ps.address, stakeTokens, {
               from: staker2
             });
-            await ps.stake(stakeTokens, [smartConAdd], [stakeTokens], {
-              from: staker2
-            });
+            await ps.depositAndStake(
+              stakeTokens,
+              [smartConAdd],
+              [stakeTokens],
+              {
+                from: staker2
+              }
+            );
             await ps.processPendingActions();
           });
 

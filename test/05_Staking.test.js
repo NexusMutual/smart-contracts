@@ -69,9 +69,14 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             await tk.approve(ps.address, stakeTokens, {
               from: notMember
             });
-            await ps.stake(stakeTokens, [stakedContract], [stakeTokens], {
-              from: notMember
-            });
+            await ps.depositAndStake(
+              stakeTokens,
+              [stakedContract],
+              [stakeTokens],
+              {
+                from: notMember
+              }
+            );
           })()
         );
       });
@@ -87,9 +92,14 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
               await tk.approve(ps.address, tooHighAmount, {
                 from: member1
               });
-              await ps.stake(tooHighAmount, [stakedContract], [tooHighAmount], {
-                from: member1
-              });
+              await ps.depositAndStake(
+                tooHighAmount,
+                [stakedContract],
+                [tooHighAmount],
+                {
+                  from: member1
+                }
+              );
             })()
           );
         });
@@ -100,7 +110,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
         let initialStakedTokens;
         it('5.3 should have zero staked tokens before', async function() {
           initialTokenBalance = await tk.balanceOf(member1);
-          initialStakedTokens = await ps.stakerStake(member1);
+          initialStakedTokens = await ps.stakerDeposit(member1);
           initialStakedTokens.toString().should.be.equal((0).toString());
         });
 
@@ -108,15 +118,20 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
           await tk.approve(ps.address, stakeTokens, {
             from: member1
           });
-          await ps.stake(stakeTokens, [stakedContract], [stakeTokens], {
-            from: member1
-          });
+          await ps.depositAndStake(
+            stakeTokens,
+            [stakedContract],
+            [stakeTokens],
+            {
+              from: member1
+            }
+          );
           const newStakedTokens = new BN(initialStakedTokens.toString()).add(
             new BN(stakeTokens.toString())
           );
           newStakedTokens
             .toString()
-            .should.be.equal((await ps.stakerStake(member1)).toString());
+            .should.be.equal((await ps.stakerDeposit(member1)).toString());
         });
         it('5.5 should decrease balance of member', async function() {
           const newTokenBalance = new BN(initialTokenBalance.toString()).sub(
@@ -127,8 +142,8 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             .should.be.equal((await tk.balanceOf(member1)).toString());
         });
         it('5.6 should return zero stake amt for non staker', async function() {
-          initialStakedTokens = await ps.stakerStake(member2);
-          (await ps.stakerStake(member2))
+          initialStakedTokens = await ps.stakerDeposit(member2);
+          (await ps.stakerDeposit(member2))
             .toString()
             .should.be.equal(initialStakedTokens.toString());
         });
@@ -137,13 +152,18 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             await tk.approve(ps.address, stakeTokens, {
               from: member2
             });
-            await ps.stake(stakeTokens, [stakedContract], [stakeTokens], {
-              from: member2
-            });
+            await ps.depositAndStake(
+              stakeTokens,
+              [stakedContract],
+              [stakeTokens],
+              {
+                from: member2
+              }
+            );
 
             await ps.processPendingActions();
 
-            await ps.requestDeallocation([stakedContract], [stakeTokens], 0, {
+            await ps.requestUnstake([stakedContract], [stakeTokens], 0, {
               from: member2
             });
 
@@ -153,15 +173,15 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
 
             await ps.processPendingActions();
 
-            const maxUnstakeable = await ps.getMaxUnstakable(member2);
+            const maxUnstakeable = await ps.stakerMaxWithdrawable(member2);
             console.log(`maxUnsteakable ${maxUnstakeable}`);
 
-            await ps.unstake(stakeTokens, {
+            await ps.withdraw(stakeTokens, {
               from: member2
             });
           });
           it('5.7 staker should have zero total locked nxm tokens against smart contract', async function() {
-            const lockedTokens = await ps.stakerStake(member2);
+            const lockedTokens = await ps.stakerDeposit(member2);
             lockedTokens.toString().should.be.equal((0).toString());
           });
         });

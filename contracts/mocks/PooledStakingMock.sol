@@ -28,33 +28,16 @@ contract PooledStakingMock is MasterAware {
 
     /* Data types */
 
-    enum ParamType {
-        MIN_ALLOCATION,
-        MAX_LEVERAGE,
-        MIN_ALLOWED_DEALLOCATION,
-        DEALLOCATE_LOCK_TIME,
-        BURN_CYCLE_GAS_LIMIT,
-        DEALLOCATION_CYCLE_GAS_LIMIT,
-        REWARD_CYCLE_GAS_LIMIT
-    }
+    struct Staker {
+        uint deposit; // total amount of deposit nxm
+        uint reward; // total amount that is ready to be claimed
+        address[] contracts; // list of contracts the staker has staked on
 
-        struct Staker {
-            uint staked; // total amount of staked nxm
-            uint reward; // total amount that is ready to be claimed
-            address[] contracts; // list of contracts the staker has staked on
+        // staked amounts for each contract
+        mapping(address => uint) stakes;
 
-            // allocated stake amounts for each contract
-            mapping(address => uint) allocations;
-
-            // amount pending to be subtracted after all deallocations will be processed
-            mapping(address => uint) pendingDeallocations;
-        }
-
-    struct Contract {
-        uint staked; // amount of nxm staked for this contract
-        uint burned; // sum of unprocessed burn amounts
-        // TODO: find a way to remove zero-amount stakers
-        address[] stakers; // used for iteration
+        // amount pending to be subtracted after all unstake requests will be processed
+        mapping(address => uint) pendingUnstakeRequestsTotal;
     }
 
     struct Burn {
@@ -69,29 +52,31 @@ contract PooledStakingMock is MasterAware {
         address contractAddress;
     }
 
-    struct Deallocation {
+    struct UnstakeRequest {
         uint amount;
-        uint deallocateAt;
+        uint unstakeAt;
         address contractAddress;
         address stakerAddress;
-        uint next; // id of the next deallocation request in the linked list
+        uint next; // id of the next unstake request in the linked list
     }
 
     /* Events */
 
-    // stakes
-    event Staked(address indexed staker, uint amount);
-    event Unstaked(address indexed staker, uint amount);
+    // deposits
+    event Deposited(address indexed staker, uint amount);
+    event Withdrawn(address indexed staker, uint amount);
 
-    // allocations
-    event Allocated(address indexed contractAddress, address indexed staker, uint amount);
-    event DeallocationRequested(address indexed contractAddress, address indexed staker, uint amount, uint deallocateAt);
-    event Deallocated(address indexed contractAddress, address indexed staker, uint amount);
+    // stakes
+    event Staked(address indexed contractAddress, address indexed staker, uint amount);
+    event UnstakeRequested(address indexed contractAddress, address indexed staker, uint amount, uint unstakeAt);
+    event Unstaked(address indexed contractAddress, address indexed staker, uint amount);
 
     // burns
+    event BurnRequested(address indexed contractAddress, uint amount);
     event Burned(address indexed contractAddress, uint amount);
 
     // rewards
+    event RewardRequested(address indexed contractAddress, uint amount);
     event Rewarded(address indexed contractAddress, uint amount);
     event RewardWithdrawn(address indexed staker, uint amount);
 
@@ -105,34 +90,34 @@ contract PooledStakingMock is MasterAware {
     NXMToken public token;
     TokenController public tokenController;
 
-    uint public MIN_ALLOCATION;           // Minimum allowed stake per contract
-    uint public MAX_LEVERAGE;             // Stakes sum must be less than the deposited amount times this
-    uint public MIN_ALLOWED_DEALLOCATION; // Forbid deallocation of small amounts to prevent spam
-    uint public DEALLOCATE_LOCK_TIME;     // Lock period in seconds before unstaking takes place
-    uint public BURN_CYCLE_GAS_LIMIT;
-    uint public DEALLOCATION_CYCLE_GAS_LIMIT;
-    uint public REWARD_CYCLE_GAS_LIMIT;
+    uint public MIN_STAKE;         // Minimum allowed stake per contract
+    uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this
+    uint public MIN_UNSTAKE;       // Forbid unstake of small amounts to prevent spam
+    uint public UNSTAKE_LOCK_TIME; // Lock period in seconds before unstaking takes place
 
-    // List of all coverable contract addresses
-    address[] public contractAddresses;
+    mapping(address => Staker) stakers;     // stakerAddress => Staker
 
-    mapping(address => Staker) public stakers;     // stakerAddress => Staker
-    mapping(address => Contract) public contracts; // contractAddress => Contract
+    // temporary variables
+    uint contractStaked;   // used when processing burns and rewards
+    uint contractBurned;   // used when processing burns
+    uint contractRewarded; // used when processing rewards
 
-    mapping(uint => Burn) public burns; // burn id => Burn
-    uint public firstBurn; // id of the first burn to process. zero if there are no unprocessed burns
-    uint public lastBurnId;
+    // list of stakers for all contracts
+    mapping(address => address[]) contractStakers;
+
+    // there can be only one pending burn
+    Burn public burn;
 
     mapping(uint => Reward) public rewards; // reward id => Reward
     uint public firstReward;
     uint public lastRewardId;
 
-    mapping(uint => Deallocation) public deallocations; // deallocation id => Deallocation
-    // firstDeallocation is stored at deallocations[0].next
-    uint public lastDeallocationId;
+    mapping(uint => UnstakeRequest) public unstakeRequests; // unstake id => UnstakeRequest
+    // firstUnstakeRequest is stored at unstakeRequests[0].next
+    uint public lastUnstakeRequestId;
 
     uint public processedToStakerIndex; // we processed the action up this staker
-    uint public processedToContractIndex; // we processed the action up this contract
+    bool public isContractStakeCalculated; // flag to indicate whether staked amount is up to date or not
 
     /* Modifiers */
 
@@ -146,8 +131,8 @@ contract PooledStakingMock is MasterAware {
         _;
     }
 
-    modifier noPendingDeallocations {
-        require(!hasPendingDeallocations(), 'Unable to execute request with unprocessed deallocations');
+    modifier noPendingUnstakeRequests {
+        require(!hasPendingUnstakeRequests(), 'Unable to execute request with unprocessed unstake requests');
         _;
     }
 
@@ -159,15 +144,34 @@ contract PooledStakingMock is MasterAware {
     /* Getters and view functions */
 
     function contractStakerCount(address contractAddress) public view returns (uint) {
-        return contracts[contractAddress].stakers.length;
+        return contractStakers[contractAddress].length;
     }
 
     function contractStakerAtIndex(address contractAddress, uint stakerIndex) public view returns (address) {
-        return contracts[contractAddress].stakers[stakerIndex];
+        return contractStakers[contractAddress][stakerIndex];
+    }
+
+    function contractStakersArray(address contractAddress) public view returns (address[] memory _stakers) {
+        return contractStakers[contractAddress];
     }
 
     function contractStake(address contractAddress) public view returns (uint) {
-        return contracts[contractAddress].staked;
+
+        address[] storage _stakers = contractStakers[contractAddress];
+        uint stakerCount = _stakers.length;
+        uint stakedOnContract;
+
+        for (uint i = 0; i < stakerCount; i++) {
+            Staker storage staker = stakers[_stakers[i]];
+            uint deposit = staker.deposit;
+            uint stake = staker.stakes[contractAddress];
+
+            // add the minimum of the two
+            stake = deposit < stake ? deposit : stake;
+            stakedOnContract = stakedOnContract.add(stake);
+        }
+
+        return stakedOnContract;
     }
 
     function stakerContractCount(address staker) public view returns (uint) {
@@ -178,90 +182,105 @@ contract PooledStakingMock is MasterAware {
         return stakers[staker].contracts[contractIndex];
     }
 
-    function stakerContractAllocation(address staker, address contractAddress) public view returns (uint) {
-        return stakers[staker].allocations[contractAddress];
+    function stakerContractsArray(address staker) public view returns (address[] memory) {
+        return stakers[staker].contracts;
     }
 
-    function stakerContractPendingDeallocation(address staker, address contractAddress) public view returns (uint) {
-        return stakers[staker].pendingDeallocations[contractAddress];
+    function stakerContractStake(address staker, address contractAddress) public view returns (uint) {
+        uint stake = stakers[staker].stakes[contractAddress];
+        uint deposit = stakers[staker].deposit;
+        return stake < deposit ? stake : deposit;
+    }
+
+    function stakerContractPendingUnstakeTotal(address staker, address contractAddress) public view returns (uint) {
+        return stakers[staker].pendingUnstakeRequestsTotal[contractAddress];
     }
 
     function stakerReward(address staker) external view returns (uint) {
         return stakers[staker].reward;
     }
 
-    function stakerStake(address staker) external view returns (uint) {
-        return stakers[staker].staked;
+    function stakerDeposit(address staker) external view returns (uint) {
+        return stakers[staker].deposit;
     }
 
-    function stakerProcessedStake(address stakerAddress) external view returns (uint) {
+    function stakerProcessedDeposit(address stakerAddress) external view returns (uint) {
 
         Staker storage staker = stakers[stakerAddress];
+        uint deposit = staker.deposit;
 
-        if (firstBurn == 0) {
-            return staker.staked;
+        if (burn.burnedAt == 0) {
+            return deposit;
         }
 
-        Burn storage burn = burns[firstBurn];
         address contractAddress = burn.contractAddress;
 
-        uint totalContractStake = contracts[contractAddress].staked;
-        uint allocation = staker.allocations[contractAddress];
-        uint stakerBurn = allocation.mul(burn.amount).div(totalContractStake);
-        uint newStake = staker.staked.sub(stakerBurn);
+        // TODO: block the call to this function if there's a pending burn for this user
+        uint totalContractStake = contractStake(contractAddress);
+        uint stake = staker.stakes[contractAddress];
+        stake = deposit < stake ? deposit : stake;
 
-        return newStake;
-    }
-
-    function deallocationAtIndex(uint deallocationId) public view returns (
-        uint amount, uint deallocateAt, address contractAddress, address stakerAddress, uint next
-    ) {
-        Deallocation storage deallocation = deallocations[deallocationId];
-        amount = deallocation.amount;
-        deallocateAt = deallocation.deallocateAt;
-        contractAddress = deallocation.contractAddress;
-        stakerAddress = deallocation.stakerAddress;
-        next = deallocation.next; // next deallocation id in linked list
-    }
-
-    function getMaxUnstakable(address stakerAddress) public view returns (uint) {
-
-        Staker storage staker = stakers[stakerAddress];
-    uint totalAllocated;
-    uint maxAllocation;
-
-        for (uint i = 0; i < staker.contracts.length; i++) {
-            address contractAddress = staker.contracts[i];
-            uint allocation = staker.allocations[contractAddress];
-      totalAllocated = totalAllocated.add(allocation);
-
-      if (maxAllocation < allocation) {
-        maxAllocation = allocation;
-      }
+        if (totalContractStake != 0) {
+            uint stakerBurn = stake.mul(burn.amount).div(totalContractStake);
+            deposit = deposit.sub(stakerBurn);
         }
 
-    uint minRequired = totalAllocated.div(MAX_LEVERAGE);
-    uint locked = maxAllocation > minRequired ? maxAllocation : minRequired;
+        return deposit;
+    }
 
-    return staker.staked.sub(locked);
+    function stakerMaxWithdrawable(address stakerAddress) public view returns (uint) {
+
+        Staker storage staker = stakers[stakerAddress];
+        uint deposit = staker.deposit;
+        uint totalStaked;
+        uint maxStake;
+
+        for (uint i = 0; i < staker.contracts.length; i++) {
+
+            address contractAddress = staker.contracts[i];
+            uint initialStake = staker.stakes[contractAddress];
+            uint stake = deposit < initialStake ? deposit : initialStake;
+            totalStaked = totalStaked.add(stake);
+
+            if (stake > maxStake) {
+                maxStake = stake;
+            }
+        }
+
+        uint minRequired = totalStaked.div(MAX_EXPOSURE);
+        uint locked = maxStake > minRequired ? maxStake : minRequired;
+
+        return deposit.sub(locked);
+    }
+
+    function unstakeRequestAtIndex(uint unstakeRequestId) public view returns (
+        uint amount, uint unstakeAt, address contractAddress, address stakerAddress, uint next
+    ) {
+        UnstakeRequest storage unstakeRequest = unstakeRequests[unstakeRequestId];
+        amount = unstakeRequest.amount;
+        unstakeAt = unstakeRequest.unstakeAt;
+        contractAddress = unstakeRequest.contractAddress;
+        stakerAddress = unstakeRequest.stakerAddress;
+        next = unstakeRequest.next;
     }
 
     function hasPendingActions() public view returns (bool) {
-        return hasPendingBurns() || hasPendingDeallocations() || hasPendingRewards();
+        return hasPendingBurns() || hasPendingUnstakeRequests() || hasPendingRewards();
     }
 
     function hasPendingBurns() public view returns (bool) {
-        return burns[firstBurn].burnedAt != 0;
+        return burn.burnedAt != 0;
     }
 
-    function hasPendingDeallocations() public view returns (bool){
-        uint nextDeallocationIndex = deallocations[0].next;
+    function hasPendingUnstakeRequests() public view returns (bool){
 
-        if (nextDeallocationIndex == 0) {
+        uint nextRequestIndex = unstakeRequests[0].next;
+
+        if (nextRequestIndex == 0) {
             return false;
         }
 
-        return deallocations[nextDeallocationIndex].deallocateAt <= now;
+        return unstakeRequests[nextRequestIndex].unstakeAt <= now;
     }
 
     function hasPendingRewards() public view returns (bool){
@@ -270,85 +289,97 @@ contract PooledStakingMock is MasterAware {
 
     /* State-changing functions */
 
-    function stake(
+    function depositAndStake(
         uint amount,
         address[] calldata _contracts,
-        uint[] calldata _allocations
+        uint[] calldata _stakes
     ) external whenNotPaused onlyMember noPendingActions {
 
         Staker storage staker = stakers[msg.sender];
-
-        require(
-            _contracts.length >= staker.contracts.length,
-            "Allocating to fewer contracts is not allowed"
-        );
-
-        require(
-            _contracts.length == _allocations.length,
-            "Contracts and allocations arrays should have the same length"
-        );
-
-        token.transferFrom(msg.sender, address(this), amount);
-
-        staker.staked = staker.staked.add(amount);
-
         uint oldLength = staker.contracts.length;
-        uint totalAllocation;
+
+        require(
+            _contracts.length >= oldLength,
+            "Staking on fewer contracts is not allowed"
+        );
+
+        require(
+            _contracts.length == _stakes.length,
+            "Contracts and stakes arrays should have the same length"
+        );
+
+        uint totalStaked;
+
+        // cap old stakes to this amount
+        uint oldDeposit = staker.deposit;
+        uint newDeposit = oldDeposit.add(amount);
+
+        staker.deposit = newDeposit;
+        token.transferFrom(msg.sender, address(this), amount);
 
         for (uint i = 0; i < _contracts.length; i++) {
 
             address contractAddress = _contracts[i];
-            uint oldAllocation = staker.allocations[contractAddress];
-            uint newAllocation = _allocations[i];
-            bool isNewAllocation = i >= oldLength;
 
-            require(newAllocation >= MIN_ALLOCATION, "Allocation minimum not met");
-            require(newAllocation <= staker.staked, "Cannot allocate more than staked");
-
-            if (!isNewAllocation) {
-                require(contractAddress == staker.contracts[i], "Unexpected contract order");
-                require(oldAllocation <= newAllocation, "New allocation is less than previous allocation");
+            for (uint j = 0; j < i; j++) {
+                require(_contracts[j] != contractAddress, "Contracts array should not contain duplicates");
             }
 
-            if (staker.allocations[contractAddress] == newAllocation) {
-                // no changes to this contract
+            uint initialStake = staker.stakes[contractAddress];
+            uint oldStake = oldDeposit < initialStake ? oldDeposit : initialStake;
+            uint newStake = _stakes[i];
+            bool isNewStake = i >= oldLength;
+
+            require(newStake >= MIN_STAKE, "Minimum stake amount not met");
+            require(newStake <= newDeposit, "Cannot stake more than deposited");
+
+            if (!isNewStake) {
+                require(contractAddress == staker.contracts[i], "Unexpected contract order");
+                require(oldStake <= newStake, "New stake is less than previous stake");
+            }
+
+            if (oldStake == newStake) {
+                // no other changes to this contract
                 continue;
             }
 
-            if (isNewAllocation) {
+            if (isNewStake) {
                 staker.contracts.push(contractAddress);
-                contracts[contractAddress].stakers.push(msg.sender);
             }
 
-            totalAllocation = totalAllocation.add(newAllocation);
-            uint increase = newAllocation.sub(oldAllocation);
+            if (isNewStake || initialStake == 0) {
+                contractStakers[contractAddress].push(msg.sender);
+            }
 
-            staker.allocations[contractAddress] = newAllocation;
-            contracts[contractAddress].staked = contracts[contractAddress].staked.add(increase);
+            staker.stakes[contractAddress] = newStake;
+            totalStaked = totalStaked.add(newStake);
+            uint increase = newStake.sub(oldStake);
 
-            emit Allocated(contractAddress, msg.sender, increase);
+            emit Staked(contractAddress, msg.sender, increase);
         }
 
         require(
-            totalAllocation <= staker.staked.mul(MAX_LEVERAGE),
-            "Total allocation exceeds maximum allowed"
+            totalStaked <= staker.deposit.mul(MAX_EXPOSURE),
+            "Total stake exceeds maximum allowed"
         );
 
-        emit Staked(msg.sender, amount);
+        if (amount > 0) {
+            emit Deposited(msg.sender, amount);
+        }
     }
 
-    function unstake(uint amount) external whenNotPaused onlyMember noPendingBurns {
-        uint unstakable = getMaxUnstakable(msg.sender);
-        require(unstakable >= amount, "Requested amount exceeds max unstakable amount");
-        stakers[msg.sender].staked = stakers[msg.sender].staked.sub(amount);
+    function withdraw(uint amount) external whenNotPaused onlyMember noPendingBurns {
+        uint limit = stakerMaxWithdrawable(msg.sender);
+        require(limit >= amount, "Requested amount exceeds max withdrawable amount");
+        stakers[msg.sender].deposit = stakers[msg.sender].deposit.sub(amount);
         token.transfer(msg.sender, amount);
-        emit Unstaked(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
     }
 
-    function requestDeallocation(
+    function requestUnstake(
         address[] calldata _contracts,
         uint[] calldata _amounts,
-        uint _insertAfter // deallocation id after which the new deallocations will be inserted
+        uint _insertAfter // unstake request id after which the new unstake request will be inserted
     ) external whenNotPaused onlyMember {
 
         require(
@@ -356,330 +387,453 @@ contract PooledStakingMock is MasterAware {
             "Contracts and amounts arrays should have the same length"
         );
 
-        require(_insertAfter <= lastDeallocationId, 'Invalid deallocation id provided');
+        require(_insertAfter <= lastUnstakeRequestId, 'Invalid unstake request id provided');
 
         Staker storage staker = stakers[msg.sender];
-        uint insertAfter = _insertAfter;
-        uint deallocateAt = now.add(DEALLOCATE_LOCK_TIME);
+        uint deposit = staker.deposit;
+        uint previousId = _insertAfter;
+        uint unstakeAt = now.add(UNSTAKE_LOCK_TIME);
+
+        UnstakeRequest storage previousRequest = unstakeRequests[previousId];
+
+        // Forbid insertion after an empty slot when there are non-empty slots
+        // previousId != 0 allows inserting on the first position (in case lock time has been reduced)
+        if (previousId != 0) {
+            require(previousRequest.unstakeAt != 0, "Provided unstake request id should not be an empty slot");
+        }
 
         for (uint i = 0; i < _contracts.length; i++) {
 
             address contractAddress = _contracts[i];
-            uint allocated = staker.allocations[contractAddress];
-            uint pendingDeallocation = staker.pendingDeallocations[contractAddress];
-            uint requestedAmount = _amounts[i];
-            uint max = pendingDeallocation > allocated ? 0 : allocated.sub(pendingDeallocation);
+            uint stake = staker.stakes[contractAddress];
 
-            require(max > 0, "Nothing to deallocate on this contract");
-            require(requestedAmount <= max, "Cannot deallocate more than allocated");
-
-            // To prevent spam, Small stakes and deallocations are not allowed
-            // However, we allow the user to deallocate the entire amount
-            if (requestedAmount != max) {
-                require(requestedAmount >= MIN_ALLOWED_DEALLOCATION, "Deallocation cannot be less then MIN_ALLOWED_DEALLOCATION");
-                require(max.sub(requestedAmount) >= MIN_ALLOCATION, "Final allocation cannot be less then MIN_ALLOCATION");
+            if (stake > deposit) {
+                stake = deposit;
             }
 
-            // fetch request currently at target index
-            Deallocation storage current = deallocations[insertAfter];
+            uint pendingUnstakeAmount = staker.pendingUnstakeRequestsTotal[contractAddress];
+            uint requestedAmount = _amounts[i];
+            uint max = pendingUnstakeAmount > stake ? 0 : stake.sub(pendingUnstakeAmount);
+
+            require(max > 0, "Nothing to unstake on this contract");
+            require(requestedAmount <= max, "Cannot unstake more than staked");
+
+            // To prevent spam, small stakes and unstake requests are not allowed
+            // However, we allow the user to unstake the entire amount
+            if (requestedAmount != max) {
+                require(requestedAmount >= MIN_UNSTAKE, "Unstaked amount cannot be less than minimum unstake amount");
+                require(max.sub(requestedAmount) >= MIN_STAKE, "Remaining stake cannot be less than minimum unstake amount");
+            }
+
             require(
-                deallocateAt >= current.deallocateAt,
-                "Deallocation time must be greater or equal to previous deallocation"
+                unstakeAt >= previousRequest.unstakeAt,
+                "Unstake request time must be greater or equal to previous unstake request"
             );
 
-            if (current.next != 0) {
-                Deallocation storage next = deallocations[current.next];
-                // next deallocation time should be greater than new deallocation time
+            if (previousRequest.next != 0) {
+                UnstakeRequest storage nextRequest = unstakeRequests[previousRequest.next];
                 require(
-                    next.deallocateAt > deallocateAt,
-                    "Deallocation time must be smaller than next deallocation"
+                    nextRequest.unstakeAt > unstakeAt,
+                    "Next unstake request time must be greater than new unstake request time"
                 );
             }
 
-            // get next available id
-            uint id = ++lastDeallocationId;
-            uint next = current.next;
+            // Note: We previously had an `id` variable that was assigned immediately to `previousId`.
+            //   It was removed in order to save some memory and previousId used instead.
+            //   This makes the next section slightly harder to read but you can read "previousId" as "newId" instead.
 
-            // point to our new deallocation and insert next item in loop after this one
-            current.next = id;
-            insertAfter = id;
+            // get next available unstake request id. our new unstake request becomes previous for the next loop
+            previousId = ++lastUnstakeRequestId;
 
-            deallocations[id] = Deallocation(requestedAmount, deallocateAt, contractAddress, msg.sender, next);
-            emit DeallocationRequested(contractAddress, msg.sender, requestedAmount, deallocateAt);
+            unstakeRequests[previousId] = UnstakeRequest(
+                requestedAmount,
+                unstakeAt,
+                contractAddress,
+                msg.sender,
+                previousRequest.next
+            );
 
-            // increase pending deallocation amount so we keep track of final allocation
-            uint newPending = staker.pendingDeallocations[contractAddress].add(requestedAmount);
-            staker.pendingDeallocations[contractAddress] = newPending;
+            // point to our new unstake request
+            previousRequest.next = previousId;
+
+            emit UnstakeRequested(contractAddress, msg.sender, requestedAmount, unstakeAt);
+
+            // increase pending unstake requests total so we keep track of final stake
+            uint newPending = staker.pendingUnstakeRequestsTotal[contractAddress].add(requestedAmount);
+            staker.pendingUnstakeRequestsTotal[contractAddress] = newPending;
+
+            // update the reference to the unstake request at target index for the next loop
+            previousRequest = unstakeRequests[previousId];
         }
     }
 
-    function withdrawReward(address staker, uint amount) external whenNotPaused onlyMember {
+    function withdrawReward(address stakerAddress) external whenNotPaused onlyMember {
 
-        require(
-            stakers[staker].reward >= amount,
-            "Requested amount exceeds available reward"
-        );
+        uint amount = stakers[stakerAddress].reward;
+        stakers[stakerAddress].reward = 0;
 
-        stakers[staker].reward = stakers[staker].reward.sub(amount);
-        token.transfer(staker, amount);
+        token.transfer(stakerAddress, amount);
 
-        emit RewardWithdrawn(staker, amount);
+        emit RewardWithdrawn(stakerAddress, amount);
     }
 
     function pushBurn(
         address contractAddress, uint amount
-    ) external onlyInternal whenNotPaused noPendingBurns noPendingDeallocations {
+    ) public onlyInternal whenNotPaused noPendingBurns noPendingUnstakeRequests {
 
-        Contract storage _contract = contracts[contractAddress];
-        require(amount <= _contract.staked, 'Burn amount should not exceed total amount staked on contract');
+        burn.amount = amount;
+        burn.burnedAt = now;
+        burn.contractAddress = contractAddress;
 
-        burns[++lastBurnId] = Burn(amount, now, contractAddress);
-        token.burn(amount);
-        _contract.burned = _contract.burned.add(amount);
-
-        if (firstBurn == 0) {
-            firstBurn = lastBurnId;
-        }
-
-        emit Burned(contractAddress, amount);
+        emit BurnRequested(contractAddress, amount);
     }
 
     function pushReward(address contractAddress, uint amount) external onlyInternal whenNotPaused {
 
         rewards[++lastRewardId] = Reward(amount, now, contractAddress);
-        tokenController.mint(address(this), amount);
 
         if (firstReward == 0) {
             firstReward = lastRewardId;
         }
 
-        emit Rewarded(contractAddress, amount);
+        emit RewardRequested(contractAddress, amount);
     }
 
-    function processPendingActions() public whenNotPaused {
+    function processPendingActions() public whenNotPaused returns (bool) {
 
         while (true) {
 
-            uint firstDeallocationIndex = deallocations[0].next;
-            Deallocation storage deallocation = deallocations[firstDeallocationIndex];
+            uint firstUnstakeRequestIndex = unstakeRequests[0].next;
+            UnstakeRequest storage unstakeRequest = unstakeRequests[firstUnstakeRequestIndex];
+            Reward storage reward = rewards[firstReward];
 
-            bool canDeallocate = firstDeallocationIndex > 0 && deallocation.deallocateAt <= now;
-            bool canBurn = firstBurn != 0;
+            // read storage and cache in memory
+            uint burnedAt = burn.burnedAt;
+            uint rewardedAt = reward.rewardedAt;
+            uint unstakeAt = unstakeRequest.unstakeAt;
+
+            bool canUnstake = firstUnstakeRequestIndex > 0 && unstakeAt <= now;
+            bool canBurn = burnedAt != 0;
             bool canReward = firstReward != 0;
 
-            if (!canBurn && !canDeallocate && !canReward) {
+            if (!canBurn && !canUnstake && !canReward) {
                 // everything is processed
                 break;
             }
 
-            Burn storage burn = burns[firstBurn];
-            Reward storage reward = rewards[firstReward];
-
             if (
                 canBurn &&
-                (!canDeallocate || burn.burnedAt < deallocation.deallocateAt) &&
-                (!canReward || burn.burnedAt < reward.rewardedAt)
+                (!canUnstake || burnedAt < unstakeAt) &&
+                (!canReward || burnedAt < rewardedAt)
             ) {
 
-                // O(n*m)
-                if (!_processFirstBurn()) {
+                // O(n)
+                if (!_processBurn()) {
                     emit PendingActionsProcessed(false);
-                    return;
+                    return false;
                 }
 
                 continue;
             }
 
             if (
-                canDeallocate &&
-                (!canReward || deallocation.deallocateAt < reward.rewardedAt)
+                canUnstake &&
+                (!canReward || unstakeAt < rewardedAt)
             ) {
 
-                // TODO: implement deallocation gas limit check here
+                if (!_processFirstUnstakeRequest()) {
+                    emit PendingActionsProcessed(false);
+                    return false;
+                }
 
-                // O(1)
-                _processFirstDeallocation();
                 continue;
             }
 
             // O(n)
             if (!_processFirstReward()) {
                 emit PendingActionsProcessed(false);
-                return;
+                return false;
             }
         }
 
         // everything is processed!
         emit PendingActionsProcessed(true);
+        return true;
     }
 
-    function _processFirstBurn() internal returns (bool) {
+    function _processBurn() internal returns (bool) {
 
-        Burn storage burn = burns[firstBurn];
-        address contractAddress = burn.contractAddress;
-        Contract storage _contract = contracts[contractAddress];
+        address _contractAddress = burn.contractAddress;
+        (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
 
-        uint stakerCount = _contract.stakers.length;
-        uint burned = 0;
+        if (!finished) {
+            return false;
+        }
 
-        for (uint i = processedToStakerIndex; i < stakerCount; i++) {
+        address[] storage _contractStakers = contractStakers[_contractAddress];
+        uint _stakerCount = _contractStakers.length;
 
-            Staker storage staker = stakers[_contract.stakers[i]];
-            uint oldAllocation = staker.allocations[contractAddress];
+        uint _totalBurnAmount = burn.amount;
+        uint _actualBurnAmount = contractBurned;
+        uint previousGas = gasleft();
 
-            // formula: staker_burn = staker_allocation / total_contract_stake * contract_burn
-            // reordered for precision loss prevention
-            uint stakerBurn = oldAllocation.mul(burn.amount).div(_contract.staked);
-            uint newStake = staker.staked.sub(stakerBurn);
-            burned = burned.add(stakerBurn);
+        if (_totalBurnAmount > _stakedOnContract) {
+            _totalBurnAmount = _stakedOnContract;
+        }
 
-            // update staker's stake and allocation
-            staker.staked = newStake;
-            staker.allocations[contractAddress] = oldAllocation.sub(stakerBurn);
+        for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
-            uint contractCount = staker.contracts.length;
-
-            // if needed, reduce stakes for other contracts
-            for (uint j = processedToContractIndex; j < contractCount; j++) {
-
-                address _staker_contract = staker.contracts[j];
-                uint prevAllocation = staker.allocations[_staker_contract];
-
-                // can't have allocated more than staked
-                // branch won't be executed for the burned contract since we updated the allocation earlier
-                if (prevAllocation > newStake) {
-                    staker.allocations[_staker_contract] = newStake;
-                    uint stakeDiff = prevAllocation.sub(newStake);
-                    contracts[_staker_contract].staked = contracts[_staker_contract].staked.sub(stakeDiff);
-                }
-
-                // cycles left but gas is low
-                // recommended BURN_CYCLE_GAS_LIMIT = ?
-                if (j + 1 < contractCount && gasleft() < BURN_CYCLE_GAS_LIMIT) {
-                    _contract.staked = _contract.staked.sub(burned);
-                    _contract.burned = _contract.burned.sub(burned);
-                    processedToContractIndex = j + 1;
-                    return false;
-                }
-            }
-
-            processedToContractIndex = 0;
-
-            if (i + 1 < stakerCount && gasleft() < BURN_CYCLE_GAS_LIMIT) {
-                _contract.staked = _contract.staked.sub(burned);
-                _contract.burned = _contract.burned.sub(burned);
-                processedToStakerIndex = i + 1;
+            if (5 * gasleft() < 4 * previousGas) {
+                contractBurned = _actualBurnAmount;
+                processedToStakerIndex = i;
                 return false;
             }
+
+            previousGas = gasleft();
+
+            Staker storage staker = stakers[_contractStakers[i]];
+            uint _stakerBurnAmount;
+            uint _newStake;
+
+            (_stakerBurnAmount, _newStake) = _burnStaker(staker, _contractAddress, _stakedOnContract, _totalBurnAmount);
+            _actualBurnAmount = _actualBurnAmount.add(_stakerBurnAmount);
+
+            if (_newStake != 0) {
+                continue;
+            }
+
+            // if we got here, the stake is explicitly set to 0
+            // the staker is removed from the contract stakers array
+            // and we will add the staker back if he stakes again
+            _contractStakers[i] = _contractStakers[_stakerCount - 1];
+            _contractStakers.pop();
+
+            // i-- might underflow to MAX_UINT
+            // but that's fine since it will be incremented back to 0 on the next loop
+            i--;
+            _stakerCount--;
         }
 
-        delete burns[firstBurn];
-        ++firstBurn;
-
-        if (firstBurn > lastBurnId) {
-            firstBurn = 0;
-        }
-
+        delete burn;
         processedToStakerIndex = 0;
-        _contract.staked = _contract.staked.sub(burned);
-        _contract.burned = _contract.burned.sub(burned);
+        isContractStakeCalculated = false;
+
+        token.burn(_actualBurnAmount);
+        emit Burned(_contractAddress, _actualBurnAmount);
 
         return true;
     }
 
-    function _processFirstDeallocation() internal {
+    function _burnStaker(
+        Staker storage staker, address _contractAddress, uint _stakedOnContract, uint _totalBurnAmount
+    ) internal returns (
+        uint _stakerBurnAmount, uint _newStake
+    ) {
 
-        uint firstDeallocation = deallocations[0].next;
-        Deallocation storage deallocation = deallocations[firstDeallocation];
-        Staker storage staker = stakers[deallocation.stakerAddress];
+        uint _currentDeposit;
+        uint _currentStake;
 
-        address contractAddress = deallocation.contractAddress;
-        uint allocation = staker.allocations[contractAddress];
-        allocation = deallocation.amount >= allocation ? 0 : allocation.sub(deallocation.amount);
+        // silence compiler warning
+        _newStake = 0;
 
-        staker.allocations[contractAddress] = allocation;
-        staker.pendingDeallocations[contractAddress].sub(deallocation.amount);
+        // do we need a storage read?
+        if (_stakedOnContract != 0) {
+            _currentDeposit = staker.deposit;
+            _currentStake = staker.stakes[_contractAddress];
 
-        // update pointer to first deallocation
-        deallocations[0].next = deallocation.next;
-        delete deallocations[firstDeallocation];
+            if (_currentStake > _currentDeposit) {
+                _currentStake = _currentDeposit;
+            }
+        }
+
+        if (_stakedOnContract != _totalBurnAmount) {
+            // formula: staker_burn = staker_stake / total_contract_stake * contract_burn
+            // reordered for precision loss prevention
+            _stakerBurnAmount = _currentStake.mul(_totalBurnAmount).div(_stakedOnContract);
+            _newStake = _currentStake.sub(_stakerBurnAmount);
+        } else {
+            // it's the whole stake
+            _stakerBurnAmount = _currentStake;
+        }
+
+        if (_stakerBurnAmount != 0) {
+            staker.deposit = _currentDeposit.sub(_stakerBurnAmount);
+        }
+
+        staker.stakes[_contractAddress] = _newStake;
+    }
+
+    function _calculateContractStake(address _contractAddress) internal returns (uint _stakedOnContract, bool finished) {
+
+        if (isContractStakeCalculated) {
+            // use previously calculated staked amount
+            return (contractStaked, true);
+        }
+
+        address[] storage _contractStakers = contractStakers[_contractAddress];
+        uint _stakerCount = _contractStakers.length;
+        uint previousGas = gasleft();
+
+        // calculate amount staked on contract
+        for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
+
+            // stop if the cycle consumed more than 20% of the remaning gas
+            // gasleft() < previousGas * 4/5
+            if (5 * gasleft() < 4 * previousGas) {
+                processedToStakerIndex = i;
+                return (_stakedOnContract, false);
+            }
+
+            previousGas = gasleft();
+
+            Staker storage staker = stakers[_contractStakers[i]];
+            uint deposit = staker.deposit;
+            uint stake = staker.stakes[_contractAddress];
+            stake = deposit < stake ? deposit : stake;
+            _stakedOnContract = _stakedOnContract.add(stake);
+        }
+
+        contractStaked = _stakedOnContract;
+        isContractStakeCalculated = true;
+        processedToStakerIndex = 0;
+
+        return (_stakedOnContract, true);
+    }
+
+    function _processFirstUnstakeRequest() internal returns (bool) {
+
+        // unstake request processing is O(1) and was calculated to consume around 100k
+        if (gasleft() < 11e4) {
+            return false;
+        }
+
+        uint firstRequest = unstakeRequests[0].next;
+        UnstakeRequest storage unstakeRequest = unstakeRequests[firstRequest];
+        address stakerAddress = unstakeRequest.stakerAddress;
+        Staker storage staker = stakers[stakerAddress];
+
+        address contractAddress = unstakeRequest.contractAddress;
+        uint deposit = staker.deposit;
+        uint initialStake = staker.stakes[contractAddress];
+        uint stake = deposit < initialStake ? deposit : initialStake;
+
+        uint requestedAmount = unstakeRequest.amount;
+        uint actualUnstakedAmount = stake < requestedAmount ? stake : requestedAmount;
+        staker.stakes[contractAddress] = stake.sub(actualUnstakedAmount);
+
+        uint pendingUnstakeRequestsTotal = staker.pendingUnstakeRequestsTotal[contractAddress];
+        staker.pendingUnstakeRequestsTotal[contractAddress] = pendingUnstakeRequestsTotal.sub(requestedAmount);
+
+        // update pointer to first unstake request
+        unstakeRequests[0].next = unstakeRequest.next;
+        delete unstakeRequests[firstRequest];
+
+        emit Unstaked(contractAddress, stakerAddress, requestedAmount);
+
+        return true;
     }
 
     function _processFirstReward() internal returns (bool) {
 
         Reward storage reward = rewards[firstReward];
-        address contractAddress = reward.contractAddress;
-        Contract storage _contract = contracts[contractAddress];
-        uint stakerCount = _contract.stakers.length;
+        address _contractAddress = reward.contractAddress;
+        uint _totalRewardAmount = reward.amount;
 
-        // ~27000 gas each cycle
-        for (uint i = processedToStakerIndex; i < stakerCount; i++) {
+        (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
 
-            Staker storage staker = stakers[_contract.stakers[i]];
-            uint allocation = staker.allocations[contractAddress];
+        if (!finished) {
+            return false;
+        }
 
-            // staker's ratio = total staked on contract / staker's stake on contract
-            // staker's reward = total reward amount * staker's ratio
-            uint rewardedAmount = reward.amount.mul(allocation).div(_contract.staked);
-            staker.reward = staker.reward.add(rewardedAmount);
+        address[] storage _contractStakers = contractStakers[_contractAddress];
+        uint _stakerCount = _contractStakers.length;
+        uint _actualRewardAmount = contractRewarded;
+        uint previousGas = gasleft();
 
-            uint nextIndex = i + 1;
+        for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
-            // cycles left but gas is low
-            // recommended REWARD_CYCLE_GAS_LIMIT = 45000
-            if (nextIndex < stakerCount && gasleft() < REWARD_CYCLE_GAS_LIMIT) {
-                processedToStakerIndex = nextIndex;
+            if (5 * gasleft() < 4 * previousGas) {
+                contractRewarded = _actualRewardAmount;
+                processedToStakerIndex = i;
                 return false;
             }
+
+            previousGas = gasleft();
+
+            (uint _stakerRewardAmount, uint _stake) = _rewardStaker(
+                _contractStakers[i], _contractAddress, _totalRewardAmount, _stakedOnContract
+            );
+
+            // remove 0-amount stakers, similar to what we're doing when processing burns
+            if (_stake == 0) {
+                _contractStakers[i] = _contractStakers[_stakerCount - 1];
+                _contractStakers.pop();
+                i--;
+                _stakerCount--;
+
+                // since the stake is 0, there's no reward to give
+                continue;
+            }
+
+            _actualRewardAmount = _actualRewardAmount.add(_stakerRewardAmount);
         }
 
         delete rewards[firstReward];
         processedToStakerIndex = 0;
-        ++firstReward;
+        isContractStakeCalculated = false;
 
-        if (firstReward > lastRewardId) {
+        if (++firstReward > lastRewardId) {
             firstReward = 0;
         }
+
+        tokenController.mint(address(this), _actualRewardAmount);
+        emit Rewarded(_contractAddress, _actualRewardAmount);
 
         return true;
     }
 
-    function updateParameter(uint paramIndex, uint value) external onlyGovernance {
+    function _rewardStaker(
+        address stakerAddress, address contractAddress, uint totalRewardAmount, uint totalStakedOnContract
+    ) internal returns (uint rewardedAmount, uint stake) {
 
-        ParamType param = ParamType(paramIndex);
+        Staker storage staker = stakers[stakerAddress];
+        uint deposit = staker.deposit;
+        stake = staker.stakes[contractAddress];
 
-        if (param == ParamType.MIN_ALLOCATION) {
-            MIN_ALLOCATION = value;
+        if (stake > deposit) {
+            stake = deposit;
+        }
+
+        // prevent division by zero and set stake to zero
+        if (totalStakedOnContract == 0 || stake == 0) {
+            staker.stakes[contractAddress] = 0;
+            return (0, 0);
+        }
+
+        // reward = staker_stake / total_contract_stake * total_reward
+        rewardedAmount = totalRewardAmount.mul(stake).div(totalStakedOnContract);
+        staker.reward = staker.reward.add(rewardedAmount);
+    }
+
+    function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
+
+        if (code == "MIN_STAK") {
+            MIN_STAKE = value;
             return;
         }
 
-        if (param == ParamType.MAX_LEVERAGE) {
-            MAX_LEVERAGE = value;
+        if (code == "MAX_EXPO") {
+            MAX_EXPOSURE = value;
             return;
         }
 
-        if (param == ParamType.MIN_ALLOWED_DEALLOCATION) {
-            MIN_ALLOWED_DEALLOCATION = value;
+        if (code == "MIN_UNST") {
+            MIN_UNSTAKE = value;
             return;
         }
 
-        if (param == ParamType.DEALLOCATE_LOCK_TIME) {
-            DEALLOCATE_LOCK_TIME = value;
-            return;
-        }
-
-        if (param == ParamType.BURN_CYCLE_GAS_LIMIT) {
-            BURN_CYCLE_GAS_LIMIT = value;
-            return;
-        }
-
-        if (param == ParamType.DEALLOCATION_CYCLE_GAS_LIMIT) {
-            DEALLOCATION_CYCLE_GAS_LIMIT = value;
-            return;
-        }
-
-        if (param == ParamType.REWARD_CYCLE_GAS_LIMIT ) {
-            REWARD_CYCLE_GAS_LIMIT = value;
+        if (code == "UNST_LKT") {
+            UNSTAKE_LOCK_TIME = value;
             return;
         }
     }
@@ -694,15 +848,10 @@ contract PooledStakingMock is MasterAware {
 
         tokenController.addToWhitelist(address(this));
 
-        MIN_ALLOCATION = 20 ether;
-        MIN_ALLOWED_DEALLOCATION = 20 ether;
-        MAX_LEVERAGE = 10;
-        DEALLOCATE_LOCK_TIME = 90 days;
-
-        // TODO: To be estimated
-        // BURN_CYCLE_GAS_LIMIT = 0;
-        // DEALLOCATION_CYCLE_GAS_LIMIT = 0;
-        REWARD_CYCLE_GAS_LIMIT = 45000;
+        MIN_STAKE = 20 ether;
+        MIN_UNSTAKE = 20 ether;
+        MAX_EXPOSURE = 10;
+        UNSTAKE_LOCK_TIME = 90 days;
 
         // TODO: implement staking migration here
     }
@@ -713,11 +862,5 @@ contract PooledStakingMock is MasterAware {
         initialize();
     }
 
-    function getTokenAddress() public view returns (address) {
-        return address(token);
-    }
-
-    function getMasterAddress() public view returns (address) {
-        return address(master);
-    }
 }
+

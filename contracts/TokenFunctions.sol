@@ -252,15 +252,6 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev Staking on contract.
-     * @param _scAddress smart contract address.
-     * @param _amount amount of NXM.
-     */ 
-    function addStake(address _scAddress, uint _amount) public isMemberAndcheckPause {
-        revert("addStake should not be called anymore, use the new pooled staking methods.");
-    }
-
-    /**
      * @dev to check if a  member is locked for member vote 
      * @param _of is the member address in concern
      * @return the boolean status

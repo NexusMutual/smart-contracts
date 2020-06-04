@@ -348,9 +348,8 @@ contract Quotation is Iupgradable {
         qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
         qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
 
-        if (tf.getTotalStakedTokensOnSmartContract(scAddress) > 0)
-            tf.updateStakerCommissions(scAddress, coverDetails[2]);
-        
+
+        tf.updateStakerCommissions(scAddress, coverDetails[2]);
     }
 
     /**

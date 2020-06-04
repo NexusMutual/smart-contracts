@@ -271,45 +271,6 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev Internal function to gets amount of locked NXM tokens,
-     * staked against smartcontract by index
-     * @param _stakerAddress address of user
-     * @param _stakedContractAddress staked contract address
-     * @param _stakedContractIndex index of staking
-     */
-    function getStakerLockedTokensOnSmartContract (
-        address _stakerAddress,
-        address _stakedContractAddress,
-        uint _stakedContractIndex
-    )
-        public
-        view
-        returns
-        (uint amount)
-    {
-        revert("getStakerLockedTokensOnSmartContract should not be called anymore, use the new pooled staking methods.");
-    }
-
-    /**
-     * @dev Function to gets unlockable amount of locked NXM 
-     * tokens, staked against smartcontract by index
-     * @param stakerAddress address of staker
-     * @param stakedContractAddress staked contract address
-     * @param stakerIndex index of staking
-     */
-    function getStakerUnlockableTokensOnSmartContract (
-        address stakerAddress,
-        address stakedContractAddress,
-        uint stakerIndex
-    ) 
-        public
-        view
-        returns (uint)
-    {
-        revert("getStakerUnlockableTokensOnSmartContract should not be called anymore, use the new pooled staking methods.");
-    }
-
-    /**
      * @dev releases unlockable staked tokens to staker 
      */
     function unlockStakerUnlockableTokens(address _stakerAddress) public checkPause {

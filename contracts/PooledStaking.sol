@@ -21,6 +21,10 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./abstract/MasterAware.sol";
 import "./abstract/NXMToken.sol";
 import "./interfaces/ITokenController.sol";
+import "./interfaces/IMemberRoles.sol";
+import "./interfaces/ITokenFunctions.sol";
+import "./interfaces/ITokenData.sol";
+import "./interfaces/IClaimsReward.sol";
 
 contract PooledStaking is MasterAware {
   using SafeMath for uint;
@@ -871,8 +875,99 @@ contract PooledStaking is MasterAware {
     MIN_UNSTAKE = 20 ether;
     MAX_EXPOSURE = 10;
     UNSTAKE_LOCK_TIME = 90 days;
+  }
 
-    // TODO: implement staking migration here
+  uint processedMigrationMembersIndex = 0;
+
+  event StakerMigrationProcessed(
+    address member,
+    uint[]  stakedAllocations,
+    address[] stakedAddresses
+  );
+
+  function migrateStaker(address member) external {
+
+    IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
+    ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
+    ITokenData tokenData = ITokenData(master.getLatestAddress("TD"));
+    IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
+
+    if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
+      claimsReward._claimStakeCommission(10, member);
+      tokenFunctions.unlockStakerUnlockableTokens(member);
+    }
+
+    uint totalStakerLockedTokens = 0;
+
+    uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
+    uint[] memory stakedAllocations = new uint[](stakedContractsCount);
+    address[] memory stakedAddresses = new address[](stakedContractsCount);
+
+    uint nonZeroStakesCount = 0;
+    for (uint i = 0; i < stakedContractsCount; i++) {
+      uint stakerContractIndex;
+      stakedAddresses[i] = tokenData.getStakerStakedContractByIndex(member, i);
+      stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
+      uint stakedAmount;
+      (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
+      stakedAllocations[i] = stakedAmount;
+
+      if (stakedAmount > 0) {
+        nonZeroStakesCount++;
+        totalStakerLockedTokens = totalStakerLockedTokens.add(stakedAmount);
+
+        tokenData.pushBurnedTokens(member, i, stakedAmount);
+        bytes32 reason = keccak256(abi.encodePacked("UW", member, stakedAddresses[i], stakerContractIndex));
+        tokenController.burnLockedTokens(member, reason, stakedAmount);
+      }
+    }
+
+    tokenController.mint(address(this), totalStakerLockedTokens);
+
+    if (totalStakerLockedTokens > 0) {
+      stakeForMember(member, totalStakerLockedTokens, stakedAddresses, stakedAllocations, nonZeroStakesCount);
+    }
+  }
+
+  function stakeForMember(address member,
+    uint amount,
+    address[] memory unfilteredContracts,
+    uint[] memory unfilteredAllocations,
+    uint nonZeroStakesCount
+  ) internal whenNotPaused noPendingActions {
+    Staker storage staker = stakers[member];
+
+    uint[] memory _allocations = new uint[](nonZeroStakesCount);
+    address[] memory _contracts = new address[](nonZeroStakesCount);
+    uint i = 0;
+    for (uint j = 0; j < unfilteredContracts.length; j++) {
+      if (unfilteredAllocations[j] > 0) {
+        _allocations[i] = unfilteredAllocations[i];
+        _contracts[i] = unfilteredContracts[i];
+        i++;
+      }
+    }
+    emit StakerMigrationProcessed(member, _allocations, _contracts);
+
+    uint totalStaked;
+    staker.deposit = amount;
+
+    for (uint i = 0; i < _contracts.length; i++) {
+      address contractAddress = _contracts[i];
+
+      require(_allocations[i] <= amount, "Cannot allocate more than staked");
+      staker.stakes[contractAddress] = _allocations[i];
+      totalStaked = _allocations[i];
+
+      emit Staked(contractAddress, member, _allocations[i]);
+    }
+
+    require(
+      totalStaked <= staker.deposit.mul(MAX_EXPOSURE),
+      "Total stake exceeds maximum allowed"
+    );
+
+    emit Deposited(member, amount);
   }
 
   function changeDependentContractAddress() public {

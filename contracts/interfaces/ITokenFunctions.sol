@@ -15,11 +15,18 @@
 
 pragma solidity ^0.5.17;
 
-interface ITokenController {
+interface ITokenFunctions {
 
-  function mint(address _member, uint256 _amount) external;
-  function addToWhitelist(address _member) external;
+    function getStakerAllLockedTokens(address stakerAddress) external view returns (uint amount);
+    function _unlockableBeforeBurningAndCanBurn(
+        address stakerAdd,
+        address stakedAdd,
+        uint stakerIndex
+    )
+    external
+    view
+    returns
+    (uint amount, uint canBurn);
 
-  function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) external;
-  function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
+    function unlockStakerUnlockableTokens(address stakerAddress) external;
 }

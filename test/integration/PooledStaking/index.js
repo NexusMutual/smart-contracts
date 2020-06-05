@@ -6,6 +6,6 @@ describe('PooledStaking integration tests', function () {
   this.timeout(5000);
   this.slow(2000);
 
-  require('./burns');
+  require('./rewardsAndBurns');
 
 });

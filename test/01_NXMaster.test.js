@@ -22,11 +22,13 @@ const FactoryMock = artifacts.require('FactoryMock');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const Exchange_0x = web3.eth.accounts[17];
+var Exchange_0x;
 
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { assertRevert } = require('./utils/assertRevert');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {assertRevert} = require('./utils/assertRevert');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
+const setTriggerActionTime = require('./utils/gvProposal.js')
+  .setTriggerActionTime;
 const encode = require('./utils/encoder.js').encode;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
@@ -34,6 +36,8 @@ const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
+
+let accounts = [];
 
 let nxms;
 let nxmtk;
@@ -70,9 +74,22 @@ contract('NXMaster', function([
   govVoter4
 ]) {
   // const fee = ether(0.002);
+  accounts = [
+    owner,
+    newOwner,
+    member,
+    nonMember,
+    anotherAccount,
+    govVoter1,
+    govVoter2,
+    govVoter3,
+    govVoter4
+  ];
+  Exchange_0x = accounts[17];
+
   const fee = toWei(0.002);
   const poolEther = ether(2);
-  const founderAddress = web3.eth.accounts[19];
+  const founderAddress = accounts[19];
   const INITIAL_SUPPLY = ether(1500000);
   const pauseTime = new web3.utils.BN(2419200);
 
@@ -176,7 +193,7 @@ contract('NXMaster', function([
         await nxms.getLatestAddress(toHex('MR'))
       );
       let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
-      await pl1.sendEther({ from: owner, value: poolEther });
+      await pl1.sendEther({from: owner, value: poolEther});
       let actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'OWNER',
@@ -256,13 +273,13 @@ contract('NXMaster', function([
 
   describe('when called by unauthorised source', function() {
     it('1.9 should not be able to add a new version', async function() {
-      await assertRevert(nxms.addNewVersion(addr, { from: anotherAccount }));
+      await assertRevert(nxms.addNewVersion(addr, {from: anotherAccount}));
     });
 
     it('1.10 should not be able to change master address', async function() {
       newMaster = await NXMaster.new(nxmtk.address);
       await assertRevert(
-        nxms.changeMasterAddress(newMaster.address, { from: anotherAccount })
+        nxms.changeMasterAddress(newMaster.address, {from: anotherAccount})
       );
     });
   });
@@ -285,7 +302,7 @@ contract('NXMaster', function([
       isInternal.should.equal(false);
     });
     it('1.16 should return true if member', async function() {
-      await memberRoles.payJoiningFee(member, { from: member, value: fee });
+      await memberRoles.payJoiningFee(member, {from: member, value: fee});
       await memberRoles.kycVerdict(member, true);
       const isMember = await nxms.isMember(member);
       isMember.should.equal(true);
@@ -321,7 +338,7 @@ contract('NXMaster', function([
       // const updatePauseTime = pauseTime.addn(new web3.utils.BN(60));
       const updatePauseTime = pauseTime.toNumber() + 60;
       await assertRevert(
-        nxms.updatePauseTime(updatePauseTime, { from: newOwner })
+        nxms.updatePauseTime(updatePauseTime, {from: newOwner})
       );
       let pauseTime1 = await nxms.getPauseTime();
       updatePauseTime.should.be.not.equal(pauseTime1.toNumber());

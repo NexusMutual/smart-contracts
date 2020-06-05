@@ -1,5 +1,5 @@
 const Web3 = require('web3');
-const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545')); // Hardcoded development port
+const web3 = new Web3(); // Hardcoded development port
 function ether(n) {
   return new web3.BigNumber(web3.toWei(n, 'ether'));
 }

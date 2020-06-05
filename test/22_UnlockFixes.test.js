@@ -201,7 +201,7 @@ contract('unlock-fixes', function([
       let gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
       let c1 = await pc.totalCategories();
       let actionHash = encode(
-        'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
+        'newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)',
         'Description',
         1,
         1,
@@ -211,7 +211,8 @@ contract('unlock-fixes', function([
         '',
         tc.address,
         toHex('EX'),
-        [0, 0, 0, 0]
+        [0, 0, 0, 0],
+        'updateUintParameters(bytes8,uint256)'
       );
       let p1 = await gv.getProposalLength();
       await gv.createProposalwithSolution(

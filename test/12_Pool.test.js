@@ -16,11 +16,11 @@ const MKR = artifacts.require('MockMKR');
 const Governance = artifacts.require('Governance');
 const FactoryMock = artifacts.require('FactoryMock');
 
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { assertRevert } = require('./utils/assertRevert');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {assertRevert} = require('./utils/assertRevert');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const encode = require('./utils/encoder.js').encode;
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -115,25 +115,25 @@ contract('Pool', function([
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
 
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
     await tk.transfer(member1, tokens);
-    await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
+    await tf.addStake(smartConAdd, stakeTokens, {from: member1});
 
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
     await tk.transfer(member2, tokens);
 
-    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.payJoiningFee(member3, {from: member3, value: fee});
     await mr.kycVerdict(member3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
     await tk.transfer(member3, tokens);
 
-    await mr.payJoiningFee(member4, { from: member4, value: fee });
+    await mr.payJoiningFee(member4, {from: member4, value: fee});
     await mr.kycVerdict(member4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member4});
     await tk.transfer(member4, tokens);
   });
 
@@ -147,7 +147,7 @@ contract('Pool', function([
       });
       it('12.13 should not be able to change master address', async function() {
         await assertRevert(
-          pd.changeMasterAddress(pd.address, { from: notOwner })
+          pd.changeMasterAddress(pd.address, {from: notOwner})
         );
       });
     });
@@ -180,7 +180,7 @@ contract('Pool', function([
 
     it('12.17 should not be able to change UniswapFactoryAddress directly', async function() {
       await assertRevert(
-        p2.changeUniswapFactoryAddress(pd.address, { from: notOwner })
+        p2.changeUniswapFactoryAddress(pd.address, {from: notOwner})
       );
     });
 
@@ -213,7 +213,7 @@ contract('Pool', function([
       await p1.upgradeInvestmentPool(cad.address);
       await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(5));
       await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(5));
-      await p1.sendEther({ from: owner, value: toWei(20) });
+      await p1.sendEther({from: owner, value: toWei(20)});
       await cad.transfer(p1.address, toWei(20));
 
       await p2.saveIADetails(
@@ -273,7 +273,7 @@ contract('Pool', function([
         await pd.getInvestmentAssetAddress(toHex('DAI'))
       );
       emock = await exchangeMock.at(exchangeDAI);
-      await emock.sendEther({ from: notOwner, value: toWei(2000) });
+      await emock.sendEther({from: notOwner, value: toWei(2000)});
       await cad.transfer(emock.address, toWei(200000));
       let time = await latestTime();
       await increaseTimeTo(
@@ -495,7 +495,7 @@ contract('Pool', function([
     });
 
     it('12.38 ELT(DAI->DAI)', async function() {
-      await p2.sendEther({ from: owner, value: toWei(3) });
+      await p2.sendEther({from: owner, value: toWei(3)});
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -682,7 +682,7 @@ contract('Pool', function([
     });
 
     it('12.41 ILT DAI to ETH', async function() {
-      await p2.sendEther({ from: owner, value: toWei(5) });
+      await p2.sendEther({from: owner, value: toWei(5)});
       await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(5));
       let ICABalE;
       let ICABalD;
@@ -753,9 +753,9 @@ contract('Pool', function([
     it('12.42 ELT(ETH->ETH)', async function() {
       let ICABalE2 = await web3.eth.getBalance(p2.address);
       let ICABalD2 = await cad.balanceOf(p2.address);
-      await p1.sendEther({ from: owner, value: toWei(5) });
+      await p1.sendEther({from: owner, value: toWei(5)});
       await p1.upgradeInvestmentPool(cad.address);
-      await p2.sendEther({ from: owner, value: CABalE2 / 1 - toWei(5) });
+      await p2.sendEther({from: owner, value: CABalE2 / 1 - toWei(5)});
       await cad.transfer(p2.address, CABalD2);
       let ICABalE;
       let ICABalD;
@@ -812,7 +812,7 @@ contract('Pool', function([
     });
 
     it('12.43 ILT ETH to DAI', async function() {
-      await cad.transfer(p2.address, toWei(50), { from: owner });
+      await cad.transfer(p2.address, toWei(50), {from: owner});
       await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(5));
       let ICABalE;
       let ICABalD;
@@ -879,7 +879,7 @@ contract('Pool', function([
 
     it('12.44 RBT DAI to ETH amount > price slippage', async function() {
       await emock.removeEther(toWei(2087.96));
-      await cad.transfer(p2.address, toWei(50), { from: owner });
+      await cad.transfer(p2.address, toWei(50), {from: owner});
       let ICABalE;
       let ICABalD;
       let ICABalE2;
@@ -921,9 +921,9 @@ contract('Pool', function([
       let ICABalD;
       let ICABalE2;
       let ICABalD2;
-      await p1.sendEther({ from: owner, value: toWei(5) });
+      await p1.sendEther({from: owner, value: toWei(5)});
       await p1.upgradeInvestmentPool(cad.address);
-      await p2.sendEther({ from: owner, value: CABalE2 });
+      await p2.sendEther({from: owner, value: CABalE2});
       await cad.transfer(p2.address, (CABalD2 / 1 - toWei(50)).toString());
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
@@ -979,7 +979,7 @@ contract('Pool', function([
       let ICABalD;
       let ICABalE2;
       let ICABalD2;
-      await p1.sendEther({ from: owner, value: toWei(10) });
+      await p1.sendEther({from: owner, value: toWei(10)});
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -1021,12 +1021,12 @@ contract('Pool', function([
       ICABalE2 = await web3.eth.getBalance(p2.address);
       ICABalD = await cad.balanceOf(p1.address);
       ICABalD2 = await cad.balanceOf(p2.address);
-      await emock.sendEther({ from: owner, value: 17400000000000000 });
+      await emock.sendEther({from: owner, value: 17400000000000000});
       await p1.upgradeInvestmentPool(cad.address);
-      await p2.sendEther({ from: owner, value: CABalE2 / 1 - toWei(5) });
+      await p2.sendEther({from: owner, value: CABalE2 / 1 - toWei(5)});
       await cad.transfer(p2.address, CABalD2);
       await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(10));
-      await cad.transfer(p1.address, toWei(10), { from: owner });
+      await cad.transfer(p1.address, toWei(10), {from: owner});
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -1068,7 +1068,7 @@ contract('Pool', function([
       ICABalD2 = await cad.balanceOf(p2.address);
       await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(3));
       await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(5));
-      await cad.transfer(p2.address, toWei(5), { from: owner });
+      await cad.transfer(p2.address, toWei(5), {from: owner});
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -1111,7 +1111,7 @@ contract('Pool', function([
     });
     it('12.49 ILT(DAI->ETH) amount > price slippage', async function() {
       await emock.removeEther(toWei(1.52));
-      await p2.sendEther({ from: owner, value: toWei(5) });
+      await p2.sendEther({from: owner, value: toWei(5)});
       await p1.sendEther({
         from: owner,
         value: (
@@ -1167,10 +1167,10 @@ contract('Pool', function([
         .should.be.equal(((ICABalD2 / toWei(1)) * 1).toFixed(0).toString());
     });
     it('12.50 ILT(ETH->DAI) IA dont have enough amount', async function() {
-      await emock.sendEther({ from: owner, value: toWei(50000) });
+      await emock.sendEther({from: owner, value: toWei(50000)});
 
       await p1.upgradeInvestmentPool(cad.address);
-      await p2.sendEther({ from: owner, value: CABalE2 / 1 - toWei(5) });
+      await p2.sendEther({from: owner, value: CABalE2 / 1 - toWei(5)});
       await cad.transfer(p2.address, CABalD2);
       await pd.changeCurrencyAssetBaseMin(toHex('ETH'), toWei(11));
 
@@ -1315,7 +1315,7 @@ contract('Pool', function([
         .should.be.equal((ICABalD2 / toWei(1)).toFixed(0).toString());
     });
     it('12.53 Initial ILT(DAI->ETH) but at time of call back ILT(DAI->DAI)', async function() {
-      await p2.sendEther({ from: owner, value: toWei(5) });
+      await p2.sendEther({from: owner, value: toWei(5)});
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -1330,9 +1330,9 @@ contract('Pool', function([
       let p2ETH = await web3.eth.getBalance(p2.address);
       let p2DAI = await cad.balanceOf(p2.address);
       await p1.upgradeInvestmentPool(cad.address);
-      await p2.sendEther({ from: owner, value: p2ETH / 1 - toWei(5) * 1 });
+      await p2.sendEther({from: owner, value: p2ETH / 1 - toWei(5) * 1});
       await cad.transfer(p2.address, p2DAI);
-      await cad.transfer(p2.address, toWei(30), { from: owner });
+      await cad.transfer(p2.address, toWei(30), {from: owner});
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
@@ -1405,7 +1405,7 @@ contract('Pool', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: member1 }
+        {from: member1}
       );
 
       coverID = await qd.getAllCoversOfUser(member1);
@@ -1453,13 +1453,14 @@ contract('Pool', function([
       await tk.transfer(member2, toWei(75000));
       await tk.transfer(member3, toWei(75000));
       await tk.transfer(member4, toWei(75000));
-      await gv.submitVote(pId, 1, { from: member1 });
-      await gv.submitVote(pId, 1, { from: member2 });
-      await gv.submitVote(pId, 1, { from: member3 });
-      await gv.submitVote(pId, 1, { from: member4 });
+      await gv.submitVote(pId, 1, {from: member1});
+      await gv.submitVote(pId, 1, {from: member2});
+      await gv.submitVote(pId, 1, {from: member3});
+      await gv.submitVote(pId, 1, {from: member4});
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       let newAssetAdd = await pd.getInvestmentAssetAddress(toHex('MKR'));
       newAssetAdd.should.be.equal(mkr.address);
       await p2.saveIADetails(
@@ -1473,7 +1474,7 @@ contract('Pool', function([
     });
     it('12.57 ELT(DAI->MKR)', async function() {
       await pd.changeCurrencyAssetBaseMin('0x444149', toWei(15));
-      await p2.sendEther({ from: owner, value: toWei(5) });
+      await p2.sendEther({from: owner, value: toWei(5)});
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
         [100, 1000, 500],
@@ -1618,10 +1619,10 @@ contract('Pool', function([
     it('12.59 ILT(DAI->MKR) IA dont have enough amount', async function() {
       let emockM = await fac.getExchange(mkr.address);
       emock = await exchangeMock.at(emockM);
-      await emock.sendEther({ from: owner, value: toWei(1300) });
+      await emock.sendEther({from: owner, value: toWei(1300)});
       let emockD = await fac.getExchange(cad.address);
       let emockDAI = await exchangeMock.at(emockD);
-      await emockDAI.sendEther({ from: owner, value: toWei(1300) });
+      await emockDAI.sendEther({from: owner, value: toWei(1300)});
       await pd.changeCurrencyAssetBaseMin('0x444149', toWei(66));
       await p1.upgradeInvestmentPool(cad.address);
       await cad.transfer(p2.address, CABalD2);
@@ -1685,8 +1686,8 @@ contract('Pool', function([
       );
       emockDAI = await exchangeMock.at(emockD);
       emockDAI.removeEther(await web3.eth.getBalance(emockDAI.address));
-      await emockDAI.sendEther({ from: owner, value: toWei(80) });
-      await emock.sendEther({ from: owner, value: toWei(75) });
+      await emockDAI.sendEther({from: owner, value: toWei(80)});
+      await emock.sendEther({from: owner, value: toWei(75)});
       await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(12.5));
       await mkr.transfer(p2.address, toWei(50));
       await p2.saveIADetails(
@@ -1747,11 +1748,11 @@ contract('Pool', function([
     it('12.61 ELT(DAI->MKR) amount > price slippage', async function() {
       await pd.changeCurrencyAssetBaseMin('0x444149', toWei(6));
       await p1.upgradeInvestmentPool(cad.address);
-      await p2.sendEther({ from: owner, value: CABalE2 });
+      await p2.sendEther({from: owner, value: CABalE2});
       await cad.transfer(p2.address, CABalD2);
       await mkr.transfer(p2.address, (CABalM / 1 - toWei(30)).toString());
-      await p2.sendEther({ from: owner, value: toWei(10) });
-      await emock.sendEther({ from: owner, value: toWei(3) });
+      await p2.sendEther({from: owner, value: toWei(10)});
+      await emock.sendEther({from: owner, value: toWei(3)});
       await p2.saveIADetails(
         ['0x455448', '0x444149', '0x4d4b52'],
         [100, 1000, 500],
@@ -1934,24 +1935,25 @@ contract('Pool', function([
           from: member1
         }
       );
-      await gv.categorizeProposal(pId, 14, 0);
+      await gv.categorizeProposal(pId, 15, 0);
       let actionHash = encode(
         'changeInvestmentAssetStatus(bytes4,bool)',
-        '0x444149',
+        toHex('DAI'),
         false
       );
       await gv.submitProposalWithSolution(pId, 'Inactive IA', actionHash, {
         from: member1
       });
-      await gv.submitVote(pId, 1, { from: member1 });
-      await gv.submitVote(pId, 1, { from: member2 });
-      await gv.submitVote(pId, 1, { from: member3 });
-      await gv.submitVote(pId, 1, { from: member4 });
+      await gv.submitVote(pId, 1, {from: member1});
+      await gv.submitVote(pId, 1, {from: member2});
+      await gv.submitVote(pId, 1, {from: member3});
+      await gv.submitVote(pId, 1, {from: member4});
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       (await pd.getInvestmentAssetStatus(toHex('DAI'))).should.be.equal(false);
-      await p1.sendEther({ from: owner, value: toWei(2) });
+      await p1.sendEther({from: owner, value: toWei(2)});
       await p2.saveIADetails(
         ['0x444149', '0x455448'],
         [100, 15517],
@@ -1974,7 +1976,7 @@ contract('Pool', function([
           from: member1
         }
       );
-      await gv.categorizeProposal(pId, 13, 0);
+      await gv.categorizeProposal(pId, 14, 0);
       let actionHash = encode(
         'changeInvestmentAssetHoldingPerc(bytes4,uint64,uint64)',
         '0x444149',
@@ -1989,13 +1991,14 @@ contract('Pool', function([
           from: member1
         }
       );
-      await gv.submitVote(pId, 1, { from: member1 });
-      await gv.submitVote(pId, 1, { from: member2 });
-      await gv.submitVote(pId, 1, { from: member3 });
-      await gv.submitVote(pId, 1, { from: member4 });
+      await gv.submitVote(pId, 1, {from: member1});
+      await gv.submitVote(pId, 1, {from: member2});
+      await gv.submitVote(pId, 1, {from: member3});
+      await gv.submitVote(pId, 1, {from: member4});
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       let initialPerc = await pd.getInvestmentAssetHoldingPerc(toHex('DAI'));
       (initialPerc[0] / 1).should.be.equal(100);
       (initialPerc[1] / 1).should.be.equal(1000);
@@ -2027,13 +2030,14 @@ contract('Pool', function([
       await gv.submitProposalWithSolution(pId, 'add CA', actionHash, {
         from: member1
       });
-      await gv.submitVote(pId, 1, { from: member1 });
-      await gv.submitVote(pId, 1, { from: member2 });
-      await gv.submitVote(pId, 1, { from: member3 });
-      await gv.submitVote(pId, 1, { from: member4 });
+      await gv.submitVote(pId, 1, {from: member1});
+      await gv.submitVote(pId, 1, {from: member2});
+      await gv.submitVote(pId, 1, {from: member3});
+      await gv.submitVote(pId, 1, {from: member4});
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       let varbase = await pd.getCurrencyAssetVarBase(toHex('MKR'));
       (varbase[1] / 1).should.be.equal(toWei(10) * 1);
       (varbase[2] / 1).should.be.equal(0);

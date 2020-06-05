@@ -12,8 +12,9 @@ const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolDataMock');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
+const GovernanceMock = artifacts.require('GovernanceMock');
 const Governance = artifacts.require('Governance');
-const ProposalCategory = artifacts.require('ProposalCategory');
+const ProposalCategory = artifacts.require('ProposalCategoryMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const FactoryMock = artifacts.require('FactoryMock');
 const DSValue = artifacts.require('NXMDSValueMock');
@@ -41,6 +42,7 @@ module.exports = function(deployer, network, accounts) {
     await deployer.deploy(Quotation);
     await deployer.deploy(QuotationDataMock, QE, founderAddress);
     await deployer.deploy(Governance);
+    await deployer.deploy(GovernanceMock);
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
     await deployer.deploy(NXMaster, tk.address);

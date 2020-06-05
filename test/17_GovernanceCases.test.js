@@ -1,5 +1,6 @@
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const PoolData = artifacts.require('PoolDataMock');
@@ -11,12 +12,11 @@ const {toWei, toHex} = require('./utils/ethTools.js');
 const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
-const encode = require('./utils/encoder.js').encode;
+const {encode, encode1} = require('./utils/encoder.js');
 const AdvisoryBoard = '0x41420000';
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const Web3 = require('web3');
-const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
-
+const web3_instance = new Web3();
 let tf;
 let gv;
 let cr;
@@ -33,6 +33,7 @@ let IAstatus;
 let status;
 let voters;
 let accounts = [];
+let nullAddress = '0x0000000000000000000000000000000000000000';
 let maxAllowance =
   '115792089237316195423570985008687907853269984665640564039457584007913129639935';
 
@@ -286,10 +287,9 @@ contract(
                 await gv.categorizeProposal(pId, 15, toWei(130));
               });
               it('17.12 Should open for voting', async function() {
-                let actionHash = encode(
-                  'changeInvestmentAssetStatus(bytes4,bool)',
-                  'ETH',
-                  !IAstatus
+                let actionHash = encode1(
+                  ['bytes4', 'bool'],
+                  [toHex('ETH'), !IAstatus]
                 );
                 await gv.submitProposalWithSolution(
                   pId,
@@ -316,6 +316,8 @@ contract(
                 assert.equal(proposal[2].toNumber(), 3);
               });
               it('17.16 Should execute defined automatic action', async function() {
+                await increaseTime(86500);
+                await gv.triggerAction(pId);
                 let iaStatusLatest = await pd.getInvestmentAssetStatus(
                   '0x455448'
                 );
@@ -358,10 +360,9 @@ contract(
                 await gv.categorizeProposal(pId, 12, toWei(130));
               });
               it('17.21 Should open for voting', async function() {
-                let actionHash = encode(
-                  'changeInvestmentAssetStat(bytes4,bool)', //invalid function declared instead of original one changeInvestmentAssetStatus
-                  'ETH',
-                  false
+                let actionHash = encode1(
+                  ['bool'], //invalid params , Expected Bytes8, bool
+                  [false]
                 );
                 await gv.submitProposalWithSolution(
                   pId,
@@ -388,8 +389,13 @@ contract(
                 assert.equal(proposal[2].toNumber(), 3);
               });
               it('17.25 Should not execute defined automatic action', async function() {
+                await increaseTime(86500);
                 let iaStatusLatest = await pd.getInvestmentAssetStatus(
                   '0x455448'
+                );
+                assert.equal(
+                  (await gv.proposalActionStatus(pId)).toNumber(),
+                  1
                 );
                 assert.equal(iaStatusLatest, IAstatus, 'Action executed');
               });
@@ -422,10 +428,9 @@ contract(
               await gv.categorizeProposal(pId, 12, toWei(130));
             });
             it('17.30 Should open for voting', async function() {
-              let actionHash = encode(
-                'transferEther(uint,address)',
-                '10000000000000000',
-                notMember
+              let actionHash = encode1(
+                ['uint', 'address'],
+                ['10000000000000000', notMember]
               );
               await gv.submitProposalWithSolution(
                 pId,
@@ -450,6 +455,8 @@ contract(
             it('17.33 Proposal should be rejected', async function() {
               let proposal = await gv.proposal(pId);
               assert.equal(proposal[2].toNumber(), 4, 'Incorrect result');
+              await increaseTime(86500);
+              await assertRevert(gv.triggerAction(pId));
               // let proposalsStatus = await gv.getStatusOfProposals();
               // assert.equal(proposalsStatus[5].toNumber(), 1);
             });
@@ -528,7 +535,7 @@ contract(
                 it('17.44 Should create proposal', async function() {
                   await increaseTime(604800);
                   status = await pd.getInvestmentAssetDetails(
-                    web3.toHex('DAI')
+                    web3_instance.toHex('DAI')
                   );
                   pId = (await gv.getProposalLength()).toNumber();
                   await gv.createProposal(
@@ -542,10 +549,9 @@ contract(
                   await gv.categorizeProposal(pId, 15, toWei(140));
                 });
                 it('17.46 Should open for voting', async function() {
-                  let actionHash = encode(
-                    'changeInvestmentAssetStatus(bytes4,bool)',
-                    web3.toHex('DAI'),
-                    false
+                  let actionHash = encode1(
+                    ['bytes4', 'bool'],
+                    [web3_instance.toHex('DAI'), false]
                   );
                   await gv.submitProposalWithSolution(
                     pId,
@@ -569,8 +575,10 @@ contract(
                   assert.equal(proposal[2].toNumber(), 3);
                 });
                 it('17.50 Should execute defined automatic action', async function() {
+                  await increaseTime(86500);
+                  await gv.triggerAction(pId);
                   let status1 = await pd.getInvestmentAssetDetails(
-                    web3.toHex('DAI')
+                    web3_instance.toHex('DAI')
                   );
                   assert.notEqual(status[2], status1[2], 'Action not executed');
                 });
@@ -702,11 +710,9 @@ contract(
             await gv.categorizeProposal(pId, 8, toWei(140));
           });
           it('17.69 Should open for voting', async function() {
-            let actionHash = encode(
-              'burnCAToken(uint,uint,address)',
-              0,
-              (500 * 1e18).toString(),
-              mem9
+            let actionHash = encode1(
+              ['uint', 'uint', 'address'],
+              [0, (500 * 1e18).toString(), mem9]
             );
             await gv.submitProposalWithSolution(
               pId,
@@ -731,6 +737,7 @@ contract(
             assert.equal(proposal[2].toNumber(), 3);
           });
           it('17.73 Should execute defined automatic action', async function() {
+            await increaseTime(86500);
             console.log(
               'Locked token balance after burning the tokens-' +
                 (await tc.tokensLocked(mem9, CLA))
@@ -764,11 +771,9 @@ contract(
             await gv.categorizeProposal(pId, 8, toWei(140));
           });
           it('17.77 Should open for voting', async function() {
-            let actionHash = encode(
-              'burnCAToken(uint,uint,address)',
-              0,
-              (500 * 1e18).toString(),
-              mem9
+            let actionHash = encode1(
+              ['uint', 'uint', 'address'],
+              [0, (500 * 1e18).toString(), mem9]
             );
             await gv.submitProposalWithSolution(
               pId,
@@ -790,6 +795,8 @@ contract(
             assert.equal(proposal[2].toNumber(), 6);
           });
           it('17.81 Should not execute defined automatic action', async function() {
+            await increaseTime(86500);
+            await assertRevert(gv.triggerAction(pId));
             console.log(
               'Locked token balance after burning the tokens-' +
                 (await tc.tokensLocked(mem9, CLA))
@@ -819,7 +826,7 @@ contract(
           it('17.83 Should create proposal with solution', async function() {
             await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
-            let actionHash = encode('swapABMember(address,address)', mem9, ab5);
+            let actionHash = encode1(['address', 'address'], [mem9, ab5]);
             let isAllowed = await gv.allowedToCreateProposal(17, {
               from: mem1
             });
@@ -850,6 +857,8 @@ contract(
             assert.equal(proposal[2].toNumber(), 3);
           });
           it('17.87 Should execute defined automatic action', async function() {
+            await increaseTime(86500);
+            await gv.triggerAction(pId);
             let roleCheck = await mr.checkRole(ab5, 1);
             assert.equal(roleCheck, false);
             let roleCheck1 = await mr.checkRole(mem9, 1);
@@ -873,7 +882,7 @@ contract(
           it('17.89 Should create proposal with solution', async function() {
             await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
-            let actionHash = encode('swapABMember(address,address)', mem9, ab5);
+            let actionHash = encode1(['address', 'address'], [mem9, ab5]);
             let isAllowed = await gv.allowedToCreateProposal(17, {
               from: mem1
             });
@@ -902,6 +911,8 @@ contract(
             assert.equal(proposal[2].toNumber(), 6);
           });
           it('17.93 Should not execute defined automatic action', async function() {
+            await increaseTime(86500);
+            await assertRevert(gv.triggerAction(pId));
             let roleCheck = await mr.checkRole(ab5, 1);
             assert.equal(roleCheck, true);
             let roleCheck1 = await mr.checkRole(mem9, 1);
@@ -922,7 +933,7 @@ contract(
           it('17.95 Should create proposal with solution', async function() {
             await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
-            let actionHash = encode('swapABMember(address,address)', mem9, ab5);
+            let actionHash = encode1(['address', 'address'], [mem9, ab5]);
             await gv.createProposalwithSolution(
               'Proposal11',
               'Proposal11',
@@ -1002,19 +1013,84 @@ contract(
           describe('with Automatic action', function() {
             it('17.106 Add new category for special resolution', async function() {
               let pool1Address = await nxms.getLatestAddress(toHex('P1'));
-              let actionHash = encode(
-                'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
-                'Special Withdraw funds',
-                2,
-                75,
-                75,
-                [2],
-                604800,
-                'QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM',
-                pd.address,
-                'PD',
-                [0, 0, 0, 1]
+              //externalLiquidityTrade
+              let actionHash = encode1(
+                [
+                  'string',
+                  'uint256',
+                  'uint256',
+                  'uint256',
+                  'uint256[]',
+                  'uint256',
+                  'string',
+                  'address',
+                  'bytes2',
+                  'uint256[]',
+                  'string'
+                ],
+                [
+                  'change Investment Asset Status',
+                  2,
+                  50,
+                  15,
+                  [2],
+                  604800,
+                  'QmZQhJunZesYuCJkdGwejSATTR8eynUgV8372cHvnAPMaM',
+                  pd.address,
+                  toHex('PD'),
+                  [0, 0, 0, 1],
+                  'externalLiquidityTrade()'
+                ]
               );
+              let categoryLengthOld = (await pc.totalCategories()).toNumber();
+              pId = (await gv.getProposalLength()).toNumber();
+              await gv.createProposalwithSolution(
+                'New category',
+                'proposal',
+                'proposal',
+                3,
+                '',
+                actionHash
+              );
+              await gv.submitVote(pId, 1, {from: ab1});
+              await gv.submitVote(pId, 1, {from: ab2});
+              await gv.submitVote(pId, 1, {from: ab3});
+              await gv.submitVote(pId, 1, {from: ab4});
+              await gv.submitVote(pId, 1, {from: ab5});
+              await gv.closeProposal(pId);
+              await increaseTime(86500);
+              let categoryLengthNew = (await pc.totalCategories()).toNumber();
+              assert.equal(categoryLengthNew, categoryLengthOld + 1);
+              //changeInvestmentAssetStatus
+              actionHash = encode1(
+                [
+                  'string',
+                  'uint256',
+                  'uint256',
+                  'uint256',
+                  'uint256[]',
+                  'uint256',
+                  'string',
+                  'address',
+                  'bytes2',
+                  'uint256[]',
+                  'string'
+                ],
+                [
+                  'Test',
+                  2,
+                  75,
+                  0,
+                  [2],
+                  604800,
+                  'actionHash',
+                  nullAddress,
+                  toHex('PD'),
+                  [0, 0, 0, 0],
+                  'changeInvestmentAssetStatus(bytes4,bool)'
+                ]
+              );
+              categoryLengthOld = (await pc.totalCategories()).toNumber();
               pId = (await gv.getProposalLength()).toNumber();
               await gv.createProposalwithSolution(
                 'New category',
@@ -1030,11 +1106,13 @@ contract(
               await gv.submitVote(pId, 1, {from: ab4});
               await gv.submitVote(pId, 1, {from: ab5});
               await gv.closeProposal(pId);
-              assert.equal((await pc.totalCategories()).toNumber(), 34);
+              await increaseTime(86500);
+              categoryLengthNew = (await pc.totalCategories()).toNumber();
+              assert.equal(categoryLengthNew, categoryLengthOld + 1);
             });
             it('17.107 Should create proposal', async function() {
               await increaseTime(604800);
-              IAstatus = await pd.getInvestmentAssetStatus('0x455448');
+              IAstatus = await pd.getInvestmentAssetStatus(toHex('ETH'));
               pId = (await gv.getProposalLength()).toNumber();
               await gv.createProposal(
                 'Proposal13',
@@ -1044,17 +1122,18 @@ contract(
               );
             });
             it('17.108 Should whitelist proposal and set Incentives', async function() {
-              await gv.categorizeProposal(pId, 33, toWei(160));
+              let categoryLength = (await pc.totalCategories()).toNumber();
+              await gv.categorizeProposal(pId, categoryLength - 1, 0);
             });
             it('17.109 Should open for voting', async function() {
-              let actionHash = encode(
-                'changeInvestmentAssetStatus(bytes4,bool)',
-                'ETH',
-                !IAstatus
+              IAstatus = await pd.getInvestmentAssetStatus(toHex('ETH'));
+              let actionHash = encode1(
+                ['bytes4', 'bool'],
+                [toHex('ETH'), !IAstatus]
               );
               await gv.submitProposalWithSolution(
                 pId,
-                'Withdraw funds to Pay for Support Services',
+                'Change Investment Asset Status',
                 actionHash
               );
             });
@@ -1076,8 +1155,10 @@ contract(
               await gv.closeProposal(pId);
             });
             it('17.112 Should execute defined automatic action', async function() {
+              await increaseTime(86500);
+              await gv.triggerAction(pId);
               let iaStatusLatest = await pd.getInvestmentAssetStatus(
-                '0x455448'
+                toHex('ETH')
               );
               assert.notEqual(iaStatusLatest, IAstatus, 'Action not executed');
             });
@@ -1122,8 +1203,8 @@ contract(
           it('17.119 Should get rewards', async function() {
             for (let i = 0; i < 12; i++) {
               if (
-                web3.toChecksumAddress(accounts[i]) !=
-                web3.toChecksumAddress(mem9)
+                web3_instance.toChecksumAddress(accounts[i]) !=
+                web3_instance.toChecksumAddress(mem9)
               ) {
                 assert.isAbove(
                   (await gv.getPendingReward(accounts[i])).toString() * 1,
@@ -1143,10 +1224,9 @@ contract(
           await increaseTime(604800);
           balance = await web3.eth.getBalance(notMember);
           pId = (await gv.getProposalLength()).toNumber();
-          let actionHash = encode(
-            'updateOwnerParameters(bytes8,address)',
-            'OWNER',
-            accounts[1]
+          let actionHash = encode1(
+            ['bytes8', 'address'],
+            [toHex('OWNER'), accounts[1]]
           );
           await gv.createProposalwithSolution(
             'Proposal14',
@@ -1170,10 +1250,9 @@ contract(
           await increaseTime(604800);
           balance = await web3.eth.getBalance(notMember);
           pId = (await gv.getProposalLength()).toNumber();
-          let actionHash = encode(
-            'updateOwnerParameters(bytes8,address)',
-            'OWNER',
-            accounts[1]
+          let actionHash = encode1(
+            ['bytes8', 'address'],
+            [toHex('OWNER'), accounts[1]]
           );
           await gv.createProposalwithSolution(
             'Proposal14',
@@ -1188,11 +1267,13 @@ contract(
           await gv.submitVote(pId, 1);
         });
         it('17.125 Should execute defined automatic action', async function() {
+          await increaseTime(86500);
+          await gv.triggerAction(pId);
           await increaseTime(1000);
           let owner = await nxms.getOwnerParameters(toHex('OWNER'));
           assert.equal(
-            web3.toChecksumAddress(owner[1]),
-            web3.toChecksumAddress(accounts[1]),
+            web3_instance.toChecksumAddress(owner[1]),
+            web3_instance.toChecksumAddress(accounts[1]),
             'Action not executed'
           );
         });

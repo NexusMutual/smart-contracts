@@ -1,7 +1,7 @@
 const BN = require('bn.js');
 const util = require('util');
 const { web3 } = require('@openzeppelin/test-environment');
-const exec = util.promisify(require('child_process').exec);
+const exec = require('child_process').execSync;
 
 const hex = string => '0x' + Buffer.from(string).toString('hex');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));

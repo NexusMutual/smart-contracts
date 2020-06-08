@@ -379,7 +379,7 @@ contract('Claim: Assessment 2', function([
       await tk.approve(ps.address, stakeTokens, {
         from: stake.from
       });
-      await ps.stake(stakeTokens, contracts, allocations, {
+      await ps.depositAndStake(stakeTokens, contracts, allocations, {
         from: stake.from
       });
     }
@@ -396,7 +396,7 @@ contract('Claim: Assessment 2', function([
   });
 
   describe('claim test case', function() {
-    let UWarray = [
+    let underWriters = [
       underWriter1,
       underWriter2,
       underWriter3,
@@ -416,21 +416,21 @@ contract('Claim: Assessment 2', function([
     //   var month = a.getMonth();
     //   return date + '/' + month;
     // }
-    it('18.1 Should buy cover and collect rewards', async function() {
+    it.only('18.1 Should buy cover and collect rewards', async function() {
       let allCoverPremiums = [100, 100, 200, 200, 300, 300, 400, 400, 500];
       let allLockCNDetails = []; // here all lockCN values
       let changeInUWBalance = [];
 
       let balanceUW = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         balanceUW.push(0);
         changeInUWBalance.push(0);
       }
       let rewardsFlag = 1;
       async function updateUWDetails(changeInUWBalanceExpected) {
-        for (let i = 0; i < UWarray.length; i++) {
+        for (let i = 0; i < underWriters.length; i++) {
           let currentUWBalance = parseFloat(
-            (await tk.balanceOf(UWarray[i])) / toWei(1)
+            (await tk.balanceOf(underWriters[i])) / toWei(1)
           );
           changeInUWBalance[i] = currentUWBalance - balanceUW[i];
           if (changeInUWBalance[i] != changeInUWBalanceExpected[i]) {
@@ -440,9 +440,9 @@ contract('Claim: Assessment 2', function([
         }
       }
       function claimAllUWRewards() {
-        for (let i = 0; i < UWarray.length; i++) {
-          cr.claimAllPendingReward(20, {from: UWarray[i]});
-          tf.unlockStakerUnlockableTokens(UWarray[i]);
+        for (let i = 0; i < underWriters.length; i++) {
+          cr.claimAllPendingReward(20, {from: underWriters[i]});
+          tf.unlockStakerUnlockableTokens(underWriters[i]);
         }
       }
       // buy cover 1
@@ -846,7 +846,7 @@ contract('Claim: Assessment 2', function([
       await p1.sendEther({from: owner, value: 50 * toWei(1)});
       await dai.transfer(p1.address, toWei(1250));
       let lockCNFlag = 1;
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         if (allCoverPremiums[i] * 0.1 * toWei(1) != allLockCNDetails[i])
           lockCNFlag = -1;
       }
@@ -886,9 +886,9 @@ contract('Claim: Assessment 2', function([
       let claimAssessor2Object = new claimAssessor();
       let claimAssessor3Object = new claimAssessor();
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
       await tc.lock(CLA, toWei(50000), validity, {from: claimAssessor1});
       await tc.lock(CLA, toWei(30000), validity, {from: claimAssessor2});
@@ -985,9 +985,9 @@ contract('Claim: Assessment 2', function([
         ((totalBalanceBefore - totalBalanceAfter) / toWei(1)).toFixed(2)
       );
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       // now = await latestTime();
@@ -1022,14 +1022,18 @@ contract('Claim: Assessment 2', function([
       );
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           (parseFloat(
-            await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC1, i)
+            await tf.getStakerLockedTokensOnSmartContract(
+              underWriters[i],
+              SC1,
+              i
+            )
           ) -
             parseFloat(
               await tf.getStakerUnlockableTokensOnSmartContract(
-                UWarray[i],
+                underWriters[i],
                 SC1,
                 0
               )
@@ -1078,7 +1082,7 @@ contract('Claim: Assessment 2', function([
 
       let UWTokensLockedExpected = [2000, 3000, 4000, 5000, 6000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -1108,9 +1112,9 @@ contract('Claim: Assessment 2', function([
       let claimAssessor2Object = new claimAssessor();
       let claimAssessor3Object = new claimAssessor();
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       // need not to do the lock again
@@ -1167,14 +1171,18 @@ contract('Claim: Assessment 2', function([
       );
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           (parseFloat(
-            await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC1, i)
+            await tf.getStakerLockedTokensOnSmartContract(
+              underWriters[i],
+              SC1,
+              i
+            )
           ) -
             parseFloat(
               await tf.getStakerUnlockableTokensOnSmartContract(
-                UWarray[i],
+                underWriters[i],
                 SC1,
                 0
               )
@@ -1232,12 +1240,12 @@ contract('Claim: Assessment 2', function([
       claimAssessor3Object.lockPeriodAfterRewardRecieved = parseFloat(
         await tc.getLockedTokensValidity(claimAssessor3, CLA)
       );
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -1301,7 +1309,7 @@ contract('Claim: Assessment 2', function([
         0
       );
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -1346,21 +1354,25 @@ contract('Claim: Assessment 2', function([
       // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
       // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
       // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC1, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC1,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC1,
                   0
                 )
@@ -1501,12 +1513,12 @@ contract('Claim: Assessment 2', function([
         ((tokenBalanceAfter - tokenBalanceBefore) / toWei(1)).toFixed(2)
       );
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -1555,7 +1567,7 @@ contract('Claim: Assessment 2', function([
 
       let UWTokensLockedExpected = [0, 0, 0, 4000, 6000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -1599,21 +1611,25 @@ contract('Claim: Assessment 2', function([
       // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
       // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
       // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC1, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC1,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC1,
                   0
                 )
@@ -1744,12 +1760,12 @@ contract('Claim: Assessment 2', function([
         ((tokenBalanceAfter - tokenBalanceBefore) / toWei(1)).toFixed(2)
       );
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -1798,7 +1814,7 @@ contract('Claim: Assessment 2', function([
 
       let UWTokensLockedExpected = [0, 0, 0, 4000, 6000];
       let UWTokensBurnedExpected = [0, 0, 0, 4000, 6000];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -1840,7 +1856,7 @@ contract('Claim: Assessment 2', function([
       let member2Object = new member();
       let member3Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter3,
         underWriter2,
         underWriter5,
@@ -1855,21 +1871,25 @@ contract('Claim: Assessment 2', function([
       await tc.lock(CLA, toWei(60000), validity, {from: claimAssessor4});
       await tc.lock(CLA, toWei(50000), validity, {from: claimAssessor5});
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC2, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC2,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC2,
                   1
                 )
@@ -2031,12 +2051,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -2106,7 +2126,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [4000, 5000, 6000, 7000, 8000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -2148,7 +2168,7 @@ contract('Claim: Assessment 2', function([
       let member2Object = new member();
       let member3Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter3,
         underWriter2,
         underWriter5,
@@ -2163,21 +2183,25 @@ contract('Claim: Assessment 2', function([
 
       // await tc.lock(CLA, 60000 * toWei(1), validity, {from: claimAssessor4});
       // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor5});
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC2, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC2,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC2,
                   1
                 )
@@ -2351,12 +2375,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -2425,7 +2449,7 @@ contract('Claim: Assessment 2', function([
 
       let UWTokensLockedExpected = [4000, 5000, 6000, 7000, 8000];
       let UWTokensBurnedExpected = [4000, 5000, 6000, 5000, 0];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -2469,7 +2493,7 @@ contract('Claim: Assessment 2', function([
       let member4Object = new member();
       let member5Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter3,
         underWriter2,
         underWriter5,
@@ -2477,21 +2501,25 @@ contract('Claim: Assessment 2', function([
         underWriter1
       ];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC2, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC2,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC2,
                   1
                 )
@@ -2663,12 +2691,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -2729,7 +2757,7 @@ contract('Claim: Assessment 2', function([
 
       let UWTokensLockedExpected = [0, 0, 0, 2000, 8000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -2773,7 +2801,7 @@ contract('Claim: Assessment 2', function([
       let member4Object = new member();
       let member5Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter3,
         underWriter2,
         underWriter5,
@@ -2787,21 +2815,25 @@ contract('Claim: Assessment 2', function([
 
       // await tc.lock(CLA, 60000 * toWei(1), validity, {from: claimAssessor4});
       // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor5});
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC2, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC2,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC2,
                   1
                 )
@@ -2965,12 +2997,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -3031,7 +3063,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [0, 0, 0, 2000, 8000];
       let UWTokensBurnedExpected = [0, 0, 0, 2000, 8000];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -3065,7 +3097,7 @@ contract('Claim: Assessment 2', function([
       let claimAssessor4Object = new claimAssessor();
       let claimAssessor5Object = new claimAssessor();
 
-      UWarray = [
+      underWriters = [
         underWriter5,
         underWriter4,
         underWriter3,
@@ -3076,20 +3108,24 @@ contract('Claim: Assessment 2', function([
       // await tc.lock(CLA, 50000 * toWei(1), validity, {from: claimAssessor1});
       // await tc.lock(CLA, 30000 * toWei(1), validity, {from: claimAssessor2});
       // await tc.lock(CLA, 20000 * toWei(1), validity, {from: claimAssessor3});
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC3, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC3,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC3,
                   2
                 )
@@ -3225,12 +3261,12 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -3296,7 +3332,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [5000, 6000, 7000, 8000, 9000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -3330,7 +3366,7 @@ contract('Claim: Assessment 2', function([
       let claimAssessor4Object = new claimAssessor();
       let claimAssessor5Object = new claimAssessor();
 
-      UWarray = [
+      underWriters = [
         underWriter5,
         underWriter4,
         underWriter3,
@@ -3338,21 +3374,25 @@ contract('Claim: Assessment 2', function([
         underWriter1
       ];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC3, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC3,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC3,
                   2
                 )
@@ -3489,12 +3529,12 @@ contract('Claim: Assessment 2', function([
         await tc.getLockedTokensValidity(claimAssessor5, CLA)
       );
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -3559,7 +3599,7 @@ contract('Claim: Assessment 2', function([
 
       let UWTokensLockedExpected = [5000, 6000, 7000, 8000, 9000];
       let UWTokensBurnedExpected = [5000, 6000, 7000, 8000, 4000];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -3599,28 +3639,32 @@ contract('Claim: Assessment 2', function([
       let member1Object = new member();
       let member2Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter5,
         underWriter4,
         underWriter3,
         underWriter2,
         underWriter1
       ];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC3, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC3,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC3,
                   2
                 )
@@ -3754,12 +3798,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -3808,7 +3852,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [0, 0, 0, 0, 5000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -3848,28 +3892,32 @@ contract('Claim: Assessment 2', function([
       let member1Object = new member();
       let member2Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter5,
         underWriter4,
         underWriter3,
         underWriter2,
         underWriter1
       ];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC3, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC3,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC3,
                   2
                 )
@@ -4003,12 +4051,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -4057,7 +4105,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [0, 0, 0, 0, 5000];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 5000];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -4090,7 +4138,7 @@ contract('Claim: Assessment 2', function([
           this.rewardRecieved = rewardRecieved;
         }
       }
-      UWarray = [
+      underWriters = [
         underWriter4,
         underWriter3,
         underWriter5,
@@ -4100,21 +4148,25 @@ contract('Claim: Assessment 2', function([
 
       let member1Object = new member();
       let member2Object = new member();
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC4, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC4,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC4,
                   3
                 )
@@ -4197,12 +4249,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -4218,7 +4270,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [30, 40, 50, 60, 70];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -4260,7 +4312,7 @@ contract('Claim: Assessment 2', function([
       let member2Object = new member();
       let member3Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter4,
         underWriter3,
         underWriter5,
@@ -4268,21 +4320,25 @@ contract('Claim: Assessment 2', function([
         underWriter1
       ];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC4, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC4,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC4,
                   3
                 )
@@ -4450,12 +4506,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -4525,7 +4581,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [30, 40, 50, 60, 70];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -4567,28 +4623,32 @@ contract('Claim: Assessment 2', function([
       let member2Object = new member();
       let member3Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter4,
         underWriter3,
         underWriter5,
         underWriter2,
         underWriter1
       ];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC4, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC4,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC4,
                   3
                 )
@@ -4756,12 +4816,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -4831,7 +4891,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [30, 40, 50, 60, 70];
       let UWTokensBurnedExpected = [30, 40, 50, 60, 70];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -4873,28 +4933,32 @@ contract('Claim: Assessment 2', function([
       let member5Object = new member();
       let member6Object = new member();
 
-      UWarray = [
+      underWriters = [
         underWriter4,
         underWriter3,
         underWriter5,
         underWriter2,
         underWriter1
       ];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
       let UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensLocked.push(
           Number(
             (parseFloat(
-              await tf.getStakerLockedTokensOnSmartContract(UWarray[i], SC5, i)
+              await tf.getStakerLockedTokensOnSmartContract(
+                underWriters[i],
+                SC5,
+                i
+              )
             ) -
               parseFloat(
                 await tf.getStakerUnlockableTokensOnSmartContract(
-                  UWarray[i],
+                  underWriters[i],
                   SC5,
                   4
                 )
@@ -5032,12 +5096,12 @@ contract('Claim: Assessment 2', function([
         (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
       ).toFixed(2);
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+          parseFloat(await tc.totalBalanceOf(underWriters[i])) / toWei(1);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         UWTokensBurned[i] = Number(
           UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
         ).toFixed(2);
@@ -5080,7 +5144,7 @@ contract('Claim: Assessment 2', function([
       let UWTokensLockedExpected = [5, 10, 15, 20, 25];
       let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
 
-      for (let i = 0; i < UWarray.length; i++) {
+      for (let i = 0; i < underWriters.length; i++) {
         assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
         assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
@@ -5345,7 +5409,7 @@ contract('Claim: Assessment 2', function([
       await tk.approve(ps.address, stakeTokens, {
         from: underWriter6
       });
-      await ps.stake(stakeTokens, [SC1], [stakeTokens], {
+      await ps.depositAndStake(stakeTokens, [SC1], [stakeTokens], {
         from: underWriter6
       });
 

@@ -30,6 +30,8 @@ async function setLockTime (staking, lockTime) {
 
 describe('processBurn', function () {
 
+  this.timeout(0);
+
   beforeEach(setup);
 
   it('should update staker deposit & stake correctly', async function () {

@@ -114,8 +114,8 @@ contract NXMaster is Governed {
     }
 
     /// @dev Adds new internal contract
-    /// @param _contractsName contract code for new contract
-    /// @param _contractsAddress contract address for new contract
+    /// @param _contractName contract code for new contract
+    /// @param _contractAddress contract address for new contract
     /// @param _type pass 1 if contract is upgradable, 2 if contract is proxy, any other uint if none.
     function addNewInternalContract(
         bytes2 _contractName,

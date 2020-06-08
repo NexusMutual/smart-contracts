@@ -3,7 +3,7 @@ const ClaimsData = artifacts.require('ClaimsDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('NXMDSValueMock');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -19,6 +19,7 @@ const GovernanceMock = artifacts.require('GovernanceMock');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategoryMock');
 const FactoryMock = artifacts.require('FactoryMock');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -28,7 +29,9 @@ const POOL_ASSET = '50000000000000000000';
 module.exports = function(deployer, network, accounts) {
   deployer.then(async () => {
     const Owner = accounts[0];
-    const nxms = await NXMaster.deployed();
+    var nxms = await NXMaster.deployed();
+    proxyMaster = await OwnedUpgradeabilityProxy.new(nxms.address);
+    nxms = await NXMaster.at(proxyMaster.address);
     const tk = await NXMToken.deployed();
     const td = await TokenData.deployed();
     const tf = await TokenFunctions.deployed();
@@ -67,12 +70,16 @@ module.exports = function(deployer, network, accounts) {
       propCat.address,
       mr.address
     ];
+    await nxms.initiateMaster(tk.address);
     await nxms.addNewVersion(addr);
+    await proxyMaster.transferProxyOwnership(
+      await nxms.getLatestAddress('0x4756')
+    );
     let pcAddress = await nxms.getLatestAddress('0x5043');
     pc = await ProposalCategory.at(pcAddress);
     let gvAddress = await nxms.getLatestAddress('0x4756');
     let gv = await GovernanceMock.at(gvAddress);
-    gv._initiateGovernance();
+    await gv._initiateGovernance();
     await pc.proposalCategoryInitiate();
     await pc.updateCategoryActionHashes();
     const dai = await DAI.deployed();

@@ -127,7 +127,7 @@ contract('Claim: Assessment 2', function([
     DSV = await DSValue.deployed();
     qt = await Quotation.deployed();
 
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await qd.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
@@ -934,7 +934,7 @@ contract('Claim: Assessment 2', function([
       let balanceBefore = parseFloat(await web3.eth.getBalance(coverHolder5));
 
       // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(await pd.getIdOfApiId(APIID));
 
       let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder5));
       let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder5));
@@ -1381,6 +1381,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
@@ -1412,6 +1413,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -1661,6 +1663,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -1902,6 +1905,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
@@ -1936,6 +1940,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -2243,6 +2248,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -2524,6 +2530,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // // changing the claim status here
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       claimAssessor1Object.rewardRecieved =
@@ -2557,6 +2564,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -2858,6 +2866,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -3664,6 +3673,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -3913,6 +3923,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -4124,6 +4135,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -4346,6 +4358,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -4652,6 +4665,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -4931,6 +4945,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];
@@ -5181,6 +5196,7 @@ contract('Claim: Assessment 2', function([
       );
 
       // now member voting will be closed
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await p1.__callback(APIID, '');
 
       let proposalIds = [];

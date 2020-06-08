@@ -9,9 +9,9 @@ const NXMaster = artifacts.require('NXMaster');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
 const CA_ETH = '0x45544800';
@@ -46,7 +46,7 @@ contract('MCR', function([owner, notOwner]) {
     p1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     cad = await DAI.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await pd.ms());
     tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
@@ -65,10 +65,10 @@ contract('MCR', function([owner, notOwner]) {
       });
       await p1.upgradeInvestmentPool(DAI.address);
       await tf.upgradeCapitalPool(DAI.address);
-      await p1.sendEther({ from: owner, value: toWei(5500) });
+      await p1.sendEther({from: owner, value: toWei(5500)});
       await mr.kycVerdict(notOwner, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: notOwner });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: owner});
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: notOwner});
       await mcr.addMCRData(
         9000,
         toWei(100),
@@ -83,7 +83,7 @@ contract('MCR', function([owner, notOwner]) {
       let dataaa = await pd.getTokenPriceDetails(toHex('ETH'));
       let x = await tk.balanceOf(notOwner);
       let expectedNXM = await p1.getToken(toWei(0.1));
-      await p1.buyToken({ from: notOwner, value: toWei(0.1) });
+      await p1.buyToken({from: notOwner, value: toWei(0.1)});
       let y = await tk.balanceOf(notOwner);
       console.log('single tranche 0.1ETH ==> ', parseFloat(y - x) / toWei(1));
       ((y - x) / toWei(1))
@@ -116,7 +116,7 @@ contract('MCR', function([owner, notOwner]) {
     before(async function() {
       await p1.upgradeInvestmentPool(DAI.address);
       await tf.upgradeCapitalPool(DAI.address);
-      await p1.sendEther({ from: owner, value: toWei(10) });
+      await p1.sendEther({from: owner, value: toWei(10)});
       await mcr.addMCRData(
         1000,
         toWei(100),
@@ -137,7 +137,7 @@ contract('MCR', function([owner, notOwner]) {
           toWei(1) / parseFloat(await mcr.calculateTokenPrice(toHex('ETH')))
         );
         x = await tk.balanceOf(notOwner);
-        await p1.buyToken({ from: notOwner, value: cost });
+        await p1.buyToken({from: notOwner, value: cost});
         y = await tk.balanceOf(notOwner);
         console.log(
           'tranche ',
@@ -150,7 +150,7 @@ contract('MCR', function([owner, notOwner]) {
     it('19.4 tranches Buy more tokens', async function() {
       await p1.upgradeInvestmentPool(DAI.address);
       await tf.upgradeCapitalPool(DAI.address);
-      await p1.sendEther({ from: owner, value: toWei(607.7406473491) });
+      await p1.sendEther({from: owner, value: toWei(607.7406473491)});
       await mcr.addMCRData(
         202,
         toWei(30000),
@@ -167,7 +167,7 @@ contract('MCR', function([owner, notOwner]) {
         toWei(1) / parseFloat(await mcr.calculateTokenPrice(toHex('ETH')))
       );
       x = await tk.balanceOf(notOwner);
-      await p1.buyToken({ from: notOwner, value: cost });
+      await p1.buyToken({from: notOwner, value: cost});
       y = await tk.balanceOf(notOwner);
       console.log(
         'tranche ',
@@ -182,7 +182,7 @@ contract('MCR', function([owner, notOwner]) {
         toWei(1) / parseFloat(await mcr.calculateTokenPrice(toHex('ETH')))
       );
       x = await tk.balanceOf(notOwner);
-      await p1.buyToken({ from: notOwner, value: cost });
+      await p1.buyToken({from: notOwner, value: cost});
       y = await tk.balanceOf(notOwner);
       console.log(
         'tranche ',
@@ -197,7 +197,7 @@ contract('MCR', function([owner, notOwner]) {
         toWei(1) / parseFloat(await mcr.calculateTokenPrice(toHex('ETH')))
       );
       x = await tk.balanceOf(notOwner);
-      await p1.buyToken({ from: notOwner, value: cost });
+      await p1.buyToken({from: notOwner, value: cost});
       y = await tk.balanceOf(notOwner);
       console.log(
         'tranche ',
@@ -213,7 +213,7 @@ contract('MCR', function([owner, notOwner]) {
       );
     });
     it('19.5 Should revert while buying or 0  ETH', async function() {
-      await assertRevert(p1.buyToken({ value: 0 }));
+      await assertRevert(p1.buyToken({value: 0}));
     });
   });
 
@@ -222,7 +222,7 @@ contract('MCR', function([owner, notOwner]) {
       parseFloat(await mcr.getMaxSellTokens()).should.be.equal(0);
     });
     it('19.7 sell more than 1000 NXMs', async function() {
-      await p1.sendEther({ from: owner, value: toWei(11000) });
+      await p1.sendEther({from: owner, value: toWei(11000)});
       let poolBal = await mcr.calVtpAndMCRtp();
       await mcr.addMCRData(
         20000,

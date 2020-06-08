@@ -7,11 +7,11 @@ const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');
 const ClaimsReward = artifacts.require('ClaimsReward');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 
 const stakedContract = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 
@@ -43,18 +43,18 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     td = await TokenData.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     cr = await ClaimsReward.deployed();
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
     await tk.transfer(member1, tokens);
     await tk.transfer(member2, tokens);
   });
@@ -63,7 +63,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     describe('Staker is not member', function() {
       it('5.1 reverts', async function() {
         await assertRevert(
-          tf.addStake(stakedContract, stakeTokens, { from: notMember })
+          tf.addStake(stakedContract, stakeTokens, {from: notMember})
         );
       });
     });
@@ -94,7 +94,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
         });
 
         it('5.4 should be able to add stake on Smart Contracts', async function() {
-          await tf.addStake(stakedContract, stakeTokens, { from: member1 });
+          await tf.addStake(stakedContract, stakeTokens, {from: member1});
           const newStakedTokens = new BN(initialStakedTokens.toString()).add(
             new BN(stakeTokens.toString())
           );
@@ -120,11 +120,11 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
         });
         describe('after 250 days', function() {
           before(async function() {
-            await tf.addStake(member2, stakeTokens, { from: member2 });
+            await tf.addStake(member2, stakeTokens, {from: member2});
             let time = await latestTime();
             time = time + (await duration.days(251));
             await increaseTimeTo(time);
-            await cr.claimAllPendingReward(20, { from: member2 });
+            await cr.claimAllPendingReward(20, {from: member2});
           });
           it('5.7 staker should have zero total locked nxm tokens against smart contract', async function() {
             const lockedTokens = await tf.getStakerAllLockedTokens.call(

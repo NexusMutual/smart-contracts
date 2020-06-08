@@ -1,7 +1,7 @@
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
 const TokenData = artifacts.require('TokenDataMock');
@@ -45,6 +45,6 @@ module.exports = function(deployer, network, accounts) {
     await deployer.deploy(GovernanceMock);
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
-    await deployer.deploy(NXMaster, tk.address);
+    await deployer.deploy(NXMaster);
   });
 };

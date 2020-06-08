@@ -83,8 +83,8 @@ contract(
         mem12,
         notMember
       ];
-      nxms = await NXMaster.deployed();
       tf = await TokenFunctions.deployed();
+      nxms = await NXMaster.at(await tf.ms());
       cr = await ClaimsReward.deployed();
       nxmToken = await NXMToken.deployed();
       let address = await nxms.getLatestAddress(toHex('GV'));

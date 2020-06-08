@@ -21,6 +21,7 @@ const {increaseTimeTo, duration} = require('./utils/increaseTime');
 const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const encode1 = require('./utils/encoder.js').encode1;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
@@ -97,7 +98,7 @@ contract('ClaimsReward', function([
     P1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
@@ -111,6 +112,49 @@ contract('ClaimsReward', function([
       ['0x455448', '0x444149'],
       [100, 65407],
       20181011
+    );
+
+    async function updateCategory(nxmAdd, functionName, updateCat) {
+      let actionHash = encode1(
+        [
+          'uint256',
+          'string',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256[]',
+          'uint256',
+          'string',
+          'address',
+          'bytes2',
+          'uint256[]',
+          'string'
+        ],
+        [
+          updateCat,
+          'Edit Category',
+          2,
+          50,
+          15,
+          [2],
+          604800,
+          '',
+          nxmAdd,
+          toHex('MS'),
+          [0, 0, 80, 0],
+          functionName
+        ]
+      );
+      await gvProp(4, actionHash, mr, gv, 1);
+    }
+    await updateCategory(
+      nxms.address,
+      'upgradeMultipleContracts(bytes2[],address[])',
+      29
+    );
+    let sevenDays = (await latestTime()) / 1 + 3600 * 24 * 7;
+    await increaseTimeTo(
+      new BN(sevenDays.toString()).add(new BN((1).toString()))
     );
 
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
@@ -205,10 +249,9 @@ contract('ClaimsReward', function([
     });
     it('9.1 should change claim reward contract', async function() {
       let newCr = await ClaimsReward.new();
-      actionHash = encode(
-        'upgradeContract(bytes2,address)',
-        'CR',
-        newCr.address
+      actionHash = encode1(
+        ['bytes2[]', 'address[]'],
+        [[toHex('CR')], [newCr.address]]
       );
       await gvProp(29, actionHash, mr, gv, 2);
       (await nxms.getLatestAddress(toHex('CR'))).should.be.equal(newCr.address);

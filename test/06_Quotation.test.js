@@ -13,14 +13,15 @@ const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const NXMaster = artifacts.require('NXMaster');
 const PoolData = artifacts.require('PoolDataMock');
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const encode1 = require('./utils/encoder.js').encode1;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
@@ -127,7 +128,7 @@ contract('Quotation', function([
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
@@ -137,6 +138,50 @@ contract('Quotation', function([
     //   value: fee
     // });
     // await mr.kycVerdict(owner, true);
+    let oldMR = await MemberRoles.at(await nxms.getLatestAddress(toHex('MR')));
+    let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
+    async function updateCategory(nxmAdd, functionName, updateCat) {
+      let actionHash = encode1(
+        [
+          'uint256',
+          'string',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256[]',
+          'uint256',
+          'string',
+          'address',
+          'bytes2',
+          'uint256[]',
+          'string'
+        ],
+        [
+          updateCat,
+          'Edit Category',
+          2,
+          50,
+          15,
+          [2],
+          604800,
+          '',
+          nxmAdd,
+          toHex('MS'),
+          [0, 0, 80, 0],
+          functionName
+        ]
+      );
+      await gvProp(4, actionHash, oldMR, oldGv, 1);
+    }
+    await updateCategory(
+      nxms.address,
+      'upgradeMultipleContracts(bytes2[],address[])',
+      29
+    );
+    let sevenDays = (await latestTime()) / 1 + 3600 * 24 * 7;
+    await increaseTimeTo(
+      new BN(sevenDays.toString()).add(new BN((1).toString()))
+    );
   });
   describe('Initial cap not reached', function() {
     it('6.1 should revert while buying cover', async function() {
@@ -154,7 +199,7 @@ contract('Quotation', function([
           vrs[0],
           vrs[1],
           vrs[2],
-          { from: newMember6, value: coverDetails[1] }
+          {from: newMember6, value: coverDetails[1]}
         )
       );
     });
@@ -190,9 +235,9 @@ contract('Quotation', function([
 
     describe('If user is a member', function() {
       before(async function() {
-        await mr.payJoiningFee(member1, { from: member1, value: fee });
+        await mr.payJoiningFee(member1, {from: member1, value: fee});
         await mr.kycVerdict(member1, true);
-        await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
+        await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
       });
 
       describe('If user does not have sufficient funds', function() {
@@ -206,7 +251,7 @@ contract('Quotation', function([
               vrs[0],
               vrs[1],
               vrs[2],
-              { from: member1, value: coverDetails[1] - 1 }
+              {from: member1, value: coverDetails[1] - 1}
             )
           );
           await assertRevert(
@@ -218,7 +263,7 @@ contract('Quotation', function([
               vrs[0],
               vrs[1],
               vrs[2],
-              { from: member1 }
+              {from: member1}
             )
           );
           await assertRevert(
@@ -230,7 +275,7 @@ contract('Quotation', function([
               vrs_dai[0],
               vrs_dai[1],
               vrs_dai[2],
-              { from: member1 }
+              {from: member1}
             )
           );
         });
@@ -276,7 +321,7 @@ contract('Quotation', function([
                   vrs[0],
                   vrs[1],
                   vrs[2],
-                  { from: coverHolder, value: coverDetails[1] }
+                  {from: coverHolder, value: coverDetails[1]}
                 )
               );
 
@@ -303,7 +348,7 @@ contract('Quotation', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder, value: coverDetails[1] }
+                {from: coverHolder, value: coverDetails[1]}
               );
               const newLockedCN = BN_10.mul(
                 new BN(coverDetails[2].toString())
@@ -318,10 +363,9 @@ contract('Quotation', function([
               newLockedCN
                 .toString()
                 .should.be.equal(
-                  (await tf.getUserLockedCNTokens.call(
-                    coverHolder,
-                    1
-                  )).toString()
+                  (
+                    await tf.getUserLockedCNTokens.call(coverHolder, 1)
+                  ).toString()
                 );
               newPoolBalance
                 .toString()
@@ -362,7 +406,7 @@ contract('Quotation', function([
                   vrsdata[0],
                   vrsdata[1],
                   vrsdata[2],
-                  { from: coverHolder, value: coverDetails[1] }
+                  {from: coverHolder, value: coverDetails[1]}
                 )
               );
             });
@@ -430,7 +474,7 @@ contract('Quotation', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder }
+                {from: coverHolder}
               );
               const newLockedCN = new BN(BN_10.toString())
                 .mul(new BN(coverDetails[2].toString()))
@@ -447,9 +491,9 @@ contract('Quotation', function([
               newLockedCN
                 .toString()
                 .should.be.equal(
-                  (await tf.getUserAllLockedCNTokens.call(
-                    coverHolder
-                  )).toString()
+                  (
+                    await tf.getUserAllLockedCNTokens.call(coverHolder)
+                  ).toString()
                 );
               newTotalSA
                 .toString()
@@ -538,7 +582,7 @@ contract('Quotation', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder }
+                {from: coverHolder}
               );
               const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
@@ -668,7 +712,7 @@ contract('Quotation', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder, value: coverDetails[1] }
+                {from: coverHolder, value: coverDetails[1]}
               );
               await assertRevert(
                 P1.makeCoverBegin(
@@ -679,7 +723,7 @@ contract('Quotation', function([
                   vrsdata[0],
                   vrsdata[1],
                   vrsdata[2],
-                  { from: coverHolder, value: coverDetails[1] }
+                  {from: coverHolder, value: coverDetails[1]}
                 )
               );
             });
@@ -723,7 +767,7 @@ contract('Quotation', function([
                   vrs[0],
                   vrs[1],
                   vrs[2],
-                  { from: coverHolder }
+                  {from: coverHolder}
                 )
               );
               await assertRevert(
@@ -735,7 +779,7 @@ contract('Quotation', function([
                   27,
                   vrs[1],
                   vrs[2],
-                  { from: coverHolder }
+                  {from: coverHolder}
                 )
               );
               coverDetails[4] = 7972408607004;
@@ -754,7 +798,7 @@ contract('Quotation', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder }
+                {from: coverHolder}
               );
             });
             it('6.24 staker gets commission', async function() {
@@ -805,7 +849,7 @@ contract('Quotation', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder }
+                {from: coverHolder}
               );
             });
             it('6.26 staker gets commission', async function() {
@@ -848,7 +892,7 @@ contract('Quotation', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder }
+                {from: coverHolder}
               );
               new BN(coverLen.toString())
                 .add(new BN((1).toString()))
@@ -857,18 +901,17 @@ contract('Quotation', function([
               coverPeriodLess
                 .toString()
                 .should.be.equal(
-                  (await qd.getCoverPeriod(
-                    (await qd.getCoverLength()) - 1
-                  )).toString()
+                  (
+                    await qd.getCoverPeriod((await qd.getCoverLength()) - 1)
+                  ).toString()
                 );
               new BN(totalSASC.toString())
                 .add(new BN(coverDetailsLess[0].toString()))
                 .toString()
                 .should.be.equal(
-                  (await qd.getTotalSumAssuredSC(
-                    smartConAdd,
-                    toHex('DAI')
-                  )).toString()
+                  (
+                    await qd.getTotalSumAssuredSC(smartConAdd, toHex('DAI'))
+                  ).toString()
                 );
             });
           });
@@ -902,7 +945,7 @@ contract('Quotation', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: member1, value: totalFee }
+            {from: member1, value: totalFee}
           )
         );
       });
@@ -917,7 +960,7 @@ contract('Quotation', function([
               vrs[0],
               vrs[1],
               vrs[2],
-              { from: notMember, value: coverDetails[1] }
+              {from: notMember, value: coverDetails[1]}
             )
           );
 
@@ -930,7 +973,7 @@ contract('Quotation', function([
               vrs[0],
               vrs[1],
               vrs[2],
-              { from: notMember }
+              {from: notMember}
             )
           );
           await assertRevert(
@@ -942,7 +985,7 @@ contract('Quotation', function([
               vrs_dai[0],
               vrs_dai[1],
               vrs_dai[2],
-              { from: notMember }
+              {from: notMember}
             )
           );
           const totalFee = new BN(fee.toString()).add(
@@ -965,7 +1008,7 @@ contract('Quotation', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: notMember, value: 1 }
+              {from: notMember, value: 1}
             )
           );
           coverDetails[4] = 7972408607813;
@@ -985,7 +1028,7 @@ contract('Quotation', function([
               10,
               vrsdata[1],
               vrsdata[2],
-              { from: notMember, value: totalFee }
+              {from: notMember, value: totalFee}
             )
           );
           coverDetails[4] = 7972408607007;
@@ -1004,7 +1047,7 @@ contract('Quotation', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: notMember, value: totalFee }
+            {from: notMember, value: totalFee}
           );
           await cad.transfer(qt.address, toWei(10));
           let newQt = await Quotation.new();
@@ -1014,10 +1057,9 @@ contract('Quotation', function([
           let oldGv = await Governance.at(
             await nxms.getLatestAddress(toHex('GV'))
           );
-          actionHash = encode(
-            'upgradeContract(bytes2,address)',
-            'QT',
-            newQt.address
+          actionHash = encode1(
+            ['bytes2[]', 'address[]'],
+            [[toHex('QT')], [newQt.address]]
           );
           await gvProp(29, actionHash, oldMR, oldGv, 2);
           (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
@@ -1033,7 +1075,7 @@ contract('Quotation', function([
               vrs[0],
               vrs[1],
               vrs[2],
-              { from: notMember, value: totalFee }
+              {from: notMember, value: totalFee}
             )
           );
           let hcl = await qd.getUserHoldedCoverLength(notMember);
@@ -1069,7 +1111,7 @@ contract('Quotation', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: newMember1, value: totalFee }
+            {from: newMember1, value: totalFee}
           );
           let holdedId = await qt.getRecentHoldedCoverIdStatus(newMember1);
           holdedId.toNumber().should.be.above(0);
@@ -1099,7 +1141,7 @@ contract('Quotation', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: newMember2, value: fee }
+            {from: newMember2, value: fee}
           );
           const hcid = await qd.getUserHoldedCoverByIndex(newMember2, 0);
           await qt.kycVerdict(newMember2, true);
@@ -1141,7 +1183,7 @@ contract('Quotation', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: newMember5, value: totalFee }
+            {from: newMember5, value: totalFee}
           );
           await assertRevert(qt.kycVerdict(newMember5, true));
           actionHash = encode(
@@ -1235,7 +1277,7 @@ contract('Quotation', function([
               vrs[0],
               vrs[1],
               vrs[2],
-              { from: notMember, value: totalFee }
+              {from: notMember, value: totalFee}
             )
           );
         });
@@ -1250,7 +1292,7 @@ contract('Quotation', function([
               vrs_dai[0],
               vrs_dai[1],
               vrs_dai[2],
-              { from: notMember, value: fee }
+              {from: notMember, value: fee}
             )
           );
 
@@ -1274,7 +1316,7 @@ contract('Quotation', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: notMember, value: fee }
+            {from: notMember, value: fee}
           );
           const hcid = await qd.getUserHoldedCoverByIndex(notMember, 1);
           const newCoverDetails = coverDetailsDai.slice();
@@ -1388,16 +1430,16 @@ contract('Quotation', function([
     describe('if not internal contract address', function() {
       it('6.51 should not be able to change master address', async function() {
         await assertRevert(
-          qd.changeMasterAddress(qd.address, { from: notMember })
+          qd.changeMasterAddress(qd.address, {from: notMember})
         );
         await assertRevert(
-          qt.changeMasterAddress(qd.address, { from: notMember })
+          qt.changeMasterAddress(qd.address, {from: notMember})
         );
       });
       it('6.52 should not be able to change cover status number', async function() {
         const CID = await qd.getAllCoversOfUser(member3);
         await assertRevert(
-          qd.changeCoverStatusNo(CID[0], 1, { from: notMember })
+          qd.changeCoverStatusNo(CID[0], 1, {from: notMember})
         );
       });
       it('6.53 should fail add mcr if lower threshold not reached', async function() {
@@ -1413,7 +1455,7 @@ contract('Quotation', function([
         (await pd.getApiIdTypeOf(APIID)).should.be.equal('0x4d435246');
       });
       it('6.54 should throw if call kycVerdict with non authorised address', async function() {
-        await assertRevert(qt.kycVerdict(member1, true, { from: member1 }));
+        await assertRevert(qt.kycVerdict(member1, true, {from: member1}));
       });
       it('6.55 should not able to update quoatation parameters directly', async function() {
         await assertRevert(qd.updateUintParameters(toHex('STLP'), 1));

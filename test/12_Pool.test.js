@@ -94,7 +94,7 @@ contract('Pool', function([
     DSV = await DSValue.deployed();
     qd = await QuotationDataMock.deployed();
     qt = await Quotation.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await qd.ms());
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -1421,7 +1421,7 @@ contract('Pool', function([
     });
     it('12.55 Empty string res for unknown id', async function() {
       let APIID = '0x6c6f6c';
-      await p1.__callback(APIID, '');
+      await assertRevert(p1.__callback(APIID, ''));
     });
   });
   describe('Trade Conditions checked', function() {
@@ -1772,7 +1772,7 @@ contract('Pool', function([
       await p1.internalLiquiditySwap(toHex('DAI'));
       var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
-      await p1.__callback(APIID, ''); // to cover else branch (if call comes before callback time)
+      await assertRevert(p1.__callback(APIID, '')); // to cover else branch (if call comes before callback time)
       time = await latestTime();
       await increaseTimeTo(
         (await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100

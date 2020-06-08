@@ -16,11 +16,11 @@ const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
@@ -75,7 +75,7 @@ contract('NXMaster: Emergency Pause', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await tf.ms());
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
@@ -103,47 +103,47 @@ contract('NXMaster: Emergency Pause', function([
     );
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
+    await mr.payJoiningFee(member3, {from: member3, value: fee});
     await mr.kycVerdict(member3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
 
-    await mr.payJoiningFee(member4, { from: member4, value: fee });
+    await mr.payJoiningFee(member4, {from: member4, value: fee});
     await mr.kycVerdict(member4, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member4});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: owner});
 
     await mr.payJoiningFee(coverHolder1, {
       from: coverHolder1,
       value: fee
     });
     await mr.kycVerdict(coverHolder1, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder1 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder1});
     await mr.payJoiningFee(coverHolder2, {
       from: coverHolder2,
       value: fee
     });
     await mr.kycVerdict(coverHolder2, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder2 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder2});
     await mr.payJoiningFee(coverHolder3, {
       from: coverHolder3,
       value: fee
     });
     await mr.kycVerdict(coverHolder3, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder3 });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder3});
     await tk.transfer(member1, tokens);
     await tk.transfer(member2, tokens);
     await tk.transfer(member3, tokens);
     await tk.transfer(member4, tokens);
     await tk.transfer(coverHolder1, tokens);
     await tk.transfer(coverHolder2, tokens);
-    await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
-    await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
+    await tf.addStake(smartConAdd, stakeTokens, {from: member1});
+    await tf.addStake(smartConAdd, stakeTokens, {from: member2});
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -165,7 +165,7 @@ contract('NXMaster: Emergency Pause', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder1, value: coverDetails[1] }
+        {from: coverHolder1, value: coverDetails[1]}
       );
       coverDetails[4] = 7972408607002;
       vrsdata = await getQuoteValues(
@@ -183,7 +183,7 @@ contract('NXMaster: Emergency Pause', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder2, value: coverDetails[1] }
+        {from: coverHolder2, value: coverDetails[1]}
       );
       coverDetails[4] = 7972408607003;
       vrsdata = await getQuoteValues(
@@ -201,7 +201,7 @@ contract('NXMaster: Emergency Pause', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder3, value: coverDetails[1] }
+        {from: coverHolder3, value: coverDetails[1]}
       );
 
       await tc.lock(CLA, ether(60), validity, {
@@ -211,14 +211,14 @@ contract('NXMaster: Emergency Pause', function([
         from: member2
       });
       let proposalsIDs = [];
-      await cr.claimAllPendingReward(20, { from: member4 });
+      await cr.claimAllPendingReward(20, {from: member4});
     });
     it('10.1 should return false for isPause', async function() {
       (await nxms.isPause()).should.equal(false);
     });
     it('10.2 should let deny claim', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder3);
-      await cl.submitClaim(coverID[0], { from: coverHolder3 });
+      await cl.submitClaim(coverID[0], {from: coverHolder3});
       var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       const claimId = (await cd.actualClaimLength()) - 1;
       let nowTime = await latestTime();
@@ -226,6 +226,7 @@ contract('NXMaster: Emergency Pause', function([
       await P1.__callback(APIID, '');
       nowTime = await latestTime();
       await increaseTimeTo(nowTime / 1 + (await cd.maxVotingTime()) / 1 + 100);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(APIID, '');
       let cid = await cd.getAllClaimsByIndex(claimId);
       ((await qd.getCoverStatusNo(cid[0])) / 1)
@@ -234,7 +235,7 @@ contract('NXMaster: Emergency Pause', function([
     });
     it('10.2 should let submit claim', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
-      await cl.submitClaim(coverID[0], { from: coverHolder1 });
+      await cl.submitClaim(coverID[0], {from: coverHolder1});
       const claimId = (await cd.actualClaimLength()) - 1;
       claimId.toString().should.be.equal((2).toString());
       let cid = await cd.getAllClaimsByIndex(claimId);
@@ -243,17 +244,17 @@ contract('NXMaster: Emergency Pause', function([
         .should.be.equal((4).toString());
     });
     it('10.3 should be able to do claim assessment or stake NXM for claim', async function() {
-      await tc.lock(CLA, ether(60), validity, { from: member3 });
+      await tc.lock(CLA, ether(60), validity, {from: member3});
     });
     it('10.4 should be able to buy nxm token', async function() {
-      await P1.buyToken({ value: ether(60), from: member1 });
+      await P1.buyToken({value: ether(60), from: member1});
     });
 
     it('10.5 should be able to redeem NXM tokens', async function() {
-      await P1.sellNXMTokens(await mcr.getMaxSellTokens(), { from: member1 });
+      await P1.sellNXMTokens(await mcr.getMaxSellTokens(), {from: member1});
     });
     it('10.6 should be able to withdraw membership', async function() {
-      await mr.withdrawMembership({ from: member4 });
+      await mr.withdrawMembership({from: member4});
     });
   });
 
@@ -279,7 +280,7 @@ contract('NXMaster: Emergency Pause', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: newMember, value: totalFee }
+        {from: newMember, value: totalFee}
       );
 
       let p = await gv.getProposalLength();
@@ -309,7 +310,7 @@ contract('NXMaster: Emergency Pause', function([
           v,
           r,
           s,
-          { from: newMember, value: totalFee }
+          {from: newMember, value: totalFee}
         )
       );
     });
@@ -317,7 +318,7 @@ contract('NXMaster: Emergency Pause', function([
       (await nxms.isPause()).should.equal(true);
     });
     it('10.8 should return emergency pause details', async function() {
-      await nxms.getEmergencyPauseByIndex(0);
+      await nxms.emergencyPaused(0);
       const epd = await nxms.getLastEmergencyPause();
       epd[0].should.equal(true);
       epd[1].toString().should.be.equal(startTime.toString());
@@ -325,7 +326,7 @@ contract('NXMaster: Emergency Pause', function([
     });
     it('10.9 should not be able to pay joining fee', async function() {
       await assertRevert(
-        mr.payJoiningFee(member5, { from: member5, value: fee })
+        mr.payJoiningFee(member5, {from: member5, value: fee})
       );
     });
     it('10.10 should not be able to trigger kyc', async function() {
@@ -333,18 +334,18 @@ contract('NXMaster: Emergency Pause', function([
     });
     it('10.11 add claim to queue', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder2);
-      await cl.submitClaim(coverID[0], { from: coverHolder2 });
+      await cl.submitClaim(coverID[0], {from: coverHolder2});
       (await qd.getCoverStatusNo(coverID[0]))
         .toString()
         .should.be.equal((5).toString());
     });
     it('10.12 should not let member vote for claim assessment', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
-      await assertRevert(cl.submitCAVote(claimId, -1, { from: member1 }));
+      await assertRevert(cl.submitCAVote(claimId, -1, {from: member1}));
     });
     it('10.13 should not be able to change claim status', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
-      await assertRevert(cr.changeClaimStatus(claimId, { from: owner }));
+      await assertRevert(cr.changeClaimStatus(claimId, {from: owner}));
     });
     it('10.14 should not be able to make cover', async function() {
       await assertRevert(
@@ -356,31 +357,31 @@ contract('NXMaster: Emergency Pause', function([
           v,
           r,
           s,
-          { from: coverHolder1, value: coverDetails[1] }
+          {from: coverHolder1, value: coverDetails[1]}
         )
       );
     });
     it('10.15 should not be able to assess risk', async function() {
-      await assertRevert(tf.addStake(smartConAdd, 1, { from: member1 }));
+      await assertRevert(tf.addStake(smartConAdd, 1, {from: member1}));
     });
     it('10.16 should not be able to submit CA Vote', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
-      await assertRevert(cl.submitCAVote(claimId, 0, { from: member1 }));
+      await assertRevert(cl.submitCAVote(claimId, 0, {from: member1}));
     });
 
     it('10.17 should not be able to do claim assessment or stake NXM for claim', async function() {
-      await assertRevert(tc.lock(CLA, ether(60), validity, { from: member3 }));
+      await assertRevert(tc.lock(CLA, ether(60), validity, {from: member3}));
       // dont use member1 or member2 as they are already locked
     });
     it('10.18 should not be able to buy nxm token', async function() {
-      await assertRevert(P1.buyToken({ value: ether(60), from: member1 }));
+      await assertRevert(P1.buyToken({value: ether(60), from: member1}));
     });
     it('10.19 should not be able to redeem NXM tokens', async function() {
-      await assertRevert(P1.sellNXMTokens(ether(1), { from: member1 }));
+      await assertRevert(P1.sellNXMTokens(ether(1), {from: member1}));
     });
 
     it('10.20 should not be able to withdraw membership', async function() {
-      await assertRevert(mr.withdrawMembership({ from: member4 }));
+      await assertRevert(mr.withdrawMembership({from: member4}));
     });
 
     it('10.21 Should not be able to save IA details', async function() {

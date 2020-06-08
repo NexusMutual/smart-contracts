@@ -18,11 +18,11 @@ const Governance = artifacts.require('Governance');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('NXMDSValueMock');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -110,7 +110,7 @@ contract('Claim: Assessment', function([
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
     mcr = await MCR.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
@@ -130,24 +130,24 @@ contract('Claim: Assessment', function([
     (await pd.capReached()).toString().should.be.equal((1).toString());
     // await mr.payJoiningFee(owner, { from: owner, value: fee });
     // await mr.kycVerdict(owner, true);
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
-    await mr.payJoiningFee(member2, { from: member2, value: fee });
+    await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
-    await mr.payJoiningFee(member3, { from: member3, value: fee });
+    await mr.payJoiningFee(member3, {from: member3, value: fee});
     await mr.kycVerdict(member3, true);
-    await mr.payJoiningFee(staker1, { from: staker1, value: fee });
+    await mr.payJoiningFee(staker1, {from: staker1, value: fee});
     await mr.kycVerdict(staker1, true);
-    await mr.payJoiningFee(staker2, { from: staker2, value: fee });
+    await mr.payJoiningFee(staker2, {from: staker2, value: fee});
     await mr.kycVerdict(staker2, true);
-    await mr.payJoiningFee(coverHolder, { from: coverHolder, value: fee });
+    await mr.payJoiningFee(coverHolder, {from: coverHolder, value: fee});
     await mr.kycVerdict(coverHolder, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker1 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: staker2 });
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: coverHolder });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: staker1});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: staker2});
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: coverHolder});
 
     await tk.transfer(member1, ether(250));
     await tk.transfer(member2, ether(250));
@@ -155,8 +155,8 @@ contract('Claim: Assessment', function([
     await tk.transfer(coverHolder, ether(250));
     await tk.transfer(staker1, ether(250));
     await tk.transfer(staker2, ether(250));
-    await tf.addStake(smartConAdd, stakeTokens, { from: staker1 });
-    await tf.addStake(smartConAdd, stakeTokens, { from: staker2 });
+    await tf.addStake(smartConAdd, stakeTokens, {from: staker1});
+    await tf.addStake(smartConAdd, stakeTokens, {from: staker2});
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -190,7 +190,7 @@ contract('Claim: Assessment', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: coverHolder, value: coverDetails[1] }
+              {from: coverHolder, value: coverDetails[1]}
             );
             coverDetails[4] = '7972408607002';
             vrsdata = await getQuoteValues(
@@ -208,18 +208,18 @@ contract('Claim: Assessment', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: coverHolder, value: coverDetails[1] }
+              {from: coverHolder, value: coverDetails[1]}
             );
             coverID = await qd.getAllCoversOfUser(coverHolder);
-            await cl.submitClaim(coverID[0], { from: coverHolder });
+            await cl.submitClaim(coverID[0], {from: coverHolder});
             const minVotingTime = await cd.minVotingTime();
             const now = await latestTime();
             minTime = new BN(minVotingTime.toString()).add(
               new BN(now.toString())
             );
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getUserClaimByIndex(0, { from: coverHolder });
-            await cl.getClaimbyIndex(1, { from: coverHolder });
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getUserClaimByIndex(0, {from: coverHolder});
+            await cl.getClaimbyIndex(1, {from: coverHolder});
             claimId = (await cd.actualClaimLength()) - 1;
           });
           it('8.1 voting should be open', async function() {
@@ -229,9 +229,9 @@ contract('Claim: Assessment', function([
           });
           it('8.2 should let claim assessors to vote for claim assessment', async function() {
             let initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-            await cl.submitCAVote(claimId, -1, { from: member1 });
-            await cl.submitCAVote(claimId, -1, { from: member2 });
-            await cl.submitCAVote(claimId, -1, { from: member3 });
+            await cl.submitCAVote(claimId, -1, {from: member1});
+            await cl.submitCAVote(claimId, -1, {from: member2});
+            await cl.submitCAVote(claimId, -1, {from: member3});
             let finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
             (finalCAVoteTokens[1] - initialCAVoteTokens[1]).should.be.equal(
               tokens * 3
@@ -243,11 +243,11 @@ contract('Claim: Assessment', function([
             isBooked.should.be.equal(true);
           });
           it('8.3 should not let claim assessors to vote for 2nd time in same claim id', async function() {
-            await assertRevert(cl.submitCAVote(claimId, -1, { from: member2 }));
+            await assertRevert(cl.submitCAVote(claimId, -1, {from: member2}));
           });
           it('8.4 should not let member to vote for CA', async function() {
             await assertRevert(
-              cl.submitMemberVote(claimId, -1, { from: member1 })
+              cl.submitMemberVote(claimId, -1, {from: member1})
             );
           });
           it('8.5 should close voting after min time', async function() {
@@ -259,7 +259,7 @@ contract('Claim: Assessment', function([
               .should.be.equal((1).toString());
           });
           it('8.6 should not able to vote after voting close', async function() {
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+            await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
           it('8.7 should be able to change claim status', async function() {
             let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -286,7 +286,7 @@ contract('Claim: Assessment', function([
               new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
             );
             coverID = await qd.getAllCoversOfUser(coverHolder);
-            await cl.submitClaim(coverID[1], { from: coverHolder });
+            await cl.submitClaim(coverID[1], {from: coverHolder});
             claimId = (await cd.actualClaimLength()) - 1;
             initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
               staker1,
@@ -301,11 +301,11 @@ contract('Claim: Assessment', function([
           });
 
           it('8.9 should let claim assessor to vote for claim assessment', async function() {
-            await cl.submitCAVote(claimId, 1, { from: member1 });
-            await cl.submitCAVote(claimId, 1, { from: member2 });
-            await cl.submitCAVote(claimId, 1, { from: member3 });
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getClaimFromNewStart(1, { from: member1 });
+            await cl.submitCAVote(claimId, 1, {from: member1});
+            await cl.submitCAVote(claimId, 1, {from: member2});
+            await cl.submitCAVote(claimId, 1, {from: member3});
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getClaimFromNewStart(1, {from: member1});
             await cd.getVoteToken(claimId, 0, 1);
             await cd.getVoteVoter(claimId, 1, 1);
             let verdict = await cd.getVoteVerdict(claimId, 1, 1);
@@ -320,7 +320,7 @@ contract('Claim: Assessment', function([
             await increaseTimeTo(
               new BN(closingTime.toString()).add(new BN((6).toString()))
             );
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+            await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
           it('8.11 orcalise call should be able to change claim status', async function() {
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -339,7 +339,7 @@ contract('Claim: Assessment', function([
       describe('CA not voted', function() {
         before(async function() {
           coverID = await qd.getAllCoversOfUser(coverHolder);
-          await cl.submitClaim(coverID[0], { from: coverHolder });
+          await cl.submitClaim(coverID[0], {from: coverHolder});
           claimId = (await cd.actualClaimLength()) - 1;
           const now = await latestTime();
           closingTime = new BN(maxVotingTime.toString()).add(
@@ -406,10 +406,10 @@ contract('Claim: Assessment', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: coverHolder, value: coverDetails[1] }
+              {from: coverHolder, value: coverDetails[1]}
             );
             coverID = await qd.getAllCoversOfUser(coverHolder);
-            await cl.submitClaim(coverID[2], { from: coverHolder });
+            await cl.submitClaim(coverID[2], {from: coverHolder});
             claimId = (await cd.actualClaimLength()) - 1;
             const now = await latestTime();
             closingTime = new BN(maxVotingTime.toString()).add(
@@ -423,9 +423,9 @@ contract('Claim: Assessment', function([
             await cd.getAllClaimsByAddress(coverHolder);
           });
           it('8.18 member should be able to cast vote', async function() {
-            await cl.submitMemberVote(claimId, -1, { from: member1 });
-            await cl.submitMemberVote(claimId, -1, { from: member2 });
-            await cl.submitMemberVote(claimId, -1, { from: member3 });
+            await cl.submitMemberVote(claimId, -1, {from: member1});
+            await cl.submitMemberVote(claimId, -1, {from: member2});
+            await cl.submitMemberVote(claimId, -1, {from: member3});
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             await P1.__callback(apiid, '');
             let claimed = await cr.getRewardAndClaimedStatus(0, claimId, {
@@ -434,10 +434,10 @@ contract('Claim: Assessment', function([
             let claimed1 = await cr.getRewardAndClaimedStatus(0, 0, {
               from: member1
             });
-            await cr.claimAllPendingReward(20, { from: member1 });
+            await cr.claimAllPendingReward(20, {from: member1});
             claimed[1].should.be.equal(false);
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getClaimFromNewStart(1, { from: member1 });
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getClaimFromNewStart(1, {from: member1});
             await cd.getVoteToken(claimId, 0, 0);
             await cd.getVoteVoter(claimId, 0, 0);
             await cd.getMemberClaimVotesToken(claimId);
@@ -449,12 +449,12 @@ contract('Claim: Assessment', function([
             // await cr.getRewardToBeDistributedByUser(member1);
           });
           it('8.19 should not be able to cast vote by CA in member voting', async function() {
-            await assertRevert(cl.submitCAVote(claimId, 1, { from: member1 }));
+            await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
 
           it('8.20 should not let member to vote for 2nd time in same claim id', async function() {
             await assertRevert(
-              cl.submitMemberVote(claimId, -1, { from: member1 })
+              cl.submitMemberVote(claimId, -1, {from: member1})
             );
           });
           it('8.21 member should not be able to transfer any tokens', async function() {
@@ -463,8 +463,8 @@ contract('Claim: Assessment', function([
             let verdict = await cd.getVoteVerdict(claimId, 1, 0);
             parseFloat(verdict).should.be.equal(-1);
             let userClaimCount = await cd.getUserClaimCount(coverHolder);
-            await assertRevert(tk.transfer(member2, tokens, { from: member1 }));
-            await tk.approve(member2, tokens, { from: coverHolder });
+            await assertRevert(tk.transfer(member2, tokens, {from: member1}));
+            await tk.approve(member2, tokens, {from: coverHolder});
           });
           it('8.22 should not able to vote after voting closed', async function() {
             const now = await latestTime();
@@ -475,12 +475,13 @@ contract('Claim: Assessment', function([
               new BN(closingTime.toString()).add(new BN((2).toString()))
             );
             await assertRevert(
-              cl.submitMemberVote(claimId, -1, { from: member1 })
+              cl.submitMemberVote(claimId, -1, {from: member1})
             );
           });
           it('8.23 should change claim status', async function() {
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(apiid, '');
+            let _val = await pd.getIdOfApiId(apiid);
+            await nxms.closeClaim(_val);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((9).toString());
             // await cd.updateState12Count(claimId, 1);
@@ -491,7 +492,7 @@ contract('Claim: Assessment', function([
 
         describe('Member accept claims', function() {
           before(async function() {
-            await cl.submitClaim(coverID[2], { from: coverHolder });
+            await cl.submitClaim(coverID[2], {from: coverHolder});
             claimId = (await cd.actualClaimLength()) - 1;
             let now = await latestTime();
             closingTime = new BN(maxVotingTime.toString()).add(
@@ -505,11 +506,11 @@ contract('Claim: Assessment', function([
             // await cd.getAllClaimsByAddress(coverHolder);
           });
           it('8.24 member should be able to cast vote', async function() {
-            await cl.submitMemberVote(claimId, 1, { from: member1 });
-            await cl.submitMemberVote(claimId, 1, { from: member2 });
-            await cl.submitMemberVote(claimId, 1, { from: member3 });
-            await cl.getClaimFromNewStart(0, { from: member1 });
-            await cl.getClaimFromNewStart(1, { from: member1 });
+            await cl.submitMemberVote(claimId, 1, {from: member1});
+            await cl.submitMemberVote(claimId, 1, {from: member2});
+            await cl.submitMemberVote(claimId, 1, {from: member3});
+            await cl.getClaimFromNewStart(0, {from: member1});
+            await cl.getClaimFromNewStart(1, {from: member1});
             await cd.getVoteToken(claimId, 0, 0);
             await cd.getVoteVoter(claimId, 0, 0);
             await cd.getMemberClaimVotesToken(claimId);
@@ -558,10 +559,10 @@ contract('Claim: Assessment', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder, value: coverDetails[1] }
+        {from: coverHolder, value: coverDetails[1]}
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[3], { from: coverHolder });
+      await cl.submitClaim(coverID[3], {from: coverHolder});
     });
   });
   describe('Expire Cover', function() {
@@ -578,9 +579,9 @@ contract('Claim: Assessment', function([
 
   describe('CA Pool have insuffecient funds for payout', function() {
     before(async function() {
-      await mr.payJoiningFee(member4, { from: member4, value: fee });
+      await mr.payJoiningFee(member4, {from: member4, value: fee});
       await mr.kycVerdict(member4, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member4});
       await tk.transfer(member4, ether(400));
       coverDetails[4] = '7972408607005';
       var vrsdata = await getQuoteValues(
@@ -598,19 +599,19 @@ contract('Claim: Assessment', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder, value: coverDetails[1] }
+        {from: coverHolder, value: coverDetails[1]}
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
       let now = await latestTime();
       await increaseTimeTo(
         new BN(BOOK_TIME.toString()).add(new BN(now.toString()))
       );
-      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      await cl.submitClaim(coverID[coverID.length - 1], {from: coverHolder});
       let clid = (await cd.actualClaimLength()) - 1;
       await tc.lock(CLA, ether(400), duration.days(300), {
         from: member4
       });
-      await cl.submitCAVote(clid, 1, { from: member4 });
+      await cl.submitCAVote(clid, 1, {from: member4});
       now = await latestTime();
       let maxVoteTime = await cd.maxVotingTime();
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
@@ -637,14 +638,17 @@ contract('Claim: Assessment', function([
         // console.log(parseFloat(cStatus[1]));
         if (i != 60) parseFloat(check).should.be.equal(1);
 
-        apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
+        let subVal = 2;
+        if (i == 0) subVal = 1;
+        apiid = await pd.allAPIcall((await pd.getApilCallLength()) - subVal);
         await P1.__callback(apiid, '');
       }
       check = await cl.checkVoteClosing(clid);
       parseFloat(check).should.be.equal(-1);
       let cStatus = await cd.getClaimStatusNumber(clid);
       (13).should.be.equal(parseFloat(cStatus[1]));
-      await P1.sendEther({ from: owner, value: toWei(10) });
+      await P1.sendEther({from: owner, value: toWei(10)});
+      apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -653,6 +657,7 @@ contract('Claim: Assessment', function([
       (13).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.30 Payout fails for 1st time and later complete', async function() {
+      await tf.upgradeCapitalPool(DAI.address);
       await cad.transfer(coverHolder, toWei(20));
       await cad.approve(P1.address, coverDetailsDai[1], {
         from: coverHolder
@@ -673,12 +678,12 @@ contract('Claim: Assessment', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder }
+        {from: coverHolder}
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      await cl.submitClaim(coverID[coverID.length - 1], {from: coverHolder});
       let clid = (await cd.actualClaimLength()) - 1;
-      await cl.submitCAVote(clid, 1, { from: member4 });
+      await cl.submitCAVote(clid, 1, {from: member4});
       let now = await latestTime();
       let maxVoteTime = await cd.maxVotingTime();
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 100);
@@ -689,6 +694,9 @@ contract('Claim: Assessment', function([
       (12).should.be.equal(parseFloat(cStatus[1]));
       await cad.transfer(P1.address, toWei(20));
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let payOutRetry = await cd.payoutRetryTime();
+      now = await latestTime();
+      await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (14).should.be.equal(parseFloat(cStatus[1]));
@@ -698,9 +706,9 @@ contract('Claim: Assessment', function([
     before(async function() {
       // let now = await latestTime();
       // await increaseTimeTo(BOOK_TIME.plus(now));
-      await mr.payJoiningFee(member5, { from: member5, value: fee });
+      await mr.payJoiningFee(member5, {from: member5, value: fee});
       await mr.kycVerdict(member5, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member5 });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member5});
       await tk.transfer(member5, ether(250));
       await tc.lock(CLA, ether(200), duration.days(300), {
         from: member5
@@ -721,14 +729,14 @@ contract('Claim: Assessment', function([
         vrsdata[0],
         vrsdata[1],
         vrsdata[2],
-        { from: coverHolder, value: coverDetails[1] }
+        {from: coverHolder, value: coverDetails[1]}
       );
       coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      await cl.submitClaim(coverID[coverID.length - 1], {from: coverHolder});
     });
     it('8.31 should not allow to cast CA vote if not locked under CA', async function() {
       let clid = (await cd.actualClaimLength()) - 1;
-      await assertRevert(cl.submitCAVote(clid, -1, { from: staker1 }));
+      await assertRevert(cl.submitCAVote(clid, -1, {from: staker1}));
     });
     it('8.32 should not be able to CAs right to cast CA vote for 3 days', async function() {
       await assertRevert(cd.setUserClaimVotePausedOn(member1));
@@ -754,14 +762,14 @@ contract('Claim: Assessment', function([
     });
     it('8.37 should not able to vote as CA if blocked', async function() {
       let clid = (await cd.actualClaimLength()) - 1;
-      await assertRevert(cl.submitCAVote(clid, -1, { from: member1 }));
+      await assertRevert(cl.submitCAVote(clid, -1, {from: member1}));
     });
     it('8.38 should close voting during casting vote as CA', async function() {
       now = await latestTime();
       let minVoteTime = await cd.minVotingTime();
       await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
       let clid = (await cd.actualClaimLength()) - 1;
-      await cl.submitCAVote(clid, -1, { from: member5 });
+      await cl.submitCAVote(clid, -1, {from: member5});
       tokenVoted = await cd.getTokensClaim(member5, clid);
       parseFloat(tokenVoted[1]).should.be.equal(parseFloat(ether(200)));
       (await cl.checkVoteClosing(clid))
@@ -771,7 +779,7 @@ contract('Claim: Assessment', function([
 
     it('8.39 should close voting during casting vote as Member', async function() {
       coverID = await qd.getAllCoversOfUser(coverHolder);
-      await cl.submitClaim(coverID[coverID.length - 1], { from: coverHolder });
+      await cl.submitClaim(coverID[coverID.length - 1], {from: coverHolder});
       let clid = (await cd.actualClaimLength()) - 1;
       let now = await latestTime();
       let maxVoteTime = await cd.maxVotingTime();
@@ -781,13 +789,13 @@ contract('Claim: Assessment', function([
       now = await latestTime();
       let minVoteTime = await cd.minVotingTime();
       await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);
-      await cl.submitMemberVote(clid, -1, { from: member5 });
+      await cl.submitMemberVote(clid, -1, {from: member5});
       (await cl.checkVoteClosing(clid))
         .toString()
         .should.be.equal((-1).toString());
     });
     it('8.40 should revert while selling NXMs', async function() {
-      await assertRevert(P1.sellNXMTokens(toWei(2), { from: member5 }));
+      await assertRevert(P1.sellNXMTokens(toWei(2), {from: member5}));
     });
     it('8.41 should handle if commissionToBePaid is 0', async function() {
       await P1.updateStakerCommissions(smartConAdd, 0);

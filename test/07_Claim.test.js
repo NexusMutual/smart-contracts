@@ -17,11 +17,11 @@ const MemberRoles = artifacts.require('MemberRoles');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
 
-const { assertRevert } = require('./utils/assertRevert');
-const { advanceBlock } = require('./utils/advanceToBlock');
-const { ether, toWei, toHex } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {assertRevert} = require('./utils/assertRevert');
+const {advanceBlock} = require('./utils/advanceToBlock');
+const {ether, toWei, toHex} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -97,7 +97,7 @@ contract('Claim', function([
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
@@ -136,32 +136,32 @@ contract('Claim', function([
 
   describe('Submit Claim', function() {
     before(async function() {
-      await mr.payJoiningFee(member1, { from: member1, value: fee });
+      await mr.payJoiningFee(member1, {from: member1, value: fee});
       await mr.kycVerdict(member1, true);
-      await mr.payJoiningFee(member2, { from: member2, value: fee });
+      await mr.payJoiningFee(member2, {from: member2, value: fee});
       await mr.kycVerdict(member2, true);
-      await mr.payJoiningFee(member3, { from: member3, value: fee });
+      await mr.payJoiningFee(member3, {from: member3, value: fee});
       await mr.kycVerdict(member3, true);
-      await mr.payJoiningFee(member4, { from: member4, value: fee });
+      await mr.payJoiningFee(member4, {from: member4, value: fee});
       await mr.kycVerdict(member4, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member2 });
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member3 });
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member4 });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member2});
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member3});
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member4});
       await tk.transfer(member1, tokens);
       await tk.transfer(member2, tokens);
       await tk.transfer(member3, tokens);
       await tk.transfer(member4, tokens);
-      await tf.addStake(smartConAdd, stakeTokens, { from: member1 });
-      await tf.addStake(smartConAdd, stakeTokens, { from: member2 });
-      await tf.addStake(smartConAdd, stakeTokens, { from: member3 });
+      await tf.addStake(smartConAdd, stakeTokens, {from: member1});
+      await tf.addStake(smartConAdd, stakeTokens, {from: member2});
+      await tf.addStake(smartConAdd, stakeTokens, {from: member3});
     });
 
     describe('if member', function() {
       let coverHolder = member1;
       describe('if does not purchased cover', function() {
         it('7.1 reverts', async function() {
-          await assertRevert(cl.submitClaim(0, { from: member1 }));
+          await assertRevert(cl.submitClaim(0, {from: member1}));
         });
       });
 
@@ -183,7 +183,7 @@ contract('Claim', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: coverHolder, value: coverDetails[1] }
+            {from: coverHolder, value: coverDetails[1]}
           );
           coverDetails[4] = 7972408607002;
           vrsdata = await getQuoteValues(
@@ -201,7 +201,7 @@ contract('Claim', function([
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            { from: coverHolder, value: coverDetails[1] }
+            {from: coverHolder, value: coverDetails[1]}
           );
         });
 
@@ -223,7 +223,7 @@ contract('Claim', function([
                   coverHolder
                 );
                 let initialClaimCount = await cd.getClaimLength();
-                await cl.submitClaim(coverID[0], { from: coverHolder });
+                await cl.submitClaim(coverID[0], {from: coverHolder});
                 new BN(initialUserClaimCount.toString())
                   .add(new BN((1).toString()))
                   .toString()
@@ -264,7 +264,7 @@ contract('Claim', function([
               it('7.5 reverts', async function() {
                 const coverID = await qd.getAllCoversOfUser(coverHolder);
                 await assertRevert(
-                  cl.submitClaim(coverID[0], { from: coverHolder })
+                  cl.submitClaim(coverID[0], {from: coverHolder})
                 );
               });
             });
@@ -309,7 +309,7 @@ contract('Claim', function([
                 vrsdata[0],
                 vrsdata[1],
                 vrsdata[2],
-                { from: coverHolder, value: coverDetails[1] }
+                {from: coverHolder, value: coverDetails[1]}
               );
               coverID = await qd.getAllCoversOfUser(coverHolder);
               var APIID = await pd.allAPIcall(
@@ -328,7 +328,7 @@ contract('Claim', function([
             it('7.7 reverts', async function() {
               coverID = await qd.getAllCoversOfUser(coverHolder);
               await assertRevert(
-                cl.submitClaim(coverID[1], { from: coverHolder })
+                cl.submitClaim(coverID[1], {from: coverHolder})
               );
             });
           });
@@ -352,13 +352,13 @@ contract('Claim', function([
               vrsdata[0],
               vrsdata[1],
               vrsdata[2],
-              { from: coverHolder }
+              {from: coverHolder}
             );
           });
           it('7.8 reverts', async function() {
             coverID = await qd.getAllCoversOfUser(coverHolder);
             await assertRevert(
-              cl.submitClaim(coverID[2], { from: notCoverHolder })
+              cl.submitClaim(coverID[2], {from: notCoverHolder})
             );
           });
         });

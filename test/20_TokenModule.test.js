@@ -7,12 +7,12 @@ const NXMaster = artifacts.require('NXMaster');
 const TokenData = artifacts.require('TokenDataMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const DAI = artifacts.require('MockDAI');
-const { ether, toHex, toWei } = require('./utils/ethTools');
-const { assertRevert } = require('./utils/assertRevert');
-const { increaseTimeTo } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {assertRevert} = require('./utils/assertRevert');
+const {increaseTimeTo} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
 const expectEvent = require('./utils/expectEvent');
-const { advanceBlock } = require('./utils/advanceToBlock');
+const {advanceBlock} = require('./utils/advanceToBlock');
 
 const ETH = '0x455448';
 const fee = ether(0.002);
@@ -42,7 +42,7 @@ contract('Token Module', function([owner, member1]) {
     tk = await NXMToken.deployed();
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await p1.ms());
     tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     td = await TokenData.deployed();
@@ -51,14 +51,14 @@ contract('Token Module', function([owner, member1]) {
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await tf.upgradeCapitalPool(dai.address);
-    await p1.sendEther({ from: owner, value: toWei(50) });
+    await p1.sendEther({from: owner, value: toWei(50)});
     await p1.upgradeInvestmentPool(dai.address);
-    await mr.payJoiningFee(member1, { from: member1, value: fee });
+    await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
     // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
-    await tk.transfer(member1, toWei(30000), { from: owner });
+    await tk.transfer(member1, toWei(30000), {from: owner});
     // console.log(await tk.allowance(owner, tc.address));
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: owner });
+    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: owner});
   });
   describe('NXMToken: ', function() {
     it('20.1 onlyOperator "require" operator - else condition', async function() {
@@ -67,7 +67,7 @@ contract('Token Module', function([owner, member1]) {
 
     it('20.2 approve function "require" - else ZERO_ADDRESS condition is checked', async function() {
       await assertRevert(
-        tk.approve(ZERO_ADDRESS, UNLIMITED_ALLOWANCE, { from: member1 })
+        tk.approve(ZERO_ADDRESS, UNLIMITED_ALLOWANCE, {from: member1})
       );
     });
 
@@ -96,7 +96,7 @@ contract('Token Module', function([owner, member1]) {
     it('20.5 transfer function "require" - else conditions are checked', async function() {
       // to check that transfer is not made to ZERO_ADDRESS
       await assertRevert(
-        tk.transfer(ZERO_ADDRESS, toWei(30000), { from: owner })
+        tk.transfer(ZERO_ADDRESS, toWei(30000), {from: owner})
       );
 
       // to check that owner is not locked for MV

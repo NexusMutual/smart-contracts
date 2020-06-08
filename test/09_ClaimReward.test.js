@@ -148,7 +148,7 @@ contract('ClaimsReward', function([
     await tk.transfer(staker1, ether(450));
     await tk.transfer(staker2, ether(450));
     await tk.transfer(coverHolder, ether(150));
-    await tk.transfer(newMember1, ether(450));
+    await tk.transfer(newMember1, ether(4500));
     await tk.transfer(newMember2, ether(450));
 
     const stakers = [staker1, staker2];
@@ -223,9 +223,13 @@ contract('ClaimsReward', function([
         'CR',
         newCr.address
       );
+
       await gvProp(29, actionHash, mr, gv, 2);
       (await nxms.getLatestAddress(toHex('CR'))).should.be.equal(newCr.address);
       cr = newCr;
+
+      // increase time to avoid token locking time.
+      await increaseTimeTo((await latestTime()) + duration.days(7));
     });
     it('9.1 should be able to claim reward', async function() {
       let proposalIds = [];
@@ -340,6 +344,7 @@ contract('ClaimsReward', function([
       await tk.approve(ps.address, stakeAmount, {
         from: newMember1
       });
+
       await ps.depositAndStake(stakeAmount, contractAddresses, stakeAmounts, {
         from: newMember1
       });
@@ -392,7 +397,9 @@ contract('ClaimsReward', function([
         .mul(new BN(stakerRewardPercentage))
         .div(new BN(100));
 
-      assert.equal(finalBal - initialBal, expectedTotalReward);
+      let balanceDifference = finalBal.sub(initialBal).toString();
+
+      assert.equal(balanceDifference, expectedTotalReward.toString());
 
       let coverDetailsTest = [
         1,
@@ -430,7 +437,9 @@ contract('ClaimsReward', function([
       const secondExpectedReward = new BN(coverNXMPrice.toString())
         .mul(new BN(stakerRewardPercentage))
         .div(new BN(100));
-      assert.equal(finalBal - initialBal, secondExpectedReward);
+
+      balanceDifference = finalBal.sub(initialBal).toString();
+      assert.equal(balanceDifference, secondExpectedReward.toString());
     });
 
     it('9.11 should claim reward for CA votes', async function() {
@@ -453,7 +462,8 @@ contract('ClaimsReward', function([
       await cr.claimAllPendingReward(3, {from: newMember1});
       let finalBal = await tk.balanceOf(newMember1);
       assert.equal(parseFloat(returnData[0]), toWei(180));
-      assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(180));
+      balanceDifference = finalBal.sub(initialBal).toString();
+      assert.equal(balanceDifference, toWei(180));
       let newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[0], initialLastClaimed[0] / 1 + 3);
       initialBal = await tk.balanceOf(newMember1);
@@ -461,14 +471,16 @@ contract('ClaimsReward', function([
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[0], initialLastClaimed[0] / 1 + 3);
-      assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(30));
+      balanceDifference = finalBal.sub(initialBal).toString();
+      assert.equal(balanceDifference, toWei(30));
       await P1.__callback(returnData[1], '');
       initialBal = await tk.balanceOf(newMember1);
       await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[0], initialLastClaimed[0] / 1 + 5);
-      assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(10));
+      balanceDifference = finalBal.sub(initialBal).toString();
+      assert.equal(balanceDifference, toWei(10));
     });
 
     it('9.12 should claim reward for Member votes', async function() {
@@ -490,7 +502,8 @@ contract('ClaimsReward', function([
       await cr.claimAllPendingReward(3, {from: newMember1});
       let finalBal = await tk.balanceOf(newMember1);
       assert.equal(parseFloat(returnData[0]), toWei(180));
-      assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(180));
+      balanceDifference = finalBal.sub(initialBal).toString();
+      assert.equal(balanceDifference, toWei(180));
       let newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[1], initialLastClaimed[1] / 1 + 3);
       initialBal = await tk.balanceOf(newMember1);
@@ -498,14 +511,16 @@ contract('ClaimsReward', function([
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[1], initialLastClaimed[1] / 1 + 3);
-      assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(30));
+      balanceDifference = finalBal.sub(initialBal).toString();
+      assert.equal(balanceDifference, toWei(30));
       await P1.__callback(returnData[1], '');
       initialBal = await tk.balanceOf(newMember1);
       await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
       newLastIndex = await cd.getRewardDistributedIndex(newMember1);
       assert.equal(newLastIndex[1], initialLastClaimed[1] / 1 + 5);
-      assert.equal((finalBal / 1 - initialBal / 1).toString(), toWei(10));
+      balanceDifference = finalBal.sub(initialBal).toString();
+      assert.equal(balanceDifference, toWei(10));
     });
   });
 });

@@ -1,7 +1,8 @@
 const axios = require('axios');
 const Web3 = require('web3');
 const { contract, accounts, defaultSender, web3 } = require('@openzeppelin/test-environment');
-const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-helpers');
+const { setupLoader } = require('@openzeppelin/contract-loader');
+const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { encode } = require('./external');
 const { logEvents, hex } = require('../utils/helpers');
@@ -27,13 +28,6 @@ function getWeb3Contract (name, versionData, web3) {
 
 function getContractData (name, versionData) {
   return versionData.mainnet.abis.filter(abi => abi.code === name)[0];
-}
-
-function getUpgradeAddressesArray (versions) {
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'P2', 'MC', 'GV', 'PC', 'MR'];
-
-  const addresses = codes.map(code => versions.mainnet.abis.filter(abi => abi.code === code)[0].address);
-  return addresses;
 }
 
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, memberType, submitter) {
@@ -122,6 +116,13 @@ const directWeb3 = new Web3(process.env.TEST_ENV_FORK);
 const oldMasterAddressChangeCategoryId = 27;
 const newContractAddressUpgradeCategoryId = 29;
 
+const loader = setupLoader({
+  provider: web3.eth.currentProvider,
+  defaultSender,
+  defaultGas: 7 * 1e6, // 7 million
+  defaultGasPrice: 5e9, // 5 gwei
+}).truffle;
+
 describe('migration', function () {
 
   const [owner] = accounts;
@@ -130,16 +131,23 @@ describe('migration', function () {
 
     const { data: versionData } = await axios.get('https://api.nexusmutual.io/version-data/data.json');
 
-    const mr = await MemberRoles.at(getContractData('MR', versionData).address);
-    const tk = await NXMToken.at(getContractData('NXMTOKEN', versionData).address);
     const oldMaster = await NXMaster.at(getContractData('NXMASTER', versionData).address);
-    const gv = await Governance.at(getContractData('GV', versionData).address);
-    const pc = await ProposalCategory.at(getContractData('PC', versionData).address);
-    const tf = await TokenFunctions.at(getContractData('TF', versionData).address);
-    const td = await TokenData.at(getContractData('TD', versionData).address);
 
-    console.log('staker all locked tokens');
-    console.log(await tf.getStakerAllLockedTokens('0xcE729aB1460102df5bd7e468eC6984c8Ae8755cE'));
+    const { contractsName, contractsAddress } = await oldMaster.getVersionData();
+    console.log(contractsName);
+    console.log(contractsAddress);
+    const nameToAddressMap = {}
+    for (let i = 0; i < contractsName.length; i++) {
+      nameToAddressMap[web3.utils.toAscii(contractsName[i])] = contractsAddress[i];
+    }
+    nameToAddressMap['NXMTOKEN'] = await oldMaster.dAppToken();
+
+    const mr = await MemberRoles.at(nameToAddressMap['MR']);
+    const tk = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
+    const gv = await Governance.at(nameToAddressMap['GV']);
+    const pc = await ProposalCategory.at(nameToAddressMap['PC']);
+    const tf = await TokenFunctions.at(nameToAddressMap['TF']);
+    const td = await TokenData.at(nameToAddressMap['TD']);
 
     const directMR = getWeb3Contract('MR', versionData, directWeb3);
 

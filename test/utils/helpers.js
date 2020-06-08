@@ -1,12 +1,10 @@
 const BN = require('bn.js');
-const util = require('util');
 const { web3 } = require('@openzeppelin/test-environment');
 const exec = require('child_process').execSync;
 
 const hex = string => '0x' + Buffer.from(string).toString('hex');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const formatJSON = json => JSON.stringify(json, null, 2);
-const logEvents = async call => parseLogs(await call);
 
 const filterArgsKeys = args => {
   const params = {};
@@ -19,11 +17,10 @@ const filterArgsKeys = args => {
   return params;
 };
 
-const parseLogs = tx => tx.logs.map(log => {
+const logEvents = receipt => receipt.logs.forEach(log => {
   const { event, args } = log;
   const params = filterArgsKeys(args);
   console.log(`Event emitted: ${event}(${formatJSON(params)}`);
-  return log;
 });
 
 const tenderly = async tx => {
@@ -43,7 +40,6 @@ module.exports = {
   hex,
   logEvents,
   sleep,
-  parseLogs,
   tenderly,
   to,
 };

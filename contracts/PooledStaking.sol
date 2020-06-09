@@ -149,15 +149,15 @@ contract PooledStaking is MasterAware {
 
   /* Getters and view functions */
 
-  function contractStakerCount(address contractAddress) public view returns (uint) {
+  function contractStakerCount(address contractAddress) external view returns (uint) {
     return contractStakers[contractAddress].length;
   }
 
-  function contractStakerAtIndex(address contractAddress, uint stakerIndex) public view returns (address) {
+  function contractStakerAtIndex(address contractAddress, uint stakerIndex) external view returns (address) {
     return contractStakers[contractAddress][stakerIndex];
   }
 
-  function contractStakersArray(address contractAddress) public view returns (address[] memory _stakers) {
+  function contractStakersArray(address contractAddress) external view returns (address[] memory _stakers) {
     return contractStakers[contractAddress];
   }
 
@@ -180,25 +180,25 @@ contract PooledStaking is MasterAware {
     return stakedOnContract;
   }
 
-  function stakerContractCount(address staker) public view returns (uint) {
+  function stakerContractCount(address staker) external view returns (uint) {
     return stakers[staker].contracts.length;
   }
 
-  function stakerContractAtIndex(address staker, uint contractIndex) public view returns (address) {
+  function stakerContractAtIndex(address staker, uint contractIndex) external view returns (address) {
     return stakers[staker].contracts[contractIndex];
   }
 
-  function stakerContractsArray(address staker) public view returns (address[] memory) {
+  function stakerContractsArray(address staker) external view returns (address[] memory) {
     return stakers[staker].contracts;
   }
 
-  function stakerContractStake(address staker, address contractAddress) public view returns (uint) {
+  function stakerContractStake(address staker, address contractAddress) external view returns (uint) {
     uint stake = stakers[staker].stakes[contractAddress];
     uint deposit = stakers[staker].deposit;
     return stake < deposit ? stake : deposit;
   }
 
-  function stakerContractPendingUnstakeTotal(address staker, address contractAddress) public view returns (uint) {
+  function stakerContractPendingUnstakeTotal(address staker, address contractAddress) external view returns (uint) {
     return stakers[staker].pendingUnstakeRequestsTotal[contractAddress];
   }
 
@@ -259,7 +259,7 @@ contract PooledStaking is MasterAware {
     return deposit.sub(locked);
   }
 
-  function unstakeRequestAtIndex(uint unstakeRequestId) public view returns (
+  function unstakeRequestAtIndex(uint unstakeRequestId) external view returns (
     uint amount, uint unstakeAt, address contractAddress, address stakerAddress, uint next
   ) {
     UnstakeRequest storage unstakeRequest = unstakeRequests[unstakeRequestId];
@@ -361,7 +361,7 @@ contract PooledStaking is MasterAware {
         staker.contracts.push(contractAddress);
       }
 
-      if (isNewStake || staker.isInContractStakers[contractAddress] == false) {
+      if (isNewStake || !staker.isInContractStakers[contractAddress]) {
         staker.isInContractStakers[contractAddress] = true;
         contractStakers[contractAddress].push(msg.sender);
       }

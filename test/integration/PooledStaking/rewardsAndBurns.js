@@ -219,7 +219,7 @@ describe('burns', function () {
       await buyCover.call(this, cover, coverHolder);
 
       const stakerRewardPreProcessing = await ps.stakerReward(staker1);
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const stakerRewardPostProcessing = await ps.stakerReward(staker1);
 
       const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
@@ -243,7 +243,7 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
@@ -295,7 +295,7 @@ describe('burns', function () {
       await buyCover.call(this, cover, coverHolder);
 
       const stakerRewardPreProcessing = await ps.stakerReward(staker1);
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const stakerRewardPostProcessing = await ps.stakerReward(staker1);
 
       const rewardValue = new BN(stakerRewardPostProcessing).sub(new BN(stakerRewardPreProcessing));
@@ -319,7 +319,7 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
@@ -376,7 +376,7 @@ describe('burns', function () {
 
       await buyCover.call(this, cover, coverHolder);
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], { from: coverHolder });
     });
@@ -388,9 +388,9 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '6');
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const balanceAfter = await tk.balanceOf(ps.address);
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       const totalBurn = balanceBefore.sub(balanceAfter);
       totalBurn.toString().should.be.equal('0', `Total burn: ${totalBurn}, expected: ${0}`);
@@ -426,7 +426,7 @@ describe('burns', function () {
         from: staker1,
       });
       await buyCover.call(this, cover, coverHolder);
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       await ps.requestUnstake([cover.contractAddress], [stakeTokens], 0, {
         from: staker1,
@@ -443,7 +443,7 @@ describe('burns', function () {
       await submitMemberVotes.call(this, 1);
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const tokenPrice = await mcr.calculateTokenPrice(currency);
@@ -487,7 +487,7 @@ describe('burns', function () {
         from: staker1,
       });
       await buyCover.call(this, cover, coverHolder);
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], { from: coverHolder });
     });
@@ -507,7 +507,7 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await submitMemberVotes.call(this, 1, 1);
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const claimId = (await cd.actualClaimLength()) - 1;
@@ -559,7 +559,7 @@ describe('burns', function () {
         from: staker1,
       });
       await buyCover.call(this, cover, coverHolder);
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       const unstakeRequest = await ps.requestUnstake([cover.contractAddress], [stakeTokens], 0, {
         from: staker1,
@@ -577,7 +577,7 @@ describe('burns', function () {
       const unstakeLockTime = await ps.UNSTAKE_LOCK_TIME();
       await time.increase(unstakeLockTime.addn(24 * 60 * 60).toString());
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       const hasPendingRequests = await ps.hasPendingUnstakeRequests();
       hasPendingRequests.should.be.equal(false);
@@ -597,7 +597,7 @@ describe('burns', function () {
 
       const balanceBefore = await tk.balanceOf(ps.address);
       await concludeClaimWithOraclize.call(this, now, '7');
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
       const balanceAfter = await tk.balanceOf(ps.address);
 
       const totalBurn = balanceBefore.sub(balanceAfter);

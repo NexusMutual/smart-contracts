@@ -27,6 +27,8 @@ async function fundApproveDepositStake (token, staking, amount, contract, member
 
 describe('processFirstReward', function () {
 
+  this.timeout(0);
+
   beforeEach(setup);
 
   it('should mint the reward amount in the PS contract', async function () {
@@ -34,7 +36,7 @@ describe('processFirstReward', function () {
     await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
 
     await staking.pushReward(firstContract, ether('2'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const currentBalance = await token.balanceOf(staking.address);
     const expectedBalance = ether('12');
@@ -54,7 +56,7 @@ describe('processFirstReward', function () {
     );
 
     await time.advanceBlock();
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     await fundApproveDepositStake(token, staking, ether('100'), firstContract, memberOne);
     await fundApproveDepositStake(token, staking, ether('180'), firstContract, memberTwo);
@@ -62,7 +64,7 @@ describe('processFirstReward', function () {
 
     await staking.pushReward(firstContract, ether('50'), { from: internalContract });
     await time.advanceBlock();
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const rewardOne = await staking.stakerReward(memberOne);
     assert.equal(
@@ -97,7 +99,7 @@ describe('processFirstReward', function () {
     await time.advanceBlock();
     await staking.pushBurn(firstContract, ether('500'), { from: internalContract });
     await time.advanceBlock();
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const stakeOne = await staking.stakerContractStake(memberOne, firstContract);
     assert.equal(
@@ -122,7 +124,7 @@ describe('processFirstReward', function () {
     await time.advanceBlock();
     await staking.pushReward(firstContract, ether('50'), { from: internalContract });
     await time.advanceBlock();
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const rewardOne = await staking.stakerReward(memberOne);
     assert.equal(
@@ -181,7 +183,7 @@ describe('processFirstReward', function () {
     await time.increase(60);
 
     // Process Actions
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     await time.increase(60);
 
     stakerOneDeposit = await staking.stakerDeposit(memberOne);
@@ -244,7 +246,7 @@ describe('processFirstReward', function () {
 
     await staking.pushReward(firstContract, ether('50'), { from: internalContract });
     await time.advanceBlock();
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect no rewards to have been minted
     const postRewardBalance = await token.balanceOf(staking.address);
@@ -264,19 +266,17 @@ describe('processFirstReward', function () {
     let hasPendingRewards = await staking.hasPendingRewards();
     assert.isTrue(hasPendingRewards, `Expect hasPendingRewards to be true`);
 
-    const tx = await staking.processPendingActions();
+    const tx = await staking.processPendingActions('100');
     expectEvent(tx, 'PendingActionsProcessed', { finished: true });
 
     hasPendingRewards = await staking.hasPendingRewards();
     assert.isFalse(hasPendingRewards, `Expect hasPendingRewards to be false`);
   });
 
-  it('should batch process if gas is not enough', async function () {
-
-    this.timeout(0);
+  it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
 
     const { token, master, staking } = this;
-    const oneBillion = 1e9;
+    const iterationsNeeded = accounts.generalPurpose.length * 2;
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
@@ -285,19 +285,13 @@ describe('processFirstReward', function () {
 
     await staking.pushReward(firstContract, ether('2'), { from: internalContract });
 
-    let estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
-    let process = await staking.processPendingActions({ gas: Math.ceil(estimate / 2) });
+    let process = await staking.processPendingActions(`${iterationsNeeded - 1}`);
     expectEvent(process, 'PendingActionsProcessed', { finished: false });
 
-    // console.log(`Ran processPendingActions consuming ${process.receipt.gasUsed} out of estimated ${estimate}`);
-
-    while (await staking.hasPendingActions()) {
-      estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
-      process = await staking.processPendingActions({ gas: estimate });
-      // console.log(`Ran processPendingActions consuming ${process.receipt.gasUsed} out of estimated ${estimate}`);
-    }
-
+    // finish processing
+    process = await staking.processPendingActions('1');
     expectEvent(process, 'PendingActionsProcessed', { finished: true });
+
     const processedToStakerIndex = await staking.processedToStakerIndex();
     assert(processedToStakerIndex.eqn(0), `Expected processedToStakerIndex to be 0, found ${processedToStakerIndex}`);
   });
@@ -347,7 +341,7 @@ describe('processFirstReward', function () {
 
     // burn everything on the first contract
     await staking.pushBurn(firstContract, ether('40'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const firstContractStake = await staking.contractStake(firstContract);
     assert(ether('0').eq(firstContractStake), `firstContract stake should be 0 but found ${firstContractStake}`);
@@ -362,7 +356,7 @@ describe('processFirstReward', function () {
 
     // push a small reward on secondContract and expect firstStaker to be removed
     await staking.pushReward(secondContract, ether('1'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const finalStakers = await staking.contractStakersArray(secondContract);
     const finalExpectedStakers = [memberTwo];
@@ -397,7 +391,7 @@ describe('processFirstReward', function () {
 
     const rewardAmount = ether('2');
     await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
-    const process = await staking.processPendingActions();
+    const process = await staking.processPendingActions('100');
 
     expectEvent(process, 'Rewarded', {
       contractAddress: firstContract,

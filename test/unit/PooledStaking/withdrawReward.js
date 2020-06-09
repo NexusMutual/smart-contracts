@@ -49,7 +49,7 @@ describe('withdrawReward', function () {
     // Generate reward and process it
     const reward = ether('2');
     await staking.pushReward(firstContract, reward, { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Check balances
     const contractBalanceBefore = await token.balanceOf(staking.address);
@@ -91,7 +91,7 @@ describe('withdrawReward', function () {
     // Generate reward and process it
     const reward = ether('5');
     await staking.pushReward(firstContract, reward, { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Withdraw all left reward
     const tx = await staking.withdrawReward(memberOne, { from: memberOne });

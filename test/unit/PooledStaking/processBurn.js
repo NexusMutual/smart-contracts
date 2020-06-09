@@ -45,7 +45,7 @@ describe('processBurn', function () {
 
     // Burn 3
     await staking.pushBurn(firstContract, ether('3'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect staker deposit to be 7
     let newDeposit = await staking.stakerDeposit(memberOne);
@@ -55,7 +55,7 @@ describe('processBurn', function () {
 
     // Burn 9
     await staking.pushBurn(firstContract, ether('9'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect staker deposit to be 0
     newDeposit = await staking.stakerDeposit(memberOne);
@@ -75,7 +75,7 @@ describe('processBurn', function () {
     await fundAndStake(token, staking, ether('300'), firstContract, memberThree);
 
     await staking.pushBurn(firstContract, ether('90'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const newDepositOne = await staking.stakerDeposit(memberOne);
     assert(newDepositOne.eq(ether('85')), `Expected new deposit one to be ${ether('85')}, found ${newDepositOne}`);
@@ -104,7 +104,7 @@ describe('processBurn', function () {
     await fundAndStake(token, staking, ether('300'), firstContract, memberThree);
 
     await staking.pushBurn(firstContract, ether('700'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const newDepositOne = await staking.stakerDeposit(memberOne);
     assert(newDepositOne.eq(ether('0')), `Expected new deposit one to be ${ether('0')}, found ${newDepositOne}`);
@@ -128,7 +128,7 @@ describe('processBurn', function () {
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     await staking.pushBurn(firstContract, ether('30'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
   });
 
   it('should remove and re-add 0-account stakers', async function () {
@@ -176,7 +176,7 @@ describe('processBurn', function () {
 
     // burn everything on the first contract
     await staking.pushBurn(firstContract, ether('40'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const firstContractStake = await staking.contractStake(firstContract);
     assert(ether('0').eq(firstContractStake), `firstContract stake should be 0 but found ${firstContractStake}`);
@@ -191,7 +191,7 @@ describe('processBurn', function () {
 
     // push a small burn on secondContract and expect firstStaker to be "removed
     await staking.pushBurn(secondContract, ether('1'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const finalStakers = await staking.contractStakersArray(secondContract);
     const finalExpectedStakers = [memberTwo];
@@ -238,7 +238,7 @@ describe('processBurn', function () {
 
     // push 200 burn (which should actually burn 150)
     await staking.pushBurn(firstContract, ether('200'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // check stakes
     let actualStake = await staking.contractStake(firstContract);
@@ -268,7 +268,7 @@ describe('processBurn', function () {
 
     // push 10 burn
     await staking.pushBurn(secondContract, ether('10'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // check stakes
     actualStake = await staking.contractStake(firstContract);
@@ -341,7 +341,7 @@ describe('processBurn', function () {
 
     // push 200 burn (which should actually burn 150)
     await staking.pushBurn(firstContract, ether('200'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // check stakes
     let actualStake = await staking.contractStake(firstContract);
@@ -409,7 +409,7 @@ describe('processBurn', function () {
     // Push a burn of 6
     const burnAmount = ether('6');
     await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const expectedBalance = stakeAmount.sub(burnAmount);
     const currentBalance = await token.balanceOf(staking.address);
@@ -433,7 +433,7 @@ describe('processBurn', function () {
     // Push a burn of 100
     const burnAmount = ether('100');
     await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const expectedBalance = ether('0');
     const currentBalance = await token.balanceOf(staking.address);
@@ -450,7 +450,7 @@ describe('processBurn', function () {
 
     await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
     await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const { amount: burnAmount, contractAddress: contract, burnedAt: burnTimestamp } = await staking.burn();
     assert(burnAmount.eqn(0), `Expected burned amount to be 0, found ${burnAmount}`);
@@ -465,7 +465,7 @@ describe('processBurn', function () {
 
     await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
     await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const processedToStakerIndex = await staking.processedToStakerIndex();
     assert(processedToStakerIndex.eqn(0), `Expected processedToStakerIndex to be 0, found ${processedToStakerIndex}`);
@@ -478,16 +478,16 @@ describe('processBurn', function () {
 
     await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
     await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const isContractStakeCalculated = await staking.isContractStakeCalculated();
     assert.isFalse(isContractStakeCalculated, `Expected isContractStakeCalculated to be false, found ${isContractStakeCalculated}`);
   });
 
-  it('should batch process if gas is not enough', async function () {
+  it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
 
     const { token, master, staking } = this;
-    const oneBillion = 1e9;
+    const iterationsNeeded = accounts.generalPurpose.length * 2;
 
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
@@ -498,14 +498,12 @@ describe('processBurn', function () {
 
     await staking.pushBurn(firstContract, ether('9'), { from: internalContract });
 
-    let estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
-    let process = await staking.processPendingActions({ gas: Math.ceil(estimate / 2) });
+    let process = await staking.processPendingActions(`${iterationsNeeded - 1}`);
     expectEvent(process, 'PendingActionsProcessed', { finished: false });
 
-    estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
-    process = await staking.processPendingActions({ gas: estimate });
-
+    process = await staking.processPendingActions('1');
     expectEvent(process, 'PendingActionsProcessed', { finished: true });
+
     const processedToStakerIndex = await staking.processedToStakerIndex();
     assert(processedToStakerIndex.eqn(0), `Expected processedToStakerIndex to be 0, found ${processedToStakerIndex}`);
   });
@@ -517,7 +515,7 @@ describe('processBurn', function () {
     await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
 
     await staking.pushBurn(firstContract, ether('2'), { from: internalContract });
-    const process = await staking.processPendingActions();
+    const process = await staking.processPendingActions('100');
 
     expectEvent(process, 'Burned', {
       contractAddress: firstContract,
@@ -529,7 +527,6 @@ describe('processBurn', function () {
 
     const { master, staking, token } = this;
     const numberOfStakers = accounts.generalPurpose.length;
-    const oneBillion = 1e9;
 
     assert(numberOfStakers > 50, `expected to have at least 50 general purpose accounts, got ${numberOfStakers}`);
 
@@ -549,22 +546,14 @@ describe('processBurn', function () {
     const burnAmount = ether(`${numberOfStakers}`);
     await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
 
-    // stake calculation requires at least 3 reads per staker:
-    // staker address from contract stakers array, staker deposit, and stake
-    // for 75 stakers: 75 * 3 * 800 = 180000
-    // passing 100k gas should be enough to start stake calculation but small enough to batch it
-    let receipt = await staking.processPendingActions({ gas: 100000 });
+    let receipt = await staking.processPendingActions('10');
     expectEvent(receipt, 'PendingActionsProcessed', { finished: false });
 
     const isContractStakeCalculated = await staking.isContractStakeCalculated();
-    assert.isFalse(isContractStakeCalculated, 'stake calculation should not be complete with 100k gas');
+    assert.isFalse(isContractStakeCalculated, 'stake calculation should not be complete with 10 iterations');
 
     // process everything
-    while (await staking.hasPendingActions()) {
-      const estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
-      receipt = await staking.processPendingActions({ gas: estimate + 10000 });
-    }
-
+    receipt = await staking.processPendingActions(`${numberOfStakers * 2}`);
     expectEvent(receipt, 'PendingActionsProcessed', { finished: true });
 
     const actualStake = await staking.contractStake(firstContract);

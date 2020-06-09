@@ -112,7 +112,7 @@ describe('requestUnstake', function () {
     // 91 days pass and process pending actions
     const targetTime = lockTime + (24 * 3600); // 91 days
     await time.increase(targetTime);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // can't insert after an empty slot
     await expectRevert(
@@ -472,7 +472,7 @@ describe('requestUnstake', function () {
 
     // Time to process the first two unstake request requests
     await time.increase(lockTime + 1);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const hasPendingActions = await staking.hasPendingActions();
     assert.isFalse(hasPendingActions);
@@ -582,7 +582,7 @@ describe('requestUnstake', function () {
     }
 
     await time.increase(60 * 24 * 3600);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     for (let i = 20; i < 60; i++) {
       const insertAfter = i === 20 ? 0 : i;

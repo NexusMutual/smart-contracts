@@ -55,7 +55,7 @@ describe('processUnstakeRequest', function () {
     let hasPendingActions = await staking.hasPendingActions();
     assert.isTrue(hasPendingActions, 'Expected pending actions');
 
-    let processPendingActions = await staking.processPendingActions();
+    let processPendingActions = await staking.processPendingActions('100');
     expectEvent(processPendingActions, 'PendingActionsProcessed', { finished: true });
 
     hasPendingActions = await staking.hasPendingActions();
@@ -72,7 +72,7 @@ describe('processUnstakeRequest', function () {
     // Process pending actions after 91 days
     await time.increase(91 * 24 * 3600);
 
-    processPendingActions = await staking.processPendingActions();
+    processPendingActions = await staking.processPendingActions('100');
     expectEvent(processPendingActions, 'PendingActionsProcessed', {
       finished: true,
     });
@@ -104,7 +104,7 @@ describe('processUnstakeRequest', function () {
 
     // Process pending actions after 91 days
     await time.increase(91 * 24 * 3600);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect staker.stakerContractPendingUnstakeTotal = 0
     pendingUnstakeTotal = await staking.stakerContractPendingUnstakeTotal(memberOne, firstContract);
@@ -131,7 +131,7 @@ describe('processUnstakeRequest', function () {
     );
 
     // Process actions
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect staker.stakerContractPendingUnstakeTotal = 0
     pendingUnstakeTotal = await staking.stakerContractPendingUnstakeTotal(memberOne, firstContract);
@@ -163,7 +163,7 @@ describe('processUnstakeRequest', function () {
 
     // Process pending actions after 91 days
     await time.increase(91 * 24 * 3600);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect stake = 0
     stake = await staking.stakerContractStake(memberOne, firstContract);
@@ -190,7 +190,7 @@ describe('processUnstakeRequest', function () {
     );
 
     // Process actions
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect stake = 0
     stake = await staking.stakerContractStake(memberOne, firstContract);
@@ -219,12 +219,12 @@ describe('processUnstakeRequest', function () {
     await staking.requestUnstake([firstContract], [ether('20')], 2, { from: memberOne });
 
     await time.increase(81 * 24 * 3600);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     const { next: firstNext } = await staking.unstakeRequestAtIndex(0);
     assert(firstNext.eqn(2));
 
     await time.increase(10 * 24 * 3600);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     const { next: secondNext } = await staking.unstakeRequestAtIndex(0);
     assert(secondNext.eqn(0));
   });
@@ -247,7 +247,7 @@ describe('processUnstakeRequest', function () {
     // Push and process burn
     await time.increase(10 * 24 * 3600);
     await staking.pushBurn(firstContract, ether('90'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Expect staker.stakerContractPendingUnstakeTotal = 70, even if the actual stake is 10
     const pendingUnstakeTotal = await staking.stakerContractPendingUnstakeTotal(memberOne, firstContract);
@@ -262,7 +262,7 @@ describe('processUnstakeRequest', function () {
     );
 
     await time.increase(81 * 24 * 3600);
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Only unstake the remaining stake (10), although originally requested 70
     stake = await staking.stakerContractStake(memberOne, firstContract);
@@ -288,13 +288,11 @@ describe('processUnstakeRequest', function () {
 
     await time.increase(91 * 24 * 3600); // 91 days
 
-    const process = await staking.processPendingActions();
+    const process = await staking.processPendingActions('100');
     expectEvent(process, 'Unstaked', {
       contractAddress: firstContract,
       staker: memberOne,
       amount: ether('30'),
     });
   });
-
-  // TODO: Add test for gas limit
 });

@@ -85,7 +85,7 @@ describe('pushBurn', function () {
     // 1 hour passes
     await time.increase(3600);
     // Process the burn we pushed earlier
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     // 90 days pass
     await time.increase(90 * 24 * 3600);
 
@@ -195,7 +195,7 @@ describe('pushBurn', function () {
 
     // burn everything on the first contract
     await staking.pushBurn(firstContract, ether('40'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const firstContractStake = await staking.contractStake(firstContract);
     assert(ether('0').eq(firstContractStake), `firstContract stake should be 0 but found ${firstContractStake}`);
@@ -210,7 +210,7 @@ describe('pushBurn', function () {
 
     // push a small burn on secondContract and expect firstStaker to be "removed
     await staking.pushBurn(secondContract, ether('1'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     const finalStakers = await staking.contractStakersArray(secondContract);
     const finalExpectedStakers = [memberTwo];

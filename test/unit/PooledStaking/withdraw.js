@@ -192,7 +192,7 @@ describe('withdraw', function () {
       'Unable to execute request with unprocessed burns',
     );
 
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     await time.increase(3600); // 1 h
     await staking.withdraw(ether('2'), { from: memberOne });
   });

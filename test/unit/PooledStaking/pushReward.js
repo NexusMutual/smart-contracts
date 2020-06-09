@@ -95,7 +95,7 @@ describe('pushReward', function () {
     lastRewardId = await staking.firstReward();
     assert(lastRewardId.eqn(1), `Expected lastRewardId to be 1, found ${lastRewardId}`);
 
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Push second reward
     await staking.pushReward(firstContract, ether('1'), { from: internalContract });
@@ -117,7 +117,7 @@ describe('pushReward', function () {
     firstReward = await staking.firstReward();
     assert(firstReward.eqn(1), `Expected firstReward to be 1, found ${firstReward}`);
 
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Push second reward
     await staking.pushReward(firstContract, ether('4'), { from: internalContract });

@@ -502,7 +502,7 @@ describe('depositAndStake', function () {
       staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
       'Unable to execute request with unprocessed actions',
     );
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     await time.increase(3600); // 1h
 
     // Push burn
@@ -511,7 +511,7 @@ describe('depositAndStake', function () {
       staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
       'Unable to execute request with unprocessed actions',
     );
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     await time.increase(3600); // 1h
 
     // Deposit and stake
@@ -525,7 +525,7 @@ describe('depositAndStake', function () {
       'Unable to execute request with unprocessed actions',
     );
 
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
     await staking.depositAndStake(ether('2'), [firstContract, secondContract], [ether('20'), ether('20')], { from: memberOne });
   });
 
@@ -545,7 +545,7 @@ describe('depositAndStake', function () {
     // Unstake
     await staking.requestUnstake([firstContract, thirdContract], [ether('10'), ether('10')], 0, { from: memberOne });
     await time.increase(91 * 24 * 3600); // 91 days
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Check new stake amounts
     const stakerContracts = await staking.stakerContractsArray(memberOne);
@@ -582,7 +582,7 @@ describe('depositAndStake', function () {
 
     // Fully burn the first contract
     await staking.pushBurn(firstContract, ether('10'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     await expectContractState(staking, firstContract, ether('0'), []);
     await expectContractState(staking, secondContract, ether('0'), [memberOne]);

@@ -94,7 +94,7 @@ describe('getters', function () {
 
     // Push a burn of 200
     await staking.pushBurn(firstContract, ether('200'), { from: internalContract });
-    await staking.processPendingActions();
+    await staking.processPendingActions('100');
 
     // Check no stake is greater than the deposit
     const deposit = await staking.stakerDeposit(memberOne);

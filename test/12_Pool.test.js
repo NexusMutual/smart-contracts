@@ -1468,6 +1468,7 @@ contract('Pool', function([
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       let newAssetAdd = await pd.getInvestmentAssetAddress(toHex('MKR'));
       newAssetAdd.should.be.equal(mkr.address);
       await p2.saveIADetails(
@@ -1942,10 +1943,10 @@ contract('Pool', function([
           from: member1
         }
       );
-      await gv.categorizeProposal(pId, 14, 0);
+      await gv.categorizeProposal(pId, 15, 0);
       let actionHash = encode(
         'changeInvestmentAssetStatus(bytes4,bool)',
-        '0x444149',
+        toHex('DAI'),
         false
       );
       await gv.submitProposalWithSolution(pId, 'Inactive IA', actionHash, {
@@ -1958,6 +1959,7 @@ contract('Pool', function([
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       (await pd.getInvestmentAssetStatus(toHex('DAI'))).should.be.equal(false);
       await p1.sendEther({from: owner, value: toWei(2)});
       await p2.saveIADetails(
@@ -1982,7 +1984,7 @@ contract('Pool', function([
           from: member1
         }
       );
-      await gv.categorizeProposal(pId, 13, 0);
+      await gv.categorizeProposal(pId, 14, 0);
       let actionHash = encode(
         'changeInvestmentAssetHoldingPerc(bytes4,uint64,uint64)',
         '0x444149',
@@ -2004,6 +2006,7 @@ contract('Pool', function([
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       let initialPerc = await pd.getInvestmentAssetHoldingPerc(toHex('DAI'));
       (initialPerc[0] / 1).should.be.equal(100);
       (initialPerc[1] / 1).should.be.equal(1000);
@@ -2042,6 +2045,7 @@ contract('Pool', function([
       let time = await latestTime();
       await increaseTimeTo(time + 604800);
       await gv.closeProposal(pId);
+      await gv.triggerAction(pId);
       let varbase = await pd.getCurrencyAssetVarBase(toHex('MKR'));
       (varbase[1] / 1).should.be.equal(toWei(10) * 1);
       (varbase[2] / 1).should.be.equal(0);

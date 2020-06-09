@@ -484,6 +484,5 @@ contract ClaimsReward is Iupgradable {
 
         if (total > 0)
             require(tk.transfer(_user, total)); //solhint-disable-line
-
     }
 }

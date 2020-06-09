@@ -639,6 +639,8 @@ contract('Quotation', function([
             await tk.transfer(staker1, tokens);
             await tk.transfer(staker2, tokens);
 
+            await ps.processPendingActions();
+
             await tk.approve(ps.address, stakeTokens, {
               from: staker1
             });

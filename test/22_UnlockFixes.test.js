@@ -187,13 +187,32 @@ contract('unlock-fixes', function([
       let afterBalance = await tk.balanceOf(member2);
       ((afterBalance - beforeBalance) / 1).should.be.equal(toWei(100) / 1);
     });
+
+    it('Should push reason while locking tokens and should remove reason when release all tokens', async function() {
+      await ps.processPendingActions();
+
+      await tk.approve(ps.address, stakeTokens, {
+        from: member3
+      });
+      await ps.depositAndStake(stakeTokens, [stakedContract2], [stakeTokens], {
+        from: member3
+      });
+
+      let time = await latestTime();
+      time = time + (await duration.days(250));
+      await increaseTimeTo(time);
+
+      await ps.requestUnstake([stakedContract2], [stakeTokens], 0, {
+        from: member3
+      });
+    });
   });
   describe('Create new category to upgrade uint parameter in TC', function() {
     it('Added a proposal category to update min CA lock time', async function() {
       let gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
       let c1 = await pc.totalCategories();
       let actionHash = encode(
-        'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
+        'newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)',
         'Description',
         1,
         1,
@@ -203,7 +222,8 @@ contract('unlock-fixes', function([
         '',
         tc.address,
         toHex('EX'),
-        [0, 0, 0, 0]
+        [0, 0, 0, 0],
+        'updateUintParameters(bytes8,uint256)'
       );
       let p1 = await gv.getProposalLength();
       await gv.createProposalwithSolution(

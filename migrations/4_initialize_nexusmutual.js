@@ -15,8 +15,9 @@ const PoolData = artifacts.require('PoolDataMock');
 const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
+const GovernanceMock = artifacts.require('GovernanceMock');
 const Governance = artifacts.require('Governance');
-const ProposalCategory = artifacts.require('ProposalCategory');
+const ProposalCategory = artifacts.require('ProposalCategoryMock');
 const FactoryMock = artifacts.require('FactoryMock');
 const PooledStaking = artifacts.require('PooledStakingMock');
 const {toHex} = require('../test/utils/ethTools');
@@ -44,7 +45,7 @@ module.exports = function(deployer, network, accounts) {
     const cd = await ClaimsData.deployed();
     const mcr = await MCR.deployed();
     const dsv = await DSValue.deployed();
-    const gov = await Governance.deployed();
+    const gov = await GovernanceMock.deployed();
     let propCat = await ProposalCategory.deployed();
     const mr = await MemberRoles.deployed();
     const factory = await FactoryMock.deployed();
@@ -81,7 +82,11 @@ module.exports = function(deployer, network, accounts) {
 
     let pcAddress = await nxms.getLatestAddress('0x5043');
     pc = await ProposalCategory.at(pcAddress);
+    let gvAddress = await nxms.getLatestAddress('0x4756');
+    let gv = await GovernanceMock.at(gvAddress);
+    gv._initiateGovernance();
     await pc.proposalCategoryInitiate();
+    await pc.updateCategoryActionHashes();
     const dai = await DAI.deployed();
     // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
     // await qd.changeInvestmentAssetAddress('0x444149', dai.address);

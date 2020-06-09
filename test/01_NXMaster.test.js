@@ -22,11 +22,13 @@ const FactoryMock = artifacts.require('FactoryMock');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const Exchange_0x = web3.eth.accounts[17];
+var Exchange_0x;
 
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const {assertRevert} = require('./utils/assertRevert');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
+const setTriggerActionTime = require('./utils/gvProposal.js')
+  .setTriggerActionTime;
 const encode = require('./utils/encoder.js').encode;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
@@ -34,6 +36,8 @@ const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
+
+let accounts = [];
 
 let nxms;
 let nxmtk;
@@ -70,9 +74,22 @@ contract('NXMaster', function([
   govVoter4
 ]) {
   // const fee = ether(0.002);
+  accounts = [
+    owner,
+    newOwner,
+    member,
+    nonMember,
+    anotherAccount,
+    govVoter1,
+    govVoter2,
+    govVoter3,
+    govVoter4
+  ];
+  Exchange_0x = accounts[17];
+
   const fee = toWei(0.002);
   const poolEther = ether(2);
-  const founderAddress = web3.eth.accounts[19];
+  const founderAddress = accounts[19];
   const INITIAL_SUPPLY = ether(1500000);
   const pauseTime = new web3.utils.BN(2419200);
 

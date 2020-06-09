@@ -30,6 +30,7 @@ contract TokenController is IERC1132, Iupgradable {
     IPooledStaking public pooledStaking;
     uint public minCALockTime = uint(30).mul(1 days);
     bytes32 private constant CLA = bytes32("CLA");
+
     /**
     * @dev Just for interface
     */
@@ -460,6 +461,7 @@ contract TokenController is IERC1132, Iupgradable {
         if (amount == _amount) {
             locked[_of][_reason].claimed = true;
         }
+
         locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
         if (locked[_of][_reason].amount == 0) {
             _removeReason(_of, _reason);
@@ -474,7 +476,6 @@ contract TokenController is IERC1132, Iupgradable {
     * @param _reason reason of the lock
     * @param _amount amount of tokens to release
     */
-
     function _releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) internal
     {
         uint256 amount = _tokensLocked(_of, _reason);

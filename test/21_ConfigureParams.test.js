@@ -224,9 +224,6 @@ contract(
       it('Should update Max Draft time limit', async function() {
         await updateParameter(22, 2, 'MAXDRFT', gv, 'uint', '86400');
       });
-      it('Should update Max Advisory Board Members', async function() {
-        await updateParameter(22, 2, 'MAXAB', gv, 'uint', '10');
-      });
       it('Should update Emergency Pause Time', async function() {
         await updateParameter(22, 2, 'EPTIME', gv, 'uint', '86400');
       });
@@ -336,7 +333,7 @@ contract(
       before(async function() {
         const c1 = await pc.totalCategories();
         let actionHash = encode(
-          'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
+          'newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)',
           'Description',
           2,
           50,
@@ -346,7 +343,8 @@ contract(
           '',
           mcr.address,
           toHex('MC'),
-          [0, 0, 0, 1]
+          [0, 0, 0, 1],
+          'updateUintParameters(bytes8,uint256)'
         );
         let p1 = await gv.getProposalLength();
         await gv.createProposalwithSolution(

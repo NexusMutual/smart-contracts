@@ -514,7 +514,10 @@ contract PooledStaking is MasterAware {
     emit RewardRequested(contractAddress, amount);
   }
 
-  function processPendingActions() public whenNotPaused returns (bool) {
+  function processPendingActions(uint maxIterations) public whenNotPaused returns (bool) {
+
+    uint iterationsLeft = maxIterations;
+    bool finished;
 
     while (true) {
 
@@ -542,8 +545,9 @@ contract PooledStaking is MasterAware {
         (!canReward || burnedAt < rewardedAt)
       ) {
 
-        // O(n)
-        if (!_processBurn()) {
+        (finished, iterationsLeft) = _processBurn(iterationsLeft);
+
+        if (!finished) {
           emit PendingActionsProcessed(false);
           return false;
         }
@@ -556,16 +560,20 @@ contract PooledStaking is MasterAware {
         (!canReward || unstakeAt < rewardedAt)
       ) {
 
-        if (!_processFirstUnstakeRequest()) {
+        // _processFirstUnstakeRequest is O(1) so we'll handle the iteration checks here
+        if (iterationsLeft == 0) {
           emit PendingActionsProcessed(false);
           return false;
         }
 
+        _processFirstUnstakeRequest();
+        --iterationsLeft;
         continue;
       }
 
-      // O(n)
-      if (!_processFirstReward()) {
+      (finished, iterationsLeft) = _processFirstReward(iterationsLeft);
+
+      if (!finished) {
         emit PendingActionsProcessed(false);
         return false;
       }
@@ -576,13 +584,17 @@ contract PooledStaking is MasterAware {
     return true;
   }
 
-  function _processBurn() internal returns (bool) {
+  function _processBurn(uint maxIterations) internal returns (bool finished, uint iterationsLeft) {
+
+    iterationsLeft = maxIterations;
 
     address _contractAddress = burn.contractAddress;
-    (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
+    uint _stakedOnContract;
+
+    (_stakedOnContract, finished, iterationsLeft) = _calculateContractStake(_contractAddress, iterationsLeft);
 
     if (!finished) {
-      return false;
+      return (false, iterationsLeft);
     }
 
     address[] storage _contractStakers = contractStakers[_contractAddress];
@@ -590,7 +602,6 @@ contract PooledStaking is MasterAware {
 
     uint _totalBurnAmount = burn.amount;
     uint _actualBurnAmount = contractBurned;
-    uint previousGas = gasleft();
 
     if (_totalBurnAmount > _stakedOnContract) {
       _totalBurnAmount = _stakedOnContract;
@@ -598,13 +609,13 @@ contract PooledStaking is MasterAware {
 
     for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
-      if (5 * gasleft() < 4 * previousGas) {
+      if (iterationsLeft == 0) {
         contractBurned = _actualBurnAmount;
         processedToStakerIndex = i;
-        return false;
+        return (false, iterationsLeft);
       }
 
-      previousGas = gasleft();
+      --iterationsLeft;
 
       Staker storage staker = stakers[_contractStakers[i]];
       uint _stakerBurnAmount;
@@ -637,7 +648,7 @@ contract PooledStaking is MasterAware {
     token.burn(_actualBurnAmount);
     emit Burned(_contractAddress, _actualBurnAmount);
 
-    return true;
+    return (true, iterationsLeft);
   }
 
   function _burnStaker(
@@ -679,16 +690,21 @@ contract PooledStaking is MasterAware {
     staker.stakes[_contractAddress] = _newStake;
   }
 
-  function _calculateContractStake(address _contractAddress) internal returns (uint _stakedOnContract, bool finished) {
+  function _calculateContractStake(
+    address _contractAddress, uint maxIterations
+  ) internal returns (
+    uint _stakedOnContract, bool finished, uint iterationsLeft
+  ) {
+
+    iterationsLeft = maxIterations;
 
     if (isContractStakeCalculated) {
       // use previously calculated staked amount
-      return (contractStaked, true);
+      return (contractStaked, true, iterationsLeft);
     }
 
     address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
-    uint previousGas = gasleft();
     uint startIndex = processedToStakerIndex;
 
     if (startIndex != 0) {
@@ -698,15 +714,13 @@ contract PooledStaking is MasterAware {
     // calculate amount staked on contract
     for (uint i = startIndex; i < _stakerCount; i++) {
 
-      // stop if the cycle consumed more than 20% of the remaning gas
-      // gasleft() < previousGas * 4/5
-      if (20 * gasleft() < 19 * previousGas) {
+      if (iterationsLeft == 0) {
         processedToStakerIndex = i;
         contractStaked = _stakedOnContract;
-        return (_stakedOnContract, false);
+        return (_stakedOnContract, false, iterationsLeft);
       }
 
-      previousGas = gasleft();
+      --iterationsLeft;
 
       Staker storage staker = stakers[_contractStakers[i]];
       uint deposit = staker.deposit;
@@ -719,15 +733,10 @@ contract PooledStaking is MasterAware {
     isContractStakeCalculated = true;
     processedToStakerIndex = 0;
 
-    return (_stakedOnContract, true);
+    return (_stakedOnContract, true, iterationsLeft);
   }
 
-  function _processFirstUnstakeRequest() internal returns (bool) {
-
-    // unstake request processing is O(1) and was calculated to consume around 100k
-    if (gasleft() < 11e4) {
-      return false;
-    }
+  function _processFirstUnstakeRequest() internal {
 
     uint firstRequest = unstakeRequests[0].next;
     UnstakeRequest storage unstakeRequest = unstakeRequests[firstRequest];
@@ -751,20 +760,22 @@ contract PooledStaking is MasterAware {
     delete unstakeRequests[firstRequest];
 
     emit Unstaked(contractAddress, stakerAddress, requestedAmount);
-
-    return true;
   }
 
-  function _processFirstReward() internal returns (bool) {
+  function _processFirstReward(uint maxIterations) internal returns (bool finished, uint iterationsLeft) {
+
+    iterationsLeft = maxIterations;
 
     Reward storage reward = rewards[firstReward];
     address _contractAddress = reward.contractAddress;
     uint _totalRewardAmount = reward.amount;
 
-    (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
+    uint _stakedOnContract;
+
+    (_stakedOnContract, finished, iterationsLeft) = _calculateContractStake(_contractAddress, iterationsLeft);
 
     if (!finished) {
-      return false;
+      return (false, iterationsLeft);
     }
 
     address[] storage _contractStakers = contractStakers[_contractAddress];
@@ -774,11 +785,13 @@ contract PooledStaking is MasterAware {
 
     for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
-      if (5 * gasleft() < 4 * previousGas) {
+      if (iterationsLeft == 0) {
         contractRewarded = _actualRewardAmount;
         processedToStakerIndex = i;
-        return false;
+        return (false, iterationsLeft);
       }
+
+      --iterationsLeft;
 
       previousGas = gasleft();
       address _stakerAddress = _contractStakers[i];
@@ -818,7 +831,7 @@ contract PooledStaking is MasterAware {
     tokenController.mint(address(this), _actualRewardAmount);
     emit Rewarded(_contractAddress, _actualRewardAmount);
 
-    return true;
+    return (true, iterationsLeft);
   }
 
   function _rewardStaker(
@@ -887,7 +900,7 @@ contract PooledStaking is MasterAware {
 
   event StakerMigrationProcessed(
     address member,
-    uint[]  stakedAllocations,
+    uint[] stakedAllocations,
     address[] stakedAddresses
   );
 

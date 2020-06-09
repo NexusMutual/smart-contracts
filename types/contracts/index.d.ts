@@ -1232,12 +1232,22 @@ export interface PooledStakingInstance extends Truffle.ContractInstance {
   };
 
   processPendingActions: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    (
+      maxIterations: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      maxIterations: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<boolean>;
+    sendTransaction(
+      maxIterations: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      maxIterations: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
   };
 
   processedToStakerIndex(
@@ -1468,27 +1478,27 @@ export interface TokenControllerMockInstance extends Truffle.ContractInstance {
 
   burnLockedTokens: {
     (
-      _of: string | BigNumber,
-      _reason: string | BigNumber,
-      _amount: number | BigNumber | string,
+      arg0: string | BigNumber,
+      arg1: string | BigNumber,
+      arg2: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse>;
     call(
-      _of: string | BigNumber,
-      _reason: string | BigNumber,
-      _amount: number | BigNumber | string,
+      arg0: string | BigNumber,
+      arg1: string | BigNumber,
+      arg2: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      _of: string | BigNumber,
-      _reason: string | BigNumber,
-      _amount: number | BigNumber | string,
+      arg0: string | BigNumber,
+      arg1: string | BigNumber,
+      arg2: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _of: string | BigNumber,
-      _reason: string | BigNumber,
-      _amount: number | BigNumber | string,
+      arg0: string | BigNumber,
+      arg1: string | BigNumber,
+      arg2: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -1547,8 +1557,8 @@ export interface TokenControllerMockInstance extends Truffle.ContractInstance {
   };
 
   tokensLocked(
-    _of: string | BigNumber,
-    _reason: string | BigNumber,
+    arg0: string | BigNumber,
+    arg1: string | BigNumber,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 }

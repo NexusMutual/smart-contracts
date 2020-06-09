@@ -689,14 +689,20 @@ contract PooledStaking is MasterAware {
     address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
     uint previousGas = gasleft();
+    uint startIndex = processedToStakerIndex;
+
+    if (startIndex != 0) {
+      _stakedOnContract = contractStaked;
+    }
 
     // calculate amount staked on contract
-    for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
+    for (uint i = startIndex; i < _stakerCount; i++) {
 
       // stop if the cycle consumed more than 20% of the remaning gas
       // gasleft() < previousGas * 4/5
-      if (5 * gasleft() < 4 * previousGas) {
+      if (20 * gasleft() < 19 * previousGas) {
         processedToStakerIndex = i;
+        contractStaked = _stakedOnContract;
         return (_stakedOnContract, false);
       }
 

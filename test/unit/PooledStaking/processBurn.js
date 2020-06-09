@@ -486,8 +486,6 @@ describe('processBurn', function () {
 
   it('should batch process if gas is not enough', async function () {
 
-    this.timeout(0);
-
     const { token, master, staking } = this;
     const oneBillion = 1e9;
 
@@ -527,4 +525,59 @@ describe('processBurn', function () {
     });
   });
 
+  it('should properly calculate staked data on a contract when calculating in batches', async function () {
+
+    const { master, staking, token } = this;
+    const numberOfStakers = accounts.generalPurpose.length;
+    const oneBillion = 1e9;
+
+    assert(numberOfStakers > 50, `expected to have at least 50 general purpose accounts, got ${numberOfStakers}`);
+
+    for (const account of accounts.generalPurpose) {
+      await master.enrollMember(account, Role.Member);
+      await fundAndStake(token, staking, ether('10'), firstContract, account);
+    }
+
+    const actualInitialStake = await staking.contractStake(firstContract);
+    const expectedInitialStake = ether('10').muln(numberOfStakers);
+    assert(
+      expectedInitialStake.eq(actualInitialStake),
+      `Expected contract stake ${expectedInitialStake}, found ${actualInitialStake}`,
+    );
+
+    // push a burn
+    const burnAmount = ether(`${numberOfStakers}`);
+    await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
+
+    // stake calculation requires at least 3 reads per staker:
+    // staker address from contract stakers array, staker deposit, and stake
+    // for 75 stakers: 75 * 3 * 800 = 180000
+    // passing 100k gas should be enough to start stake calculation but small enough to batch it
+    let receipt = await staking.processPendingActions({ gas: 100000 });
+    expectEvent(receipt, 'PendingActionsProcessed', { finished: false });
+
+    const isContractStakeCalculated = await staking.isContractStakeCalculated();
+    assert.isFalse(isContractStakeCalculated, 'stake calculation should not be complete with 100k gas');
+
+    // process everything
+    while (await staking.hasPendingActions()) {
+      const estimate = await staking.processPendingActions.estimateGas({ gas: oneBillion });
+      receipt = await staking.processPendingActions({ gas: estimate + 10000 });
+    }
+
+    expectEvent(receipt, 'PendingActionsProcessed', { finished: true });
+
+    const actualStake = await staking.contractStake(firstContract);
+    const expectedStake = ether('10').muln(numberOfStakers).sub(burnAmount);
+    assert(actualStake.eq(expectedStake), `Expected ps balance to be ${expectedStake} found ${actualStake}`);
+
+    const actualBalance = await token.balanceOf(staking.address);
+    const expectedBalance = ether('10').muln(numberOfStakers).sub(burnAmount);
+    assert(actualBalance.eq(expectedBalance), `Expected ps balance to be ${expectedBalance} found ${actualBalance}`);
+
+    for (const account of accounts.generalPurpose) {
+      await master.enrollMember(account, Role.Member);
+      await fundAndStake(token, staking, ether('10'), firstContract, account);
+    }
+  });
 });

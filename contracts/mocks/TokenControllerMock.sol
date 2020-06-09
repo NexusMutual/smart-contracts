@@ -38,11 +38,15 @@ contract TokenControllerMock is ITokenController, MasterAware {
     token = NXMToken(master.tokenAddress());
   }
 
-  function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) external {
-    revert("Not to be used.");
+  /* unused functions */
+
+  modifier unused {
+    require(false, "Unexpected TokenControllerMock call");
+    _;
   }
-  function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount) {
-    revert("Not to be used.");
-  }
+
+  function burnLockedTokens(address, bytes32, uint256) unused external {}
+
+  function tokensLocked(address, bytes32) unused external view returns (uint256) {}
 
 }

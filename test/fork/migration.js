@@ -184,8 +184,8 @@ describe('migration', function () {
       from: firstBoardMember,
     });
 
-    actionHash = encode(
-      'upgradeMultipleContracts(bytes2[],address[])',
+    actionHash = encode1(
+      ['bytes2[]', 'address[]'],
       [hex('TF'), hex('CR')],
       [newTF.address, newCR.address]
     );

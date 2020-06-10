@@ -4,7 +4,7 @@ const { contract, accounts, defaultSender, web3 } = require('@openzeppelin/test-
 const { setupLoader } = require('@openzeppelin/contract-loader');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { encode } = require('./external');
+const { encode, encode1 } = require('./external');
 const { logEvents, hex } = require('../utils/helpers');
 
 const MemberRoles = contract.fromArtifact('MemberRoles');

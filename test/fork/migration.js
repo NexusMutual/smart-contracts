@@ -223,11 +223,9 @@ describe('migration', function () {
     console.log(`Deployed pool staking at ${ps.address}`);
 
     // Creating proposal for adding new internal contract
-    actionHash = encode(
-      'addNewInternalContract(bytes2,address,uint)',
-      'PS',
-      ps.address,
-      1
+    actionHash = encode1(
+      ['bytes2', 'address', 'uint'],
+      [hex('PS'), ps.address, 1]
     );
 
     await submitGovernanceProposal(

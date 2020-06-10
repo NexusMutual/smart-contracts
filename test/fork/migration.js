@@ -186,8 +186,8 @@ describe('migration', function () {
 
     actionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [hex('TF'), hex('CR')],
-      [newTF.address, newCR.address]
+      [[hex('TF'), hex('CR')],
+      [newTF.address, newCR.address]]
     );
 
     await submitGovernanceProposal(newContractAddressUpgradeCategoryId, actionHash, boardMembers, gv, '1', secondBoardMember);

@@ -125,6 +125,8 @@ contract PooledStaking is MasterAware {
   uint public processedToStakerIndex; // we processed the action up this staker
   bool public isContractStakeCalculated; // flag to indicate whether staked amount is up to date or not
 
+  uint public membersLeftToMigrate = 0;
+
   /* Modifiers */
 
   modifier noPendingActions {
@@ -870,6 +872,9 @@ contract PooledStaking is MasterAware {
     MIN_UNSTAKE = 20 ether;
     MAX_EXPOSURE = 10;
     UNSTAKE_LOCK_TIME = 90 days;
+
+    IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
+    membersLeftToMigrate = memberRoles.numberOfMembers(uint(IMemberRoles.Role.Member));
   }
 
   uint processedMigrationMembersIndex = 0;
@@ -886,6 +891,8 @@ contract PooledStaking is MasterAware {
     ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
     ITokenData tokenData = ITokenData(master.getLatestAddress("TD"));
     IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
+
+    require(stakers[member].deposit == 0, "Staker was already migrated");
 
     if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
       claimsReward._claimStakeCommission(10, member);
@@ -920,6 +927,7 @@ contract PooledStaking is MasterAware {
     tokenController.mint(address(this), totalStakerLockedTokens);
 
     if (totalStakerLockedTokens > 0) {
+      membersLeftToMigrate--;
       stakeForMember(member, totalStakerLockedTokens, stakedAddresses, stakedAllocations, nonZeroStakesCount);
     }
   }
@@ -934,12 +942,12 @@ contract PooledStaking is MasterAware {
 
     uint[] memory _allocations = new uint[](nonZeroStakesCount);
     address[] memory _contracts = new address[](nonZeroStakesCount);
-    uint i = 0;
-    for (uint j = 0; j < unfilteredContracts.length; j++) {
-      if (unfilteredAllocations[j] > 0) {
-        _allocations[i] = unfilteredAllocations[i];
-        _contracts[i] = unfilteredContracts[i];
-        i++;
+    uint nonZeroContractIndex = 0;
+    for (uint i = 0; i < unfilteredContracts.length; i++) {
+      if (unfilteredAllocations[i] > 0) {
+        _allocations[nonZeroContractIndex] = unfilteredAllocations[nonZeroContractIndex];
+        _contracts[nonZeroContractIndex] = unfilteredContracts[nonZeroContractIndex];
+        nonZeroContractIndex++;
       }
     }
     emit StakerMigrationProcessed(member, _allocations, _contracts);

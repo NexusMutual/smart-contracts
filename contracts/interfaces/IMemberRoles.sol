@@ -20,4 +20,6 @@ interface IMemberRoles {
   enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
 
   function members(uint _memberRoleId) external view returns(uint, address[] memory memberArray);
+
+  function numberOfMembers(uint _memberRoleId) external view returns(uint);
 }

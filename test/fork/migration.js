@@ -267,9 +267,12 @@ describe('migration', function () {
       if (member !== firstBoardMember) {
         const lockedPostMigration = await tf.getStakerAllLockedTokens(member);
         assert.equal(lockedPostMigration.toString(), '0');
-        const postMigrationStake = await ps.stakerStake(member);
+        const postMigrationStake = await ps.stakerDeposit(member);
         assert.equal(lockedBeforeMigration.toString(), postMigrationStake.toString());
       }
+
+      const membersLeftToMigrate = await ps.membersLeftToMigrate();
+      assert.equal(membersLeftToMigrate.toString(), '0');
     }
   });
 });

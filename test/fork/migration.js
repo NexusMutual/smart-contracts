@@ -112,9 +112,8 @@ async function addProposal(master, gv, members, submitter) {
 
 const directWeb3 = new Web3(process.env.TEST_ENV_FORK);
 
-const oldMasterAddressChangeCategoryId = 27;
 const newContractAddressUpgradeCategoryId = 29;
-
+const addNewInternalContractCategoryId = 34;
 const loader = setupLoader({
   provider: web3.eth.currentProvider,
   defaultSender,
@@ -231,9 +230,6 @@ describe('migration', function () {
       1
     );
 
-    const categoryCount = await pc.totalCategories();
-    const addNewInternalContractCategoryId = 34;
-    console.log(`addNewInternalContractCategoryId ${addNewInternalContractCategoryId}`);
     await submitGovernanceProposal(
       addNewInternalContractCategoryId,
       actionHash,

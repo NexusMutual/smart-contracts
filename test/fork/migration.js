@@ -251,6 +251,9 @@ describe('migration', function () {
     const members = await directMR.methods.members('2').call();
     const allMembers = members.memberArray;
 
+    const membersLeftToMigrateBeforeMigration = await ps.membersLeftToMigrate.call();
+    assert(membersLeftToMigrateBeforeMigration.toString(), members.memberArray.length);
+
     console.log(`Members to process: ${allMembers.length}`);
 
     for (let i = 0; i < allMembers.length; i++) {
@@ -270,9 +273,9 @@ describe('migration', function () {
         const postMigrationStake = await ps.stakerDeposit(member);
         assert.equal(lockedBeforeMigration.toString(), postMigrationStake.toString());
       }
-
-      const membersLeftToMigrate = await ps.membersLeftToMigrate();
-      assert.equal(membersLeftToMigrate.toString(), '0');
     }
+
+    const membersLeftToMigrate = await ps.membersLeftToMigrate.call();
+    assert.equal(membersLeftToMigrate.toString(), '0');
   });
 });

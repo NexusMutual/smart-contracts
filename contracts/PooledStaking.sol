@@ -886,8 +886,6 @@ contract PooledStaking is MasterAware {
   );
 
   function migrateStaker(address member) external {
-
-    IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
     ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
     ITokenData tokenData = ITokenData(master.getLatestAddress("TD"));
     IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));

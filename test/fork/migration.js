@@ -131,16 +131,16 @@ describe('migration', function () {
 
     const { data: versionData } = await axios.get('https://api.nexusmutual.io/version-data/data.json');
 
-    const oldMaster = await NXMaster.at(getContractData('NXMASTER', versionData).address);
+    const master = await NXMaster.at(getContractData('NXMASTER', versionData).address);
 
-    const { contractsName, contractsAddress } = await oldMaster.getVersionData();
+    const { contractsName, contractsAddress } = await master.getVersionData();
     console.log(contractsName);
     console.log(contractsAddress);
     const nameToAddressMap = {}
     for (let i = 0; i < contractsName.length; i++) {
       nameToAddressMap[web3.utils.toAscii(contractsName[i])] = contractsAddress[i];
     }
-    nameToAddressMap['NXMTOKEN'] = await oldMaster.dAppToken();
+    nameToAddressMap['NXMTOKEN'] = await master.dAppToken();
 
     const mr = await MemberRoles.at(nameToAddressMap['MR']);
     const tk = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
@@ -176,50 +176,6 @@ describe('migration', function () {
 
     assert.equal(boardMembers.length, 5);
 
-    console.log(`Deploying new master..`);
-
-    let newMaster = await NXMasterNew.new({
-      from: firstBoardMember,
-    });
-    const masterOwner = await newMaster.owner();
-    console.log(`Deployed new master at: ${newMaster.address} with owner: ${masterOwner}`);
-
-    newMaster = await OwnedUpgradeabilityProxy.new(newMaster.address, {
-      from: firstBoardMember
-    });
-    let masterProxy = newMaster;
-    newMaster = await NXMasterNew.at(newMaster.address);
-    await newMaster.initiateMaster(tk.address, {
-      from: firstBoardMember
-    });
-
-    const oldVersionData = (await oldMaster.getVersionData())[1];
-    console.log(`Initializing master with addNewVersion`);
-    console.log(oldVersionData);
-    await newMaster.addNewVersion(oldVersionData, {
-      from: firstBoardMember,
-    });
-
-
-    await masterProxy.transferProxyOwnership(gv.address, {
-      from: firstBoardMember
-    });
-
-    const action = 'updateAddressParameters(bytes8,address)';
-    const code = hex('MASTADD');
-    const proposedValue = newMaster.address;
-
-    let actionHash = encode(action, code, proposedValue);
-
-    await submitGovernanceProposal(oldMasterAddressChangeCategoryId, actionHash, boardMembers, gv, '1', firstBoardMember);
-    console.log(`Successfully submitted proposal and passed.`);
-
-    const newMasterGovernanceAddress = await gv.nxMasterAddress();
-    assert.equal(newMaster.address, newMasterGovernanceAddress);
-
-
-    await addProposal(newMaster, gv, boardMembers, firstBoardMember);
-
     console.log(`Deploying new TokenFunctions..`);
     const newTF = await TokenFunctions.new({
       from: firstBoardMember,
@@ -238,13 +194,13 @@ describe('migration', function () {
 
     await submitGovernanceProposal(newContractAddressUpgradeCategoryId, actionHash, boardMembers, gv, '1', secondBoardMember);
 
-    const storedTFAddress = await newMaster.getLatestAddress(hex('TF'));
+    const storedTFAddress = await master.getLatestAddress(hex('TF'));
     assert.equal(storedTFAddress, newTF.address);
-    const storedCRAddress = await newMaster.getLatestAddress(hex('CR'));
+    const storedCRAddress = await master.getLatestAddress(hex('CR'));
     assert.equal(storedCRAddress, newCR.address);
     console.log(`Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.`);
 
-    this.master = newMaster;
+    this.master = master;
     this.cr = newCR;
     this.tf = newTF;
     this.mr = mr;

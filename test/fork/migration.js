@@ -17,7 +17,6 @@ const TokenFunctions = contract.fromArtifact('TokenFunctions');
 const ClaimsReward = contract.fromArtifact('ClaimsReward');
 const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const TokenData = contract.fromArtifact('TokenData');
-const OwnedUpgradeabilityProxy = contract.fromArtifact('OwnedUpgradeabilityProxy');
 
 function getWeb3Contract (name, versionData, web3) {
   const contractData = versionData.mainnet.abis.filter(abi => abi.code === name)[0];
@@ -176,8 +175,6 @@ describe('migration', function () {
 
     assert.equal(boardMembers.length, 5);
 
-    await addProposal(master, gv, boardMembers, firstBoardMember);
-
     console.log(`Deploying new TokenFunctions..`);
     const newTF = await TokenFunctions.new({
       from: firstBoardMember,
@@ -235,7 +232,7 @@ describe('migration', function () {
     );
 
     const categoryCount = await pc.totalCategories();
-    const addNewInternalContractCategoryId = categoryCount - 1;
+    const addNewInternalContractCategoryId = 34;
     console.log(`addNewInternalContractCategoryId ${addNewInternalContractCategoryId}`);
     await submitGovernanceProposal(
       addNewInternalContractCategoryId,

@@ -176,6 +176,8 @@ describe('migration', function () {
 
     assert.equal(boardMembers.length, 5);
 
+    await addProposal(newMaster, gv, boardMembers, firstBoardMember);
+
     console.log(`Deploying new TokenFunctions..`);
     const newTF = await TokenFunctions.new({
       from: firstBoardMember,

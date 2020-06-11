@@ -82,4 +82,16 @@ interface ITokenData {
 
 
     function lastCompletedStakeCommission(address _stakerAddress) external view returns (uint);
+
+    function setUnlockableBeforeLastBurnTokens(
+        address _stakerAddress,
+        uint _stakerIndex,
+        uint _amount
+    ) external;
+
+    function pushUnlockedStakedTokens(
+        address _stakerAddress,
+        uint _stakerIndex,
+        uint _amount
+    ) external;
 }

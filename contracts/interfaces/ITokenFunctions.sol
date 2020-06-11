@@ -29,4 +29,14 @@ interface ITokenFunctions {
     (uint amount, uint canBurn);
 
     function unlockStakerUnlockableTokens(address stakerAddress) external;
+
+    function _getStakerUnlockableTokensOnSmartContract (
+        address _stakerAddress,
+        address _stakedContractAddress,
+        uint _stakedContractIndex
+    )
+    external
+    view
+    returns
+    (uint amount);
 }

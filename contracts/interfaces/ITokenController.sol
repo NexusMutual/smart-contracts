@@ -22,4 +22,6 @@ interface ITokenController {
 
   function burnLockedTokens(address _of, bytes32 _reason, uint256 _amount) external;
   function tokensLocked(address _of, bytes32 _reason) external view returns (uint256 amount);
+
+  function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) external;
 }

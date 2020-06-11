@@ -897,15 +897,11 @@ contract PooledStaking is MasterAware {
       claimsReward._claimStakeCommission(iterationsLeft, member);
 
       if (tokenData.lastCompletedStakeCommission(member)
-          <  tokenData.getStakerStakedContractLength(member) - 1) {
+          < tokenData.getStakerStakedContractLength(member) - 1) {
         processedToStakerIndex = memberIndex;
         emit StakersMigrationCompleted(false);
         return false;
       }
-
-      tokenFunctions.unlockStakerUnlockableTokens(member);
-
-      uint totalStakerLockedTokens = 0;
 
       uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
 
@@ -921,17 +917,16 @@ contract PooledStaking is MasterAware {
 
         address contractAddress = tokenData.getStakerStakedContractByIndex(member, i);
         uint stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
+        unlockStakerUnlockableTokensForContract(tokenData, tokenFunctions, member,
+          contractAddress, stakerContractIndex, i);
+
         uint stakedAmount;
         (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
 
         if (stakedAmount > 0) {
-          totalStakerLockedTokens = totalStakerLockedTokens.add(stakedAmount);
           stakeForMemberOnContract(tokenData, member, contractAddress, stakedAmount, stakerContractIndex, i);
         }
       }
-
-      tokenController.mint(address(this), totalStakerLockedTokens);
-
       // clear out start indexes for next iteration
       firstReward = 0;
     }
@@ -960,7 +955,7 @@ contract PooledStaking is MasterAware {
     bytes32 reason = keccak256(abi.encodePacked("UW", member, contractAddress, stakerContractIndex));
     tokenController.burnLockedTokens(member, reason, stakedAmount);
 
-    if (staker.stakes[contractAddress] == 0 && stakedAmount > 0) {
+    if (staker.stakes[contractAddress] == 0) {
       contractStakers[contractAddress].push(member);
     }
 
@@ -969,6 +964,25 @@ contract PooledStaking is MasterAware {
       staker.contracts.push(contractAddress);
       staker.isInContractStakers[contractAddress] = true;
     }
+
+    tokenController.mint(address(this), stakedAmount);
+  }
+
+  function unlockStakerUnlockableTokensForContract(
+    ITokenData tokenData,
+    ITokenFunctions tokenFunctions,
+    address _stakerAddress,
+    address scAddress,
+    uint stakerContractIndex,
+    uint i
+  ) internal {
+      uint unlockableAmount = tokenFunctions._getStakerUnlockableTokensOnSmartContract(
+        _stakerAddress, scAddress,
+          stakerContractIndex);
+      tokenData.setUnlockableBeforeLastBurnTokens(_stakerAddress, i, 0);
+      tokenData.pushUnlockedStakedTokens(_stakerAddress, i, unlockableAmount);
+      bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, stakerContractIndex));
+      tokenController.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
   }
 
   function changeDependentContractAddress() public {

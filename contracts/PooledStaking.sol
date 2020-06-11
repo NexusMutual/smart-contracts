@@ -874,11 +874,8 @@ contract PooledStaking is MasterAware {
 
   uint processedMigrationMembersIndex = 0;
 
-  event StakerMigrationProcessed(
-    address member,
-    uint[] stakedAllocations,
-    address[] stakedAddresses
-  );
+
+  event StakersMigrationCompleted(bool completed);
 
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
@@ -902,6 +899,7 @@ contract PooledStaking is MasterAware {
       if (tokenData.lastCompletedStakeCommission(member)
           <  tokenData.getStakerStakedContractLength(member) - 1) {
         processedToStakerIndex = memberIndex;
+        emit StakersMigrationCompleted(false);
         return false;
       }
 
@@ -910,41 +908,32 @@ contract PooledStaking is MasterAware {
       uint totalStakerLockedTokens = 0;
 
       uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
-      uint[] memory stakedAllocations = new uint[](stakedContractsCount);
-      address[] memory stakedAddresses = new address[](stakedContractsCount);
 
       for (uint i = firstReward; i < stakedContractsCount; i++) {
         if (iterationsLeft == 0) {
           processedToStakerIndex = memberIndex;
           firstReward = i;
+          emit StakersMigrationCompleted(false);
           return false;
         }
 
         --iterationsLeft;
 
-        stakedAddresses[i] = tokenData.getStakerStakedContractByIndex(member, i);
+        address contractAddress = tokenData.getStakerStakedContractByIndex(member, i);
         uint stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
         uint stakedAmount;
-        (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
-        stakedAllocations[i] = stakedAmount;
+        (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
 
         if (stakedAmount > 0) {
           totalStakerLockedTokens = totalStakerLockedTokens.add(stakedAmount);
-
-          tokenData.pushBurnedTokens(member, i, stakedAmount);
-          bytes32 reason = keccak256(abi.encodePacked("UW", member, stakedAddresses[i], stakerContractIndex));
-          tokenController.burnLockedTokens(member, reason, stakedAmount);
+          stakeForMemberOnContract(tokenData, member, contractAddress, stakedAmount, stakerContractIndex, i);
         }
       }
 
-      // clear out start index for next iteration
-      firstReward = 0;
-
       tokenController.mint(address(this), totalStakerLockedTokens);
 
-      if (totalStakerLockedTokens > 0) {
-        stakeForMember(member, totalStakerLockedTokens, stakedAddresses, stakedAllocations);
-      }
+      // clear out start indexes for next iteration
+      firstReward = 0;
     }
 
     initialized = true;
@@ -952,25 +941,34 @@ contract PooledStaking is MasterAware {
     // reset migration indexes
     processedToStakerIndex = 0;
     firstReward = 0;
+    emit StakersMigrationCompleted(true);
     return true;
   }
 
-  function stakeForMember(address member,
-    uint amount,
-    address[] memory _contracts,
-    uint[] memory _allocations
-  ) internal whenNotPaused noPendingActions {
+  function stakeForMemberOnContract(
+    ITokenData tokenData,
+    address member,
+    address contractAddress,
+    uint stakedAmount,
+    uint stakerContractIndex,
+    uint i
+  ) internal {
     Staker storage staker = stakers[member];
+    staker.deposit = staker.deposit.add(stakedAmount);
 
-    uint totalStaked;
-    staker.deposit = amount;
+    tokenData.pushBurnedTokens(member, i, stakedAmount);
+    bytes32 reason = keccak256(abi.encodePacked("UW", member, contractAddress, stakerContractIndex));
+    tokenController.burnLockedTokens(member, reason, stakedAmount);
 
-    for (uint i = 0; i < _contracts.length; i++) {
-      address contractAddress = _contracts[i];
-      staker.stakes[contractAddress] = staker.stakes[contractAddress].add(_allocations[i]);
+    if (staker.stakes[contractAddress] == 0 && stakedAmount > 0) {
+      contractStakers[contractAddress].push(member);
     }
 
-    emit Deposited(member, amount);
+    staker.stakes[contractAddress] = staker.stakes[contractAddress].add(stakedAmount);
+    if (!staker.isInContractStakers[contractAddress]) {
+      staker.contracts.push(contractAddress);
+      staker.isInContractStakers[contractAddress] = true;
+    }
   }
 
   function changeDependentContractAddress() public {

@@ -877,6 +877,10 @@ contract PooledStaking is MasterAware {
 
   event StakersMigrationCompleted(bool completed);
 
+  event DebugMemberProcessing(
+    address member
+  );
+
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
 
@@ -893,6 +897,8 @@ contract PooledStaking is MasterAware {
       if (!isActive) {
         continue;
       }
+
+      emit DebugMemberProcessing(member);
 
       claimsReward._claimStakeCommission(iterationsLeft, member);
 

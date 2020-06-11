@@ -870,7 +870,11 @@ contract PooledStaking is MasterAware {
     UNSTAKE_LOCK_TIME = 90 days;
   }
 
-  event StakersMigrationCompleted(bool completed);
+  event StakersMigrationCompleted(
+    bool completed,
+    uint memberIndex,
+    uint stakeIndex
+  );
 
   event DebugMemberProcessing(
     address member
@@ -899,12 +903,15 @@ contract PooledStaking is MasterAware {
 
       emit DebugMemberProcessing(member);
 
-      claimsReward._claimStakeCommission(iterationsLeft, member);
+      if (tokenData.lastCompletedStakeCommission(member)
+        < tokenData.getStakerStakedContractLength(member) - 1) {
+        claimsReward._claimStakeCommission(iterationsLeft, member);
+      }
 
       if (tokenData.lastCompletedStakeCommission(member)
           < tokenData.getStakerStakedContractLength(member) - 1) {
         processedToStakerIndex = memberIndex;
-        emit StakersMigrationCompleted(false);
+        emit StakersMigrationCompleted(false, memberIndex, firstReward);
         return false;
       }
 
@@ -914,7 +921,7 @@ contract PooledStaking is MasterAware {
         if (iterationsLeft == 0) {
           processedToStakerIndex = memberIndex;
           firstReward = i;
-          emit StakersMigrationCompleted(false);
+          emit StakersMigrationCompleted(false, memberIndex, i);
           return false;
         }
 
@@ -943,7 +950,7 @@ contract PooledStaking is MasterAware {
     // reset migration indexes
     processedToStakerIndex = 0;
     firstReward = 0;
-    emit StakersMigrationCompleted(true);
+    emit StakersMigrationCompleted(false, processedToStakerIndex, firstReward);
     return true;
   }
 

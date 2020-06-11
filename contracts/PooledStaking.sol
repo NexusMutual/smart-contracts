@@ -862,8 +862,6 @@ contract PooledStaking is MasterAware {
       return;
     }
 
-    initialized = true;
-
     tokenController.addToWhitelist(address(this));
 
     MIN_STAKE = 20 ether;
@@ -871,9 +869,6 @@ contract PooledStaking is MasterAware {
     MAX_EXPOSURE = 10;
     UNSTAKE_LOCK_TIME = 90 days;
   }
-
-  uint processedMigrationMembersIndex = 0;
-
 
   event StakersMigrationCompleted(bool completed);
 

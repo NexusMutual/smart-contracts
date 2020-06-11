@@ -358,7 +358,7 @@ contract TokenFunctions is Iupgradable {
         address _stakedContractAddress,
         uint _stakedContractIndex
     ) 
-        internal
+        public
         view
         returns
         (uint amount)

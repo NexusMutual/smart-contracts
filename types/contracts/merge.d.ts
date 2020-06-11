@@ -7,6 +7,33 @@ import * as TruffleContracts from ".";
 
 declare global {
   namespace Truffle {
-    interface Artifacts {}
+    interface Artifacts {
+      require(name: "Context"): TruffleContracts.ContextContract;
+      require(name: "ERC20"): TruffleContracts.ERC20Contract;
+      require(name: "IClaimsReward"): TruffleContracts.IClaimsRewardContract;
+      require(name: "IERC20"): TruffleContracts.IERC20Contract;
+      require(name: "IMasterAware"): TruffleContracts.IMasterAwareContract;
+      require(name: "IMemberRoles"): TruffleContracts.IMemberRolesContract;
+      require(name: "INXMMaster"): TruffleContracts.INXMMasterContract;
+      require(
+        name: "ITokenController"
+      ): TruffleContracts.ITokenControllerContract;
+      require(name: "ITokenData"): TruffleContracts.ITokenDataContract;
+      require(
+        name: "ITokenFunctions"
+      ): TruffleContracts.ITokenFunctionsContract;
+      require(name: "Iupgradable"): TruffleContracts.IupgradableContract;
+      require(name: "MasterAware"): TruffleContracts.MasterAwareContract;
+      require(name: "MasterMock"): TruffleContracts.MasterMockContract;
+      require(
+        name: "NewInternalContract"
+      ): TruffleContracts.NewInternalContractContract;
+      require(name: "NXMToken"): TruffleContracts.NXMTokenContract;
+      require(name: "PooledStaking"): TruffleContracts.PooledStakingContract;
+      require(
+        name: "TokenControllerMock"
+      ): TruffleContracts.TokenControllerMockContract;
+      require(name: "TokenMock"): TruffleContracts.TokenMockContract;
+    }
   }
 }

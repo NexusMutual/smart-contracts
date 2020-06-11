@@ -21,5 +21,7 @@ interface IMemberRoles {
 
   function members(uint _memberRoleId) external view returns(uint, address[] memory memberArray);
 
-  function numberOfMembers(uint _memberRoleId) external view returns(uint);
+  function memberAtIndex(uint _memberRoleId, uint index) external returns (address, bool);
+
+  function membersLength(uint _memberRoleId) external returns (uint);
 }

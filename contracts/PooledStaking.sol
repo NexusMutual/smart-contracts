@@ -880,81 +880,74 @@ contract PooledStaking is MasterAware {
     address[] stakedAddresses
   );
 
-  function migrateStaker(address member) external {
+  function migrateStakers(uint iterations) external {
     ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
     ITokenData tokenData = ITokenData(master.getLatestAddress("TD"));
     IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
+    IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
 
-    require(stakers[member].deposit == 0, "Staker was already migrated");
+    require(!initialized, "Migration already completed");
 
-    if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
-      claimsReward._claimStakeCommission(10, member);
-      tokenFunctions.unlockStakerUnlockableTokens(member);
-    }
+    for (uint i = processedToStakerIndex; i < memberRoles.membersLength(uint(IMemberRoles.Role.Member)); i++) {
+      (address member, bool isActive) = memberRoles.memberAtIndex(uint(IMemberRoles.Role.Member), i);
+      if (!isActive) {
+        continue;
+      }
 
-    uint totalStakerLockedTokens = 0;
+      if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
+        claimsReward._claimStakeCommission(10, member);
+        tokenFunctions.unlockStakerUnlockableTokens(member);
+      }
 
-    uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
-    uint[] memory stakedAllocations = new uint[](stakedContractsCount);
-    address[] memory stakedAddresses = new address[](stakedContractsCount);
+      uint totalStakerLockedTokens = 0;
 
-    uint nonZeroStakesCount = 0;
-    for (uint i = 0; i < stakedContractsCount; i++) {
-      uint stakerContractIndex;
-      stakedAddresses[i] = tokenData.getStakerStakedContractByIndex(member, i);
-      stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
-      uint stakedAmount;
-      (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
-      stakedAllocations[i] = stakedAmount;
+      uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
+      uint[] memory stakedAllocations = new uint[](stakedContractsCount);
+      address[] memory stakedAddresses = new address[](stakedContractsCount);
 
-      if (stakedAmount > 0) {
-        nonZeroStakesCount++;
-        totalStakerLockedTokens = totalStakerLockedTokens.add(stakedAmount);
+      for (uint i = 0; i < stakedContractsCount; i++) {
+        uint stakerContractIndex;
+        stakedAddresses[i] = tokenData.getStakerStakedContractByIndex(member, i);
+        stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
+        uint stakedAmount;
+        (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
+        stakedAllocations[i] = stakedAmount;
 
-        tokenData.pushBurnedTokens(member, i, stakedAmount);
-        bytes32 reason = keccak256(abi.encodePacked("UW", member, stakedAddresses[i], stakerContractIndex));
-        tokenController.burnLockedTokens(member, reason, stakedAmount);
+        if (stakedAmount > 0) {
+          totalStakerLockedTokens = totalStakerLockedTokens.add(stakedAmount);
+
+          tokenData.pushBurnedTokens(member, i, stakedAmount);
+          bytes32 reason = keccak256(abi.encodePacked("UW", member, stakedAddresses[i], stakerContractIndex));
+          tokenController.burnLockedTokens(member, reason, stakedAmount);
+        }
+      }
+
+      tokenController.mint(address(this), totalStakerLockedTokens);
+
+      if (totalStakerLockedTokens > 0) {
+        stakeForMember(member, totalStakerLockedTokens, stakedAddresses, stakedAllocations);
       }
     }
 
-    tokenController.mint(address(this), totalStakerLockedTokens);
+    initialized = true;
 
-    if (totalStakerLockedTokens > 0) {
-
-      stakeForMember(member, totalStakerLockedTokens, stakedAddresses, stakedAllocations, nonZeroStakesCount);
-    }
+    // reset migration indexes
+    processedToStakerIndex = 0;
   }
 
   function stakeForMember(address member,
     uint amount,
-    address[] memory unfilteredContracts,
-    uint[] memory unfilteredAllocations,
-    uint nonZeroStakesCount
+    address[] memory _contracts,
+    uint[] memory _allocations
   ) internal whenNotPaused noPendingActions {
     Staker storage staker = stakers[member];
-
-    uint[] memory _allocations = new uint[](nonZeroStakesCount);
-    address[] memory _contracts = new address[](nonZeroStakesCount);
-    uint nonZeroContractIndex = 0;
-    for (uint i = 0; i < unfilteredContracts.length; i++) {
-      if (unfilteredAllocations[i] > 0) {
-        _allocations[nonZeroContractIndex] = unfilteredAllocations[nonZeroContractIndex];
-        _contracts[nonZeroContractIndex] = unfilteredContracts[nonZeroContractIndex];
-        nonZeroContractIndex++;
-      }
-    }
-    emit StakerMigrationProcessed(member, _allocations, _contracts);
 
     uint totalStaked;
     staker.deposit = amount;
 
     for (uint i = 0; i < _contracts.length; i++) {
       address contractAddress = _contracts[i];
-
-      require(_allocations[i] <= amount, "Cannot allocate more than staked");
       staker.stakes[contractAddress] = staker.stakes[contractAddress].add(_allocations[i]);
-
-      emit Staked(contractAddress, member, _allocations[i]);
     }
 
     emit Deposited(member, amount);

@@ -125,8 +125,6 @@ contract PooledStaking is MasterAware {
   uint public processedToStakerIndex; // we processed the action up this staker
   bool public isContractStakeCalculated; // flag to indicate whether staked amount is up to date or not
 
-  uint public membersLeftToMigrate = 0;
-
   /* Modifiers */
 
   modifier noPendingActions {
@@ -872,9 +870,6 @@ contract PooledStaking is MasterAware {
     MIN_UNSTAKE = 20 ether;
     MAX_EXPOSURE = 10;
     UNSTAKE_LOCK_TIME = 90 days;
-
-    IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-    membersLeftToMigrate = memberRoles.numberOfMembers(uint(IMemberRoles.Role.Member));
   }
 
   uint processedMigrationMembersIndex = 0;
@@ -925,7 +920,7 @@ contract PooledStaking is MasterAware {
     tokenController.mint(address(this), totalStakerLockedTokens);
 
     if (totalStakerLockedTokens > 0) {
-      membersLeftToMigrate--;
+
       stakeForMember(member, totalStakerLockedTokens, stakedAddresses, stakedAllocations, nonZeroStakesCount);
     }
   }
@@ -957,16 +952,10 @@ contract PooledStaking is MasterAware {
       address contractAddress = _contracts[i];
 
       require(_allocations[i] <= amount, "Cannot allocate more than staked");
-      staker.stakes[contractAddress] = _allocations[i];
-      totalStaked = _allocations[i];
+      staker.stakes[contractAddress] = staker.stakes[contractAddress].add(_allocations[i]);
 
       emit Staked(contractAddress, member, _allocations[i]);
     }
-
-    require(
-      totalStaked <= staker.deposit.mul(MAX_EXPOSURE),
-      "Total stake exceeds maximum allowed"
-    );
 
     emit Deposited(member, amount);
   }

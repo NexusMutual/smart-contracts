@@ -17,7 +17,7 @@ const TokenFunctions = contract.fromArtifact('TokenFunctions');
 const ClaimsReward = contract.fromArtifact('ClaimsReward');
 const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const TokenData = contract.fromArtifact('TokenData');
-const OwnedUpgradeabilityProxy = contract.fromArtifact('OwnedUpgradeabilityProxy');
+const UpgradeabilityProxy = contract.fromArtifact('UpgradeabilityProxy');
 
 function getWeb3Contract (name, versionData, web3) {
   const contractData = versionData.mainnet.abis.filter(abi => abi.code === name)[0];
@@ -201,7 +201,7 @@ describe('migration', function () {
     console.log(`Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.`);
 
 
-    const newMR = await TokenFunctions.new({
+    const newMR = await MemberRoles.new({
       from: firstBoardMember,
     });
 
@@ -213,9 +213,11 @@ describe('migration', function () {
     await submitGovernanceProposal(newProxyContractAddressUpgradeCategoryId,
       actionHash, boardMembers, gv, '1', secondBoardMember);
 
-    const mrProxy = OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
+    const mrProxy = await UpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
     const storedNewMRAddress = await mrProxy.implementation();
     assert.equal(storedNewMRAddress, newMR.address);
+
+    console.log(`Successfully deployed new MR.`);
 
     this.master = master;
     this.cr = newCR;
@@ -270,33 +272,34 @@ describe('migration', function () {
     const members = await directMR.methods.members('2').call();
     let allMembers = members.memberArray;
 
-    const membersLeftToMigrateBeforeMigration = await ps.membersLeftToMigrate.call();
-    assert(membersLeftToMigrateBeforeMigration.toString(), members.memberArray.length);
-
-
     allMembers = allMembers.slice(0, 1);
     console.log(`Members to process: ${allMembers.length}`);
 
-    for (let i = 0; i < allMembers.length; i++) {
-      const member = allMembers[i];
-      console.log(`Migrating member: ${member}`);
+    const lockedBeforeMigration = await tf.getStakerAllLockedTokens(member);
 
-      const lockedBeforeMigration = await tf.getStakerAllLockedTokens(member);
-      if (lockedBeforeMigration.toString() === '0') {
-        console.log(`Skipping member: ${member}. He has no staker locked tokens.`);
-        continue;
-      }
-      logEvents(await ps.migrateStaker(member));
+    const lockedPostMigration = await tf.getStakerAllLockedTokens(member);
+    assert.equal(lockedPostMigration.toString(), '0');
+    const postMigrationStake = await ps.stakerDeposit(member);
+    assert.equal(lockedBeforeMigration.toString(), postMigrationStake.toString());
 
-      if (member !== firstBoardMember) {
-        const lockedPostMigration = await tf.getStakerAllLockedTokens(member);
-        assert.equal(lockedPostMigration.toString(), '0');
-        const postMigrationStake = await ps.stakerDeposit(member);
-        assert.equal(lockedBeforeMigration.toString(), postMigrationStake.toString());
-      }
+    const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
+    let totalGasUsage = 0;
+    let completed = false;
+    while (!completed) {
+      const iterations = 50;
+      console.log(`Running migrateStakers wih ${iterations}`);
+      const gasEstimate = await ps.migrateStakers.estimateGas(iterations);
+      console.log(`gasEstimate: ${gasEstimate}`);
+      const tx = await ps.migrateStakers(iterations, {
+        gas: gasEstimate
+      });
+
+      const [stakerMigrationCompleted] = tx.logs.filter(log => log.event === STAKER_MIGRATION_COMPLETED_EVENT);
+      completed = stakerMigrationCompleted.args.completed;
+      console.log(`Processing migration completed: ${completed}`);
+      const gasUsed = tx.receipt.gasUsed;
+      totalGasUsage += gasUsed;
+      console.log(`gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage}`);
     }
-
-    const membersLeftToMigrate = await ps.membersLeftToMigrate.call();
-    assert.equal(membersLeftToMigrate.toString(), '0');
   });
 });

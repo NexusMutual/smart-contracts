@@ -880,24 +880,32 @@ contract PooledStaking is MasterAware {
     address[] stakedAddresses
   );
 
-  function migrateStakers(uint iterations) external {
+  function migrateStakers(uint maxIterations) external returns (bool) {
+    require(!initialized, "Migration already completed");
+
     ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
     ITokenData tokenData = ITokenData(master.getLatestAddress("TD"));
     IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
     IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
 
-    require(!initialized, "Migration already completed");
+    uint iterationsLeft = maxIterations;
 
-    for (uint i = processedToStakerIndex; i < memberRoles.membersLength(uint(IMemberRoles.Role.Member)); i++) {
-      (address member, bool isActive) = memberRoles.memberAtIndex(uint(IMemberRoles.Role.Member), i);
+    uint membersLength = memberRoles.membersLength(uint(IMemberRoles.Role.Member));
+    for (uint memberIndex = processedToStakerIndex; memberIndex < membersLength; memberIndex++) {
+      (address member, bool isActive) = memberRoles.memberAtIndex(uint(IMemberRoles.Role.Member), memberIndex);
       if (!isActive) {
         continue;
       }
 
-      if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
-        claimsReward._claimStakeCommission(10, member);
-        tokenFunctions.unlockStakerUnlockableTokens(member);
+      claimsReward._claimStakeCommission(iterationsLeft, member);
+
+      if (tokenData.lastCompletedStakeCommission(member)
+          <  tokenData.getStakerStakedContractLength(member) - 1) {
+        processedToStakerIndex = memberIndex;
+        return false;
       }
+
+      tokenFunctions.unlockStakerUnlockableTokens(member);
 
       uint totalStakerLockedTokens = 0;
 
@@ -905,10 +913,17 @@ contract PooledStaking is MasterAware {
       uint[] memory stakedAllocations = new uint[](stakedContractsCount);
       address[] memory stakedAddresses = new address[](stakedContractsCount);
 
-      for (uint i = 0; i < stakedContractsCount; i++) {
-        uint stakerContractIndex;
+      for (uint i = firstReward; i < stakedContractsCount; i++) {
+        if (iterationsLeft == 0) {
+          processedToStakerIndex = memberIndex;
+          firstReward = i;
+          return false;
+        }
+
+        --iterationsLeft;
+
         stakedAddresses[i] = tokenData.getStakerStakedContractByIndex(member, i);
-        stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
+        uint stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
         uint stakedAmount;
         (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
         stakedAllocations[i] = stakedAmount;
@@ -922,6 +937,9 @@ contract PooledStaking is MasterAware {
         }
       }
 
+      // clear out start index for next iteration
+      firstReward = 0;
+
       tokenController.mint(address(this), totalStakerLockedTokens);
 
       if (totalStakerLockedTokens > 0) {
@@ -933,6 +951,8 @@ contract PooledStaking is MasterAware {
 
     // reset migration indexes
     processedToStakerIndex = 0;
+    firstReward = 0;
+    return true;
   }
 
   function stakeForMember(address member,

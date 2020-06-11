@@ -79,4 +79,7 @@ interface ITokenData {
     external
     view
     returns (uint amount);
+
+
+    function lastCompletedStakeCommission(address _stakerAddress) external view returns (uint);
 }

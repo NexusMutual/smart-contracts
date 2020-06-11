@@ -881,6 +881,10 @@ contract PooledStaking is MasterAware {
     address member
   );
 
+  event MigratedMember(
+    address member
+  );
+
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
 
@@ -933,6 +937,8 @@ contract PooledStaking is MasterAware {
           stakeForMemberOnContract(tokenData, member, contractAddress, stakedAmount, stakerContractIndex, i);
         }
       }
+
+      emit MigratedMember(member);
       // clear out start indexes for next iteration
       firstReward = 0;
     }

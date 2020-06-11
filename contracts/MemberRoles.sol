@@ -441,4 +441,12 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         launchedOn = 0;
     }
 
+    function memberAtIndex(uint _memberRoleId, uint index) external returns (address, bool) {
+        address member = memberRoleData[_memberRoleId].memberAddress[index];
+        return (member, memberRoleData[_memberRoleId].memberActive[member]);
+    }
+
+    function membersLength(uint _memberRoleId) external returns (uint) {
+        return memberRoleData[_memberRoleId].memberAddress.length;
+    }
 }

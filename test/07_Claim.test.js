@@ -99,7 +99,7 @@ contract('Claim', function([
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     ps = await PooledStaking.deployed();

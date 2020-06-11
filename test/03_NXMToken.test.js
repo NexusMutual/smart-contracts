@@ -59,7 +59,7 @@ contract('NXMToken', function([
     P1 = await Pool1.deployed();
     mcr = await MCR.deployed();
     pd = await PoolData.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await pd.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);

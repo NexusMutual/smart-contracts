@@ -70,8 +70,8 @@ contract(
         mem7,
         notMember
       ];
-      nxms = await NXMaster.deployed();
       cr = await ClaimsReward.deployed();
+      nxms = await NXMaster.at(await cr.ms());
       nxmToken = await NXMToken.deployed();
       let address = await nxms.getLatestAddress(toHex('GV'));
       gv = await Governance.at(address);

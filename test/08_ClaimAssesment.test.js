@@ -112,7 +112,7 @@ contract('Claim: Assessment', function([
     pd = await PoolData.deployed();
     qt = await Quotation.deployed();
     mcr = await MCR.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
@@ -491,7 +491,8 @@ contract('Claim: Assessment', function([
           });
           it('8.23 should change claim status', async function() {
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(apiid, '');
+            let _val = await pd.getIdOfApiId(apiid);
+            await nxms.closeClaim(_val);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((9).toString());
             // await cd.updateState12Count(claimId, 1);
@@ -668,6 +669,7 @@ contract('Claim: Assessment', function([
       (13).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.30 Payout fails for 1st time and later complete', async function() {
+      await tf.upgradeCapitalPool(DAI.address);
       await cad.transfer(coverHolder, toWei(20));
       await cad.approve(P1.address, coverDetailsDai[1], {
         from: coverHolder
@@ -707,6 +709,9 @@ contract('Claim: Assessment', function([
       (12).should.be.equal(parseFloat(cStatus[1]));
       await cad.transfer(P1.address, toWei(20));
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let payOutRetry = await cd.payoutRetryTime();
+      now = await latestTime();
+      await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
 
       await ps.processPendingActions();
 

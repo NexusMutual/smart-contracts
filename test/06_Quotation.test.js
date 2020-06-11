@@ -24,6 +24,7 @@ const {latestTime} = require('./utils/latestTime');
 const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
+const encode1 = require('./utils/encoder.js').encode1;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 
@@ -131,7 +132,7 @@ contract('Quotation', function([
     qt = await Quotation.deployed();
     cad = await DAI.deployed();
     mcr = await MCR.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     ps = await PooledStaking.deployed();
@@ -142,6 +143,50 @@ contract('Quotation', function([
     //   value: fee
     // });
     // await mr.kycVerdict(owner, true);
+    let oldMR = await MemberRoles.at(await nxms.getLatestAddress(toHex('MR')));
+    let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
+    async function updateCategory(nxmAdd, functionName, updateCat) {
+      let actionHash = encode1(
+        [
+          'uint256',
+          'string',
+          'uint256',
+          'uint256',
+          'uint256',
+          'uint256[]',
+          'uint256',
+          'string',
+          'address',
+          'bytes2',
+          'uint256[]',
+          'string'
+        ],
+        [
+          updateCat,
+          'Edit Category',
+          2,
+          50,
+          15,
+          [2],
+          604800,
+          '',
+          nxmAdd,
+          toHex('MS'),
+          [0, 0, 80, 0],
+          functionName
+        ]
+      );
+      await gvProp(4, actionHash, oldMR, oldGv, 1);
+    }
+    await updateCategory(
+      nxms.address,
+      'upgradeMultipleContracts(bytes2[],address[])',
+      29
+    );
+    let sevenDays = (await latestTime()) / 1 + 3600 * 24 * 7;
+    await increaseTimeTo(
+      new BN(sevenDays.toString()).add(new BN((1).toString()))
+    );
   });
   describe('Initial cap not reached', function() {
     it('6.1 should revert while buying cover', async function() {
@@ -1050,10 +1095,9 @@ contract('Quotation', function([
           let oldGv = await Governance.at(
             await nxms.getLatestAddress(toHex('GV'))
           );
-          actionHash = encode(
-            'upgradeContract(bytes2,address)',
-            'QT',
-            newQt.address
+          actionHash = encode1(
+            ['bytes2[]', 'address[]'],
+            [[toHex('QT')], [newQt.address]]
           );
 
           await gvProp(29, actionHash, oldMR, oldGv, 2);

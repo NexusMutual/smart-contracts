@@ -42,7 +42,7 @@ contract('Token Module', function([owner, member1]) {
     tk = await NXMToken.deployed();
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await p1.ms());
     tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     td = await TokenData.deployed();

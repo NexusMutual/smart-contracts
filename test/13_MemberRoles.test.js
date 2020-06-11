@@ -36,12 +36,12 @@ contract('MemberRoles', function([
   member2
 ]) {
   before(async function() {
-    nxms = await NXMaster.deployed();
+    tf = await TokenFunctions.deployed();
+    nxms = await NXMaster.at(await tf.ms());
     address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
     address = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(address);
-    tf = await TokenFunctions.deployed();
     tk = await NXMToken.deployed();
     qd = await QuotationDataMock.deployed();
   });

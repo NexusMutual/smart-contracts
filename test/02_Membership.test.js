@@ -19,8 +19,8 @@ require('chai')
 
 contract('NXMToken:Membership', function([owner, member1, member2]) {
   before(async function() {
-    nxms = await NXMaster.deployed();
     tf = await TokenFunctions.deployed();
+    nxms = await NXMaster.at(await tf.ms());
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     tk = await NXMToken.at(await nxms.tokenAddress());
     await mr.addMembersBeforeLaunch([], []);

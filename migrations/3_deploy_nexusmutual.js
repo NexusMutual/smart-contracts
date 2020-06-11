@@ -46,7 +46,7 @@ module.exports = function(deployer, network, accounts) {
     await deployer.deploy(GovernanceMock);
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
-    await deployer.deploy(NXMaster, tk.address);
+    await deployer.deploy(NXMaster);
     await deployer.deploy(PooledStaking);
   });
 };

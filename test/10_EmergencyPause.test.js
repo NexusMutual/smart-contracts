@@ -76,7 +76,7 @@ contract('NXMaster: Emergency Pause', function([
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await tf.ms());
     cr = await ClaimsReward.deployed();
     cl = await Claims.deployed();
     cd = await ClaimsData.deployed();
@@ -239,6 +239,7 @@ contract('NXMaster: Emergency Pause', function([
       await P1.__callback(APIID, '');
       nowTime = await latestTime();
       await increaseTimeTo(nowTime / 1 + (await cd.maxVotingTime()) / 1 + 100);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(APIID, '');
       let cid = await cd.getAllClaimsByIndex(claimId);
       ((await qd.getCoverStatusNo(cid[0])) / 1)
@@ -330,7 +331,7 @@ contract('NXMaster: Emergency Pause', function([
       (await nxms.isPause()).should.equal(true);
     });
     it('10.8 should return emergency pause details', async function() {
-      await nxms.getEmergencyPauseByIndex(0);
+      await nxms.emergencyPaused(0);
       const epd = await nxms.getLastEmergencyPause();
       epd[0].should.equal(true);
       epd[1].toString().should.be.equal(startTime.toString());

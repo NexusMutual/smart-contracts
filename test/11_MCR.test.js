@@ -47,7 +47,7 @@ contract('MCR', function([owner, notOwner]) {
     p1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     cad = await DAI.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await pd.ms());
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     p2 = await Pool2.deployed();
     DSV = await DSValue.deployed();
@@ -362,7 +362,7 @@ contract('MCR', function([owner, notOwner]) {
       ((await mcr.variableMincap()) / 1e18)
         .toString()
         .should.be.equal((504.94746474907004).toString());
-      await p1.__callback(APIID, ''); // to cover else branch (if call comes before callback time)
+      await assertRevert(p1.__callback(APIID, '')); // to cover else branch (if call comes before callback time)
       let timeINC =
         (await pd.getDateAddOfAPI(APIID)) / 1 +
         (await pd.mcrFailTime()) / 1 +

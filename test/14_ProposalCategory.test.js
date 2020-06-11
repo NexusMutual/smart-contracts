@@ -19,12 +19,12 @@ let nullAddress = '0x0000000000000000000000000000000000000000';
 
 contract('Proposal Category', function([owner, other]) {
   before(async function() {
-    nxms = await NXMaster.deployed();
+    tf = await TokenFunctions.deployed();
+    nxms = await NXMaster.at(await tf.ms());
     let address = await nxms.getLatestAddress(toHex('PC'));
     pc = await ProposalCategory.at(address);
     address = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(address);
-    tf = await TokenFunctions.deployed();
     address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
     pd = await PoolData.deployed();

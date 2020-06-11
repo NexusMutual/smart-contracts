@@ -46,7 +46,7 @@ contract('MCR', function([owner, notOwner]) {
     p1 = await Pool1.deployed();
     pd = await PoolData.deployed();
     cad = await DAI.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await pd.ms());
     tf = await TokenFunctions.deployed();
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));

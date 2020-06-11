@@ -75,7 +75,7 @@ contract('unlock-fixes', function([
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     td = await TokenData.deployed();
-    nxms = await NXMaster.deployed();
+    nxms = await NXMaster.at(await tf.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     cr = await ClaimsReward.deployed();

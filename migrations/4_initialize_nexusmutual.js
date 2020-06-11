@@ -19,6 +19,7 @@ const GovernanceMock = artifacts.require('GovernanceMock');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategoryMock');
 const FactoryMock = artifacts.require('FactoryMock');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const PooledStaking = artifacts.require('PooledStakingMock');
 const {toHex} = require('../test/utils/ethTools');
 
@@ -30,7 +31,9 @@ const POOL_ASSET = '50000000000000000000';
 module.exports = function(deployer, network, accounts) {
   deployer.then(async () => {
     const Owner = accounts[0];
-    const nxms = await NXMaster.deployed();
+    var nxms = await NXMaster.deployed();
+    proxyMaster = await OwnedUpgradeabilityProxy.new(nxms.address);
+    nxms = await NXMaster.at(proxyMaster.address);
     const tk = await NXMToken.deployed();
     const td = await TokenData.deployed();
     const tf = await TokenFunctions.deployed();
@@ -75,16 +78,20 @@ module.exports = function(deployer, network, accounts) {
       pooledStaking.address
     ];
 
+    await nxms.initiateMaster(tk.address);
     await nxms.addNewVersion(addr);
 
     // reduntant action of setting contract address
     await nxms.setContractAddress(toHex('PS'), pooledStaking.address);
 
+    await proxyMaster.transferProxyOwnership(
+      await nxms.getLatestAddress('0x4756')
+    );
     let pcAddress = await nxms.getLatestAddress('0x5043');
     pc = await ProposalCategory.at(pcAddress);
     let gvAddress = await nxms.getLatestAddress('0x4756');
     let gv = await GovernanceMock.at(gvAddress);
-    gv._initiateGovernance();
+    await gv._initiateGovernance();
     await pc.proposalCategoryInitiate();
     await pc.updateCategoryActionHashes();
     const dai = await DAI.deployed();

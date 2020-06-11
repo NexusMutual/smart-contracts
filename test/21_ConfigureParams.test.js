@@ -55,8 +55,8 @@ contract(
   'Configure Global Parameters',
   ([ab1, mem1, mem2, mem3, notMember]) => {
     before(async function() {
-      nxms = await NXMaster.deployed();
       tf = await TokenFunctions.deployed();
+      nxms = await NXMaster.at(await tf.ms());
       cr = await ClaimsReward.deployed();
       nxmToken = await NXMToken.deployed();
       let address = await nxms.getLatestAddress('0x4756');
@@ -425,49 +425,6 @@ contract(
 
       it('Should not update newly added Capital Model Parameters', async function() {
         await updateInvalidParameter(33, 2, 'DMC1', mcr, 'uint', 1245);
-      });
-    });
-
-    describe('Update Address Parameters', function() {
-      it('Should update Master Contract Address', async function() {
-        let newMaster = await NXMaster.new(nxmToken.address);
-        addressCon = await nxms.getVersionData();
-        addressIncorrect = await nxms.getVersionData();
-        addressIncorrect[1][0] = ZERO_ADDRESS;
-        await assertRevert(newMaster.addNewVersion(addressIncorrect[1]));
-        await assertRevert(newMaster.addNewVersion([]));
-        await newMaster.addNewVersion(addressCon[1]);
-        await updateParameter(
-          27,
-          2,
-          'MASTADD',
-          nxms,
-          'address',
-          newMaster.address,
-          newMaster
-        );
-        (await gv.nxMasterAddress()).should.be.equal(newMaster.address);
-        nxms = newMaster;
-      });
-      it('Should not trigger action if wrong code is passed', async function() {
-        await updateInvalidParameter(
-          27,
-          2,
-          'ASD',
-          nxms,
-          'address',
-          web3.eth.accounts[1]
-        );
-      });
-      it('Should not trigger action if null address is passed', async function() {
-        await updateInvalidParameter(
-          27,
-          2,
-          'MASTADD',
-          nxms,
-          'address',
-          ZERO_ADDRESS
-        );
       });
     });
 

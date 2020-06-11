@@ -17,6 +17,7 @@ const TokenFunctions = contract.fromArtifact('TokenFunctions');
 const ClaimsReward = contract.fromArtifact('ClaimsReward');
 const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const TokenData = contract.fromArtifact('TokenData');
+const OwnedUpgradeabilityProxy = contract.fromArtifact('OwnedUpgradeabilityProxy');
 
 function getWeb3Contract (name, versionData, web3) {
   const contractData = versionData.mainnet.abis.filter(abi => abi.code === name)[0];
@@ -113,6 +114,7 @@ async function addProposal(master, gv, members, submitter) {
 const directWeb3 = new Web3(process.env.TEST_ENV_FORK);
 
 const newContractAddressUpgradeCategoryId = 29;
+const newProxyContractAddressUpgradeCategoryId = 5;
 const addNewInternalContractCategoryId = 34;
 const loader = setupLoader({
   provider: web3.eth.currentProvider,
@@ -198,6 +200,23 @@ describe('migration', function () {
     assert.equal(storedCRAddress, newCR.address);
     console.log(`Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.`);
 
+
+    const newMR = await TokenFunctions.new({
+      from: firstBoardMember,
+    });
+
+    actionHash = encode1(
+      ['bytes2[]', 'address[]'],
+      [[hex('MR')], [newMR.address]]
+    );
+
+    await submitGovernanceProposal(newProxyContractAddressUpgradeCategoryId,
+      actionHash, boardMembers, gv, '1', secondBoardMember);
+
+    const mrProxy = OwnedUpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
+    const storedNewMRAddress = await mrProxy.implementation();
+    assert.equal(storedNewMRAddress, newMR.address);
+
     this.master = master;
     this.cr = newCR;
     this.tf = newTF;
@@ -249,11 +268,13 @@ describe('migration', function () {
     assert.equal(pooledStakingIsInternal, true);
 
     const members = await directMR.methods.members('2').call();
-    const allMembers = members.memberArray;
+    let allMembers = members.memberArray;
 
     const membersLeftToMigrateBeforeMigration = await ps.membersLeftToMigrate.call();
     assert(membersLeftToMigrateBeforeMigration.toString(), members.memberArray.length);
 
+
+    allMembers = allMembers.slice(0, 1);
     console.log(`Members to process: ${allMembers.length}`);
 
     for (let i = 0; i < allMembers.length; i++) {

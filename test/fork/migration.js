@@ -47,7 +47,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, me
   });
   for (let i = 1; i < members.length; i++) {
     console.log(`Voting from ${members[i]} for ${p}..`);
-    await logEvents(gv.submitVote(p, 1, {
+    logEvents(await gv.submitVote(p, 1, {
       from: members[i],
     }));
   }
@@ -58,7 +58,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, me
 
   if (memberType !== 3) {
     console.log(`Closing proposal..`);
-    await logEvents(gv.closeProposal(p, {
+    logEvents(await gv.closeProposal(p, {
       from: submitter,
     }));
   }
@@ -96,12 +96,12 @@ async function addProposal(master, gv, members, submitter) {
 
   for (let i = 1; i < members.length; i++) {
     console.log(`Voting from ${members[i]} for ${p}..`);
-    await logEvents(gv.submitVote(p, 1, {
+    logEvents(await gv.submitVote(p, 1, {
       from: members[i],
     }));
   }
 
-  await logEvents(gv.closeProposal(p.toNumber(), {
+  logEvents(await gv.closeProposal(p.toNumber(), {
     from: submitter
   }));
 
@@ -286,7 +286,7 @@ describe('migration', function () {
         console.log(`Skipping member: ${member}. He has no staker locked tokens.`);
         continue;
       }
-      await logEvents(ps.migrateStaker(member));
+      logEvents(await ps.migrateStaker(member));
 
       if (member !== firstBoardMember) {
         const lockedPostMigration = await tf.getStakerAllLockedTokens(member);

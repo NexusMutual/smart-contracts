@@ -50,11 +50,6 @@ contract NXMasterMock is NXMaster {
         owner = mrOwner[0];
     }
 
-    function _addContractNames() internal {
-        super._addContractNames();
-        allContractNames.push("PS");
-    }
-
     function setContractAddress(bytes2 contractName, address payable contractAddress) external {
         contractsActive[contractAddress] = true;
         allContractVersions[contractName] = contractAddress;

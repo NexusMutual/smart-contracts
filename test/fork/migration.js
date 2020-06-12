@@ -278,18 +278,9 @@ describe('migration', function () {
     const lockedBeforeMigration  = {};
 
     // TODO: enable all members here; DELETE the slice
-    for (let i = 0; i < allMembers.slice(0, 50).length; i ++) {
+    for (let i = 0; i < allMembers.slice(0, 100).length; i ++) {
       lockedBeforeMigration[allMembers[i]] =  await tf.getStakerAllLockedTokens(allMembers[i]);
     }
-
-    // const lockedBeforeMigration = await tf.getStakerAllLockedTokens(member);
-    //
-    // const lockedPostMigration = await tf.getStakerAllLockedTokens(member);
-    // assert.equal(lockedPostMigration.toString(), '0');
-    // const postMigrationStake = await ps.stakerDeposit(member);
-    // assert.equal(lockedBeforeMigration.toString(), postMigrationStake.toString());
-
-
 
     const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
     const MIGRATED_MEMBER_EVENT = 'MigratedMember';
@@ -323,6 +314,8 @@ describe('migration', function () {
       for (let migratedMemberEvent of migratedMemberEvents) {
         const migratedMember = migratedMemberEvent.args.member;
         console.log(`Finished migrating ${migratedMember}. Asserting migration values.`);
+        const lockedPostMigration = await tf.getStakerAllLockedTokens(migratedMember);
+        assert.equal(lockedPostMigration.toString(), '0');
         const postMigrationStake = await ps.stakerDeposit(migratedMember);
         if (lockedBeforeMigration[migratedMember] !== undefined) {
           assert.equal(lockedBeforeMigration[migratedMember].toString(), postMigrationStake.toString());

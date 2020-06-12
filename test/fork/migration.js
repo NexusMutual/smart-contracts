@@ -274,9 +274,12 @@ describe('migration', function () {
     let allMembers = members.memberArray;
     console.log(`Members to process: ${allMembers.length}`);
 
-    for (let i = 0; i < allMembers.slice(0, 3).length; i ++) {
-      const stakerStakedLen = await td.getStakerStakedContractLength(allMembers[i]);
-      console.log(`getStakerStakedContractLength ${stakerStakedLen}`);
+
+    const lockedBeforeMigration  = {};
+
+    // TODO: enable all members here; DELETE the slice
+    for (let i = 0; i < allMembers.slice(0, 50).length; i ++) {
+      lockedBeforeMigration[allMembers[i]] =  await tf.getStakerAllLockedTokens(allMembers[i]);
     }
 
     // const lockedBeforeMigration = await tf.getStakerAllLockedTokens(member);
@@ -289,9 +292,11 @@ describe('migration', function () {
 
 
     const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
+    const MIGRATED_MEMBER_EVENT = 'MigratedMember';
     let totalGasUsage = 0;
     let completed = false;
     let maxGasUsagePerCall = 0;
+    let totalCallCount = 0;
     while (!completed) {
       const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
@@ -306,12 +311,23 @@ describe('migration', function () {
       const [stakerMigrationCompleted] = tx.logs.filter(log => log.event === STAKER_MIGRATION_COMPLETED_EVENT);
       completed = stakerMigrationCompleted.args.completed;
       console.log(`Processing migration completed: ${completed}`);
+      totalCallCount++;
       const gasUsed = tx.receipt.gasUsed;
       totalGasUsage += gasUsed;
       if (maxGasUsagePerCall < gasUsed) {
         maxGasUsagePerCall = gasUsed;
       }
-      console.log(`gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage} | maxGasUsagePerCall ${maxGasUsagePerCall}`);
+      console.log(`gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage} | maxGasUsagePerCall ${maxGasUsagePerCall} | totalCallCount ${totalCallCount}`);
+
+      const migratedMemberEvents = tx.logs.filter(log => log.event === MIGRATED_MEMBER_EVENT);
+      for (let migratedMemberEvent of migratedMemberEvents) {
+        const migratedMember = migratedMemberEvent.args.member;
+        console.log(`Finished migrating ${migratedMember}. Asserting migration values.`);
+        const postMigrationStake = await ps.stakerDeposit(migratedMember);
+        if (lockedBeforeMigration[migratedMember] !== undefined) {
+          assert.equal(lockedBeforeMigration[migratedMember].toString(), postMigrationStake.toString());
+        }
+      }
     }
   });
 });

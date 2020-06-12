@@ -959,7 +959,7 @@ contract PooledStaking is MasterAware {
     // reset migration indexes
     processedToStakerIndex = 0;
     firstReward = 0;
-      emit StakersMigrationCompleted(false, processedToStakerIndex, firstReward);
+    emit StakersMigrationCompleted(true, processedToStakerIndex, firstReward);
     return true;
   }
 

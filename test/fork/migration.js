@@ -291,6 +291,7 @@ describe('migration', function () {
     const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
     let totalGasUsage = 0;
     let completed = false;
+    let maxGasUsagePerCall = 0;
     while (!completed) {
       const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
@@ -307,7 +308,10 @@ describe('migration', function () {
       console.log(`Processing migration completed: ${completed}`);
       const gasUsed = tx.receipt.gasUsed;
       totalGasUsage += gasUsed;
-      console.log(`gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage}`);
+      if (maxGasUsagePerCall < gasUsed) {
+        maxGasUsagePerCall = gasUsed;
+      }
+      console.log(`gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage} | maxGasUsagePerCall ${maxGasUsagePerCall}`);
     }
   });
 });

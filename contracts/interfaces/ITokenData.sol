@@ -94,4 +94,19 @@ interface ITokenData {
         uint _stakerIndex,
         uint _amount
     ) external;
+
+
+    function getStakerTotalEarnedStakeCommission(
+        address _stakerAddress
+    )
+    external
+    view
+    returns (uint totalCommissionEarned);
+
+    function getStakerTotalReedmedStakeCommission(
+        address _stakerAddress
+    )
+    external
+    view
+    returns(uint totalCommissionRedeemed);
 }

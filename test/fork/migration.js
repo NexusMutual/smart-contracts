@@ -294,7 +294,8 @@ describe('migration', function () {
     while (!completed) {
       const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
-      const gasEstimate = await ps.migrateStakers.estimateGas(iterations);
+      // const gasEstimate = await ps.migrateStakers.estimateGas(iterations);
+      const gasEstimate = 6 * 1e6;
       console.log(`gasEstimate: ${gasEstimate}`);
       const tx = await ps.migrateStakers(iterations, {
         gas: gasEstimate

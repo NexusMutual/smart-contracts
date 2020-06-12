@@ -884,6 +884,10 @@ contract PooledStaking is MasterAware {
     address member
   );
 
+  event DebugCommisions(
+    uint commissionsLeftToProcess
+  );
+
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
 
@@ -903,13 +907,22 @@ contract PooledStaking is MasterAware {
 
       emit DebugMemberProcessing(member);
 
-      if (tokenData.lastCompletedStakeCommission(member)
-        < tokenData.getStakerStakedContractLength(member) - 1) {
+      if (member == 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
+        continue;
+      }
+
+      uint commissionsLeftToProcess = tokenData.getStakerStakedContractLength(member)
+        - tokenData.lastCompletedStakeCommission(member);
+      emit DebugCommisions(commissionsLeftToProcess);
+
+      if (commissionsLeftToProcess > 0) {
         claimsReward._claimStakeCommission(iterationsLeft, member);
       }
 
-      if (tokenData.lastCompletedStakeCommission(member)
-          < tokenData.getStakerStakedContractLength(member) - 1) {
+      commissionsLeftToProcess = tokenData.getStakerStakedContractLength(member)
+      - tokenData.lastCompletedStakeCommission(member);
+      emit DebugCommisions(commissionsLeftToProcess);
+      if (commissionsLeftToProcess > 0) {
         processedToStakerIndex = memberIndex;
         emit StakersMigrationCompleted(false, memberIndex, firstReward);
         return false;
@@ -950,7 +963,7 @@ contract PooledStaking is MasterAware {
     // reset migration indexes
     processedToStakerIndex = 0;
     firstReward = 0;
-    emit StakersMigrationCompleted(false, processedToStakerIndex, firstReward);
+      emit StakersMigrationCompleted(false, processedToStakerIndex, firstReward);
     return true;
   }
 

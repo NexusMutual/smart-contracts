@@ -226,6 +226,7 @@ describe('migration', function () {
     this.gv = gv;
     this.tk = tk;
     this.pc = pc;
+    this.td = td;
     this.directMR = directMR;
 
     this.boardMembers = boardMembers;
@@ -233,7 +234,7 @@ describe('migration', function () {
   });
 
   it('migrates all data from old pooled staking system to new one', async function () {
-    const { pc, gv, master, mr, tf, directMR } = this;
+    const { pc, gv, master, mr, tf, directMR, td } = this;
     const { boardMembers, firstBoardMember } = this;
 
     console.log(`Deploying pooled staking..`);
@@ -271,9 +272,12 @@ describe('migration', function () {
 
     const members = await directMR.methods.members('2').call();
     let allMembers = members.memberArray;
-
-    allMembers = allMembers.slice(0, 1);
     console.log(`Members to process: ${allMembers.length}`);
+
+    for (let i = 0; i < allMembers.slice(0, 3).length; i ++) {
+      const stakerStakedLen = await td.getStakerStakedContractLength(allMembers[i]);
+      console.log(`getStakerStakedContractLength ${stakerStakedLen}`);
+    }
 
     // const lockedBeforeMigration = await tf.getStakerAllLockedTokens(member);
     //
@@ -282,11 +286,13 @@ describe('migration', function () {
     // const postMigrationStake = await ps.stakerDeposit(member);
     // assert.equal(lockedBeforeMigration.toString(), postMigrationStake.toString());
 
+
+
     const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
     let totalGasUsage = 0;
     let completed = false;
     while (!completed) {
-      const iterations = 50;
+      const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
       const gasEstimate = await ps.migrateStakers.estimateGas(iterations);
       console.log(`gasEstimate: ${gasEstimate}`);

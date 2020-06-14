@@ -294,9 +294,16 @@ describe('migration', function () {
       // const gasEstimate = await ps.migrateStakers.estimateGas(iterations);
       const gasEstimate = 6 * 1e6;
       console.log(`gasEstimate: ${gasEstimate}`);
+
+      const firstMember = allMembers[0];
+      const preCall = await td.lastCompletedStakeCommission(firstMember);
+
+      console.log(`preCall lastCompletedStakeCommission ${preCall.toString()} for ${firstMember}`);
       const tx = await ps.migrateStakers(iterations, {
         gas: gasEstimate
       });
+      const postCall = await td.lastCompletedStakeCommission(firstMember);
+      console.log(`postCall lastCompletedStakeCommission ${postCall.toString()}`);
       logEvents(tx);
 
       const [stakerMigrationCompleted] = tx.logs.filter(log => log.event === STAKER_MIGRATION_COMPLETED_EVENT);
@@ -304,6 +311,7 @@ describe('migration', function () {
       console.log(`Processing migration completed: ${completed}`);
       totalCallCount++;
       const gasUsed = tx.receipt.gasUsed;
+      console.log(JSON.stringify(tx.receipt, null, 2));
       totalGasUsage += gasUsed;
       if (maxGasUsagePerCall < gasUsed) {
         maxGasUsagePerCall = gasUsed;

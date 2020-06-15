@@ -22,6 +22,9 @@ import "../interfaces/MasterAware.sol";
 import "../interfaces/IPooledStaking.sol";
 import "../NXMToken.sol";
 import "../TokenController.sol";
+import "../TokenFunctions.sol";
+import "../TokenData.sol";
+import "../ClaimsReward.sol";
 import "../Governance.sol";
 import "../external/openzeppelin-solidity/math/SafeMath.sol";
 
@@ -93,7 +96,7 @@ contract PooledStaking is MasterAware {
     bool public initialized;
 
     NXMToken public token;
-    ITokenController public tokenController;
+    TokenController public tokenController;
 
     uint public MIN_STAKE;         // Minimum allowed stake per contract
     uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this
@@ -906,9 +909,9 @@ contract PooledStaking is MasterAware {
     function migrateStaker(address member) external {
 
         IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
-        ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
-        ITokenData tokenData = ITokenData(master.getLatestAddress("TD"));
-        IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
+        TokenFunctions tokenFunctions = TokenFunctions(master.getLatestAddress("TF"));
+        TokenData tokenData = TokenData(master.getLatestAddress("TD"));
+        ClaimsReward claimsReward = ClaimsReward(master.getLatestAddress("CR"));
 
         if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
             claimsReward._claimStakeCommission(10, member);
@@ -990,7 +993,7 @@ contract PooledStaking is MasterAware {
 
     function changeDependentContractAddress() public {
         token = NXMToken(master.tokenAddress());
-        tokenController = ITokenController(master.getLatestAddress("TC"));
+        tokenController = TokenController(master.getLatestAddress("TC"));
         initialize();
     }
 

@@ -92,7 +92,7 @@ contract('NXMaster: Emergency Pause', function([
     let address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
-    ps = await PooledStaking.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(

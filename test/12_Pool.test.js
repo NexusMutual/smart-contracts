@@ -103,7 +103,7 @@ contract('Pool', function([
     let address = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(address);
     fac = await FactoryMock.deployed();
-    ps = await PooledStaking.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(

@@ -48,7 +48,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     cr = await ClaimsReward.deployed();
-    ps = await PooledStaking.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mr.payJoiningFee(member1, {from: member1, value: fee});

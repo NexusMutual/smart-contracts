@@ -86,7 +86,7 @@ contract('unlock-fixes', function([
     pd = await PoolData.deployed();
     cl = await Claims.deployed();
     pc = await ProposalCategory.at(await nxms.getLatestAddress(toHex('PC')));
-    ps = await PooledStaking.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mr.payJoiningFee(member1, {from: member1, value: fee});

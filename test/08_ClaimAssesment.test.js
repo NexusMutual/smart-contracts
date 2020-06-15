@@ -119,7 +119,7 @@ contract('Claim: Assessment', function([
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     dsv = await DSValue.deployed();
-    ps = await PooledStaking.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(

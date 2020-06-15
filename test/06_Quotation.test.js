@@ -135,7 +135,7 @@ contract('Quotation', function([
     nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
-    ps = await PooledStaking.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     // await mr.payJoiningFee(owner, {

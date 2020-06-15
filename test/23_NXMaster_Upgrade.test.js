@@ -24,6 +24,7 @@ const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const NewInternalContract = artifacts.require('NewInternalContract');
 const NewProxyInternalContract = artifacts.require('NewProxyInternalContract');
 const NewDataInternalContract = artifacts.require('NewDataInternalContract');
+const PooledStaking = artifacts.require('PooledStakingMock');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -314,9 +315,15 @@ contract('NXMaster', function([
       let payOutRetry = await cd.payoutRetryTime();
       await increaseTime(payOutRetry / 1);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+      const psAddress = await nxms.getLatestAddress(toHex('PS'));
+      const ps = await PooledStaking.at(psAddress);
+
       await pl1.__callback(apiid, '');
       let cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
+
+      await ps.processPendingActions('100');
 
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
       await assertRevert(pl1.__callback(apiid, ''));

@@ -133,7 +133,7 @@ contract('Claim: Assessment 2', function([
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     gv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
-    ps = await PooledStaking.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await DSV.setRate(25);

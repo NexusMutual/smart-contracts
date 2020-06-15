@@ -1,8 +1,9 @@
+const { toHex, ether } = require('../test/utils/ethTools');
+
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
-const DSValue = artifacts.require('NXMDSValueMock');
 const NXMaster = artifacts.require('NXMasterMock');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
@@ -16,113 +17,90 @@ const Quotation = artifacts.require('Quotation');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
 const GovernanceMock = artifacts.require('GovernanceMock');
-const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategoryMock');
-const FactoryMock = artifacts.require('FactoryMock');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const PooledStaking = artifacts.require('PooledStakingMock');
-const {toHex} = require('../test/utils/ethTools');
 
-const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const POOL_ETHER = '3500000000000000000000';
-const POOL_ASSET = '50000000000000000000';
+const POOL_ETHER = ether('3500');
+const POOL_ASSET = ether('50');
+const JOINING_FEE = ether('2').div(1000); // 0.002
 
-module.exports = function(deployer, network, accounts) {
+module.exports = function (deployer, network, accounts) {
   deployer.then(async () => {
-    const Owner = accounts[0];
-    var nxms = await NXMaster.deployed();
-    proxyMaster = await OwnedUpgradeabilityProxy.new(nxms.address);
-    nxms = await NXMaster.at(proxyMaster.address);
+
+    const owner = accounts[0];
+    const masterImpl = await NXMaster.deployed();
+    const proxyMaster = await OwnedUpgradeabilityProxy.new(masterImpl.address);
+    const master = await NXMaster.at(proxyMaster.address);
+
     const tk = await NXMToken.deployed();
     const td = await TokenData.deployed();
     const tf = await TokenFunctions.deployed();
-    const tc = await TokenController.deployed();
-    const pl1 = await Pool1.deployed();
-    const pl2 = await Pool2.deployed();
+    const p1 = await Pool1.deployed();
+    const p2 = await Pool2.deployed();
     const pd = await PoolData.deployed();
     const qt = await Quotation.deployed();
     const qd = await QuotationDataMock.deployed();
     const cl = await Claims.deployed();
     const cr = await ClaimsReward.deployed();
     const cd = await ClaimsData.deployed();
-    const mcr = await MCR.deployed();
-    const dsv = await DSValue.deployed();
-    const gov = await GovernanceMock.deployed();
-    let propCat = await ProposalCategory.deployed();
-    const mr = await MemberRoles.deployed();
-    const factory = await FactoryMock.deployed();
-    const pooledStaking = await PooledStaking.deployed();
+    const mc = await MCR.deployed();
+    const dai = await DAI.deployed();
 
-    await pooledStaking.changeMasterAddress(nxms.address);
+    // deploy proxy implementations
+    const gvImpl = await GovernanceMock.deployed();
+    const mrImpl = await MemberRoles.deployed();
+    const pcImpl = await ProposalCategory.deployed();
+    const psImpl = await PooledStaking.deployed();
+    const tcImpl = await TokenController.deployed();
 
-    // let gvAdd = await nxms.getLatestAddress("GV");
-    // let mrAdd = await nxms.getLatestAddress("MR");
-    // let pcAdd = await nxms.getLatestAddress("PC");
-    let addr = [
-      qd.address,
-      td.address,
-      cd.address,
-      pd.address,
-      qt.address,
-      tf.address,
-      tc.address,
-      cl.address,
-      cr.address,
-      pl1.address,
-      pl2.address,
-      mcr.address,
-      gov.address,
-      propCat.address,
-      mr.address,
-      pooledStaking.address
-    ];
+    const addresses = [
+      qd, td, cd, pd, qt, tf, tcImpl, cl, cr, p1, p2, mc, gvImpl, pcImpl, mrImpl, psImpl,
+    ].map(c => c.address);
 
-    await nxms.initiateMaster(tk.address);
-    await nxms.addNewVersion(addr);
+    // initiate master
+    await master.initiateMaster(tk.address);
+    await master.addPooledStaking();
+    await master.addNewVersion(addresses);
 
-    // reduntant action of setting contract address
-    await nxms.setContractAddress(toHex('PS'), pooledStaking.address);
+    // fetch proxy contract addresses
+    const gvProxyAddress = await master.getLatestAddress(toHex('GV'));
+    const gv = await GovernanceMock.at(gvProxyAddress);
 
-    await proxyMaster.transferProxyOwnership(
-      await nxms.getLatestAddress('0x4756')
-    );
-    let pcAddress = await nxms.getLatestAddress('0x5043');
-    pc = await ProposalCategory.at(pcAddress);
-    let gvAddress = await nxms.getLatestAddress('0x4756');
-    let gv = await GovernanceMock.at(gvAddress);
+    const pcProxyAddress = await master.getLatestAddress(toHex('PC'));
+    const pc = await ProposalCategory.at(pcProxyAddress);
+
+    const tcProxyAddress = await master.getLatestAddress(toHex('TC'));
+    const tc = await TokenController.at(tcProxyAddress);
+
+    const mrProxyAddress = await master.getLatestAddress(toHex('MR'));
+    const mr = await MemberRoles.at(mrProxyAddress);
+
+    const psProxyAddress = await master.getLatestAddress(toHex('PS'));
+    const ps = await PooledStaking.at(psProxyAddress);
+
+    // transfer master ownership and init governance
+    await proxyMaster.transferProxyOwnership(gvProxyAddress);
     await gv._initiateGovernance();
     await pc.proposalCategoryInitiate();
     await pc.updateCategoryActionHashes();
-    const dai = await DAI.deployed();
-    // await qd.changeCurrencyAssetAddress('0x444149', dai.address);
-    // await qd.changeInvestmentAssetAddress('0x444149', dai.address);
-    await pl1.sendEther({from: Owner, value: POOL_ETHER});
-    await pl2.sendEther({from: Owner, value: POOL_ETHER}); //
-    await mcr.addMCRData(
-      13000,
-      '100000000000000000000',
-      '7000000000000000000000',
-      ['0x455448', '0x444149'],
-      [100, 15517],
-      20190103
-    );
-    await pl2.saveIADetails(
-      ['0x455448', '0x444149'],
-      [100, 15517],
-      20190103,
-      true
-    ); //testing
-    await dai.transfer(pl2.address, POOL_ASSET);
-    let mrInstance = await MemberRoles.at(
-      await nxms.getLatestAddress('0x4d52')
-    );
-    await mrInstance.payJoiningFee(Owner, {
-      from: Owner,
-      value: '2000000000000000'
-    });
 
-    await mrInstance.kycVerdict(Owner, true);
-    await mrInstance.addInitialABMembers([Owner]);
+    // fund pools
+    await p1.sendEther({ from: owner, value: POOL_ETHER });
+    await p2.sendEther({ from: owner, value: POOL_ETHER });
+    await dai.transfer(p2.address, POOL_ASSET);
+
+    // setup quotation data
+    // await qd.changeCurrencyAssetAddress(toHex('DAI'), dai.address);
+    // await qd.changeInvestmentAssetAddress(toHex('DAI'), dai.address);
+
+    // add mcr and ia details
+    const currencies = [toHex('ETH'), toHex('DAI')];
+    await p2.saveIADetails(currencies, [100, 15517], 20190103, true);
+    await mc.addMCRData(13000, ether('100'), ether('7000'), currencies, [100, 15517], 20190103);
+
+    await mr.payJoiningFee(owner, { from: owner, value: JOINING_FEE });
+    await mr.kycVerdict(owner, true);
+    await mr.addInitialABMembers([owner]);
   });
 };

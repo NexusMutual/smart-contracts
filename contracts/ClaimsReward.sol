@@ -73,12 +73,18 @@ contract ClaimsReward is Iupgradable {
         } else if (status >= 1 && status <= 5) {
             _changeClaimStatusMV(claimid, coverid, status);
         } else if (status == 12) { // when current status is "Claim Accepted Payout Pending"
-            bool succ = p1.sendClaimPayout(coverid, claimid, qd.getCoverSumAssured(coverid).mul(DECIMAL1E18),
-            qd.getCoverMemberAddress(coverid), qd.getCurrencyOfCover(coverid));
-            if (succ) {
+
+            uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
+            address payable coverHolder = qd.getCoverMemberAddress(coverid);
+            bytes4 coverCurrency = qd.getCurrencyOfCover(coverid);
+            bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, coverHolder, coverCurrency);
+
+            if (success) {
+                tf.burnStakedTokens(claimid, coverCurrency, sumAssured);
                 c1.setClaimStatus(claimid, 14);
             }
         }
+
         c1.changePendingClaimStart();
     }
 
@@ -262,7 +268,10 @@ contract ClaimsReward is Iupgradable {
             cd.changeFinalVerdict(claimid, 1);
             td.setDepositCN(coverid, false); // Unset flag
             tf.unlockCN(coverid);
-            p1.sendClaimPayout(coverid, claimid, sumAssured, qd.getCoverMemberAddress(coverid), curr); //send payout
+            bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, qd.getCoverMemberAddress(coverid), curr);
+            if (success) {
+                tf.burnStakedTokens(claimid, curr, sumAssured);
+            }
         }
     }
 

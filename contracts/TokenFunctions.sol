@@ -34,10 +34,8 @@ contract TokenFunctions is Iupgradable {
     PoolData internal pd;
     IPooledStaking pooledStaking;
 
-    uint private constant DECIMAL1E18 = uint(10) ** 18;
-
     event BurnCATokens(uint claimId, address addr, uint amount);
-    
+
     /**
      * @dev Sends commission to underwriter on purchase of staked smart contract.
      * @param _scAddress staker address.
@@ -48,16 +46,23 @@ contract TokenFunctions is Iupgradable {
         pooledStaking.pushReward(_scAddress, rewardValue);
     }
 
-     /**
-     * @dev Burns tokens staked against a Smart Contract Cover.
-     * Called when a claim submitted against this cover is accepted.
-     * @param coverid Cover Id.
-     */
-    function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external onlyInternal {
-        address scAddress;
-        (, scAddress) = qd.getscAddressOfCover(coverid);
-        uint tokenPrice = m1.calculateTokenPrice(curr);
-        uint burnNXMAmount = sumAssured.mul(DECIMAL1E18).div(tokenPrice);
+    /**
+    * @dev Deprecated
+    */
+    function burnStakerLockedToken(uint, bytes4, uint) external {
+        // noop
+    }
+
+    /**
+    * @dev Burns tokens staked on smart contract covered by coverId. Called when a payout is succesfully executed.
+    * @param coverId cover id
+    * @param coverCurrency cover currency
+    * @param sumAssured amount of $curr to burn
+    */
+    function burnStakedTokens(uint coverId, bytes4 coverCurrency, uint sumAssured) external onlyInternal {
+        (, address scAddress) = qd.getscAddressOfCover(coverId);
+        uint tokenPrice = m1.calculateTokenPrice(coverCurrency);
+        uint burnNXMAmount = sumAssured.mul(1e18).div(tokenPrice);
         pooledStaking.pushBurn(scAddress, burnNXMAmount);
     }
 

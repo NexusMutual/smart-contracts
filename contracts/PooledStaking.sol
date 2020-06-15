@@ -893,15 +893,6 @@ contract PooledStaking is MasterAware {
     address member
   );
 
-  function claimRewardsForMember(uint maxIteration, address member) external {
-    IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
-    claimsReward._claimStakeCommission(maxIteration, member);
-  }
-
-  function setProcessedToStakerIndex(uint value) external {
-    processedToStakerIndex = value;
-  }
-
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
 

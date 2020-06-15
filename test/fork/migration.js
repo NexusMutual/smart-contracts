@@ -296,10 +296,13 @@ describe('migration', function () {
 
     const lockedBeforeMigration  = {};
 
+    console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
     // TODO: enable all members here; DELETE the slice
     for (let i = 0; i < allMembers.slice(0, 100).length; i ++) {
       lockedBeforeMigration[allMembers[i]] =  await tf.getStakerAllLockedTokens(allMembers[i]);
     }
+
+    console.log(`Finished fetching.`);
 
     const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
     const MIGRATED_MEMBER_EVENT = 'MigratedMember';

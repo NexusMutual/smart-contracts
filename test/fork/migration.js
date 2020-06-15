@@ -329,7 +329,7 @@ describe('migration', function () {
       console.log(`Processing migration completed: ${completed}`);
       totalCallCount++;
       const gasUsed = tx.receipt.gasUsed;
-      console.log(JSON.stringify(tx.receipt, null, 2));
+      // console.log(JSON.stringify(tx.receipt, null, 2));
       totalGasUsage += gasUsed;
       if (maxGasUsagePerCall < gasUsed) {
         maxGasUsagePerCall = gasUsed;

@@ -214,6 +214,7 @@ contract ClaimsReward is Iupgradable {
      */
     function claimAllPendingReward(uint records) public isMemberAndcheckPause {
         _claimRewardToBeDistributed(records);
+        pooledStaking.withdrawReward(msg.sender);
         uint governanceRewards = gv.claimReward(msg.sender, records);
         if (governanceRewards > 0) {
             require(tk.transfer(msg.sender, governanceRewards));
@@ -226,14 +227,10 @@ contract ClaimsReward is Iupgradable {
      * @return total reward amount of the user
      */
     function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
-        require(!pooledStaking.hasPendingActions(), "Pooled staking actions are not all processed yet.");
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint pooledStakingReward = pooledStaking.stakerReward(_add);
-        uint stakedTokens = pooledStaking.stakerDeposit(_add);
         uint governanceReward = gv.getPendingReward(_add);
-        uint lockedCA = tc.tokensUnlockable(_add, "CLA");
-        total = caReward.add(stakedTokens).add(pooledStakingReward)
-            .add(governanceReward).add(lockedCA);
+        total = caReward.add(pooledStakingReward).add(governanceReward);
     }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.

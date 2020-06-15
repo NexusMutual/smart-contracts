@@ -161,7 +161,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
               }
             );
 
-            await ps.processPendingActions('100');
+            // await ps.processPendingActions('100');
 
             await ps.requestUnstake([stakedContract], [stakeTokens], 0, {
               from: member2

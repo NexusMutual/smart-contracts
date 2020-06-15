@@ -591,6 +591,9 @@ contract('Quotation', function([
                 vrsdata[2],
                 {from: coverHolder}
               );
+
+              await ps.processPendingActions('100');
+
               const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
@@ -684,8 +687,6 @@ contract('Quotation', function([
             await tk.transfer(staker1, tokens);
             await tk.transfer(staker2, tokens);
 
-            await ps.processPendingActions('100');
-
             await tk.approve(ps.address, stakeTokens, {
               from: staker1
             });
@@ -708,7 +709,6 @@ contract('Quotation', function([
                 from: staker2
               }
             );
-            await ps.processPendingActions('100');
           });
 
           describe('Purchase Cover With Ether', function() {

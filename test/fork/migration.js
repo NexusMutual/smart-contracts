@@ -289,22 +289,6 @@ describe('migration', function () {
     assert.equal(pooledStakingIsInternal, true);
 
 
-    const claimRewardsIterations = 50;
-    console.log(`Withdrawing rewards for ${firstBoardMember} with ${claimRewardsIterations} iterations..`);
-
-    let stakerTotalEarnedStakeCommission = await td.getStakerTotalEarnedStakeCommission(firstBoardMember);
-    let stakerTotalRedeemedStakeCommission = await td.getStakerTotalReedmedStakeCommission(firstBoardMember);
-    const differencePreClaim = stakerTotalEarnedStakeCommission.sub(stakerTotalRedeemedStakeCommission);
-    console.log(`Rewards left to claim ${differencePreClaim.toString()}`);
-    console.log(`extracting commissions for owner`);
-    await ps.claimRewardsForMember(claimRewardsIterations, firstBoardMember);
-
-    stakerTotalEarnedStakeCommission = await td.getStakerTotalEarnedStakeCommission(firstBoardMember);
-    stakerTotalRedeemedStakeCommission = await td.getStakerTotalReedmedStakeCommission(firstBoardMember);
-    const differencePostClaim = stakerTotalEarnedStakeCommission.sub(stakerTotalRedeemedStakeCommission);
-    console.log(`Rewards left to claim ${differencePostClaim.toString()}`);
-
-
     const members = await directMR.methods.members('2').call();
     let allMembers = members.memberArray;
     console.log(`Members to process: ${allMembers.length}`);
@@ -324,12 +308,11 @@ describe('migration', function () {
     let maxGasUsagePerCall = 0;
     let totalCallCount = 0;
 
-    await ps.setProcessedToStakerIndex(290);
     while (!completed) {
       const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
       // const gasEstimate = await ps.migrateStakers.estimateGas(iterations);
-      const gasEstimate = 8e6;
+      const gasEstimate = 6e6;
       console.log(`gasEstimate: ${gasEstimate}`);
 
       const firstMember = allMembers[0];
@@ -348,7 +331,6 @@ describe('migration', function () {
       console.log(`Processing migration completed: ${completed}`);
       totalCallCount++;
       const gasUsed = tx.receipt.gasUsed;
-      // console.log(JSON.stringify(tx.receipt, null, 2));
       totalGasUsage += gasUsed;
       if (maxGasUsagePerCall < gasUsed) {
         maxGasUsagePerCall = gasUsed;

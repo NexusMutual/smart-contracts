@@ -1,5 +1,5 @@
 const node = {
-  gasLimit: 8e6, // Maximum gas per block
+  gasLimit: 6e6, // Maximum gas per block
   // When the vmErrorsOnRPCResponse setting value is:
   //    FALSE: thrown errors contain tx hash, blockHash, hasUsed but have a generic error message
   //    TRUE:  thrown errors contain the exact error (out of gas, or revert) but no transaction details

@@ -888,6 +888,20 @@ contract PooledStaking is MasterAware {
     uint commissionsLeftToProcess
   );
 
+  event DebugClaimStakeCommissionsCall(
+    uint iterations,
+    address member
+  );
+
+  function claimRewardsForMember(uint maxIteration, address member) external {
+    IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
+    claimsReward._claimStakeCommission(maxIteration, member);
+  }
+
+  function setProcessedToStakerIndex(uint value) external {
+    processedToStakerIndex = value;
+  }
+
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
 
@@ -915,6 +929,7 @@ contract PooledStaking is MasterAware {
       emit DebugCommisions(commissionsLeftToProcess);
 
       if (commissionsLeftToProcess > 0) {
+        emit DebugClaimStakeCommissionsCall(iterationsLeft, member);
         claimsReward._claimStakeCommission(iterationsLeft, member);
       }
 

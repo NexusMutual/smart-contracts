@@ -327,19 +327,18 @@ contract('ClaimsReward', function([
     it('9.4 should be able to claim reward and unlock all unlockable tokens', async function() {
       let proposalIds = [];
       await cr.claimAllPendingReward(20, {from: staker1});
-      await ps.withdrawReward(staker1);
-      await tf.unlockStakerUnlockableTokens(staker1);
       (await cr.getAllPendingRewardOfUser(staker1))
         .toString()
-        .should.be.equal(stakeTokens.toString());
+        .should.be.equal((0).toString());
     });
     it('9.5 should increase balance of staker', async function() {
-      (await tk.balanceOf(staker1)).toString().should.be.equal(
-        new BN(initialBalance.toString())
-          .add(new BN(rewardToGet.toString()))
-          .sub(new BN(stakeTokens.toString()))
-          .toString()
-      );
+      (await tk.balanceOf(staker1))
+        .toString()
+        .should.be.equal(
+          new BN(initialBalance.toString())
+            .add(new BN(rewardToGet.toString()))
+            .toString()
+        );
     });
     it('9.6 should decrease locked staked tokens of staker', async function() {
       (await ps.stakerDeposit(staker1))

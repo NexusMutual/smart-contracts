@@ -484,7 +484,7 @@ contract PooledStakingMock is MasterAware {
         }
     }
 
-    function withdrawReward(address stakerAddress) external whenNotPaused onlyMember {
+    function withdrawReward(address stakerAddress) external whenNotPaused {
 
         uint amount = stakers[stakerAddress].reward;
         stakers[stakerAddress].reward = 0;

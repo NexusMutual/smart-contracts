@@ -17,13 +17,15 @@
 
 pragma solidity ^0.5.7;
 
+// note: MasterAware is not an interface, would be good to move to a folder like "base"
 import "../interfaces/MasterAware.sol";
+import "../interfaces/IPooledStaking.sol";
 import "../NXMToken.sol";
 import "../TokenController.sol";
 import "../Governance.sol";
 import "../external/openzeppelin-solidity/math/SafeMath.sol";
 
-contract PooledStakingMock is MasterAware {
+contract PooledStaking is MasterAware {
     using SafeMath for uint;
 
     /* Data types */
@@ -38,6 +40,9 @@ contract PooledStakingMock is MasterAware {
 
         // amount pending to be subtracted after all unstake requests will be processed
         mapping(address => uint) pendingUnstakeRequestsTotal;
+
+        // flag to indicate the presence of this staker in the array of stakers of each contract
+        mapping(address => bool) isInContractStakers;
     }
 
     struct Burn {
@@ -88,7 +93,7 @@ contract PooledStakingMock is MasterAware {
     bool public initialized;
 
     NXMToken public token;
-    TokenController public tokenController;
+    ITokenController public tokenController;
 
     uint public MIN_STAKE;         // Minimum allowed stake per contract
     uint public MAX_EXPOSURE;      // Stakes sum must be less than the deposit amount times this
@@ -143,15 +148,15 @@ contract PooledStakingMock is MasterAware {
 
     /* Getters and view functions */
 
-    function contractStakerCount(address contractAddress) public view returns (uint) {
+    function contractStakerCount(address contractAddress) external view returns (uint) {
         return contractStakers[contractAddress].length;
     }
 
-    function contractStakerAtIndex(address contractAddress, uint stakerIndex) public view returns (address) {
+    function contractStakerAtIndex(address contractAddress, uint stakerIndex) external view returns (address) {
         return contractStakers[contractAddress][stakerIndex];
     }
 
-    function contractStakersArray(address contractAddress) public view returns (address[] memory _stakers) {
+    function contractStakersArray(address contractAddress) external view returns (address[] memory _stakers) {
         return contractStakers[contractAddress];
     }
 
@@ -174,25 +179,25 @@ contract PooledStakingMock is MasterAware {
         return stakedOnContract;
     }
 
-    function stakerContractCount(address staker) public view returns (uint) {
+    function stakerContractCount(address staker) external view returns (uint) {
         return stakers[staker].contracts.length;
     }
 
-    function stakerContractAtIndex(address staker, uint contractIndex) public view returns (address) {
+    function stakerContractAtIndex(address staker, uint contractIndex) external view returns (address) {
         return stakers[staker].contracts[contractIndex];
     }
 
-    function stakerContractsArray(address staker) public view returns (address[] memory) {
+    function stakerContractsArray(address staker) external view returns (address[] memory) {
         return stakers[staker].contracts;
     }
 
-    function stakerContractStake(address staker, address contractAddress) public view returns (uint) {
+    function stakerContractStake(address staker, address contractAddress) external view returns (uint) {
         uint stake = stakers[staker].stakes[contractAddress];
         uint deposit = stakers[staker].deposit;
         return stake < deposit ? stake : deposit;
     }
 
-    function stakerContractPendingUnstakeTotal(address staker, address contractAddress) public view returns (uint) {
+    function stakerContractPendingUnstakeTotal(address staker, address contractAddress) external view returns (uint) {
         return stakers[staker].pendingUnstakeRequestsTotal[contractAddress];
     }
 
@@ -253,7 +258,7 @@ contract PooledStakingMock is MasterAware {
         return deposit.sub(locked);
     }
 
-    function unstakeRequestAtIndex(uint unstakeRequestId) public view returns (
+    function unstakeRequestAtIndex(uint unstakeRequestId) external view returns (
         uint amount, uint unstakeAt, address contractAddress, address stakerAddress, uint next
     ) {
         UnstakeRequest storage unstakeRequest = unstakeRequests[unstakeRequestId];
@@ -330,24 +335,33 @@ contract PooledStakingMock is MasterAware {
             uint newStake = _stakes[i];
             bool isNewStake = i >= oldLength;
 
-            require(newStake >= MIN_STAKE, "Minimum stake amount not met");
-            require(newStake <= newDeposit, "Cannot stake more than deposited");
-
             if (!isNewStake) {
                 require(contractAddress == staker.contracts[i], "Unexpected contract order");
                 require(oldStake <= newStake, "New stake is less than previous stake");
             }
 
             if (oldStake == newStake) {
+
+                // if there were burns but the stake was not updated, update it now
+                if (initialStake != newStake) {
+                    staker.stakes[contractAddress] = newStake;
+                }
+
+                totalStaked = totalStaked.add(newStake);
+
                 // no other changes to this contract
                 continue;
             }
+
+            require(newStake >= MIN_STAKE, "Minimum stake amount not met");
+            require(newStake <= newDeposit, "Cannot stake more than deposited");
 
             if (isNewStake) {
                 staker.contracts.push(contractAddress);
             }
 
-            if (isNewStake || initialStake == 0) {
+            if (isNewStake || !staker.isInContractStakers[contractAddress]) {
+                staker.isInContractStakers[contractAddress] = true;
                 contractStakers[contractAddress].push(msg.sender);
             }
 
@@ -499,7 +513,10 @@ contract PooledStakingMock is MasterAware {
         emit RewardRequested(contractAddress, amount);
     }
 
-    function processPendingActions() public whenNotPaused returns (bool) {
+    function processPendingActions(uint maxIterations) public whenNotPaused returns (bool) {
+
+        uint iterationsLeft = maxIterations;
+        bool finished;
 
         while (true) {
 
@@ -527,8 +544,9 @@ contract PooledStakingMock is MasterAware {
                 (!canReward || burnedAt < rewardedAt)
             ) {
 
-                // O(n)
-                if (!_processBurn()) {
+                (finished, iterationsLeft) = _processBurn(iterationsLeft);
+
+                if (!finished) {
                     emit PendingActionsProcessed(false);
                     return false;
                 }
@@ -541,16 +559,20 @@ contract PooledStakingMock is MasterAware {
                 (!canReward || unstakeAt < rewardedAt)
             ) {
 
-                if (!_processFirstUnstakeRequest()) {
+                // _processFirstUnstakeRequest is O(1) so we'll handle the iteration checks here
+                if (iterationsLeft == 0) {
                     emit PendingActionsProcessed(false);
                     return false;
                 }
 
+                _processFirstUnstakeRequest();
+                --iterationsLeft;
                 continue;
             }
 
-            // O(n)
-            if (!_processFirstReward()) {
+            (finished, iterationsLeft) = _processFirstReward(iterationsLeft);
+
+            if (!finished) {
                 emit PendingActionsProcessed(false);
                 return false;
             }
@@ -561,13 +583,17 @@ contract PooledStakingMock is MasterAware {
         return true;
     }
 
-    function _processBurn() internal returns (bool) {
+    function _processBurn(uint maxIterations) internal returns (bool finished, uint iterationsLeft) {
+
+        iterationsLeft = maxIterations;
 
         address _contractAddress = burn.contractAddress;
-        (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
+        uint _stakedOnContract;
+
+        (_stakedOnContract, finished, iterationsLeft) = _calculateContractStake(_contractAddress, iterationsLeft);
 
         if (!finished) {
-            return false;
+            return (false, iterationsLeft);
         }
 
         address[] storage _contractStakers = contractStakers[_contractAddress];
@@ -575,7 +601,6 @@ contract PooledStakingMock is MasterAware {
 
         uint _totalBurnAmount = burn.amount;
         uint _actualBurnAmount = contractBurned;
-        uint previousGas = gasleft();
 
         if (_totalBurnAmount > _stakedOnContract) {
             _totalBurnAmount = _stakedOnContract;
@@ -583,13 +608,13 @@ contract PooledStakingMock is MasterAware {
 
         for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
-            if (5 * gasleft() < 4 * previousGas) {
+            if (iterationsLeft == 0) {
                 contractBurned = _actualBurnAmount;
                 processedToStakerIndex = i;
-                return false;
+                return (false, iterationsLeft);
             }
 
-            previousGas = gasleft();
+            --iterationsLeft;
 
             Staker storage staker = stakers[_contractStakers[i]];
             uint _stakerBurnAmount;
@@ -605,6 +630,7 @@ contract PooledStakingMock is MasterAware {
             // if we got here, the stake is explicitly set to 0
             // the staker is removed from the contract stakers array
             // and we will add the staker back if he stakes again
+            staker.isInContractStakers[_contractAddress] = false;
             _contractStakers[i] = _contractStakers[_stakerCount - 1];
             _contractStakers.pop();
 
@@ -621,7 +647,7 @@ contract PooledStakingMock is MasterAware {
         token.burn(_actualBurnAmount);
         emit Burned(_contractAddress, _actualBurnAmount);
 
-        return true;
+        return (true, iterationsLeft);
     }
 
     function _burnStaker(
@@ -663,28 +689,37 @@ contract PooledStakingMock is MasterAware {
         staker.stakes[_contractAddress] = _newStake;
     }
 
-    function _calculateContractStake(address _contractAddress) internal returns (uint _stakedOnContract, bool finished) {
+    function _calculateContractStake(
+        address _contractAddress, uint maxIterations
+    ) internal returns (
+        uint _stakedOnContract, bool finished, uint iterationsLeft
+    ) {
+
+        iterationsLeft = maxIterations;
 
         if (isContractStakeCalculated) {
             // use previously calculated staked amount
-            return (contractStaked, true);
+            return (contractStaked, true, iterationsLeft);
         }
 
         address[] storage _contractStakers = contractStakers[_contractAddress];
         uint _stakerCount = _contractStakers.length;
-        uint previousGas = gasleft();
+        uint startIndex = processedToStakerIndex;
+
+        if (startIndex != 0) {
+            _stakedOnContract = contractStaked;
+        }
 
         // calculate amount staked on contract
-        for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
+        for (uint i = startIndex; i < _stakerCount; i++) {
 
-            // stop if the cycle consumed more than 20% of the remaning gas
-            // gasleft() < previousGas * 4/5
-            if (5 * gasleft() < 4 * previousGas) {
+            if (iterationsLeft == 0) {
                 processedToStakerIndex = i;
-                return (_stakedOnContract, false);
+                contractStaked = _stakedOnContract;
+                return (_stakedOnContract, false, iterationsLeft);
             }
 
-            previousGas = gasleft();
+            --iterationsLeft;
 
             Staker storage staker = stakers[_contractStakers[i]];
             uint deposit = staker.deposit;
@@ -697,15 +732,10 @@ contract PooledStakingMock is MasterAware {
         isContractStakeCalculated = true;
         processedToStakerIndex = 0;
 
-        return (_stakedOnContract, true);
+        return (_stakedOnContract, true, iterationsLeft);
     }
 
-    function _processFirstUnstakeRequest() internal returns (bool) {
-
-        // unstake request processing is O(1) and was calculated to consume around 100k
-        if (gasleft() < 11e4) {
-            return false;
-        }
+    function _processFirstUnstakeRequest() internal {
 
         uint firstRequest = unstakeRequests[0].next;
         UnstakeRequest storage unstakeRequest = unstakeRequests[firstRequest];
@@ -729,20 +759,22 @@ contract PooledStakingMock is MasterAware {
         delete unstakeRequests[firstRequest];
 
         emit Unstaked(contractAddress, stakerAddress, requestedAmount);
-
-        return true;
     }
 
-    function _processFirstReward() internal returns (bool) {
+    function _processFirstReward(uint maxIterations) internal returns (bool finished, uint iterationsLeft) {
+
+        iterationsLeft = maxIterations;
 
         Reward storage reward = rewards[firstReward];
         address _contractAddress = reward.contractAddress;
         uint _totalRewardAmount = reward.amount;
 
-        (uint _stakedOnContract, bool finished) = _calculateContractStake(_contractAddress);
+        uint _stakedOnContract;
+
+        (_stakedOnContract, finished, iterationsLeft) = _calculateContractStake(_contractAddress, iterationsLeft);
 
         if (!finished) {
-            return false;
+            return (false, iterationsLeft);
         }
 
         address[] storage _contractStakers = contractStakers[_contractAddress];
@@ -752,20 +784,29 @@ contract PooledStakingMock is MasterAware {
 
         for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
-            if (5 * gasleft() < 4 * previousGas) {
+            if (iterationsLeft == 0) {
                 contractRewarded = _actualRewardAmount;
                 processedToStakerIndex = i;
-                return false;
+                return (false, iterationsLeft);
             }
 
+            --iterationsLeft;
+
             previousGas = gasleft();
+            address _stakerAddress = _contractStakers[i];
 
             (uint _stakerRewardAmount, uint _stake) = _rewardStaker(
-                _contractStakers[i], _contractAddress, _totalRewardAmount, _stakedOnContract
+                _stakerAddress, _contractAddress, _totalRewardAmount, _stakedOnContract
             );
 
             // remove 0-amount stakers, similar to what we're doing when processing burns
             if (_stake == 0) {
+
+                // mark the user as not present in contract stakers array
+                Staker storage staker = stakers[_stakerAddress];
+                staker.isInContractStakers[_contractAddress] = false;
+
+                // remove the staker from the contract stakers array
                 _contractStakers[i] = _contractStakers[_stakerCount - 1];
                 _contractStakers.pop();
                 i--;
@@ -789,7 +830,7 @@ contract PooledStakingMock is MasterAware {
         tokenController.mint(address(this), _actualRewardAmount);
         emit Rewarded(_contractAddress, _actualRewardAmount);
 
-        return true;
+        return (true, iterationsLeft);
     }
 
     function _rewardStaker(
@@ -852,15 +893,105 @@ contract PooledStakingMock is MasterAware {
         MIN_UNSTAKE = 20 ether;
         MAX_EXPOSURE = 10;
         UNSTAKE_LOCK_TIME = 90 days;
+    }
 
-        // TODO: implement staking migration here
+    uint processedMigrationMembersIndex = 0;
+
+    event StakerMigrationProcessed(
+        address member,
+        uint[] stakedAllocations,
+        address[] stakedAddresses
+    );
+
+    function migrateStaker(address member) external {
+
+        IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
+        ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
+        ITokenData tokenData = ITokenData(master.getLatestAddress("TD"));
+        IClaimsReward claimsReward = IClaimsReward(master.getLatestAddress("CR"));
+
+        if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
+            claimsReward._claimStakeCommission(10, member);
+            tokenFunctions.unlockStakerUnlockableTokens(member);
+        }
+
+        uint totalStakerLockedTokens = 0;
+
+        uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
+        uint[] memory stakedAllocations = new uint[](stakedContractsCount);
+        address[] memory stakedAddresses = new address[](stakedContractsCount);
+
+        uint nonZeroStakesCount = 0;
+        for (uint i = 0; i < stakedContractsCount; i++) {
+            uint stakerContractIndex;
+            stakedAddresses[i] = tokenData.getStakerStakedContractByIndex(member, i);
+            stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
+            uint stakedAmount;
+            (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
+            stakedAllocations[i] = stakedAmount;
+
+            if (stakedAmount > 0) {
+                nonZeroStakesCount++;
+                totalStakerLockedTokens = totalStakerLockedTokens.add(stakedAmount);
+
+                tokenData.pushBurnedTokens(member, i, stakedAmount);
+                bytes32 reason = keccak256(abi.encodePacked("UW", member, stakedAddresses[i], stakerContractIndex));
+                tokenController.burnLockedTokens(member, reason, stakedAmount);
+            }
+        }
+
+        tokenController.mint(address(this), totalStakerLockedTokens);
+
+        if (totalStakerLockedTokens > 0) {
+            stakeForMember(member, totalStakerLockedTokens, stakedAddresses, stakedAllocations, nonZeroStakesCount);
+        }
+    }
+
+    function stakeForMember(address member,
+        uint amount,
+        address[] memory unfilteredContracts,
+        uint[] memory unfilteredAllocations,
+        uint nonZeroStakesCount
+    ) internal whenNotPaused noPendingActions {
+        Staker storage staker = stakers[member];
+
+        uint[] memory _allocations = new uint[](nonZeroStakesCount);
+        address[] memory _contracts = new address[](nonZeroStakesCount);
+        uint i = 0;
+        for (uint j = 0; j < unfilteredContracts.length; j++) {
+            if (unfilteredAllocations[j] > 0) {
+                _allocations[i] = unfilteredAllocations[i];
+                _contracts[i] = unfilteredContracts[i];
+                i++;
+            }
+        }
+        emit StakerMigrationProcessed(member, _allocations, _contracts);
+
+        uint totalStaked;
+        staker.deposit = amount;
+
+        for (uint i = 0; i < _contracts.length; i++) {
+            address contractAddress = _contracts[i];
+
+            require(_allocations[i] <= amount, "Cannot allocate more than staked");
+            staker.stakes[contractAddress] = _allocations[i];
+            totalStaked = _allocations[i];
+
+            emit Staked(contractAddress, member, _allocations[i]);
+        }
+
+        require(
+            totalStaked <= staker.deposit.mul(MAX_EXPOSURE),
+            "Total stake exceeds maximum allowed"
+        );
+
+        emit Deposited(member, amount);
     }
 
     function changeDependentContractAddress() public {
         token = NXMToken(master.tokenAddress());
-        tokenController = TokenController(master.getLatestAddress("TC"));
+        tokenController = ITokenController(master.getLatestAddress("TC"));
         initialize();
     }
 
 }
-

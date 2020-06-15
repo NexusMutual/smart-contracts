@@ -921,32 +921,15 @@ contract PooledStaking is MasterAware {
 
       emit DebugMemberProcessing(member);
 
-//      uint commissionsLeftToProcess = tokenData.getStakerStakedContractLength(member)
-//        - tokenData.lastCompletedStakeCommission(member);
+      uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
 
       uint commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member) - tokenData.getStakerTotalReedmedStakeCommission(member);
 
       emit DebugCommisions(commissionsLeftToProcess);
 
       if (commissionsLeftToProcess > 0) {
-        emit DebugClaimStakeCommissionsCall(iterationsLeft, member);
-        claimsReward._claimStakeCommission(iterationsLeft, member);
+        claimsReward._claimStakeCommission(stakedContractsCount, member);
       }
-
-//      commissionsLeftToProcess = tokenData.getStakerStakedContractLength(member)
-//      - tokenData.lastCompletedStakeCommission(member);
-
-      commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member) - tokenData.getStakerTotalReedmedStakeCommission(member);
-
-      emit DebugCommisions(commissionsLeftToProcess);
-
-      if (commissionsLeftToProcess > 0) {
-        processedToStakerIndex = memberIndex;
-        emit StakersMigrationCompleted(false, memberIndex, firstReward);
-        return false;
-      }
-
-      uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
 
       for (uint i = firstReward; i < stakedContractsCount; i++) {
         if (iterationsLeft == 0) {

@@ -324,12 +324,12 @@ describe('migration', function () {
     let maxGasUsagePerCall = 0;
     let totalCallCount = 0;
 
-    await ps.setProcessedToStakerIndex(117);
+    await ps.setProcessedToStakerIndex(290);
     while (!completed) {
-      const iterations = 30;
+      const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
       // const gasEstimate = await ps.migrateStakers.estimateGas(iterations);
-      const gasEstimate = 8 * 1e6;
+      const gasEstimate = 8e6;
       console.log(`gasEstimate: ${gasEstimate}`);
 
       const firstMember = allMembers[0];

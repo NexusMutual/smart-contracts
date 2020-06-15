@@ -1167,23 +1167,27 @@ contract('Quotation', function([
           const totalFee = new BN(fee.toString()).add(
             new BN(coverDetails[1].toString())
           );
-          coverDetails[4] = 7972408607012;
+          await cad.transfer(newMember5, coverDetailsDai[1]);
+          await cad.approve(qt.address, coverDetailsDai[1], {
+            from: newMember5
+          });
+          coverDetailsDai[4] = 7972408607012;
           var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
+            coverDetailsDai,
+            toHex('DAI'),
             coverPeriod,
             smartConAdd,
             qt.address
           );
           await qt.initiateMembershipAndCover(
             smartConAdd,
-            toHex('ETH'),
-            coverDetails,
+            toHex('DAI'),
+            coverDetailsDai,
             coverPeriod,
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            {from: newMember5, value: totalFee}
+            {from: newMember5, value: fee}
           );
           await assertRevert(qt.kycVerdict(newMember5, true));
           actionHash = encode(
@@ -1193,72 +1197,6 @@ contract('Quotation', function([
           );
           await gvProp(28, actionHash, oldMR, oldGv, 3);
           (await td.walletAddress()).should.be.equal(owner);
-        });
-
-        it('6.35 should get membership but not cover if quote expires for ETH', async function() {
-          // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-          //   from: newMember4
-          // });
-          // const totalFee = new BN(fee.toString()).add(
-          //   new BN(coverDetails[1].toString())
-          // );
-          // coverDetails[4] = 7972408607013;
-          // var vrsdata = await getQuoteValues(
-          //   coverDetails,
-          //   toHex('ETH'),
-          //   coverPeriod,
-          //   smartConAdd,
-          //   qt.address
-          // );
-          // await qt.initiateMembershipAndCover(
-          //   smartConAdd,
-          //   toHex('ETH'),
-          //   coverDetails,
-          //   coverPeriod,
-          //   vrsdata[0],
-          //   vrsdata[1],
-          //   vrsdata[2],
-          //   { from: newMember4, value: totalFee }
-          // );
-          // console.log('Initiate membership and cover-1 succeded');
-          // await assertRevert(
-          //   qt.initiateMembershipAndCover(
-          //     smartConAdd,
-          //     toHex('ETH'),
-          //     coverDetails,
-          //     coverPeriod,
-          //     vrsdata[0],
-          //     vrsdata[1],
-          //     vrsdata[2],
-          //     { from: newMember4, value: totalFee }
-          //   )
-          // );
-          // coverDetails[4] = 7972408607213;
-          // var vrsdata = await getQuoteValues(
-          //   coverDetails,
-          //   toHex('ETH'),
-          //   coverPeriod,
-          //   smartConAdd,
-          //   qt.address
-          // );
-          // await assertRevert(
-          //   qt.initiateMembershipAndCover(
-          //     smartConAdd,
-          //     toHex('ETH'),
-          //     coverDetails,
-          //     coverPeriod,
-          //     vrsdata[0],
-          //     vrsdata[1],
-          //     vrsdata[2],
-          //     { from: newMember4, value: totalFee }
-          //   )
-          // );
-          // const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
-          // const newCoverDetails = coverDetails.slice();
-          // newCoverDetails[3] = (await latestTime()) - 100;
-          // await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          // console.log('changeHoldedCoverDetails succeded');
-          // await qt.kycVerdict(newMember4, true);
         });
 
         it('6.36 should revert if quote validity expires', async function() {

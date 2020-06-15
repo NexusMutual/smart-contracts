@@ -28,7 +28,7 @@ import "../ClaimsReward.sol";
 import "../Governance.sol";
 import "../external/openzeppelin-solidity/math/SafeMath.sol";
 
-contract PooledStaking is MasterAware {
+contract PooledStakingMock is MasterAware {
     using SafeMath for uint;
 
     /* Data types */

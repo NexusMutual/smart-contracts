@@ -158,24 +158,6 @@ describe('migration', function () {
 
     const firstBoardMember = owners.memberArray[0];
 
-    // const ownerStakedContractCount = await td.getStakerStakedContractLength(firstBoardMember);
-    // console.log(`Owner ${firstBoardMember} has stakes on  ${ownerStakedContractCount} contracts`);
-    // const claimRewardsIterations = 50;
-    // console.log(`Withdrawing rewards for ${firstBoardMember} with ${claimRewardsIterations} iterations..`);
-    //
-    // let stakerTotalEarnedStakeCommission = await td.getStakerTotalEarnedStakeCommission(firstBoardMember);
-    // let stakerTotalRedeemedStakeCommission = await td.getStakerTotalReedmedStakeCommission(firstBoardMember);
-    // const differencePreClaim = stakerTotalEarnedStakeCommission.sub(stakerTotalRedeemedStakeCommission);
-    // console.log(`Rewards left to claim ${differencePreClaim.toString()}`);
-    // await oldCR.claimAllPendingReward(claimRewardsIterations, {
-    //   from: firstBoardMember
-    // });
-    //
-    // stakerTotalEarnedStakeCommission = await td.getStakerTotalEarnedStakeCommission(firstBoardMember);
-    // stakerTotalRedeemedStakeCommission = await td.getStakerTotalReedmedStakeCommission(firstBoardMember);
-    // const differencePostClaim = stakerTotalEarnedStakeCommission.sub(stakerTotalRedeemedStakeCommission);
-    // console.log(`Rewards left to claim ${differencePostClaim.toString()}`);
-
     const members = await directMR.methods.members('1').call();
     const boardMembers = members.memberArray;
 

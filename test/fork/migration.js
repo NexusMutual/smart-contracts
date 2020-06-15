@@ -280,7 +280,7 @@ describe('migration', function () {
 
     console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
     // TODO: enable all members here; DELETE the slice
-    for (let i = 0; i < allMembers.slice(0, 100).length; i ++) {
+    for (let i = 0; i < allMembers.length; i ++) {
       lockedBeforeMigration[allMembers[i]] =  await tf.getStakerAllLockedTokens(allMembers[i]);
     }
 

@@ -257,8 +257,6 @@ contract('ClaimsReward', function([
       claimed[1].should.be.equal(false);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(apiid, '');
-
-      await ps.processPendingActions('100');
     });
     it('9.1 should change claim reward contract', async function() {
       let newCr = await ClaimsReward.new();
@@ -275,6 +273,8 @@ contract('ClaimsReward', function([
       await increaseTimeTo((await latestTime()) + duration.days(7));
     });
     it('9.1 should be able to claim reward', async function() {
+      await ps.processPendingActions('100');
+
       let proposalIds = [];
       initialTokenBalance = await tk.balanceOf(cr.address);
       initialBalance = await tk.balanceOf(member1);

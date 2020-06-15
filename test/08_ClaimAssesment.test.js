@@ -73,7 +73,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Claim: Assessment', function([
+contract.only('Claim: Assessment', function([
   owner,
   member1,
   member2,
@@ -532,7 +532,6 @@ contract('Claim: Assessment', function([
           });
 
           it('8.25 should change claim status', async function() {
-            await ps.processPendingActions('100');
             const now = await latestTime();
             closingTime = new BN(maxVotingTime.toString()).add(
               new BN(now.toString())
@@ -544,9 +543,6 @@ contract('Claim: Assessment', function([
             await P1.__callback(apiid, '');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((8).toString());
-            // await cd.updateState12Count(claimId, 1);
-            // await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
-            // await cr.getRewardToBeDistributedByUser(member1);
           });
         });
       });
@@ -629,7 +625,6 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
     });
     it('8.28 Payout fails', async function() {
-      await ps.processPendingActions('100');
       await tf.upgradeCapitalPool(DAI.address);
       let clid = (await cd.actualClaimLength()) - 1;
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -638,22 +633,25 @@ contract('Claim: Assessment', function([
       (12).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.29 Retry Payout 60 times and should not take action from 61st attempt', async function() {
-      await ps.processPendingActions('100');
       await tf.upgradeCapitalPool(DAI.address);
       let apiid;
       let clid = (await cd.actualClaimLength()) - 1;
       let payOutRetry = await cd.payoutRetryTime();
       for (var i = 0; i < 61; i++) {
-        // console.log(i);
         let now = await latestTime();
         await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
         check = await cl.checkVoteClosing(clid);
         let cStatus = await cd.getClaimStatusNumber(clid);
         // console.log(parseFloat(cStatus[1]));
-        if (i != 60) parseFloat(check).should.be.equal(1);
+        if (i != 60) {
+          parseFloat(check).should.be.equal(1);
+        }
 
-        apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
-        await ps.processPendingActions('100');
+        let subVal = 2;
+        if (i == 0) {
+          subVal = 1;
+        }
+        apiid = await pd.allAPIcall((await pd.getApilCallLength()) - subVal);
         await P1.__callback(apiid, '');
       }
       check = await cl.checkVoteClosing(clid);
@@ -661,6 +659,7 @@ contract('Claim: Assessment', function([
       let cStatus = await cd.getClaimStatusNumber(clid);
       (13).should.be.equal(parseFloat(cStatus[1]));
       await P1.sendEther({from: owner, value: toWei(10)});
+      apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -701,9 +700,6 @@ contract('Claim: Assessment', function([
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 100);
       cStatus = await cd.getClaimStatusNumber(clid);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-
-      await ps.processPendingActions('100');
-
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
@@ -712,9 +708,6 @@ contract('Claim: Assessment', function([
       let payOutRetry = await cd.payoutRetryTime();
       now = await latestTime();
       await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
-
-      await ps.processPendingActions('100');
-
       await P1.__callback(apiid, '');
       cStatus = await cd.getClaimStatusNumber(clid);
       (14).should.be.equal(parseFloat(cStatus[1]));
@@ -817,10 +810,6 @@ contract('Claim: Assessment', function([
     });
     it('8.41 should handle if commissionToBePaid is 0', async function() {
       await P1.updateStakerCommissions(smartConAdd, 0);
-    });
-    it('8.41 should handle if burnNXMAmount is 0', async function() {
-      await ps.processPendingActions('100');
-      await P1.burnStakerLockedToken(1, toHex('ETH'), 0);
     });
   });
 });

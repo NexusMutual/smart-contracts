@@ -222,7 +222,7 @@ contract('NXMaster: Emergency Pause', function([
       });
       let proposalsIDs = [];
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       await cr.claimAllPendingReward(20, {from: member4});
     });

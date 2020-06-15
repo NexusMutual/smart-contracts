@@ -69,7 +69,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Claim: Assessment 2', function([
+contract.skip('Claim: Assessment 2', function([
   owner,
   underWriter1,
   underWriter2,
@@ -416,7 +416,7 @@ contract('Claim: Assessment 2', function([
       var month = a.getMonth();
       return date + '/' + month;
     }
-    it.only('18.1 Should buy cover and collect rewards', async function() {
+    it('18.1 Should buy cover and collect rewards', async function() {
       let allCoverPremiums = [100, 100, 200, 200, 300, 300, 400, 400, 500];
       let allLockCNDetails = []; // here all lockCN values
       let changeInUWBalance = [];
@@ -866,7 +866,7 @@ contract('Claim: Assessment 2', function([
     //   // the above function is simply run but has no effect for else part of if (maxCommission > commissionEarned)
     // });
 
-    it.only('18.4 should pass for CA vote > 10 SA and majority > 70 % for reject(D1)', async function() {
+    it('18.4 should pass for CA vote > 10 SA and majority > 70 % for reject(D1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1080,7 +1080,7 @@ contract('Claim: Assessment 2', function([
       // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
     });
 
-    it.only('18.5 should pass for CA vote > 10 SA and majority > 70 % for accept(A1)', async function() {
+    it('18.5 should pass for CA vote > 10 SA and majority > 70 % for accept(A1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1280,7 +1280,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.6 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
+    it('18.6 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1527,7 +1527,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.7 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
+    it('18.7 should pass for CA vote > 10 SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -1650,7 +1650,7 @@ contract('Claim: Assessment 2', function([
         new BN(closingTime.toString()).add(new BN((2).toString()))
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       // now member voting will be closed
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -1765,7 +1765,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.8 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
+    it('18.8 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -2067,7 +2067,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.9 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
+    it('18.9 should pass for CA vote > 10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -2222,7 +2222,7 @@ contract('Claim: Assessment 2', function([
         new BN(closingTime.toString()).add(new BN((2).toString()))
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       // now member voting will be closed
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -2390,7 +2390,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.10 should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
+    it('18.10 should pass for CA vote > 5SA and <10 SA and majority < 70%, open for member vote and majority reject(D3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3240,7 +3240,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.13 should pass for CA vote > 5* SA and <10 SA and majority > 70 % for accept(A1)', async function() {
+    it('18.13 should pass for CA vote > 5* SA and <10 SA and majority > 70 % for accept(A1)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3347,7 +3347,7 @@ contract('Claim: Assessment 2', function([
         await tc.totalBalanceOf(coverHolder4)
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       // changing the claim status here
       await p1.__callback(APIID, '');
@@ -3497,7 +3497,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.14 should pass for CA vote < 5* SA and MV < 5 SA and CA majority reject(D4)', async function() {
+    it('18.14 should pass for CA vote < 5* SA and MV < 5 SA and CA majority reject(D4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3622,7 +3622,7 @@ contract('Claim: Assessment 2', function([
         new BN(closingTime.toString()).add(new BN((2).toString()))
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       // now member voting will be closed
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -3741,7 +3741,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.15 should pass for CA vote < 5* SA and MV < 5 SA and CA majority accept(A4)', async function() {
+    it('18.15 should pass for CA vote < 5* SA and MV < 5 SA and CA majority accept(A4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -3983,7 +3983,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.16 should pass for 0 CA votes, MV < 5 SA(D4)', async function() {
+    it('18.16 should pass for 0 CA votes, MV < 5 SA(D4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -4437,7 +4437,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.18 should pass for CA vote > 5 SA and CA<10SA majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
+    it('18.18 should pass for CA vote > 5 SA and CA<10SA majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -4584,7 +4584,7 @@ contract('Claim: Assessment 2', function([
         new BN(closingTime.toString()).add(new BN((2).toString()))
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       // now member voting will be closed
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
@@ -4738,7 +4738,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.19 CA vote<5SA, open for member vote and majority reject(D3)', async function() {
+    it('18.19 CA vote<5SA, open for member vote and majority reject(D3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -4830,7 +4830,7 @@ contract('Claim: Assessment 2', function([
         await tc.totalBalanceOf(coverHolder9)
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       // // changing the claim status here
       await p1.__callback(APIID, '');
@@ -4982,7 +4982,7 @@ contract('Claim: Assessment 2', function([
       // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it.only('18.20 CA vote <5SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
+    it('18.20 CA vote <5SA and majority < 70%, open for member vote and majority accept(A3)', async function() {
       // (await nxms.isPause()).should.equal(false);
 
       class claimAssessor {
@@ -5103,7 +5103,7 @@ contract('Claim: Assessment 2', function([
         new BN(closingTime.toString()).add(new BN((2).toString()))
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       // now member voting will be closed
       APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);

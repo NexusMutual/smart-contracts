@@ -161,7 +161,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
               }
             );
 
-            await ps.processPendingActions();
+            await ps.processPendingActions('100');
 
             await ps.requestUnstake([stakedContract], [stakeTokens], 0, {
               from: member2
@@ -171,7 +171,7 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
             time = time + (await duration.days(91));
             await increaseTimeTo(time);
 
-            await ps.processPendingActions();
+            await ps.processPendingActions('100');
 
             const maxUnstakeable = await ps.stakerMaxWithdrawable(member2);
             console.log(`maxUnsteakable ${maxUnstakeable}`);

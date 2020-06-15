@@ -684,7 +684,7 @@ contract('Quotation', function([
             await tk.transfer(staker1, tokens);
             await tk.transfer(staker2, tokens);
 
-            await ps.processPendingActions();
+            await ps.processPendingActions('100');
 
             await tk.approve(ps.address, stakeTokens, {
               from: staker1
@@ -708,7 +708,7 @@ contract('Quotation', function([
                 from: staker2
               }
             );
-            await ps.processPendingActions();
+            await ps.processPendingActions('100');
           });
 
           describe('Purchase Cover With Ether', function() {
@@ -752,7 +752,7 @@ contract('Quotation', function([
             });
 
             it('6.22 staker gets commission', async function() {
-              await ps.processPendingActions();
+              await ps.processPendingActions('100');
               const commission =
                 ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
                   1) /
@@ -828,7 +828,7 @@ contract('Quotation', function([
               );
             });
             it('6.24 staker gets commission', async function() {
-              await ps.processPendingActions();
+              await ps.processPendingActions('100');
               const commission =
                 ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
                   1) /
@@ -882,7 +882,7 @@ contract('Quotation', function([
               );
             });
             it('6.26 staker gets commission', async function() {
-              await ps.processPendingActions();
+              await ps.processPendingActions('100');
               const commission =
                 ((coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
                   1) /

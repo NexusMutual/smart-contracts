@@ -189,7 +189,7 @@ contract('unlock-fixes', function([
     });
 
     it('Should push reason while locking tokens and should remove reason when release all tokens', async function() {
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       await tk.approve(ps.address, stakeTokens, {
         from: member3

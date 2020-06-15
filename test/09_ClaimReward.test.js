@@ -258,7 +258,7 @@ contract('ClaimsReward', function([
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       await P1.__callback(apiid, '');
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
     });
     it('9.1 should change claim reward contract', async function() {
       let newCr = await ClaimsReward.new();
@@ -427,7 +427,7 @@ contract('ClaimsReward', function([
           {from: newMember2, value: coverDetailsTest[1].toString()}
         );
       }
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
     });
 
     it('9.10 should claim commision for covers', async function() {
@@ -472,7 +472,7 @@ contract('ClaimsReward', function([
         {from: newMember2, value: coverDetailsTest[1].toString()}
       );
 
-      await ps.processPendingActions();
+      await ps.processPendingActions('100');
 
       initialBal = await tk.balanceOf(newMember1);
       await ps.withdrawReward(newMember1);

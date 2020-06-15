@@ -13,8 +13,7 @@ interface IPooledStaking {
     function withdraw(uint amount) external;
     function stakerMaxWithdrawable(address stakerAddress) external view returns (uint);
 
-    function withdrawReward(uint amount) external;
+    function withdrawReward(address staker) external;
 
     function hasPendingActions() external view returns (bool);
 }
-

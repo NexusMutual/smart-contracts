@@ -515,12 +515,12 @@ describe('depositAndStake', function () {
     await time.increase(3600); // 1h
 
     // Deposit and stake
-    await staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
-      await staking.requestUnstake([firstContract], [ether('3')], 0, { from: memberOne });
+    await staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('3')], 0, { from: memberOne });
     await staking.depositAndStake(ether('3'), [firstContract, secondContract], [ether('18'), ether('18')], { from: memberOne });
 
     await time.increase(91 * 24 * 3600); // 91 days pass
-    expectRevert(
+    await expectRevert(
       staking.depositAndStake(ether('1'), [firstContract, secondContract], [ether('19'), ether('19')], { from: memberOne }),
       'Unable to execute request with unprocessed actions',
     );

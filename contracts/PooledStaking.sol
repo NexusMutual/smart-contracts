@@ -894,10 +894,6 @@ contract PooledStaking is MasterAware {
     address member
   );
 
-  function setProcessedToStakerIndex(uint value) external {
-    processedToStakerIndex = value;
-  }
-
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
 

@@ -979,14 +979,11 @@ contract PooledStaking is MasterAware {
     bytes32 reason = keccak256(abi.encodePacked("UW", member, contractAddress, stakerContractIndex));
     tokenController.burnLockedTokens(member, reason, stakedAmount);
 
-    if (staker.stakes[contractAddress] == 0) {
-      contractStakers[contractAddress].push(member);
-    }
-
     staker.stakes[contractAddress] = staker.stakes[contractAddress].add(stakedAmount);
     if (!staker.isInContractStakers[contractAddress]) {
       staker.contracts.push(contractAddress);
       staker.isInContractStakers[contractAddress] = true;
+      contractStakers[contractAddress].push(member);
     }
 
     tokenController.mint(address(this), stakedAmount);

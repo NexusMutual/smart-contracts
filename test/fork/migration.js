@@ -32,6 +32,35 @@ function getContractData (name, versionData) {
   return versionData.mainnet.abis.filter(abi => abi.code === name)[0];
 }
 
+async function aggregatedContractStakes(member, td, tf) {
+  const stakedContractLength = await td.getStakerStakedContractLength(member);
+  const stakes = {};
+  let total = new BN('0');
+  for (let i = 0; i < stakedContractLength; i++) {
+
+    const contractAddress = await td.getStakerStakedContractByIndex(member, i);
+    // const stakerContractIndex = await td.getStakerStakedContractIndex(member, i);
+
+    const { canBurn: stakedAmount } = await tf._unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
+    if (!stakes[contractAddress]) {
+      stakes[contractAddress] = new BN('0');
+    }
+    stakes[contractAddress] = stakes[contractAddress].add(new BN(stakedAmount.toString()));
+    total = total.add(new BN(stakedAmount.toString()));
+  }
+
+  for (const stakedContract in stakes) {
+    if (stakes[stakedContract].toString() === '0') {
+      delete stakes[stakedContract];
+    }
+  }
+
+  return {
+    stakes,
+    total
+  };
+}
+
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, memberType, submitter) {
   const p = await gv.getProposalLength();
   console.log(`Creating proposal ${p}..`);
@@ -202,6 +231,7 @@ describe('migration', function () {
     assert.equal(storedCRAddress, newCR.address);
     console.log(`Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.`);
 
+    console.log(await aggregatedContractStakes(firstBoardMember, td, newTF));
 
     const newMR = await MemberRoles.new({
       from: firstBoardMember,
@@ -283,10 +313,20 @@ describe('migration', function () {
 
     const lockedBeforeMigration  = {};
 
+    const aggregatedStakes = {};
+
+    const detailedStakingChecksMax = 10;
     console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
-    for (let i = 0; i < allMembers.length; i ++) {
-      lockedBeforeMigration[allMembers[i]] = await tf.getStakerAllLockedTokens(allMembers[i]);
+    for (let i = 0; i < allMembers.slice(0, 10).length; i ++) {
+      const member = allMembers[i];
+      lockedBeforeMigration[member] = await tf.getStakerAllLockedTokens(member);
+      if (i < detailedStakingChecksMax) {
+        console.log(`Loading per-contract staking expected amounts for ${member}`)
+        aggregatedStakes[member] = await aggregatedContractStakes(member, td, tf);
+      }
     }
+
+    console.log(aggregatedStakes);
 
     console.log(`Finished fetching.`);
 
@@ -340,17 +380,35 @@ describe('migration', function () {
           td.getStakerTotalEarnedStakeCommission(migratedMember),
           td.getStakerTotalReedmedStakeCommission(migratedMember)
         ]);
-        assert.equal(lockedPostMigration.toString(), '0');
-        assert.equal(unlockable.toString(), '0');
-        assert.equal(commissionEarned.toString(), commissionReedmed.toString());
+        assert.equal(lockedPostMigration.toString(), '0', `Failed for ${migratedMember}`);
+        assert.equal(unlockable.toString(), '0', `Failed for ${migratedMember}`);
+        assert.equal(commissionEarned.toString(), commissionReedmed.toString(), `Failed for ${migratedMember}`);
 
         const postMigrationStake = await ps.stakerDeposit(migratedMember);
         totalMigratedTokens = totalMigratedTokens.add(new BN(postMigrationStake.toString()));
         if (lockedBeforeMigration[migratedMember] !== undefined) {
           const expectedStake = lockedBeforeMigration[migratedMember]
-          assert.equal(postMigrationStake.toString(), expectedStake);
+          assert.equal(postMigrationStake.toString(), expectedStake, `Failed for ${migratedMember}`);
         } else {
           console.log(`before migration data is not available for ${migratedMember}`);
+        }
+
+        if (aggregatedStakes[migratedMember] !== undefined) {
+          console.log(`Asserting per contract stakes for member ${migratedMember}`);
+          const expectedStakes = aggregatedStakes[migratedMember].stakes;
+          const contractsArray = await ps.stakerContractsArray(migratedMember);
+
+          const expectedContracts = Object.keys(expectedStakes);
+          // assert.equal(contractsArray.length, expectedContracts.length);
+          expectedContracts.sort();
+          contractsArray.sort();
+          // assert.deepEqual(contractsArray, expectedContracts, `Failed for ${migratedMember}`);
+
+          for (const stakedContract of contractsArray) {
+            const contractStake = await ps.stakerContractStake(migratedMember, stakedContract);
+            assert.equal(contractStake.toString(), expectedStakes[stakedContract].toString()
+              , `Failed to match stake value for contract ${stakedContract} for member ${migratedMember}`);
+          }
         }
       }
     }

@@ -317,7 +317,7 @@ describe('migration', function () {
 
     const detailedStakingChecksMax = 10;
     console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
-    for (let i = 0; i < allMembers.slice(0, 10).length; i ++) {
+    for (let i = 0; i < allMembers.length; i ++) {
       const member = allMembers[i];
       lockedBeforeMigration[member] = await tf.getStakerAllLockedTokens(member);
       if (i < detailedStakingChecksMax) {
@@ -325,8 +325,6 @@ describe('migration', function () {
         aggregatedStakes[member] = await aggregatedContractStakes(member, td, tf);
       }
     }
-
-    console.log(aggregatedStakes);
 
     console.log(`Finished fetching.`);
 
@@ -399,10 +397,9 @@ describe('migration', function () {
           const contractsArray = await ps.stakerContractsArray(migratedMember);
 
           const expectedContracts = Object.keys(expectedStakes);
-          // assert.equal(contractsArray.length, expectedContracts.length);
           expectedContracts.sort();
           contractsArray.sort();
-          // assert.deepEqual(contractsArray, expectedContracts, `Failed for ${migratedMember}`);
+          assert.deepEqual(contractsArray, expectedContracts, `Failed for ${migratedMember}`);
 
           for (const stakedContract of contractsArray) {
             const contractStake = await ps.stakerContractStake(migratedMember, stakedContract);

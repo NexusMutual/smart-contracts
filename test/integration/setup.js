@@ -2,12 +2,16 @@ const { contract, defaultSender } = require('@openzeppelin/test-environment');
 const { BN, ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('./utils').helpers;
 
+// external
 const DAI = contract.fromArtifact('MockDAI');
 const MKR = contract.fromArtifact('MockMKR');
 const DSValue = contract.fromArtifact('NXMDSValueMock');
 const FactoryMock = contract.fromArtifact('FactoryMock');
 const ExchangeMock = contract.fromArtifact('ExchangeMock');
 const ExchangeMKRMock = contract.fromArtifact('ExchangeMock');
+const OwnedUpgradeabilityProxy = contract.fromArtifact('OwnedUpgradeabilityProxy');
+
+// nexusmutual
 const NXMToken = contract.fromArtifact('NXMToken');
 const NXMaster = contract.fromArtifact('NXMasterMock');
 const Claims = contract.fromArtifact('Claims');
@@ -22,8 +26,8 @@ const Pool2 = contract.fromArtifact('Pool2');
 const PoolData = contract.fromArtifact('PoolDataMock');
 const Quotation = contract.fromArtifact('Quotation');
 const QuotationData = contract.fromArtifact('QuotationData');
-const Governance = contract.fromArtifact('Governance');
-const ProposalCategory = contract.fromArtifact('ProposalCategory');
+const Governance = contract.fromArtifact('GovernanceMock');
+const ProposalCategory = contract.fromArtifact('ProposalCategoryMock');
 const MemberRoles = contract.fromArtifact('MemberRoles');
 const PooledStaking = contract.fromArtifact('PooledStaking');
 
@@ -33,6 +37,11 @@ const EXCHANGE_TOKEN = ether('10000');
 const EXCHANGE_ETHER = ether('10');
 const POOL_ETHER = ether('3500');
 const POOL_DAI = ether('900000');
+
+const getProxyFromMaster = async (master, contract, code) => {
+  const address = await master.getLatestAddress(hex(code));
+  return contract.at(address);
+};
 
 async function setup () {
 
@@ -73,13 +82,10 @@ async function setup () {
   const qt = await Quotation.new();
   const qd = await QuotationData.new(QE, owner);
 
-  const gv = await Governance.new();
-  const pc = await ProposalCategory.new();
-  const mr = await MemberRoles.new();
-
-  const ps = await PooledStaking.new();
-
-  const master = await NXMaster.new(tk.address);
+  const gvImpl = await Governance.new();
+  const pcImpl = await ProposalCategory.new();
+  const mrImpl = await MemberRoles.new();
+  const psImpl = await PooledStaking.new();
 
   const addresses = [
     qd.address,
@@ -94,18 +100,34 @@ async function setup () {
     p1.address,
     p2.address,
     mcr.address,
-    gv.address,
-    pc.address,
-    mr.address,
-    ps.address
+    gvImpl.address,
+    pcImpl.address,
+    mrImpl.address,
+    psImpl.address,
   ];
 
+  const masterImpl = await NXMaster.new();
+  const masterProxy = await OwnedUpgradeabilityProxy.new(masterImpl.address);
+  const master = await NXMaster.at(masterProxy.address);
+
+  await master.initiateMaster(tk.address);
+  await master.addPooledStaking();
   await master.addNewVersion(addresses);
 
-  // init pc
+  // fetch proxy contract addresses
+  const gvProxyAddress = await master.getLatestAddress(hex('GV'));
   const pcProxyAddress = await master.getLatestAddress(hex('PC'));
-  const pcProxy = await ProposalCategory.at(pcProxyAddress);
-  await pcProxy.proposalCategoryInitiate();
+
+  // transfer master ownership and init governance
+  await masterProxy.transferProxyOwnership(gvProxyAddress);
+
+  // init governance
+  const gv = await Governance.at(gvProxyAddress);
+  const pc = await ProposalCategory.at(pcProxyAddress);
+
+  await gv._initiateGovernance();
+  await pc.proposalCategoryInitiate();
+  await pc.updateCategoryActionHashes();
 
   // fund pools
   await p1.sendEther({ from: owner, value: POOL_ETHER });
@@ -129,19 +151,14 @@ async function setup () {
     true,
   );
 
-  const proxy = async (contract, code) => {
-    const address = await master.getLatestAddress(hex(code));
-    return contract.at(address);
-  };
-
   const external = { dai, mkr, dsv, factory, exchange, exchangeMKR };
   const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr };
   const proxies = {
-    tc: await proxy(TokenController, 'TC'),
-    gv: await proxy(Governance, 'GV'),
-    pc: await proxy(ProposalCategory, 'PC'),
-    mr: await proxy(MemberRoles, 'MR'),
-    ps: await proxy(PooledStaking, 'PS')
+    tc: await getProxyFromMaster(master, TokenController, 'TC'),
+    gv: await getProxyFromMaster(master, Governance, 'GV'),
+    pc: await getProxyFromMaster(master, ProposalCategory, 'PC'),
+    mr: await getProxyFromMaster(master, MemberRoles, 'MR'),
+    ps: await getProxyFromMaster(master, PooledStaking, 'PS'),
   };
 
   await proxies.mr.payJoiningFee(owner, { from: owner, value: ether('0.002') });

@@ -894,7 +894,7 @@ contract PooledStaking is MasterAware {
     address member
   );
 
-  function migrateStakers(uint maxIterations) external returns (bool) {
+  function migrateStakers(uint maxIterations) external returns (bool, uint start, uint) {
     require(!initialized, "Migration already completed");
 
     ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
@@ -903,10 +903,12 @@ contract PooledStaking is MasterAware {
     IMemberRoles memberRoles = IMemberRoles(master.getLatestAddress("MR"));
 
     uint iterationsLeft = maxIterations;
-
     uint membersLength = memberRoles.membersLength(uint(IMemberRoles.Role.Member));
-    for (uint memberIndex = processedToStakerIndex; memberIndex < membersLength; memberIndex++) {
+    start = processedToStakerIndex;
+
+    for (uint memberIndex = start; memberIndex < membersLength; memberIndex++) {
       (address member, bool isActive) = memberRoles.memberAtIndex(uint(IMemberRoles.Role.Member), memberIndex);
+
       if (!isActive) {
         continue;
       }
@@ -928,7 +930,7 @@ contract PooledStaking is MasterAware {
           processedToStakerIndex = memberIndex;
           firstReward = i;
           emit StakersMigrationCompleted(false, memberIndex, i);
-          return false;
+          return (false, start, memberIndex);
         }
 
         --iterationsLeft;
@@ -957,7 +959,7 @@ contract PooledStaking is MasterAware {
     processedToStakerIndex = 0;
     firstReward = 0;
     emit StakersMigrationCompleted(true, processedToStakerIndex, firstReward);
-    return true;
+    return (true, start, membersLength);
   }
 
   function stakeForMemberOnContract(

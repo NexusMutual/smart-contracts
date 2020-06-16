@@ -41,7 +41,7 @@ async function aggregatedContractStakes(member, td, tf) {
     const contractAddress = await td.getStakerStakedContractByIndex(member, i);
     // const stakerContractIndex = await td.getStakerStakedContractIndex(member, i);
 
-    const { canBurn: stakedAmount } = await tf._unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
+    const { canBurn: stakedAmount } = await tf._deprecated_unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
     if (!stakes[contractAddress]) {
       stakes[contractAddress] = new BN('0');
     }
@@ -319,7 +319,7 @@ describe('migration', function () {
     console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
     for (let i = 0; i < allMembers.length; i ++) {
       const member = allMembers[i];
-      lockedBeforeMigration[member] = await tf.getStakerAllLockedTokens(member);
+      lockedBeforeMigration[member] = await tf.deprecated_getStakerAllLockedTokens(member);
       if (i < detailedStakingChecksMax) {
         console.log(`Loading per-contract staking expected amounts for ${member}`)
         aggregatedStakes[member] = await aggregatedContractStakes(member, td, tf);
@@ -373,8 +373,8 @@ describe('migration', function () {
         console.log(`Finished migrating ${migratedMember}. Asserting migration values.`);
 
         const [lockedPostMigration, unlockable, commissionEarned, commissionReedmed] = await Promise.all([
-          tf.getStakerAllLockedTokens(migratedMember),
-          tf.getStakerAllUnlockableStakedTokens(migratedMember),
+          tf.deprecated_getStakerAllLockedTokens(migratedMember),
+          tf.deprecated_getStakerAllUnlockableStakedTokens(migratedMember),
           td.getStakerTotalEarnedStakeCommission(migratedMember),
           td.getStakerTotalReedmedStakeCommission(migratedMember)
         ]);

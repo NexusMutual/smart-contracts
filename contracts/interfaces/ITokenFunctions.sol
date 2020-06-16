@@ -16,9 +16,7 @@
 pragma solidity ^0.5.17;
 
 interface ITokenFunctions {
-
-    function getStakerAllLockedTokens(address stakerAddress) external view returns (uint amount);
-    function _unlockableBeforeBurningAndCanBurn(
+    function _deprecated_unlockableBeforeBurningAndCanBurn(
         address stakerAdd,
         address stakedAdd,
         uint stakerIndex
@@ -28,9 +26,7 @@ interface ITokenFunctions {
     returns
     (uint amount, uint canBurn);
 
-    function unlockStakerUnlockableTokens(address stakerAddress) external;
-
-    function _getStakerUnlockableTokensOnSmartContract (
+    function _deprecated_getStakerUnlockableTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
         uint _stakedContractIndex

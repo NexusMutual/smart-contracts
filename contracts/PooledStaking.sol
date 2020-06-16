@@ -939,7 +939,7 @@ contract PooledStaking is MasterAware {
           contractAddress, stakerContractIndex, i);
 
         uint stakedAmount;
-        (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
+        (, stakedAmount) = tokenFunctions._deprecated_unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
 
         if (stakedAmount > 0) {
           stakeForMemberOnContract(tokenData, member, contractAddress, stakedAmount, stakerContractIndex, i);
@@ -993,7 +993,7 @@ contract PooledStaking is MasterAware {
     uint stakerContractIndex,
     uint i
   ) internal {
-      uint unlockableAmount = tokenFunctions._getStakerUnlockableTokensOnSmartContract(
+      uint unlockableAmount = tokenFunctions._deprecated_getStakerUnlockableTokensOnSmartContract(
         _stakerAddress, scAddress,
           stakerContractIndex);
       tokenData.setUnlockableBeforeLastBurnTokens(_stakerAddress, i, 0);

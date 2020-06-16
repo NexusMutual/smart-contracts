@@ -336,7 +336,7 @@ describe('migration', function () {
     let totalCallCount = 0;
 
     const migratedMembersSet = new Set();
-    let totalMigratedTokens = new BN('0');
+    let totalDeposits = {};
     while (!completed) {
       const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
@@ -383,7 +383,8 @@ describe('migration', function () {
         assert.equal(commissionEarned.toString(), commissionReedmed.toString(), `Failed for ${migratedMember}`);
 
         const postMigrationStake = await ps.stakerDeposit(migratedMember);
-        totalMigratedTokens = totalMigratedTokens.add(new BN(postMigrationStake.toString()));
+
+        totalDeposits[migratedMember] = postMigrationStake.toString();
         if (lockedBeforeMigration[migratedMember] !== undefined) {
           const expectedStake = lockedBeforeMigration[migratedMember]
           assert.equal(postMigrationStake.toString(), expectedStake, `Failed for ${migratedMember}`);
@@ -412,7 +413,12 @@ describe('migration', function () {
 
     console.log(`Checking total migrated Tokens to new PS.`);
     const totalStakedTokens = await tk.balanceOf(ps.address);
-    assert.equal(totalStakedTokens.toString(), totalMigratedTokens.toString());
+
+    let totalDepositOverall = new BN('0');
+    for (let deposit of Object.values(totalDeposits)) {
+      totalDepositOverall = totalDepositOverall.add(new BN(deposit));
+    }
+    assert.equal(totalStakedTokens.toString(), totalDepositOverall.toString());
 
     console.log(`Asserting all initial members have been migrated..`);
     for (let member of memberSet) {

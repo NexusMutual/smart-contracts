@@ -232,11 +232,11 @@ contract ClaimsReward is Iupgradable {
      * @param _add user address.
      * @return total reward amount of the user
      */
-    function getAllPendingRewardOfUser(address _add) public view returns(uint total) {
+    function getAllPendingRewardOfUser(address _add) public view returns(uint) {
         uint caReward = getRewardToBeDistributedByUser(_add);
         uint pooledStakingReward = pooledStaking.stakerReward(_add);
         uint governanceReward = gv.getPendingReward(_add);
-        total = caReward.add(pooledStakingReward).add(governanceReward);
+        return caReward.add(pooledStakingReward).add(governanceReward);
     }
 
     /// @dev Rewards/Punishes users who  participated in Claims assessment.
@@ -460,6 +460,9 @@ contract ClaimsReward is Iupgradable {
         }
     }
 
+    /**
+     * @dev Function used to claim the commission earned by the staker.
+     */
     function _claimStakeCommission(uint _records, address _user) external onlyInternal {
         uint total=0;
         uint len = td.getStakerStakedContractLength(_user);

@@ -813,7 +813,7 @@ contract('Claim: Assessment', function([
       await assertRevert(P1.sellNXMTokens(toWei(2), {from: member5}));
     });
     it('8.41 should handle if commissionToBePaid is 0', async function() {
-      await P1.updateStakerCommissions(smartConAdd, 0);
+      await P1.pushStakerRewards(smartConAdd, 0);
     });
   });
 });

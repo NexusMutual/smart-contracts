@@ -37,17 +37,17 @@ contract TokenFunctions is Iupgradable {
     event BurnCATokens(uint claimId, address addr, uint amount);
 
     /**
-     * @dev Sends commission to underwriter on purchase of staked smart contract.
-     * @param _scAddress staker address.
-     * @param _premiumNXM premium of cover in NXM.
+     * @dev Rewards stakers on purchase of cover on smart contract.
+     * @param _contractAddress smart contract address.
+     * @param _coverPriceNXM cover price in NXM.
      */
-    function updateStakerCommissions(address _scAddress, uint _premiumNXM) external onlyInternal {
-        uint rewardValue = (_premiumNXM.mul(td.stakerCommissionPer())).div(100);
-        pooledStaking.pushReward(_scAddress, rewardValue);
+    function pushStakerRewards(address _contractAddress, uint _coverPriceNXM) external onlyInternal {
+        uint rewardValue = _coverPriceNXM.mul(td.stakerCommissionPer()).div(100);
+        pooledStaking.pushReward(_contractAddress, rewardValue);
     }
 
     /**
-    * @dev Deprecated
+    * @dev Deprecated in favor of burnStakedTokens
     */
     function burnStakerLockedToken(uint, bytes4, uint) external {
         // noop
@@ -72,14 +72,28 @@ contract TokenFunctions is Iupgradable {
      * @param _stakedContractAddress smart contract address.
      * @return amount total staked NXM tokens.
      */
-    function getTotalStakedTokensOnSmartContract(
+    function deprecated_getTotalStakedTokensOnSmartContract(
         address _stakedContractAddress
     )
         external
         view
-        returns(uint amount)
+        returns(uint)
     {
-        return pooledStaking.contractStake(_stakedContractAddress);
+        uint stakedAmount = 0;
+        address stakerAddress;
+        uint staketLen = td.getStakedContractStakersLength(_stakedContractAddress);
+
+        for (uint i = 0; i < staketLen; i++) {
+            stakerAddress = td.getStakedContractStakerByIndex(_stakedContractAddress, i);
+            uint stakerIndex = td.getStakedContractStakerIndex(
+                _stakedContractAddress, i);
+            uint currentlyStaked;
+            (, currentlyStaked) = _deprecated_unlockableBeforeBurningAndCanBurn(stakerAddress,
+                _stakedContractAddress, stakerIndex);
+            stakedAmount = stakedAmount.add(currentlyStaked);
+        }
+
+        return stakedAmount;
     }
 
     /**
@@ -114,7 +128,7 @@ contract TokenFunctions is Iupgradable {
      * @dev Returns total amount of staked NXM Tokens on all smart contracts.
      * @param _stakerAddress address of the Staker.
      */ 
-    function getStakerAllLockedTokens(address _stakerAddress) external view returns (uint amount) {
+    function deprecated_getStakerAllLockedTokens(address _stakerAddress) external view returns (uint amount) {
         uint stakedAmount = 0;
         address scAddress;
         uint scIndex;
@@ -122,7 +136,7 @@ contract TokenFunctions is Iupgradable {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
             uint currentlyStaked;
-            (, currentlyStaked) = _unlockableBeforeBurningAndCanBurn(_stakerAddress, scAddress, i);
+            (, currentlyStaked) = _deprecated_unlockableBeforeBurningAndCanBurn(_stakerAddress, scAddress, i);
             stakedAmount = stakedAmount.add(currentlyStaked);
         }
         amount = stakedAmount;
@@ -132,7 +146,7 @@ contract TokenFunctions is Iupgradable {
      * @dev Returns total unlockable amount of staked NXM Tokens on all smart contract .
      * @param _stakerAddress address of the Staker.
      */
-    function getStakerAllUnlockableStakedTokens(
+    function deprecated_getStakerAllUnlockableStakedTokens(
         address _stakerAddress
     )
     external
@@ -146,7 +160,7 @@ contract TokenFunctions is Iupgradable {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
             unlockableAmount = unlockableAmount.add(
-                _getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress,
+                _deprecated_getStakerUnlockableTokensOnSmartContract(_stakerAddress, scAddress,
                 scIndex));
         }
         amount = unlockableAmount;
@@ -276,9 +290,50 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
+     * @dev Internal function to gets amount of locked NXM tokens,
+     * staked against smartcontract by index
+     * @param _stakerAddress address of user
+     * @param _stakedContractAddress staked contract address
+     * @param _stakedContractIndex index of staking
+     */
+    function deprecated_getStakerLockedTokensOnSmartContract (
+        address _stakerAddress,
+        address _stakedContractAddress,
+        uint _stakedContractIndex
+    )
+        public
+        view
+        returns
+        (uint amount)
+    {
+        amount = _deprecated_getStakerLockedTokensOnSmartContract(_stakerAddress,
+            _stakedContractAddress, _stakedContractIndex);
+    }
+
+    /**
+     * @dev Function to gets unlockable amount of locked NXM
+     * tokens, staked against smartcontract by index
+     * @param stakerAddress address of staker
+     * @param stakedContractAddress staked contract address
+     * @param stakerIndex index of staking
+     */
+    function deprecated_getStakerUnlockableTokensOnSmartContract (
+        address stakerAddress,
+        address stakedContractAddress,
+        uint stakerIndex
+    )
+        public
+        view
+        returns (uint)
+    {
+        return _deprecated_getStakerUnlockableTokensOnSmartContract(stakerAddress, stakedContractAddress,
+        td.getStakerStakedContractIndex(stakerAddress, stakerIndex));
+    }
+
+    /**
      * @dev releases unlockable staked tokens to staker 
      */
-    function unlockStakerUnlockableTokens(address _stakerAddress) public checkPause {
+    function deprecated_unlockStakerUnlockableTokens(address _stakerAddress) public checkPause {
         uint unlockableAmount;
         address scAddress;
         bytes32 reason;
@@ -286,7 +341,7 @@ contract TokenFunctions is Iupgradable {
         for (uint i = 0; i < td.getStakerStakedContractLength(_stakerAddress); i++) {
             scAddress = td.getStakerStakedContractByIndex(_stakerAddress, i);
             scIndex = td.getStakerStakedContractIndex(_stakerAddress, i);
-            unlockableAmount = _getStakerUnlockableTokensOnSmartContract(
+            unlockableAmount = _deprecated_getStakerUnlockableTokensOnSmartContract(
             _stakerAddress, scAddress,
             scIndex);
             td.setUnlockableBeforeLastBurnTokens(_stakerAddress, i, 0);
@@ -294,23 +349,6 @@ contract TokenFunctions is Iupgradable {
             reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
             tc.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
         }
-    }
-
-    function fixUnlockRecord(address _stakerAddress, uint index) public onlyOwner {
-        (address scAddress, 
-            uint scIndex, 
-            , 
-            uint initialStake, 
-            uint unlockedAmount, 
-            uint totalBurnt, 
-            ) = td.stakerStakedContracts(_stakerAddress, index);
-        bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, scIndex));
-        uint locked = tc.tokensLocked(_stakerAddress, reason);
-        uint _amount = initialStake.sub(totalBurnt).sub(unlockedAmount);
-        _amount = _amount.sub(locked);
-        require(_amount > 0,"Not spoiled record");
-        td.setUnlockableBeforeLastBurnTokens(_stakerAddress, index, 0);
-        td.pushUnlockedStakedTokens(_stakerAddress, index, _amount);
     }
 
     /**
@@ -321,13 +359,14 @@ contract TokenFunctions is Iupgradable {
      * @return amount of unlockable tokens
      * @return amount of tokens that can burn
      */
-    function _unlockableBeforeBurningAndCanBurn(
+    function _deprecated_unlockableBeforeBurningAndCanBurn(
         address stakerAdd, 
         address stakedAdd, 
         uint stakerIndex
     )
     public
-    view 
+    view
+    onlyInternal
     returns
     (uint amount, uint canBurn) {
 
@@ -336,11 +375,11 @@ contract TokenFunctions is Iupgradable {
         uint totalBurnt;
         uint ub;
         (, , dateAdd, initialStake, , totalBurnt, ub) = td.stakerStakedContracts(stakerAdd, stakerIndex);
-        canBurn = _calculateStakedTokens(initialStake, (now.sub(dateAdd)).div(1 days), td.scValidDays());
+        canBurn = _deprecated_calculateStakedTokens(initialStake, now.sub(dateAdd).div(1 days), td.scValidDays());
         // Can't use SafeMaths for int.
         int v = int(initialStake - (canBurn) - (totalBurnt) - (
             td.getStakerUnlockedStakedTokens(stakerAdd, stakerIndex)) - (ub));
-        uint currentLockedTokens = _getStakerLockedTokensOnSmartContract(
+        uint currentLockedTokens = _deprecated_getStakerLockedTokensOnSmartContract(
             stakerAdd, stakedAdd, td.getStakerStakedContractIndex(stakerAdd, stakerIndex));
         if (v < 0) {
             v = 0;
@@ -358,7 +397,7 @@ contract TokenFunctions is Iupgradable {
      * @param _stakedContractIndex is the staked contract index in concern
      * @return amount of unlockable tokens
      */
-    function _getStakerUnlockableTokensOnSmartContract (
+    function _deprecated_getStakerUnlockableTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
         uint _stakedContractIndex
@@ -375,7 +414,7 @@ contract TokenFunctions is Iupgradable {
         (, , , initialStake, , burnt,) = td.stakerStakedContracts(_stakerAddress, stakerIndex);
         uint alreadyUnlocked = td.getStakerUnlockedStakedTokens(_stakerAddress, stakerIndex);
         uint currentStakedTokens;
-        (, currentStakedTokens) = _unlockableBeforeBurningAndCanBurn(_stakerAddress, 
+        (, currentStakedTokens) = _deprecated_unlockableBeforeBurningAndCanBurn(_stakerAddress,
             _stakedContractAddress, stakerIndex);
         amount = initialStake.sub(currentStakedTokens).sub(alreadyUnlocked).sub(burnt);
     }
@@ -387,7 +426,7 @@ contract TokenFunctions is Iupgradable {
      * @param _stakedContractAddress staked contract address
      * @param _stakedContractIndex index of staking
      */
-    function _getStakerLockedTokensOnSmartContract (
+    function _deprecated_getStakerLockedTokensOnSmartContract (
         address _stakerAddress,
         address _stakedContractAddress,
         uint _stakedContractIndex
@@ -429,7 +468,7 @@ contract TokenFunctions is Iupgradable {
      * @param _stakeDays staked contract address
      * @param _validDays index of staking
      */
-    function _calculateStakedTokens(
+    function _deprecated_calculateStakedTokens(
         uint _stakeAmount,
         uint _stakeDays,
         uint _validDays
@@ -452,7 +491,7 @@ contract TokenFunctions is Iupgradable {
      * @param _stakedContractAddress smart contract address.
      * @return amount total staked NXM tokens.
      */
-    function _burnStakerTokenLockedAgainstSmartContract(
+    function _deprecated_burnStakerTokenLockedAgainstSmartContract(
         address _stakerAddress,
         address _stakedContractAddress,
         uint _stakedContractIndex,

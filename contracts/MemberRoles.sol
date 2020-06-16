@@ -248,6 +248,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         require(dAppToken.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
         require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
         require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+        require(dAppToken.tokensUnlockable(msg.sender, "CLA") == 0, "Member should have no CLA unlockable tokens");
         gv.removeDelegation(msg.sender);
         dAppToken.burnFrom(msg.sender, tk.balanceOf(msg.sender));
         _updateRole(msg.sender, uint(Role.Member), false);
@@ -264,6 +265,7 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         require(dAppToken.totalLockedBalance(msg.sender, now) == 0); //solhint-disable-line
         require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
         require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
+        require(dAppToken.tokensUnlockable(msg.sender, "CLA") == 0, "Member should have no CLA unlockable tokens");
         gv.removeDelegation(msg.sender);
         dAppToken.addToWhitelist(_add);
         _updateRole(_add, uint(Role.Member), true);
@@ -441,12 +443,12 @@ contract MemberRoles is IMemberRoles, Governed, Iupgradable {
         launchedOn = 0;
     }
 
-    function memberAtIndex(uint _memberRoleId, uint index) external returns (address, bool) {
-        address member = memberRoleData[_memberRoleId].memberAddress[index];
-        return (member, memberRoleData[_memberRoleId].memberActive[member]);
+    function memberAtIndex(uint _memberRoleId, uint index) external view returns (address, bool) {
+        address memberAddress = memberRoleData[_memberRoleId].memberAddress[index];
+        return (memberAddress, memberRoleData[_memberRoleId].memberActive[memberAddress]);
     }
 
-    function membersLength(uint _memberRoleId) external returns (uint) {
+    function membersLength(uint _memberRoleId) external view returns (uint) {
         return memberRoleData[_memberRoleId].memberAddress.length;
     }
 }

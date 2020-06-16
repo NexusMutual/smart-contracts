@@ -349,7 +349,7 @@ contract Quotation is Iupgradable {
         qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
 
 
-        tf.updateStakerCommissions(scAddress, coverDetails[2]);
+        tf.pushStakerRewards(scAddress, coverDetails[2]);
     }
 
     /**

@@ -17,8 +17,7 @@
 
 pragma solidity ^0.5.7;
 
-// note: MasterAware is not an interface, would be good to move to a folder like "base"
-import "../interfaces/MasterAware.sol";
+import "../abstract/MasterAware.sol";
 import "../interfaces/IPooledStaking.sol";
 import "../NXMToken.sol";
 import "../TokenController.sol";
@@ -28,7 +27,7 @@ import "../ClaimsReward.sol";
 import "../Governance.sol";
 import "../external/openzeppelin-solidity/math/SafeMath.sol";
 
-contract PooledStakingMock is MasterAware {
+contract PooledStakingMock is MasterAware, IPooledStaking {
     using SafeMath for uint;
 
     /* Data types */
@@ -210,30 +209,6 @@ contract PooledStakingMock is MasterAware {
 
     function stakerDeposit(address staker) external view returns (uint) {
         return stakers[staker].deposit;
-    }
-
-    function stakerProcessedDeposit(address stakerAddress) external view returns (uint) {
-
-        Staker storage staker = stakers[stakerAddress];
-        uint deposit = staker.deposit;
-
-        if (burn.burnedAt == 0) {
-            return deposit;
-        }
-
-        address contractAddress = burn.contractAddress;
-
-        // TODO: block the call to this function if there's a pending burn for this user
-        uint totalContractStake = contractStake(contractAddress);
-        uint stake = staker.stakes[contractAddress];
-        stake = deposit < stake ? deposit : stake;
-
-        if (totalContractStake != 0) {
-            uint stakerBurn = stake.mul(burn.amount).div(totalContractStake);
-            deposit = deposit.sub(stakerBurn);
-        }
-
-        return deposit;
     }
 
     function stakerMaxWithdrawable(address stakerAddress) public view returns (uint) {
@@ -915,7 +890,7 @@ contract PooledStakingMock is MasterAware {
 
         if (member != 0x87B2a7559d85f4653f13E6546A14189cd5455d45) {
             claimsReward._claimStakeCommission(10, member);
-            tokenFunctions.unlockStakerUnlockableTokens(member);
+            tokenFunctions.deprecated_unlockStakerUnlockableTokens(member);
         }
 
         uint totalStakerLockedTokens = 0;
@@ -930,7 +905,7 @@ contract PooledStakingMock is MasterAware {
             stakedAddresses[i] = tokenData.getStakerStakedContractByIndex(member, i);
             stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
             uint stakedAmount;
-            (, stakedAmount) = tokenFunctions._unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
+            (, stakedAmount) = tokenFunctions._deprecated_unlockableBeforeBurningAndCanBurn(member, stakedAddresses[i], i);
             stakedAllocations[i] = stakedAmount;
 
             if (stakedAmount > 0) {

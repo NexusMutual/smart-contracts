@@ -73,7 +73,7 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract.only('Claim: Assessment', function([
+contract('Claim: Assessment', function([
   owner,
   member1,
   member2,

@@ -337,6 +337,8 @@ contract.only('Claim: Assessment', function([
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             priceinEther = await mcr.calculateTokenPrice(CA_ETH);
             await P1.__callback(apiid, '');
+            (await ps.hasPendingBurns()).should.be.equal(true);
+            await ps.processPendingActions('100');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((7).toString());
           });
@@ -541,6 +543,8 @@ contract.only('Claim: Assessment', function([
             );
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             await P1.__callback(apiid, '');
+            (await ps.hasPendingBurns()).should.be.equal(true);
+            await ps.processPendingActions('100');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((8).toString());
           });

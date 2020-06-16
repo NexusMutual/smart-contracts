@@ -49,4 +49,5 @@ contract TokenControllerMock is ITokenController, MasterAware {
 
   function tokensLocked(address, bytes32) unused external view returns (uint256) {}
 
+  function releaseLockedTokens(address _of, bytes32 _reason, uint256 _amount) unused external {}
 }

@@ -156,11 +156,11 @@ describe('migration', function () {
 
     const directMR = getWeb3Contract('MR', versionData, directWeb3);
 
-    const owners = await directMR.methods.members('3').call();
+    const owners = await mr.members('3');
 
     const firstBoardMember = owners.memberArray[0];
 
-    const members = await directMR.methods.members('1').call();
+    const members = await mr.members('1');
     const boardMembers = members.memberArray;
 
     const secondBoardMember = boardMembers[1];
@@ -236,7 +236,7 @@ describe('migration', function () {
   });
 
   it('migrates all data from old pooled staking system to new one', async function () {
-    const { pc, gv, master, mr, tf, directMR, td, tk } = this;
+    const { gv, master, directMR, tf, td, tk } = this;
     const { boardMembers, firstBoardMember } = this;
 
     console.log(`Deploying pooled staking..`);
@@ -278,6 +278,8 @@ describe('migration', function () {
     console.log(`Members to process: ${allMembers.length}`);
 
     const memberSet = new Set(allMembers);
+
+    console.log(`Member set size: ${memberSet.size}`);
 
     const lockedBeforeMigration  = {};
 

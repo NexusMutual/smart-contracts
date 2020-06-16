@@ -80,7 +80,7 @@ contract ClaimsReward is Iupgradable {
             bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, coverHolder, coverCurrency);
 
             if (success) {
-                tf.burnStakedTokens(claimid, coverCurrency, sumAssured);
+                tf.burnStakedTokens(coverid, coverCurrency, sumAssured);
                 c1.setClaimStatus(claimid, 14);
             }
         }
@@ -270,7 +270,7 @@ contract ClaimsReward is Iupgradable {
             tf.unlockCN(coverid);
             bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, qd.getCoverMemberAddress(coverid), curr);
             if (success) {
-                tf.burnStakedTokens(claimid, curr, sumAssured);
+                tf.burnStakedTokens(coverid, curr, sumAssured);
             }
         }
     }

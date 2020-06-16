@@ -26,18 +26,6 @@ describe('withdrawReward', function () {
 
   beforeEach(setup);
 
-  it('should revert when called by non members', async function () {
-
-    const { master, staking } = this;
-
-    assert.strictEqual(await master.isMember(nonMember), false);
-
-    await expectRevert(
-      staking.withdrawReward(nonMember, { from: nonMember }),
-      'Caller is not a member',
-    );
-  });
-
   it("should properly move tokens from the PooledStaking contract to the member's address", async function () {
     const { token, staking } = this;
 
@@ -61,7 +49,7 @@ describe('withdrawReward', function () {
       `staking contract balance is ${contractBalanceBefore}, but should be ${expectedContractBalanceBefore}`,
     );
 
-    await staking.withdrawReward(memberOne, { from: memberOne });
+    await staking.withdrawReward(memberOne, { from: nonMember });
 
     const contractBalanceAfter = await token.balanceOf(staking.address);
     const expectedContractBalanceAfter = stakeAmount;
@@ -94,7 +82,7 @@ describe('withdrawReward', function () {
     await staking.processPendingActions('100');
 
     // Withdraw all left reward
-    const tx = await staking.withdrawReward(memberOne, { from: memberOne });
+    const tx = await staking.withdrawReward(memberOne, { from: nonMember });
     expectEvent(tx, 'RewardWithdrawn', { staker: memberOne, amount: reward });
 
     // Expect new reward of staker to be 0

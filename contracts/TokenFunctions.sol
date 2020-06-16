@@ -366,7 +366,6 @@ contract TokenFunctions is Iupgradable {
     )
     public
     view
-    onlyInternal
     returns
     (uint amount, uint canBurn) {
 

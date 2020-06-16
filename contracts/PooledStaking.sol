@@ -210,30 +210,6 @@ contract PooledStaking is MasterAware {
     return stakers[staker].deposit;
   }
 
-  function stakerProcessedDeposit(address stakerAddress) external view returns (uint) {
-
-    Staker storage staker = stakers[stakerAddress];
-    uint deposit = staker.deposit;
-
-    if (burn.burnedAt == 0) {
-      return deposit;
-    }
-
-    address contractAddress = burn.contractAddress;
-
-    // TODO: block the call to this function if there's a pending burn for this user
-    uint totalContractStake = contractStake(contractAddress);
-    uint stake = staker.stakes[contractAddress];
-    stake = deposit < stake ? deposit : stake;
-
-    if (totalContractStake != 0) {
-      uint stakerBurn = stake.mul(burn.amount).div(totalContractStake);
-      deposit = deposit.sub(stakerBurn);
-    }
-
-    return deposit;
-  }
-
   function stakerMaxWithdrawable(address stakerAddress) public view returns (uint) {
 
     Staker storage staker = stakers[stakerAddress];

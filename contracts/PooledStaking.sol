@@ -881,7 +881,8 @@ contract PooledStaking is MasterAware {
   );
 
   event MigratedMember(
-    address member
+    address member,
+    uint memberIndex
   );
 
   event DebugCommisions(
@@ -892,6 +893,10 @@ contract PooledStaking is MasterAware {
     uint iterations,
     address member
   );
+
+  function setProcessedToStakerIndex(uint value) external {
+    processedToStakerIndex = value;
+  }
 
   function migrateStakers(uint maxIterations) external returns (bool) {
     require(!initialized, "Migration already completed");
@@ -945,7 +950,7 @@ contract PooledStaking is MasterAware {
         }
       }
 
-      emit MigratedMember(member);
+      emit MigratedMember(member, memberIndex);
       // clear out start indexes for next iteration
       firstReward = 0;
     }

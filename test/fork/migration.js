@@ -19,6 +19,8 @@ const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const TokenData = contract.fromArtifact('TokenData');
 const UpgradeabilityProxy = contract.fromArtifact('UpgradeabilityProxy');
 
+const BN = web3.utils.BN;
+
 function getWeb3Contract (name, versionData, web3) {
   const contractData = versionData.mainnet.abis.filter(abi => abi.code === name)[0];
   const contract = new web3.eth.Contract(JSON.parse(contractData.contractAbi), contractData.address);
@@ -234,7 +236,7 @@ describe('migration', function () {
   });
 
   it('migrates all data from old pooled staking system to new one', async function () {
-    const { pc, gv, master, mr, tf, directMR, td } = this;
+    const { pc, gv, master, mr, tf, directMR, td, tk } = this;
     const { boardMembers, firstBoardMember } = this;
 
     console.log(`Deploying pooled staking..`);
@@ -275,13 +277,13 @@ describe('migration', function () {
     let allMembers = members.memberArray;
     console.log(`Members to process: ${allMembers.length}`);
 
+    const memberSet = new Set(allMembers);
 
     const lockedBeforeMigration  = {};
 
     console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
-    // TODO: enable all members here; DELETE the slice
     for (let i = 0; i < allMembers.length; i ++) {
-      lockedBeforeMigration[allMembers[i]] =  await tf.getStakerAllLockedTokens(allMembers[i]);
+      lockedBeforeMigration[allMembers[i]] = await tf.getStakerAllLockedTokens(allMembers[i]);
     }
 
     console.log(`Finished fetching.`);
@@ -293,6 +295,8 @@ describe('migration', function () {
     let maxGasUsagePerCall = 0;
     let totalCallCount = 0;
 
+    const migratedMembersSet = new Set();
+    let totalMigratedTokens = new BN('0');
     while (!completed) {
       const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
@@ -325,14 +329,37 @@ describe('migration', function () {
       const migratedMemberEvents = tx.logs.filter(log => log.event === MIGRATED_MEMBER_EVENT);
       for (let migratedMemberEvent of migratedMemberEvents) {
         const migratedMember = migratedMemberEvent.args.member;
+        migratedMembersSet.add(migratedMember);
         console.log(`Finished migrating ${migratedMember}. Asserting migration values.`);
-        const lockedPostMigration = await tf.getStakerAllLockedTokens(migratedMember);
+
+        const [lockedPostMigration, unlockable, commissionEarned, commissionReedmed] = await Promise.all([
+          tf.getStakerAllLockedTokens(migratedMember),
+          tf.getStakerAllUnlockableStakedTokens(migratedMember),
+          td.getStakerTotalEarnedStakeCommission(migratedMember),
+          td.getStakerTotalReedmedStakeCommission(migratedMember)
+        ]);
         assert.equal(lockedPostMigration.toString(), '0');
+        assert.equal(unlockable.toString(), '0');
+        assert.equal(commissionEarned.toString(), commissionReedmed.toString());
+
         const postMigrationStake = await ps.stakerDeposit(migratedMember);
+        totalMigratedTokens = totalMigratedTokens.add(new BN(postMigrationStake.toString()));
         if (lockedBeforeMigration[migratedMember] !== undefined) {
-          assert.equal(lockedBeforeMigration[migratedMember].toString(), postMigrationStake.toString());
+          const expectedStake = lockedBeforeMigration[migratedMember]
+          assert.equal(postMigrationStake.toString(), expectedStake);
+        } else {
+          console.log(`before migration data is not available for ${migratedMember}`);
         }
       }
+    }
+
+    console.log(`Checking total migrated Tokens to new PS.`);
+    const totalStakedTokens = await tk.balanceOf(ps.address);
+    assert.equal(totalStakedTokens.toString(), totalMigratedTokens.toString());
+
+    console.log(`Asserting all initial members have been migrated..`);
+    for (let member of memberSet) {
+      assert.equal(migratedMembersSet.has(member));
     }
   });
 });

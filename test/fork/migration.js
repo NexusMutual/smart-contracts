@@ -43,7 +43,7 @@ async function getMemberStakes(member, td) {
   return stakes;
 }
 
-async function submitGovernanceProposal (categoryId, actionHash, members, gv, memberType, submitter) {
+async function submitGovernanceProposal (categoryId, actionHash, members, gv, submitter) {
   const p = await gv.getProposalLength();
   console.log(`Creating proposal ${p}..`);
   await gv.createProposal('proposal', 'proposal', 'proposal', 0, {
@@ -154,7 +154,7 @@ describe('migration', function () {
       [newTF.address, newCR.address]]
     );
 
-    await submitGovernanceProposal(newContractAddressUpgradeCategoryId, actionHash, boardMembers, gv, '1', secondBoardMember);
+    await submitGovernanceProposal(newContractAddressUpgradeCategoryId, actionHash, boardMembers, gv, secondBoardMember);
 
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
     assert.equal(storedTFAddress, newTF.address);
@@ -172,7 +172,7 @@ describe('migration', function () {
     );
 
     await submitGovernanceProposal(newProxyContractAddressUpgradeCategoryId,
-      actionHash, boardMembers, gv, '1', secondBoardMember);
+      actionHash, boardMembers, gv, secondBoardMember);
 
     const mrProxy = await UpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
     const storedNewMRAddress = await mrProxy.implementation();
@@ -202,16 +202,16 @@ describe('migration', function () {
     const { boardMembers, firstBoardMember } = this;
 
     console.log(`Deploying pooled staking..`);
-    const ps = await PooledStaking.new({
+    const psImpl = await PooledStaking.new({
       from: firstBoardMember,
     });
 
-    console.log(`Deployed pool staking at ${ps.address}`);
+    console.log(`Deployed pool staking at ${psImpl.address}`);
 
     // Creating proposal for adding new internal contract
     actionHash = encode1(
       ['bytes2', 'address', 'uint'],
-      [hex('PS'), ps.address, 1]
+      [hex('PS'), psImpl.address, 2]
     );
 
     await submitGovernanceProposal(
@@ -219,17 +219,16 @@ describe('migration', function () {
       actionHash,
       boardMembers,
       gv,
-      '1',
       firstBoardMember
     );
 
     const postNewContractVersionData = await master.getVersionData();
     console.log(postNewContractVersionData);
 
-    const currentPooledStakingAddress = await master.getLatestAddress(hex('PS'));
-    assert.equal(currentPooledStakingAddress, ps.address);
-    const pooledStakingIsInternal = await master.isInternal(ps.address);
-    assert.equal(pooledStakingIsInternal, true);
+
+    const psProxy = await master.getLatestAddress(hex('PS'));
+    const ps = await PooledStaking.at(psProxy);
+    assert.equal(await master.isInternal(ps.address), true);
 
 
     const members = await directMR.methods.members('2').call();

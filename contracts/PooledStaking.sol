@@ -894,16 +894,6 @@ contract PooledStaking is MasterAware {
     address member
   );
 
-  uint maxMigrated;
-  function setMaxStakersToMigrate(uint max) external {
-    maxMigrated = max;
-  }
-
-  uint startMigrationIndex;
-  function setStartMigrationIndex(uint start) external {
-    processedToStakerIndex = start;
-  }
-
   function migrateStakers(uint maxIterations) external returns (bool, uint start, uint) {
     require(!initialized, "Migration already completed");
 
@@ -916,7 +906,7 @@ contract PooledStaking is MasterAware {
     uint membersLength = memberRoles.membersLength(uint(IMemberRoles.Role.Member));
     start = processedToStakerIndex;
 
-    for (uint memberIndex = start; memberIndex < maxMigrated; memberIndex++) {
+    for (uint memberIndex = start; memberIndex < membersLength; memberIndex++) {
       (address member, bool isActive) = memberRoles.memberAtIndex(uint(IMemberRoles.Role.Member), memberIndex);
 
       if (!isActive) {

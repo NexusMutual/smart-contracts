@@ -162,7 +162,9 @@ describe('migration', function () {
 
     const { data: versionData } = await axios.get('https://api.nexusmutual.io/version-data/data.json');
 
+
     const master = await NXMaster.at(getContractData('NXMASTER', versionData).address);
+
 
     const { contractsName, contractsAddress } = await master.getVersionData();
     console.log(contractsName);
@@ -180,7 +182,6 @@ describe('migration', function () {
     const tf = await TokenFunctions.at(nameToAddressMap['TF']);
     const td = await TokenData.at(nameToAddressMap['TD']);
     const oldCR = await ClaimsReward.at(nameToAddressMap['CR']);
-
 
 
     const directMR = getWeb3Contract('MR', versionData, directWeb3);
@@ -386,7 +387,7 @@ describe('migration', function () {
 
         totalDeposits[migratedMember] = postMigrationStake.toString();
         if (lockedBeforeMigration[migratedMember] !== undefined) {
-          const expectedStake = lockedBeforeMigration[migratedMember]
+          const expectedStake = lockedBeforeMigration[migratedMember].toString();
           assert.equal(postMigrationStake.toString(), expectedStake, `Failed for ${migratedMember}`);
         } else {
           console.log(`before migration data is not available for ${migratedMember}`);

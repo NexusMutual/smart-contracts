@@ -32,33 +32,17 @@ function getContractData (name, versionData) {
   return versionData.mainnet.abis.filter(abi => abi.code === name)[0];
 }
 
-async function aggregatedContractStakes(member, td, tf) {
-  const stakedContractLength = await td.getStakerStakedContractLength(member);
-  const stakes = {};
-  let total = new BN('0');
+async function getMemberStakes(member, td) {
+  const stakedContractLength = await td.methods.getStakerStakedContractLength(member).call();
+  const stakes = [];
   for (let i = 0; i < stakedContractLength; i++) {
-
-    const contractAddress = await td.getStakerStakedContractByIndex(member, i);
-    // const stakerContractIndex = await td.getStakerStakedContractIndex(member, i);
-
-    const { canBurn: stakedAmount } = await tf._deprecated_unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
-    if (!stakes[contractAddress]) {
-      stakes[contractAddress] = new BN('0');
-    }
-    stakes[contractAddress] = stakes[contractAddress].add(new BN(stakedAmount.toString()));
-    total = total.add(new BN(stakedAmount.toString()));
+    const stake = await td.methods.stakerStakedContracts(member, i).call();
+    console.log(stake);
+    const { dateAdd, stakeAmount: initialStake, stakedContractAddress: contractAddress, burnedAmount } = stake;
+    stakes.push({ dateAdd: new BN(dateAdd), initialStake: new BN(initialStake), contractAddress, burnedAmount: new BN(burnedAmount) });
   }
 
-  for (const stakedContract in stakes) {
-    if (stakes[stakedContract].toString() === '0') {
-      delete stakes[stakedContract];
-    }
-  }
-
-  return {
-    stakes,
-    total
-  };
+  return stakes;
 }
 
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, memberType, submitter) {
@@ -156,6 +140,8 @@ const loader = setupLoader({
 
 describe('migration', function () {
 
+
+
   const [owner] = accounts;
 
   it('upgrades old system', async function () {
@@ -185,6 +171,8 @@ describe('migration', function () {
 
 
     const directMR = getWeb3Contract('MR', versionData, directWeb3);
+    const directTD = getWeb3Contract('TD', versionData, directWeb3);
+    const directTF = getWeb3Contract('TF', versionData, directWeb3);
 
     const owners = await mr.members('3');
 
@@ -232,8 +220,6 @@ describe('migration', function () {
     assert.equal(storedCRAddress, newCR.address);
     console.log(`Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.`);
 
-    console.log(await aggregatedContractStakes(firstBoardMember, td, newTF));
-
     const newMR = await MemberRoles.new({
       from: firstBoardMember,
     });
@@ -261,13 +247,16 @@ describe('migration', function () {
     this.pc = pc;
     this.td = td;
     this.directMR = directMR;
+    this.directTD = directTD;
+    this.directTF = directTF;
+
 
     this.boardMembers = boardMembers;
     this.firstBoardMember = firstBoardMember;
   });
 
   it('migrates all data from old pooled staking system to new one', async function () {
-    const { gv, master, directMR, tf, td, tk } = this;
+    const { gv, master, directMR, directTF, directTD, tf, td, tk, mr } = this;
     const { boardMembers, firstBoardMember } = this;
 
     console.log(`Deploying pooled staking..`);
@@ -314,17 +303,15 @@ describe('migration', function () {
 
     const lockedBeforeMigration  = {};
 
-    const aggregatedStakes = {};
+    const memberStakes = {};
 
-    const detailedStakingChecksMax = 10;
+
     console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
     for (let i = 0; i < allMembers.length; i ++) {
       const member = allMembers[i];
-      lockedBeforeMigration[member] = await tf.deprecated_getStakerAllLockedTokens(member);
-      if (i < detailedStakingChecksMax) {
-        console.log(`Loading per-contract staking expected amounts for ${member}`)
-        aggregatedStakes[member] = await aggregatedContractStakes(member, td, tf);
-      }
+      lockedBeforeMigration[member] = await directTF.methods.getStakerAllLockedTokens(member).call();
+      console.log(`Loading per-contract staking expected amounts for ${member}`);
+      memberStakes[member] = await getMemberStakes(member, directTD);
     }
 
     console.log(`Finished fetching.`);
@@ -337,7 +324,12 @@ describe('migration', function () {
     let totalCallCount = 0;
 
     const migratedMembersSet = new Set();
-    let totalDeposits = {};
+    let totalDeposits = new BN('0');
+
+    await ps.setStartMigrationIndex(0);
+    const membersLength = await mr.membersLength('2');
+    await ps.setMaxStakersToMigrate(membersLength.toString());
+
     while (!completed) {
       const iterations = 10;
       console.log(`Running migrateStakers wih ${iterations}`);
@@ -345,16 +337,12 @@ describe('migration', function () {
       const gasEstimate = 6e6;
       console.log(`gasEstimate: ${gasEstimate}`);
 
-      const firstMember = allMembers[0];
-      const preCall = await td.lastCompletedStakeCommission(firstMember);
-
-      console.log(`preCall lastCompletedStakeCommission ${preCall.toString()} for ${firstMember}`);
       const tx = await ps.migrateStakers(iterations, {
         gas: gasEstimate
       });
-      const postCall = await td.lastCompletedStakeCommission(firstMember);
-      console.log(`postCall lastCompletedStakeCommission ${postCall.toString()}`);
       logEvents(tx);
+
+      const now = await time.latest();
 
       const [stakerMigrationCompleted] = tx.logs.filter(log => log.event === STAKER_MIGRATION_COMPLETED_EVENT);
       completed = stakerMigrationCompleted.args.completed;
@@ -383,29 +371,59 @@ describe('migration', function () {
         assert.equal(unlockable.toString(), '0', `Failed for ${migratedMember}`);
         assert.equal(commissionEarned.toString(), commissionReedmed.toString(), `Failed for ${migratedMember}`);
 
-        const postMigrationStake = await ps.stakerDeposit(migratedMember);
-
-        totalDeposits[migratedMember] = postMigrationStake.toString();
-        if (lockedBeforeMigration[migratedMember] !== undefined) {
-          const expectedStake = lockedBeforeMigration[migratedMember].toString();
-          assert.equal(postMigrationStake.toString(), expectedStake, `Failed for ${migratedMember}`);
-        } else {
-          console.log(`before migration data is not available for ${migratedMember}`);
-        }
-
-        if (aggregatedStakes[migratedMember] !== undefined) {
+        if (memberStakes[migratedMember] !== undefined) {
           console.log(`Asserting per contract stakes for member ${migratedMember}`);
-          const expectedStakes = aggregatedStakes[migratedMember].stakes;
-          const contractsArray = await ps.stakerContractsArray(migratedMember);
+          const stakesWithStakeLeft = memberStakes[migratedMember].map(({ dateAdd, initialStake, contractAddress, burnedAmount }) => {
+            const daysPassed = now.sub(dateAdd).divn(86400);
 
-          const expectedContracts = Object.keys(expectedStakes);
+            console.log(`daysPassed ${daysPassed.toString()}`);
+
+            let stakeLeft = new BN('0');
+            if (daysPassed.ltn(250)) {
+
+              const daysLeft = new BN('250').sub(daysPassed);
+              stakeLeft =
+                daysLeft
+                .mul(initialStake)
+                .muln(100000)
+                .divn(250)
+                .divn(100000);
+            }
+            stakeLeft = stakeLeft.sub(burnedAmount);
+            if (stakeLeft.ltn(0)) {
+              stakeLeft = new BN('0');
+            }
+            console.log(stakeLeft.toString());
+
+            return { stakeLeft, dateAdd, initialStake, contractAddress };
+          });
+
+          const totalExpectedStake = stakesWithStakeLeft.reduce((a, b) => a.add(b.stakeLeft), new BN('0'));
+          const postMigrationStake = await ps.stakerDeposit(migratedMember);
+          totalDeposits = totalDeposits.add(postMigrationStake);
+          assert.equal(postMigrationStake.toString(), totalExpectedStake.toString(), `Total stake doesn't match for ${migratedMember}`);
+
+          const aggregatedStakes = {};
+          for (const stake of stakesWithStakeLeft) {
+            if (stake.stakeLeft.eqn(0)) {
+              continue;
+            }
+            if (!aggregatedStakes[stake.contractAddress]) {
+              aggregatedStakes[stake.contractAddress] = new BN('0');
+            }
+            aggregatedStakes[stake.contractAddress] = aggregatedStakes[stake.contractAddress].add(stake.stakeLeft);
+          }
+
+          const migratedContractsArray = await ps.stakerContractsArray(migratedMember);
+
+          const expectedContracts = Object.keys(aggregatedStakes);
           expectedContracts.sort();
-          contractsArray.sort();
-          assert.deepEqual(contractsArray, expectedContracts, `Failed for ${migratedMember}`);
+          migratedContractsArray.sort();
+          assert.deepEqual(migratedContractsArray, expectedContracts, `Not same set of contracts ${migratedMember}`);
 
-          for (const stakedContract of contractsArray) {
+          for (const stakedContract of migratedContractsArray) {
             const contractStake = await ps.stakerContractStake(migratedMember, stakedContract);
-            assert.equal(contractStake.toString(), expectedStakes[stakedContract].toString()
+            assert.equal(contractStake.toString(), aggregatedStakes[stakedContract].toString()
               , `Failed to match stake value for contract ${stakedContract} for member ${migratedMember}`);
           }
         }
@@ -415,15 +433,11 @@ describe('migration', function () {
     console.log(`Checking total migrated Tokens to new PS.`);
     const totalStakedTokens = await tk.balanceOf(ps.address);
 
-    let totalDepositOverall = new BN('0');
-    for (let deposit of Object.values(totalDeposits)) {
-      totalDepositOverall = totalDepositOverall.add(new BN(deposit));
-    }
-    assert.equal(totalStakedTokens.toString(), totalDepositOverall.toString());
+    assert.equal(totalStakedTokens.toString(), totalDeposits.toString());
 
     console.log(`Asserting all initial members have been migrated..`);
     for (let member of memberSet) {
-      assert.equal(migratedMembersSet.has(member));
+      assert(migratedMembersSet.has(member), `${member} not found in migratedMemberSet`);
     }
   });
 });

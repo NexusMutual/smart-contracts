@@ -1,15 +1,13 @@
 const axios = require('axios');
 const Web3 = require('web3');
-const { contract, accounts, defaultSender, web3 } = require('@openzeppelin/test-environment');
-const { setupLoader } = require('@openzeppelin/contract-loader');
+const { contract, accounts, web3 } = require('@openzeppelin/test-environment');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { encode, encode1 } = require('./external');
+const { encode1 } = require('./external');
 const { logEvents, hex } = require('../utils/helpers');
 
 const MemberRoles = contract.fromArtifact('MemberRoles');
 const NXMaster = contract.fromArtifact('NXMaster');
-const NXMasterNew = contract.fromArtifact('NXMasterNew');
 const NXMToken = contract.fromArtifact('NXMToken');
 const Governance = contract.fromArtifact('Governance');
 const PooledStaking = contract.fromArtifact('PooledStaking');
@@ -71,86 +69,32 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, me
   console.log(`Advancing time by ${increase} seconds to allow proposal closing..`);
   await time.increase(increase);
 
-  if (memberType !== 3) {
-    console.log(`Closing proposal..`);
-    logEvents(await gv.closeProposal(p, {
-      from: submitter,
-    }));
-  }
-  const proposal = await gv.proposal(p);
-  console.log(`Proposal is:`);
-  console.log(proposal);
-  assert.equal(proposal[2].toNumber(), 3);
-}
-
-async function addProposal(master, gv, members, submitter) {
-  console.log(`submitting addCategoryProposal.`)
-  actionHash = encode(
-    'addCategory(string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
-    'Description',
-    2,
-    1,
-    0,
-    [1],
-    604800,
-    '',
-    master.address,
-    hex('MS'),
-    [0, 0, 0, 0]
-  );
-  const p = await gv.getProposalLength();
-  await gv.createProposalwithSolution(
-    'category to add internal contracts',
-    'category to add internal contracts',
-    'category to add internal contracts',
-    3,
-    'category to add internal contracts',
-    actionHash, {
-      from: submitter
-    });
-
-  for (let i = 1; i < members.length; i++) {
-    console.log(`Voting from ${members[i]} for ${p}..`);
-    logEvents(await gv.submitVote(p, 1, {
-      from: members[i],
-    }));
-  }
-
-  logEvents(await gv.closeProposal(p.toNumber(), {
-    from: submitter
+  console.log(`Closing proposal..`);
+  logEvents(await gv.closeProposal(p, {
+    from: submitter,
   }));
 
   const proposal = await gv.proposal(p);
-  console.log(`Proposal is:`);
-  console.log(proposal);
   assert.equal(proposal[2].toNumber(), 3);
 }
+
 
 const directWeb3 = new Web3(process.env.TEST_ENV_FORK);
 
 const newContractAddressUpgradeCategoryId = 29;
 const newProxyContractAddressUpgradeCategoryId = 5;
 const addNewInternalContractCategoryId = 34;
-const loader = setupLoader({
-  provider: web3.eth.currentProvider,
-  defaultSender,
-  defaultGas: 7 * 1e6, // 7 million
-  defaultGasPrice: 5e9, // 5 gwei
-}).truffle;
+
+const VALID_DAYS = 250;
 
 describe('migration', function () {
-
-
-
   const [owner] = accounts;
 
   it('upgrades old system', async function () {
 
     const { data: versionData } = await axios.get('https://api.nexusmutual.io/version-data/data.json');
 
-
     const master = await NXMaster.at(getContractData('NXMASTER', versionData).address);
-
 
     const { contractsName, contractsAddress } = await master.getVersionData();
     console.log(contractsName);
@@ -167,8 +111,6 @@ describe('migration', function () {
     const pc = await ProposalCategory.at(nameToAddressMap['PC']);
     const tf = await TokenFunctions.at(nameToAddressMap['TF']);
     const td = await TokenData.at(nameToAddressMap['TD']);
-    const oldCR = await ClaimsReward.at(nameToAddressMap['CR']);
-
 
     const directMR = getWeb3Contract('MR', versionData, directWeb3);
     const directTD = getWeb3Contract('TD', versionData, directWeb3);
@@ -284,9 +226,6 @@ describe('migration', function () {
     const postNewContractVersionData = await master.getVersionData();
     console.log(postNewContractVersionData);
 
-    // const psMaster = await ps.master();
-    // assert.equal(psMaster, master.address);
-
     const currentPooledStakingAddress = await master.getLatestAddress(hex('PS'));
     assert.equal(currentPooledStakingAddress, ps.address);
     const pooledStakingIsInternal = await master.isInternal(ps.address);
@@ -306,7 +245,7 @@ describe('migration', function () {
     const memberStakes = {};
 
 
-    console.log(`Fetching getStakerAllLockedTokens for each member for assertions.`);
+    console.log(`Fetching getStakerAllLockedTokens and member stakes for each member for assertions.`);
     for (let i = 0; i < allMembers.length; i ++) {
       const member = allMembers[i];
       lockedBeforeMigration[member] = await directTF.methods.getStakerAllLockedTokens(member).call();
@@ -326,9 +265,9 @@ describe('migration', function () {
     const migratedMembersSet = new Set();
     let totalDeposits = new BN('0');
 
-    await ps.setStartMigrationIndex(0);
+    await ps.setStartMigrationIndex(230);
     const membersLength = await mr.membersLength('2');
-    await ps.setMaxStakersToMigrate(membersLength.toString());
+    await ps.setMaxStakersToMigrate(270);
 
     while (!completed) {
       const iterations = 10;
@@ -379,14 +318,14 @@ describe('migration', function () {
             console.log(`daysPassed ${daysPassed.toString()}`);
 
             let stakeLeft = new BN('0');
-            if (daysPassed.ltn(250)) {
+            if (daysPassed.ltn(VALID_DAYS)) {
 
-              const daysLeft = new BN('250').sub(daysPassed);
+              const daysLeft = new BN(VALID_DAYS.toString()).sub(daysPassed);
               stakeLeft =
                 daysLeft
                 .mul(initialStake)
                 .muln(100000)
-                .divn(250)
+                .divn(VALID_DAYS)
                 .divn(100000);
             }
             stakeLeft = stakeLeft.sub(burnedAmount);

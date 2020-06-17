@@ -263,11 +263,7 @@ describe('migration', function () {
     let totalCallCount = 0;
 
     const migratedMembersSet = new Set();
-    let totalDeposits = new BN('0');
-
-    await ps.setStartMigrationIndex(230);
-    const membersLength = await mr.membersLength('2');
-    await ps.setMaxStakersToMigrate(270);
+    let totalDeposits = {};
 
     while (!completed) {
       const iterations = 10;
@@ -339,7 +335,7 @@ describe('migration', function () {
 
           const totalExpectedStake = stakesWithStakeLeft.reduce((a, b) => a.add(b.stakeLeft), new BN('0'));
           const postMigrationStake = await ps.stakerDeposit(migratedMember);
-          totalDeposits = totalDeposits.add(postMigrationStake);
+          totalDeposits[migratedMember] = postMigrationStake;
           assert.equal(postMigrationStake.toString(), totalExpectedStake.toString(), `Total stake doesn't match for ${migratedMember}`);
 
           const aggregatedStakes = {};
@@ -372,7 +368,12 @@ describe('migration', function () {
     console.log(`Checking total migrated Tokens to new PS.`);
     const totalStakedTokens = await tk.balanceOf(ps.address);
 
-    assert.equal(totalStakedTokens.toString(), totalDeposits.toString());
+    let totalDepositsSum = new BN('0');
+    for (let totalDeposit of Object.values(totalDeposits)) {
+      totalDepositsSum = totalDepositsSum.add(totalDeposit);
+    }
+
+    assert.equal(totalStakedTokens.toString(), totalDepositsSum.toString());
 
     console.log(`Asserting all initial members have been migrated..`);
     for (let member of memberSet) {

@@ -1,11 +1,13 @@
 const { contract, defaultSender } = require('@openzeppelin/test-environment');
-const { ether } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { assert } = require('chai');
 
 const { Role, ParamType } = require('./utils').constants;
 const accounts = require('./utils').accounts;
 const { hex } = require('./utils').helpers;
 
 const MasterMock = contract.fromArtifact('MasterMock');
+const MemberRolesMock = contract.fromArtifact('MemberRolesMock');
 const PooledStaking = contract.fromArtifact('PooledStaking');
 const TokenMock = contract.fromArtifact('TokenMock');
 const TokenControllerMock = contract.fromArtifact('TokenControllerMock');
@@ -13,6 +15,7 @@ const TokenControllerMock = contract.fromArtifact('TokenControllerMock');
 async function setup () {
 
   const master = await MasterMock.new();
+  const memberRoles = await MemberRolesMock.new();
   const staking = await PooledStaking.new();
   const token = await TokenMock.new();
   const tokenController = await TokenControllerMock.new();
@@ -22,6 +25,7 @@ async function setup () {
   // set contract addresses
   await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
+  await master.setLatestAddress(hex('MR'), memberRoles.address);
 
   // required to be able to whitelist itself
   await master.enrollInternal(staking.address);
@@ -50,6 +54,17 @@ async function setup () {
   for (const governanceContract of accounts.governanceContracts) {
     await master.enrollGovernance(governanceContract);
   }
+
+  await expectRevert(
+    staking.depositAndStake(ether('1'), [], []),
+    'Contract is not initialized',
+  );
+
+  // initialize then migrate
+  await staking.changeDependentContractAddress();
+  await staking.migrateStakers('1');
+
+  assert(await staking.initialized(), 'Pooled staking contract should have been initialized');
 
   // revert initialized values for unit tests
   const firstGovernanceAddress = accounts.governanceContracts[0];

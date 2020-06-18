@@ -1,5 +1,6 @@
 const { contract, defaultSender } = require('@openzeppelin/test-environment');
 const { BN, ether } = require('@openzeppelin/test-helpers');
+const { assert } = require('chai');
 const { hex } = require('./utils').helpers;
 
 // external
@@ -114,6 +115,10 @@ async function setup () {
   await master.addPooledStaking();
   await master.addNewVersion(addresses);
 
+  const ps = await getProxyFromMaster(master, PooledStaking, 'PS');
+  await ps.migrateStakers('1');
+  assert(await ps.initialized(), 'Pooled staking contract should have been initialized');
+
   // fetch proxy contract addresses
   const gvProxyAddress = await master.getLatestAddress(hex('GV'));
   const pcProxyAddress = await master.getLatestAddress(hex('PC'));
@@ -158,7 +163,7 @@ async function setup () {
     gv: await getProxyFromMaster(master, Governance, 'GV'),
     pc: await getProxyFromMaster(master, ProposalCategory, 'PC'),
     mr: await getProxyFromMaster(master, MemberRoles, 'MR'),
-    ps: await getProxyFromMaster(master, PooledStaking, 'PS'),
+    ps,
   };
 
   await proxies.mr.payJoiningFee(owner, { from: owner, value: ether('0.002') });

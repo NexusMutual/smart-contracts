@@ -30,7 +30,7 @@ function getContractData (name, versionData) {
   return versionData.mainnet.abis.filter(abi => abi.code === name)[0];
 }
 
-async function getMemberStakes(member, td) {
+async function getMemberStakes (member, td) {
   const stakedContractLength = await td.methods.getStakerStakedContractLength(member).call();
   const stakes = [];
   for (let i = 0; i < stakedContractLength; i++) {
@@ -78,7 +78,6 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
-
 const directWeb3 = new Web3(process.env.TEST_ENV_FORK);
 
 const newContractAddressUpgradeCategoryId = 29;
@@ -99,7 +98,7 @@ describe('migration', function () {
     const { contractsName, contractsAddress } = await master.getVersionData();
     console.log(contractsName);
     console.log(contractsAddress);
-    const nameToAddressMap = {}
+    const nameToAddressMap = {};
     for (let i = 0; i < contractsName.length; i++) {
       nameToAddressMap[web3.utils.toAscii(contractsName[i])] = contractsAddress[i];
     }
@@ -148,13 +147,14 @@ describe('migration', function () {
       from: firstBoardMember,
     });
 
-    actionHash = encode1(
+    const upgradeMultipleContractsActionHash = encode1(
       ['bytes2[]', 'address[]'],
       [[hex('TF'), hex('CR')],
-      [newTF.address, newCR.address]]
+        [newTF.address, newCR.address]],
     );
 
-    await submitGovernanceProposal(newContractAddressUpgradeCategoryId, actionHash, boardMembers, gv, secondBoardMember);
+    await submitGovernanceProposal(newContractAddressUpgradeCategoryId, upgradeMultipleContractsActionHash,
+      boardMembers, gv, secondBoardMember);
 
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
     assert.equal(storedTFAddress, newTF.address);
@@ -166,13 +166,13 @@ describe('migration', function () {
       from: firstBoardMember,
     });
 
-    actionHash = encode1(
+    const upgradeMultipleImplementationsActionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('MR')], [newMR.address]]
+      [[hex('MR')], [newMR.address]],
     );
 
     await submitGovernanceProposal(newProxyContractAddressUpgradeCategoryId,
-      actionHash, boardMembers, gv, secondBoardMember);
+      upgradeMultipleImplementationsActionHash, boardMembers, gv, secondBoardMember);
 
     const mrProxy = await UpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
     const storedNewMRAddress = await mrProxy.implementation();
@@ -192,7 +192,6 @@ describe('migration', function () {
     this.directTD = directTD;
     this.directTF = directTF;
 
-
     this.boardMembers = boardMembers;
     this.firstBoardMember = firstBoardMember;
   });
@@ -209,43 +208,40 @@ describe('migration', function () {
     console.log(`Deployed pool staking at ${psImpl.address}`);
 
     // Creating proposal for adding new internal contract
-    actionHash = encode1(
+    const addNewInternalContractActionHash = encode1(
       ['bytes2', 'address', 'uint'],
-      [hex('PS'), psImpl.address, 2]
+      [hex('PS'), psImpl.address, 2],
     );
 
     await submitGovernanceProposal(
       addNewInternalContractCategoryId,
-      actionHash,
+      addNewInternalContractActionHash,
       boardMembers,
       gv,
-      firstBoardMember
+      firstBoardMember,
     );
 
     const postNewContractVersionData = await master.getVersionData();
     console.log(postNewContractVersionData);
 
-
     const psProxy = await master.getLatestAddress(hex('PS'));
     const ps = await PooledStaking.at(psProxy);
     assert.equal(await master.isInternal(ps.address), true);
 
-
     const members = await directMR.methods.members('2').call();
-    let allMembers = members.memberArray;
+    const allMembers = members.memberArray;
     console.log(`Members to process: ${allMembers.length}`);
 
     const memberSet = new Set(allMembers);
 
     console.log(`Member set size: ${memberSet.size}`);
 
-    const lockedBeforeMigration  = {};
+    const lockedBeforeMigration = {};
 
     const memberStakes = {};
 
-
     console.log(`Fetching getStakerAllLockedTokens and member stakes for each member for assertions.`);
-    for (let i = 0; i < allMembers.length; i ++) {
+    for (let i = 0; i < allMembers.length; i++) {
       const member = allMembers[i];
       lockedBeforeMigration[member] = await directTF.methods.getStakerAllLockedTokens(member).call();
       console.log(`Loading per-contract staking expected amounts for ${member}`);
@@ -262,7 +258,7 @@ describe('migration', function () {
     let totalCallCount = 0;
 
     const migratedMembersSet = new Set();
-    let totalDeposits = {};
+    const totalDeposits = {};
 
     while (!completed) {
       const iterations = 10;
@@ -272,7 +268,7 @@ describe('migration', function () {
       console.log(`gasEstimate: ${gasEstimate}`);
 
       const tx = await ps.migrateStakers(iterations, {
-        gas: gasEstimate
+        gas: gasEstimate,
       });
       logEvents(tx);
 
@@ -290,7 +286,7 @@ describe('migration', function () {
       console.log(`gasUsed ${gasUsed} | totalGasUsage ${totalGasUsage} | maxGasUsagePerCall ${maxGasUsagePerCall} | totalCallCount ${totalCallCount}`);
 
       const migratedMemberEvents = tx.logs.filter(log => log.event === MIGRATED_MEMBER_EVENT);
-      for (let migratedMemberEvent of migratedMemberEvents) {
+      for (const migratedMemberEvent of migratedMemberEvents) {
         const migratedMember = migratedMemberEvent.args.member;
         migratedMembersSet.add(migratedMember);
         console.log(`Finished migrating ${migratedMember}. Asserting migration values.`);
@@ -299,7 +295,7 @@ describe('migration', function () {
           tf.deprecated_getStakerAllLockedTokens(migratedMember),
           tf.deprecated_getStakerAllUnlockableStakedTokens(migratedMember),
           td.getStakerTotalEarnedStakeCommission(migratedMember),
-          td.getStakerTotalReedmedStakeCommission(migratedMember)
+          td.getStakerTotalReedmedStakeCommission(migratedMember),
         ]);
         assert.equal(lockedPostMigration.toString(), '0', `Failed for ${migratedMember}`);
         assert.equal(unlockable.toString(), '0', `Failed for ${migratedMember}`);
@@ -318,10 +314,10 @@ describe('migration', function () {
               const daysLeft = new BN(VALID_DAYS.toString()).sub(daysPassed);
               stakeLeft =
                 daysLeft
-                .mul(initialStake)
-                .muln(100000)
-                .divn(VALID_DAYS)
-                .divn(100000);
+                  .mul(initialStake)
+                  .muln(100000)
+                  .divn(VALID_DAYS)
+                  .divn(100000);
             }
             stakeLeft = stakeLeft.sub(burnedAmount);
             if (stakeLeft.ltn(0)) {
@@ -368,14 +364,14 @@ describe('migration', function () {
     const totalStakedTokens = await tk.balanceOf(ps.address);
 
     let totalDepositsSum = new BN('0');
-    for (let totalDeposit of Object.values(totalDeposits)) {
+    for (const totalDeposit of Object.values(totalDeposits)) {
       totalDepositsSum = totalDepositsSum.add(totalDeposit);
     }
 
     assert.equal(totalStakedTokens.toString(), totalDepositsSum.toString());
 
     console.log(`Asserting all initial members have been migrated..`);
-    for (let member of memberSet) {
+    for (const member of memberSet) {
       assert(migratedMembersSet.has(member), `${member} not found in migratedMemberSet`);
     }
   });

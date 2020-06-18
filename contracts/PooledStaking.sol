@@ -876,10 +876,6 @@ contract PooledStaking is MasterAware {
     uint stakeIndex
   );
 
-  event DebugMemberProcessing(
-    address member
-  );
-
   event MigratedMember(
     address member,
     uint memberIndex

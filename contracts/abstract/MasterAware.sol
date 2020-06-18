@@ -49,12 +49,12 @@ contract MasterAware {
     }
 
     modifier whenPaused {
-        require(master.isPause());
+        require(master.isPause(), "System is not paused");
         _;
     }
 
     modifier whenNotPaused {
-        require(!master.isPause());
+        require(!master.isPause(), "System is paused");
         _;
     }
 

@@ -1,4 +1,5 @@
 const { toHex, ether } = require('../test/utils/ethTools');
+const assert = require('assert');
 
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
@@ -78,6 +79,9 @@ module.exports = function (deployer, network, accounts) {
 
     const psProxyAddress = await master.getLatestAddress(toHex('PS'));
     const ps = await PooledStaking.at(psProxyAddress);
+
+    await ps.migrateStakers('1');
+    assert(await ps.initialized(), 'Pooled staking contract should have been initialized');
 
     // transfer master ownership and init governance
     await proxyMaster.transferProxyOwnership(gvProxyAddress);

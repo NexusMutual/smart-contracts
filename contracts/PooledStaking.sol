@@ -1003,9 +1003,13 @@ contract PooledStaking is MasterAware {
   }
 
   function changeDependentContractAddress() public {
+
     token = NXMToken(master.tokenAddress());
     tokenController = ITokenController(master.getLatestAddress("TC"));
-    initialize();
+
+    if (!initialized) {
+      initialize();
+    }
   }
 
 }

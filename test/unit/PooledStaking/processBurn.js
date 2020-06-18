@@ -3,6 +3,7 @@ const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType, Role } = require('../utils').constants;
+const { logEvents } = require('../utils').helpers;
 const setup = require('../setup');
 
 const {
@@ -416,6 +417,74 @@ describe('processBurn', function () {
     assert(
       currentBalance.eq(expectedBalance),
       `staking contract balance should be ${expectedBalance}, found ${currentBalance}`,
+    );
+  });
+
+  it('should burn the correct amount of tokens when processing in batches', async function () {
+
+    const { token, staking } = this;
+
+    // Set parameters
+    await setLockTime(staking, 90 * 24 * 3600); // 90 days
+
+    // Fund account and stake 10 and 20
+    const stakeAmountOne = ether('10');
+    const stakeAmountTwo = ether('20');
+
+    await fundAndStake(token, staking, stakeAmountOne, firstContract, memberOne);
+    await fundAndStake(token, staking, stakeAmountTwo, firstContract, memberTwo);
+
+    const initialContractBalance = await token.balanceOf(staking.address);
+    const expectedInitialContractBalance = ether('30');
+    assert(
+      initialContractBalance.eq(expectedInitialContractBalance),
+      `expected initial contract balance to be ${expectedInitialContractBalance}, found ${initialContractBalance}`,
+    );
+
+    // Push a burn of 3
+    const burnAmountOne = ether('3');
+    await staking.pushBurn(firstContract, burnAmountOne, { from: internalContract });
+
+    // Process in batches
+    await staking.processPendingActions('3');
+    assert.equal(await staking.hasPendingActions(), true, 'should have not finished processing all pending actions');
+
+    await staking.processPendingActions('1');
+    assert.equal(await staking.hasPendingActions(), false, 'should have finished processing all pending actions');
+
+    // Push another burn of 3
+    const burnAmountTwo = ether('3');
+    await staking.pushBurn(firstContract, burnAmountTwo, { from: internalContract });
+
+    // Process second burn
+    await staking.processPendingActions('4');
+    assert.equal(await staking.hasPendingActions(), false, 'should have finished processing all pending actions');
+
+    const finalContractBalance = await token.balanceOf(staking.address);
+    const expectedFinalContractBalance = ether('24');
+    assert(
+      finalContractBalance.eq(expectedFinalContractBalance),
+      `expected final contract balance to be ${expectedFinalContractBalance}, found ${finalContractBalance}`,
+    );
+
+    const totalBurn = ether('6');
+    const totalStake = ether('30');
+
+    const burnAmountMemberOne = totalBurn.mul(stakeAmountOne).div(totalStake);
+    const burnAmountMemberTwo = totalBurn.mul(stakeAmountTwo).div(totalStake);
+
+    const expectedDepositOne = stakeAmountOne.sub(burnAmountMemberOne);
+    const currentDepositOne = await staking.stakerDeposit(memberOne);
+    assert(
+      currentDepositOne.eq(expectedDepositOne),
+      `member one deposit should be ${expectedDepositOne}, found ${currentDepositOne}`,
+    );
+
+    const expectedDepositTwo = stakeAmountTwo.sub(burnAmountMemberTwo);
+    const currentDepositTwo = await staking.stakerDeposit(memberTwo);
+    assert(
+      currentDepositTwo.eq(expectedDepositTwo),
+      `member two deposit should be ${expectedDepositTwo}, found ${currentDepositTwo}`,
     );
   });
 

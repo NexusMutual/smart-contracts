@@ -624,6 +624,7 @@ contract PooledStaking is MasterAware {
     }
 
     delete burn;
+    contractBurned = 0;
     processedToStakerIndex = 0;
     isContractStakeCalculated = false;
 

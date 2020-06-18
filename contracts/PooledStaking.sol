@@ -881,7 +881,8 @@ contract PooledStaking is MasterAware {
     uint memberIndex
   );
 
-  function migrateStakers(uint maxIterations) external returns (bool, uint start, uint) {
+  function migrateStakers(uint maxIterations) external returns (bool){
+
     require(!initialized, "Migration already completed");
 
     ITokenFunctions tokenFunctions = ITokenFunctions(master.getLatestAddress("TF"));
@@ -891,39 +892,44 @@ contract PooledStaking is MasterAware {
 
     uint iterationsLeft = maxIterations;
     uint membersLength = memberRoles.membersLength(uint(IMemberRoles.Role.Member));
-    start = processedToStakerIndex;
 
-    for (uint memberIndex = start; memberIndex < membersLength; memberIndex++) {
+    for (uint memberIndex = processedToStakerIndex; memberIndex < membersLength; memberIndex++) {
+
       (address member, bool isActive) = memberRoles.memberAtIndex(uint(IMemberRoles.Role.Member), memberIndex);
 
       if (!isActive) {
         continue;
       }
-      uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
 
-      uint commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member) - tokenData.getStakerTotalReedmedStakeCommission(member);
+      uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
+      uint commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member)
+        .sub(tokenData.getStakerTotalReedmedStakeCommission(member));
 
       if (commissionsLeftToProcess > 0) {
         claimsReward._claimStakeCommission(stakedContractsCount, member);
       }
 
+      // we're reusing firstReward storage variable in order to avoid
+      // declaration of variables that will only be used for the migration
       for (uint i = firstReward; i < stakedContractsCount; i++) {
+
         if (iterationsLeft == 0) {
           processedToStakerIndex = memberIndex;
           firstReward = i;
           emit StakersMigrationCompleted(false, memberIndex, i);
-          return (false, start, memberIndex);
+          return false;
         }
 
         --iterationsLeft;
 
         address contractAddress = tokenData.getStakerStakedContractByIndex(member, i);
         uint stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
-        unlockStakerUnlockableTokensForContract(tokenData, tokenFunctions, member,
-          contractAddress, stakerContractIndex, i);
 
-        uint stakedAmount;
-        (, stakedAmount) = tokenFunctions._deprecated_unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
+        unlockStakerUnlockableTokensForContract(
+          tokenData, tokenFunctions, member, contractAddress, stakerContractIndex, i
+        );
+
+        (, uint stakedAmount) = tokenFunctions._deprecated_unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
 
         if (stakedAmount > 0) {
           stakeForMemberOnContract(tokenData, member, contractAddress, stakedAmount, stakerContractIndex, i);
@@ -931,7 +937,8 @@ contract PooledStaking is MasterAware {
       }
 
       emit MigratedMember(member, memberIndex);
-      // clear out start indexes for next iteration
+
+      // reset start index for the next iteration
       firstReward = 0;
     }
 
@@ -941,29 +948,31 @@ contract PooledStaking is MasterAware {
     processedToStakerIndex = 0;
     firstReward = 0;
     emit StakersMigrationCompleted(true, processedToStakerIndex, firstReward);
-    return (true, start, membersLength);
+
+    return true;
   }
 
   function stakeForMemberOnContract(
     ITokenData tokenData,
-    address member,
+    address stakerAddress,
     address contractAddress,
     uint stakedAmount,
     uint stakerContractIndex,
     uint i
   ) internal {
-    Staker storage staker = stakers[member];
+
+    Staker storage staker = stakers[stakerAddress];
     staker.deposit = staker.deposit.add(stakedAmount);
-
-    tokenData.pushBurnedTokens(member, i, stakedAmount);
-    bytes32 reason = keccak256(abi.encodePacked("UW", member, contractAddress, stakerContractIndex));
-    tokenController.burnLockedTokens(member, reason, stakedAmount);
-
     staker.stakes[contractAddress] = staker.stakes[contractAddress].add(stakedAmount);
+
+    tokenData.pushBurnedTokens(stakerAddress, i, stakedAmount);
+    bytes32 lockReason = keccak256(abi.encodePacked("UW", stakerAddress, contractAddress, stakerContractIndex));
+    tokenController.burnLockedTokens(stakerAddress, lockReason, stakedAmount);
+
     if (!staker.isInContractStakers[contractAddress]) {
       staker.contracts.push(contractAddress);
       staker.isInContractStakers[contractAddress] = true;
-      contractStakers[contractAddress].push(member);
+      contractStakers[contractAddress].push(stakerAddress);
     }
 
     tokenController.mint(address(this), stakedAmount);
@@ -972,18 +981,21 @@ contract PooledStaking is MasterAware {
   function unlockStakerUnlockableTokensForContract(
     ITokenData tokenData,
     ITokenFunctions tokenFunctions,
-    address _stakerAddress,
-    address scAddress,
+    address stakerAddress,
+    address contractAddress,
     uint stakerContractIndex,
     uint i
   ) internal {
-      uint unlockableAmount = tokenFunctions._deprecated_getStakerUnlockableTokensOnSmartContract(
-        _stakerAddress, scAddress,
-          stakerContractIndex);
-      tokenData.setUnlockableBeforeLastBurnTokens(_stakerAddress, i, 0);
-      tokenData.pushUnlockedStakedTokens(_stakerAddress, i, unlockableAmount);
-      bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress, scAddress, stakerContractIndex));
-      tokenController.releaseLockedTokens(_stakerAddress, reason, unlockableAmount);
+
+    uint unlockableAmount = tokenFunctions._deprecated_getStakerUnlockableTokensOnSmartContract(
+      stakerAddress, contractAddress, stakerContractIndex
+    );
+
+    tokenData.setUnlockableBeforeLastBurnTokens(stakerAddress, i, 0);
+    tokenData.pushUnlockedStakedTokens(stakerAddress, i, unlockableAmount);
+
+    bytes32 lockReason = keccak256(abi.encodePacked("UW", stakerAddress, contractAddress, stakerContractIndex));
+    tokenController.releaseLockedTokens(stakerAddress, lockReason, unlockableAmount);
   }
 
   function changeDependentContractAddress() public {

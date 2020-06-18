@@ -885,15 +885,6 @@ contract PooledStaking is MasterAware {
     uint memberIndex
   );
 
-  event DebugCommisions(
-    uint commissionsLeftToProcess
-  );
-
-  event DebugClaimStakeCommissionsCall(
-    uint iterations,
-    address member
-  );
-
   function migrateStakers(uint maxIterations) external returns (bool, uint start, uint) {
     require(!initialized, "Migration already completed");
 
@@ -912,14 +903,9 @@ contract PooledStaking is MasterAware {
       if (!isActive) {
         continue;
       }
-
-      emit DebugMemberProcessing(member);
-
       uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
 
       uint commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member) - tokenData.getStakerTotalReedmedStakeCommission(member);
-
-      emit DebugCommisions(commissionsLeftToProcess);
 
       if (commissionsLeftToProcess > 0) {
         claimsReward._claimStakeCommission(stakedContractsCount, member);

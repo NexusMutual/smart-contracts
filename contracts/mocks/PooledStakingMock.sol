@@ -1013,7 +1013,7 @@ contract PooledStakingMock is MasterAware, IPooledStaking {
       // TODO: change these with governance instead of tweaking mock
       MIN_STAKE = 0;
       MIN_UNSTAKE = 0;
-      MAX_EXPOSURE = 2;
+      MAX_EXPOSURE = 10;
       UNSTAKE_LOCK_TIME = 0;
     }
   }

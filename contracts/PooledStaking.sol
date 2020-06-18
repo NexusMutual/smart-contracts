@@ -147,6 +147,12 @@ contract PooledStaking is MasterAware {
     _;
   }
 
+  modifier whenNotPausedAndInitialized {
+    require(!master.isPause(), "System is paused");
+    require(initialized, "Contract is not initialized");
+    _;
+  }
+
   /* Getters and view functions */
 
   function contractStakerCount(address contractAddress) external view returns (uint) {
@@ -275,7 +281,7 @@ contract PooledStaking is MasterAware {
     uint amount,
     address[] calldata _contracts,
     uint[] calldata _stakes
-  ) external whenNotPaused onlyMember noPendingActions {
+  ) external whenNotPausedAndInitialized onlyMember noPendingActions {
 
     Staker storage staker = stakers[msg.sender];
     uint oldLength = staker.contracts.length;
@@ -359,7 +365,7 @@ contract PooledStaking is MasterAware {
     }
   }
 
-  function withdraw(uint amount) external whenNotPaused onlyMember noPendingBurns {
+  function withdraw(uint amount) external whenNotPausedAndInitialized onlyMember noPendingBurns {
     uint limit = stakerMaxWithdrawable(msg.sender);
     require(limit >= amount, "Requested amount exceeds max withdrawable amount");
     stakers[msg.sender].deposit = stakers[msg.sender].deposit.sub(amount);
@@ -371,7 +377,7 @@ contract PooledStaking is MasterAware {
     address[] calldata _contracts,
     uint[] calldata _amounts,
     uint _insertAfter // unstake request id after which the new unstake request will be inserted
-  ) external whenNotPaused onlyMember {
+  ) external whenNotPausedAndInitialized onlyMember {
 
     require(
       _contracts.length == _amounts.length,
@@ -458,7 +464,7 @@ contract PooledStaking is MasterAware {
     }
   }
 
-  function withdrawReward(address stakerAddress) external whenNotPaused {
+  function withdrawReward(address stakerAddress) external whenNotPausedAndInitialized {
 
     uint amount = stakers[stakerAddress].reward;
     stakers[stakerAddress].reward = 0;
@@ -470,7 +476,7 @@ contract PooledStaking is MasterAware {
 
   function pushBurn(
     address contractAddress, uint amount
-  ) public onlyInternal whenNotPaused noPendingBurns noPendingUnstakeRequests {
+  ) public onlyInternal whenNotPausedAndInitialized noPendingBurns noPendingUnstakeRequests {
 
     burn.amount = amount;
     burn.burnedAt = now;
@@ -479,7 +485,7 @@ contract PooledStaking is MasterAware {
     emit BurnRequested(contractAddress, amount);
   }
 
-  function pushReward(address contractAddress, uint amount) external onlyInternal whenNotPaused {
+  function pushReward(address contractAddress, uint amount) external onlyInternal whenNotPausedAndInitialized {
 
     rewards[++lastRewardId] = Reward(amount, now, contractAddress);
 
@@ -490,7 +496,7 @@ contract PooledStaking is MasterAware {
     emit RewardRequested(contractAddress, amount);
   }
 
-  function processPendingActions(uint maxIterations) public whenNotPaused returns (bool) {
+  function processPendingActions(uint maxIterations) public whenNotPausedAndInitialized returns (bool) {
 
     uint iterationsLeft = maxIterations;
     bool finished;
@@ -858,9 +864,7 @@ contract PooledStaking is MasterAware {
 
   function initialize() internal {
 
-    if (initialized) {
-      return;
-    }
+    require(!initialized, "Contract is already initialized");
 
     tokenController.addToWhitelist(address(this));
 

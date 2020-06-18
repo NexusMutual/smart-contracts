@@ -625,6 +625,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     }
 
     delete burn;
+    contractBurned = 0;
     processedToStakerIndex = 0;
     isContractStakeCalculated = false;
 
@@ -804,6 +805,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     }
 
     delete rewards[firstReward];
+    contractRewarded = 0;
     processedToStakerIndex = 0;
     isContractStakeCalculated = false;
 

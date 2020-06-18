@@ -42,6 +42,7 @@ async function setMinUnstake (staking, amount) {
 describe('requestUnstake', function () {
 
   beforeEach(setup);
+  this.timeout(0);
 
   it('should revert when called by non members', async function () {
     const { master, staking } = this;

@@ -66,6 +66,11 @@ export interface MasterMockContract
   "new"(meta?: Truffle.TransactionDetails): Promise<MasterMockInstance>;
 }
 
+export interface MemberRolesMockContract
+  extends Truffle.Contract<MemberRolesMockInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<MemberRolesMockInstance>;
+}
+
 export interface NewInternalContractContract
   extends Truffle.Contract<NewInternalContractInstance> {
   "new"(
@@ -395,11 +400,6 @@ export interface IMemberRolesInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
-
-  members(
-    _memberRoleId: number | BigNumber | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BigNumber, string[]]>;
 
   membersLength: {
     (
@@ -1001,6 +1001,50 @@ export interface MasterMockInstance extends Truffle.ContractInstance {
       arg0: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
+    sendTransaction(
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+}
+
+export interface MemberRolesMockInstance extends Truffle.ContractInstance {
+  memberAtIndex: {
+    (
+      arg0: number | BigNumber | string,
+      arg1: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      arg0: number | BigNumber | string,
+      arg1: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[string, boolean]>;
+    sendTransaction(
+      arg0: number | BigNumber | string,
+      arg1: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      arg0: number | BigNumber | string,
+      arg1: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  membersLength: {
+    (
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      arg0: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BigNumber>;
     sendTransaction(
       arg0: number | BigNumber | string,
       txDetails?: Truffle.TransactionDetails

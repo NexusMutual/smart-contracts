@@ -26,6 +26,9 @@ declare global {
       require(name: "MasterAware"): TruffleContracts.MasterAwareContract;
       require(name: "MasterMock"): TruffleContracts.MasterMockContract;
       require(
+        name: "MemberRolesMock"
+      ): TruffleContracts.MemberRolesMockContract;
+      require(
         name: "NewInternalContract"
       ): TruffleContracts.NewInternalContractContract;
       require(name: "NXMToken"): TruffleContracts.NXMTokenContract;

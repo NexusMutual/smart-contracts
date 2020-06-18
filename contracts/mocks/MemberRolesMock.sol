@@ -15,11 +15,16 @@
 
 pragma solidity ^0.5.17;
 
-interface IMemberRoles {
+import "../interfaces/IMemberRoles.sol";
 
-  enum Role {UnAssigned, AdvisoryBoard, Member, Owner}
+contract MemberRolesMock is IMemberRoles {
 
-  function memberAtIndex(uint _memberRoleId, uint index) external returns (address, bool);
+  function memberAtIndex(uint, uint) external returns (address, bool) {
+    revert("Unexpected MemberRolesMock call");
+  }
 
-  function membersLength(uint _memberRoleId) external returns (uint);
+  function membersLength(uint) external returns (uint) {
+    return 0;
+  }
+
 }

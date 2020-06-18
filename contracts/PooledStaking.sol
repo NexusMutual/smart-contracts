@@ -804,6 +804,7 @@ contract PooledStaking is MasterAware {
     }
 
     delete rewards[firstReward];
+    contractRewarded = 0;
     processedToStakerIndex = 0;
     isContractStakeCalculated = false;
 

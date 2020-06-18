@@ -46,6 +46,42 @@ describe('processFirstReward', function () {
     );
   });
 
+  it.only('should mint the reward amount in the PS contract when processing in batches', async function () {
+    const { token, staking } = this;
+
+    const stakeMemberOne = ether('10');
+    const stakeMemberTwo = ether('20');
+
+    await fundApproveDepositStake(token, staking, stakeMemberOne, firstContract, memberOne);
+    await fundApproveDepositStake(token, staking, stakeMemberTwo, firstContract, memberTwo);
+
+    const initialContractBalance = await token.balanceOf(staking.address);
+    const expectedInitialContractBalance = ether('30');
+    assert(
+      initialContractBalance.eq(expectedInitialContractBalance),
+      `expected initial contract balance to be ${expectedInitialContractBalance}, found ${initialContractBalance}`,
+    );
+
+    // push reward and process in batches
+    await staking.pushReward(firstContract, ether('3'), { from: internalContract });
+    await staking.processPendingActions('3');
+    assert.equal(await staking.hasPendingActions(), true, 'should have not finished processing all pending actions');
+    await staking.processPendingActions('1');
+    assert.equal(await staking.hasPendingActions(), false, 'should have finished processing all pending actions');
+
+    // push reward and process it
+    await staking.pushReward(firstContract, ether('3'), { from: internalContract });
+    await staking.processPendingActions('4');
+    assert.equal(await staking.hasPendingActions(), false, 'should have finished processing all pending actions');
+
+    const finalContractBalance = await token.balanceOf(staking.address);
+    const expectedFinalContractBalance = ether('36');
+    assert(
+      finalContractBalance.eq(expectedFinalContractBalance),
+      `expected final contract balance to be ${expectedFinalContractBalance}, found ${finalContractBalance}`,
+    );
+  });
+
   it('should reward stakers proportionally to their stake', async function () {
     const { token, staking } = this;
 

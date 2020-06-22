@@ -568,7 +568,7 @@ describe('depositAndStake', function () {
     await staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne });
   });
 
-  it('should keep a 0-amount contract at 0 while allowing staking on new ones', async function () {
+  it('should keep 0-amount stakes at 0, remove the contracts from the array, and stake on new ones', async function () {
 
     const { staking, token } = this;
 
@@ -599,6 +599,15 @@ describe('depositAndStake', function () {
     await expectContractState(staking, thirdContract, ether('10'), [memberOne]);
     await expectContractState(staking, fourthContract, ether('10'), [memberOne]);
     await expectMemberState(staking, memberOne, [firstContract, secondContract], [ether('0'), ether('0')]);
+
+    const expectedStakerContracts = [fourthContract, thirdContract];
+    const stakerContracts = await staking.stakerContractsArray(memberOne);
+
+    assert.deepEqual(
+      stakerContracts,
+      expectedStakerContracts,
+      `Expected staker contracts to be ${expectedStakerContracts.join(' ')}, found ${stakerContracts.join(' ')}`,
+    );
   });
 
   it('should prevent staking more than deposit * MAX_EXPOSURE on successive staking operations', async function () {

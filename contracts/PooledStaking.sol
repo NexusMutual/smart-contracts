@@ -363,6 +363,17 @@ contract PooledStaking is MasterAware {
     if (amount > 0) {
       emit Deposited(msg.sender, amount);
     }
+
+    // cleanup zero-amount contracts
+    uint contractCount = _contracts.length;
+
+    for (uint i = 0; i < contractCount; i++) {
+      if (_stakes[i] == 0) {
+        staker.contracts[i] = staker.contracts[contractCount - 1];
+        staker.contracts.pop();
+        --contractCount;
+      }
+    }
   }
 
   function withdraw(uint amount) external whenNotPausedAndInitialized onlyMember noPendingBurns {

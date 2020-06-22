@@ -42,7 +42,8 @@
     "test": "mocha --exit",
     "test-integration": "mocha --exit test/integration",
     "test-unit": "mocha --exit test/unit",
-    "deploy-mock": "oz compile && node scripts/mock-deploy.js",
+    "deploy-mock": "oz compile && node scripts/deploy-mock.js",
+    "deploy-full": "npm run compile-all && node scripts/deploy-full.js",
     "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork"
   },
   "license": "ISC"

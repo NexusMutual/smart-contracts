@@ -46,7 +46,7 @@ describe('processFirstReward', function () {
     );
   });
 
-  it.only('should mint the reward amount in the PS contract when processing in batches', async function () {
+  it('should mint the reward amount in the PS contract when processing in batches', async function () {
     const { token, staking } = this;
 
     const stakeMemberOne = ether('10');

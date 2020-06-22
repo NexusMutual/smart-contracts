@@ -764,7 +764,6 @@ contract PooledStaking is MasterAware {
     address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
     uint _actualRewardAmount = contractRewarded;
-    uint previousGas = gasleft();
 
     for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
@@ -776,7 +775,6 @@ contract PooledStaking is MasterAware {
 
       --iterationsLeft;
 
-      previousGas = gasleft();
       address _stakerAddress = _contractStakers[i];
 
       (uint _stakerRewardAmount, uint _stake) = _rewardStaker(

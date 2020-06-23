@@ -79,11 +79,11 @@ contract PooledStaking is MasterAware {
 
   // burns
   event BurnRequested(address indexed contractAddress, uint amount);
-  event Burned(address indexed contractAddress, uint amount);
+  event Burned(address indexed contractAddress, uint amount, uint contractStakeBeforeBurn);
 
   // rewards
   event RewardRequested(address indexed contractAddress, uint amount);
-  event Rewarded(address indexed contractAddress, uint amount);
+  event Rewarded(address indexed contractAddress, uint amount, uint contractStake);
   event RewardWithdrawn(address indexed staker, uint amount);
 
   // pending actions processing
@@ -639,7 +639,7 @@ contract PooledStaking is MasterAware {
     isContractStakeCalculated = false;
 
     token.burn(_actualBurnAmount);
-    emit Burned(_contractAddress, _actualBurnAmount);
+    emit Burned(_contractAddress, _actualBurnAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
   }
@@ -821,7 +821,7 @@ contract PooledStaking is MasterAware {
     }
 
     tokenController.mint(address(this), _actualRewardAmount);
-    emit Rewarded(_contractAddress, _actualRewardAmount);
+    emit Rewarded(_contractAddress, _actualRewardAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
   }

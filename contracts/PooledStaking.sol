@@ -321,6 +321,9 @@ contract PooledStaking is MasterAware {
       if (!isNewStake) {
         require(contractAddress == staker.contracts[i], "Unexpected contract order");
         require(oldStake <= newStake, "New stake is less than previous stake");
+      } else {
+        require(newStake > 0, "New stakes should be greater than 0");
+        staker.contracts.push(contractAddress);
       }
 
       if (oldStake == newStake) {
@@ -338,10 +341,6 @@ contract PooledStaking is MasterAware {
 
       require(newStake >= MIN_STAKE, "Minimum stake amount not met");
       require(newStake <= newDeposit, "Cannot stake more than deposited");
-
-      if (isNewStake) {
-        staker.contracts.push(contractAddress);
-      }
 
       if (isNewStake || !staker.isInContractStakers[contractAddress]) {
         staker.isInContractStakers[contractAddress] = true;

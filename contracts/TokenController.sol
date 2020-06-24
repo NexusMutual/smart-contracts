@@ -322,18 +322,18 @@ contract TokenController is IERC1132, Iupgradable {
     * @param _of The address to query the total balance of
     * @param _of The address to query the total balance of
     */
-    function totalBalanceOf(address _of)
-        public
-        view
-        returns (uint256 amount)
-    {
+    function totalBalanceOf(address _of) public view returns (uint256 amount) {
+
         amount = token.balanceOf(_of);
 
         for (uint256 i = 0; i < lockReason[_of].length; i++) {
             amount = amount.add(_tokensLocked(_of, lockReason[_of][i]));
         }
 
-        amount = amount.add(pooledStaking.stakerDeposit(_of));
+        uint stakerReward = pooledStaking.stakerReward(_of);
+        uint stakerDeposit = pooledStaking.stakerDeposit(_of);
+
+        amount = amount.add(stakerDeposit).add(stakerReward);
     }
 
     /**

@@ -979,6 +979,9 @@ contract PooledStaking is MasterAware {
     staker.deposit = staker.deposit.add(stakedAmount);
     staker.stakes[contractAddress] = staker.stakes[contractAddress].add(stakedAmount);
 
+    emit Staked(contractAddress, stakerAddress, stakedAmount);
+    emit Deposited(stakerAddress, stakedAmount);
+
     tokenData.pushBurnedTokens(stakerAddress, i, stakedAmount);
     bytes32 lockReason = keccak256(abi.encodePacked("UW", stakerAddress, contractAddress, stakerContractIndex));
     tokenController.burnLockedTokens(stakerAddress, lockReason, stakedAmount);

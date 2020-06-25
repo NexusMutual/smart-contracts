@@ -486,7 +486,7 @@ contract PooledStaking is MasterAware {
 
   function pushBurn(
     address contractAddress, uint amount
-  ) public onlyInternal whenNotPausedAndInitialized noPendingBurns noPendingUnstakeRequests {
+  ) public onlyInternal whenNotPausedAndInitialized noPendingBurns {
 
     burn.amount = amount;
     burn.burnedAt = now;

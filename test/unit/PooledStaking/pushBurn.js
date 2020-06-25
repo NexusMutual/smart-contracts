@@ -66,7 +66,7 @@ describe('pushBurn', function () {
     );
   });
 
-  it('should revert when called with pending unstake requests', async function () {
+  it('should not revert when called with pending unstake requests', async function () {
 
     const { token, staking } = this;
 
@@ -89,11 +89,8 @@ describe('pushBurn', function () {
     // 90 days pass
     await time.increase(90 * 24 * 3600);
 
-    // One unstake request due, can't push a burn
-    await expectRevert(
-      staking.pushBurn(firstContract, ether('2'), { from: internalContract }),
-      'Unable to execute request with unprocessed unstake requests',
-    );
+    // One unstake request due, should be able to push the burn
+    await staking.pushBurn(firstContract, ether('2'), { from: internalContract });
   });
 
   it('should update the burned amount', async function () {

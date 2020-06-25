@@ -80,11 +80,11 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   // burns
   event BurnRequested(address indexed contractAddress, uint amount);
-  event Burned(address indexed contractAddress, uint amount);
+  event Burned(address indexed contractAddress, uint amount, uint contractStakeBeforeBurn);
 
   // rewards
   event RewardRequested(address indexed contractAddress, uint amount);
-  event Rewarded(address indexed contractAddress, uint amount);
+  event Rewarded(address indexed contractAddress, uint amount, uint contractStake);
   event RewardWithdrawn(address indexed staker, uint amount);
 
   // pending actions processing
@@ -322,6 +322,9 @@ contract PooledStaking is MasterAware, IPooledStaking {
       if (!isNewStake) {
         require(contractAddress == staker.contracts[i], "Unexpected contract order");
         require(oldStake <= newStake, "New stake is less than previous stake");
+      } else {
+        require(newStake > 0, "New stakes should be greater than 0");
+        staker.contracts.push(contractAddress);
       }
 
       if (oldStake == newStake) {
@@ -339,10 +342,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
       require(newStake >= MIN_STAKE, "Minimum stake amount not met");
       require(newStake <= newDeposit, "Cannot stake more than deposited");
-
-      if (isNewStake) {
-        staker.contracts.push(contractAddress);
-      }
 
       if (isNewStake || !staker.isInContractStakers[contractAddress]) {
         staker.isInContractStakers[contractAddress] = true;
@@ -363,6 +362,17 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
     if (amount > 0) {
       emit Deposited(msg.sender, amount);
+    }
+
+    // cleanup zero-amount contracts
+    uint lastContractIndex = _contracts.length - 1;
+
+    for (uint i = oldLength; i > 0; i--) {
+      if (_stakes[i - 1] == 0) {
+        staker.contracts[i - 1] = staker.contracts[lastContractIndex];
+        staker.contracts.pop();
+        --lastContractIndex;
+      }
     }
   }
 
@@ -477,7 +487,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function pushBurn(
     address contractAddress, uint amount
-  ) public onlyInternal whenNotPausedAndInitialized noPendingBurns noPendingUnstakeRequests {
+  ) public onlyInternal whenNotPausedAndInitialized noPendingBurns {
 
     burn.amount = amount;
     burn.burnedAt = now;
@@ -630,7 +640,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     isContractStakeCalculated = false;
 
     token.burn(_actualBurnAmount);
-    emit Burned(_contractAddress, _actualBurnAmount);
+    emit Burned(_contractAddress, _actualBurnAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
   }
@@ -765,7 +775,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     address[] storage _contractStakers = contractStakers[_contractAddress];
     uint _stakerCount = _contractStakers.length;
     uint _actualRewardAmount = contractRewarded;
-    uint previousGas = gasleft();
 
     for (uint i = processedToStakerIndex; i < _stakerCount; i++) {
 
@@ -777,7 +786,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
       --iterationsLeft;
 
-      previousGas = gasleft();
       address _stakerAddress = _contractStakers[i];
 
       (uint _stakerRewardAmount, uint _stake) = _rewardStaker(
@@ -814,7 +822,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     }
 
     tokenController.mint(address(this), _actualRewardAmount);
-    emit Rewarded(_contractAddress, _actualRewardAmount);
+    emit Rewarded(_contractAddress, _actualRewardAmount, _stakedOnContract);
 
     return (true, iterationsLeft);
   }
@@ -971,6 +979,9 @@ contract PooledStaking is MasterAware, IPooledStaking {
     Staker storage staker = stakers[stakerAddress];
     staker.deposit = staker.deposit.add(stakedAmount);
     staker.stakes[contractAddress] = staker.stakes[contractAddress].add(stakedAmount);
+
+    emit Staked(contractAddress, stakerAddress, stakedAmount);
+    emit Deposited(stakerAddress, stakedAmount);
 
     tokenData.pushBurnedTokens(stakerAddress, i, stakedAmount);
     bytes32 lockReason = keccak256(abi.encodePacked("UW", stakerAddress, contractAddress, stakerContractIndex));

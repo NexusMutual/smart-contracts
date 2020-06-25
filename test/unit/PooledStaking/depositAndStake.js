@@ -600,7 +600,7 @@ describe('depositAndStake', function () {
     await expectContractState(staking, fourthContract, ether('10'), [memberOne]);
     await expectMemberState(staking, memberOne, [firstContract, secondContract], [ether('0'), ether('0')]);
 
-    const expectedStakerContracts = [fourthContract, thirdContract];
+    const expectedStakerContracts = [thirdContract, fourthContract];
     const stakerContracts = await staking.stakerContractsArray(memberOne);
 
     assert.deepEqual(
@@ -610,7 +610,7 @@ describe('depositAndStake', function () {
     );
   });
 
-  it.only('should remove all contracts with 0-stake', async function () {
+  it('should remove all contracts with 0-stake', async function () {
 
     const { staking, token } = this;
 

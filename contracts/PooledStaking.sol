@@ -364,14 +364,13 @@ contract PooledStaking is MasterAware {
     }
 
     // cleanup zero-amount contracts
-    uint contractCount = _contracts.length;
+    uint lastContractIndex = _contracts.length - 1;
 
-    for (uint i = 0; i < contractCount; i++) {
-      if (_stakes[i] == 0) {
-        staker.contracts[i] = staker.contracts[contractCount - 1];
+    for (uint i = oldLength; i > 0; i--) {
+      if (_stakes[i - 1] == 0) {
+        staker.contracts[i - 1] = staker.contracts[lastContractIndex];
         staker.contracts.pop();
-        --contractCount;
-        --i;
+        --lastContractIndex;
       }
     }
   }

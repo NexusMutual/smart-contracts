@@ -610,6 +610,46 @@ describe('depositAndStake', function () {
     );
   });
 
+  it.only('should remove all contracts with 0-stake', async function () {
+
+    const { staking, token } = this;
+
+    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await fundAndApprove(token, staking, ether('50'), memberOne); // MAX_EXPOSURE = 2
+
+    // stake 10 on 2 contracts
+    let contracts = [firstContract, secondContract];
+    let amounts = [ether('5'), ether('5')];
+    await staking.depositAndStake(ether('5'), contracts, amounts, { from: memberOne });
+
+    // Fully burn the first contract
+    await staking.pushBurn(firstContract, ether('5'), { from: internalContract });
+    await staking.processPendingActions('50');
+
+    await expectContractState(staking, firstContract, ether('0'), []);
+    await expectContractState(staking, secondContract, ether('0'), [memberOne]);
+    await expectMemberState(staking, memberOne, [firstContract, secondContract], [ether('0'), ether('0')]);
+
+    // should let the user stake on new contracts
+    contracts = [firstContract, secondContract];
+    amounts = [ether('0'), ether('0')];
+    await staking.depositAndStake(ether('5'), contracts, amounts, { from: memberOne });
+
+    // check first contract
+    await expectContractState(staking, firstContract, ether('0'), []);
+    await expectContractState(staking, secondContract, ether('0'), [memberOne]);
+    await expectMemberState(staking, memberOne, [firstContract, secondContract], [ether('0'), ether('0')]);
+
+    const expectedStakerContracts = [];
+    const stakerContracts = await staking.stakerContractsArray(memberOne);
+
+    assert.deepEqual(
+      stakerContracts,
+      expectedStakerContracts,
+      `Expected staker contracts to be ${expectedStakerContracts.join(' ')}, found ${stakerContracts.join(' ')}`,
+    );
+  });
+
   it('should prevent staking more than deposit * MAX_EXPOSURE on successive staking operations', async function () {
 
     const { staking, token } = this;

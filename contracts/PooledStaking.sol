@@ -371,6 +371,7 @@ contract PooledStaking is MasterAware {
         staker.contracts[i] = staker.contracts[contractCount - 1];
         staker.contracts.pop();
         --contractCount;
+        --i;
       }
     }
   }

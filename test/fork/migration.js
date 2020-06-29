@@ -56,20 +56,24 @@ async function getMemberStakes (member, td) {
 
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, submitter) {
 
-  const p = await gv.getProposalLength();
+  const proposalId = await gv.getProposalLength();
 
-  console.log(`Creating proposal ${p}..`);
-  await gv.createProposal('proposal', 'proposal', 'proposal', 0, { from: submitter });
+  console.log(`Creating proposal ${proposalId}..`);
+  const proposalTitle = 'proposalTitle';
+  const proposalSD = 'proposal SD';
+  const proposalDescHash = 'proposalDescHash';
+  const incentive = 0;
+  await gv.createProposal(proposalTitle, proposalSD, proposalDescHash, 0, { from: submitter });
 
-  console.log(`Categorizing proposal ${p}..`);
-  await gv.categorizeProposal(p, categoryId, 0, { from: submitter });
+  console.log(`Categorizing proposal ${proposalId}..`);
+  await gv.categorizeProposal(proposalId, categoryId, incentive, { from: submitter });
 
-  console.log(`Submitting proposal ${p}..`);
-  await gv.submitProposalWithSolution(p, 'proposal', actionHash, { from: submitter });
+  console.log(`Submitting proposal ${proposalId}..`);
+  await gv.submitProposalWithSolution(proposalId, 'proposal', actionHash, { from: submitter });
 
   for (let i = 1; i < members.length; i++) {
-    console.log(`Voting from ${members[i]} for ${p}..`);
-    logEvents(await gv.submitVote(p, 1, { from: members[i] }));
+    console.log(`Voting from ${members[i]} for ${proposalId}..`);
+    logEvents(await gv.submitVote(proposalId, 1, { from: members[i] }));
   }
 
   const increase = 604800;
@@ -77,9 +81,9 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   await time.increase(increase);
 
   console.log(`Closing proposal..`);
-  logEvents(await gv.closeProposal(p, { from: submitter }));
+  logEvents(await gv.closeProposal(proposalId, { from: submitter }));
 
-  const proposal = await gv.proposal(p);
+  const proposal = await gv.proposal(proposalId);
   assert.equal(proposal[2].toNumber(), 3);
 }
 

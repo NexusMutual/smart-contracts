@@ -15,6 +15,8 @@ const TokenFunctions = contract.fromArtifact('TokenFunctions');
 const ClaimsReward = contract.fromArtifact('ClaimsReward');
 const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const TokenData = contract.fromArtifact('TokenData');
+const Quotation = contract.fromArtifact('Quotation');
+const TokenController = contract.fromArtifact('TokenController');
 const UpgradeabilityProxy = contract.fromArtifact('UpgradeabilityProxy');
 
 const BN = web3.utils.BN;
@@ -133,9 +135,12 @@ describe('migration', function () {
     console.log(`Deploying new ClaimsReward..`);
     const newCR = await ClaimsReward.new({ from: firstBoardMember });
 
+    console.log(`Deploying new Quotation..`);
+    const newQT = await Quotation.new({ from: firstBoardMember });
+
     const upgradeMultipleContractsActionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('TF'), hex('CR')], [newTF.address, newCR.address]],
+      [[hex('TF'), hex('CR'), hex('QT')], [newTF.address, newCR.address, newQT.address]],
     );
 
     await submitGovernanceProposal(
@@ -144,17 +149,21 @@ describe('migration', function () {
 
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
     const storedCRAddress = await master.getLatestAddress(hex('CR'));
+    const storedQTAddress = await master.getLatestAddress(hex('QT'));
 
     assert.equal(storedTFAddress, newTF.address);
     assert.equal(storedCRAddress, newCR.address);
+    assert.equal(storedQTAddress, newQT.address);
 
     console.log(`Successfully submitted proposal for ClaimsReward and TokenFunctions upgrade and passed.`);
 
     const newMR = await MemberRoles.new({ from: firstBoardMember });
 
+    const newTC = await TokenController.new({ from: firstBoardMember });
+
     const upgradeMultipleImplementationsActionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('MR')], [newMR.address]],
+      [[hex('MR'), hex('TC')], [newMR.address, newTC.address]],
     );
 
     await submitGovernanceProposal(
@@ -165,6 +174,10 @@ describe('migration', function () {
     const mrProxy = await UpgradeabilityProxy.at(await master.getLatestAddress(hex('MR')));
     const storedNewMRAddress = await mrProxy.implementation();
     assert.equal(storedNewMRAddress, newMR.address);
+
+    const tcProxy = await UpgradeabilityProxy.at(await master.getLatestAddress(hex('TC')));
+    const storedNewTCAddress = await tcProxy.implementation();
+    assert.equal(storedNewTCAddress, newTC.address);
 
     console.log(`Successfully deployed new MR.`);
 

@@ -111,6 +111,7 @@ describe('migration', function () {
     const directMR = getWeb3Contract('MR', versionData, directWeb3);
     const directTD = getWeb3Contract('TD', versionData, directWeb3);
     const directTF = getWeb3Contract('TF', versionData, directWeb3);
+    const directTK = getWeb3Contract('NXMTOKEN', versionData, directWeb3);
 
     const owners = await mr.members('3');
     const firstBoardMember = owners.memberArray[0];
@@ -189,9 +190,11 @@ describe('migration', function () {
     this.tk = tk;
     this.pc = pc;
     this.td = td;
+    this.tc = await TokenController.at(await master.getLatestAddress(hex('TC')));
     this.directMR = directMR;
     this.directTD = directTD;
     this.directTF = directTF;
+    this.directTK = directTK;
 
     this.boardMembers = boardMembers;
     this.firstBoardMember = firstBoardMember;
@@ -199,7 +202,7 @@ describe('migration', function () {
 
   it('migrates all data from old pooled staking system to new one', async function () {
 
-    const { gv, master, directMR, directTF, directTD, tf, td, tk } = this;
+    const { gv, master, directMR, directTF, directTD, directTK, tf, td, tk, tc, cr } = this;
     const { boardMembers, firstBoardMember } = this;
 
     console.log(`Deploying pooled staking..`);
@@ -241,11 +244,18 @@ describe('migration', function () {
 
     console.log(`Fetching getStakerAllLockedTokens and member stakes for each member for assertions.`);
 
+    let totalMemberBalancesPreMigration = new BN('0');
+
+    console.log('Advancing start index..');
+    // await ps.setMigrateStakersStartIndex(800);
+
     for (let i = 0; i < allMembers.length; i++) {
       const member = allMembers[i];
       lockedBeforeMigration[member] = await directTF.methods.getStakerAllLockedTokens(member).call();
       console.log(`Loading per-contract staking expected amounts for ${member}`);
       memberStakes[member] = await getMemberStakes(member, directTD);
+      const balance = await directTK.methods.balanceOf(member).call();
+      totalMemberBalancesPreMigration = totalMemberBalancesPreMigration.add(new BN(balance));
     }
 
     console.log(`Finished fetching.`);
@@ -259,6 +269,11 @@ describe('migration', function () {
 
     const migratedMembersSet = new Set();
     const totalDeposits = {};
+
+    const tcBalancePreMigration = await tk.balanceOf(tc.address);
+    console.log(`TokenController balance pre-migration: ${tcBalancePreMigration.toString()}`);
+    const crBalancePreMigration = await tk.balanceOf(cr.address);
+    console.log(`ClaimRewards balance pre-migration: ${crBalancePreMigration.toString()}`);
 
     while (!completed) {
       const iterations = 10;
@@ -371,8 +386,38 @@ describe('migration', function () {
       // end while !completed
     }
 
+    let totalMemberBalancesPostMigration = new BN('0');
+    console.log(`Fetching member balances for ${allMembers.length} members..`);
+    for (let i = 0; i < allMembers.length; i++) {
+      const member = allMembers[i];
+      const balance = await tk.balanceOf(member);
+      totalMemberBalancesPostMigration = totalMemberBalancesPostMigration.add(balance);
+    }
+    console.log(`totalMemberBalancesPreMigration ${totalMemberBalancesPreMigration.toString()}`);
+    console.log(`totalMemberBalancesPostMigration ${totalMemberBalancesPostMigration.toString()}`);
+
     console.log(`Checking total migrated Tokens to new PS.`);
     const totalStakedTokens = await tk.balanceOf(ps.address);
+    console.log(`totalStakedTokens on new PooledStaking ${totalStakedTokens.toString()}`);
+
+    const tcBalancePostMigration = await tk.balanceOf(tc.address);
+    console.log(`TokenController balance pre-migration: ${tcBalancePreMigration.toString()}`);
+    console.log(`TokenController balance post-migration: ${tcBalancePostMigration.toString()}`);
+    const crBalancePostMigration = await tk.balanceOf(cr.address);
+    console.log(`ClaimRewards balance pre-migration: ${crBalancePreMigration.toString()}`);
+    console.log(`ClaimRewards balance post-migration: ${crBalancePostMigration.toString()}`);
+
+    const membersBalanceDifference = totalMemberBalancesPostMigration.sub(totalMemberBalancesPreMigration);
+    console.log(`membersBalanceDifference ${membersBalanceDifference.toString()}`);
+    const tcBalanceDifference = tcBalancePreMigration.sub(tcBalancePostMigration);
+    const crBalanceDifference = crBalancePreMigration.sub(crBalancePostMigration);
+    console.log(`tcBalanceDifference ${tcBalanceDifference.toString()}`);
+    console.log(`crBalanceDifference ${crBalanceDifference.toString()}`);
+
+    const expected = membersBalanceDifference.add(totalStakedTokens);
+    const actual = crBalanceDifference.add(tcBalanceDifference);
+
+    assert.equal(actual.toString(), expected.toString());
 
     let totalDepositsSum = new BN('0');
     for (const totalDeposit of Object.values(totalDeposits)) {

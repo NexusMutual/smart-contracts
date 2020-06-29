@@ -64,28 +64,33 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   const proposalDescHash = 'proposal';
   const incentive = 0;
   const solutionHash = 'proposal';
-  // await gv.createProposal(proposalTitle, proposalSD, proposalDescHash, 0, { from: submitter });
-  //
-  // console.log(`Categorizing proposal ${proposalId}..`);
-  // await gv.categorizeProposal(proposalId, categoryId, incentive, { from: submitter });
-  //
-  // console.log(`Submitting proposal ${proposalId}..`);
-  // await gv.submitProposalWithSolution(proposalId, 'proposal', actionHash, { from: submitter });
+  await gv.createProposal(proposalTitle, proposalSD, proposalDescHash, 0, { from: submitter });
 
-  console.log(`createProposalwithSolution`);
-   await gv.createProposalwithSolution(
-    proposalTitle,
-    proposalSD,
-    proposalDescHash,
-    categoryId,
-    solutionHash,
-    actionHash, {
-      from: submitter
-     });
+  console.log(`Categorizing proposal ${proposalId}..`);
+  await gv.categorizeProposal(proposalId, categoryId, incentive, { from: submitter });
 
-  for (let i = 1; i < members.length; i++) {
+  console.log(`Submitting proposal ${proposalId}..`);
+  await gv.submitProposalWithSolution(proposalId, 'proposal', actionHash, { from: submitter });
+
+  // console.log(`createProposalwithSolution`);
+  //  await gv.createProposalwithSolution(
+  //   proposalTitle,
+  //   proposalSD,
+  //   proposalDescHash,
+  //   categoryId,
+  //   solutionHash,
+  //   actionHash, {
+  //     from: submitter
+  //    });
+
+  for (let i = 0; i < members.length; i++) {
     console.log(`Voting from ${members[i]} for ${proposalId}..`);
-    logEvents(await gv.submitVote(proposalId, 1, { from: members[i] }));
+    try {
+      logEvents(await gv.submitVote(proposalId, 1, { from: members[i] }));
+    } catch (e) {
+      console.error(`Failed to submitVote for member ${i} with address ${members[i]}`);
+      throw e;
+    }
   }
 
   const increase = 604800;

@@ -303,7 +303,7 @@ contract PooledStaking is MasterAware {
     uint newDeposit = oldDeposit.add(amount);
 
     staker.deposit = newDeposit;
-    token.transferFrom(msg.sender, address(this), amount);
+    tokenController.operatorTransfer(msg.sender, address(this), amount);
 
     for (uint i = 0; i < _contracts.length; i++) {
 

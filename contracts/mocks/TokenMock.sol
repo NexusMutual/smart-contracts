@@ -23,6 +23,37 @@ import "../abstract/NXMToken.sol";
 
 contract TokenMock is NXMToken, ERC20, Initializable {
 
+  mapping(address => bool) public isLockedForMV;
+  address public operator;
+
+  function setLock(address _member, bool _lock) public {
+    isLockedForMV[_member] = _lock;
+  }
+
+  function setOperator(address _operator) public {
+    operator = _operator;
+  }
+
+  function operatorTransfer(address from, uint256 amount) public returns (bool) {
+    require(msg.sender == operator, "Only operator can call operatorTransfer");
+    _approve(from, msg.sender, allowance(from, msg.sender).sub(amount, "ERC20: transfer amount exceeds allowance"));
+    _transfer(from, operator, amount);
+    return true;
+  }
+
+  function transfer(address to, uint256 amount) public returns (bool) {
+    require(!isLockedForMV[msg.sender], "Member should not be locked for member voting");
+    _transfer(msg.sender, to, amount);
+    return true;
+  }
+
+  function transferFrom(address from, address to, uint256 amount) public returns (bool) {
+    require(!isLockedForMV[from], "Member should not be locked for member voting");
+    _approve(from, msg.sender, allowance(from, msg.sender).sub(amount, "ERC20: transfer amount exceeds allowance"));
+    _transfer(from, to, amount);
+    return true;
+  }
+
   // not public in actual implementation
   function mint(address account, uint256 amount) public {
     _mint(account, amount);

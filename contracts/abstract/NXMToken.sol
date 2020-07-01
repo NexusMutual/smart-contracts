@@ -13,5 +13,7 @@ contract NXMToken is IERC20 {
 
   function burnFrom(address from, uint256 value) public returns (bool);
 
+  function operatorTransfer(address from, uint256 value) public returns (bool);
+
   function mint(address account, uint256 amount) public;
 }

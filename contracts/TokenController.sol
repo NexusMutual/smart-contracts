@@ -48,6 +48,19 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     /**
+     * @dev Proxies token transfer through this contract to allow staking when members are locked for voting
+     * @param _from   Source address
+     * @param _to     Destination address
+     * @param _value  Amount to transfer
+     */
+    function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
+        require(msg.sender == address(pooledStaking), "Call is only allowed from PooledStaking address");
+        require(token.operatorTransfer(_from, _value), "Operator transfer failed");
+        require(token.transfer(_to, _value), "Internal transfer failed");
+        return true;
+    }
+
+    /**
     * @dev Locks a specified amount of tokens,
     *    for CLA reason and for a specified time
     * @param _reason The reason to lock tokens, currently restricted to CLA

@@ -270,7 +270,7 @@ contract('ClaimsReward', function([
       cr = newCr;
 
       // increase time to avoid token locking time.
-      await increaseTimeTo((await latestTime()) + duration.days(7));
+      // await increaseTimeTo((await latestTime()) + duration.days(7));
     });
     it('9.1 should be able to claim reward', async function() {
       await ps.processPendingActions('100');

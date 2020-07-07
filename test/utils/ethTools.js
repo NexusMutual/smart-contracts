@@ -1,18 +1,13 @@
-const Web3 = require('web3');
-const web3 = new Web3(); // Hardcoded development port
-function ether(n) {
-  return new web3.BigNumber(web3.toWei(n, 'ether'));
-}
+const { isBN, toBN, toWei: web3ToWei, toHex } = require('web3').utils;
 
-function toWei(value) {
-  return web3.toWei(value, 'ether');
-}
+const numberToString = n => typeof n === 'number' ? n.toFixed(18) : n;
+const toWei = n => web3ToWei(numberToString(n), 'ether');
+const ether = n => toBN(toWei(n));
 
-function toHex(value) {
-  return web3.toHex(value);
-}
 module.exports = {
   ether,
+  isBN,
+  toBN,
   toWei,
-  toHex
+  toHex,
 };

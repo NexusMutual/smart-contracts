@@ -75,7 +75,7 @@ async function gvProposalWithoutTrigger(...args) {
 async function setTriggerActionTime(...args) {
   let mr = args[0];
   let gv = args[1];
-  let actionHash = encode1(['bytes8', 'uint256'], [web3.toHex('ACWT'), 0]);
+  let actionHash = encode1(['bytes8', 'uint256'], [web3.utils.toHex('ACWT'), 0]);
   let p = await gv.getProposalLength();
   await gv.createProposal('proposal', 'proposal', 'proposal', 0);
   await gv.categorizeProposal(p, 22, 0);

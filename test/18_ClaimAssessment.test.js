@@ -31,25 +31,6 @@ const CLA = toHex('CLA');
 const MEMBER_FEE = ether('0.002');
 const validity = duration.days(30);
 
-const formatJSON = json => JSON.stringify(json, null, 2);
-
-const filterArgsKeys = args => {
-  const params = {};
-  for (const key of Object.keys(args)) {
-    if (isNaN(key) && key !== '__length__') {
-      const value = args[key];
-      params[key] = BN.isBN(value) ? value.toString() : value;
-    }
-  }
-  return params;
-};
-
-const logEvents = receipt => receipt.logs.forEach(log => {
-  const { event, args } = log;
-  const params = filterArgsKeys(args);
-  console.log(`Event emitted: ${event}(${formatJSON(params)}`);
-});
-
 let dai;
 let p1;
 let tk;
@@ -64,17 +45,15 @@ let DSV;
 let nxms;
 let mr;
 let gv;
-let APIID;
 let qt;
 let ps;
 
-const { BN } = web3.utils;
 require('chai').should();
 
 contract('Claim: Assessment 2', function (addresses) {
 
   const [owner] = addresses;
-  const underwriters = addresses.slice(1, 6);
+  const underwriters = addresses.slice(1, 7);
   const claimAssessors = addresses.slice(10, 15);
   const coverHolders = addresses.slice(15, 25);
   const members = addresses.slice(25, 35);
@@ -125,10 +104,6 @@ contract('Claim: Assessment 2', function (addresses) {
   const SC4 = '0x40395044Ac3c0C57051906dA938B54BD6557F212';
   const SC5 = '0xee74110fb5a1007b06282e0de5d73a61bf41d9cd';
 
-  let coverID;
-  let claimID;
-  let maxVotingTime;
-
   describe('claim test case', function () {
 
     const oneWeek = 604800; //  number of seconds in a week
@@ -142,7 +117,7 @@ contract('Claim: Assessment 2', function (addresses) {
     let coverTokensUnlockable;
     let coverTokensBurned;
 
-    it('18.0 Should setup stakers', async function () {
+    it('18.0 Should create covers and stakes', async function () {
 
       await advanceBlock();
 
@@ -202,7 +177,7 @@ contract('Claim: Assessment 2', function (addresses) {
       }
 
       const accountsToFund = {
-        underwriters: [190950, 160800, 150500, 180350, 170650],
+        underwriters: [190950, 160800, 150500, 180350, 170650, 200],
         claimAssessors: [50000, 30000, 20000, 60000, 50000],
         coverHolders: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000],
         members: [30000, 20000, 10000, 20000, 30000, 150000],
@@ -218,6 +193,8 @@ contract('Claim: Assessment 2', function (addresses) {
           await tk.transfer(member, toWei(amount), { from: owner });
         }
       }
+
+      underwriters.pop(); // remove underwriter6
 
       const contracts = [SC1, SC2, SC3, SC4, SC5];
       const uwStakes = [
@@ -262,14 +239,11 @@ contract('Claim: Assessment 2', function (addresses) {
       async function checkUWBalances(expectedBalanceChanges) {
 
         for (let i = 0; i < underwriters.length; i++) {
-
           const previousBalance = underwritersBalances[i];
           const expectedChange = ether(expectedBalanceChanges[i].toString());
-
           const expectedBalance = previousBalance.add(expectedChange);
           const actualBalance = await tk.balanceOf(underwriters[i]);
           assert.equal(actualBalance.toString(), expectedBalance.toString());
-
           underwritersBalances[i] = actualBalance;
         }
       }
@@ -330,13 +304,7 @@ contract('Claim: Assessment 2', function (addresses) {
 
       // buy cover 3
       vrsdata = await getQuoteValues(
-        [
-          2,
-          '26283367556000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607002'
-        ],
+        [2, '26283367556000000', '200000000000000000000', '3549627424', '7972408607002'],
         toHex('ETH'),
         200,
         SC2,
@@ -344,13 +312,8 @@ contract('Claim: Assessment 2', function (addresses) {
       );
       await p1.makeCoverBegin(
         SC2,
-        toHex('ETH'), [
-          2,
-          '26283367556000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607002'
-        ],
+        toHex('ETH'),
+        [2, '26283367556000000', '200000000000000000000', '3549627424', '7972408607002'],
         200,
         ...vrsdata,
         { from: coverHolder1, value: '26283367556000000' }
@@ -366,13 +329,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await dai.approve(p1.address, '657084188912000000', { from: coverHolder2 });
 
       vrsdata = await getQuoteValues(
-        [
-          50,
-          '657084188912000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607007'
-        ],
+        [50, '657084188912000000', '200000000000000000000', '3549627424', '7972408607007'],
         toHex('DAI'),
         200,
         SC2,
@@ -380,13 +337,8 @@ contract('Claim: Assessment 2', function (addresses) {
       );
       await p1.makeCoverUsingCA(
         SC2,
-        toHex('DAI'), [
-          50,
-          '657084188912000000',
-          '200000000000000000000',
-          '3549627424',
-          '7972408607007'
-        ],
+        toHex('DAI'),
+        [50, '657084188912000000', '200000000000000000000', '3549627424', '7972408607007'],
         200,
         ...vrsdata,
         { from: coverHolder2 }
@@ -399,13 +351,7 @@ contract('Claim: Assessment 2', function (addresses) {
 
       // buy cover 5
       vrsdata = await getQuoteValues(
-        [
-          3,
-          '59137577002000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607003'
-        ],
+        [3, '59137577002000000', '300000000000000000000', '3549627424', '7972408607003'],
         toHex('ETH'),
         300,
         SC3,
@@ -413,13 +359,8 @@ contract('Claim: Assessment 2', function (addresses) {
       );
       await p1.makeCoverBegin(
         SC3,
-        toHex('ETH'), [
-          3,
-          '59137577002000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607003'
-        ],
+        toHex('ETH'),
+        [3, '59137577002000000', '300000000000000000000', '3549627424', '7972408607003'],
         300,
         ...vrsdata,
         { from: coverHolder4, value: '59137577002000000' }
@@ -435,13 +376,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await dai.transfer(coverHolder6, '1478439425051000000');
       await dai.approve(p1.address, '1478439425051000000', { from: coverHolder6 });
       vrsdata = await getQuoteValues(
-        [
-          75,
-          '1478439425051000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607008'
-        ],
+        [75, '1478439425051000000', '300000000000000000000', '3549627424', '7972408607008'],
         toHex('DAI'),
         300,
         SC3,
@@ -449,13 +384,8 @@ contract('Claim: Assessment 2', function (addresses) {
       );
       await p1.makeCoverUsingCA(
         SC3,
-        toHex('DAI'), [
-          75,
-          '1478439425051000000',
-          '300000000000000000000',
-          '3549627424',
-          '7972408607008'
-        ],
+        toHex('DAI'),
+        [75, '1478439425051000000', '300000000000000000000', '3549627424', '7972408607008'],
         300,
         ...vrsdata,
         { from: coverHolder6 }
@@ -468,13 +398,7 @@ contract('Claim: Assessment 2', function (addresses) {
 
       // buy cover 7
       vrsdata = await getQuoteValues(
-        [
-          4,
-          '105133470226000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607004'
-        ],
+        [4, '105133470226000000', '400000000000000000000', '3549627424', '7972408607004'],
         toHex('ETH'),
         400,
         SC4,
@@ -482,13 +406,8 @@ contract('Claim: Assessment 2', function (addresses) {
       );
       await p1.makeCoverBegin(
         SC4,
-        toHex('ETH'), [
-          4,
-          '105133470226000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607004'
-        ],
+        toHex('ETH'),
+        [4, '105133470226000000', '400000000000000000000', '3549627424', '7972408607004'],
         400,
         ...vrsdata,
         { from: coverHolder7, value: '105133470226000000' }
@@ -504,13 +423,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await dai.transfer(coverHolder8, '2628336755647000000');
       await dai.approve(p1.address, '2628336755647000000', { from: coverHolder8 });
       vrsdata = await getQuoteValues(
-        [
-          100,
-          '2628336755647000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607009'
-        ],
+        [100, '2628336755647000000', '400000000000000000000', '3549627424', '7972408607009'],
         toHex('DAI'),
         400,
         SC4,
@@ -518,13 +431,8 @@ contract('Claim: Assessment 2', function (addresses) {
       );
       await p1.makeCoverUsingCA(
         SC4,
-        toHex('DAI'), [
-          100,
-          '2628336755647000000',
-          '400000000000000000000',
-          '3549627424',
-          '7972408607009'
-        ],
+        toHex('DAI'),
+        [100, '2628336755647000000', '400000000000000000000', '3549627424', '7972408607009'],
         400,
         ...vrsdata,
         { from: coverHolder8 }
@@ -538,13 +446,7 @@ contract('Claim: Assessment 2', function (addresses) {
 
       // buy cover 9
       vrsdata = await getQuoteValues(
-        [
-          5,
-          '164271047228000000',
-          '500000000000000000000',
-          '3549627424',
-          '7972408607005'
-        ],
+        [5, '164271047228000000', '500000000000000000000', '3549627424', '7972408607005'],
         toHex('ETH'),
         500,
         SC5,
@@ -552,13 +454,8 @@ contract('Claim: Assessment 2', function (addresses) {
       );
       await p1.makeCoverBegin(
         SC5,
-        toHex('ETH'), [
-          5,
-          '164271047228000000',
-          '500000000000000000000',
-          '3549627424',
-          '7972408607005'
-        ],
+        toHex('ETH'),
+        [5, '164271047228000000', '500000000000000000000', '3549627424', '7972408607005'],
         500,
         ...vrsdata,
         { from: coverHolder9, value: '164271047228000000' }
@@ -599,11 +496,11 @@ contract('Claim: Assessment 2', function (addresses) {
       await assertRevert(mr.switchMembership(tc.address, { from: claimAssessor1 }));
 
       // try submitting an invalid cover ID
-      coverID = await qd.getAllCoversOfUser(coverHolder5);
+      const coverID = await qd.getAllCoversOfUser(coverHolder5);
       await assertRevert(tf.depositCN(46, { from: owner }));
 
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
       // await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
@@ -632,6 +529,7 @@ contract('Claim: Assessment 2', function (addresses) {
 
       await increaseTimeTo(closingTime.sub(toBN(10)));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       assert.equal((await cd.getClaimStatusNumber(claimID))[1].toString(), '0');
 
@@ -640,27 +538,27 @@ contract('Claim: Assessment 2', function (addresses) {
 
       const tokenBalanceBefore = await tk.balanceOf(coverHolder5);
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder5);
-      const balanceBefore = await web3.eth.getBalance(coverHolder5);
+      const balanceBefore = toBN((await web3.eth.getBalance(coverHolder5)).toString());
 
       // changing the claim status here
       await nxms.closeClaim(await pd.getIdOfApiId(APIID));
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      const balanceAfter = await web3.eth.getBalance(coverHolder5);
+      const balanceAfter = toBN((await web3.eth.getBalance(coverHolder5)).toString());
       const tokenBalanceAfter = await tk.balanceOf(coverHolder5);
       const totalBalanceAfter = await tc.totalBalanceOf(coverHolder5);
 
-      payoutReceived = (balanceAfter - balanceBefore) / toWei(1);
-      coverTokensUnlockable = (tokenBalanceBefore - tokenBalanceAfter) / toWei(1);
-      coverTokensBurned = Number(((totalBalanceBefore - totalBalanceAfter) / toWei(1)).toFixed(2));
+      const payoutReceived = balanceAfter.sub(balanceBefore);
+      const coverTokensUnlockable = (tokenBalanceBefore.sub(tokenBalanceAfter));
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
 
       for (let i = 0; i < underwriters.length; i++) {
         UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
       }
 
-      claimAssessor1Data.rewardReceived = (await cr.getRewardToBeDistributedByUser(claimAssessor1)) / toWei(1);
-      claimAssessor2Data.rewardReceived = (await cr.getRewardToBeDistributedByUser(claimAssessor2)) / toWei(1);
-      claimAssessor3Data.rewardReceived = (await cr.getRewardToBeDistributedByUser(claimAssessor3)) / toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
+      claimAssessor3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor3);
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
@@ -671,8 +569,10 @@ contract('Claim: Assessment 2', function (addresses) {
       claimAssessor3Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
       const UWTokensLocked = [];
+      const UWTokensBurned = [];
+
       for (let i = 0; i < underwriters.length; i++) {
-        UWTokensLocked.push(await ps.stakerContractStake(underwriters[i], SC1));
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC1);
         UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
 
@@ -684,13 +584,13 @@ contract('Claim: Assessment 2', function (addresses) {
       assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
       assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eq(toBN('0')));
 
-      assert.equal(claimAssessor1Data.rewardReceived, 12.5);
-      assert.equal(claimAssessor2Data.rewardReceived, 7.5);
-      assert.equal(claimAssessor3Data.rewardReceived, 0);
+      assert(claimAssessor1Data.rewardReceived.eq(ether(12.5)));
+      assert(claimAssessor2Data.rewardReceived.eq(ether(7.5)));
+      assert(claimAssessor3Data.rewardReceived.eq(ether(0)));
 
-      assert.equal(payoutReceived, 0);
-      assert.equal(coverTokensUnlockable, 0);
-      assert.equal(coverTokensBurned, 5.0);
+      assert(payoutReceived.eq(ether(0)));
+      assert(coverTokensUnlockable.eq(ether(0)));
+      assert(coverTokensBurned.eq(ether(5.0)));
 
       const UWTokensLockedExpected = [2000, 3000, 4000, 5000, 6000].map(n => ether(n));
       const UWTokensBurnedExpected = [0, 0, 0, 0, 0].map(n => ether(n));
@@ -708,7 +608,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const claimAssessor3Data = {};
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceBefore[i] = (await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
       }
 
       const coverID = await qd.getAllCoversOfUser(coverHolder5);
@@ -734,10 +634,9 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       const tokenBalanceBefore = await tk.balanceOf(coverHolder5);
-      const balanceBefore = await web3.eth.getBalance(coverHolder5);
+      const balanceBefore = toBN((await web3.eth.getBalance(coverHolder5)).toString());
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder5);
 
-      // changing the claim status here
       await p1.__callback(APIID, '');
       assert(await ps.hasPendingActions(), 'should have pending actions');
       await ps.processPendingActions('100');
@@ -745,98 +644,56 @@ contract('Claim: Assessment 2', function (addresses) {
       const UWStake = [];
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWStake.push(await ps.stakerContractStake(underwriters[i], SC1));
+        UWStake[i] = await ps.stakerContractStake(underwriters[i], SC1);
       }
 
-      let balanceAfter = await web3.eth.getBalance(coverHolder5);
-      let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder5));
-      let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder5));
+      const balanceAfter = toBN((await web3.eth.getBalance(coverHolder5)).toString());
+      const tokenBalanceAfter = await tk.balanceOf(coverHolder5);
+      const totalBalanceAfter = await tc.totalBalanceOf(coverHolder5);
 
-      coverTokensBurned = Number(
-        ((totalBalanceBefore - totalBalanceAfter) / toWei(1)).toFixed(2),
-      );
-      payoutReceived = Number(
-        ((balanceAfter - balanceBefore) / toWei(1)).toFixed(2),
-      );
-      coverTokensUnlockable = Number(
-        ((tokenBalanceAfter - tokenBalanceBefore) / toWei(1)).toFixed(2),
-      );
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      const payoutReceived = balanceAfter.sub(balanceBefore);
+      const coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
 
-      claimAssessor1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        toWei(1);
-      claimAssessor2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        toWei(1);
-      claimAssessor3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
+      claimAssessor3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor3);
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
       await cr.claimAllPendingReward(20, { from: claimAssessor3 });
 
-      claimAssessor1Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA),
-      );
-      claimAssessor2Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA),
-      );
-      claimAssessor3Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA),
-      );
+      claimAssessor1Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
 
-      for (let i = 0; i < underwriters.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i],
-        ).toFixed(2);
-      }
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.initialDate).eq(oneWeekBN));
 
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.initialDate,
-        oneWeek,
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek,
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate - claimAssessor3Data.initialDate,
-        oneWeek,
-      );
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eqn(0));
 
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.lockPeriodAfterRewardReceived,
-        oneWeek,
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek,
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate - claimAssessor3Data.lockPeriodAfterRewardReceived,
-        0,
-      );
+      assert(claimAssessor1Data.rewardReceived.eq(ether(12.5)));
+      assert(claimAssessor2Data.rewardReceived.eq(ether(7.5)));
+      assert(claimAssessor3Data.rewardReceived.eq(ether(0)));
 
-      assert.equal(claimAssessor1Data.rewardReceived, 12.5);
-      assert.equal(claimAssessor2Data.rewardReceived, 7.5);
-      assert.equal(claimAssessor3Data.rewardReceived, 0);
-
-      assert.equal(payoutReceived, 1);
-      assert.equal(coverTokensUnlockable, 5);
-      assert.equal(coverTokensBurned, 0);
+      assert(payoutReceived.eq(ether(1)));
+      assert(coverTokensUnlockable.eq(ether(5)));
+      assert(coverTokensBurned.eq(ether(0)));
 
       let UWStakeExpected = [2000, 3000, 4000, 5000, 6000].map(n => n / 2);
       let UWTokensBurnedExpected = [2000, 3000, 4000, 5000, 6000].map(n => n / 2);
 
       for (let i = 0; i < underwriters.length; i++) {
-        assert.equal(toBN(UWStakeExpected[i]).mul(ether(1)).toString(), UWStake[i].toString());
-        assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
+        assert(toBN(UWStakeExpected[i]).mul(ether(1)).toString(), UWStake[i].toString());
+        assert(UWTokensBurnedExpected[i], UWTokensBurned[i]);
       }
     });
 
@@ -881,8 +738,9 @@ contract('Claim: Assessment 2', function (addresses) {
       let balanceBefore = await dai.balanceOf(coverHolder3);
       let totalBalanceBefore = await tc.totalBalanceOf(coverHolder3);
 
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
       claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
@@ -903,7 +761,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.add(toBN(2)));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
@@ -944,9 +802,9 @@ contract('Claim: Assessment 2', function (addresses) {
       assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
       assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
 
-      assert.equal(claimAssessor1Data.rewardReceived.toString(), '0');
-      assert.equal(claimAssessor2Data.rewardReceived.toString(), '0');
-      assert.equal(claimAssessor3Data.rewardReceived.toString(), '0');
+      assert(claimAssessor1Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
+      assert(claimAssessor3Data.rewardReceived.eqn(0));
 
       assert(member1Data.rewardReceived.eq(ether(12)));
       assert(member2Data.rewardReceived.eq(ether(8)));
@@ -1026,7 +884,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
       assert((await ps.hasPendingActions()), 'should have pending actions');
       await ps.processPendingActions('100');
@@ -1143,7 +1001,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder1);
 
       // // changing the claim status here
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
@@ -1165,7 +1023,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
@@ -1310,7 +1168,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
       assert(await ps.hasPendingActions(), 'should have pending actions');
       await ps.processPendingActions('100');
@@ -1432,7 +1290,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder2);
 
       // // changing the claim status here
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
       assert(!(await ps.hasPendingActions()), 'should not have pending actions');
 
@@ -1904,87 +1762,53 @@ contract('Claim: Assessment 2', function (addresses) {
 
     it('18.14 should pass for CA vote < 5* SA and MV < 5 SA and CA majority reject(D4)', async function () {
 
-      let claimAssessor1Data = {};
-      let claimAssessor2Data = {};
-      let claimAssessor3Data = {};
-      let member1Data = {};
-      let member2Data = {};
+      const claimAssessor1Data = {};
+      const claimAssessor2Data = {};
+      const claimAssessor3Data = {};
+      const member1Data = {};
+      const member2Data = {};
+
+      const UWTotalBalanceBefore = [];
+      const UWTokensLocked = [];
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC3);
       }
 
-      let UWTokensLocked = [];
-      for (let i = 0; i < underwriters.length; i++) {
-        UWTokensLocked.push(
-          Number(
-            (parseFloat(await ps.stakerContractStake(underwriters[i], SC3)) -
-              parseFloat(await ps.stakerContractStake(underwriters[i], SC3))) /
-            toWei(1)
-          ).toFixed(2)
-        );
-      }
-
-      coverID = await qd.getAllCoversOfUser(coverHolder6);
+      const coverID = await qd.getAllCoversOfUser(coverHolder6);
       await cl.submitClaim(coverID[0], { from: coverHolder6 });
-      claimID = (await cd.actualClaimLength()) - 1;
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let claimID = (await cd.actualClaimLength()).subn(1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
-      claimAssessor1Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
+      claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.initialDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
       await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
       await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
 
-      claimAssessor1Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
+      claimAssessor1Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
-      maxVotingTime = await cd.maxVotingTime();
+      let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      let closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
-      let coverTokensLockedBefore = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder6, coverID)
-      );
-      let tokenBalanceBefore = parseFloat(await tk.balanceOf(coverHolder6));
-      let balanceBefore = parseFloat(await dai.balanceOf(coverHolder6));
-      let totalBalanceBefore = parseFloat(
-        await tc.totalBalanceOf(coverHolder6)
-      );
+      const tokenBalanceBefore = await tk.balanceOf(coverHolder6);
+      const balanceBefore = await dai.balanceOf(coverHolder6);
+      const totalBalanceBefore = await tc.totalBalanceOf(coverHolder6);
 
       // // changing the claim status here
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      claimAssessor1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        toWei(1);
-      claimAssessor2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        toWei(1);
-      claimAssessor3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
+      claimAssessor3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor3);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -1993,237 +1817,118 @@ contract('Claim: Assessment 2', function (addresses) {
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
-
-      await ps.processPendingActions('100');
+      closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      let proposalIds = [];
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
       await cr.claimAllPendingReward(20, { from: claimAssessor3 });
 
+      claimAssessor1Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
-      claimAssessor1Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-
-      member1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
-      member2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
+      member1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member1);
+      member2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member2);
 
       await cr.claimAllPendingReward(20, { from: member1 });
       await cr.claimAllPendingReward(20, { from: member2 });
 
+      const balanceAfter = await dai.balanceOf(coverHolder6);
+      const tokenBalanceAfter = await tk.balanceOf(coverHolder6);
+      const totalBalanceAfter = await tc.totalBalanceOf(coverHolder6);
 
-      let balanceAfter = parseFloat(await dai.balanceOf(coverHolder6));
-      let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder6));
-      let coverTokensLockedAfter = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder6, coverID)
-      );
-      let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder6));
-
-      coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
-      ).toFixed(2);
-      payoutReceived = Number(
-        (balanceAfter - balanceBefore) / toWei(1)
-      ).toFixed(2);
-      coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
-      ).toFixed(2);
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      const payoutReceived = balanceAfter.sub(balanceBefore);
+      const coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.initialDate).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
+      assert(claimAssessor3Data.rewardReceived.eqn(0));
+
+      assert(member1Data.rewardReceived.eqn(0));
+      assert(member2Data.rewardReceived.eqn(0));
+
+      assert(payoutReceived.eqn(0));
+      assert(coverTokensUnlockable.eqn(0));
+      assert(coverTokensBurned.eq(ether(15)));
+
+      const UWTokensLockedExpected = [9000, 8000, 9000, 5000, 9000].map(n => ether(n * 0.25));
+      const UWTokensBurnedExpected = [0, 0, 0, 0, 0].map(ether);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
-        ).toFixed(2);
+        assert(UWTokensLockedExpected[i].eq(UWTokensLocked[i]));
+        assert(UWTokensBurnedExpected[i].eq(UWTokensBurned[i]));
       }
-
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate - claimAssessor3Data.initialDate,
-        oneWeek
-      );
-
-      assert.equal(
-        claimAssessor1Data.newLockDate -
-        claimAssessor1Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate -
-        claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate -
-        claimAssessor3Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-
-      assert.equal(claimAssessor1Data.rewardReceived, 0);
-      assert.equal(claimAssessor2Data.rewardReceived, 0);
-      assert.equal(claimAssessor3Data.rewardReceived, 0);
-
-      assert.equal(member1Data.rewardReceived, 0);
-      assert.equal(member2Data.rewardReceived, 0);
-
-      assert.equal(payoutReceived, 0);
-      assert.equal(coverTokensUnlockable, 0);
-      assert.equal(coverTokensBurned, 15);
-
-      let UWTokensLockedExpected = [0, 0, 0, 0, 5000];
-      let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
-
-      for (let i = 0; i < underwriters.length; i++) {
-        assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
-        assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
-      }
-
-      // if ((await tk.totalSupply()) < 600000 * toWei(1))
-      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
-      // now = await latestTime();
-      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.15 should pass for CA vote < 5* SA and MV < 5 SA and CA majority accept(A4)', async function () {
-      // (await nxms.isPause()).should.equal(false);
 
-      class claimAssessor {
-        constructor(
-          initialDate,
-          newLockDate,
-          rewardReceived,
-          lockPeriodAfterRewardReceived
-        ) {
-          this.initialDate = initialDate;
-          this.newLockDate = newLockDate;
-          this.lockPeriodAfterRewardReceived = lockPeriodAfterRewardReceived;
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      class member {
-        constructor(rewardReceived) {
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      let claimAssessor1Data = new claimAssessor();
-      let claimAssessor2Data = new claimAssessor();
-      let claimAssessor3Data = new claimAssessor();
+      const claimAssessor1Data = {};
+      const claimAssessor2Data = {};
+      const claimAssessor3Data = {};
+      const member1Data = {};
+      const member2Data = {};
 
-      let member1Data = new member();
-      let member2Data = new member();
+      const UWTotalBalanceBefore = [];
+      const UWTokensLocked = [];
 
-      underwriters = [
-        underwriter5,
-        underwriter4,
-        underwriter3,
-        underwriter2,
-        underwriter1
-      ];
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC3);
       }
 
-      let UWTokensLocked = [];
-      for (let i = 0; i < underwriters.length; i++) {
-        UWTokensLocked.push(
-          Number(
-            (parseFloat(await ps.stakerContractStake(underwriters[i], SC3)) -
-              parseFloat(await ps.stakerContractStake(underwriters[i], SC3))) /
-            toWei(1)
-          ).toFixed(2)
-        );
-      }
-
-      coverID = await qd.getAllCoversOfUser(coverHolder6);
+      const coverID = await qd.getAllCoversOfUser(coverHolder6);
       await cl.submitClaim(coverID[0], { from: coverHolder6 });
-      claimID = (await cd.actualClaimLength()) - 1;
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let claimID = (await cd.actualClaimLength()).subn(1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
-      claimAssessor1Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
+      claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.initialDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
       await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
       await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
 
-      claimAssessor1Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
+      claimAssessor1Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
-      maxVotingTime = await cd.maxVotingTime();
+      let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      let closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
-      let coverTokensLockedBefore = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder6, coverID)
-      );
-      let tokenBalanceBefore = parseFloat(await tk.balanceOf(coverHolder6));
-      let balanceBefore = parseFloat(await dai.balanceOf(coverHolder6));
-      let totalBalanceBefore = parseFloat(
-        await tc.totalBalanceOf(coverHolder6)
-      );
+      const tokenBalanceBefore = await tk.balanceOf(coverHolder6);
+      const balanceBefore = await dai.balanceOf(coverHolder6);
+      const totalBalanceBefore = await tc.totalBalanceOf(coverHolder6);
 
       // // changing the claim status here
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      claimAssessor1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        toWei(1);
-      claimAssessor2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        toWei(1);
-      claimAssessor3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
+      claimAssessor3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor3);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -2232,197 +1937,100 @@ contract('Claim: Assessment 2', function (addresses) {
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
+      await ps.processPendingActions('100');
 
-      let proposalIds = [];
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
       await cr.claimAllPendingReward(20, { from: claimAssessor3 });
 
+      claimAssessor1Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor3, CLA);
 
-      claimAssessor1Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-
-      member1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
-      member2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
+      member1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member1);
+      member2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member2);
 
       await cr.claimAllPendingReward(20, { from: member1 });
       await cr.claimAllPendingReward(20, { from: member2 });
 
+      const balanceAfter = await dai.balanceOf(coverHolder6);
+      const tokenBalanceAfter = await tk.balanceOf(coverHolder6);
+      const totalBalanceAfter = await tc.totalBalanceOf(coverHolder6);
 
-      let balanceAfter = parseFloat(await dai.balanceOf(coverHolder6));
-      let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder6));
-      let coverTokensLockedAfter = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder6, coverID)
-      );
-      let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder6));
-
-      coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
-      ).toFixed(2);
-      payoutReceived = Number(
-        (balanceAfter - balanceBefore) / toWei(1)
-      ).toFixed(2);
-      coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
-      ).toFixed(2);
+      coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      payoutReceived = balanceAfter.sub(balanceBefore);
+      coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.initialDate).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+
+      assert(claimAssessor3Data.rewardReceived.eqn(0));
+      assert(claimAssessor1Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
+
+      assert(member1Data.rewardReceived.eqn(0));
+      assert(member2Data.rewardReceived.eqn(0));
+
+      assert(payoutReceived.eq(ether(75)));
+      assert(coverTokensUnlockable.eq(ether(15)));
+      assert(coverTokensBurned.eq(ether(0)));
+
+      const UWTokensLockedExpected = [9000, 8000, 9000, 5000, 9000].map(n => ether(n * 0.25));
+      const UWTokensBurnedExpected = [9000, 8000, 9000, 5000, 9000].map(n => ether(n * 0.25));
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
-        ).toFixed(2);
+        assert(UWTokensLockedExpected[i].eq(UWTokensLocked[i]));
+        assert(UWTokensBurnedExpected[i].eq(UWTokensBurned[i]));
       }
-
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate - claimAssessor3Data.initialDate,
-        oneWeek
-      );
-
-      assert.equal(
-        claimAssessor1Data.newLockDate -
-        claimAssessor1Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate -
-        claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate -
-        claimAssessor3Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-
-      assert.equal(claimAssessor1Data.rewardReceived, 0);
-      assert.equal(claimAssessor2Data.rewardReceived, 0);
-      assert.equal(claimAssessor3Data.rewardReceived, 0);
-
-      assert.equal(member1Data.rewardReceived, 0);
-      assert.equal(member2Data.rewardReceived, 0);
-
-      assert.equal(payoutReceived, 75);
-      assert.equal(coverTokensUnlockable, 15);
-      assert.equal(coverTokensBurned, 0);
-
-      // let UWTokensLockedExpected = [0, 0, 0, 0, 5000];
-      // let UWTokensBurnedExpected = [0, 0, 0, 0, 5000];
-      //
-      // for (let i = 0; i < underwriters.length; i++) {
-      //   assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
-      //   assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
-      // }
-
-      // if ((await tk.totalSupply()) < 600000 * toWei(1))
-      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
-      // now = await latestTime();
-      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
-    it('18.16 should pass for 0 CA votes, MV < 5 SA(D4)', async function () {
-      // (await nxms.isPause()).should.equal(false);
+    it('18.16 should pass for 0 CA votes, MV < 5 SA accept(D4)', async function () {
 
-      class claimAssessor {
-        constructor(
-          initialDate,
-          newLockDate,
-          rewardReceived,
-          lockPeriodAfterRewardReceived
-        ) {
-          this.initialDate = initialDate;
-          this.newLockDate = newLockDate;
-          this.lockPeriodAfterRewardReceived = lockPeriodAfterRewardReceived;
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      class member {
-        constructor(rewardReceived) {
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      underwriters = [
-        underwriter4,
-        underwriter3,
-        underwriter5,
-        underwriter2,
-        underwriter1
-      ];
+      const member1Data = {};
+      const member2Data = {};
 
-      let member1Data = new member();
-      let member2Data = new member();
+      const UWTotalBalanceBefore = [];
+      const UWTokensLocked = [];
+
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC4);
       }
 
-      let UWTokensLocked = [];
-      for (let i = 0; i < underwriters.length; i++) {
-        UWTokensLocked.push(
-          Number(
-            (parseFloat(await ps.stakerContractStake(underwriters[i], SC4)) -
-              parseFloat(await ps.stakerContractStake(underwriters[i], SC4))) /
-            toWei(1)
-          ).toFixed(2)
-        );
-      }
-
-      coverID = await qd.getAllCoversOfUser(coverHolder7);
+      const coverID = await qd.getAllCoversOfUser(coverHolder7);
       await cl.submitClaim(coverID[0], { from: coverHolder7 });
-      claimID = (await cd.actualClaimLength()) - 1;
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let claimID = (await cd.actualClaimLength()).subn(1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
-      maxVotingTime = await cd.maxVotingTime();
+      let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      let closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
-      let coverTokensLockedBefore = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder7, coverID)
-      );
-      let tokenBalanceBefore = parseFloat(await tk.balanceOf(coverHolder7));
-      let balanceBefore = parseFloat(await dai.balanceOf(coverHolder7));
-      let totalBalanceBefore = parseFloat(
-        await tc.totalBalanceOf(coverHolder7)
-      );
+      const tokenBalanceBefore = await tk.balanceOf(coverHolder7);
+      const balanceBefore = await dai.balanceOf(coverHolder7);
+      const totalBalanceBefore = await tc.totalBalanceOf(coverHolder7);
 
       // // changing the claim status here
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -2431,210 +2039,109 @@ contract('Claim: Assessment 2', function (addresses) {
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should have pending actions');
 
-      let proposalIds = [];
-
-      member1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
-      member2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
+      member1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member1);
+      member2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member2);
 
       await cr.claimAllPendingReward(20, { from: member1 });
       await cr.claimAllPendingReward(20, { from: member2 });
 
+      const balanceAfter = await dai.balanceOf(coverHolder7);
+      const tokenBalanceAfter = await tk.balanceOf(coverHolder7);
+      const totalBalanceAfter = await tc.totalBalanceOf(coverHolder7);
 
-      let balanceAfter = parseFloat(await dai.balanceOf(coverHolder7));
-      let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder7));
-      let coverTokensLockedAfter = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder7, coverID)
-      );
-      let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder7));
-
-      coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
-      ).toFixed(2);
-      payoutReceived = Number(
-        (balanceAfter - balanceBefore) / toWei(1)
-      ).toFixed(2);
-      coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
-      ).toFixed(2);
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      const payoutReceived = balanceAfter.sub(balanceBefore);
+      const coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
+
+      assert(member1Data.rewardReceived.eqn(0));
+      assert(member2Data.rewardReceived.eqn(0));
+
+      assert(payoutReceived.eqn(0));
+      assert(coverTokensUnlockable.eqn(0));
+      assert(coverTokensBurned.eq(ether(20)));
+
+      const UWTokensLockedExpected = [70, 60, 40, 30, 50].map(ether);
+      const UWTokensBurnedExpected = [0, 0, 0, 0, 0].map(ether);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
-        ).toFixed(2);
+        assert(UWTokensLockedExpected[i].eq(UWTokensLocked[i]));
+        assert(UWTokensBurnedExpected[i].eq(UWTokensBurned[i]));
       }
-
-      assert.equal(member1Data.rewardReceived, 0);
-      assert.equal(member2Data.rewardReceived, 0);
-
-      assert.equal(payoutReceived, 0);
-      assert.equal(coverTokensUnlockable, 0);
-      assert.equal(coverTokensBurned, 20);
-
-      // let UWTokensLockedExpected = [30, 40, 50, 60, 70];
-      // let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
-      //
-      // for (let i = 0; i < underwriters.length; i++) {
-      //   assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
-      //   assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
-      // }
-
-      // if ((await tk.totalSupply()) < 600000 * toWei(1))
-      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
-      // now = await latestTime();
-      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.17 should pass for CA vote > 5 SA and CA<10 SA and majority < 70%, open for member vote and MV<5 SA and CA majority reject(D4)', async function () {
-      // (await nxms.isPause()).should.equal(false);
 
-      class claimAssessor {
-        constructor(
-          initialDate,
-          newLockDate,
-          rewardReceived,
-          lockPeriodAfterRewardReceived
-        ) {
-          this.initialDate = initialDate;
-          this.newLockDate = newLockDate;
-          this.lockPeriodAfterRewardReceived = lockPeriodAfterRewardReceived;
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      class member {
-        constructor(rewardReceived) {
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      let claimAssessor1Data = new claimAssessor();
-      let claimAssessor2Data = new claimAssessor();
-      let claimAssessor3Data = new claimAssessor();
-      let claimAssessor4Data = new claimAssessor();
-      let claimAssessor5Data = new claimAssessor();
-      let member1Data = new member();
-      let member2Data = new member();
-      let member3Data = new member();
+      const claimAssessor1Data = {};
+      const claimAssessor2Data = {};
+      const claimAssessor3Data = {};
+      const claimAssessor4Data = {};
+      const claimAssessor5Data = {};
+      const member1Data = {};
+      const member2Data = {};
+      const member3Data = {};
 
-      underwriters = [
-        underwriter4,
-        underwriter3,
-        underwriter5,
-        underwriter2,
-        underwriter1
-      ];
+      const UWTotalBalanceBefore = [];
+      const UWTokensLocked = [];
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC4);
       }
 
-      let UWTokensLocked = [];
-      for (let i = 0; i < underwriters.length; i++) {
-        UWTokensLocked.push(
-          Number(
-            (parseFloat(await ps.stakerContractStake(underwriters[i], SC4)) -
-              parseFloat(await ps.stakerContractStake(underwriters[i], SC4))) /
-            toWei(1)
-          ).toFixed(2)
-        );
-      }
-
-      coverID = await qd.getAllCoversOfUser(coverHolder7);
+      const coverID = await qd.getAllCoversOfUser(coverHolder7);
       await cl.submitClaim(coverID[0], { from: coverHolder7 });
-      claimID = (await cd.actualClaimLength()) - 1;
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let claimID = (await cd.actualClaimLength()).subn(1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
-      claimAssessor1Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-      claimAssessor4Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor4, CLA)
-      );
-      claimAssessor5Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor5, CLA)
-      );
+      claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.initialDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
+      claimAssessor4Data.initialDate = await tc.getLockedTokensValidity(claimAssessor4, CLA);
+      claimAssessor5Data.initialDate = await tc.getLockedTokensValidity(claimAssessor5, CLA);
+
       await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
       await cl.submitCAVote(claimID, 1, { from: claimAssessor2 });
       await cl.submitCAVote(claimID, 1, { from: claimAssessor3 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor4 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor5 });
 
-      claimAssessor1Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-      claimAssessor4Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor4, CLA)
-      );
-      claimAssessor5Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor5, CLA)
-      );
+      claimAssessor1Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
+      claimAssessor4Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor4, CLA);
+      claimAssessor5Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor5, CLA);
 
-      maxVotingTime = await cd.maxVotingTime();
+      let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      let closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
-      let coverTokensLockedBefore = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder7, coverID)
-      );
-      let tokenBalanceBefore = parseFloat(await tk.balanceOf(coverHolder7));
-      let balanceBefore = parseFloat(await web3.eth.getBalance(coverHolder7));
-      let totalBalanceBefore = parseFloat(
-        await tc.totalBalanceOf(coverHolder7)
-      );
+      let tokenBalanceBefore = await tk.balanceOf(coverHolder7);
+      let balanceBefore = toBN((await web3.eth.getBalance(coverHolder7)).toString());
+      let totalBalanceBefore = await tc.totalBalanceOf(coverHolder7);
 
       // // changing the claim status here
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      claimAssessor1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        toWei(1);
-      claimAssessor2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        toWei(1);
-      claimAssessor3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        toWei(1);
-      claimAssessor4Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        toWei(1);
-      claimAssessor5Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
+      claimAssessor3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor3);
+      claimAssessor4Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor4);
+      claimAssessor5Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor5);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -2644,553 +2151,274 @@ contract('Claim: Assessment 2', function (addresses) {
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      let proposalIds = [];
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
       await cr.claimAllPendingReward(20, { from: claimAssessor3 });
       await cr.claimAllPendingReward(20, { from: claimAssessor4 });
       await cr.claimAllPendingReward(20, { from: claimAssessor5 });
 
+      claimAssessor1Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor3, CLA);
+      claimAssessor4Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor4, CLA);
+      claimAssessor5Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor5, CLA);
 
-      claimAssessor1Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-      claimAssessor4Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor4, CLA)
-      );
-      claimAssessor5Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor5, CLA)
-      );
-
-      member1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
-      member2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
-      member3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
+      member1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member1);
+      member2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member2);
+      member3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member3);
 
       await cr.claimAllPendingReward(20, { from: member1 });
       await cr.claimAllPendingReward(20, { from: member2 });
       await cr.claimAllPendingReward(20, { from: member3 });
 
+      const balanceAfter = toBN((await web3.eth.getBalance(coverHolder7)).toString());
+      const tokenBalanceAfter = await tk.balanceOf(coverHolder7);
+      const totalBalanceAfter = await tc.totalBalanceOf(coverHolder7);
 
-      let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder7));
-      let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder7));
-      let coverTokensLockedAfter = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder7, coverID)
-      );
-      let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder7));
-
-      coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
-      ).toFixed(2);
-      payoutReceived = Number(
-        (balanceAfter - balanceBefore) / toWei(1)
-      ).toFixed(2);
-      coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
-      ).toFixed(2);
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      const payoutReceived = balanceAfter.sub(balanceBefore);
+      const coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor4Data.newLockDate.sub(claimAssessor4Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor5Data.newLockDate.sub(claimAssessor5Data.initialDate).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor4Data.newLockDate.sub(claimAssessor4Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor5Data.newLockDate.sub(claimAssessor5Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
+      assert(claimAssessor3Data.rewardReceived.eqn(0));
+      assert(claimAssessor4Data.rewardReceived.eqn(0));
+      assert(claimAssessor5Data.rewardReceived.eqn(0));
+
+      assert(member1Data.rewardReceived.eqn(0));
+      assert(member2Data.rewardReceived.eqn(0));
+      assert(member3Data.rewardReceived.eqn(0));
+
+      assert(payoutReceived.eqn(0));
+      assert(coverTokensUnlockable.eqn(0));
+      assert(coverTokensBurned.eq(ether(20)));
+
+      const UWTokensLockedExpected = [70, 60, 40, 30, 50].map(ether);
+      const UWTokensBurnedExpected = [0, 0, 0, 0, 0].map(ether);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
-        ).toFixed(2);
+        assert(UWTokensLockedExpected[i].eq(UWTokensLocked[i]));
+        assert(UWTokensBurnedExpected[i].eq(UWTokensBurned[i]));
       }
-
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate - claimAssessor3Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor4Data.newLockDate - claimAssessor4Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor5Data.newLockDate - claimAssessor5Data.initialDate,
-        oneWeek
-      );
-
-      assert.equal(
-        claimAssessor1Data.newLockDate -
-        claimAssessor1Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate -
-        claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate -
-        claimAssessor3Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor4Data.newLockDate -
-        claimAssessor4Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor5Data.newLockDate -
-        claimAssessor5Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-
-      assert.equal(claimAssessor1Data.rewardReceived, 0);
-      assert.equal(claimAssessor2Data.rewardReceived, 0);
-      assert.equal(claimAssessor3Data.rewardReceived, 0);
-      assert.equal(claimAssessor4Data.rewardReceived, 0);
-      assert.equal(claimAssessor5Data.rewardReceived, 0);
-
-      assert.equal(member1Data.rewardReceived, 0);
-      assert.equal(member2Data.rewardReceived, 0);
-      assert.equal(member3Data.rewardReceived, 0);
-
-      assert.equal(payoutReceived, 0);
-      assert.equal(coverTokensUnlockable, 0);
-      assert.equal(coverTokensBurned, 20);
-
-      let UWTokensLockedExpected = [30, 40, 50, 60, 70];
-      let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
-
-      for (let i = 0; i < underwriters.length; i++) {
-        assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
-        assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
-      }
-
-      // if ((await tk.totalSupply()) < 600000 * toWei(1))
-      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
-      // now = await latestTime();
-      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.18 should pass for CA vote > 5 SA and CA<10SA majority < 70%, open for member vote and MV<5 SA and CA majority accept(A4)', async function () {
-      // (await nxms.isPause()).should.equal(false);
 
-      class claimAssessor {
-        constructor(
-          initialDate,
-          newLockDate,
-          rewardReceived,
-          lockPeriodAfterRewardReceived
-        ) {
-          this.initialDate = initialDate;
-          this.newLockDate = newLockDate;
-          this.lockPeriodAfterRewardReceived = lockPeriodAfterRewardReceived;
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      class member {
-        constructor(rewardReceived) {
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      let claimAssessor1Data = new claimAssessor();
-      let claimAssessor2Data = new claimAssessor();
-      let claimAssessor3Data = new claimAssessor();
-      let claimAssessor4Data = new claimAssessor();
-      let claimAssessor5Data = new claimAssessor();
-      let member1Data = new member();
-      let member2Data = new member();
-      let member3Data = new member();
+      const claimAssessor1Data = {};
+      const claimAssessor2Data = {};
+      const claimAssessor3Data = {};
+      const claimAssessor4Data = {};
+      const claimAssessor5Data = {};
+      const member1Data = {};
+      const member2Data = {};
+      const member3Data = {};
 
-      underwriters = [
-        underwriter4,
-        underwriter3,
-        underwriter5,
-        underwriter2,
-        underwriter1
-      ];
+      const UWTotalBalanceBefore = [];
+      const UWTokensLocked = [];
+
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC4);
       }
 
-      let UWTokensLocked = [];
-      for (let i = 0; i < underwriters.length; i++) {
-        UWTokensLocked.push(
-          Number(
-            (parseFloat(await ps.stakerContractStake(underwriters[i], SC4)) -
-              parseFloat(await ps.stakerContractStake(underwriters[i], SC4))) /
-            toWei(1)
-          ).toFixed(2)
-        );
-      }
-
-      coverID = await qd.getAllCoversOfUser(coverHolder8);
+      const coverID = await qd.getAllCoversOfUser(coverHolder8);
       await cl.submitClaim(coverID[0], { from: coverHolder8 });
-      claimID = (await cd.actualClaimLength()) - 1;
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let claimID = (await cd.actualClaimLength()).subn(1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
-      claimAssessor1Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-      claimAssessor4Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor4, CLA)
-      );
-      claimAssessor5Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor5, CLA)
-      );
+      claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.initialDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
+      claimAssessor4Data.initialDate = await tc.getLockedTokensValidity(claimAssessor4, CLA);
+      claimAssessor5Data.initialDate = await tc.getLockedTokensValidity(claimAssessor5, CLA);
+
       await cl.submitCAVote(claimID, -1, { from: claimAssessor1 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor3 });
       await cl.submitCAVote(claimID, 1, { from: claimAssessor4 });
       await cl.submitCAVote(claimID, 1, { from: claimAssessor5 });
 
-      claimAssessor1Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-      claimAssessor4Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor4, CLA)
-      );
-      claimAssessor5Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor5, CLA)
-      );
+      claimAssessor1Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor3, CLA);
+      claimAssessor4Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor4, CLA);
+      claimAssessor5Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor5, CLA);
 
-      maxVotingTime = await cd.maxVotingTime();
+      let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      let closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
-      let coverTokensLockedBefore = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder8, coverID)
-      );
-      let tokenBalanceBefore = parseFloat(await tk.balanceOf(coverHolder8));
-      let balanceBefore = parseFloat(await dai.balanceOf(coverHolder8));
-      let totalBalanceBefore = parseFloat(
-        await tc.totalBalanceOf(coverHolder8)
-      );
+      let tokenBalanceBefore = await tk.balanceOf(coverHolder8);
+      let balanceBefore = await dai.balanceOf(coverHolder8);
+      let totalBalanceBefore = await tc.totalBalanceOf(coverHolder8);
 
-      // // changing the claim status here
+      // changing the claim status here
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      claimAssessor1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        toWei(1);
-      claimAssessor2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        toWei(1);
-      claimAssessor3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor3)) /
-        toWei(1);
-      claimAssessor4Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor4)) /
-        toWei(1);
-      claimAssessor5Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor5)) /
-        toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
+      claimAssessor3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor3);
+      claimAssessor4Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor4);
+      claimAssessor5Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor5);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
       await cl.submitMemberVote(claimID, 1, { from: member2 });
       await cl.submitMemberVote(claimID, 1, { from: member3 });
 
-      // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
-
-      await ps.processPendingActions('100');
+      closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
+      await ps.processPendingActions('100');
 
-      let proposalIds = [];
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
       await cr.claimAllPendingReward(20, { from: claimAssessor3 });
       await cr.claimAllPendingReward(20, { from: claimAssessor4 });
       await cr.claimAllPendingReward(20, { from: claimAssessor5 });
 
+      claimAssessor1Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+      claimAssessor3Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor3, CLA);
+      claimAssessor4Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor4, CLA);
+      claimAssessor5Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor5, CLA);
 
-      claimAssessor1Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-      claimAssessor3Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor3, CLA)
-      );
-      claimAssessor4Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor4, CLA)
-      );
-      claimAssessor5Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor5, CLA)
-      );
-
-      member1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
-      member2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
-      member3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
+      member1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member1);
+      member2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member2);
+      member3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member3);
 
       await cr.claimAllPendingReward(20, { from: member1 });
       await cr.claimAllPendingReward(20, { from: member2 });
       await cr.claimAllPendingReward(20, { from: member3 });
 
+      const balanceAfter = await dai.balanceOf(coverHolder8);
+      const tokenBalanceAfter = await tk.balanceOf(coverHolder8);
+      const totalBalanceAfter = await tc.totalBalanceOf(coverHolder8);
 
-      let balanceAfter = parseFloat(await dai.balanceOf(coverHolder8));
-      let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder8));
-      let coverTokensLockedAfter = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder8, coverID)
-      );
-      let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder8));
-
-      coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
-      ).toFixed(2);
-      payoutReceived = Number(
-        (balanceAfter - balanceBefore) / toWei(1)
-      ).toFixed(2);
-      coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
-      ).toFixed(2);
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      const payoutReceived = balanceAfter.sub(balanceBefore);
+      const coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.initialDate).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor3Data.newLockDate.sub(claimAssessor3Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
+      assert(claimAssessor3Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
+      assert(claimAssessor3Data.rewardReceived.eqn(0));
+
+      assert(member1Data.rewardReceived.eqn(0));
+      assert(member2Data.rewardReceived.eqn(0));
+      assert(member3Data.rewardReceived.eqn(0));
+
+      assert(payoutReceived.eq(ether(100)));
+      assert(coverTokensUnlockable.eq(ether(40)));
+      assert(coverTokensBurned.eq(ether(0)));
+
+      const UWTokensLockedExpected = [70, 60, 40, 30, 50].map(ether);
+      const UWTokensBurnedExpected = [70, 60, 40, 30, 50].map(ether);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
-        ).toFixed(2);
+        assert(UWTokensLockedExpected[i].eq(UWTokensLocked[i]));
+        assert(UWTokensBurnedExpected[i].eq(UWTokensBurned[i]));
       }
-
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate - claimAssessor3Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate - claimAssessor3Data.initialDate,
-        oneWeek
-      );
-
-      assert.equal(
-        claimAssessor1Data.newLockDate -
-        claimAssessor1Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate -
-        claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate -
-        claimAssessor3Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate -
-        claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor3Data.newLockDate -
-        claimAssessor3Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-
-      assert.equal(claimAssessor1Data.rewardReceived, 0);
-      assert.equal(claimAssessor2Data.rewardReceived, 0);
-      assert.equal(claimAssessor3Data.rewardReceived, 0);
-      assert.equal(claimAssessor2Data.rewardReceived, 0);
-      assert.equal(claimAssessor3Data.rewardReceived, 0);
-
-      assert.equal(member1Data.rewardReceived, 0);
-      assert.equal(member2Data.rewardReceived, 0);
-      assert.equal(member3Data.rewardReceived, 0);
-
-      assert.equal(payoutReceived, 100);
-      assert.equal(coverTokensUnlockable, 40);
-      assert.equal(coverTokensBurned, 0);
-
-      let UWTokensLockedExpected = [30, 40, 50, 60, 70];
-      let UWTokensBurnedExpected = [30, 40, 50, 60, 70];
-
-      for (let i = 0; i < underwriters.length; i++) {
-        assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
-        assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
-      }
-
-      // if ((await tk.totalSupply()) < 600000 * toWei(1))
-      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
-      // now = await latestTime();
-      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.19 CA vote<5SA, open for member vote and majority reject(D3)', async function () {
-      // (await nxms.isPause()).should.equal(false);
 
-      class claimAssessor {
-        constructor(
-          initialDate,
-          newLockDate,
-          rewardReceived,
-          lockPeriodAfterRewardReceived
-        ) {
-          this.initialDate = initialDate;
-          this.newLockDate = newLockDate;
-          this.lockPeriodAfterRewardReceived = lockPeriodAfterRewardReceived;
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      class member {
-        constructor(rewardReceived) {
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      let claimAssessor1Data = new claimAssessor();
-      let claimAssessor2Data = new claimAssessor();
-      let member1Data = new member();
-      let member2Data = new member();
-      let member3Data = new member();
-      let member4Data = new member();
-      let member5Data = new member();
-      let member6Data = new member();
+      const claimAssessor1Data = {};
+      const claimAssessor2Data = {};
+      const member1Data = {};
+      const member2Data = {};
+      const member3Data = {};
+      const member4Data = {};
+      const member5Data = {};
+      const member6Data = {};
 
-      underwriters = [
-        underwriter4,
-        underwriter3,
-        underwriter5,
-        underwriter2,
-        underwriter1
-      ];
+      const UWTotalBalanceBefore = [];
+      const UWTokensLocked = [];
+
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC5);
       }
 
-      let UWTokensLocked = [];
-      for (let i = 0; i < underwriters.length; i++) {
-        UWTokensLocked.push(
-          Number(
-            (parseFloat(await ps.stakerContractStake(underwriters[i], SC5)) -
-              parseFloat(await ps.stakerContractStake(underwriters[i], SC5))) /
-            toWei(1)
-          ).toFixed(2)
-        );
-      }
-
-      coverID = await qd.getAllCoversOfUser(coverHolder9);
+      const coverID = await qd.getAllCoversOfUser(coverHolder9);
       await cl.submitClaim(coverID[0], { from: coverHolder9 });
-      claimID = (await cd.actualClaimLength()) - 1;
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let claimID = (await cd.actualClaimLength()).subn(1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
-      claimAssessor1Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
+      claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
+
       await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
 
-      claimAssessor1Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
+      claimAssessor1Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
 
-      maxVotingTime = await cd.maxVotingTime();
+      let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      let closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
-      let coverTokensLockedBefore = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder9, coverID)
-      );
-      let tokenBalanceBefore = parseFloat(await tk.balanceOf(coverHolder9));
-      let balanceBefore = parseFloat(await web3.eth.getBalance(coverHolder9));
-      let totalBalanceBefore = parseFloat(
-        await tc.totalBalanceOf(coverHolder9)
-      );
+      let tokenBalanceBefore = await tk.balanceOf(coverHolder9);
+      let balanceBefore = toBN((await web3.eth.getBalance(coverHolder9)).toString());
+      let totalBalanceBefore = await tc.totalBalanceOf(coverHolder9);
 
-      await ps.processPendingActions('100');
-
-      // // changing the claim status here
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      claimAssessor1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        toWei(1);
-      claimAssessor2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
 
       // now member voting started
       await cl.submitMemberVote(claimID, -1, { from: member1 });
@@ -3200,44 +2428,28 @@ contract('Claim: Assessment 2', function (addresses) {
       await cl.submitMemberVote(claimID, 1, { from: member5 });
       await cl.submitMemberVote(claimID, -1, { from: member6 });
 
-      // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
+      closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      let proposalIds = [];
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
 
+      claimAssessor1Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.lockPeriodAfterRewardReceived = await tc.getLockedTokensValidity(claimAssessor2, CLA);
 
-      claimAssessor1Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.lockPeriodAfterRewardReceived = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
-
-      member1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member1)) / toWei(1);
-      member2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member2)) / toWei(1);
-      member3Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member3)) / toWei(1);
-      member4Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member4)) / toWei(1);
-      member5Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member5)) / toWei(1);
-      member6Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(member6)) / toWei(1);
+      member1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member1);
+      member2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member2);
+      member3Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member3);
+      member4Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member4);
+      member5Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member5);
+      member6Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member6);
 
       await cr.claimAllPendingReward(20, { from: member1 });
       await cr.claimAllPendingReward(20, { from: member2 });
@@ -3246,177 +2458,96 @@ contract('Claim: Assessment 2', function (addresses) {
       await cr.claimAllPendingReward(20, { from: member5 });
       await cr.claimAllPendingReward(20, { from: member6 });
 
+      const balanceAfter = toBN((await web3.eth.getBalance(coverHolder9)).toString());
+      const tokenBalanceAfter = await tk.balanceOf(coverHolder9);
+      const totalBalanceAfter = await tc.totalBalanceOf(coverHolder9);
 
-      let balanceAfter = parseFloat(await web3.eth.getBalance(coverHolder9));
-      let tokenBalanceAfter = parseFloat(await tk.balanceOf(coverHolder9));
-      let coverTokensLockedAfter = parseFloat(
-        await tf.getUserLockedCNTokens(coverHolder9, coverID)
-      );
-      let totalBalanceAfter = parseFloat(await tc.totalBalanceOf(coverHolder9));
-
-      coverTokensBurned = Number(
-        (totalBalanceBefore - totalBalanceAfter) / toWei(1)
-      ).toFixed(2);
-      payoutReceived = Number(
-        (balanceAfter - balanceBefore) / toWei(1)
-      ).toFixed(2);
-      coverTokensUnlockable = Number(
-        (tokenBalanceAfter - tokenBalanceBefore) / toWei(1)
-      ).toFixed(2);
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      const payoutReceived = balanceAfter.sub(balanceBefore);
+      const coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(underwriters[i])) / toWei(1);
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+
+      assert(claimAssessor1Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
+
+      assert(member1Data.rewardReceived.eq(toBN('13060146443378345591')));
+      assert(member2Data.rewardReceived.eq(toBN('8706764295585563727')));
+      assert(member3Data.rewardReceived.eq(toBN('4349902226011972286')));
+      assert(member4Data.rewardReceived.eq(toBN('8699804452023944572')));
+      assert(member5Data.rewardReceived.eq(toBN('0')));
+      assert(member6Data.rewardReceived.eq(toBN('65183382583000173822')));
+
+      assert(payoutReceived.eq(ether(0)));
+      assert(coverTokensUnlockable.eq(ether(0)));
+      assert(coverTokensBurned.eq(ether(25)));
+
+      const UWTokensLockedExpected = [25, 15, 20, 20, 20].map(ether);
+      const UWTokensBurnedExpected = [0, 0, 0, 0, 0].map(ether);
 
       for (let i = 0; i < underwriters.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
-        ).toFixed(2);
+        assert(UWTokensLockedExpected[i].eq(UWTokensLocked[i]));
+        assert(UWTokensBurnedExpected[i].eq(UWTokensBurned[i]));
       }
-
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek
-      );
-
-      assert.equal(
-        claimAssessor1Data.newLockDate -
-        claimAssessor1Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate -
-        claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-
-      assert.equal(claimAssessor1Data.rewardReceived, 0);
-      assert.equal(claimAssessor2Data.rewardReceived, 0);
-
-      assert.equal(member1Data.rewardReceived, 13.060146443378345);
-      assert.equal(member2Data.rewardReceived, 8.706764295585563);
-      assert.equal(member3Data.rewardReceived, 4.349902226011972);
-      assert.equal(member4Data.rewardReceived, 8.699804452023944);
-      assert.equal(member5Data.rewardReceived, 0);
-      assert.equal(member6Data.rewardReceived, 65.18338258300017);
-
-      assert.equal(payoutReceived, 0);
-      assert.equal(coverTokensUnlockable, 0);
-      assert.equal(coverTokensBurned, 25);
-
-      // let UWTokensLockedExpected = [5, 10, 15, 20, 25];
-      // let UWTokensBurnedExpected = [0, 0, 0, 0, 0];
-      //
-      // for (let i = 0; i < underwriters.length; i++) {
-      //   assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
-      //   assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
-      // }
-
-      // if ((await tk.totalSupply()) < 600000 * toWei(1))
-      //   await tc.mint(owner, 600000 * toWei(1) - (await tk.totalSupply()));
-      // else await tc.burnFrom(owner, (await tk.totalSupply()) - 600000 * toWei(1));
-      // now = await latestTime();
-      // await increaseTimeTo(now+(await td.bookTime())/1+10);
     });
 
     it('18.20 CA vote <5SA and majority < 70%, open for member vote and majority accept(A3)', async function () {
-      // (await nxms.isPause()).should.equal(false);
 
-      class claimAssessor {
-        constructor(
-          initialDate,
-          newLockDate,
-          rewardReceived,
-          lockPeriodAfterRewardReceived
-        ) {
-          this.initialDate = initialDate;
-          this.newLockDate = newLockDate;
-          this.lockPeriodAfterRewardReceived = lockPeriodAfterRewardReceived;
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      class member {
-        constructor(rewardReceived) {
-          this.rewardReceived = rewardReceived;
-        }
-      }
-      let claimAssessor1Data = new claimAssessor();
-      let claimAssessor2Data = new claimAssessor();
-      let member1Data = new member();
-      let member2Data = new member();
-      let member3Data = new member();
-      let member4Data = new member();
-      let member5Data = new member();
-      let member6Data = new member();
+      const claimAssessor1Data = {};
+      const claimAssessor2Data = {};
+      const member1Data = {};
+      const member2Data = {};
+      const member3Data = {};
+      const member4Data = {};
+      const member5Data = {};
+      const member6Data = {};
 
-      let UWarray = [
-        underwriter4,
-        underwriter3,
-        underwriter5,
-        underwriter2,
-        underwriter1
-      ];
-      for (let i = 0; i < UWarray.length; i++) {
-        UWTotalBalanceBefore[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
-      }
-
+      const UWTotalBalanceBefore = [];
       const UWTokensLocked = [];
-      for (let i = 0; i < UWarray.length; i++) {
-        UWTokensLocked.push(
-          Number(
-            (parseFloat(await ps.stakerContractStake(UWarray[i], SC5)) -
-              parseFloat(await ps.stakerContractStake(UWarray[i], SC5))) /
-            toWei(1)
-          ).toFixed(2)
-        );
+
+      for (let i = 0; i < underwriters.length; i++) {
+        UWTotalBalanceBefore[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensLocked[i] = await ps.stakerContractStake(underwriters[i], SC5);
       }
 
-      coverID = await qd.getAllCoversOfUser(coverHolder9);
+      const coverID = await qd.getAllCoversOfUser(coverHolder9);
       await cl.submitClaim(coverID[0], { from: coverHolder9 });
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      let claimID = (await cd.actualClaimLength()).subn(1);
+      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
-      claimID = (await cd.actualClaimLength()) - 1;
-      claimAssessor1Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.initialDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
+      claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
 
       await cl.submitCAVote(claimID, 1, { from: claimAssessor1 });
       await cl.submitCAVote(claimID, -1, { from: claimAssessor2 });
 
-      claimAssessor1Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor1, CLA)
-      );
-      claimAssessor2Data.newLockDate = parseFloat(
-        await tc.getLockedTokensValidity(claimAssessor2, CLA)
-      );
+      claimAssessor1Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
+      claimAssessor2Data.newLockDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
 
-      maxVotingTime = await cd.maxVotingTime();
+      let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
-      closingTime = maxVotingTime.add(toBN(now));
+      let closingTime = maxVotingTime.add(toBN(now));
       await increaseTimeTo(closingTime.addn(2));
 
-      let tokenBalanceBefore = await tk.balanceOf(coverHolder9);
-      let balanceBefore = await web3.eth.getBalance(coverHolder9);
-      let totalBalanceBefore = await tc.totalBalanceOf(coverHolder9);
+      const tokenBalanceBefore = await tk.balanceOf(coverHolder9);
+      const balanceBefore = toBN((await web3.eth.getBalance(coverHolder9)).toString());
+      const totalBalanceBefore = await tc.totalBalanceOf(coverHolder9);
 
-      // // changing the claim status here
+      // changing the claim status here
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
-      claimAssessor1Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor1)) /
-        toWei(1);
-      claimAssessor2Data.rewardReceived =
-        parseFloat(await cr.getRewardToBeDistributedByUser(claimAssessor2)) /
-        toWei(1);
+      claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
+      claimAssessor2Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor2);
 
       // now member voting started
       await cl.submitMemberVote(claimID, 1, { from: member1 });
@@ -3429,18 +2560,14 @@ contract('Claim: Assessment 2', function (addresses) {
       // to close the member voting
       maxVotingTime = await cd.maxVotingTime();
       now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((2).toString()))
-      );
-
-      await ps.processPendingActions('100');
+      closingTime = maxVotingTime.add(toBN(now));
+      await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       await p1.__callback(APIID, '');
+      assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
+      await ps.processPendingActions('100');
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
       await cr.claimAllPendingReward(20, { from: claimAssessor2 });
@@ -3468,65 +2595,45 @@ contract('Claim: Assessment 2', function (addresses) {
       await cr.claimAllPendingReward(20, { from: member5 });
       await cr.claimAllPendingReward(20, { from: member6 });
 
-      const balanceAfter = await web3.eth.getBalance(coverHolder9);
+      const balanceAfter = toBN((await web3.eth.getBalance(coverHolder9)).toString());
       const tokenBalanceAfter = await tk.balanceOf(coverHolder9);
       const totalBalanceAfter = await tc.totalBalanceOf(coverHolder9);
 
-      coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
-      payoutReceived = balanceAfter.sub(balanceBefore);
-      coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
+      const coverTokensUnlockable = tokenBalanceAfter.sub(tokenBalanceBefore);
+      const coverTokensBurned = totalBalanceBefore.sub(totalBalanceAfter);
+      const payoutReceived = balanceAfter.sub(balanceBefore);
 
-      for (let i = 0; i < UWarray.length; i++) {
-        UWTotalBalanceAfter[i] =
-          parseFloat(await tc.totalBalanceOf(UWarray[i])) / toWei(1);
+      for (let i = 0; i < underwriters.length; i++) {
+        UWTotalBalanceAfter[i] = await tc.totalBalanceOf(underwriters[i]);
+        UWTokensBurned[i] = UWTotalBalanceBefore[i].sub(UWTotalBalanceAfter[i]);
       }
 
-      for (let i = 0; i < UWarray.length; i++) {
-        UWTokensBurned[i] = Number(
-          UWTotalBalanceBefore[i] - UWTotalBalanceAfter[i]
-        ).toFixed(2);
-      }
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.initialDate).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.initialDate).eq(oneWeekBN));
 
-      assert.equal(
-        claimAssessor1Data.newLockDate - claimAssessor1Data.initialDate,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate - claimAssessor2Data.initialDate,
-        oneWeek
-      );
+      assert(claimAssessor1Data.newLockDate.sub(claimAssessor1Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
+      assert(claimAssessor2Data.newLockDate.sub(claimAssessor2Data.lockPeriodAfterRewardReceived).eq(oneWeekBN));
 
-      assert.equal(
-        claimAssessor1Data.newLockDate -
-        claimAssessor1Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
-      assert.equal(
-        claimAssessor2Data.newLockDate -
-        claimAssessor2Data.lockPeriodAfterRewardReceived,
-        oneWeek
-      );
+      assert(claimAssessor1Data.rewardReceived.eqn(0));
+      assert(claimAssessor2Data.rewardReceived.eqn(0));
 
-      assert.equal(claimAssessor1Data.rewardReceived, 0);
-      assert.equal(claimAssessor2Data.rewardReceived, 0);
+      assert(member1Data.rewardReceived.eq(toBN('13060146443378345591')));
+      assert(member2Data.rewardReceived.eq(toBN('8706764295585563727')));
+      assert(member3Data.rewardReceived.eq(toBN('4349902226011972286')));
+      assert(member4Data.rewardReceived.eq(toBN('8699804452023944572')));
+      assert(member5Data.rewardReceived.eq(toBN('0')));
+      assert(member6Data.rewardReceived.eq(toBN('65183382583000173822')));
 
-      assert.equal(member1Data.rewardReceived, 13.060146443378345);
-      assert.equal(member2Data.rewardReceived, 8.706764295585563);
-      assert.equal(member3Data.rewardReceived, 4.349902226011972);
-      assert.equal(member4Data.rewardReceived, 8.699804452023944);
-      assert.equal(member5Data.rewardReceived, 0);
-      assert.equal(member6Data.rewardReceived, 65.18338258300017);
+      assert(payoutReceived.eq(ether(5)));
+      assert(coverTokensUnlockable.eq(ether(25)));
+      assert(coverTokensBurned.eq(ether(0)));
 
-      assert.equal(payoutReceived, 5);
-      assert.equal(coverTokensUnlockable, 25);
-      assert.equal(coverTokensBurned, 0);
+      const UWTokensLockedExpected = [25, 15, 20, 20, 20].map(ether);
+      const UWTokensBurnedExpected = [25, 15, 20, 20, 20].map(ether);
 
-      let UWTokensLockedExpected = [5, 10, 15, 20, 25];
-      let UWTokensBurnedExpected = [5, 10, 15, 20, 25];
-
-      for (let i = 0; i < UWarray.length; i++) {
-        assert.equal(UWTokensLockedExpected[i], UWTokensLocked[i]);
-        assert.equal(UWTokensBurnedExpected[i], UWTokensBurned[i]);
+      for (let i = 0; i < underwriters.length; i++) {
+        assert(UWTokensLockedExpected[i].eq(UWTokensLocked[i]));
+        assert(UWTokensBurnedExpected[i].eq(UWTokensBurned[i]));
       }
     });
   });
@@ -3537,21 +2644,17 @@ contract('Claim: Assessment 2', function (addresses) {
       const stakeTokens = toWei(200);
       await tk.approve(ps.address, stakeTokens, { from: underwriter6 });
       await ps.depositAndStake(stakeTokens, [SC1], [stakeTokens], { from: underwriter6 });
-
-      coverID = await qd.getAllCoversOfUser(coverHolder5);
-
-      await tf.burnStakerLockedToken(SC1, 0);
+      await qd.getAllCoversOfUser(coverHolder5);
     });
 
     it('18.25 when stakerStakedNXM = 0', async function () {
-      maxVotingTime = await cd.maxVotingTime();
-      let maxStakeTime = 21600000;
-      let now = await latestTime();
-      closingTime = new BN(maxVotingTime.toString()).add(
-        new BN((now + maxStakeTime).toString())
-      );
+
+      const maxVotingTime = await cd.maxVotingTime();
+      const maxStakeTime = 21600000;
+      const now = await latestTime();
+
+      const closingTime = maxVotingTime.add(toBN((now + maxStakeTime)));
       await increaseTimeTo(closingTime);
-      await tf.burnStakerLockedToken(SC1, 10);
     });
 
     it('18.26 when stakerStakedNXM = 0', async function () {

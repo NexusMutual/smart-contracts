@@ -25,6 +25,9 @@ const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 
 module.exports = function(deployer, network, accounts) {
   deployer.then(async () => {
+
+    console.log('Migrations: nexusmutual contracts deployment started');
+
     let founderAddress = accounts[0];
     let factory = await FactoryMock.deployed();
     let dsv = await DSValue.deployed();
@@ -48,5 +51,7 @@ module.exports = function(deployer, network, accounts) {
     await deployer.deploy(MemberRoles);
     await deployer.deploy(NXMaster);
     await deployer.deploy(PooledStaking);
+
+    console.log('Migrations: nexusmutual contracts deployment finished');
   });
 };

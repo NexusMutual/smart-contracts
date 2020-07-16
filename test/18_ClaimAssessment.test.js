@@ -6,6 +6,7 @@ const { latestTime } = require('./utils/latestTime');
 const { gvProposal } = require('./utils/gvProposal');
 const { encode } = require('./utils/encoder');
 const { getQuoteValues } = require('./utils/getQuote');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
@@ -47,6 +48,7 @@ let mr;
 let gv;
 let qt;
 let ps;
+let snapshotId;
 
 require('chai').should();
 
@@ -103,6 +105,10 @@ contract('Claim: Assessment 2', function (addresses) {
   const SC3 = '0x618e75ac90b12c6049ba3b27f5d5f8651b0037f6';
   const SC4 = '0x40395044Ac3c0C57051906dA938B54BD6557F212';
   const SC5 = '0xee74110fb5a1007b06282e0de5d73a61bf41d9cd';
+
+  before(async function () {
+    snapshotId = await takeSnapshot();
+  });
 
   describe('claim test case', function () {
 
@@ -2662,4 +2668,9 @@ contract('Claim: Assessment 2', function (addresses) {
     });
 
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

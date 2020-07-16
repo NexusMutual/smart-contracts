@@ -1,30 +1,27 @@
 const Governance = artifacts.require('Governance');
-// const GovernanceNew = artifacts.require('GovernanceNew');
 const MemberRoles = artifacts.require('MemberRoles');
 const ProposalCategory = artifacts.require('ProposalCategory');
-// const ProposalCategoryNew = artifacts.require('ProposalCategoryNew');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const TokenController = artifacts.require('TokenController');
 const NXMaster = artifacts.require('NXMasterMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const NXMToken = artifacts.require('NXMToken');
 const TokenData = artifacts.require('TokenDataMock');
 const PoolData = artifacts.require('PoolDataMock');
+
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const {encode, encode1} = require('./utils/encoder.js');
 const {toHex, toWei} = require('./utils/ethTools.js');
-const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
-const Web3 = require('web3');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
+
 const {
   gvProposalWithIncentive,
   gvProposalWithoutTrigger,
   setTriggerActionTime
 } = require('./utils/gvProposal.js');
-const AdvisoryBoard = '0x41420000';
-let maxAllowance =
-  '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+
+let maxAllowance = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
 
 let gv;
 let cr;
@@ -38,6 +35,7 @@ let tc;
 let td;
 let pd;
 let accounts = [];
+let snapshotId;
 
 contract(
   'Governance',
@@ -56,6 +54,9 @@ contract(
     notMember
   ]) => {
     before(async function() {
+
+      snapshotId = await takeSnapshot();
+
       accounts = [
         ab1,
         ab2,
@@ -990,5 +991,10 @@ contract(
         await assertRevert(gv.delegateVote(ab1, {from: mem6}));
       });
     });
+
+    after(async function () {
+      await revertSnapshot(snapshotId);
+    });
+
   }
 );

@@ -7,16 +7,16 @@ const NXMaster = artifacts.require('NXMasterMock');
 const TokenData = artifacts.require('TokenDataMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const DAI = artifacts.require('MockDAI');
+
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const {assertRevert} = require('./utils/assertRevert');
-const {increaseTimeTo} = require('./utils/increaseTime');
 const {latestTime} = require('./utils/latestTime');
-const expectEvent = require('./utils/expectEvent');
 const {advanceBlock} = require('./utils/advanceToBlock');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
-const ETH = '0x455448';
 const fee = ether(0.002);
-let ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const UNLIMITED_ALLOWANCE = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
 
 let dai;
 let tk;
@@ -27,7 +27,7 @@ let mr;
 let nxms;
 let td;
 let tf;
-const BN = web3.utils.BN;
+let snapshotId;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -35,9 +35,11 @@ require('chai')
   .should();
 
 contract('Token Module', function([owner, member1]) {
-  const UNLIMITED_ALLOWANCE =
-    '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     p1 = await Pool1.deployed();
@@ -57,7 +59,7 @@ contract('Token Module', function([owner, member1]) {
     await mr.kycVerdict(member1, true);
     // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member1 });
     await tk.transfer(member1, toWei(30000), {from: owner});
-    // console.log(await tk.allowance(owner, tc.address));
+
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: owner});
   });
   describe('NXMToken: ', function() {
@@ -132,4 +134,9 @@ contract('Token Module', function([owner, member1]) {
       );
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

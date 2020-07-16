@@ -15,6 +15,9 @@ const EXCHANGE_ETHER = '100000000000000000000';
 
 module.exports = function(deployer, network, accounts) {
   deployer.then(async () => {
+
+    console.log('Migrations: misc contracts deployment started');
+
     dai = await deployer.deploy(DAI);
     mkr = await deployer.deploy(MKR);
 
@@ -39,5 +42,7 @@ module.exports = function(deployer, network, accounts) {
     await mkr.transfer(exchangeMKR.address, EXCHANGE_TOKEN);
     await exchange.recieveEther({ value: EXCHANGE_ETHER });
     await exchangeMKR.recieveEther({ value: EXCHANGE_ETHER });
+
+    console.log('Migrations: misc contracts deployment finished');
   });
 };

@@ -14,17 +14,11 @@ const MCR = artifacts.require('MCR');
 
 const Pool1 = artifacts.require('Pool1Mock');
 const FactoryMock = artifacts.require('FactoryMock');
-const expectEvent = require('./utils/expectEvent');
-const assertRevert = require('./utils/assertRevert.js').assertRevert;
-const increaseTime = require('./utils/increaseTime.js').increaseTime;
 const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
-const AdvisoryBoard = '0x41420000';
 const TokenFunctions = artifacts.require('TokenFunctionMock');
-const Web3 = require('web3');
-const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545')); // Hardcoded development port
-// const { toWei } = require('./utils/ethTools');
-const {toHex, toWei} = require('./utils/ethTools');
+const {toHex, toWei, toChecksumAddress} = require('./utils/ethTools');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 let mcr;
 let tf;
@@ -39,22 +33,20 @@ let qd;
 let cd;
 let p1;
 let nxms;
-let proposalId;
-let pId;
 let nxmToken;
-let balance;
-let status;
-let voters;
-let maxAllowance =
-  '115792089237316195423570985008687907853269984665640564039457584007913129639935';
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const CLA = '0x434c41';
-const validity = 2592000;
+let snapshotId;
 
-contract(
-  'Configure Global Parameters',
-  ([ab1, mem1, mem2, mem3, notMember]) => {
+const maxAllowance = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+contract('Configure Global Parameters', accounts => {
+
+    const [ab1] = accounts;
+
     before(async function() {
+
+      snapshotId = await takeSnapshot();
+
       tf = await TokenFunctions.deployed();
       nxms = await NXMaster.at(await tf.ms());
       cr = await ClaimsReward.deployed();
@@ -72,36 +64,20 @@ contract(
       qd = await QuotationData.deployed();
       cd = await ClaimsData.deployed();
       mcr = await MCR.deployed();
-      // await p1.sendEther({value:10});
-      // console.log(await test.variable());
+
       await nxmToken.approve(tc.address, maxAllowance);
-      // await pc.payMe({
-      //     value:"10",
-      //     // from: web3.eth.accounts[1]
-      //   });
-      // let bal = await nxmToken.balanceOf(ab1);
-      await nxmToken.approve(cr.address, maxAllowance, {
-        from: ab1
-      });
-      // await mr.kycVerdict(web3.eth.accounts[0], true, {
-      //   from: web3.eth.accounts[0]
-      // });
-      // await nxmToken.transfer(notMember, 267600*1e18);
+      await nxmToken.approve(cr.address, maxAllowance, { from: ab1 });
+
       let balances = ['15000', '15000', '15000', '15000'];
+
       for (let i = 1; i < 4; i++) {
-        await nxmToken.approve(cr.address, maxAllowance, {
-          from: web3.eth.accounts[i]
-        });
-        await mr.payJoiningFee(web3.eth.accounts[i], {
-          value: 2000000000000000,
-          from: web3.eth.accounts[i]
-        });
-        await mr.kycVerdict(web3.eth.accounts[i], true, {
-          from: ab1
-        });
-        await nxmToken.transfer(web3.eth.accounts[i], toWei(balances[i]));
+        await nxmToken.approve(cr.address, maxAllowance, { from: accounts[i] });
+        await mr.payJoiningFee(accounts[i], { value: 2000000000000000, from: accounts[i] });
+        await mr.kycVerdict(accounts[i], true, { from: ab1 });
+        await nxmToken.transfer(accounts[i], toWei(balances[i]));
       }
     });
+
     async function updateParameter(
       cId,
       mrSequence,
@@ -110,7 +86,7 @@ contract(
       type,
       proposedValue
     ) {
-      code = web3.toHex(code);
+      code = toHex(code);
       let getterFunction;
       if (type == 'uint') {
         action = 'updateUintParameters(bytes8,uint)';
@@ -122,10 +98,10 @@ contract(
         action = 'updateOwnerParameters(bytes8,address)';
         getterFunction = 'getOwnerParameters';
       }
-      // console.log(proposedValue);
+
       let actionHash = encode(action, code, proposedValue);
       await gvProposal(cId, actionHash, mr, gv, mrSequence);
-      if (code == web3.toHex('MASTADD')) {
+      if (code == toHex('MASTADD')) {
         let newMaster = await NXMaster.at(proposedValue);
         contractInst = newMaster;
       }
@@ -135,8 +111,8 @@ contract(
       } catch (err) {}
       if (type == 'address' || type == 'owner') {
         assert.equal(
-          web3.toChecksumAddress(parameter[1]),
-          web3.toChecksumAddress(proposedValue)
+          toChecksumAddress(parameter[1]),
+          toChecksumAddress(proposedValue)
         );
       } else {
         assert.equal(parameter[1], proposedValue, 'Not updated');
@@ -150,7 +126,7 @@ contract(
       type,
       proposedValue
     ) {
-      code = web3.toHex(code);
+      code = toHex(code);
       let getterFunction;
       if (type == 'uint') {
         action = 'updateUintParameters(bytes8,uint)';
@@ -164,7 +140,7 @@ contract(
       }
       let actionHash = encode(action, code, proposedValue);
       await gvProposal(cId, actionHash, mr, gv, mrSequence);
-      if (code == web3.toHex('MASTADD') && proposedValue != ZERO_ADDRESS) {
+      if (code == toHex('MASTADD') && proposedValue != ZERO_ADDRESS) {
         let newMaster = await NXMaster.at(proposedValue);
         contractInst = newMaster;
       }
@@ -436,7 +412,7 @@ contract(
           'MSWALLET',
           nxms,
           'owner',
-          web3.eth.accounts[1]
+          accounts[1]
         );
       });
       it('Should update MCR Notarise Address', async function() {
@@ -446,7 +422,7 @@ contract(
           'MCRNOTA',
           nxms,
           'owner',
-          web3.eth.accounts[1]
+          accounts[1]
         );
       });
       it('Should updateDAI Feed Address', async function() {
@@ -471,7 +447,7 @@ contract(
           'OWNER',
           nxms,
           'owner',
-          web3.eth.accounts[1]
+          accounts[1]
         );
       });
       it('Should update Quote Engine Address', async function() {
@@ -481,7 +457,7 @@ contract(
           'QUOAUTH',
           nxms,
           'owner',
-          web3.eth.accounts[1]
+          accounts[1]
         );
       });
       it('Should update KYC Authorised Address', async function() {
@@ -491,7 +467,7 @@ contract(
           'KYCAUTH',
           nxms,
           'owner',
-          web3.eth.accounts[1]
+          accounts[1]
         );
       });
       it('Should not trigger action if wrong code is passed', async function() {
@@ -501,9 +477,14 @@ contract(
           'ASD',
           nxms,
           'owner',
-          web3.eth.accounts[1]
+          accounts[1]
         );
       });
     });
+
+    after(async function () {
+      await revertSnapshot(snapshotId);
+    });
+
   }
 );

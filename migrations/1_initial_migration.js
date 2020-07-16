@@ -1,5 +1,7 @@
-var Migrations = artifacts.require('Migrations');
+const Migrations = artifacts.require('Migrations');
 
-module.exports = async function(deployer) {
+module.exports = async deployer => {
+  console.log('Migrations: migration contract deployment started');
   await deployer.deploy(Migrations);
+  console.log('Migrations: migration contract deployment finished');
 };

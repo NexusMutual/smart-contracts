@@ -8,11 +8,11 @@ const NXMaster = artifacts.require('NXMasterMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const PooledStaking = artifacts.require('PooledStakingMock');
 
-const {assertRevert} = require('./utils/assertRevert');
-const {advanceBlock} = require('./utils/advanceToBlock');
-const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const { assertRevert } = require('./utils/assertRevert');
+const { ether, toHex, toWei } = require('./utils/ethTools');
+const { increaseTimeTo, duration } = require('./utils/increaseTime');
+const { latestTime } = require('./utils/latestTime');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const stakedContract = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 
@@ -24,22 +24,27 @@ let P1;
 let mr;
 let nxms;
 let cr;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
 contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
+
   const fee = ether(0.002);
   const stakeTokens = ether(20);
   const tokens = ether(200);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
+
   before(async function() {
-    await advanceBlock();
+
+    snapshotId = await takeSnapshot();
+
     P1 = await Pool1.deployed();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -161,20 +166,14 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
               }
             );
 
-            // await ps.processPendingActions('100');
-
-            await ps.requestUnstake([stakedContract], [stakeTokens], 0, {
-              from: member2
-            });
+            await ps.requestUnstake([stakedContract], [stakeTokens], 0, { from: member2 });
 
             let time = await latestTime();
             time = time + (await duration.days(91));
             await increaseTimeTo(time);
 
             await ps.processPendingActions('100');
-
-            const maxUnstakeable = await ps.stakerMaxWithdrawable(member2);
-            console.log(`maxUnsteakable ${maxUnstakeable}`);
+            await ps.stakerMaxWithdrawable(member2);
 
             await ps.withdraw(stakeTokens, {
               from: member2
@@ -188,5 +187,10 @@ contract('NXMToken:Staking', function([owner, member1, member2, notMember]) {
       });
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
   //contract block
 });

@@ -24,10 +24,12 @@ const PooledStaking = artifacts.require('PooledStakingMock');
 
 const POOL_ETHER = ether('3500');
 const POOL_ASSET = ether('50');
-const JOINING_FEE = ether('2').div(1000); // 0.002
+const JOINING_FEE = ether('2').divn(1000); // 0.002
 
 module.exports = function (deployer, network, accounts) {
   deployer.then(async () => {
+
+    console.log('Migrations: initialization started');
 
     const owner = accounts[0];
     const masterImpl = await NXMaster.deployed();
@@ -106,5 +108,7 @@ module.exports = function (deployer, network, accounts) {
     await mr.payJoiningFee(owner, { from: owner, value: JOINING_FEE });
     await mr.kycVerdict(owner, true);
     await mr.addInitialABMembers([owner]);
+
+    console.log('Migrations: initialization finished');
   });
 };

@@ -7,7 +7,6 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
-
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
@@ -21,24 +20,17 @@ const PooledStaking = artifacts.require('PooledStakingMock');
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toWei, toHex} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const {increaseTimeTo} = require('./utils/increaseTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
-const CLA = '0x434c41';
-const CA_ETH = '0x455448';
 const fee = toWei(0.002);
-const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
 const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
-const v = 28;
-const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
-const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
 
 let tk;
 let tf;
@@ -56,35 +48,35 @@ let nxms;
 let mr;
 let mcr;
 let ps;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('Claim', function([
-  owner,
-  member1,
-  member2,
-  member3,
-  member4,
-  notCoverHolder,
-  notMember,
-  govVoter1,
-  govVoter2,
-  govVoter3,
-  govVoter4
-]) {
-  const P_18 = new BN(toWei(1).toString());
+contract('Claim', function(accounts) {
+
+  const [
+    owner,
+    member1,
+    member2,
+    member3,
+    member4,
+    notCoverHolder,
+  ] = accounts;
+
   const stakeTokens = ether(20);
   const tokens = ether(200);
-  const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -114,26 +106,12 @@ contract('Claim', function([
       20181011
     );
     (await pd.capReached()).toString().should.be.equal((1).toString());
-    // await mr.payJoiningFee(web3.eth.accounts[0], {
-    //   from: web3.eth.accounts[0],
-    //   value: fee
-    // });
-    // await mr.kycVerdict(web3.eth.accounts[0], true);
-    const Web3 = require('web3');
-    const web3 = new Web3(
-      new Web3.providers.HttpProvider('http://localhost:8545')
-    );
 
-    for (let itr = 7; itr < 11; itr++) {
-      await mr.payJoiningFee(web3.eth.accounts[itr], {
-        from: web3.eth.accounts[itr],
-        value: fee
-      });
-      await mr.kycVerdict(web3.eth.accounts[itr], true);
-      let isMember = await nxms.isMember(web3.eth.accounts[itr]);
-      isMember.should.equal(true);
-
-      await tk.transfer(web3.eth.accounts[itr], toWei(275000));
+    for (let i = 7; i < 11; i++) {
+      await mr.payJoiningFee(accounts[i], { from: accounts[i], value: fee });
+      await mr.kycVerdict(accounts[i], true);
+      (await nxms.isMember(accounts[i])).should.equal(true);
+      await tk.transfer(accounts[i], toWei(275000));
     }
   });
 
@@ -465,4 +443,9 @@ contract('Claim', function([
       });
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

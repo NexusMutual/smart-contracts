@@ -18,7 +18,7 @@ async function gvProposal(...args) {
     await gv.submitVote(p, 1, {
       from: members[1][iteration]
     });
-  // console.log(await gv.proposalDetails(p));
+
   if (seq != 3) await gv.closeProposal(p);
   let proposal = await gv.proposal(p);
   assert.equal(proposal[2].toNumber(), 3);
@@ -42,7 +42,7 @@ async function gvProposalWithIncentive(...args) {
     await gv.submitVote(p, 1, {
       from: members[1][iteration]
     });
-  // console.log(await gv.proposalDetails(p));
+
   await increaseTime(604800);
   if (seq != 3) await gv.closeProposal(p);
   let proposal = await gv.proposal(p);
@@ -66,7 +66,7 @@ async function gvProposalWithoutTrigger(...args) {
     await gv.submitVote(p, 1, {
       from: members[1][iteration]
     });
-  // console.log(await gv.proposalDetails(p));
+
   if (seq != 3) await gv.closeProposal(p);
   let proposal = await gv.proposal(p);
   assert.equal(proposal[2].toNumber(), 3);
@@ -86,7 +86,7 @@ async function setTriggerActionTime(...args) {
     await gv.submitVote(p, 1, {
       from: members[1][iteration]
     });
-  // console.log(await gv.proposalDetails(p));
+
   await gv.closeProposal(p);
   let proposal = await gv.proposal(p);
   assert.equal(proposal[2].toNumber(), 3);

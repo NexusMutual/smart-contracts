@@ -1,4 +1,4 @@
-const { isBN, toBN, toWei: web3ToWei, toHex } = require('web3').utils;
+const { isBN, toBN, toWei: web3ToWei, toHex, toChecksumAddress } = require('web3').utils;
 
 const numberToString = n => typeof n === 'number' ? n.toFixed(18) : n;
 const toWei = n => web3ToWei(numberToString(n), 'ether');
@@ -10,4 +10,5 @@ module.exports = {
   toBN,
   toWei,
   toHex,
+  toChecksumAddress,
 };

@@ -7,16 +7,15 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
-
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const TokenData = artifacts.require('TokenDataMock');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
-const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
 const PooledStaking = artifacts.require('PooledStakingMock');
+
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
@@ -24,6 +23,7 @@ const {increaseTimeTo, duration} = require('./utils/increaseTime');
 const {latestTime} = require('./utils/latestTime');
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CLA = '0x434c41';
 const fee = ether(0.002);
@@ -45,9 +45,9 @@ let qt;
 let mcr;
 let gv;
 let mr;
-let newStakerPercentage = 5;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -73,6 +73,9 @@ contract('NXMaster: Emergency Pause', function([
     .sub(new BN((1).toString()));
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -473,4 +476,9 @@ contract('NXMaster: Emergency Pause', function([
       });
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

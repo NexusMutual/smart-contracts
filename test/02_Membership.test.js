@@ -3,13 +3,16 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMaster = artifacts.require('NXMasterMock');
 const NXMToken = artifacts.require('NXMToken');
 
-const {assertRevert} = require('./utils/assertRevert');
-const {ether} = require('./utils/ethTools');
+const { assertRevert } = require('./utils/assertRevert');
+const { ether } = require('./utils/ethTools');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 let tf;
 let mr;
 let nxms;
 let tk;
+let snapshotId;
+
 const fee = ether(0.002);
 
 const BigNumber = web3.BigNumber;
@@ -19,6 +22,9 @@ require('chai')
 
 contract('NXMToken:Membership', function([owner, member1, member2]) {
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     tf = await TokenFunctions.deployed();
     nxms = await NXMaster.at(await tf.ms());
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
@@ -77,4 +83,9 @@ contract('NXMToken:Membership', function([owner, member1, member2]) {
       ((await tk.balanceOf(member2)) / 1).should.equal(ether(2) / 1);
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

@@ -21,22 +21,17 @@ const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const {increaseTimeTo} = require('./utils/increaseTime');
 const {latestTime} = require('./utils/latestTime');
-const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const encode1 = require('./utils/encoder.js').encode1;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
 const fee = toWei(0.002);
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-const PID = 0;
-const PNAME = '0x5343430000000000';
-const PHASH = 'Smart Contract Cover';
-const NPNAME = '0x5443000000000000';
-const NPHASH = 'Test Cover';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const nullAddress = '0x0000000000000000000000000000000000000000';
 const coverPeriod = 61;
@@ -60,11 +55,6 @@ const vrs = [
   '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a',
   '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff'
 ];
-const vrsLess = [
-  27,
-  '0x22d150b6e2d3f9ae98c67425d1224c87aed5f853487252875118352771b3ece2',
-  '0x0fb3f18fc2b8a74083b3cf8ca24bcf877a397836bd4fa1aba4c3ae96ca92873b'
-];
 const vrs_dai = [
   27,
   '0xdcaa177410672d90890f1c0a42a965b3af9026c04caedbce9731cb43827e8556',
@@ -82,12 +72,12 @@ let qd;
 let qt;
 let cad;
 let mcr;
-let mcrd;
 let mr;
 let nxms;
 let ps;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -108,6 +98,7 @@ contract('Quotation', function([
   newMember5,
   newMember6
 ]) {
+
   const BN_100 = new BN((100).toString());
   const BN_10 = new BN((10).toString());
   const P_18 = new BN((1e18).toString());
@@ -120,6 +111,9 @@ contract('Quotation', function([
     .sub(new BN((1).toString()));
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -1440,4 +1434,9 @@ contract('Quotation', function([
       });
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

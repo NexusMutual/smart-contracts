@@ -10,8 +10,7 @@ async function getValue(...args) {
   let totalSa = await mcr.getAllSumAssurance();
   let mincap = await pd.minCap();
   let val = await mcr.getThresholdValues(vtp[0], vf, totalSa, mincap);
-  // console.log(val);
-  // console.log(vtp[0],"  ",vf," ",totalSa," ",mincap);
+
   return parseInt((val[0] / 1 + val[1] / 1) / 2);
 }
 

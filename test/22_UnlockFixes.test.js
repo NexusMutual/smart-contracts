@@ -10,19 +10,19 @@ const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const Pool1 = artifacts.require('Pool1Mock');
 const MCR = artifacts.require('MCR');
-const {assertRevert} = require('./utils/assertRevert');
-const {advanceBlock} = require('./utils/advanceToBlock');
-const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
-const gvProp = require('./utils/gvProposal.js').gvProposal;
-const encode = require('./utils/encoder.js').encode;
-const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
-const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 const PoolData = artifacts.require('PoolDataMock');
 const Claims = artifacts.require('Claims');
 const ProposalCategory = artifacts.require('ProposalCategory');
 const PooledStaking = artifacts.require('PooledStakingMock');
+
+const {assertRevert} = require('./utils/assertRevert');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {latestTime} = require('./utils/latestTime');
+const encode = require('./utils/encoder.js').encode;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const coverDetails = [
   1,
@@ -35,7 +35,7 @@ const coverPeriod = 61;
 
 const stakedContract = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const stakedContract2 = '0xee74110fb5a1007b06282e0de5d73a61bf41d9cd';
-let TokenFunctionNewCon;
+
 let tk;
 let tf;
 let tc;
@@ -50,8 +50,9 @@ let mcr;
 let cl;
 let pd;
 let pc;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -62,16 +63,19 @@ contract('unlock-fixes', function([
   member1,
   member2,
   member3,
-  notMember
 ]) {
+
   const fee = ether(0.002);
   const stakeTokens = ether(100);
   const tokens = ether(300);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
+
   before(async function() {
-    await advanceBlock();
+
+    snapshotId = await takeSnapshot();
+
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     td = await TokenData.deployed();
@@ -260,4 +264,9 @@ contract('unlock-fixes', function([
       assert.equal((await tc.minCALockTime()) / 1, 35 * 3600 * 24);
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

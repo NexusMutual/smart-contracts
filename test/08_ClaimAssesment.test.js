@@ -7,7 +7,6 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
-
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
@@ -28,25 +27,15 @@ const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
 const fee = ether(0.002);
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
-const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
 const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
-const v = 28;
-const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
-const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
-
 const coverDetailsDai = [5, '16812229066849188', '5694231991898', '7972408607'];
-const vrs_dai = [
-  27,
-  '0xdcaa177410672d90890f1c0a42a965b3af9026c04caedbce9731cb43827e8556',
-  '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
-];
 
 let P1;
 let p2;
@@ -66,8 +55,9 @@ let pd;
 let gv;
 let dsv;
 let ps;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -83,9 +73,7 @@ contract('Claim: Assessment', function([
   staker1,
   staker2,
   coverHolder,
-  notMember
 ]) {
-  const P_18 = new BN(toWei(1).toString());
   const stakeTokens = ether(20);
   const tokens = ether(60);
   const validity = duration.days(30);
@@ -100,6 +88,9 @@ contract('Claim: Assessment', function([
   let claimId;
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -646,7 +637,7 @@ contract('Claim: Assessment', function([
         await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
         check = await cl.checkVoteClosing(clid);
         let cStatus = await cd.getClaimStatusNumber(clid);
-        // console.log(parseFloat(cStatus[1]));
+
         if (i != 60) {
           parseFloat(check).should.be.equal(1);
         }
@@ -816,4 +807,9 @@ contract('Claim: Assessment', function([
       await P1.pushStakerRewards(smartConAdd, 0);
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

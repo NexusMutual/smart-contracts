@@ -21,16 +21,13 @@ const {ether, toHex, toWei} = require('./utils/ethTools');
 const {increaseTimeTo, duration} = require('./utils/increaseTime');
 const {latestTime} = require('./utils/latestTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
-const encode = require('./utils/encoder.js').encode;
 const encode1 = require('./utils/encoder.js').encode1;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
-const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
 const fee = ether(0.002);
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
-const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const smartConAdd1 = '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07';
 const smartConAdd2 = '0xB8c77482e45F1F44dE1745F52C74426C631bDD52';
@@ -39,9 +36,6 @@ const smartConAdd4 = '0x0d8775f648430679a709e98d2b0cb6250d2887ef';
 const smartConAdd5 = '0xd850942ef8811f2a866692a623011bde52a462c1';
 const coverPeriod = 61;
 const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
-const v = 28;
-const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
-const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
 
 let P1;
 let tk;
@@ -52,15 +46,15 @@ let cr;
 let cl;
 let qd;
 let qt;
-let cad;
 let nxms;
 let mr;
 let pd;
 let mcr;
 let gv;
 let ps;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -89,6 +83,9 @@ contract('ClaimsReward', function([
   let claimId;
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -565,6 +562,11 @@ contract('ClaimsReward', function([
       assert.equal(balanceDifference, toWei(10));
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });
 
 async function claimAssesmentVoting(

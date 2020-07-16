@@ -15,17 +15,17 @@ const NXMaster = artifacts.require('NXMasterMock');
 const MKR = artifacts.require('MockMKR');
 const Governance = artifacts.require('Governance');
 const FactoryMock = artifacts.require('FactoryMock');
-const PooledStaking = artifacts.require('PooledStakingMock');
 
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {assertRevert} = require('./utils/assertRevert');
-const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
+const {ether, toBN, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo} = require('./utils/increaseTime');
 const {latestTime} = require('./utils/latestTime');
 const encode = require('./utils/encoder.js').encode;
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 let p1;
 let p2;
@@ -44,13 +44,13 @@ let mkr;
 let gv;
 let fac;
 let qt;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 const newAsset = '0x535253';
 const CA_DAI = '0x44414900';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const NEW_ADDRESS = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverDetailsLess = [
   5,
@@ -59,11 +59,6 @@ const coverDetailsLess = [
   '3549627424'
 ];
 const coverPeriodLess = 50;
-const vrsLess = [
-  27,
-  '0x22d150b6e2d3f9ae98c67425d1224c87aed5f853487252875118352771b3ece2',
-  '0x0fb3f18fc2b8a74083b3cf8ca24bcf877a397836bd4fa1aba4c3ae96ca92873b'
-];
 const tokens = ether(200);
 const stakeTokens = ether(20);
 const fee = ether(0.002);
@@ -85,6 +80,9 @@ contract('Pool', function([
   member4
 ]) {
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     p1 = await Pool1.deployed();
     p2 = await Pool2.deployed();
@@ -103,7 +101,7 @@ contract('Pool', function([
     let address = await nxms.getLatestAddress(toHex('GV'));
     gv = await Governance.at(address);
     fac = await FactoryMock.deployed();
-    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
+
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -114,20 +112,11 @@ contract('Pool', function([
       [100, 65407],
       20181011
     );
-    // await mr.payJoiningFee(owner, { from: owner, value: fee });
-    // await mr.kycVerdict(owner, true);
 
     await mr.payJoiningFee(member1, {from: member1, value: fee});
     await mr.kycVerdict(member1, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {from: member1});
     await tk.transfer(member1, tokens);
-
-    await tk.approve(ps.address, stakeTokens, {
-      from: member1
-    });
-    await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
-      from: member1
-    });
 
     await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, true);
@@ -1024,44 +1013,45 @@ contract('Pool', function([
           ((ICABalD2 * 1 + toWei(4.8) * 1) / toWei(1)).toFixed(0).toString()
         );
     });
+
     it('12.47 ELT(DAI->ETH) amount > price slippage', async function() {
-      ICABalE = await web3.eth.getBalance(p1.address);
-      ICABalE2 = await web3.eth.getBalance(p2.address);
-      ICABalD = await cad.balanceOf(p1.address);
-      ICABalD2 = await cad.balanceOf(p2.address);
-      await emock.sendEther({from: owner, value: 17400000000000000});
+
+      await emock.sendEther({from: owner, value: '17400000000036329'}); // fund exchange with 0.0174 ETH
       await p1.upgradeInvestmentPool(cad.address);
-      await p2.sendEther({from: owner, value: CABalE2 / 1 - toWei(5)});
-      await cad.transfer(p2.address, CABalD2);
-      await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(10));
-      await cad.transfer(p1.address, toWei(10), {from: owner});
+      await p2.sendEther({from: owner, value: CABalE2 / 1 - toWei(5)}); // initial ETH balance -5 ETH
+      await cad.transfer(p2.address, CABalD2); // initial DAI balance
+      await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(10)); // -10 ETH
+      await cad.transfer(p1.address, toWei(10), {from: owner}); // +10 DAI
+
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
         20190309,
         false
       );
+
       ICABalE = await web3.eth.getBalance(p1.address);
       ICABalE2 = await web3.eth.getBalance(p2.address);
       ICABalD = await cad.balanceOf(p1.address);
       ICABalD2 = await cad.balanceOf(p2.address);
-      let baseVarMinD = await pd.getCurrencyAssetVarBase(toHex('DAI'));
-      let baseVarMinE = await pd.getCurrencyAssetVarBase(toHex('ETH'));
+
+      const { baseMin: baseMinE, varMin: varMinE } = await pd.getCurrencyAssetVarBase(toHex('ETH'));
+      const { baseMin: baseMinD, varMin: varMinD } = await pd.getCurrencyAssetVarBase(toHex('DAI'));
+
       let time = await latestTime();
-      await increaseTimeTo(
-        (await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100
-      );
+      await increaseTimeTo((await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100);
       await p1.internalLiquiditySwap(toHex('DAI'));
+
       var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       time = await latestTime();
-      await increaseTimeTo(
-        (await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100
-      );
+      await increaseTimeTo((await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100);
       await p1.__callback(APIID, '');
+
       CABalE = await web3.eth.getBalance(p1.address);
       CABalE2 = await web3.eth.getBalance(p2.address);
       CABalD = await cad.balanceOf(p1.address);
       CABalD2 = await cad.balanceOf(p2.address);
+
       CABalE.toString().should.be.equal(ICABalE.toString());
       CABalE2.toString().should.be.equal(
         (ICABalE2 * 1 + toWei(0.5) * 1).toString()
@@ -1069,45 +1059,50 @@ contract('Pool', function([
       CABalD.toString().should.be.equal((ICABalD - toWei(5)).toString());
       CABalD2.toString().should.be.equal(ICABalD2.toString());
     });
+
     it('12.48 ILT(ETH->DAI) amount > price slippage', async function() {
-      ICABalE = await web3.eth.getBalance(p1.address);
-      ICABalE2 = await web3.eth.getBalance(p2.address);
-      ICABalD = await cad.balanceOf(p1.address);
-      ICABalD2 = await cad.balanceOf(p2.address);
       await tf.transferCurrencyAsset(toHex('ETH'), owner, toWei(3));
       await tf.transferCurrencyAsset(toHex('DAI'), owner, toWei(5));
       await cad.transfer(p2.address, toWei(5), {from: owner});
+
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 1000],
         20190309,
         false
       );
+
       let time = await latestTime();
       await increaseTimeTo(
         (await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100
       );
-      ICABalE = await web3.eth.getBalance(p1.address);
-      ICABalE2 = await web3.eth.getBalance(p2.address);
-      ICABalD = await cad.balanceOf(p1.address);
-      ICABalD2 = await cad.balanceOf(p2.address);
+
+      const ICABalE = await web3.eth.getBalance(p1.address);
+      const ICABalE2 = await web3.eth.getBalance(p2.address);
+      const ICABalD = await cad.balanceOf(p1.address);
+      const ICABalD2 = await cad.balanceOf(p2.address);
+
       await p1.internalLiquiditySwap(toHex('ETH'));
       var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       time = await latestTime();
       await increaseTimeTo(
         (await pd.liquidityTradeCallbackTime()) / 1 + time / 1 + 100
       );
+
       await p1.__callback(APIID, '');
-      CABalE = await web3.eth.getBalance(p1.address);
-      CABalE2 = await web3.eth.getBalance(p2.address);
-      CABalD = await cad.balanceOf(p1.address);
-      CABalD2 = await cad.balanceOf(p2.address);
+
+      const CABalE = await web3.eth.getBalance(p1.address);
+      const CABalE2 = await web3.eth.getBalance(p2.address);
+      const CABalD = await cad.balanceOf(p1.address);
+      const CABalD2 = await cad.balanceOf(p2.address);
+
       (CABalE / toWei(1))
         .toFixed(0)
         .toString()
         .should.be.equal(
           ((ICABalE * 1 + toWei(0.48) * 1) / toWei(1)).toFixed(0).toString()
         );
+
       CABalE2.toString().should.be.equal(ICABalE2.toString());
       CABalD.toString().should.be.equal(ICABalD.toString());
       (CABalD2 / toWei(1))
@@ -1117,6 +1112,7 @@ contract('Pool', function([
           (((ICABalD2 - toWei(4.8)) / toWei(1)) * 1).toFixed(0).toString()
         );
     });
+
     it('12.49 ILT(DAI->ETH) amount > price slippage', async function() {
       await emock.removeEther(toWei(1.52));
       await p2.sendEther({from: owner, value: toWei(5)});
@@ -2089,4 +2085,9 @@ contract('Pool', function([
       );
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

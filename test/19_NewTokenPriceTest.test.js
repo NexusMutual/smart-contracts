@@ -11,26 +11,22 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
-const {ether, toHex, toWei} = require('./utils/ethTools');
-const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const {toHex, toWei} = require('./utils/ethTools');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
-const CA_ETH = '0x45544800';
-const CA_DAI = '0x44414900';
 const UNLIMITED_ALLOWANCE = toWei(4500);
 
 let mcr;
 let pd;
 let tk;
 let p1;
-let balance_DAI;
-let balance_ETH;
 let nxms;
 let mr;
 let cad;
 let p2;
 let tc;
 let tf;
-const BN = web3.utils.BN;
+let snapshotId;
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -39,6 +35,9 @@ require('chai')
 
 contract('MCR', function([owner, notOwner]) {
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     mcr = await MCR.deployed();
     tk = await NXMToken.deployed();
@@ -206,7 +205,6 @@ contract('MCR', function([owner, notOwner]) {
         parseFloat(y - x) / toWei(1)
       );
 
-      cost = toWei(5000);
       console.log(
         'token rate 1ETH =  ',
         toWei(1) / parseFloat(await mcr.calculateTokenPrice(toHex('ETH')))
@@ -244,4 +242,9 @@ contract('MCR', function([owner, notOwner]) {
       parseFloat(await mcr.getMaxSellTokens()).should.be.equal(0);
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

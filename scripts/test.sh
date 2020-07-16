@@ -6,6 +6,9 @@ set -o errexit
 # Executes cleanup function at script exit.
 trap cleanup EXIT
 
+GANACHE_PORT=8545
+GANACHE_SEED="grocery obvious wire insane limit weather parade parrot patrol stock blast ivory"
+
 cleanup() {
   # Kill the ganache instance that we started (if we started one and if it's still running).
   if [ -n "$ganache_pid" ] && ps -p $ganache_pid > /dev/null; then
@@ -13,40 +16,37 @@ cleanup() {
   fi
 }
 
-ganache_port=8545
-
 ganache_running() {
-  nc -z localhost "$ganache_port"
+  nc -z localhost "$GANACHE_PORT"
 }
 
-start_ganache() { 
-  node_modules/.bin/ganache-cli --gasLimit 80000000 -p "$ganache_port" -i 5777 -m "grocery obvious wire insane limit weather parade parrot patrol stock blast ivory" -a 100 -e 100000 > /dev/null &
+start_ganache() {
+  npx ganache-cli \
+    --port $GANACHE_PORT \
+    --mnemonic $GANACHE_SEED \
+    --defaultBalanceEther 100000 \
+    --accounts 100 \
+    --gasLimit 80000000 \
+    --networkId 5777 \
+    > /dev/null &
   ganache_pid=$!
 }
 
 if ganache_running; then
   echo "Using existing ganache instance"
 else
-  echo "Starting our own ganache instance"
+  echo "Starting ganache"
   start_ganache
-  sleep 2
+  sleep 1
 fi
 
 if [ -d "node_modules/eth-lightwallet/node_modules/bitcore-lib" ]; then
     rm -r "node_modules/eth-lightwallet/node_modules/bitcore-lib"
-    echo "Deleted eth bitcore-lib"
-fi
-if [ -d "node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
-  rm -r "node_modules/bitcore-mnemonic/node_modules/bitcore-lib"
-  echo "Deleted mne bitcore-lib"
 fi
 
-if [ "$SOLIDITY_COVERAGE" = true ]; then
-  npx truffle run coverage
-  if [ "$CONTINUOUS_INTEGRATION" = true ]; then
-    cat coverage/lcov.info | node_modules/.bin/coveralls
-  fi
-else
-  echo "Now let's test truffle"
-  node_modules/.bin/truffle test "$@"
+if [ -d "node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
+  rm -r "node_modules/bitcore-mnemonic/node_modules/bitcore-lib"
 fi
+
+echo "Running truffle test"
+npx truffle test "$@"

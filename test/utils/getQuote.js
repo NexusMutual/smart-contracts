@@ -1,9 +1,7 @@
-const _map = require('lodash/map');
 const BN = require('bn.js');
 const ethABI = require('ethereumjs-abi');
 const util = require('ethereumjs-util');
-const KeyStore = require('eth-lightwallet').keystore;
-const lightwallet = require('eth-lightwallet');
+const { keystore, signing } = require('eth-lightwallet');
 
 const bigNumberToBN = value => new BN(value.toString(), 10);
 
@@ -33,12 +31,6 @@ async function getQuoteValues (...args) {
     { value: order.quotationContract, type: 'address' },
   ];
 
-  const types = _map(orderParts, o => o.type);
-  const values = _map(orderParts, o => o.value);
-
-  const hashBuff = ethABI.soliditySHA3(types, values);
-  const hashHex = util.bufferToHex(hashBuff);
-
   const serializedKeystore = {
     salt: 'mDSSGi5eePbk3dBG4Ddk79f/Jwi5h3d0jI52F3M3yRg=',
     hdPathString: 'm/44\'/60\'/0\'/0',
@@ -63,15 +55,21 @@ async function getQuoteValues (...args) {
     addresses: ['51042c4d8936a7764d18370a6a0762b860bb8e07'],
   };
 
-  const keyStore = KeyStore.deserialize(JSON.stringify(serializedKeystore));
+  const keyStore = keystore.deserialize(JSON.stringify(serializedKeystore));
   const pwDerivedKey = new Uint8Array([
     51, 95, 185, 86, 44, 101, 34, 239, 87, 233, 60, 63, 119, 227, 100, 242,
     44, 242, 130, 145, 0, 32, 103, 29, 142, 236, 147, 33, 254, 230, 9, 225,
   ]);
 
+  const types = orderParts.map(o => o.type);
+  const values = orderParts.map(o => o.value);
+
+  const hashBuff = ethABI.soliditySHA3(types, values);
+  const hashHex = util.bufferToHex(hashBuff);
   const orderHashBuff = util.toBuffer(hashHex);
+
   const msgHashBuff = util.hashPersonalMessage(orderHashBuff);
-  const sig = lightwallet.signing.signMsgHash(keyStore, pwDerivedKey, msgHashBuff, keyStore.addresses[0]);
+  const sig = signing.signMsgHash(keyStore, pwDerivedKey, msgHashBuff, keyStore.addresses[0]);
 
   return [
     sig.v,

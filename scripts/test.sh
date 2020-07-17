@@ -40,13 +40,5 @@ else
   sleep 1
 fi
 
-if [ -d "node_modules/eth-lightwallet/node_modules/bitcore-lib" ]; then
-    rm -r "node_modules/eth-lightwallet/node_modules/bitcore-lib"
-fi
-
-if [ -d "node_modules/bitcore-mnemonic/node_modules/bitcore-lib" ]; then
-  rm -r "node_modules/bitcore-mnemonic/node_modules/bitcore-lib"
-fi
-
 echo "Running truffle test"
 npx truffle test "$@"

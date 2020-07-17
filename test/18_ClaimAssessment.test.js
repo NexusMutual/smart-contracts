@@ -1,8 +1,7 @@
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether, toBN, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const { increaseTimeTo, duration, latestTime } = require('./utils/increaseTime');
 const { gvProposal } = require('./utils/gvProposal');
 const { encode } = require('./utils/encoder');
 const { getQuoteValues } = require('./utils/getQuote');

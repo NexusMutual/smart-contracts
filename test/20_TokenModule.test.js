@@ -10,7 +10,7 @@ const DAI = artifacts.require('MockDAI');
 
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const {assertRevert} = require('./utils/assertRevert');
-const {latestTime} = require('./utils/latestTime');
+const {latestTime} = require('./utils/increaseTime');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 

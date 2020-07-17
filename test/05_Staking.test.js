@@ -10,8 +10,7 @@ const PooledStaking = artifacts.require('PooledStakingMock');
 
 const { assertRevert } = require('./utils/assertRevert');
 const { ether, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration } = require('./utils/increaseTime');
-const { latestTime } = require('./utils/latestTime');
+const { increaseTimeTo, duration, latestTime } = require('./utils/increaseTime');
 const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const stakedContract = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';

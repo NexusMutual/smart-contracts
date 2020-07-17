@@ -17,8 +17,7 @@ const PooledStaking = artifacts.require('PooledStakingMock');
 
 const {assertRevert} = require('./utils/assertRevert');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;

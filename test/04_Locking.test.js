@@ -10,8 +10,7 @@ const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const expectEvent = require('./utils/expectEvent');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
 const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CLA = '0x434c41';

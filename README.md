@@ -30,7 +30,7 @@ To run the test cases use:
 npm test
 ```
 
-You can deploy the contracts edit `truffle-config.js` with the require network and run:
+To deploy the contracts, edit `truffle-config.js` with the required network and run:
 ```
 npx truffle deploy
 ```

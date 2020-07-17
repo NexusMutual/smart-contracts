@@ -1,7 +1,6 @@
 const BN = require('bn.js');
 const ethABI = require('ethereumjs-abi');
 const util = require('ethereumjs-util');
-const { keystore, signing } = require('eth-lightwallet');
 
 const bigNumberToBN = value => new BN(value.toString(), 10);
 
@@ -31,45 +30,14 @@ async function getQuoteValues (...args) {
     { value: order.quotationContract, type: 'address' },
   ];
 
-  const serializedKeystore = {
-    salt: 'mDSSGi5eePbk3dBG4Ddk79f/Jwi5h3d0jI52F3M3yRg=',
-    hdPathString: 'm/44\'/60\'/0\'/0',
-    encSeed: {
-      encStr:
-        '1yzRGJIM7QTLqHzop5H96Txqpy/4P7DlgkPyPDzY9MsmmX6rT0M/4qNnNDX+wTY/NhZnFT84M6wZ8r8keBa/atNo81Xu84bNSRNk4b+W+9/69rcF3fNilP4GtxXE1X5WQhO7m6xeXDgGguQC9YdErDISAwvsSST8sVYhGkmmEtrp7GhE4xmeTA==',
-      nonce: 'jsdTS0xT7ijtSljsgZabpktsZtNC633V',
-    },
-    encHdRootPriv: {
-      encStr:
-        'OXi2S5Fka6y4TG894bsagLcIPzfbwZlpq+ZTHjufbfaHccQmHnwEZDyjspTarf/OVc/nRI/qT1lOe68k+7bXSO8BTbnGxLorqYr9Qm+ImCaeexCRMYOdK9/Anm+2Aa2gLnjtlgBEf8dIEaWI8LoQhCKeJYSAFggXysoM31wYNQ==',
-      nonce: 'XsKB+uXOmeSWzhN/XPQXTvru2Aa6pnob',
-    },
-    version: 3,
-    hdIndex: 1,
-    encPrivKeys: {
-      '51042c4d8936a7764d18370a6a0762b860bb8e07': {
-        key: 'hGPlIoOYX9PKV0CyHHfC1EKYIibpeLKDkEUfWGWqBz25c9yVIk4TCZvMmkzgEMqD',
-        nonce: 'cDHUhUEaqkJ6OwB4BPJXi5Vw47tbvFYo',
-      },
-    },
-    addresses: ['51042c4d8936a7764d18370a6a0762b860bb8e07'],
-  };
-
-  const keyStore = keystore.deserialize(JSON.stringify(serializedKeystore));
-  const pwDerivedKey = new Uint8Array([
-    51, 95, 185, 86, 44, 101, 34, 239, 87, 233, 60, 63, 119, 227, 100, 242,
-    44, 242, 130, 145, 0, 32, 103, 29, 142, 236, 147, 33, 254, 230, 9, 225,
-  ]);
-
   const types = orderParts.map(o => o.type);
   const values = orderParts.map(o => o.value);
 
-  const hashBuff = ethABI.soliditySHA3(types, values);
-  const hashHex = util.bufferToHex(hashBuff);
-  const orderHashBuff = util.toBuffer(hashHex);
+  const message = ethABI.soliditySHA3(types, values);
+  const msgHash = util.hashPersonalMessage(message);
 
-  const msgHashBuff = util.hashPersonalMessage(orderHashBuff);
-  const sig = signing.signMsgHash(keyStore, pwDerivedKey, msgHashBuff, keyStore.addresses[0]);
+  const privateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76cc68e82b754015d6e7af794cc8', 'hex')
+  const sig = util.ecsign(msgHash, privateKey);
 
   return [
     sig.v,

@@ -6,6 +6,12 @@ module.exports = {
       gas: 8000000,
       network_id: '5777'
     },
+    mainnet: {
+      host: 'parity.nexusmutual.io',
+      port: 443,
+      gas: 8000000,
+      network_id: '1'
+    },
     ganache: {
       host: '127.0.0.1',
       port: 8545,
@@ -24,5 +30,6 @@ module.exports = {
       }
     }
   },
-  plugins: ['solidity-coverage']
+  plugins: ['solidity-coverage', 'truffle-plugin-verify'],
+  api_keys: { etherscan: process.env.ETHERSCAN_API_KEY }
 };

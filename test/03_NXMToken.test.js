@@ -4,20 +4,18 @@ const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenDataMock');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const {assertRevert} = require('./utils/assertRevert');
-const {increaseTimeTo} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
-const CA_ETH = '0x45544800';
 const expectEvent = require('./utils/expectEvent');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const ETH = '0x455448';
 
@@ -29,30 +27,27 @@ let tf;
 let tc;
 let td;
 let mr;
+let snapshotId;
+
 const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-contract('NXMToken', function([
-  owner,
-  member1,
-  member2,
-  member3,
-  notMember,
-  spender2,
-  govVoter1,
-  govVoter2,
-  govVoter3,
-  govVoter4
-]) {
+contract('NXMToken', function(accounts) {
+
+  const [owner, member1, member2, member3, notMember, spender2, govVoter1] = accounts;
+
   const fee = ether(0.002);
   const tokenAmount = ether(2);
   const tokens = ether(1);
   const initialFounderTokens = new web3.utils.BN(toWei(1500000));
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     td = await TokenData.deployed();
@@ -64,25 +59,13 @@ contract('NXMToken', function([
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
-    // await mr.payJoiningFee(web3.eth.accounts[0], {
-    //   from: web3.eth.accounts[0],
-    //   value: fee
-    // });
-    // await mr.kycVerdict(web3.eth.accounts[0], true);
-    const Web3 = require('web3');
-    const web3 = new Web3(
-      new Web3.providers.HttpProvider('http://localhost:8545')
-    );
-    for (let itr = 6; itr < 9; itr++) {
-      await mr.payJoiningFee(web3.eth.accounts[itr], {
-        from: web3.eth.accounts[itr],
-        value: fee
-      });
-      await mr.kycVerdict(web3.eth.accounts[itr], true);
-      let isMember = await nxms.isMember(web3.eth.accounts[itr]);
-      isMember.should.equal(true);
 
-      await tk.transfer(web3.eth.accounts[itr], toWei(37500));
+    for (let i = 6; i < 9; i++) {
+      await mr.payJoiningFee(accounts[i], { from: accounts[i], value: fee });
+      await mr.kycVerdict(accounts[i], true);
+      let isMember = await nxms.isMember(accounts[i]);
+      isMember.should.equal(true);
+      await tk.transfer(accounts[i], toWei(37500));
     }
   });
 
@@ -161,7 +144,6 @@ contract('NXMToken', function([
     });
 
     describe('when the recipient is a member', function() {
-      const to = notMember;
 
       describe('when the sender is not a member', function() {
         const to = member1;
@@ -209,8 +191,7 @@ contract('NXMToken', function([
 
     describe('when the recipient is not a member', function() {
       it('3.15 reverts', async function() {
-        to = notMember;
-        await assertRevert(tk.transfer(to, transferTokens, {from: member1}));
+        await assertRevert(tk.transfer(notMember, transferTokens, {from: member1}));
       });
     });
   });
@@ -458,7 +439,6 @@ contract('NXMToken', function([
         await gvProp(25, actionHash, oldMR, oldGv, 2);
         let val = await pd.getUintParameters(toHex('A'));
         (val[1] / 1).should.be.equal(0);
-        // await pd.changeA(0, { from: owner });
         await mcr.addMCRData(
           await getValue(toWei(2), pd, mcr),
           0,
@@ -593,4 +573,9 @@ contract('NXMToken', function([
       });
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

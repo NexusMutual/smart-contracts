@@ -4,16 +4,15 @@ const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenDataMock');
 const Pool1 = artifacts.require('Pool1Mock');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const expectEvent = require('./utils/expectEvent');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
-// const ETH = '0x455448';
 const CLA = '0x434c41';
 const CLA2 = '0x434c412';
 let tk;
@@ -23,8 +22,9 @@ let td;
 let P1;
 let mr;
 let nxms;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -36,7 +36,11 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
+
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     P1 = await Pool1.deployed();
     tk = await NXMToken.deployed();
@@ -327,6 +331,10 @@ contract('NXMToken:Locking', function([owner, member1, member2, member3]) {
         );
       });
     });
+  });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
   });
 
   //contract block

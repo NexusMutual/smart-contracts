@@ -24,9 +24,9 @@ contract Pool1Mock is Pool1 {
         cd.setpendingClaimStart(_start);
     }
 
-    function updateStakerCommissions(address _scAddress, uint _premiumNXM) external {
+    function pushStakerRewards(address _scAddress, uint _premiumNXM) external {
         TokenFunctions tf = TokenFunctions(ms.getLatestAddress("TF"));
-        tf.updateStakerCommissions(_scAddress, _premiumNXM);
+        tf.pushStakerRewards(_scAddress, _premiumNXM);
     }
 
     function burnStakerLockedToken(uint coverid, bytes4 curr, uint sumAssured) external {

@@ -7,45 +7,34 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenData = artifacts.require('TokenDataMock');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
-
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const Governance = artifacts.require('Governance');
 const DAI = artifacts.require('MockDAI');
 const DSValue = artifacts.require('NXMDSValueMock');
+const PooledStaking = artifacts.require('PooledStakingMock');
 
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CA_ETH = '0x45544800';
 const CLA = '0x434c41';
 const fee = ether(0.002);
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
-const PID = 0;
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const coverPeriod = 61;
 const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
-const v = 28;
-const r = '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a';
-const s = '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff';
-
 const coverDetailsDai = [5, '16812229066849188', '5694231991898', '7972408607'];
-const vrs_dai = [
-  27,
-  '0xdcaa177410672d90890f1c0a42a965b3af9026c04caedbce9731cb43827e8556',
-  '0x2b9f34e81cbb79f9af4b8908a7ef8fdb5875dedf5a69f84cd6a80d2a4cc8efff'
-];
 
 let P1;
 let p2;
@@ -64,8 +53,10 @@ let mr;
 let pd;
 let gv;
 let dsv;
-const BN = web3.utils.BN;
+let ps;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -81,10 +72,8 @@ contract('Claim: Assessment', function([
   staker1,
   staker2,
   coverHolder,
-  notMember
 ]) {
-  const P_18 = new BN(toWei(1).toString());
-  const stakeTokens = ether(5);
+  const stakeTokens = ether(20);
   const tokens = ether(60);
   const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
@@ -98,6 +87,9 @@ contract('Claim: Assessment', function([
   let claimId;
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -117,6 +109,7 @@ contract('Claim: Assessment', function([
     p2 = await Pool2.deployed();
     cad = await DAI.deployed();
     dsv = await DSValue.deployed();
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -155,8 +148,18 @@ contract('Claim: Assessment', function([
     await tk.transfer(coverHolder, ether(250));
     await tk.transfer(staker1, ether(250));
     await tk.transfer(staker2, ether(250));
-    await tf.addStake(smartConAdd, stakeTokens, {from: staker1});
-    await tf.addStake(smartConAdd, stakeTokens, {from: staker2});
+
+    const stakers = [staker1, staker2];
+
+    for (const staker of stakers) {
+      await tk.approve(ps.address, stakeTokens, {
+        from: staker
+      });
+      await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
+        from: staker
+      });
+    }
+
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -288,15 +291,13 @@ contract('Claim: Assessment', function([
             coverID = await qd.getAllCoversOfUser(coverHolder);
             await cl.submitClaim(coverID[1], {from: coverHolder});
             claimId = (await cd.actualClaimLength()) - 1;
-            initialStakedTokens1 = await tf.getStakerLockedTokensOnSmartContract(
+            initialStakedTokens1 = await ps.stakerContractStake(
               staker1,
-              smartConAdd,
-              0
+              smartConAdd
             );
-            initialStakedTokens2 = await tf.getStakerLockedTokensOnSmartContract(
+            initialStakedTokens2 = await ps.stakerContractStake(
               staker2,
-              smartConAdd,
-              1
+              smartConAdd
             );
           });
 
@@ -326,6 +327,8 @@ contract('Claim: Assessment', function([
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             priceinEther = await mcr.calculateTokenPrice(CA_ETH);
             await P1.__callback(apiid, '');
+            (await ps.hasPendingBurns()).should.be.equal(true);
+            await ps.processPendingActions('100');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((7).toString());
           });
@@ -530,11 +533,10 @@ contract('Claim: Assessment', function([
             );
             let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             await P1.__callback(apiid, '');
+            (await ps.hasPendingBurns()).should.be.equal(true);
+            await ps.processPendingActions('100');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((8).toString());
-            // await cd.updateState12Count(claimId, 1);
-            // await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
-            // await cr.getRewardToBeDistributedByUser(member1);
           });
         });
       });
@@ -630,16 +632,19 @@ contract('Claim: Assessment', function([
       let clid = (await cd.actualClaimLength()) - 1;
       let payOutRetry = await cd.payoutRetryTime();
       for (var i = 0; i < 61; i++) {
-        // console.log(i);
         let now = await latestTime();
         await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
         check = await cl.checkVoteClosing(clid);
         let cStatus = await cd.getClaimStatusNumber(clid);
-        // console.log(parseFloat(cStatus[1]));
-        if (i != 60) parseFloat(check).should.be.equal(1);
+
+        if (i != 60) {
+          parseFloat(check).should.be.equal(1);
+        }
 
         let subVal = 2;
-        if (i == 0) subVal = 1;
+        if (i == 0) {
+          subVal = 1;
+        }
         apiid = await pd.allAPIcall((await pd.getApilCallLength()) - subVal);
         await P1.__callback(apiid, '');
       }
@@ -798,10 +803,12 @@ contract('Claim: Assessment', function([
       await assertRevert(P1.sellNXMTokens(toWei(2), {from: member5}));
     });
     it('8.41 should handle if commissionToBePaid is 0', async function() {
-      await P1.updateStakerCommissions(smartConAdd, 0);
-    });
-    it('8.41 should handle if burnNXMAmount is 0', async function() {
-      await P1.burnStakerLockedToken(1, toHex('ETH'), 0);
+      await P1.pushStakerRewards(smartConAdd, 0);
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

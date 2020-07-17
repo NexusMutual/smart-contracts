@@ -5,7 +5,7 @@ const PoolData = artifacts.require('PoolDataMock');
 const DAI = artifacts.require('MockDAI');
 const NXMToken = artifacts.require('NXMToken');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const DSValue = artifacts.require('NXMDSValueMock');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -13,9 +13,9 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const {increaseTimeTo} = require('./utils/increaseTime');
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
@@ -32,8 +32,9 @@ let qd;
 let tf;
 let balance_DAI;
 let balance_ETH;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -41,6 +42,9 @@ require('chai')
 
 contract('MCR', function([owner, notOwner]) {
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     mcr = await MCR.deployed();
     tk = await NXMToken.deployed();
@@ -382,4 +386,9 @@ contract('MCR', function([owner, notOwner]) {
       await assertRevert(mcr.updateUintParameters('0x49434e', 12));
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

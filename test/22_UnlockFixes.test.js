@@ -3,25 +3,25 @@ const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const TokenData = artifacts.require('TokenDataMock');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const Governance = artifacts.require('Governance');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const Pool1 = artifacts.require('Pool1Mock');
 const MCR = artifacts.require('MCR');
-const {assertRevert} = require('./utils/assertRevert');
-const {advanceBlock} = require('./utils/advanceToBlock');
-const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
-const gvProp = require('./utils/gvProposal.js').gvProposal;
-const encode = require('./utils/encoder.js').encode;
-const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
-const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 const PoolData = artifacts.require('PoolDataMock');
 const Claims = artifacts.require('Claims');
 const ProposalCategory = artifacts.require('ProposalCategory');
+const PooledStaking = artifacts.require('PooledStakingMock');
+
+const {assertRevert} = require('./utils/assertRevert');
+const {ether, toHex, toWei} = require('./utils/ethTools');
+const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
+const encode = require('./utils/encoder.js').encode;
+const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
+const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const coverDetails = [
   1,
@@ -34,7 +34,7 @@ const coverPeriod = 61;
 
 const stakedContract = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const stakedContract2 = '0xee74110fb5a1007b06282e0de5d73a61bf41d9cd';
-let TokenFunctionNewCon;
+
 let tk;
 let tf;
 let tc;
@@ -49,8 +49,9 @@ let mcr;
 let cl;
 let pd;
 let pc;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -61,16 +62,19 @@ contract('unlock-fixes', function([
   member1,
   member2,
   member3,
-  notMember
 ]) {
+
   const fee = ether(0.002);
   const stakeTokens = ether(100);
   const tokens = ether(300);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
+
   before(async function() {
-    await advanceBlock();
+
+    snapshotId = await takeSnapshot();
+
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
     td = await TokenData.deployed();
@@ -85,6 +89,7 @@ contract('unlock-fixes', function([
     pd = await PoolData.deployed();
     cl = await Claims.deployed();
     pc = await ProposalCategory.at(await nxms.getLatestAddress(toHex('PC')));
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mr.payJoiningFee(member1, {from: member1, value: fee});
@@ -187,13 +192,22 @@ contract('unlock-fixes', function([
     });
 
     it('Should push reason while locking tokens and should remove reason when release all tokens', async function() {
-      await tf.addStake(stakedContract2, stakeTokens, {from: member3});
-      let reason = await tc.lockReason(member3, 0);
+      await ps.processPendingActions('100');
+
+      await tk.approve(ps.address, stakeTokens, {
+        from: member3
+      });
+      await ps.depositAndStake(stakeTokens, [stakedContract2], [stakeTokens], {
+        from: member3
+      });
+
       let time = await latestTime();
       time = time + (await duration.days(250));
       await increaseTimeTo(time);
-      await tf.unlockStakerUnlockableTokens(member3, {from: member3});
-      await assertRevert(tc.lockReason(member3, 0));
+
+      await ps.requestUnstake([stakedContract2], [stakeTokens], 0, {
+        from: member3
+      });
     });
   });
   describe('Create new category to upgrade uint parameter in TC', function() {
@@ -249,4 +263,9 @@ contract('unlock-fixes', function([
       assert.equal((await tc.minCALockTime()) / 1, 35 * 3600 * 24);
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

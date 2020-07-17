@@ -19,11 +19,15 @@ const MemberRoles = artifacts.require('MemberRoles');
 const FactoryMock = artifacts.require('FactoryMock');
 const DSValue = artifacts.require('NXMDSValueMock');
 const DAI = artifacts.require('MockDAI');
+const PooledStaking = artifacts.require('PooledStakingMock');
 const INITIAL_SUPPLY = '1500000000000000000000000';
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 
 module.exports = function(deployer, network, accounts) {
   deployer.then(async () => {
+
+    console.log('Migrations: nexusmutual contracts deployment started');
+
     let founderAddress = accounts[0];
     let factory = await FactoryMock.deployed();
     let dsv = await DSValue.deployed();
@@ -46,5 +50,8 @@ module.exports = function(deployer, network, accounts) {
     await deployer.deploy(ProposalCategory);
     await deployer.deploy(MemberRoles);
     await deployer.deploy(NXMaster);
+    await deployer.deploy(PooledStaking);
+
+    console.log('Migrations: nexusmutual contracts deployment finished');
   });
 };

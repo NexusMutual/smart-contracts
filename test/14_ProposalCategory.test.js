@@ -1,23 +1,31 @@
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const PoolData = artifacts.require('PoolDataMock');
+
 const assertRevert = require('./utils/assertRevert').assertRevert;
-const {toHex, toWei} = require('./utils/ethTools');
+const {toHex} = require('./utils/ethTools');
 const gvProposal = require('./utils/gvProposal.js').gvProposal;
 const {encode, encode1} = require('./utils/encoder.js');
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
+
 let pc;
 let gv;
 let tf;
 let mr;
 let pd;
 let nullAddress = '0x0000000000000000000000000000000000000000';
+let snapshotId;
 
 contract('Proposal Category', function([owner, other]) {
+
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     tf = await TokenFunctions.deployed();
     nxms = await NXMaster.at(await tf.ms());
     let address = await nxms.getLatestAddress(toHex('PC'));
@@ -783,4 +791,9 @@ contract('Proposal Category', function([owner, other]) {
     let proposalActionStatus = await gv.proposalActionStatus(pId);
     assert.equal(proposalActionStatus.toNumber(), 3, 'Action not executed');
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

@@ -1,4 +1,7 @@
-const { latestTime } = require('./latestTime');
+async function latestTime () {
+  const { timestamp } = await web3.eth.getBlock('latest');
+  return timestamp;
+}
 
 // Increases ganache time by the passed duration in seconds
 function increaseTime(duration) {
@@ -70,7 +73,8 @@ const duration = {
 };
 
 module.exports = {
+  duration,
   increaseTime,
   increaseTimeTo,
-  duration
+  latestTime
 };

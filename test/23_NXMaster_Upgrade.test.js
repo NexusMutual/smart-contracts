@@ -1,11 +1,8 @@
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
-
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
-const DSValue = artifacts.require('NXMDSValueMock');
 const NXMaster = artifacts.require('NXMaster');
-
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -24,10 +21,9 @@ const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const NewInternalContract = artifacts.require('NewInternalContract');
 const NewProxyInternalContract = artifacts.require('NewProxyInternalContract');
 const NewDataInternalContract = artifacts.require('NewDataInternalContract');
+const PooledStaking = artifacts.require('PooledStakingMock');
 
-const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const Exchange_0x = web3.eth.accounts[17];
 
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const {increaseTime, duration} = require('./utils/increaseTime');
@@ -37,7 +33,8 @@ const encode = require('./utils/encoder.js').encode;
 const encode1 = require('./utils/encoder.js').encode1;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
-const {latestTime} = require('./utils/latestTime');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
+
 const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -64,8 +61,6 @@ let cd;
 let mcr;
 let addr = [];
 let dai;
-let dsv;
-let newMaster;
 let memberRoles;
 let gov;
 let propCat;
@@ -78,33 +73,20 @@ let newP2;
 let newQT;
 let newTF;
 let nxmMas;
-let mrCon;
-let tkCon;
+let snapshotId;
 
-contract('NXMaster', function([
-  owner,
-  newOwner,
-  member,
-  nonMember,
-  anotherAccount,
-  govVoter1,
-  govVoter2,
-  govVoter3,
-  govVoter4
-]) {
-  // const fee = ether(0.002);
+contract('NXMaster', function(accounts) {
+
+  const [owner, newOwner, govVoter4] = accounts;
   const fee = toWei(0.002);
-  const poolEther = ether(2);
-  const founderAddress = web3.eth.accounts[19];
-  const INITIAL_SUPPLY = ether(1500000);
-  const pauseTime = new web3.utils.BN(2419200);
-  const BOOK_TIME = new BN(duration.hours(13).toString());
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
 
   before(async function() {
-    let dsv = await DSValue.deployed();
+
+    snapshotId = await takeSnapshot();
+
     factory = await FactoryMock.deployed();
     qd = await QuotationDataMock.deployed();
     nxms = await NXMaster.at(await qd.ms());
@@ -121,20 +103,12 @@ contract('NXMaster', function([
     pl2 = await Pool2.deployed();
     mcr = await MCR.deployed();
     dai = await DAI.deployed();
-    propCat = await ProposalCategory.at(
-      await nxms.getLatestAddress(toHex('PC'))
-    );
+    propCat = await ProposalCategory.at(await nxms.getLatestAddress(toHex('PC')));
     memberRoles = await MemberRoles.new();
     let oldMR = await MemberRoles.at(await nxms.getLatestAddress(toHex('MR')));
-    mrCon = oldMR;
-    let oldTk = await NXMToken.deployed();
-    tkCon = oldTk;
     let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
     gov = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
-    const Web3 = require('web3');
-    const web3 = new Web3(
-      new Web3.providers.HttpProvider('http://localhost:8545')
-    );
+
     await oldMR.addMembersBeforeLaunch([], []);
     (await oldMR.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -162,25 +136,18 @@ contract('NXMaster', function([
     addr.push(oldGv.address);
     addr.push(propCat.address);
     addr.push(oldMR.address);
-    for (let itr = 5; itr < 9; itr++) {
-      await oldMR.payJoiningFee(web3.eth.accounts[itr], {
-        from: web3.eth.accounts[itr],
-        value: fee
-      });
-      await oldMR.kycVerdict(web3.eth.accounts[itr], true);
-      let isMember = await nxms.isMember(web3.eth.accounts[itr]);
-      isMember.should.equal(true);
 
-      await oldTk.transfer(web3.eth.accounts[itr], toWei(37500));
+    for (let i = 2; i < 9; i++) {
+      await oldMR.payJoiningFee(accounts[i], { from: accounts[i], value: fee });
+      await oldMR.kycVerdict(accounts[i], true);
+      (await nxms.isMember(accounts[i])).should.equal(true);
+      await nxmtk.transfer(accounts[i], toWei(37500));
     }
-    await tkCon.approve(
-      await nxms.getLatestAddress(toHex('TC')),
-      UNLIMITED_ALLOWANCE,
-      {from: govVoter4}
-    );
-    await tc.lock(toHex('CLA'), ether(400), duration.days(500), {
-      from: govVoter4
-    });
+
+    const tcProxyAddress = await nxms.getLatestAddress(toHex('TC'));
+    await nxmtk.approve(tcProxyAddress, UNLIMITED_ALLOWANCE, { from: govVoter4 });
+    await tc.lock(toHex('CLA'), ether(400), duration.days(500), { from: govVoter4 });
+
     async function updateCategory(nxmAdd, functionName, updateCat) {
       let abReq = 80;
       if (updateCat == 27) abReq = 60;
@@ -279,7 +246,7 @@ contract('NXMaster', function([
     });
 
     it('Status=12 issue should be resolved after upgrade', async function() {
-      await tkCon.approve(
+      await nxmtk.approve(
         await nxms.getLatestAddress(toHex('TC')),
         UNLIMITED_ALLOWANCE,
         {from: govVoter4}
@@ -314,9 +281,15 @@ contract('NXMaster', function([
       let payOutRetry = await cd.payoutRetryTime();
       await increaseTime(payOutRetry / 1);
       let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+      const psAddress = await nxms.getLatestAddress(toHex('PS'));
+      const ps = await PooledStaking.at(psAddress);
+
       await pl1.__callback(apiid, '');
       let cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
+
+      await ps.processPendingActions('100');
 
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
       await assertRevert(pl1.__callback(apiid, ''));
@@ -387,70 +360,6 @@ contract('NXMaster', function([
       assert.equal(await nxms.isPause(), false);
     });
 
-    // it('Edit categories for upgrading multiple implementation, upgrading multiple contracts', async function() {
-    //   propCat = await ProposalCategory.at(
-    //     await nxms.getLatestAddress(toHex('PC'))
-    //   );
-    //   // Update category for upgrading multiple contracts
-    //   let actionHash = encode(
-    //     'updateCategory(uint,string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
-    //     29,
-    //     'Release new smart contract code',
-    //     2,
-    //     80,
-    //     15,
-    //     [1],
-    //     604800,
-    //     '',
-    //     nxms.address,
-    //     toHex('MS'),
-    //     [0, 0, 0]
-    //   );
-    //   let oldMR = await MemberRoles.at(
-    //     await nxms.getLatestAddress(toHex('MR'))
-    //   );
-    //   // let oldTk = await NXMToken.deployed();
-
-    //   let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
-    //   let p1 = await oldGv.getProposalLength();
-    //   await oldGv.createProposalwithSolution(
-    //     'Update category',
-    //     'Update category',
-    //     'Update category',
-    //     3,
-    //     'Update category',
-    //     actionHash
-    //   );
-    //   await oldGv.submitVote(p1.toNumber(), 1);
-    //   await oldGv.closeProposal(p1.toNumber());
-    //   // Update category for upgrading multiple implementation
-    //   actionHash = encode(
-    //     'updateCategory(uint,string,uint,uint,uint,uint[],uint,string,address,bytes2,uint[])',
-    //     5,
-    //     'Upgrade a contract Implementation',
-    //     2,
-    //     80,
-    //     15,
-    //     [1],
-    //     604800,
-    //     '',
-    //     nxms.address,
-    //     toHex('MS'),
-    //     [0, 0, 0]
-    //   );
-    //   p1 = await oldGv.getProposalLength();
-    //   await oldGv.createProposalwithSolution(
-    //     'Update category',
-    //     'Update category',
-    //     'Update category',
-    //     3,
-    //     'Update category',
-    //     actionHash
-    //   );
-    //   await oldGv.submitVote(p1.toNumber(), 1);
-    //   await oldGv.closeProposal(p1.toNumber());
-    // });
-
     it('Sending funds to funds to QT, CR, P1, P2', async function() {
       await qt.sendEther({from: owner, value: toWei(100)});
       await pl1.sendEther({from: owner, value: toWei(100)});
@@ -510,7 +419,7 @@ contract('NXMaster', function([
         2
       );
 
-      console.log('====== Checking Upgraded Contract addresses =====');
+      // Checking Upgraded Contract addresses
       assert.equal(newCL.address, await nxms.getLatestAddress(toHex('CL')));
       assert.equal(newCR.address, await nxms.getLatestAddress(toHex('CR')));
       assert.equal(newMC.address, await nxms.getLatestAddress(toHex('MC')));
@@ -518,7 +427,8 @@ contract('NXMaster', function([
       assert.equal(newP2.address, await nxms.getLatestAddress(toHex('P2')));
       assert.equal(newQT.address, await nxms.getLatestAddress(toHex('QT')));
       assert.equal(newTF.address, await nxms.getLatestAddress(toHex('TF')));
-      console.log('====== Checking Master address in upgraded Contracts =====');
+
+      // Checking Master address in upgraded Contracts =====');
       assert.equal(await newCL.nxMasterAddress(), nxms.address);
       assert.equal(await newCR.nxMasterAddress(), nxms.address);
       assert.equal(await newMC.nxMasterAddress(), nxms.address);
@@ -526,32 +436,19 @@ contract('NXMaster', function([
       assert.equal(await newP2.nxMasterAddress(), nxms.address);
       assert.equal(await newQT.nxMasterAddress(), nxms.address);
       assert.equal(await newTF.nxMasterAddress(), nxms.address);
-      console.log('====== Checking Funds transfer in upgraded Contracts =====');
+
+      // Checking Funds transfer in upgraded Contracts =====');
       assert.equal((await nxmtk.balanceOf(newCR.address)) / 1, crBalnxm / 1);
       assert.equal((await dai.balanceOf(newP1.address)) / 1, p1balDai / 1);
       assert.equal((await dai.balanceOf(newP2.address)) / 1, p2balDai / 1);
-      assert.equal(
-        (await web3.eth.getBalance(newQT.address)) / 1,
-        qtbalEth / 1
-      );
-      assert.equal(
-        (await web3.eth.getBalance(newP1.address)) / 1,
-        p1balEth / 1
-      );
-      assert.equal(
-        (await web3.eth.getBalance(newP2.address)) / 1,
-        p2balEth / 1
-      );
-      console.log('====== Checking getters in upgraded Contracts =====');
+      assert.equal((await web3.eth.getBalance(newQT.address)) / 1, qtbalEth / 1);
+      assert.equal((await web3.eth.getBalance(newP1.address)) / 1, p1balEth / 1);
+      assert.equal((await web3.eth.getBalance(newP2.address)) / 1, p2balEth / 1);
+
+      // Checking getters in upgraded Contracts
       assert.equal((await newTF.getTokenPrice(toHex('ETH'))) / 1, tokPrice / 1);
-      assert.equal(
-        (await newMC.calculateTokenPrice(toHex('ETH'))) / 1,
-        tokPrice / 1
-      );
-      assert.equal(
-        (await newCL.getClaimbyIndex(0)).toString(),
-        claimDetails.toString()
-      );
+      assert.equal((await newMC.calculateTokenPrice(toHex('ETH'))) / 1, tokPrice / 1);
+      assert.equal((await newCL.getClaimbyIndex(0)).toString(), claimDetails.toString());
     });
 
     it('Upgrade multiple contract implemenations', async function() {
@@ -590,24 +487,28 @@ contract('NXMaster', function([
         await Governance.at(await nxms.getLatestAddress(toHex('GV'))),
         2
       );
-      console.log('====== Checking Upgraded Contract addresses =====');
+
+      // Checking Upgraded Contract addresses
       assert.equal(newGV.address, await qd.getImplementationAdd(toHex('GV')));
       assert.equal(newPC.address, await qd.getImplementationAdd(toHex('PC')));
       assert.equal(newMR.address, await qd.getImplementationAdd(toHex('MR')));
       assert.equal(newTC.address, await qd.getImplementationAdd(toHex('TC')));
       oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
       oldMR = await MemberRoles.at(await nxms.getLatestAddress(toHex('MR')));
-      console.log('====== Checking Master address in upgraded Contracts =====');
+
+      // Checking Master address in upgraded Contracts
       assert.equal(nxms.address, await oldGv.ms());
       assert.equal(nxms.address, await oldMR.ms());
       assert.equal(nxms.address, await oldTC.ms());
       assert.equal(nxms.address, await oldPC.ms());
-      console.log('====== Checking Funds transfer in upgraded Contracts =====');
+
+      // Checking Funds transfer in upgraded Contracts
       assert.equal(
         (await nxmtk.balanceOf(await nxms.getLatestAddress(toHex('TC')))) / 1,
         tcbalNxm / 1
       );
-      console.log('====== Checking getters in upgraded Contracts =====');
+
+      // Checking getters in upgraded Contracts
       assert.equal(
         (await oldGv.proposal(1)).toString(),
         proposalDetails.toString()
@@ -910,4 +811,9 @@ contract('NXMaster', function([
       await assertRevert(nxmMas.initiateMaster(nxmtk.address));
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

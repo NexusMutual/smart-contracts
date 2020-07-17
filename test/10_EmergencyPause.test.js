@@ -1,28 +1,28 @@
 const Pool1 = artifacts.require('Pool1Mock');
 const Pool2 = artifacts.require('Pool2');
 const PoolData = artifacts.require('PoolDataMock');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const TokenController = artifacts.require('TokenController');
 const Claims = artifacts.require('Claims');
 const ClaimsData = artifacts.require('ClaimsDataMock');
-
 const ClaimsReward = artifacts.require('ClaimsReward');
 const QuotationDataMock = artifacts.require('QuotationDataMock');
 const Quotation = artifacts.require('Quotation');
 const TokenData = artifacts.require('TokenDataMock');
 const MCR = artifacts.require('MCR');
 const Governance = artifacts.require('Governance');
-const ProposalCategory = artifacts.require('ProposalCategory');
 const MemberRoles = artifacts.require('MemberRoles');
+const PooledStaking = artifacts.require('PooledStakingMock');
+
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
+const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CLA = '0x434c41';
 const fee = ether(0.002);
@@ -44,9 +44,9 @@ let qt;
 let mcr;
 let gv;
 let mr;
-let newStakerPercentage = 5;
-const BN = web3.utils.BN;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -64,7 +64,7 @@ contract('NXMaster: Emergency Pause', function([
   coverHolder3,
   newMember
 ]) {
-  const stakeTokens = ether(1);
+  const stakeTokens = ether(20);
   const tokens = ether(200);
   const validity = duration.days(30);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
@@ -72,6 +72,9 @@ contract('NXMaster: Emergency Pause', function([
     .sub(new BN((1).toString()));
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -91,6 +94,7 @@ contract('NXMaster: Emergency Pause', function([
     let address = await nxms.getLatestAddress(toHex('MR'));
     mr = await MemberRoles.at(address);
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     await mcr.addMCRData(
@@ -142,8 +146,16 @@ contract('NXMaster: Emergency Pause', function([
     await tk.transfer(member4, tokens);
     await tk.transfer(coverHolder1, tokens);
     await tk.transfer(coverHolder2, tokens);
-    await tf.addStake(smartConAdd, stakeTokens, {from: member1});
-    await tf.addStake(smartConAdd, stakeTokens, {from: member2});
+
+    const stakers = [member1, member2];
+    for (const staker of stakers) {
+      await tk.approve(ps.address, stakeTokens, {
+        from: staker
+      });
+      await ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
+        from: staker
+      });
+    }
     maxVotingTime = await cd.maxVotingTime();
   });
 
@@ -211,6 +223,9 @@ contract('NXMaster: Emergency Pause', function([
         from: member2
       });
       let proposalsIDs = [];
+
+      await ps.processPendingActions('100');
+
       await cr.claimAllPendingReward(20, {from: member4});
     });
     it('10.1 should return false for isPause', async function() {
@@ -362,7 +377,14 @@ contract('NXMaster: Emergency Pause', function([
       );
     });
     it('10.15 should not be able to assess risk', async function() {
-      await assertRevert(tf.addStake(smartConAdd, 1, {from: member1}));
+      await tk.approve(ps.address, stakeTokens, {
+        from: member3
+      });
+      await assertRevert(
+        ps.depositAndStake(stakeTokens, [smartConAdd], [stakeTokens], {
+          from: member3
+        })
+      );
     });
     it('10.16 should not be able to submit CA Vote', async function() {
       const claimId = (await cd.actualClaimLength()) - 1;
@@ -453,4 +475,9 @@ contract('NXMaster: Emergency Pause', function([
       });
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

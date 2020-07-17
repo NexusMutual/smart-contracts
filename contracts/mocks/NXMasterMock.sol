@@ -1,4 +1,4 @@
-pragma solidity 0.5.7;
+pragma solidity ^0.5.7;
 
 
 import "../NXMaster.sol";
@@ -6,7 +6,16 @@ import "../NXMaster.sol";
 
 contract NXMasterMock is NXMaster {
 
-    /// @dev Creates a new version of contract addresses
+    /// @dev We'll push PS here to:
+    ///      - avoid adding a gov proposal in the setup script which will slow down testing
+    ///      - avoid modification of the initiateMaster function
+    function addPooledStaking() public {
+        allContractNames.push("PS");
+        isProxy["PS"] = true;
+    }
+
+    /// @dev Original NXMaster.addNewVersion function that initializes a master on a fresh deploy
+    /// @dev Not needed in production but required for the test environment
     /// @param _contractAddresses Array of contract addresses which will be generated
     function addNewVersion(address payable[] memory _contractAddresses) public {
 
@@ -49,6 +58,4 @@ contract NXMasterMock is NXMaster {
         (, address[] memory mrOwner) = mr.members(uint(MemberRoles.Role.Owner));
         owner = mrOwner[0];
     }
-
-    
 }

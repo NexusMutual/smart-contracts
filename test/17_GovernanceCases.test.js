@@ -1,22 +1,19 @@
 const Governance = artifacts.require('Governance');
 const ProposalCategory = artifacts.require('ProposalCategory');
-const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const PoolData = artifacts.require('PoolDataMock');
 const ClaimsReward = artifacts.require('ClaimsReward');
 const TokenController = artifacts.require('TokenController');
 const NXMToken = artifacts.require('NXMToken');
-const expectEvent = require('./utils/expectEvent');
-const {toWei, toHex} = require('./utils/ethTools.js');
-const gvProposal = require('./utils/gvProposal.js').gvProposal;
+const TokenFunctions = artifacts.require('TokenFunctionMock');
+
+const {toWei, toHex, toChecksumAddress} = require('./utils/ethTools.js');
 const assertRevert = require('./utils/assertRevert.js').assertRevert;
 const increaseTime = require('./utils/increaseTime.js').increaseTime;
-const {encode, encode1} = require('./utils/encoder.js');
-const AdvisoryBoard = '0x41420000';
-const TokenFunctions = artifacts.require('TokenFunctionMock');
-const Web3 = require('web3');
-const web3_instance = new Web3();
+const {encode1} = require('./utils/encoder.js');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
+
 let tf;
 let gv;
 let cr;
@@ -25,7 +22,6 @@ let mr;
 let tc;
 let pd;
 let nxms;
-let proposalId;
 let pId;
 let nxmToken;
 let balance;
@@ -34,8 +30,8 @@ let status;
 let voters;
 let accounts = [];
 let nullAddress = '0x0000000000000000000000000000000000000000';
-let maxAllowance =
-  '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+let maxAllowance = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+let snapshotId;
 
 const CLA = '0x434c41';
 const validity = 2592000;
@@ -62,7 +58,11 @@ contract(
     mem12,
     notMember
   ]) => {
+
     before(async function() {
+
+      snapshotId = await takeSnapshot();
+
       accounts = [
         ab1,
         ab2,
@@ -534,9 +534,7 @@ contract(
               describe('with Automatic action', function() {
                 it('17.44 Should create proposal', async function() {
                   await increaseTime(604800);
-                  status = await pd.getInvestmentAssetDetails(
-                    web3_instance.toHex('DAI')
-                  );
+                  status = await pd.getInvestmentAssetDetails(toHex('DAI'));
                   pId = (await gv.getProposalLength()).toNumber();
                   await gv.createProposal(
                     'Proposal5',
@@ -551,7 +549,7 @@ contract(
                 it('17.46 Should open for voting', async function() {
                   let actionHash = encode1(
                     ['bytes4', 'bool'],
-                    [web3_instance.toHex('DAI'), false]
+                    [toHex('DAI'), false]
                   );
                   await gv.submitProposalWithSolution(
                     pId,
@@ -577,9 +575,7 @@ contract(
                 it('17.50 Should execute defined automatic action', async function() {
                   await increaseTime(86500);
                   await gv.triggerAction(pId);
-                  let status1 = await pd.getInvestmentAssetDetails(
-                    web3_instance.toHex('DAI')
-                  );
+                  let status1 = await pd.getInvestmentAssetDetails(toHex('DAI'));
                   assert.notEqual(status[2], status1[2], 'Action not executed');
                 });
                 it('17.51 Should get rewards', async function() {
@@ -698,10 +694,6 @@ contract(
           it('17.67 Should create proposal', async function() {
             await nxmToken.approve(tc.address, maxAllowance, {from: mem9});
             await tc.lock(CLA, toWei(500), validity, {from: mem9});
-            console.log(
-              'Tokens locked for claims assessment - ' +
-                (await tc.tokensLocked(mem9, CLA))
-            );
             await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
             await gv.createProposal('Proposal7', 'Proposal7', 'Proposal7', 0);
@@ -738,10 +730,6 @@ contract(
           });
           it('17.73 Should execute defined automatic action', async function() {
             await increaseTime(86500);
-            console.log(
-              'Locked token balance after burning the tokens-' +
-                (await tc.tokensLocked(mem9, CLA))
-            );
             assert.equal((await tc.tokensLocked(mem9, CLA)).toString(), 0);
           });
           it('17.74 No reward should be distributed if voting is open only for Advisory Board', async function() {
@@ -759,10 +747,6 @@ contract(
           it('17.75 Should create proposal', async function() {
             await nxmToken.approve(tc.address, maxAllowance, {from: mem9});
             await tc.lock(CLA, toWei(500), validity, {from: mem9});
-            console.log(
-              'Tokens locked for claims assessment - ' +
-                (await tc.tokensLocked(mem9, CLA))
-            );
             await increaseTime(604800);
             pId = (await gv.getProposalLength()).toNumber();
             await gv.createProposal('Proposal8', 'Proposal8', 'Proposal8', 0);
@@ -797,10 +781,6 @@ contract(
           it('17.81 Should not execute defined automatic action', async function() {
             await increaseTime(86500);
             await assertRevert(gv.triggerAction(pId));
-            console.log(
-              'Locked token balance after burning the tokens-' +
-                (await tc.tokensLocked(mem9, CLA))
-            );
             assert.equal(
               (await tc.tokensLocked(mem9, CLA)).toString(),
               toWei(500)
@@ -1203,8 +1183,8 @@ contract(
           it('17.119 Should get rewards', async function() {
             for (let i = 0; i < 12; i++) {
               if (
-                web3_instance.toChecksumAddress(accounts[i]) !=
-                web3_instance.toChecksumAddress(mem9)
+                toChecksumAddress(accounts[i]) !=
+                toChecksumAddress(mem9)
               ) {
                 assert.isAbove(
                   (await gv.getPendingReward(accounts[i])).toString() * 1,
@@ -1272,12 +1252,17 @@ contract(
           await increaseTime(1000);
           let owner = await nxms.getOwnerParameters(toHex('OWNER'));
           assert.equal(
-            web3_instance.toChecksumAddress(owner[1]),
-            web3_instance.toChecksumAddress(accounts[1]),
+            toChecksumAddress(owner[1]),
+            toChecksumAddress(accounts[1]),
             'Action not executed'
           );
         });
       });
     });
+
+    after(async function () {
+      await revertSnapshot(snapshotId);
+    });
+
   }
 );

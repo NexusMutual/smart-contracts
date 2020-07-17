@@ -11,29 +11,26 @@ const DAI = artifacts.require('MockDAI');
 const MCR = artifacts.require('MCR');
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const PoolData = artifacts.require('PoolDataMock');
+
+const PooledStaking = artifacts.require('PooledStakingMock');
+
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo} = require('./utils/increaseTime');
-const {latestTime} = require('./utils/latestTime');
-const expectEvent = require('./utils/expectEvent');
+const {increaseTimeTo, latestTime} = require('./utils/increaseTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const encode1 = require('./utils/encoder.js').encode1;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const CA_ETH = '0x45544800';
 const CA_DAI = '0x44414900';
 const fee = toWei(0.002);
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-const PID = 0;
-const PNAME = '0x5343430000000000';
-const PHASH = 'Smart Contract Cover';
-const NPNAME = '0x5443000000000000';
-const NPHASH = 'Test Cover';
 const smartConAdd = '0xd0a6e6c54dbc68db5db3a091b171a77407ff7ccf';
 const nullAddress = '0x0000000000000000000000000000000000000000';
 const coverPeriod = 61;
@@ -57,11 +54,6 @@ const vrs = [
   '0x66049184fb1cf394862cca6c3b2a0c462401a671d0f2b20597d121e56768f90a',
   '0x4c28c8f8ff0548dd3a41d7c75621940eb4adbac13696a2796e98a59691bf53ff'
 ];
-const vrsLess = [
-  27,
-  '0x22d150b6e2d3f9ae98c67425d1224c87aed5f853487252875118352771b3ece2',
-  '0x0fb3f18fc2b8a74083b3cf8ca24bcf877a397836bd4fa1aba4c3ae96ca92873b'
-];
 const vrs_dai = [
   27,
   '0xdcaa177410672d90890f1c0a42a965b3af9026c04caedbce9731cb43827e8556',
@@ -79,11 +71,12 @@ let qd;
 let qt;
 let cad;
 let mcr;
-let mcrd;
 let mr;
 let nxms;
-const BN = web3.utils.BN;
+let ps;
+let snapshotId;
 
+const BN = web3.utils.BN;
 const BigNumber = web3.BigNumber;
 require('chai')
   .use(require('chai-bignumber')(BigNumber))
@@ -104,18 +97,22 @@ contract('Quotation', function([
   newMember5,
   newMember6
 ]) {
+
   const BN_100 = new BN((100).toString());
   const BN_10 = new BN((10).toString());
   const P_18 = new BN((1e18).toString());
   const tokens = ether(200);
   const tokenAmount = ether(1);
   const tokenDai = ether(4);
-  const stakeTokens = ether(2);
+  const stakeTokens = ether(20);
   const UNLIMITED_ALLOWANCE = new BN((2).toString())
     .pow(new BN((256).toString()))
     .sub(new BN((1).toString()));
 
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     await advanceBlock();
     tk = await NXMToken.deployed();
     tf = await TokenFunctions.deployed();
@@ -131,6 +128,7 @@ contract('Quotation', function([
     nxms = await NXMaster.at(await td.ms());
     tc = await TokenController.at(await nxms.getLatestAddress(toHex('TC')));
     mr = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+    ps = await PooledStaking.at(await nxms.getLatestAddress(toHex('PS')));
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
     // await mr.payJoiningFee(owner, {
@@ -350,6 +348,7 @@ contract('Quotation', function([
                 vrsdata[2],
                 {from: coverHolder, value: coverDetails[1]}
               );
+
               const newLockedCN = BN_10.mul(
                 new BN(coverDetails[2].toString())
               ).div(BN_100);
@@ -360,6 +359,7 @@ contract('Quotation', function([
               const newTotalSupply = new BN(initialTotalSupply.toString()).add(
                 new BN(newLockedCN.toString()).div(new BN(P_18.toString()))
               );
+
               newLockedCN
                 .toString()
                 .should.be.equal(
@@ -584,6 +584,9 @@ contract('Quotation', function([
                 vrsdata[2],
                 {from: coverHolder}
               );
+
+              await ps.processPendingActions('100');
+
               const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
                 coverHolder
               );
@@ -662,6 +665,7 @@ contract('Quotation', function([
         describe('If staker staked tokens on Smart Contract', function() {
           const staker1 = member1;
           const staker2 = member2;
+          const stakers = [staker1, staker2];
           let event;
           before(async function() {
             await mr.payJoiningFee(staker2, {
@@ -675,13 +679,29 @@ contract('Quotation', function([
             await tk.transfer(staker2, tokens);
             await tk.transfer(staker1, tokens);
             await tk.transfer(staker2, tokens);
-            await tf.addStake(smartConAdd, stakeTokens, {
+
+            await tk.approve(ps.address, stakeTokens, {
               from: staker1
             });
-
-            await tf.addStake(smartConAdd, stakeTokens, {
+            await ps.depositAndStake(
+              stakeTokens,
+              [smartConAdd],
+              [stakeTokens],
+              {
+                from: staker1
+              }
+            );
+            await tk.approve(ps.address, stakeTokens, {
               from: staker2
             });
+            await ps.depositAndStake(
+              stakeTokens,
+              [smartConAdd],
+              [stakeTokens],
+              {
+                from: staker2
+              }
+            );
           });
 
           describe('Purchase Cover With Ether', function() {
@@ -689,12 +709,8 @@ contract('Quotation', function([
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
             it('6.21 should be able to purchase cover ', async function() {
-              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker1
-              );
-              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker2
-              );
+              initialStakeCommissionOfS1 = await ps.stakerReward.call(staker1);
+              initialStakeCommissionOfS2 = await ps.stakerReward.call(staker2);
               coverDetails[4] = 7972408607003;
               var vrsdata = await getQuoteValues(
                 coverDetails,
@@ -729,9 +745,12 @@ contract('Quotation', function([
             });
 
             it('6.22 staker gets commission', async function() {
+              await ps.processPendingActions('100');
               const commission =
-                (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
-              (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+                ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                  1) /
+                stakers.length;
+              (await ps.stakerReward.call(staker1))
                 .toString()
                 .should.be.equal(
                   new BN(initialStakeCommissionOfS1.toString())
@@ -739,9 +758,13 @@ contract('Quotation', function([
                     .toString()
                 );
 
-              (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+              (await ps.stakerReward.call(staker2))
                 .toString()
-                .should.be.equal(initialStakeCommissionOfS2.toString());
+                .should.be.equal(
+                  new BN(initialStakeCommissionOfS2.toString())
+                    .add(new BN(commission.toFixed(0).toString()))
+                    .toString()
+                );
             });
           });
 
@@ -750,12 +773,8 @@ contract('Quotation', function([
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
             it('6.23 should be able to purchase cover', async function() {
-              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker1
-              );
-              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker2
-              );
+              initialStakeCommissionOfS1 = await ps.stakerReward.call(staker1);
+              initialStakeCommissionOfS2 = await ps.stakerReward.call(staker2);
               let newCDetails = coverDetails.slice();
               newCDetails[3] = (await latestTime()) - 2;
               await assertRevert(
@@ -802,9 +821,12 @@ contract('Quotation', function([
               );
             });
             it('6.24 staker gets commission', async function() {
+              await ps.processPendingActions('100');
               const commission =
-                (coverDetails[2] * (await td.stakerCommissionPer())) / 100 - 1;
-              (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+                ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
+                  1) /
+                stakers.length;
+              (await ps.stakerReward.call(staker1))
                 .toString()
                 .should.be.equal(
                   new BN(initialStakeCommissionOfS1.toString())
@@ -812,9 +834,13 @@ contract('Quotation', function([
                     .toString()
                 );
 
-              (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+              (await ps.stakerReward.call(staker2))
                 .toString()
-                .should.be.equal(initialStakeCommissionOfS2.toString());
+                .should.be.equal(
+                  new BN(initialStakeCommissionOfS2.toString())
+                    .add(new BN(commission.toFixed(0).toString()))
+                    .toString()
+                );
             });
           });
 
@@ -824,12 +850,8 @@ contract('Quotation', function([
             let initialStakeCommissionOfS1;
             let initialStakeCommissionOfS2;
             it('6.25 should able to purchase cover using currency assest i.e. DAI ', async function() {
-              initialStakeCommissionOfS1 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker1
-              );
-              initialStakeCommissionOfS2 = await td.getStakerTotalEarnedStakeCommission.call(
-                staker2
-              );
+              initialStakeCommissionOfS1 = await ps.stakerReward.call(staker1);
+              initialStakeCommissionOfS2 = await ps.stakerReward.call(staker2);
               await cad.approve(P1.address, coverDetailsDai[1], {
                 from: coverHolder
               });
@@ -853,19 +875,25 @@ contract('Quotation', function([
               );
             });
             it('6.26 staker gets commission', async function() {
+              await ps.processPendingActions('100');
               const commission =
-                (coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
-                1;
-              (await td.getStakerTotalEarnedStakeCommission.call(staker1))
+                ((coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -
+                  1) /
+                stakers.length;
+              (await ps.stakerReward.call(staker1))
                 .toString()
                 .should.be.equal(
                   new BN(initialStakeCommissionOfS1.toString())
                     .add(new BN(commission.toFixed(0).toString()))
                     .toString()
                 );
-              (await td.getStakerTotalEarnedStakeCommission.call(staker2))
+              (await ps.stakerReward.call(staker2))
                 .toString()
-                .should.be.equal(initialStakeCommissionOfS2.toString());
+                .should.be.equal(
+                  new BN(initialStakeCommissionOfS2.toString())
+                    .add(new BN(commission.toFixed(0).toString()))
+                    .toString()
+                );
             });
             it('6.27 should able to purchase cover with cover period less than 60 ', async function() {
               let coverLen = await qd.getCoverLength();
@@ -976,6 +1004,7 @@ contract('Quotation', function([
               {from: notMember}
             )
           );
+
           await assertRevert(
             P1.makeCoverUsingCA(
               smartConAdd,
@@ -1011,6 +1040,7 @@ contract('Quotation', function([
               {from: notMember, value: 1}
             )
           );
+
           coverDetails[4] = 7972408607813;
           var vrsdata = await getQuoteValues(
             coverDetails,
@@ -1050,6 +1080,7 @@ contract('Quotation', function([
             {from: notMember, value: totalFee}
           );
           await cad.transfer(qt.address, toWei(10));
+
           let newQt = await Quotation.new();
           let oldMR = await MemberRoles.at(
             await nxms.getLatestAddress(toHex('MR'))
@@ -1061,11 +1092,13 @@ contract('Quotation', function([
             ['bytes2[]', 'address[]'],
             [[toHex('QT')], [newQt.address]]
           );
+
           await gvProp(29, actionHash, oldMR, oldGv, 2);
           (await nxms.getLatestAddress(toHex('QT'))).should.be.equal(
             newQt.address
           );
           qt = newQt;
+
           await assertRevert(
             qt.initiateMembershipAndCover(
               smartConAdd,
@@ -1167,23 +1200,27 @@ contract('Quotation', function([
           const totalFee = new BN(fee.toString()).add(
             new BN(coverDetails[1].toString())
           );
-          coverDetails[4] = 7972408607012;
+          await cad.transfer(newMember5, coverDetailsDai[1]);
+          await cad.approve(qt.address, coverDetailsDai[1], {
+            from: newMember5
+          });
+          coverDetailsDai[4] = 7972408607012;
           var vrsdata = await getQuoteValues(
-            coverDetails,
-            toHex('ETH'),
+            coverDetailsDai,
+            toHex('DAI'),
             coverPeriod,
             smartConAdd,
             qt.address
           );
           await qt.initiateMembershipAndCover(
             smartConAdd,
-            toHex('ETH'),
-            coverDetails,
+            toHex('DAI'),
+            coverDetailsDai,
             coverPeriod,
             vrsdata[0],
             vrsdata[1],
             vrsdata[2],
-            {from: newMember5, value: totalFee}
+            {from: newMember5, value: fee}
           );
           await assertRevert(qt.kycVerdict(newMember5, true));
           actionHash = encode(
@@ -1193,72 +1230,6 @@ contract('Quotation', function([
           );
           await gvProp(28, actionHash, oldMR, oldGv, 3);
           (await td.walletAddress()).should.be.equal(owner);
-        });
-
-        it('6.35 should get membership but not cover if quote expires for ETH', async function() {
-          // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, {
-          //   from: newMember4
-          // });
-          // const totalFee = new BN(fee.toString()).add(
-          //   new BN(coverDetails[1].toString())
-          // );
-          // coverDetails[4] = 7972408607013;
-          // var vrsdata = await getQuoteValues(
-          //   coverDetails,
-          //   toHex('ETH'),
-          //   coverPeriod,
-          //   smartConAdd,
-          //   qt.address
-          // );
-          // await qt.initiateMembershipAndCover(
-          //   smartConAdd,
-          //   toHex('ETH'),
-          //   coverDetails,
-          //   coverPeriod,
-          //   vrsdata[0],
-          //   vrsdata[1],
-          //   vrsdata[2],
-          //   { from: newMember4, value: totalFee }
-          // );
-          // console.log('Initiate membership and cover-1 succeded');
-          // await assertRevert(
-          //   qt.initiateMembershipAndCover(
-          //     smartConAdd,
-          //     toHex('ETH'),
-          //     coverDetails,
-          //     coverPeriod,
-          //     vrsdata[0],
-          //     vrsdata[1],
-          //     vrsdata[2],
-          //     { from: newMember4, value: totalFee }
-          //   )
-          // );
-          // coverDetails[4] = 7972408607213;
-          // var vrsdata = await getQuoteValues(
-          //   coverDetails,
-          //   toHex('ETH'),
-          //   coverPeriod,
-          //   smartConAdd,
-          //   qt.address
-          // );
-          // await assertRevert(
-          //   qt.initiateMembershipAndCover(
-          //     smartConAdd,
-          //     toHex('ETH'),
-          //     coverDetails,
-          //     coverPeriod,
-          //     vrsdata[0],
-          //     vrsdata[1],
-          //     vrsdata[2],
-          //     { from: newMember4, value: totalFee }
-          //   )
-          // );
-          // const hcid = await qd.getUserHoldedCoverByIndex(newMember4, 0);
-          // const newCoverDetails = coverDetails.slice();
-          // newCoverDetails[3] = (await latestTime()) - 100;
-          // await qd.changeHoldedCoverDetails(hcid, newCoverDetails);
-          // console.log('changeHoldedCoverDetails succeded');
-          // await qt.kycVerdict(newMember4, true);
         });
 
         it('6.36 should revert if quote validity expires', async function() {
@@ -1462,4 +1433,9 @@ contract('Quotation', function([
       });
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

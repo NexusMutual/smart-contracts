@@ -3,8 +3,7 @@ const ClaimsData = artifacts.require('ClaimsDataMock');
 
 const ClaimsReward = artifacts.require('ClaimsReward');
 const DAI = artifacts.require('MockDAI');
-const DSValue = artifacts.require('NXMDSValueMock');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const MCR = artifacts.require('MCR');
 const NXMToken = artifacts.require('NXMToken');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
@@ -22,17 +21,16 @@ const FactoryMock = artifacts.require('FactoryMock');
 
 const QE = '0xb24919181daead6635e613576ca11c5aa5a4e133';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-var Exchange_0x;
+let Exchange_0x;
+let snapshotId;
 
 const {ether, toHex, toWei} = require('./utils/ethTools');
 const {assertRevert} = require('./utils/assertRevert');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
-// const updateCategory = require('./utils/gvProposal.js').updateCategory;
-const setTriggerActionTime = require('./utils/gvProposal.js')
-  .setTriggerActionTime;
 const encode = require('./utils/encoder.js').encode;
 const encode1 = require('./utils/encoder.js').encode1;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 const BigNumber = web3.BigNumber;
 require('chai')
@@ -57,10 +55,7 @@ let cd;
 let mcr;
 let addr = [];
 let dai;
-let dsv;
-let newMaster;
 let memberRoles;
-let gov;
 let propCat;
 let factory;
 
@@ -75,7 +70,7 @@ contract('NXMaster', function([
   govVoter3,
   govVoter4
 ]) {
-  // const fee = ether(0.002);
+
   accounts = [
     owner,
     newOwner,
@@ -87,16 +82,17 @@ contract('NXMaster', function([
     govVoter3,
     govVoter4
   ];
+
   Exchange_0x = accounts[17];
 
   const fee = toWei(0.002);
   const poolEther = ether(2);
-  const founderAddress = accounts[19];
-  const INITIAL_SUPPLY = ether(1500000);
   const pauseTime = new web3.utils.BN(2419200);
 
   before(async function() {
-    let dsv = await DSValue.deployed();
+
+    snapshotId = await takeSnapshot();
+
     factory = await FactoryMock.deployed();
     qd = await QuotationDataMock.deployed();
     nxms = await NXMaster.at(await qd.ms());
@@ -119,22 +115,14 @@ contract('NXMaster', function([
     let oldTk = await NXMToken.deployed();
     let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
 
-    const Web3 = require('web3');
-    const web3 = new Web3(
-      new Web3.providers.HttpProvider('http://localhost:8545')
-    );
-
-    for (let itr = 5; itr < 9; itr++) {
-      await oldMR.payJoiningFee(web3.eth.accounts[itr], {
-        from: web3.eth.accounts[itr],
-        value: fee
-      });
-      await oldMR.kycVerdict(web3.eth.accounts[itr], true);
-      let isMember = await nxms.isMember(web3.eth.accounts[itr]);
+    for (let i = 5; i < 9; i++) {
+      await oldMR.payJoiningFee(accounts[i], { from: accounts[i], value: fee });
+      await oldMR.kycVerdict(accounts[i], true);
+      const isMember = await nxms.isMember(accounts[i]);
       isMember.should.equal(true);
-
-      await oldTk.transfer(web3.eth.accounts[itr], toWei(37500));
+      await oldTk.transfer(accounts[i], toWei(37500));
     }
+
     async function updateCategory(nxmAdd, functionName, updateCat) {
       let actionHash = encode1(
         [
@@ -168,54 +156,53 @@ contract('NXMaster', function([
       );
       await gvProp(4, actionHash, oldMR, oldGv, 1);
     }
+
     await updateCategory(
       nxms.address,
       'upgradeMultipleImplementations(bytes2[],address[])',
       5
     );
+
     await updateCategory(
       nxms.address,
       'upgradeMultipleContracts(bytes2[],address[])',
       29
     );
+
   });
 
   describe('Updating state', function() {
+
+    this.timeout(0);
+
     it('1.3 should be able to change single contract (proxy contracts)', async function() {
-      this.timeout(0);
+
       let newMemberRoles = await MemberRoles.new();
       let actionHash = encode1(
         ['bytes2[]', 'address[]'],
         [[toHex('MR')], [newMemberRoles.address]]
       );
-      let oldMR = await MemberRoles.at(
-        await nxms.getLatestAddress(toHex('MR'))
-      );
+
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress(toHex('MR')));
       let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
 
-      // await oldGv.changeDependentContractAddress();
       await gvProp(5, actionHash, oldMR, oldGv, 2);
-      // await nxms.upgradeMultipleImplementations([toHex('MR')],[newMemberRoles.address]);
-      (await qd.getImplementationAdd(toHex('MR'))).should.be.equal(
-        newMemberRoles.address
-      );
-      memberRoles = newMemberRoles;
-      memberRoles = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+      (await qd.getImplementationAdd(toHex('MR'))).should.be.equal(newMemberRoles.address);
     });
 
     it('1.4 should set launch bit after adding initial members', async function() {
-      memberRoles = await MemberRoles.at(await nxms.getLatestAddress('0x4d52'));
+      memberRoles = await MemberRoles.at(await nxms.getLatestAddress(toHex('MR')));
       await memberRoles.addMembersBeforeLaunch([], []);
       (await memberRoles.launched()).should.be.equal(true);
     });
 
     it('1.5 should be able to reinitialize', async function() {
-      this.timeout(0);
-      let oldMR = await MemberRoles.at(
-        await nxms.getLatestAddress(toHex('MR'))
-      );
+
+      let oldMR = await MemberRoles.at(await nxms.getLatestAddress(toHex('MR')));
       let oldGv = await Governance.at(await nxms.getLatestAddress(toHex('GV')));
+
       await pl1.sendEther({from: owner, value: poolEther});
+
       let actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'OWNER',
@@ -224,6 +211,7 @@ contract('NXMaster', function([
       await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await nxms.owner()).should.be.equal(nonMember);
       (await oldMR.checkRole(nonMember, 3)).should.be.equal(true);
+
       actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'OWNER',
@@ -231,6 +219,7 @@ contract('NXMaster', function([
       );
       await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await nxms.owner()).should.be.equal(owner);
+
       actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'QUOAUTH',
@@ -238,6 +227,7 @@ contract('NXMaster', function([
       );
       await gvProp(28, actionHash, oldMR, oldGv, 3);
       (await qd.authQuoteEngine()).should.be.equal(owner);
+
       actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'QUOAUTH',
@@ -247,11 +237,8 @@ contract('NXMaster', function([
       let qeAdd = await qd.authQuoteEngine();
       let qeAdd1 = web3.utils.toChecksumAddress(qeAdd);
       let qeAdd2 = web3.utils.toChecksumAddress(QE);
-      let assertion = qeAdd2 == qeAdd1;
+      (qeAdd2 === qeAdd1).should.equal(true);
 
-      assertion.should.equal(true);
-      // await pd.changeCurrencyAssetAddress('0x444149', dai.address);
-      // await pd.changeInvestmentAssetAddress('0x444149', dai.address);
       actionHash = encode(
         'updateOwnerParameters(bytes8,address)',
         'MCRNOTA',
@@ -481,4 +468,9 @@ contract('NXMaster', function([
       );
     });
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

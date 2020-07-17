@@ -1,27 +1,25 @@
 const MemberRoles = artifacts.require('MemberRoles');
 const Governance = artifacts.require('Governance');
-const TokenController = artifacts.require('TokenController');
-const ProposalCategory = artifacts.require('ProposalCategory');
-const NXMaster = artifacts.require('NXMaster');
+const NXMaster = artifacts.require('NXMasterMock');
 const TokenFunctions = artifacts.require('TokenFunctionMock');
 const NXMToken = artifacts.require('NXMToken');
+const QuotationDataMock = artifacts.require('QuotationDataMock');
+
 const assertRevert = require('./utils/assertRevert').assertRevert;
 const encode = require('./utils/encoder.js').encode;
 const {toHex, toWei} = require('./utils/ethTools');
-const QuotationDataMock = artifacts.require('QuotationDataMock');
+const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
 
 let mr;
 let gv;
-let pc;
-let gbt;
 let address;
-let gvAddress;
 let p1;
 let mrLength;
 let p2;
 let tk;
 let mrLength1;
 let qd;
+let snapshotId;
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const fee = toWei(0.002);
@@ -35,7 +33,11 @@ contract('MemberRoles', function([
   user3,
   member2
 ]) {
+
   before(async function() {
+
+    snapshotId = await takeSnapshot();
+
     tf = await TokenFunctions.deployed();
     nxms = await NXMaster.at(await tf.ms());
     address = await nxms.getLatestAddress(toHex('MR'));
@@ -45,32 +47,40 @@ contract('MemberRoles', function([
     tk = await NXMToken.deployed();
     qd = await QuotationDataMock.deployed();
   });
+
   it('13.1 Should not be able to pay joining fee using ZERO_ADDRESS', async function() {
     await assertRevert(
       mr.payJoiningFee(ZERO_ADDRESS, {from: owner, value: fee})
     );
   });
+
   it('13.2 Should not allow a member(who has refund eligible) to pay joining fee', async function() {
     mr.payJoiningFee(member2, {from: member2, value: fee});
     await assertRevert(mr.payJoiningFee(member2, {from: member2, value: fee}));
     await mr.kycVerdict(member2, false);
   });
+
   it('13.3 Should not be able to pay joining fee for already a member', async function() {
     await assertRevert(mr.payJoiningFee(owner, {value: '2000000000000000'}));
   });
+
   it('13.4 Should not be able to trigger kyc using ZERO_ADDRESS', async function() {
     await assertRevert(mr.kycVerdict(ZERO_ADDRESS, true));
   });
+
   it('13.5 Should not be able to trigger kyc for already a member', async function() {
     await assertRevert(mr.kycVerdict(owner, true));
   });
+
   it('13.6 Should not allow a member(who has not refund eligible) to trigger kyc', async function() {
     await assertRevert(mr.kycVerdict(member2, true));
   });
+
   it('13.7 Kyc declined, refund will be done', async function() {
     await mr.payJoiningFee(member2, {from: member2, value: fee});
     await mr.kycVerdict(member2, false);
   });
+
   it('13.8 Should not be able to initiate member roles twice', async function() {
     let nxmToken = await nxms.dAppToken();
     await assertRevert(mr.memberRolesInitiate(owner, owner));
@@ -274,10 +284,17 @@ contract('MemberRoles', function([
       )
     );
   });
+
   it('13.32 Should not be able to swap owner manually', async () => {
     await assertRevert(mr.swapOwner(member));
   });
+
   it('13.33 Should not allow unauthorized address to set kyc status', async function() {
     await assertRevert(mr.kycVerdict(member2, true, {from: member}));
   });
+
+  after(async function () {
+    await revertSnapshot(snapshotId);
+  });
+
 });

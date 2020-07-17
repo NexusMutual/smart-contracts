@@ -1,10 +1,9 @@
 {
   "name": "nexusmutual",
   "version": "1.0.0",
-  "description": "Smart Contract Covers",
+  "description": "NexusMutual smart contracts",
   "scripts": {
-    "test": "scripts/test.sh",
-    "coverage": "scripts/coverage.sh"
+    "test": "scripts/test.sh"
   },
   "repository": {
     "type": "git",

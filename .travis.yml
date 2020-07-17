@@ -1,4 +1,4 @@
-dist: trusty
+dist: focal
 sudo: required
 language: node_js
 
@@ -14,14 +14,7 @@ script:
 
 jobs:
   fast_finish: true
-  allow_failures:
-    - env: SOLIDITY_COVERAGE=true
   include:
     - stage: tests
       name: "unit tests"
       script: npm run test
-    - stage: tests
-      name: "unit tests with coverage"
-      script: npm run test
-      env: SOLIDITY_COVERAGE=true
-

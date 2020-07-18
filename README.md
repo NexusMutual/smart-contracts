@@ -2,33 +2,15 @@
 
 ## Getting Started
 
-#### Requirements
-```
-Node >= 10
-```
-#### Install
-```
-git clone https://github.com/NexusMutual/smart-contracts.git
-cd smart-contracts
-npm i
-```
-#### Compile
-```
-npx truffle compile
-```
-#### Test
-```
-npm test
-```
-#### Deploy
-```
-Edit the network in `truffle-config.js` and run:
-npx truffle deploy
-```
+**Requirements**: `Node >= 10`  
+**Install**: `npm i`  
+**Compile**: `npx truffle compile`  
+**Test**: `npm test`  
+**Deploy**: `npx truffle deploy`
 
 ## Smart Contracts Details 
 
-[Mainnet](https://nxm.surge.sh/)
+- [Mainnet Addresses](https://nxm.surge.sh/)
 
 ## Audits
 

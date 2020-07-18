@@ -2,8 +2,6 @@
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
-
 #### Requirements
 ```
 Node >= 10
@@ -24,7 +22,7 @@ npm test
 ```
 #### Deploy
 ```
-Edit `truffle-config.js` with the required network
+Edit the network in `truffle-config.js` and run:
 npx truffle deploy
 ```
 
@@ -34,8 +32,8 @@ npx truffle deploy
 
 ## Audits
 
-[Solidified, April 2019](https://github.com/solidified-platform/audits/blob/master/Audit%20Report%20-%20Nexus%20Mutual%20%5B22.04.2019%5D.pdf)  
-[G0 Group, June 2020](https://github.com/g0-group/Audits/blob/master/G0Group-NexusMutual2020Jun.pdf)
+- [Solidified Audit Report, April 2019](https://github.com/solidified-platform/audits/blob/master/Audit%20Report%20-%20Nexus%20Mutual%20%5B22.04.2019%5D.pdf)  
+- [G0 Group Audit Report, June 2020](https://github.com/g0-group/Audits/blob/master/G0Group-NexusMutual2020Jun.pdf)
 
 ## Bug Bounty
 

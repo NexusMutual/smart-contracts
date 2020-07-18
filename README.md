@@ -4,33 +4,39 @@
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
-### Requirements
+#### Requirements
 ```
 Node >= 10
 ```
-
-### Run
-
-Clone and install dependencies:
-
+#### Install
 ```
 git clone https://github.com/NexusMutual/smart-contracts.git
 cd smart-contracts
 npm install
 ```
-
-Compile using truffle:
-
+#### Compile
 ```
 npx truffle compile
 ```
-
-Run tests:
+#### Test
 ```
 npm test
 ```
-
-To deploy the contracts, edit `truffle-config.js` with the required network and run:
+#### Deploy
 ```
+Edit `truffle-config.js` with the required network
 npx truffle deploy
 ```
+
+## Smart Contracts Details 
+
+[Mainnet](https://nxm.surge.sh/)
+
+## Audits
+
+[Solidified, April 2019](https://github.com/solidified-platform/audits/blob/master/Audit%20Report%20-%20Nexus%20Mutual%20%5B22.04.2019%5D.pdf)  
+[G0 Group, June 2020](https://github.com/g0-group/Audits/blob/master/G0Group-NexusMutual2020Jun.pdf)
+
+## Bug Bounty
+
+Coming soon!

@@ -9,9 +9,9 @@ These instructions will get you a copy of the project up and running on your loc
 Node >= 10
 ```
 
-### Installing
+### Run
 
-Clone this repo and install the dependencies:
+Clone and install dependencies:
 
 ```
 git clone https://github.com/NexusMutual/smart-contracts.git
@@ -19,13 +19,13 @@ cd smart-contracts
 npm install
 ```
 
-Compile the contracts using truffle:
+Compile using truffle:
 
 ```
 npx truffle compile
 ```
 
-To run the test cases use:
+Run tests:
 ```
 npm test
 ```

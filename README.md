@@ -12,7 +12,7 @@ Node >= 10
 ```
 git clone https://github.com/NexusMutual/smart-contracts.git
 cd smart-contracts
-npm install
+npm i
 ```
 #### Compile
 ```

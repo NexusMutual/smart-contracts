@@ -21,4 +21,4 @@
 
 ## Bug Bounty
 
-Coming soon!
+- [Pooled Staking Bug Bounty](https://medium.com/nexus-mutual/announcing-the-first-nexus-mutual-bug-bounty-d16360dfe72)

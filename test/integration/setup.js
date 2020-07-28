@@ -1,7 +1,8 @@
-const { contract, defaultSender } = require('@openzeppelin/test-environment');
+const { contract, defaultSender, web3 } = require('@openzeppelin/test-environment');
 const { BN, ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { hex } = require('./utils').helpers;
+const { execSync } = require('child_process');
 
 // external
 const DAI = contract.fromArtifact('MockDAI');
@@ -25,8 +26,8 @@ const Pool2 = contract.fromArtifact('Pool2');
 const PoolData = contract.fromArtifact('PoolData');
 const Quotation = contract.fromArtifact('Quotation');
 const QuotationData = contract.fromArtifact('QuotationData');
-const Governance = contract.fromArtifact('Governance');
-const ProposalCategory = contract.fromArtifact('ProposalCategory');
+const Governance = contract.fromArtifact('GovernanceMock');
+const ProposalCategory = contract.fromArtifact('ProposalCategoryMock');
 const MemberRoles = contract.fromArtifact('MemberRoles');
 const PooledStaking = contract.fromArtifact('PooledStaking');
 
@@ -41,6 +42,20 @@ const getProxyFromMaster = async (master, contract, code) => {
   const address = await master.getLatestAddress(hex(code));
   return contract.at(address);
 };
+
+async function debugTx (e) {
+  console.error(`Tx ${e.tx} failed. ${e.stack}`);
+  const rpc = web3.eth.currentProvider.wrappedProvider.host.replace(/^http:\/\//, '');
+  const cmd = `tenderly export ${e.tx} --debug --rpc ${rpc}`;
+  console.log(`Executing ${cmd}`);
+  execSync(cmd);
+}
+
+const to = promise => new Promise(resolve => {
+  promise
+    .then(r => resolve([r, null]))
+    .catch(e => resolve([null, e]));
+});
 
 async function setup () {
 

@@ -22,6 +22,7 @@ declare global {
       require(name: "ExchangeMock"): TruffleContracts.ExchangeMockContract;
       require(name: "Factory"): TruffleContracts.FactoryContract;
       require(name: "Governance"): TruffleContracts.GovernanceContract;
+      require(name: "GovernanceMock"): TruffleContracts.GovernanceMockContract;
       require(name: "Governed"): TruffleContracts.GovernedContract;
       require(name: "IClaimsReward"): TruffleContracts.IClaimsRewardContract;
       require(name: "IERC1132"): TruffleContracts.IERC1132Contract;
@@ -72,6 +73,9 @@ declare global {
       require(
         name: "ProposalCategory"
       ): TruffleContracts.ProposalCategoryContract;
+      require(
+        name: "ProposalCategoryMock"
+      ): TruffleContracts.ProposalCategoryMockContract;
       require(name: "Proxy"): TruffleContracts.ProxyContract;
       require(name: "Quotation"): TruffleContracts.QuotationContract;
       require(name: "QuotationData"): TruffleContracts.QuotationDataContract;

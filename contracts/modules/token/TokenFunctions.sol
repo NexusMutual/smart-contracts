@@ -24,6 +24,7 @@ import "../claims/ClaimsReward.sol";
 import "../governance/Governance.sol";
 import "../governance/MemberRoles.sol";
 import "./NXMToken.sol";
+import "./TokenController.sol";
 import "./TokenData.sol";
 
 

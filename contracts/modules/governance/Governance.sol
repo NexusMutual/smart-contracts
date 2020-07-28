@@ -15,8 +15,8 @@
 
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
+import "../token/external/openzeppelin-solidity/math/OZSafeMath.sol";
 import "../token/TokenController.sol";
 import "./external/govblocks-protocol/interfaces/IGovernance.sol";
 import "./ProposalCategory.sol";
@@ -24,7 +24,7 @@ import "./MemberRoles.sol";
 
 
 contract Governance is IGovernance, Iupgradable {
-  using SafeMath for uint;
+  using OZSafeMath for uint;
 
   enum ProposalStatus {
     Draft,
@@ -722,40 +722,23 @@ contract Governance is IGovernance, Iupgradable {
   }
 
   /**
-  * @dev Pauses a proposal
-  * To implement govblocks interface
-  */
-  function pauseProposal(uint) public {
-  }
-
-  /**
-  * @dev Resumes a proposal
-  * To implement govblocks interface
-  */
-  function resumeProposal(uint) public {
-  }
-
-  /**
   * @dev Checks If the proposal voting time is up and it's ready to close
   *      i.e. Closevalue is 1 if proposal is ready to be closed, 2 if already closed, 0 otherwise!
   * @param _proposalId Proposal id to which closing value is being checked
   */
-  function canCloseProposal(uint _proposalId)
-  public
-  view
-  returns (uint)
-  {
+  function canCloseProposal(uint _proposalId) public view returns (uint) {
+
     uint dateUpdate;
     uint pStatus;
     uint _closingTime;
     uint _roleId;
     uint majority;
+
     pStatus = allProposalData[_proposalId].propStatus;
     dateUpdate = allProposalData[_proposalId].dateUpd;
     (, _roleId, majority, , , _closingTime,) = proposalCategory.category(allProposalData[_proposalId].category);
-    if (
-      pStatus == uint(ProposalStatus.VotingStarted)
-    ) {
+
+    if (pStatus == uint(ProposalStatus.VotingStarted)) {
       uint numberOfMembers = memberRole.numberOfMembers(_roleId);
       if (_roleId == uint(MemberRoles.Role.AdvisoryBoard)) {
         if (proposalVoteTally[_proposalId].abVoteValue[1].mul(100).div(numberOfMembers) >= majority
@@ -774,6 +757,8 @@ contract Governance is IGovernance, Iupgradable {
     } else {
       return 0;
     }
+
+    return 0;
   }
 
   /**

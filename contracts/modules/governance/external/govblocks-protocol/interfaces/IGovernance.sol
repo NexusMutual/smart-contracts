@@ -154,10 +154,6 @@ interface IGovernance {
 
   function canCloseProposal(uint _proposalId) external view returns (uint closeValue);
 
-  function pauseProposal(uint _proposalId) external;
-
-  function resumeProposal(uint _proposalId) external;
-
   function allowedToCatgorize() external view returns (uint roleId);
 
 }

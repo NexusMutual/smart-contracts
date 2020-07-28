@@ -1,4 +1,4 @@
-pragma solidity ^0.5.17;
+pragma solidity ^0.5.0;
 
 import "../interfaces/INXMMaster.sol";
 
@@ -36,7 +36,7 @@ contract Iupgradable {
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
-  function  changeDependentContractAddress() public;
+  function changeDependentContractAddress() public;
 
   /**
    * @dev change master address

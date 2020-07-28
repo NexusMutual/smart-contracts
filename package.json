@@ -34,10 +34,7 @@
   },
   "scripts": {
     "compile": "oz compile",
-    "compile-nxm": "(cd nexusmutual-contracts && npx truffle compile)",
-    "compile-all": "npm run compile && npm run compile-nxm && npm run nxm-copy-artifacts",
-    "nxm-copy-artifacts": "cp nexusmutual-contracts/build/contracts/*.json build/contracts/",
-    "dev-integration": "nodemon --ext js,sol -w contracts -w nexusmutual-contracts/contracts -w test -x 'npm run compile-all && mocha --exit test/integration'",
+    "dev-integration": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit test/integration'",
     "dev-unit": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit test/unit'",
     "test": "mocha --exit",
     "test-integration": "mocha --exit test/integration",

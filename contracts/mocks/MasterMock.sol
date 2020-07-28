@@ -15,7 +15,7 @@
     along with this program.  If not, see http://www.gnu.org/licenses/
 */
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.5.0;
 
 import "../interfaces/INXMMaster.sol";
 
@@ -106,5 +106,9 @@ contract MasterMock is INXMMaster {
   function dAppLocker() unused public view returns (address) {}
 
   function dAppToken() unused public view returns (address) {}
+
+  function owner() external view returns (address) {}
+
+  function pauseTime() external view returns (uint) {}
 
 }

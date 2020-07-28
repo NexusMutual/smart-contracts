@@ -15,11 +15,11 @@
     along with this program.  If not, see http://www.gnu.org/licenses/
 */
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.5.0;
 
 import "../interfaces/ITokenController.sol";
 import "../abstract/MasterAware.sol";
-import "../abstract/NXMToken.sol";
+import "../modules/token/NXMToken.sol";
 
 contract TokenControllerMock is ITokenController, MasterAware {
 

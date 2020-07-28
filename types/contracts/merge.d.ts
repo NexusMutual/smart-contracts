@@ -8,13 +8,33 @@ import * as TruffleContracts from ".";
 declare global {
   namespace Truffle {
     interface Artifacts {
+      require(name: "Aggregator"): TruffleContracts.AggregatorContract;
+      require(name: "Claims"): TruffleContracts.ClaimsContract;
+      require(name: "ClaimsData"): TruffleContracts.ClaimsDataContract;
+      require(name: "ClaimsReward"): TruffleContracts.ClaimsRewardContract;
       require(name: "Context"): TruffleContracts.ContextContract;
+      require(name: "DSValue"): TruffleContracts.DSValueContract;
       require(name: "ERC20"): TruffleContracts.ERC20Contract;
+      require(name: "Exchange"): TruffleContracts.ExchangeContract;
+      require(
+        name: "ExchangeFactoryMock"
+      ): TruffleContracts.ExchangeFactoryMockContract;
+      require(name: "ExchangeMock"): TruffleContracts.ExchangeMockContract;
+      require(name: "Factory"): TruffleContracts.FactoryContract;
+      require(name: "Governance"): TruffleContracts.GovernanceContract;
+      require(name: "Governed"): TruffleContracts.GovernedContract;
       require(name: "IClaimsReward"): TruffleContracts.IClaimsRewardContract;
+      require(name: "IERC1132"): TruffleContracts.IERC1132Contract;
       require(name: "IERC20"): TruffleContracts.IERC20Contract;
+      require(name: "IGovernance"): TruffleContracts.IGovernanceContract;
+      require(name: "IMaster"): TruffleContracts.IMasterContract;
       require(name: "IMasterAware"): TruffleContracts.IMasterAwareContract;
       require(name: "IMemberRoles"): TruffleContracts.IMemberRolesContract;
       require(name: "INXMMaster"): TruffleContracts.INXMMasterContract;
+      require(name: "IPooledStaking"): TruffleContracts.IPooledStakingContract;
+      require(
+        name: "IProposalCategory"
+      ): TruffleContracts.IProposalCategoryContract;
       require(
         name: "ITokenController"
       ): TruffleContracts.ITokenControllerContract;
@@ -25,18 +45,49 @@ declare global {
       require(name: "Iupgradable"): TruffleContracts.IupgradableContract;
       require(name: "MasterAware"): TruffleContracts.MasterAwareContract;
       require(name: "MasterMock"): TruffleContracts.MasterMockContract;
+      require(name: "MCR"): TruffleContracts.MCRContract;
+      require(name: "MemberRoles"): TruffleContracts.MemberRolesContract;
       require(
         name: "MemberRolesMock"
       ): TruffleContracts.MemberRolesMockContract;
-      require(
-        name: "NewInternalContract"
-      ): TruffleContracts.NewInternalContractContract;
+      require(name: "MockDAI"): TruffleContracts.MockDAIContract;
+      require(name: "NXMaster"): TruffleContracts.NXMasterContract;
+      require(name: "NXMasterMock"): TruffleContracts.NXMasterMockContract;
+      require(name: "NXMDSValue"): TruffleContracts.NXMDSValueContract;
+      require(name: "NXMDSValueMock"): TruffleContracts.NXMDSValueMockContract;
       require(name: "NXMToken"): TruffleContracts.NXMTokenContract;
+      require(name: "NXMTokenMock"): TruffleContracts.NXMTokenMockContract;
+      require(
+        name: "OraclizeAddrResolverI"
+      ): TruffleContracts.OraclizeAddrResolverIContract;
+      require(name: "OraclizeI"): TruffleContracts.OraclizeIContract;
+      require(
+        name: "OwnedUpgradeabilityProxy"
+      ): TruffleContracts.OwnedUpgradeabilityProxyContract;
+      require(name: "OZIERC20"): TruffleContracts.OZIERC20Contract;
+      require(name: "Pool1"): TruffleContracts.Pool1Contract;
+      require(name: "Pool2"): TruffleContracts.Pool2Contract;
+      require(name: "PoolData"): TruffleContracts.PoolDataContract;
       require(name: "PooledStaking"): TruffleContracts.PooledStakingContract;
+      require(
+        name: "ProposalCategory"
+      ): TruffleContracts.ProposalCategoryContract;
+      require(name: "Proxy"): TruffleContracts.ProxyContract;
+      require(name: "Quotation"): TruffleContracts.QuotationContract;
+      require(name: "QuotationData"): TruffleContracts.QuotationDataContract;
+      require(name: "solcChecker"): TruffleContracts.solcCheckerContract;
+      require(
+        name: "TokenController"
+      ): TruffleContracts.TokenControllerContract;
       require(
         name: "TokenControllerMock"
       ): TruffleContracts.TokenControllerMockContract;
-      require(name: "TokenMock"): TruffleContracts.TokenMockContract;
+      require(name: "TokenData"): TruffleContracts.TokenDataContract;
+      require(name: "TokenFunctions"): TruffleContracts.TokenFunctionsContract;
+      require(
+        name: "UpgradeabilityProxy"
+      ): TruffleContracts.UpgradeabilityProxyContract;
+      require(name: "usingOraclize"): TruffleContracts.usingOraclizeContract;
     }
   }
 }

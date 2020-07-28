@@ -61,7 +61,7 @@ async function run () {
 
   await mr.memberRolesInitiate(owner);
 
-  const contracts = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, p2, mc, gv, pc, mr];
+  const contracts = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, p2, mc, gv, pc, mr, ps];
   const addresses = contracts.map(contract => contract.address);
 
   await master.initiateMaster(tk.address);

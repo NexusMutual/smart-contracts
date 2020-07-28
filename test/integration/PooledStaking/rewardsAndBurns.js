@@ -3,7 +3,8 @@ const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-h
 const { exec } = require('child_process');
 require('chai').should();
 
-const { getQuoteValues, getValue } = require('../external');
+const { getQuoteValues } = require('../utils/getQuote');
+const { getValue } = require('../utils/getMCRPerThreshold');
 const { hex, sleep } = require('../utils').helpers;
 const setup = require('../setup');
 

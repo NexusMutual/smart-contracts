@@ -5,30 +5,28 @@ const { hex } = require('./utils').helpers;
 
 // external
 const DAI = contract.fromArtifact('MockDAI');
-const MKR = contract.fromArtifact('MockMKR');
 const DSValue = contract.fromArtifact('NXMDSValueMock');
-const FactoryMock = contract.fromArtifact('FactoryMock');
+const ExchangeFactoryMock = contract.fromArtifact('ExchangeFactoryMock');
 const ExchangeMock = contract.fromArtifact('ExchangeMock');
-const ExchangeMKRMock = contract.fromArtifact('ExchangeMock');
 const OwnedUpgradeabilityProxy = contract.fromArtifact('OwnedUpgradeabilityProxy');
 
 // nexusmutual
 const NXMToken = contract.fromArtifact('NXMToken');
 const NXMaster = contract.fromArtifact('NXMasterMock');
 const Claims = contract.fromArtifact('Claims');
-const ClaimsData = contract.fromArtifact('ClaimsDataMock');
+const ClaimsData = contract.fromArtifact('ClaimsData');
 const ClaimsReward = contract.fromArtifact('ClaimsReward');
 const MCR = contract.fromArtifact('MCR');
-const TokenData = contract.fromArtifact('TokenDataMock');
+const TokenData = contract.fromArtifact('TokenData');
 const TokenFunctions = contract.fromArtifact('TokenFunctions');
 const TokenController = contract.fromArtifact('TokenController');
-const Pool1 = contract.fromArtifact('Pool1Mock');
+const Pool1 = contract.fromArtifact('Pool1');
 const Pool2 = contract.fromArtifact('Pool2');
-const PoolData = contract.fromArtifact('PoolDataMock');
+const PoolData = contract.fromArtifact('PoolData');
 const Quotation = contract.fromArtifact('Quotation');
 const QuotationData = contract.fromArtifact('QuotationData');
-const Governance = contract.fromArtifact('GovernanceMock');
-const ProposalCategory = contract.fromArtifact('ProposalCategoryMock');
+const Governance = contract.fromArtifact('Governance');
+const ProposalCategory = contract.fromArtifact('ProposalCategory');
 const MemberRoles = contract.fromArtifact('MemberRoles');
 const PooledStaking = contract.fromArtifact('PooledStaking');
 
@@ -50,19 +48,14 @@ async function setup () {
 
   // deploy external contracts
   const dai = await DAI.new();
-  const mkr = await MKR.new();
   const dsv = await DSValue.new(owner);
-  const factory = await FactoryMock.new();
+  const factory = await ExchangeFactoryMock.new();
   const exchange = await ExchangeMock.new(dai.address, factory.address);
-  const exchangeMKR = await ExchangeMKRMock.new(mkr.address, factory.address);
 
   // initialize external contracts
   await factory.setFactory(dai.address, exchange.address);
-  await factory.setFactory(mkr.address, exchangeMKR.address);
   await dai.transfer(exchange.address, EXCHANGE_TOKEN);
-  await mkr.transfer(exchangeMKR.address, EXCHANGE_TOKEN);
   await exchange.recieveEther({ value: EXCHANGE_ETHER });
-  await exchangeMKR.recieveEther({ value: EXCHANGE_ETHER });
 
   // nexusmutual contracts
   const cl = await Claims.new();
@@ -83,10 +76,10 @@ async function setup () {
   const qt = await Quotation.new();
   const qd = await QuotationData.new(QE, owner);
 
-  const gvImpl = await Governance.new();
   const pcImpl = await ProposalCategory.new();
   const mrImpl = await MemberRoles.new();
   const psImpl = await PooledStaking.new();
+  const gvImpl = await Governance.new();
 
   const addresses = [
     qd.address,
@@ -156,7 +149,7 @@ async function setup () {
     true,
   );
 
-  const external = { dai, mkr, dsv, factory, exchange, exchangeMKR };
+  const external = { dai, dsv, factory, exchange };
   const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr };
   const proxies = {
     tc: await getProxyFromMaster(master, TokenController, 'TC'),

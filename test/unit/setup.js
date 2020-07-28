@@ -9,7 +9,7 @@ const { hex } = require('./utils').helpers;
 const MasterMock = contract.fromArtifact('MasterMock');
 const MemberRolesMock = contract.fromArtifact('MemberRolesMock');
 const PooledStaking = contract.fromArtifact('PooledStaking');
-const TokenMock = contract.fromArtifact('TokenMock');
+const TokenMock = contract.fromArtifact('NXMTokenMock');
 const TokenControllerMock = contract.fromArtifact('TokenControllerMock');
 
 async function setup () {

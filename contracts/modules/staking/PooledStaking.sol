@@ -15,16 +15,16 @@
     along with this program.  If not, see http://www.gnu.org/licenses/
 */
 
-pragma solidity ^0.5.17;
+pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./abstract/MasterAware.sol";
-import "./abstract/NXMToken.sol";
-import "./interfaces/ITokenController.sol";
-import "./interfaces/IMemberRoles.sol";
-import "./interfaces/ITokenFunctions.sol";
-import "./interfaces/ITokenData.sol";
-import "./interfaces/IClaimsReward.sol";
+import "../../abstract/MasterAware.sol";
+import "../../interfaces/ITokenController.sol";
+import "../../interfaces/IMemberRoles.sol";
+import "../../interfaces/ITokenFunctions.sol";
+import "../../interfaces/ITokenData.sol";
+import "../../interfaces/IClaimsReward.sol";
+import "../token/NXMToken.sol";
 
 contract PooledStaking is MasterAware {
   using SafeMath for uint;
@@ -917,7 +917,7 @@ contract PooledStaking is MasterAware {
 
       uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
       uint commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member)
-        .sub(tokenData.getStakerTotalReedmedStakeCommission(member));
+      .sub(tokenData.getStakerTotalReedmedStakeCommission(member));
 
       if (commissionsLeftToProcess > 0) {
         claimsReward._claimStakeCommission(stakedContractsCount, member);

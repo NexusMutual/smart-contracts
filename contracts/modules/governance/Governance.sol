@@ -243,20 +243,6 @@ contract Governance is IGovernance, Iupgradable {
   }
 
   /**
-  * @dev Initiates add solution
-  * To implement the governance interface
-  */
-  function addSolution(uint, string calldata, bytes calldata) external {
-  }
-
-  /**
-  * @dev Opens proposal for voting
-  * To implement the governance interface
-  */
-  function openProposalForVoting(uint) external {
-  }
-
-  /**
   * @dev Submit proposal with solution
   * @param _proposalId Proposal id
   * @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal

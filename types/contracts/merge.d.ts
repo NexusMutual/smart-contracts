@@ -34,9 +34,6 @@ declare global {
       require(name: "INXMMaster"): TruffleContracts.INXMMasterContract;
       require(name: "IPooledStaking"): TruffleContracts.IPooledStakingContract;
       require(
-        name: "IProposalCategory"
-      ): TruffleContracts.IProposalCategoryContract;
-      require(
         name: "ITokenController"
       ): TruffleContracts.ITokenControllerContract;
       require(name: "ITokenData"): TruffleContracts.ITokenDataContract;
@@ -59,16 +56,13 @@ declare global {
       require(name: "NXMToken"): TruffleContracts.NXMTokenContract;
       require(name: "NXMTokenMock"): TruffleContracts.NXMTokenMockContract;
       require(
-        name: "OraclizeAddrResolverI"
-      ): TruffleContracts.OraclizeAddrResolverIContract;
-      require(name: "OraclizeI"): TruffleContracts.OraclizeIContract;
-      require(
         name: "OwnedUpgradeabilityProxy"
       ): TruffleContracts.OwnedUpgradeabilityProxyContract;
       require(name: "OZIERC20"): TruffleContracts.OZIERC20Contract;
       require(name: "Pool1"): TruffleContracts.Pool1Contract;
       require(name: "Pool2"): TruffleContracts.Pool2Contract;
       require(name: "PoolData"): TruffleContracts.PoolDataContract;
+      require(name: "PoolDataMock"): TruffleContracts.PoolDataMockContract;
       require(name: "PooledStaking"): TruffleContracts.PooledStakingContract;
       require(
         name: "ProposalCategory"
@@ -79,7 +73,6 @@ declare global {
       require(name: "Proxy"): TruffleContracts.ProxyContract;
       require(name: "Quotation"): TruffleContracts.QuotationContract;
       require(name: "QuotationData"): TruffleContracts.QuotationDataContract;
-      require(name: "solcChecker"): TruffleContracts.solcCheckerContract;
       require(
         name: "TokenController"
       ): TruffleContracts.TokenControllerContract;
@@ -91,7 +84,6 @@ declare global {
       require(
         name: "UpgradeabilityProxy"
       ): TruffleContracts.UpgradeabilityProxyContract;
-      require(name: "usingOraclize"): TruffleContracts.usingOraclizeContract;
     }
   }
 }

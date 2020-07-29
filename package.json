@@ -11,6 +11,7 @@
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/upgrades": "^2.8.0",
     "@truffle/hdwallet-provider": "^1.0.34",
+    "bn.js": "^5.1.2",
     "chai-bignumber": "^3.0.0",
     "dotenv": "^8.2.0"
   },

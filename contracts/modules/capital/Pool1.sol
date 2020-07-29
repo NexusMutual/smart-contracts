@@ -16,7 +16,6 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../external/oraclize/ethereum-api/usingOraclize.sol";
 import "../capital/MCR.sol";
 import "../capital/PoolData.sol";
 import "../capital/Pool2.sol";
@@ -24,7 +23,7 @@ import "../claims/Claims.sol";
 import "../cover/Quotation.sol";
 
 
-contract Pool1 is usingOraclize, Iupgradable {
+contract Pool1 is Iupgradable {
   using SafeMath for uint;
 
   Quotation internal q2;
@@ -110,45 +109,44 @@ contract Pool1 is usingOraclize, Iupgradable {
 
   ///@dev Oraclize call to close emergency pause.
   function closeEmergencyPause(uint time) external onlyInternal {
-    bytes32 myid = _oraclizeQuery(4, time, "URL", "", 300000);
-    _saveApiDetails(myid, "EP", 0);
+    time;
+    _saveApiDetails("EP", 0);
   }
 
   /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
   /// @param id Claim Id to be closed
   /// @param time Time (in seconds) after which Claims assessment voting needs to be closed
   function closeClaimsOraclise(uint id, uint time) external onlyInternal {
-    bytes32 myid = _oraclizeQuery(4, time, "URL", "", 3000000);
-    _saveApiDetails(myid, "CLA", id);
+    time;
+    _saveApiDetails("CLA", id);
   }
 
   /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
   /// @param id Quote Id to be expired
   /// @param time Time (in seconds) after which the cover should be expired
   function closeCoverOraclise(uint id, uint64 time) external onlyInternal {
-    bytes32 myid = _oraclizeQuery(4, time, "URL", strConcat(
-        "http://a1.nexusmutual.io/api/Claims/closeClaim_hash/", uint2str(id)), 1000000);
-    _saveApiDetails(myid, "COV", id);
+    time;
+    _saveApiDetails("COV", id);
   }
 
   /// @dev Calls the Oraclize Query to initiate MCR calculation.
   /// @param time Time (in milliseconds) after which the next MCR calculation should be initiated
   function mcrOraclise(uint time) external onlyInternal {
-    bytes32 myid = _oraclizeQuery(3, time, "URL", "https://api.nexusmutual.io/postMCR/M1", 0);
-    _saveApiDetails(myid, "MCR", 0);
+    time;
+    _saveApiDetails("MCR", 0);
   }
 
   /// @dev Calls the Oraclize Query in case MCR calculation fails.
   /// @param time Time (in seconds) after which the next MCR calculation should be initiated
   function mcrOracliseFail(uint id, uint time) external onlyInternal {
-    bytes32 myid = _oraclizeQuery(4, time, "URL", "", 1000000);
-    _saveApiDetails(myid, "MCRF", id);
+    time;
+    _saveApiDetails("MCRF", id);
   }
 
   /// @dev Oraclize call to update investment asset rates.
   function saveIADetailsOracalise(uint time) external onlyInternal {
-    bytes32 myid = _oraclizeQuery(3, time, "URL", "https://api.nexusmutual.io/saveIADetails/M1", 0);
-    _saveApiDetails(myid, "IARB", 0);
+    time;
+    _saveApiDetails("IARB", 0);
   }
 
   /**
@@ -329,8 +327,7 @@ contract Pool1 is usingOraclize, Iupgradable {
   function _triggerExternalLiquidityTrade() internal {
     if (now > pd.lastLiquidityTradeTrigger().add(pd.liquidityTradeCallbackTime())) {
       pd.setLastLiquidityTradeTrigger();
-      bytes32 myid = _oraclizeQuery(4, pd.liquidityTradeCallbackTime(), "URL", "", 300000);
-      _saveApiDetails(myid, "ULT", 0);
+      _saveApiDetails("ULT", 0);
     }
   }
 
@@ -407,11 +404,18 @@ contract Pool1 is usingOraclize, Iupgradable {
 
   /**
    * @dev Save the details of the Oraclize API.
-   * @param myid Id return by the oraclize query.
    * @param _typeof type of the query for which oraclize call is made.
    * @param id ID of the proposal, quote, cover etc. for which oraclize call is made.
    */
-  function _saveApiDetails(bytes32 myid, bytes4 _typeof, uint id) internal {
+  function _saveApiDetails(bytes4 _typeof, uint id) internal {
+
+    uint queryId = block.timestamp;
+    bytes32 myid = bytes32(queryId);
+
+    while (pd.getDateAddOfAPI(myid) != 0) {
+      myid = bytes32(++queryId);
+    }
+
     pd.saveApiDetails(myid, _typeof, id);
     pd.addInAllApiCall(myid);
   }
@@ -453,31 +457,4 @@ contract Pool1 is usingOraclize, Iupgradable {
       require(erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this))));
   }
 
-  /**
-   * @dev oraclize query
-   * @param paramCount is number of paramters passed
-   * @param timestamp is the current timestamp
-   * @param datasource in concern
-   * @param arg in concern
-   * @param gasLimit required for query
-   * @return id of oraclize query
-   */
-  function _oraclizeQuery(
-    uint paramCount,
-    uint timestamp,
-    string memory datasource,
-    string memory arg,
-    uint gasLimit
-  )
-  internal
-  returns (bytes32 id)
-  {
-    if (paramCount == 4) {
-      id = oraclize_query(timestamp, datasource, arg, gasLimit);
-    } else if (paramCount == 3) {
-      id = oraclize_query(timestamp, datasource, arg);
-    } else {
-      id = oraclize_query(datasource, arg);
-    }
-  }
 }

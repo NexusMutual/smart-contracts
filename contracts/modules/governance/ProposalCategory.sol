@@ -12,12 +12,11 @@
 pragma solidity ^0.5.0;
 
 import "../../abstract/Iupgradable.sol";
-import "./external/govblocks-protocol/interfaces/IProposalCategory.sol";
 import "./external/govblocks-protocol/Governed.sol";
 import "./MemberRoles.sol";
 
 
-contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
+contract ProposalCategory is Governed, Iupgradable {
 
   bool public constructorCheck;
   MemberRoles internal mr;
@@ -44,6 +43,12 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
   mapping(uint => bytes) public categoryActionHashes;
 
   bool public categoryActionHashUpdated;
+
+  event Category(
+    uint indexed categoryId,
+    string categoryName,
+    string actionHash
+  );
 
   /**
   * @dev Restricts calls to deprecated functions

@@ -6,20 +6,22 @@ const { setupLoader } = require('@openzeppelin/contract-loader');
 
 const init = async () => {
 
-  const network = getenv('NETWORK');
+  const network = getenv('NETWORK').toUpperCase();
   console.log(`Using ${network} network`);
 
   const account = getenv(`${network}_ACCOUNT`);
   const mnemonic = getenv(`${network}_MNEMONIC`);
   const providerURL = getenv(`${network}_PROVIDER_URL`);
+  const defaultGas = getenv(`${network}_DEFAULT_GAS`, 10e6); // 10 million
+  const defaultGasPrice = getenv(`${network}_DEFAULT_GAS_PRICE`, 5e9); // 5 gwei
 
   const provider = new HDWalletProvider(mnemonic, providerURL);
 
   const loader = setupLoader({
     provider,
     defaultSender: account,
-    defaultGas: 1e6, // 1 million
-    defaultGasPrice: 5e9, // 5 gwei
+    defaultGas,
+    defaultGasPrice,
   }).truffle;
 
   return { account, provider, loader };
@@ -28,12 +30,7 @@ const init = async () => {
 const deployerFactory = loader => async (contract, ...constructorArgs) => {
 
   const Contract = loader.fromArtifact(contract);
-
-  // const gasEstimate = await Contract.new.estimateGas(...constructorArgs);
-  // const gas = gasEstimate;
-  const gas = 10e6;
-  const instance = await Contract.new(...constructorArgs, { gas });
-
+  const instance = await Contract.new(...constructorArgs);
   console.log(`${contract} deployed at ${instance.address}`);
 
   return instance;

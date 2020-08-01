@@ -1,5 +1,7 @@
+const { web3 } = require('@openzeppelin/test-environment');
+const { constants, helpers } = require('../../lib');
 const accounts = require('./accounts');
-const constants = require('./constants');
-const helpers = require('./helpers');
 
-module.exports = { accounts, constants, helpers };
+const tenderly = async tx => helpers.tenderly(web3, tx);
+
+module.exports = { accounts, constants, helpers: { ...helpers, tenderly } };

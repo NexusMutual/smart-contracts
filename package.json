@@ -9,17 +9,17 @@
     "@openzeppelin/cli": "^2.8.2",
     "@openzeppelin/contract-loader": "^0.6.1",
     "@openzeppelin/contracts": "^2.5.1",
+    "@openzeppelin/test-helpers": "^0.5.5",
     "@openzeppelin/upgrades": "^2.8.0",
     "@truffle/hdwallet-provider": "^1.0.34",
     "bn.js": "^5.1.2",
-    "chai-bignumber": "^3.0.0",
     "dotenv": "^8.2.0"
   },
   "devDependencies": {
     "@openzeppelin/test-environment": "^0.1.4",
-    "@openzeppelin/test-helpers": "^0.5.5",
     "axios": "^0.19.2",
     "chai": "^4.2.0",
+    "chai-bignumber": "^3.0.0",
     "eslint": "^6.8.0",
     "eslint-config-semistandard": "^15.0.0",
     "eslint-config-standard": "^13.0.1",
@@ -34,13 +34,13 @@
   },
   "scripts": {
     "compile": "oz compile",
-    "dev-integration": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit test/integration'",
-    "dev-unit": "nodemon --ext js,sol -w contracts -w test -x 'oz compile && mocha --exit test/unit'",
+    "dev-integration": "nodemon --ext js,sol -x 'oz compile && mocha --exit test/integration'",
+    "dev-unit": "nodemon --ext js,sol -x 'oz compile && mocha --exit test/unit'",
     "test": "mocha --exit",
     "test-integration": "mocha --exit test/integration",
     "test-unit": "mocha --exit test/unit",
     "deploy-mock": "oz compile && node scripts/deploy-mock.js",
-    "deploy-full": "npm run compile-all && node scripts/deploy-full.js",
+    "deploy-full": "oz compile && node scripts/deploy-full.js",
     "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork"
   },
   "license": "ISC"

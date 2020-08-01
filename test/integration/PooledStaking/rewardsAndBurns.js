@@ -1,11 +1,10 @@
 const { accounts, defaultSender, web3 } = require('@openzeppelin/test-environment');
 const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-helpers');
-const { exec } = require('child_process');
 require('chai').should();
 
 const { getQuoteValues } = require('../utils/getQuote');
 const { getValue } = require('../utils/getMCRPerThreshold');
-const { hex, sleep } = require('../utils').helpers;
+const { hex, to, tenderly } = require('../utils').helpers;
 const setup = require('../setup');
 
 const BN = web3.utils.BN;
@@ -14,24 +13,6 @@ const LOCK_REASON_CLAIM = hex('CLA');
 
 function coverToCoverDetailsArray (cover) {
   return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
-}
-
-async function debugTx (promise) {
-  try {
-    await promise;
-  } catch (e) {
-    if (e.tx) {
-      console.error(`Tx ${e.tx} failed. ${e.stack}`);
-      const rpc = web3.eth.currentProvider.wrappedProvider.host.replace(/^http:\/\//, '');
-      const cmd = `tenderly export ${e.tx} --debug --rpc ${rpc}`;
-      console.log(`Executing ${cmd}`);
-      exec(cmd);
-
-      await sleep(1000000000);
-    } else {
-      throw e;
-    }
-  }
 }
 
 describe('burns', function () {

@@ -13,6 +13,21 @@ declare global {
       require(name: "ClaimsData"): TruffleContracts.ClaimsDataContract;
       require(name: "ClaimsReward"): TruffleContracts.ClaimsRewardContract;
       require(name: "Context"): TruffleContracts.ContextContract;
+      require(
+        name: "DisposableMemberRoles"
+      ): TruffleContracts.DisposableMemberRolesContract;
+      require(
+        name: "DisposableNXMaster"
+      ): TruffleContracts.DisposableNXMasterContract;
+      require(
+        name: "DisposablePooledStaking"
+      ): TruffleContracts.DisposablePooledStakingContract;
+      require(
+        name: "DisposableProposalCategory"
+      ): TruffleContracts.DisposableProposalCategoryContract;
+      require(
+        name: "DisposableTokenController"
+      ): TruffleContracts.DisposableTokenControllerContract;
       require(name: "DSValue"): TruffleContracts.DSValueContract;
       require(name: "ERC20"): TruffleContracts.ERC20Contract;
       require(name: "Exchange"): TruffleContracts.ExchangeContract;
@@ -41,6 +56,7 @@ declare global {
         name: "ITokenFunctions"
       ): TruffleContracts.ITokenFunctionsContract;
       require(name: "Iupgradable"): TruffleContracts.IupgradableContract;
+      require(name: "Logger"): TruffleContracts.LoggerContract;
       require(name: "MasterAware"): TruffleContracts.MasterAwareContract;
       require(name: "MasterMock"): TruffleContracts.MasterMockContract;
       require(name: "MCR"): TruffleContracts.MCRContract;
@@ -50,7 +66,6 @@ declare global {
       ): TruffleContracts.MemberRolesMockContract;
       require(name: "MockDAI"): TruffleContracts.MockDAIContract;
       require(name: "NXMaster"): TruffleContracts.NXMasterContract;
-      require(name: "NXMasterMock"): TruffleContracts.NXMasterMockContract;
       require(name: "NXMDSValue"): TruffleContracts.NXMDSValueContract;
       require(name: "NXMDSValueMock"): TruffleContracts.NXMDSValueMockContract;
       require(name: "NXMToken"): TruffleContracts.NXMTokenContract;
@@ -67,9 +82,6 @@ declare global {
       require(
         name: "ProposalCategory"
       ): TruffleContracts.ProposalCategoryContract;
-      require(
-        name: "ProposalCategoryMock"
-      ): TruffleContracts.ProposalCategoryMockContract;
       require(name: "Proxy"): TruffleContracts.ProxyContract;
       require(name: "Quotation"): TruffleContracts.QuotationContract;
       require(name: "QuotationData"): TruffleContracts.QuotationDataContract;

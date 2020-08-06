@@ -30,6 +30,7 @@ declare global {
       ): TruffleContracts.DisposableTokenControllerContract;
       require(name: "DSValue"): TruffleContracts.DSValueContract;
       require(name: "ERC20"): TruffleContracts.ERC20Contract;
+      require(name: "ERC20Mock"): TruffleContracts.ERC20MockContract;
       require(name: "Exchange"): TruffleContracts.ExchangeContract;
       require(
         name: "ExchangeFactoryMock"
@@ -37,7 +38,6 @@ declare global {
       require(name: "ExchangeMock"): TruffleContracts.ExchangeMockContract;
       require(name: "Factory"): TruffleContracts.FactoryContract;
       require(name: "Governance"): TruffleContracts.GovernanceContract;
-      require(name: "GovernanceMock"): TruffleContracts.GovernanceMockContract;
       require(name: "Governed"): TruffleContracts.GovernedContract;
       require(name: "IClaimsReward"): TruffleContracts.IClaimsRewardContract;
       require(name: "IERC1132"): TruffleContracts.IERC1132Contract;
@@ -64,7 +64,6 @@ declare global {
       require(
         name: "MemberRolesMock"
       ): TruffleContracts.MemberRolesMockContract;
-      require(name: "MockDAI"): TruffleContracts.MockDAIContract;
       require(name: "NXMaster"): TruffleContracts.NXMasterContract;
       require(name: "NXMDSValue"): TruffleContracts.NXMDSValueContract;
       require(name: "NXMDSValueMock"): TruffleContracts.NXMDSValueMockContract;
@@ -77,7 +76,6 @@ declare global {
       require(name: "Pool1"): TruffleContracts.Pool1Contract;
       require(name: "Pool2"): TruffleContracts.Pool2Contract;
       require(name: "PoolData"): TruffleContracts.PoolDataContract;
-      require(name: "PoolDataMock"): TruffleContracts.PoolDataMockContract;
       require(name: "PooledStaking"): TruffleContracts.PooledStakingContract;
       require(
         name: "ProposalCategory"

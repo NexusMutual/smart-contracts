@@ -1,10 +1,9 @@
-const { contract, defaultSender, accounts } = require('@openzeppelin/test-environment');
-const { BN, ether } = require('@openzeppelin/test-helpers');
-const { assert } = require('chai');
-const { hex, to, tenderly } = require('./utils').helpers;
+const { contract, defaultSender } = require('@openzeppelin/test-environment');
+const { ether } = require('@openzeppelin/test-helpers');
+const { hex } = require('../utils').helpers;
 
 // external
-const DAI = contract.fromArtifact('MockDAI');
+const ERC20Mock = contract.fromArtifact('ERC20Mock');
 const DSValue = contract.fromArtifact('NXMDSValueMock');
 const ExchangeFactoryMock = contract.fromArtifact('ExchangeFactoryMock');
 const ExchangeMock = contract.fromArtifact('ExchangeMock');
@@ -68,12 +67,13 @@ async function setup () {
   const owner = defaultSender;
 
   // deploy external contracts
-  const dai = await DAI.new();
+  const dai = await ERC20Mock.new();
   const dsv = await DSValue.new(owner);
   const factory = await ExchangeFactoryMock.new();
   const exchange = await ExchangeMock.new(dai.address, factory.address);
 
   // initialize external contracts
+  await dai.mint(ether('1000000'));
   await factory.setFactory(dai.address, exchange.address);
   await dai.transfer(exchange.address, EXCHANGE_TOKEN);
   await exchange.recieveEther({ value: EXCHANGE_ETHER });

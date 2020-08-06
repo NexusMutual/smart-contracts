@@ -4,4 +4,8 @@ const accounts = require('./accounts');
 
 const tenderly = async tx => helpers.tenderly(web3, tx);
 
-module.exports = { accounts, constants, helpers: { ...helpers, tenderly } };
+module.exports = {
+  accounts,
+  constants,
+  helpers: { ...helpers, tenderly },
+};

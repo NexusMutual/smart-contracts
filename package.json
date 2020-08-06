@@ -30,6 +30,7 @@
     "ethlint": "^1.2.5",
     "mocha": "^7.1.2",
     "nodemon": "^2.0.2",
+    "truffle-flattener": "^1.4.4",
     "truffle-typings": "^1.0.8"
   },
   "scripts": {

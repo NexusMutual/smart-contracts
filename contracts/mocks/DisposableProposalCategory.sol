@@ -70,8 +70,8 @@ contract DisposableProposalCategory is ProposalCategory {
     categoryActionHashes[15] = abi.encodeWithSignature("changeInvestmentAssetStatus(bytes4,bool)");
     categoryActionHashes[16] = abi.encodeWithSignature("swapABMember(address,address)");
     categoryActionHashes[17] = abi.encodeWithSignature("addCurrencyAssetCurrency(bytes4,address,uint256)");
-    // 18: Any other Item - PD.addCurrencyAssetCurrency(bytes4,address,uint256)
-    // 19: Special Resolution - EX.null
+    // 18: Any other Item
+    // 19: Special Resolution
     categoryActionHashes[20] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
     categoryActionHashes[21] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
     categoryActionHashes[22] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");

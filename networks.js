@@ -15,12 +15,12 @@ module.exports = {
       networkId: 1,
     },
     kovan: {
-      gasPrice: 5e9,
+      gasPrice: 1e9,
       networkId: 42,
       provider: () => new HDWalletProvider(kovanMnemonic, kovanProviderURL),
     },
     personal: {
-      gasPrice: 5e9,
+      gasPrice: 1e9,
       networkId: 42,
       provider: () => new HDWalletProvider(kovanMnemonic, kovanProviderURL),
     },

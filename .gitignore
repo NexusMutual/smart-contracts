@@ -1,21 +1,3 @@
-# build artifacts
 build
-
-# txt files
-*.txt
-
-# node modules
 node_modules
-
-# python script
-*.py
-
-# log files
-*.log
-
-# coverage 
-coverageEnv
-coverage
-coverage.json
-
 .idea

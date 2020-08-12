@@ -19,12 +19,11 @@ const fourthContract = '0x0000000000000000000000000000000000000004';
 const fifthContract = '0x0000000000000000000000000000000000000005';
 const sixthContract = '0x0000000000000000000000000000000000000006';
 
-async function fundAndApprove (token, staking, amount, member) {
+async function fundAndApprove (token, tokenController, staking, amount, member) {
   const maxExposure = '2';
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
-
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
 }
 
 async function setUnstakeLockTime (staking, lockTime) {
@@ -82,10 +81,10 @@ describe('depositAndStake', function () {
 
   it('should revert when staking to fewer contracts than already staked', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const amount = ether('1');
 
-    await fundAndApprove(token, staking, amount, memberOne);
+    await fundAndApprove(token, tokenController, staking, amount, memberOne);
     // first stake
     await staking.depositAndStake(amount, [firstContract, secondContract], [1, 1], { from: memberOne });
 
@@ -98,10 +97,10 @@ describe('depositAndStake', function () {
 
   it('should revert when input array contains duplicate values', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const amount = ether('3');
 
-    await fundAndApprove(token, staking, amount.muln(2), memberOne);
+    await fundAndApprove(token, tokenController, staking, amount.muln(2), memberOne);
 
     await expectRevert(
       staking.depositAndStake(amount, [firstContract, secondContract, secondContract], [1, 1, 1], { from: memberOne }),
@@ -128,12 +127,12 @@ describe('depositAndStake', function () {
 
   it('should prevent staking < MIN_STAKE', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const minStake = ether('20');
     const amount = ether('1');
 
     await staking.updateUintParameters(ParamType.MIN_STAKE, minStake, { from: governanceContract });
-    await fundAndApprove(token, staking, amount, memberOne);
+    await fundAndApprove(token, tokenController, staking, amount, memberOne);
 
     await expectRevert(
       staking.depositAndStake(amount, [firstContract], [ether('10')], { from: memberOne }),
@@ -143,10 +142,10 @@ describe('depositAndStake', function () {
 
   it('should prevent staking on a contract more than deposited', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const amount = ether('1');
 
-    await fundAndApprove(token, staking, amount, memberOne);
+    await fundAndApprove(token, tokenController, staking, amount, memberOne);
 
     await expectRevert(
       staking.depositAndStake(amount, [firstContract], [ether('2')], { from: memberOne }),
@@ -155,11 +154,11 @@ describe('depositAndStake', function () {
   });
 
   it('should revert when contracts order has been changed', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const stakeAmount = ether('10');
     const totalAmount = ether('20');
 
-    await fundAndApprove(token, staking, totalAmount, memberOne);
+    await fundAndApprove(token, tokenController, staking, totalAmount, memberOne);
     // first stake
     await staking.depositAndStake(stakeAmount, [firstContract, secondContract], [stakeAmount, stakeAmount], { from: memberOne });
 
@@ -171,11 +170,11 @@ describe('depositAndStake', function () {
   });
 
   it('should revert when new stake is less than previous one', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const stakeAmount = ether('10');
     const totalAmount = ether('20');
 
-    await fundAndApprove(token, staking, totalAmount, memberOne);
+    await fundAndApprove(token, tokenController, staking, totalAmount, memberOne);
     // first stake
     await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
@@ -187,10 +186,10 @@ describe('depositAndStake', function () {
   });
 
   it('should revert when total stake exceeds maximum allowed (based on exposure)', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const amount = ether('1');
 
-    await fundAndApprove(token, staking, amount, memberOne); // MAX_EXPOSURE = 2
+    await fundAndApprove(token, tokenController, staking, amount, memberOne); // MAX_EXPOSURE = 2
 
     // Stake 3x the deposited amount, when MAX_EXPOSURE = 2
     await expectRevert(
@@ -218,11 +217,11 @@ describe('depositAndStake', function () {
   });
 
   it('should update the deposit of the staker and properly emit Staked and Deposited events', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     const stakeAmount = ether('1');
     const totalAmount = ether('2');
 
-    await fundAndApprove(token, staking, totalAmount, memberOne);
+    await fundAndApprove(token, tokenController, staking, totalAmount, memberOne);
 
     // stake 1 nxm
     let tx = await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
@@ -247,13 +246,13 @@ describe('depositAndStake', function () {
   });
 
   it('should allow calling depositAndStake with 0 deposit', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     const amount = ether('10');
     const contracts = [firstContract, secondContract];
     const stakes = [ether('5'), ether('5')];
 
-    await fundAndApprove(token, staking, amount, memberOne);
+    await fundAndApprove(token, tokenController, staking, amount, memberOne);
     // First stake
     await staking.depositAndStake(amount, contracts, stakes, { from: memberOne });
 
@@ -280,12 +279,12 @@ describe('depositAndStake', function () {
 
   it('should move tokens from the caller to the PooledStaking contract', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
     let expectedBalance = ether('0');
 
     // fund accounts
-    await fundAndApprove(token, staking, ether('10'), memberOne);
-    await fundAndApprove(token, staking, ether('10'), memberTwo);
+    await fundAndApprove(token, tokenController, staking, ether('10'), memberOne);
+    await fundAndApprove(token, tokenController, staking, ether('10'), memberTwo);
 
     const stakers = [
       { amount: ether('1'), contracts: [firstContract], stakes: [ether('1')], from: memberOne },
@@ -329,11 +328,11 @@ describe('depositAndStake', function () {
   });
 
   it('should increase the stake amount for each contract given as input', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // fund accounts
-    await fundAndApprove(token, staking, ether('10'), memberOne);
-    await fundAndApprove(token, staking, ether('10'), memberTwo);
+    await fundAndApprove(token, tokenController, staking, ether('10'), memberOne);
+    await fundAndApprove(token, tokenController, staking, ether('10'), memberTwo);
 
     const stakers = [
       { amount: ether('1'), contracts: [firstContract], stakes: [ether('1')], from: memberOne },
@@ -379,11 +378,11 @@ describe('depositAndStake', function () {
 
   it('should update the staker stake for each contract given as input', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // fund accounts
-    await fundAndApprove(token, staking, ether('10'), memberOne);
-    await fundAndApprove(token, staking, ether('10'), memberTwo);
+    await fundAndApprove(token, tokenController, staking, ether('10'), memberOne);
+    await fundAndApprove(token, tokenController, staking, ether('10'), memberTwo);
 
     const stakers = [
       { amount: ether('1'), contracts: [firstContract], stakes: [ether('1')], from: memberOne },
@@ -428,13 +427,13 @@ describe('depositAndStake', function () {
   });
 
   it('should push new contracts to staker\'s contracts and contract\'s stakers', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     const amount = ether('10');
     const contracts = [firstContract, secondContract];
     const stakes = [ether('5'), ether('5')];
 
-    await fundAndApprove(token, staking, amount, memberOne);
+    await fundAndApprove(token, tokenController, staking, amount, memberOne);
 
     // Deposit and stake on 2 contracts
     await staking.depositAndStake(amount, contracts, stakes, { from: memberOne });
@@ -491,9 +490,9 @@ describe('depositAndStake', function () {
   });
 
   it('should revert when called with pending actions', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
-    await fundAndApprove(token, staking, ether('20'), memberOne); // MAX_EXPOSURE = 2
+    await fundAndApprove(token, tokenController, staking, ether('20'), memberOne); // MAX_EXPOSURE = 2
     await setUnstakeLockTime(staking, 90 * 24 * 3600); // UNSTAKE_LOCK_TIME = 90 days
 
     // Push reward
@@ -530,10 +529,10 @@ describe('depositAndStake', function () {
   });
 
   it('should stake successfully after unstake', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     await setUnstakeLockTime(staking, 90 * 24 * 3600); // UNSTAKE_LOCK_TIME = 90 days
-    await fundAndApprove(token, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2
+    await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2
 
     // Deposit and stake
     let contracts = [firstContract, secondContract, thirdContract, fourthContract, fifthContract, sixthContract];
@@ -570,10 +569,10 @@ describe('depositAndStake', function () {
 
   it('should keep 0-amount stakes at 0, remove the contracts from the array, and stake on new ones', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
-    await fundAndApprove(token, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2
+    await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2
 
     // stake 10 on 2 contracts
     let contracts = [firstContract, secondContract];
@@ -612,10 +611,10 @@ describe('depositAndStake', function () {
 
   it('should remove all contracts with 0-stake', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
-    await fundAndApprove(token, staking, ether('50'), memberOne); // MAX_EXPOSURE = 2
+    await fundAndApprove(token, tokenController, staking, ether('50'), memberOne); // MAX_EXPOSURE = 2
 
     // stake 10 on 2 contracts
     let contracts = [firstContract, secondContract];
@@ -652,10 +651,10 @@ describe('depositAndStake', function () {
 
   it('should prevent staking more than deposit * MAX_EXPOSURE on successive staking operations', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
-    await fundAndApprove(token, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2;
+    await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2;
 
     // stake 10 on 2 contracts
     let contracts = [firstContract, secondContract];
@@ -669,6 +668,25 @@ describe('depositAndStake', function () {
       staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne }),
       'Total stake exceeds maximum allowed',
     );
+  });
+
+  it('should allow stakers to deposit when locked for member voting', async function () {
+
+    const { staking, token, tokenController } = this;
+
+    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2;
+
+    await token.setLock(memberOne, true);
+    await expectRevert(
+      token.transfer(memberTwo, ether('1'), { from: memberOne }),
+      'Member should not be locked for member voting',
+    );
+
+    // stake 10 on 2 contracts
+    const contracts = [firstContract, secondContract];
+    const amounts = [ether('10'), ether('10')];
+    await staking.depositAndStake(ether('10'), contracts, amounts, { from: memberOne });
   });
 
 });

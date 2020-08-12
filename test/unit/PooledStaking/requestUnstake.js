@@ -17,7 +17,7 @@ const {
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 
-async function fundApproveStake (token, staking, amount, contracts, allocations, member) {
+async function fundApproveStake (token, tokenController, staking, amount, contracts, allocations, member) {
   const maxExposure = '10';
   const minAllocation = ether('2');
 
@@ -26,7 +26,7 @@ async function fundApproveStake (token, staking, amount, contracts, allocations,
   await staking.updateUintParameters(ParamType.MIN_STAKE, minAllocation, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
 
   await staking.depositAndStake(amount, contracts, allocations, { from: member });
 }
@@ -67,9 +67,9 @@ describe('requestUnstake', function () {
 
   it('should revert if insertAfter > lastUnstakeRequestId', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
-    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
 
@@ -100,9 +100,9 @@ describe('requestUnstake', function () {
 
   it('should revert when insertAfter index is an empty slot', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
-    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
 
@@ -127,7 +127,7 @@ describe('requestUnstake', function () {
 
   it('should revert when there\'s nothing to unstake on a contract', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // Nothing staked on the contract
     await expectRevert(
@@ -136,7 +136,7 @@ describe('requestUnstake', function () {
     );
 
     // deposit 10 and stake [10, 10] on 2 contracts
-    await fundApproveStake(token, staking, ether('10'), [firstContract, secondContract], [ether('10'), ether('7')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract, secondContract], [ether('10'), ether('7')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -153,10 +153,10 @@ describe('requestUnstake', function () {
 
   it('should revert when unstaking more than staked', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // deposit 10 and stake 10 on firstContract
-    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -179,10 +179,10 @@ describe('requestUnstake', function () {
 
   it('should revert when requested unstake < MIN_UNSTAKE', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // deposit 10 and stake 10 on firstContract; MIN_UNSTAKE = 2
-    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -199,10 +199,10 @@ describe('requestUnstake', function () {
 
   it('should revert when remaining stake is less than MIN_STAKE', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // deposit 10 and stake 10 on firt contract; MIN_STAKE = 2
-    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -219,10 +219,10 @@ describe('requestUnstake', function () {
 
   it('should revert if requested unstake time < unstake time at insertAfter index', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // deposit 20 and stake 20 on firstContract, UNSTAKE_LOCK_TIME = 90 days
-    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('20'), [firstContract], [ether('20')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -255,12 +255,12 @@ describe('requestUnstake', function () {
 
   it('should revert if requested unstake time >= unstake time at next of insertAfter index', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     let lastUnstakeRequestId;
 
     // deposit 10 and stake 10 on firstContract, UNSTAKE_LOCK_TIME = 90 days
-    await fundApproveStake(token, staking, ether('10'), [firstContract], [ether('10')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('10'), [firstContract], [ether('10')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -309,9 +309,9 @@ describe('requestUnstake', function () {
 
   it('ensure the unstake request is inserted in the unstakeRequests mapping', async function () {
 
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
-    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('20'), [firstContract], [ether('20')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -353,13 +353,13 @@ describe('requestUnstake', function () {
   });
 
   it('ensure that next pointer of the new request points to the next of request at index insertAfter', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     let lastUnstakeRequestId;
     let lockTime;
 
     // deposit 20 and stake 20 on firstContract, UNSTAKE_LOCK_TIME = 90 days
-    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('20'), [firstContract], [ether('20')], memberOne);
 
     // Set UNSTAKE_LOCK_TIME to 30 days
     lockTime = 30 * 24 * 3600; // 30 days
@@ -405,13 +405,13 @@ describe('requestUnstake', function () {
   });
 
   it('ensure that next pointer of the request at insertAfter index points to the new request', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     let insertAfter;
     let lockTime;
 
     // deposit 20 and stake 20 on firstContract, UNSTAKE_LOCK_TIME = 90 days
-    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('20'), [firstContract], [ether('20')], memberOne);
 
     // Set UNSTAKE_LOCK_TIME to 30 days
     lockTime = 30 * 24 * 3600; // 30 days
@@ -454,10 +454,10 @@ describe('requestUnstake', function () {
   });
 
   it('ensure the request is inserted correctly when entry at indexAfter is empty', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // deposit 20 and stake 20 on firstContract, UNSTAKE_LOCK_TIME = 90 days
-    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('20'), [firstContract], [ether('20')], memberOne);
 
     // Set UNSTAKE_LOCK_TIME to 30 days
     const lockTime = 30 * 24 * 3600; // 30 days
@@ -526,10 +526,10 @@ describe('requestUnstake', function () {
   });
 
   it('should emit UnstakeRequested event', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     // deposit 20 and stake 20 on firstContract, lock time 90 days
-    await fundApproveStake(token, staking, ether('20'), [firstContract], [ether('20')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('20'), [firstContract], [ether('20')], memberOne);
 
     const lockTime = 90 * 24 * 3600; // 90 days
     await setUnstakeLockTime(staking, lockTime);
@@ -549,15 +549,15 @@ describe('requestUnstake', function () {
   });
 
   it('should allow multiple sequential unstake requests', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     const lockTime = 30 * 24 * 3600; // 30 days
     await setUnstakeLockTime(staking, lockTime);
 
     await setMinUnstake(staking, ether('2'));
 
-    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
-    await fundApproveStake(token, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
+    await fundApproveStake(token, tokenController, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('2000'), [secondContract], [ether('2000')], memberTwo);
 
     for (let i = 0; i < 80; i += 2) {
       await staking.requestUnstake([firstContract], [ether('3')], i, { from: memberOne });
@@ -568,14 +568,14 @@ describe('requestUnstake', function () {
   });
 
   it('should allow multiple unstake requests after some were processed', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     const lockTime = 30 * 24 * 3600; // 30 days
     await setUnstakeLockTime(staking, lockTime);
 
     await setMinUnstake(staking, ether('2'));
 
-    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
 
     for (let i = 0; i < 20; i++) {
       await staking.requestUnstake([firstContract], [ether('3')], i, { from: memberOne });
@@ -593,21 +593,21 @@ describe('requestUnstake', function () {
   });
 
   it('should allow multiple sequential unstake requests in between stakes', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     const lockTime = 30 * 24 * 3600; // 30 days
     await setUnstakeLockTime(staking, lockTime);
 
     await setMinUnstake(staking, ether('2'));
 
-    await fundApproveStake(token, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('1000'), [firstContract], [ether('1000')], memberOne);
 
     for (let i = 0; i < 10; i++) {
       await staking.requestUnstake([firstContract], [ether('10')], i, { from: memberOne });
       await time.increase(3600);
     }
 
-    await fundApproveStake(token, staking, ether('200'), [firstContract], [ether('1200')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('200'), [firstContract], [ether('1200')], memberOne);
 
     for (let i = 10; i < 20; i++) {
       await staking.requestUnstake([firstContract], [ether('8')], i, { from: memberOne });
@@ -616,10 +616,10 @@ describe('requestUnstake', function () {
   });
 
   it('should update pending unstake requests total for staker', async function () {
-    const { staking, token } = this;
+    const { staking, token, tokenController } = this;
 
     await setUnstakeLockTime(staking, 30 * 24 * 3600); // 30 days
-    await fundApproveStake(token, staking, ether('100'), [firstContract], [ether('100')], memberOne);
+    await fundApproveStake(token, tokenController, staking, ether('100'), [firstContract], [ether('100')], memberOne);
 
     await staking.requestUnstake([firstContract], [ether('10')], 0, { from: memberOne });
     const pendingUnstake = await staking.stakerContractPendingUnstakeTotal(memberOne, firstContract);

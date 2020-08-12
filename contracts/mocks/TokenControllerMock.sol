@@ -38,6 +38,13 @@ contract TokenControllerMock is ITokenController, MasterAware {
     token = NXMToken(master.tokenAddress());
   }
 
+  function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
+    require(msg.sender == master.getLatestAddress("PS"), "Call is only allowed from PooledStaking address");
+    require(token.operatorTransfer(_from, _value), "Operator transfer failed");
+    require(token.transfer(_to, _value), "Internal transfer failed");
+    return true;
+  }
+
   /* unused functions */
 
   modifier unused {

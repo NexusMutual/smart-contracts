@@ -89,7 +89,7 @@ describe('burns', function () {
     for (const member of members) {
       await mr.payJoiningFee(member, { from: member, value: fee });
       await mr.kycVerdict(member, true);
-      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
+      // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
       await tk.transfer(member, initialMemberFunds);
     }
 
@@ -204,10 +204,10 @@ describe('burns', function () {
 
     it('sets up the arena', async function () {
 
-      const { ps, tk } = this;
+      const { ps, tc, tk } = this;
       const stakeTokens = ether('20');
 
-      await tk.approve(ps.address, stakeTokens, { from: staker1 });
+      await tk.approve(tc.address, stakeTokens, { from: staker1 });
       await ps.depositAndStake(
         stakeTokens, [cover.contractAddress, secondCoveredAddress], [stakeTokens, stakeTokens], { from: staker1 },
       );
@@ -277,10 +277,10 @@ describe('burns', function () {
     const stakeTokens = ether('20');
 
     before(async function () {
-      const { tk, ps } = this;
+      const { ps, tc, tk } = this;
 
       for (const staker of this.allStakers) {
-        await tk.approve(ps.address, stakeTokens, {
+        await tk.approve(tc.address, stakeTokens, {
           from: staker,
         });
         await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], {
@@ -363,11 +363,11 @@ describe('burns', function () {
 
     before(async function () {
 
-      const { ps, tk, qd, cl } = this;
+      const { ps, tc, tk, qd, cl } = this;
 
       const stakeTokens = ether('20');
 
-      await tk.approve(ps.address, stakeTokens, {
+      await tk.approve(tc.address, stakeTokens, {
         from: staker1,
       });
       await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], {
@@ -417,9 +417,9 @@ describe('burns', function () {
 
     before(async function () {
 
-      const { ps, tk, qd, cl } = this;
+      const { ps, tc, tk, qd, cl } = this;
 
-      await tk.approve(ps.address, stakeTokens, {
+      await tk.approve(tc.address, stakeTokens, {
         from: staker1,
       });
       await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], {
@@ -478,9 +478,9 @@ describe('burns', function () {
 
     before(async function () {
 
-      const { ps, tk, qd, cl, mcr } = this;
+      const { ps, tc, tk, qd, cl } = this;
 
-      await tk.approve(ps.address, stakeTokens, {
+      await tk.approve(tc.address, stakeTokens, {
         from: staker1,
       });
       await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], {
@@ -550,9 +550,9 @@ describe('burns', function () {
 
     it('sets up the arena', async function () {
 
-      const { ps, tk, qd, cl } = this;
+      const { ps, tc, tk, qd, cl } = this;
 
-      await tk.approve(ps.address, stakeTokens, {
+      await tk.approve(tc.address, stakeTokens, {
         from: staker1,
       });
       await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], {

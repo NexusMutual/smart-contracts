@@ -16,10 +16,10 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundAndStake (token, staking, amount, contract, member) {
+async function fundAndStake (token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
@@ -45,13 +45,13 @@ describe('pushBurn', function () {
 
   it('should revert when called with pending burns', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Set parameters
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     // First Burn
     await staking.pushBurn(firstContract, ether('5'), { from: internalContract });
@@ -68,13 +68,13 @@ describe('pushBurn', function () {
 
   it('should not revert when called with pending unstake requests', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Set parameters
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Fund account and stake; UNSTAKE_LOCK_TIME = 90 days
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     // Request unstake due in 90 days
     await staking.requestUnstake([firstContract], [ether('3')], 0, { from: memberOne });
@@ -95,9 +95,9 @@ describe('pushBurn', function () {
 
   it('should update the burned amount', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     const burnAmount = ether('3');
     await staking.pushBurn(firstContract, burnAmount, { from: internalContract });
@@ -108,9 +108,9 @@ describe('pushBurn', function () {
 
   it('should update the burn timestamp ', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     await staking.pushBurn(firstContract, ether('5'), { from: internalContract });
 
@@ -121,9 +121,9 @@ describe('pushBurn', function () {
 
   it('should update the burned contract', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     await staking.pushBurn(firstContract, ether('5'), { from: internalContract });
 
@@ -133,13 +133,13 @@ describe('pushBurn', function () {
 
   it('should emit BurnRequested event', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Set parameters
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Fund account and stake 10
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     // Push burn
     const burnAmount = ether('2');
@@ -153,7 +153,7 @@ describe('pushBurn', function () {
 
   it('should remove and re-add 0-account stakers', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
@@ -166,7 +166,7 @@ describe('pushBurn', function () {
     for (const member in stakes) {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
-      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await token.approve(tokenController.address, ether(stake.amount), { from: member });
       await staking.depositAndStake(
         ether(stake.amount),
         stake.on,
@@ -218,7 +218,7 @@ describe('pushBurn', function () {
     );
 
     await token.transfer(memberOne, ether('5'));
-    await token.approve(staking.address, ether('5'), { from: memberOne });
+    await token.approve(tokenController.address, ether('5'), { from: memberOne });
     await staking.depositAndStake(
       ether('5'),
       [firstContract, secondContract, thirdContract],

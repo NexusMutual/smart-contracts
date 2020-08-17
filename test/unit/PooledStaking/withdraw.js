@@ -16,12 +16,12 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundAndApprove (token, staking, amount, member) {
+async function fundAndApprove (token, tokenController, staking, amount, member) {
   const maxExposure = '2';
 
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
 }
 
 describe('withdraw', function () {
@@ -42,12 +42,12 @@ describe('withdraw', function () {
 
   it('should revert if requested amount exceeds max withdrawable amount', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     let maxWithdrawable;
 
     // member 1: deposit 10 and stake the entire deposit, up to max exposure
     const amountOne = ether('10');
-    await fundAndApprove(token, staking, amountOne, memberOne);
+    await fundAndApprove(token, tokenController, staking, amountOne, memberOne);
     await staking.depositAndStake(amountOne, [firstContract, secondContract], [amountOne, amountOne], { from: memberOne });
     const memberOneDeposit = await staking.stakerDeposit(memberOne);
     assert(memberOneDeposit.eq(amountOne), `expected deposit for memberOne ${amountOne}, found ${memberOneDeposit}`);
@@ -62,7 +62,7 @@ describe('withdraw', function () {
 
     // member 2: deposit 8 and stake the entire deposit on 1 contract (exposure = 1)
     const amountTwo = ether('8');
-    await fundAndApprove(token, staking, amountTwo, memberTwo);
+    await fundAndApprove(token, tokenController, staking, amountTwo, memberTwo);
     await staking.depositAndStake(amountTwo, [firstContract], [amountTwo], { from: memberTwo });
     const memberTwoDeposit = await staking.stakerDeposit(memberTwo);
     assert(memberTwoDeposit.eq(amountTwo), `expected deposit for memberTwo ${amountTwo}, found ${memberTwoDeposit}`);
@@ -77,7 +77,7 @@ describe('withdraw', function () {
 
     // member 3: deposit 7 and stake [5, 3] on two contracts
     const amountThree = ether('7');
-    await fundAndApprove(token, staking, amountThree, memberThree);
+    await fundAndApprove(token, tokenController, staking, amountThree, memberThree);
     await staking.depositAndStake(amountThree, [firstContract, secondContract], [ether('5'), ether('3')], { from: memberThree });
     const memberThreeDeposit = await staking.stakerDeposit(memberThree);
     assert(
@@ -96,7 +96,7 @@ describe('withdraw', function () {
 
     // member 4: deposit 45, stake [15, 15, 15], expect 22.5 withdrawable
     const amountFour = ether('45');
-    await fundAndApprove(token, staking, amountFour, memberFour);
+    await fundAndApprove(token, tokenController, staking, amountFour, memberFour);
     await staking.depositAndStake(
       amountFour,
       [firstContract, secondContract, thirdContract],
@@ -121,12 +121,12 @@ describe('withdraw', function () {
   });
 
   it('should decrease the total deposit amount of the staker and emit Withdrawn event', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     const totalAmount = ether('10');
     const withdrawAmount = ether('2');
 
     // fund accounts
-    await fundAndApprove(token, staking, totalAmount, memberOne);
+    await fundAndApprove(token, tokenController, staking, totalAmount, memberOne);
 
     // deposit 10 and stake 6 on one contract
     await staking.depositAndStake(totalAmount, [firstContract], [ether('6')], { from: memberOne });
@@ -145,12 +145,12 @@ describe('withdraw', function () {
 
   it("should move the withdrawn tokens from the PooledStaking contract to the caller's address", async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     const depositAmount = ether('10');
     const stakedAmount = ether('6');
 
     // fund account, MAX_EXPOSURE = 2
-    await fundAndApprove(token, staking, depositAmount, memberOne);
+    await fundAndApprove(token, tokenController, staking, depositAmount, memberOne);
 
     // deposit 10 and stake 6 on one contract
     await staking.depositAndStake(depositAmount, [firstContract], [stakedAmount], { from: memberOne });
@@ -178,9 +178,9 @@ describe('withdraw', function () {
   });
 
   it('should revert if called with pending burns', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
-    await fundAndApprove(token, staking, ether('10'), memberOne);
+    await fundAndApprove(token, tokenController, staking, ether('10'), memberOne);
     await staking.depositAndStake(ether('10'), [firstContract], [ether('6')], { from: memberOne });
     await time.increase(24 * 3600); // 1 day
 

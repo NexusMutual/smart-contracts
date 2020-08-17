@@ -16,12 +16,11 @@ const {
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
-const fourthContract = '0x0000000000000000000000000000000000000004';
 
-async function fundAndStake (token, staking, amount, contract, member) {
+async function fundAndStake (token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
@@ -37,12 +36,12 @@ describe('processBurn', function () {
 
   it('should update staker deposit & stake correctly', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Fund account and stake 10
     const initialStake = ether('10');
-    await fundAndStake(token, staking, initialStake, firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, initialStake, firstContract, memberOne);
 
     // Burn 3
     await staking.pushBurn(firstContract, ether('3'), { from: internalContract });
@@ -67,13 +66,13 @@ describe('processBurn', function () {
 
   it('should update staker deposit & stake correctly for multiple stakers', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Multiple stakers
-    await fundAndStake(token, staking, ether('100'), firstContract, memberOne);
-    await fundAndStake(token, staking, ether('200'), firstContract, memberTwo);
-    await fundAndStake(token, staking, ether('300'), firstContract, memberThree);
+    await fundAndStake(token, tokenController, staking, ether('100'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('200'), firstContract, memberTwo);
+    await fundAndStake(token, tokenController, staking, ether('300'), firstContract, memberThree);
 
     await staking.pushBurn(firstContract, ether('90'), { from: internalContract });
     await staking.processPendingActions('100');
@@ -96,13 +95,13 @@ describe('processBurn', function () {
 
   it('should update deposit & stake for multiple stakers when contract stake < burn amount', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Multiple stakers
-    await fundAndStake(token, staking, ether('100'), firstContract, memberOne);
-    await fundAndStake(token, staking, ether('200'), firstContract, memberTwo);
-    await fundAndStake(token, staking, ether('300'), firstContract, memberThree);
+    await fundAndStake(token, tokenController, staking, ether('100'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('200'), firstContract, memberTwo);
+    await fundAndStake(token, tokenController, staking, ether('300'), firstContract, memberThree);
 
     await staking.pushBurn(firstContract, ether('700'), { from: internalContract });
     await staking.processPendingActions('100');
@@ -134,7 +133,7 @@ describe('processBurn', function () {
 
   it('should remove and re-add 0-account stakers', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
@@ -151,7 +150,7 @@ describe('processBurn', function () {
     for (const member in stakes) {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
-      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await token.approve(tokenController.address, ether(stake.amount), { from: member });
       await staking.depositAndStake(
         ether(stake.amount),
         stake.on,
@@ -203,7 +202,7 @@ describe('processBurn', function () {
     );
 
     await token.transfer(memberOne, ether('5'));
-    await token.approve(staking.address, ether('5'), { from: memberOne });
+    await token.approve(tokenController.address, ether('5'), { from: memberOne });
     await staking.depositAndStake(
       ether('5'),
       [firstContract, secondContract, thirdContract],
@@ -222,7 +221,7 @@ describe('processBurn', function () {
 
   it('should remove stakers when burning 0-deposit stakers', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
@@ -233,7 +232,7 @@ describe('processBurn', function () {
     for (const member in stakes) {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
-      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await token.approve(tokenController.address, ether(stake.amount), { from: member });
       await staking.depositAndStake(ether(stake.amount), stake.on, stake.amounts.map(ether), { from: member });
     }
 
@@ -298,7 +297,7 @@ describe('processBurn', function () {
     );
 
     await token.transfer(memberOne, ether('100'));
-    await token.approve(staking.address, ether('100'), { from: memberOne });
+    await token.approve(tokenController.address, ether('100'), { from: memberOne });
     await staking.depositAndStake(
       ether('100'),
       [firstContract, secondContract],
@@ -325,7 +324,7 @@ describe('processBurn', function () {
 
   it('should not add duplicate stakers when staking on non-zero stake but zero deposit', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
@@ -336,7 +335,7 @@ describe('processBurn', function () {
     for (const member in stakes) {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
-      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await token.approve(tokenController.address, ether(stake.amount), { from: member });
       await staking.depositAndStake(ether(stake.amount), stake.on, stake.amounts.map(ether), { from: member });
     }
 
@@ -371,7 +370,7 @@ describe('processBurn', function () {
     );
 
     await token.transfer(memberOne, ether('100'));
-    await token.approve(staking.address, ether('100'), { from: memberOne });
+    await token.approve(tokenController.address, ether('100'), { from: memberOne });
     await staking.depositAndStake(
       ether('100'),
       [firstContract, secondContract],
@@ -398,14 +397,14 @@ describe('processBurn', function () {
 
   it('should burn the correct amount of tokens', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Set parameters
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Fund account and stake 10
     const stakeAmount = ether('10');
-    await fundAndStake(token, staking, stakeAmount, firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, stakeAmount, firstContract, memberOne);
 
     // Push a burn of 6
     const burnAmount = ether('6');
@@ -422,7 +421,7 @@ describe('processBurn', function () {
 
   it('should burn the correct amount of tokens when processing in batches', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Set parameters
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
@@ -431,8 +430,8 @@ describe('processBurn', function () {
     const stakeAmountOne = ether('10');
     const stakeAmountTwo = ether('20');
 
-    await fundAndStake(token, staking, stakeAmountOne, firstContract, memberOne);
-    await fundAndStake(token, staking, stakeAmountTwo, firstContract, memberTwo);
+    await fundAndStake(token, tokenController, staking, stakeAmountOne, firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, stakeAmountTwo, firstContract, memberTwo);
 
     const initialContractBalance = await token.balanceOf(staking.address);
     const expectedInitialContractBalance = ether('30');
@@ -490,14 +489,14 @@ describe('processBurn', function () {
 
   it('should burn up to contract stake if requested a bigger burn than available', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Set parameters
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     // Fund account and stake 10
     const stakeAmount = ether('10');
-    await fundAndStake(token, staking, stakeAmount, firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, stakeAmount, firstContract, memberOne);
 
     // Push a burn of 100
     const burnAmount = ether('100');
@@ -514,10 +513,10 @@ describe('processBurn', function () {
 
   it('should delete the burn object after processing it', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
-    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('300'), firstContract, memberOne);
     await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
     await staking.processPendingActions('100');
 
@@ -529,10 +528,10 @@ describe('processBurn', function () {
 
   it('should reset processedToStakerIndex', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
-    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('300'), firstContract, memberOne);
     await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
     await staking.processPendingActions('100');
 
@@ -542,10 +541,10 @@ describe('processBurn', function () {
 
   it('should reset isContractStakeCalculated', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
-    await fundAndStake(token, staking, ether('300'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('300'), firstContract, memberOne);
     await staking.pushBurn(firstContract, ether('100'), { from: internalContract });
     await staking.processPendingActions('100');
 
@@ -555,14 +554,14 @@ describe('processBurn', function () {
 
   it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
 
-    const { token, master, staking } = this;
+    const { token, tokenController, master, staking } = this;
     const iterationsNeeded = accounts.generalPurpose.length * 2;
 
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
-      await fundAndStake(token, staking, ether('10'), firstContract, account);
+      await fundAndStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
 
     await staking.pushBurn(firstContract, ether('9'), { from: internalContract });
@@ -579,9 +578,9 @@ describe('processBurn', function () {
 
   it('should emit Burned event', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
-    await fundAndStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundAndStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     await staking.pushBurn(firstContract, ether('2'), { from: internalContract });
     const process = await staking.processPendingActions('100');
@@ -594,14 +593,14 @@ describe('processBurn', function () {
 
   it('should properly calculate staked data on a contract when calculating in batches', async function () {
 
-    const { master, staking, token } = this;
+    const { master, staking, token, tokenController } = this;
     const numberOfStakers = accounts.generalPurpose.length;
 
     assert(numberOfStakers > 50, `expected to have at least 50 general purpose accounts, got ${numberOfStakers}`);
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
-      await fundAndStake(token, staking, ether('10'), firstContract, account);
+      await fundAndStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
 
     const actualInitialStake = await staking.contractStake(firstContract);
@@ -635,7 +634,7 @@ describe('processBurn', function () {
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
-      await fundAndStake(token, staking, ether('10'), firstContract, account);
+      await fundAndStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
   });
 });

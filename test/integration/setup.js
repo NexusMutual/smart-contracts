@@ -22,13 +22,13 @@ const Pool2 = contract.fromArtifact('Pool2');
 const PoolData = contract.fromArtifact('PoolData');
 const Quotation = contract.fromArtifact('Quotation');
 const QuotationData = contract.fromArtifact('QuotationData');
-const Governance = contract.fromArtifact('Governance');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = contract.fromArtifact('DisposableNXMaster');
 const DisposableMemberRoles = contract.fromArtifact('DisposableMemberRoles');
 const DisposableTokenController = contract.fromArtifact('DisposableTokenController');
 const DisposableProposalCategory = contract.fromArtifact('DisposableProposalCategory');
+const DisposableGovernance = contract.fromArtifact('DisposableGovernance');
 const DisposablePooledStaking = contract.fromArtifact('DisposablePooledStaking');
 
 // target contracts
@@ -36,6 +36,7 @@ const NXMaster = contract.fromArtifact('NXMaster');
 const MemberRoles = contract.fromArtifact('MemberRoles');
 const TokenController = contract.fromArtifact('TokenController');
 const ProposalCategory = contract.fromArtifact('ProposalCategory');
+const Governance = contract.fromArtifact('Governance');
 const PooledStaking = contract.fromArtifact('PooledStaking');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
@@ -101,7 +102,7 @@ async function setup () {
   const tc = await deployProxy(DisposableTokenController);
   const ps = await deployProxy(DisposablePooledStaking);
   const pc = await deployProxy(DisposableProposalCategory);
-  const gv = await deployProxy(Governance);
+  const gv = await deployProxy(DisposableGovernance);
 
   const contractType = code => {
 
@@ -148,6 +149,13 @@ async function setup () {
   );
 
   await pc.initialize(mr.address, { gas: 10e6 });
+
+  await gv.initialize(
+    300,
+    3600,
+    5,
+    40,
+  );
 
   await ps.initialize(
     tc.address,

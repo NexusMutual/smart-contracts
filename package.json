@@ -55,7 +55,7 @@
     "test": "oz compile && mocha --exit",
     "test-integration": "oz compile && mocha --exit test/integration",
     "test-unit": "oz compile && mocha --exit test/unit",
-    "deploy": "oz compile && mkdir flat && node scripts/deploy.js && rm -rf flat",
+    "deploy": "oz compile && node scripts/deploy.js",
     "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork"
   }
 }

@@ -5,6 +5,7 @@ const Web3 = require('web3');
 const Verifier = require('../lib/verifier');
 const { getenv, init } = require('../lib/env');
 const { hex } = require('../lib/helpers');
+const { toBN } = Web3.utils;
 
 const INITIAL_SUPPLY = ether('1500000');
 const etherscanApiKey = getenv('ETHERSCAN_API_KEY');
@@ -31,15 +32,15 @@ async function run () {
   const web3 = new Web3(provider);
   const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
 
-  const deployProxy = async contract => {
-    const implementation = await loader.fromArtifact(contract).new();
+  const deployProxy = async (contract, txParams) => {
+    const implementation = await loader.fromArtifact(contract).new(txParams);
     const proxy = await loader.fromArtifact('OwnedUpgradeabilityProxy').new(implementation.address);
     const instance = await loader.fromArtifact(contract).at(proxy.address);
     return { implementation, instance, proxy };
   };
 
-  const upgradeProxy = async (proxyAddress, contractName) => {
-    const implementation = await loader.fromArtifact(contractName).new();
+  const upgradeProxy = async (proxyAddress, contractName, txParams) => {
+    const implementation = await loader.fromArtifact(contractName).new(txParams);
     const proxy = await loader.fromArtifact('OwnedUpgradeabilityProxy').at(proxyAddress);
     await proxy.upgradeTo(implementation.address);
     return { implementation, proxy };
@@ -102,7 +103,7 @@ async function run () {
   const { instance: tc, implementation: tcImpl } = await deployProxy('DisposableTokenController');
   const { instance: ps, implementation: psImpl } = await deployProxy('DisposablePooledStaking');
   const { instance: pc, implementation: pcImpl } = await deployProxy('DisposableProposalCategory');
-  const { instance: gv, implementation: gvImpl } = await deployProxy('Governance');
+  const { instance: gv, implementation: gvImpl } = await deployProxy('DisposableGovernance', { gas: 12e6 });
 
   const proxiesAndImplementations = [
     { proxy: master, implementation: masterImpl, contract: 'DisposableNXMaster' },
@@ -110,7 +111,7 @@ async function run () {
     { proxy: tc, implementation: tcImpl, contract: 'DisposableTokenController' },
     { proxy: ps, implementation: psImpl, contract: 'DisposablePooledStaking' },
     { proxy: pc, implementation: pcImpl, contract: 'DisposableProposalCategory' },
-    { proxy: gv, implementation: gvImpl, contract: 'Governance' },
+    { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
   ];
 
   for (const addresses of proxiesAndImplementations) {
@@ -158,6 +159,15 @@ async function run () {
     600, // unstake lock time
   );
 
+  await gv.initialize(
+    toBN(600), // 10 minutes
+    toBN(600), // 10 minutes
+    toBN(5),
+    toBN(40),
+    toBN(75),
+    toBN(300), // 5 minutes
+  );
+
   console.log('Setting parameters');
 
   await pd.changeMasterAddress(master.address);
@@ -180,10 +190,6 @@ async function run () {
   await td.updateUintParameters(hex('CALOCKT'), 1); // ca lock 1 day
   await td.updateUintParameters(hex('MVLOCKT'), 1); // ca lock mv 1 day
 
-  await gv.changeMasterAddress(master.address);
-  await gv.updateUintParameters(hex('GOVHOLD'), 1); // token holding time 1 day
-  await gv.updateUintParameters(hex('ACWT'), 1); // action waiting time 1h
-
   await master.switchGovernanceAddress(gv.address);
 
   console.log('Upgrading to non-disposable contracts');
@@ -196,12 +202,14 @@ async function run () {
   const { implementation: newTcImpl } = await upgradeProxy(tc.address, 'TokenController');
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, 'PooledStaking');
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, 'ProposalCategory');
+  const { implementation: newGvImpl } = await upgradeProxy(pc.address, 'Governance', { gas: 10e6 });
 
   verifier.add('NXMaster', newMasterImpl.address);
   verifier.add('MemberRoles', newMrImpl.address);
   verifier.add('TokenController', newTcImpl.address);
   verifier.add('PooledStaking', newPsImpl.address);
   verifier.add('ProposalCategory', newPcImpl.address);
+  verifier.add('Governance', newGvImpl.address);
 
   console.log("Transfering contracts' ownership");
   await transferProxyOwnership(mr.address, master.address);

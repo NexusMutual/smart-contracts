@@ -20,12 +20,13 @@ async function setup () {
   const token = await TokenMock.new();
   const tokenController = await TokenControllerMock.new();
 
-  token.mint(defaultSender, ether('10000'));
+  await token.mint(defaultSender, ether('10000'));
 
   // set contract addresses
   await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('MR'), memberRoles.address);
+  await master.setLatestAddress(hex('PS'), staking.address);
 
   // required to be able to whitelist itself
   await master.enrollInternal(staking.address);
@@ -60,6 +61,9 @@ async function setup () {
     'Contract is not initialized',
   );
 
+  // initialize token
+  await token.setOperator(tokenController.address);
+
   // initialize then migrate
   await staking.changeDependentContractAddress();
   await staking.migrateStakers('1');
@@ -75,6 +79,7 @@ async function setup () {
 
   this.master = master;
   this.token = token;
+  this.tokenController = tokenController;
   this.staking = staking;
 }
 

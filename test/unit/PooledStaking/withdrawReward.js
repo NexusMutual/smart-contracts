@@ -14,12 +14,12 @@ const {
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 
-async function fundAndApprove (token, staking, amount, member) {
+async function fundAndApprove (token, tokenController, staking, amount, member) {
   const maxExposure = '2';
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
 }
 
 describe('withdrawReward', function () {
@@ -27,11 +27,11 @@ describe('withdrawReward', function () {
   beforeEach(setup);
 
   it("should properly move tokens from the PooledStaking contract to the member's address", async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Fund account and stake
     const stakeAmount = ether('10');
-    await fundAndApprove(token, staking, stakeAmount, memberOne);
+    await fundAndApprove(token, tokenController, staking, stakeAmount, memberOne);
     await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // Generate reward and process it
@@ -69,11 +69,11 @@ describe('withdrawReward', function () {
   });
 
   it('should check left reward is 0 after withdrawl and emit RewardWithdrawn', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Fund account and stake
     const stakeAmount = ether('10');
-    await fundAndApprove(token, staking, stakeAmount, memberOne);
+    await fundAndApprove(token, tokenController, staking, stakeAmount, memberOne);
     await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // Generate reward and process it

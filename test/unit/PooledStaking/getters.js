@@ -18,12 +18,12 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 const fourthContract = '0x0000000000000000000000000000000000000004';
 
-async function fundAndApprove (token, staking, amount, member) {
+async function fundAndApprove (token, tokenController, staking, amount, member) {
   const maxExposure = '2';
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
 }
 
 async function setLockTime (staking, lockTime) {
@@ -36,10 +36,10 @@ describe('getters', function () {
 
   it('stakerContractStake', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
     await setLockTime(staking, 90 * 24 * 3600); // 90 days
 
-    await fundAndApprove(token, staking, ether('300'), memberOne);
+    await fundAndApprove(token, tokenController, staking, ether('300'), memberOne);
     await staking.depositAndStake(ether('300'), [firstContract], [ether('300')], { from: memberOne });
 
     const contracts = [firstContract, secondContract, thirdContract, fourthContract];

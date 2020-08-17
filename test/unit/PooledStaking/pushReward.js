@@ -13,12 +13,11 @@ const {
 } = accounts;
 
 const firstContract = '0x0000000000000000000000000000000000000001';
-const secondContract = '0x0000000000000000000000000000000000000002';
 
-async function fundApproveDepositStake (token, staking, amount, contract, member) {
+async function fundApproveDepositStake (token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
@@ -40,9 +39,9 @@ describe('pushReward', function () {
 
   it('should emit RewardRequested event', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
-    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     // Push reward
     const rewardAmount = ether('2');
@@ -55,9 +54,9 @@ describe('pushReward', function () {
   });
 
   it('should update the rewards mapping correctly', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
-    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     // Push first reward
     const firstRewardAmount = ether('2');
@@ -83,9 +82,9 @@ describe('pushReward', function () {
 
   it('should set lastRewardId correctly', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
-    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     let lastRewardId = await staking.lastRewardId();
     assert(lastRewardId.eqn(0), `Expected lastRewardId to be 0, found ${lastRewardId}`);
@@ -105,9 +104,9 @@ describe('pushReward', function () {
 
   it('should set firstReward correctly', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
-    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     let firstReward = await staking.firstReward();
     assert(firstReward.eqn(0), `Expected firstReward to be 0, found ${firstReward}`);

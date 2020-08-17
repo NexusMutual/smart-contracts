@@ -18,10 +18,10 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
-async function fundApproveDepositStake (token, staking, amount, contract, member) {
+async function fundApproveDepositStake (token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
-  await token.approve(staking.address, amount, { from: member });
+  await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
@@ -32,8 +32,8 @@ describe('processFirstReward', function () {
   beforeEach(setup);
 
   it('should mint the reward amount in the PS contract', async function () {
-    const { token, staking } = this;
-    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
+    const { token, tokenController, staking } = this;
+    await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     await staking.pushReward(firstContract, ether('2'), { from: internalContract });
     await staking.processPendingActions('100');
@@ -47,13 +47,13 @@ describe('processFirstReward', function () {
   });
 
   it('should mint the reward amount in the PS contract when processing in batches', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     const stakeMemberOne = ether('10');
     const stakeMemberTwo = ether('20');
 
-    await fundApproveDepositStake(token, staking, stakeMemberOne, firstContract, memberOne);
-    await fundApproveDepositStake(token, staking, stakeMemberTwo, firstContract, memberTwo);
+    await fundApproveDepositStake(token, tokenController, staking, stakeMemberOne, firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, stakeMemberTwo, firstContract, memberTwo);
 
     const initialContractBalance = await token.balanceOf(staking.address);
     const expectedInitialContractBalance = ether('30');
@@ -83,20 +83,20 @@ describe('processFirstReward', function () {
   });
 
   it('should reward stakers proportionally to their stake', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     await staking.pushReward(firstContract, ether('20'), { from: internalContract });
     await expectRevert(
-      fundApproveDepositStake(token, staking, ether('100'), firstContract, memberOne),
+      fundApproveDepositStake(token, tokenController, staking, ether('100'), firstContract, memberOne),
       `Unable to execute request with unprocessed actions`,
     );
 
     await time.advanceBlock();
     await staking.processPendingActions('100');
 
-    await fundApproveDepositStake(token, staking, ether('100'), firstContract, memberOne);
-    await fundApproveDepositStake(token, staking, ether('180'), firstContract, memberTwo);
-    await fundApproveDepositStake(token, staking, ether('230'), firstContract, memberThree);
+    await fundApproveDepositStake(token, tokenController, staking, ether('100'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('180'), firstContract, memberTwo);
+    await fundApproveDepositStake(token, tokenController, staking, ether('230'), firstContract, memberThree);
 
     await staking.pushReward(firstContract, ether('50'), { from: internalContract });
     await time.advanceBlock();
@@ -125,11 +125,11 @@ describe('processFirstReward', function () {
   });
 
   it('should reward stakers proportionally to their stake, after a burn', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
-    await fundApproveDepositStake(token, staking, ether('100'), firstContract, memberOne);
-    await fundApproveDepositStake(token, staking, ether('200'), firstContract, memberTwo);
-    await fundApproveDepositStake(token, staking, ether('300'), firstContract, memberThree);
+    await fundApproveDepositStake(token, tokenController, staking, ether('100'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('200'), firstContract, memberTwo);
+    await fundApproveDepositStake(token, tokenController, staking, ether('300'), firstContract, memberThree);
 
     // Burn 200
     await time.advanceBlock();
@@ -183,17 +183,17 @@ describe('processFirstReward', function () {
   });
 
   it('should reward staker correctly, after a burn on another contract', async function () {
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     // Deposit and stake
-    await fundApproveDepositStake(token, staking, ether('200'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('200'), firstContract, memberOne);
     await staking.depositAndStake(
       ether('0'),
       [firstContract, secondContract, thirdContract],
       [ether('200'), ether('50'), ether('150')],
       { from: memberOne },
     );
-    await fundApproveDepositStake(token, staking, ether('200'), thirdContract, memberTwo);
+    await fundApproveDepositStake(token, tokenController, staking, ether('200'), thirdContract, memberTwo);
 
     let stakerOneDeposit = await staking.stakerDeposit(memberOne);
     assert(
@@ -294,9 +294,9 @@ describe('processFirstReward', function () {
 
   it('should delete the item from the rewards mapping after processing it', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
-    await fundApproveDepositStake(token, staking, ether('300'), firstContract, memberOne);
+    await fundApproveDepositStake(token, tokenController, staking, ether('300'), firstContract, memberOne);
     await staking.pushReward(firstContract, ether('10'), { from: internalContract });
 
     let hasPendingRewards = await staking.hasPendingRewards();
@@ -311,12 +311,12 @@ describe('processFirstReward', function () {
 
   it('should do up to maxIterations and finish in stakers.length * 2 cycles', async function () {
 
-    const { token, master, staking } = this;
+    const { token, tokenController, master, staking } = this;
     const iterationsNeeded = accounts.generalPurpose.length * 2;
 
     for (const account of accounts.generalPurpose) {
       await master.enrollMember(account, Role.Member);
-      await fundApproveDepositStake(token, staking, ether('10'), firstContract, account);
+      await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
 
     await staking.pushReward(firstContract, ether('2'), { from: internalContract });
@@ -334,7 +334,7 @@ describe('processFirstReward', function () {
 
   it('should remove and re-add 0-account stakers', async function () {
 
-    const { token, staking } = this;
+    const { token, tokenController, staking } = this;
 
     await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
@@ -351,7 +351,7 @@ describe('processFirstReward', function () {
     for (const member in stakes) {
       const stake = stakes[member];
       await token.transfer(member, ether(stake.amount));
-      await token.approve(staking.address, ether(stake.amount), { from: member });
+      await token.approve(tokenController.address, ether(stake.amount), { from: member });
       await staking.depositAndStake(
         ether(stake.amount),
         stake.on,
@@ -403,7 +403,7 @@ describe('processFirstReward', function () {
     );
 
     await token.transfer(memberOne, ether('5'));
-    await token.approve(staking.address, ether('5'), { from: memberOne });
+    await token.approve(tokenController.address, ether('5'), { from: memberOne });
     await staking.depositAndStake(
       ether('5'),
       [firstContract, secondContract, thirdContract],
@@ -422,8 +422,8 @@ describe('processFirstReward', function () {
 
   it('should emit Rewarded event', async function () {
 
-    const { token, staking } = this;
-    await fundApproveDepositStake(token, staking, ether('10'), firstContract, memberOne);
+    const { token, tokenController, staking } = this;
+    await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     const rewardAmount = ether('2');
     await staking.pushReward(firstContract, rewardAmount, { from: internalContract });

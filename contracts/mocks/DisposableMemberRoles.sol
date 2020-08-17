@@ -21,7 +21,7 @@ contract DisposableMemberRoles is MemberRoles {
 
     require(
       _initialMembers.length == _initialMemberTokens.length,
-      'initial members and member tokens arrays should have the same length'
+      "initial members and member tokens arrays should have the same length"
     );
 
     dAppToken = TokenController(_tokenControllerAddress);

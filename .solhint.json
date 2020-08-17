@@ -4,11 +4,12 @@
   "rules": {
     "avoid-suicide": "error",
     "avoid-sha3": "warn",
+    "compiler-version": ["warn", "^0.5.0"],
     "const-name-snakecase": "off",
-    "indent": ["warn", 2],
     "mark-callable-contracts": "off",
     "max-states-count": ["warn", 20],
     "not-rely-on-time": "off",
+    "reason-string": "off",
     "var-name-mixedcase": "off"
   }
 }

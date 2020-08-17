@@ -26,7 +26,7 @@ contract DisposableNXMaster is NXMaster {
 
     require(
       _contractNames.length == _contractTypes.length,
-      'contract names and types arrays should have the same length'
+      "contract names and types arrays should have the same length"
     );
 
     for (uint i = 0; i < _contractNames.length; i++) {

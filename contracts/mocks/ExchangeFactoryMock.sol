@@ -2,22 +2,22 @@ pragma solidity ^0.5.0;
 
 contract ExchangeFactoryMock {
 
-    mapping (address => address) internal exchange;
+  mapping(address => address) internal exchange;
 
-    mapping (address => address) internal token;
-    
-    function getExchange(address _tokenAddress) public view returns (address) {
+  mapping(address => address) internal token;
 
-        return exchange[_tokenAddress];
-    }
+  function getExchange(address _tokenAddress) public view returns (address) {
 
-    function getToken(address _exchangeAddress) public view returns (address) {
-        return token[_exchangeAddress];
-    }
+    return exchange[_tokenAddress];
+  }
 
-    function setFactory(address _tokenAddress, address _exchangeAddress) public {
-        exchange[_tokenAddress] = _exchangeAddress;
-        token[_exchangeAddress] = _tokenAddress;
-    }
-        
+  function getToken(address _exchangeAddress) public view returns (address) {
+    return token[_exchangeAddress];
+  }
+
+  function setFactory(address _tokenAddress, address _exchangeAddress) public {
+    exchange[_tokenAddress] = _exchangeAddress;
+    token[_exchangeAddress] = _tokenAddress;
+  }
+
 }

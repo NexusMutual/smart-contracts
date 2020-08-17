@@ -102,15 +102,15 @@ contract PooledStaking is MasterAware, IPooledStaking {
   uint public MIN_UNSTAKE;       // Forbid unstake of small amounts to prevent spam
   uint public UNSTAKE_LOCK_TIME; // Lock period in seconds before unstaking takes place
 
-  mapping(address => Staker) stakers;     // stakerAddress => Staker
+  mapping(address => Staker) internal stakers;     // stakerAddress => Staker
 
   // temporary variables
-  uint contractStaked;   // used when processing burns and rewards
-  uint contractBurned;   // used when processing burns
-  uint contractRewarded; // used when processing rewards
+  uint internal contractStaked;   // used when processing burns and rewards
+  uint internal contractBurned;   // used when processing burns
+  uint internal contractRewarded; // used when processing rewards
 
   // list of stakers for all contracts
-  mapping(address => address[]) contractStakers;
+  mapping(address => address[]) internal contractStakers;
 
   // there can be only one pending burn
   Burn public burn;
@@ -129,22 +129,22 @@ contract PooledStaking is MasterAware, IPooledStaking {
   /* Modifiers */
 
   modifier noPendingActions {
-    require(!hasPendingActions(), 'Unable to execute request with unprocessed actions');
+    require(!hasPendingActions(), "Unable to execute request with unprocessed actions");
     _;
   }
 
   modifier noPendingBurns {
-    require(!hasPendingBurns(), 'Unable to execute request with unprocessed burns');
+    require(!hasPendingBurns(), "Unable to execute request with unprocessed burns");
     _;
   }
 
   modifier noPendingUnstakeRequests {
-    require(!hasPendingUnstakeRequests(), 'Unable to execute request with unprocessed unstake requests');
+    require(!hasPendingUnstakeRequests(), "Unable to execute request with unprocessed unstake requests");
     _;
   }
 
   modifier noPendingRewards {
-    require(!hasPendingRewards(), 'Unable to execute request with unprocessed rewards');
+    require(!hasPendingRewards(), "Unable to execute request with unprocessed rewards");
     _;
   }
 
@@ -395,7 +395,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
       "Contracts and amounts arrays should have the same length"
     );
 
-    require(_insertAfter <= lastUnstakeRequestId, 'Invalid unstake request id provided');
+    require(_insertAfter <= lastUnstakeRequestId, "Invalid unstake request id provided");
 
     Staker storage staker = stakers[msg.sender];
     uint deposit = staker.deposit;
@@ -918,7 +918,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
       uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
       uint commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member)
-        .sub(tokenData.getStakerTotalReedmedStakeCommission(member));
+      .sub(tokenData.getStakerTotalReedmedStakeCommission(member));
 
       if (commissionsLeftToProcess > 0) {
         claimsReward._claimStakeCommission(stakedContractsCount, member);

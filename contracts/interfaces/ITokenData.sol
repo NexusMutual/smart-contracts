@@ -15,98 +15,100 @@
 
 pragma solidity ^0.5.0;
 
+
 interface ITokenData {
 
-    function members(uint _memberRoleId) external view returns(uint, address[] memory memberArray);
+  function members(uint _memberRoleId) external view returns (uint, address[] memory memberArray);
 
-    function getStakerStakedContractLength(
-        address _stakerAddress
-    )
-    external
-    view
-    returns (uint length);
+  function getStakerStakedContractLength(
+    address _stakerAddress
+  )
+  external
+  view
+  returns (uint length);
 
-    function getStakerStakedContractByIndex(
-        address _stakerAddress,
-        uint _stakerIndex
-    )
-    external
-    view
-    returns (address stakedContractAddress);
+  function getStakerStakedContractByIndex(
+    address _stakerAddress,
+    uint _stakerIndex
+  )
+  external
+  view
+  returns (address stakedContractAddress);
 
-    function getStakerStakedContractIndex(
-        address _stakerAddress,
-        uint _stakerIndex
-    )
-    external
-    view
-    returns (uint scIndex);
+  function getStakerStakedContractIndex(
+    address _stakerAddress,
+    uint _stakerIndex
+  )
+  external
+  view
+  returns (uint scIndex);
 
-    function pushBurnedTokens(
-        address _stakerAddress,
-        uint _stakerIndex,
-        uint _amount
-    ) external;
+  function pushBurnedTokens(
+    address _stakerAddress,
+    uint _stakerIndex,
+    uint _amount
+  ) external;
 
-    struct Stake {
-        address stakedContractAddress;
-        uint stakedContractIndex;
-        uint dateAdd;
-        uint stakeAmount;
-        uint unlockedAmount;
-        uint burnedAmount;
-        uint unLockableBeforeLastBurn;
-    }
+  struct Stake {
+    address stakedContractAddress;
+    uint stakedContractIndex;
+    uint dateAdd;
+    uint stakeAmount;
+    uint unlockedAmount;
+    uint burnedAmount;
+    uint unLockableBeforeLastBurn;
+  }
 
-    function scValidDays() external view returns (uint);
-    function stakerStakedContracts(
-        address staker,
-        uint index)
-    external
-    view
-    returns (address,uint256,uint256,uint256, uint256,uint256,uint256);
+  function scValidDays() external view returns (uint);
 
-    /**
-     * @dev to get the staker's unlocked tokens which were staked
-     * @param _stakerAddress is the address of the staker
-     * @param _stakerIndex is the index of staker
-     * @return amount
-     */
-    function getStakerUnlockedStakedTokens(
-        address _stakerAddress,
-        uint _stakerIndex
-    )
-    external
-    view
-    returns (uint amount);
+  function stakerStakedContracts(
+    address staker,
+    uint index)
+  external
+  view
+  returns (address, uint256, uint256, uint256, uint256, uint256, uint256);
 
-
-    function lastCompletedStakeCommission(address _stakerAddress) external view returns (uint);
-
-    function setUnlockableBeforeLastBurnTokens(
-        address _stakerAddress,
-        uint _stakerIndex,
-        uint _amount
-    ) external;
-
-    function pushUnlockedStakedTokens(
-        address _stakerAddress,
-        uint _stakerIndex,
-        uint _amount
-    ) external;
+  /**
+   * @dev to get the staker's unlocked tokens which were staked
+   * @param _stakerAddress is the address of the staker
+   * @param _stakerIndex is the index of staker
+   * @return amount
+   */
+  function getStakerUnlockedStakedTokens(
+    address _stakerAddress,
+    uint _stakerIndex
+  )
+  external
+  view
+  returns (uint amount);
 
 
-    function getStakerTotalEarnedStakeCommission(
-        address _stakerAddress
-    )
-    external
-    view
-    returns (uint totalCommissionEarned);
+  function lastCompletedStakeCommission(address _stakerAddress) external view returns (uint);
 
-    function getStakerTotalReedmedStakeCommission(
-        address _stakerAddress
-    )
-    external
-    view
-    returns(uint totalCommissionRedeemed);
+  function setUnlockableBeforeLastBurnTokens(
+    address _stakerAddress,
+    uint _stakerIndex,
+    uint _amount
+  ) external;
+
+  function pushUnlockedStakedTokens(
+    address _stakerAddress,
+    uint _stakerIndex,
+    uint _amount
+  ) external;
+
+
+  function getStakerTotalEarnedStakeCommission(
+    address _stakerAddress
+  )
+  external
+  view
+  returns (uint totalCommissionEarned);
+
+  function getStakerTotalReedmedStakeCommission(
+    address _stakerAddress
+  )
+  external
+  view
+  returns (uint totalCommissionRedeemed);
 }

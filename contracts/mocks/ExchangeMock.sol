@@ -1,17 +1,17 @@
 pragma solidity 0.5.7;
 
-import "./FactoryMock.sol";
-import "../external/openzeppelin-solidity/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./ExchangeFactoryMock.sol";
 
 
 contract ExchangeMock {
 
     ERC20 internal token;
-    FactoryMock internal factory;
+    ExchangeFactoryMock internal factory;
 
     constructor (address tokenAddress, address factoryAddress) public {
         token = ERC20(tokenAddress);
-        factory = FactoryMock(factoryAddress);
+        factory = ExchangeFactoryMock(factoryAddress);
     }
 
     function recieveEther() public payable {
@@ -27,21 +27,18 @@ contract ExchangeMock {
         
     }
     
-    function rateFactor() public view returns(uint256) {
-        if (token.id() == 1) {
-            return 10;
-        } else
-            return 5;
+    function rateFactor() public pure returns (uint256) {
+        return 10;
     }
 
-    function getEthToTokenInputPrice(uint256 ethSold) public view returns(uint256) {
+    function getEthToTokenInputPrice(uint256 ethSold) public pure returns (uint256) {
         // require(ethSold > 0);
         // uint256 tokenReserve = token.balanceOf(address(this));
         // return getInputPrice(ethSold, address(this).balance, tokenReserve);	
         return ethSold*rateFactor();
     }
 
-    function getTokenToEthInputPrice(uint256 tokensSold) public view returns(uint256) {
+    function getTokenToEthInputPrice(uint256 tokensSold) public pure returns (uint256) {
         // require(tokensSold > 0);
         // uint256 tokenReserve = token.balanceOf(address(this));
         // uint256 ethBought = getInputPrice(tokensSold, tokenReserve, address(this).balance);

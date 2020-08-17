@@ -44,18 +44,18 @@
     "ethlint": "^1.2.5",
     "mocha": "^7.1.2",
     "nodemon": "^2.0.2",
-    "truffle-flattener": "^1.4.4",
+    "truffle-flattener": "github:shark0der/truffle-flattener",
     "truffle-typings": "^1.0.8"
   },
   "scripts": {
     "compile": "oz compile",
-    "dev-integration": "nodemon --ext js,sol -x 'oz compile && mocha --exit test/integration'",
-    "dev-unit": "nodemon --ext js,sol -x 'oz compile && mocha --exit test/unit'",
-    "test": "mocha --exit",
-    "test-integration": "mocha --exit test/integration",
-    "test-unit": "mocha --exit test/unit",
-    "deploy-mock": "oz compile && node scripts/deploy-mock.js",
-    "deploy-full": "oz compile && node scripts/deploy-full.js",
+    "dev": "nodemon --ext js,sol -x 'oz compile && mocha --exit --bail'",
+    "dev-integration": "npm run dev -- -- test/integration",
+    "dev-unit": "npm run dev -- -- test/unit",
+    "test": "oz compile && mocha --exit",
+    "test-integration": "oz compile && mocha --exit test/integration",
+    "test-unit": "oz compile && mocha --exit test/unit",
+    "deploy": "oz compile && mkdir flat && node scripts/deploy.js && rm -rf flat",
     "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork"
   }
 }

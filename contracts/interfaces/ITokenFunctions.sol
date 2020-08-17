@@ -15,24 +15,25 @@
 
 pragma solidity ^0.5.0;
 
-interface ITokenFunctions {
-    function _deprecated_unlockableBeforeBurningAndCanBurn(
-        address stakerAdd,
-        address stakedAdd,
-        uint stakerIndex
-    )
-    external
-    view
-    returns
-    (uint amount, uint canBurn);
 
-    function _deprecated_getStakerUnlockableTokensOnSmartContract (
-        address _stakerAddress,
-        address _stakedContractAddress,
-        uint _stakedContractIndex
-    )
-    external
-    view
-    returns
-    (uint amount);
+interface ITokenFunctions {
+  function _deprecated_unlockableBeforeBurningAndCanBurn(
+    address stakerAdd,
+    address stakedAdd,
+    uint stakerIndex
+  )
+  external
+  view
+  returns
+  (uint amount, uint canBurn);
+
+  function _deprecated_getStakerUnlockableTokensOnSmartContract(
+    address _stakerAddress,
+    address _stakedContractAddress,
+    uint _stakedContractIndex
+  )
+  external
+  view
+  returns
+  (uint amount);
 }

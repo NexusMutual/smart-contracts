@@ -15,6 +15,7 @@
 
 pragma solidity ^0.5.0;
 
+
 interface IClaimsReward {
 
   function _claimStakeCommission(uint _records, address _user) external;

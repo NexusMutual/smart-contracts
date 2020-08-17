@@ -4,7 +4,7 @@ import "../modules/governance/Governance.sol";
 
 contract DisposableGovernance is Governance {
 
-  function initialize( // in comments are the values on mainnet
+  function initialize(// in comments are the values on mainnet
     uint _tokenHoldingTime, // 7 days
     uint _maxDraftTime, // 14 days
     uint _maxVoteWeigthPer, // 5

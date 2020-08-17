@@ -1,10 +1,10 @@
 pragma solidity 0.5.7;
-import "../external/openzeppelin-solidity/math/SafeMath.sol";
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract NXMDSValueMock {
-
     using SafeMath for uint;
+
     int public rate;
     address public owner;
     bool internal zeroRate;
@@ -15,11 +15,12 @@ contract NXMDSValueMock {
     }
 
     function read() public view returns (bytes32) {
+
         if (zeroRate) {
             return bytes32(0);
         }
+
         return bytes32(uint(10**36).div(uint(rate)));
-        
     }
 
     function setZeroRate(bool _zeroRate) public {

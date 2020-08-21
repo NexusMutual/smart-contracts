@@ -66,27 +66,4 @@ contract Pool1Mock is Pool1 {
         }
     }
 
-    function _oraclizeQuery (
-        uint paramCount,
-        uint timestamp,
-        string memory datasource,
-        string memory arg,
-        uint gasLimit
-    ) 
-        internal
-        
-        returns (bytes32)
-    {
-        // To silence compiler warning :(
-        return bytes32(keccak256(
-            abi.encodePacked(
-                paramCount,
-                timestamp,
-                datasource,
-                arg,
-                gasLimit,
-                now
-            )
-        ));
-    }
 }

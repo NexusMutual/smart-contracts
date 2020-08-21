@@ -96,18 +96,6 @@ contract IGovernance {
     ) 
         external;
 
-    /// @dev Initiates add solution 
-    /// @param _solutionHash Solution hash having required data against adding solution
-    function addSolution(
-        uint _proposalId,
-        string calldata _solutionHash, 
-        bytes calldata _action
-    ) 
-        external; 
-
-    /// @dev Opens proposal for voting
-    function openProposalForVoting(uint _proposalId) external;
-
     /// @dev Submit proposal with solution
     /// @param _proposalId Proposal id
     /// @param _solutionHash Solution hash contains  parameters, values and description needed according to proposal
@@ -154,10 +142,6 @@ contract IGovernance {
 
     function canCloseProposal(uint _proposalId) public view returns(uint closeValue);
 
-    function pauseProposal(uint _proposalId) public;
-    
-    function resumeProposal(uint _proposalId) public;
-    
     function allowedToCatgorize() public view returns(uint roleId);
 
 }

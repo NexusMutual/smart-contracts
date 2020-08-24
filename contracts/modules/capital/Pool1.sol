@@ -407,12 +407,12 @@ contract Pool1 is Iupgradable {
    */
   function _saveApiDetails(bytes4 _typeof, uint id) internal {
 
-        uint queryId = block.timestamp;
-        bytes32 myid = bytes32(queryId);
+    uint queryId = block.timestamp;
+    bytes32 myid = bytes32(queryId);
 
-        while (pd.getDateAddOfAPI(myid) != 0) {
-            myid = bytes32(++queryId);
-        }
+    while (pd.getDateAddOfAPI(myid) != 0) {
+      myid = bytes32(++queryId);
+    }
 
     pd.saveApiDetails(myid, _typeof, id);
     pd.addInAllApiCall(myid);

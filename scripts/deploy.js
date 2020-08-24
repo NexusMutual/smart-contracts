@@ -192,17 +192,16 @@ async function run () {
 
   await master.switchGovernanceAddress(gv.address);
 
-  console.log('Upgrading to non-disposable contracts');
-
   // trigger changeDependentContractAddress() on all contracts
   await master.changeAllAddress();
 
+  console.log('Upgrading to non-disposable contracts');
   const { implementation: newMasterImpl } = await upgradeProxy(master.address, 'NXMaster');
   const { implementation: newMrImpl } = await upgradeProxy(mr.address, 'MemberRoles');
   const { implementation: newTcImpl } = await upgradeProxy(tc.address, 'TokenController');
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, 'PooledStaking');
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, 'ProposalCategory');
-  const { implementation: newGvImpl } = await upgradeProxy(pc.address, 'Governance', { gas: 10e6 });
+  const { implementation: newGvImpl } = await upgradeProxy(gv.address, 'Governance', { gas: 10e6 });
 
   verifier.add('NXMaster', newMasterImpl.address);
   verifier.add('MemberRoles', newMrImpl.address);

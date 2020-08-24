@@ -15,8 +15,8 @@
 
 pragma solidity ^0.5.0;
 
-import "../../abstract/Iupgradable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../abstract/Iupgradable.sol";
 
 contract DSValue {
   function peek() public view returns (bytes32, bool);

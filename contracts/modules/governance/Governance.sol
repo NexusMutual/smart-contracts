@@ -15,11 +15,11 @@
 
 pragma solidity ^0.5.0;
 
-import "./ProposalCategory.sol";
-import "./MemberRoles.sol";
-import "./external/IGovernance.sol";
-import "../token/TokenController.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../token/TokenController.sol";
+import "./MemberRoles.sol";
+import "./ProposalCategory.sol";
+import "./external/IGovernance.sol";
 
 contract Governance is IGovernance, Iupgradable {
 

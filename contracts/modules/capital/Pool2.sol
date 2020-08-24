@@ -17,8 +17,8 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/Exchange.sol";
-import "../cover/Quotation.sol";
 import "../claims/ClaimsReward.sol";
+import "../cover/Quotation.sol";
 
 contract Pool2 is Iupgradable {
   using SafeMath for uint;

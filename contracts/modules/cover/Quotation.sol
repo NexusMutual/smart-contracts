@@ -16,14 +16,14 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./QuotationData.sol";
-import "../token/TokenFunctions.sol";
+import "../capital/MCR.sol";
+import "../capital/Pool1.sol";
+import "../capital/PoolData.sol";
+import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
-import "../capital/PoolData.sol";
-import "../capital/MCR.sol";
-import "../governance/MemberRoles.sol";
-import "../capital/Pool1.sol";
+import "../token/TokenFunctions.sol";
+import "./QuotationData.sol";
 
 contract Quotation is Iupgradable {
   using SafeMath for uint;

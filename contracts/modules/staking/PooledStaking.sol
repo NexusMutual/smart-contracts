@@ -17,15 +17,15 @@
 
 pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/MasterAware.sol";
 import "../../interfaces/IPooledStaking.sol";
+import "../claims/ClaimsReward.sol";
+import "../governance/MemberRoles.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
-import "../governance/MemberRoles.sol";
-import "../token/TokenFunctions.sol";
 import "../token/TokenData.sol";
-import "../claims/ClaimsReward.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../token/TokenFunctions.sol";
 
 contract PooledStaking is MasterAware, IPooledStaking {
   using SafeMath for uint;

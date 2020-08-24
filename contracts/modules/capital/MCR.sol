@@ -17,13 +17,13 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./PoolData.sol";
-import "../cover/QuotationData.sol";
-import "../token/TokenData.sol";
-import "../token/NXMToken.sol";
 import "../capital/Pool1.sol";
+import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../governance/ProposalCategory.sol";
+import "../token/NXMToken.sol";
+import "../token/TokenData.sol";
+import "./PoolData.sol";
 
 contract MCR is Iupgradable {
   using SafeMath for uint;

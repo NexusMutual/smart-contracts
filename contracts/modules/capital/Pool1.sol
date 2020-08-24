@@ -17,11 +17,11 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./PoolData.sol";
 import "../claims/Claims.sol";
 import "../cover/Quotation.sol";
-import "./Pool2.sol";
 import "./MCR.sol";
+import "./Pool2.sol";
+import "./PoolData.sol";
 
 contract Pool1 is Iupgradable {
   using SafeMath for uint;

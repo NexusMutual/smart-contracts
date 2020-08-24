@@ -24,8 +24,8 @@ import "../capital/Pool2.sol";
 import "../capital/PoolData.sol";
 import "../cover/QuotationData.sol";
 import "../governance/Governance.sol";
-import "../token/TokenFunctions.sol";
 import "../token/TokenData.sol";
+import "../token/TokenFunctions.sol";
 import "./Claims.sol";
 import "./ClaimsData.sol";
 

@@ -35,7 +35,7 @@ async function setup () {
   await staking.changeMasterAddress(master.address);
   await tokenController.changeMasterAddress(master.address);
 
-  // pull other addresses from master
+  // pull other addresses from master and trigger pooled staking initialization
   await staking.changeDependentContractAddress();
   await tokenController.changeDependentContractAddress();
 
@@ -56,17 +56,8 @@ async function setup () {
     await master.enrollGovernance(governanceContract);
   }
 
-  await expectRevert(
-    staking.depositAndStake(ether('1'), [], []),
-    'Contract is not initialized',
-  );
-
   // initialize token
   await token.setOperator(tokenController.address);
-
-  // initialize then migrate
-  await staking.changeDependentContractAddress();
-  await staking.migrateStakers('1');
 
   assert(await staking.initialized(), 'Pooled staking contract should have been initialized');
 

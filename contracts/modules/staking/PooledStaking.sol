@@ -500,6 +500,10 @@ contract PooledStaking is MasterAware, IPooledStaking {
     address contractAddress, uint amount
   ) public onlyInternal whenNotPausedAndInitialized noPendingBurns {
 
+    address[] memory contractAddresses = new address[](1);
+    contractAddresses[0] = contractAddress;
+    _pushRewards(contractAddresses, true);
+
     burn.amount = amount;
     burn.burnedAt = now;
     burn.contractAddress = contractAddress;
@@ -524,7 +528,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
   /**
    * @dev Pushes accumulated rewards to the processing queue.
    */
-  function _pushRewards(address[] memory contractAddresses) internal {
+  function _pushRewards(address[] memory contractAddresses, bool skipRoundCheck) internal {
 
     uint currentRound = _getCurrentRewardsRound();
     uint lastRewardIdCounter = lastRewardId;
@@ -536,7 +540,9 @@ contract PooledStaking is MasterAware, IPooledStaking {
       ContractReward storage contractRewards = accumulatedRewards[contractAddress];
       uint amount = contractRewards.amount;
 
-      if (amount > 0 && currentRound <= contractRewards.lastDistributionRound) {
+      bool canPush = amount > 0 && (skipRoundCheck || currentRound > contractRewards.lastDistributionRound);
+
+      if (!canPush) {
         continue;
       }
 
@@ -563,7 +569,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
    * @dev `_pushRewards` checks the current round and will only push if rewards can be distributed.
    */
   function pushRewards(address[] calldata contractAddresses) external whenNotPausedAndInitialized {
-    _pushRewards(contractAddresses);
+    _pushRewards(contractAddresses, false);
   }
 
   /**
@@ -574,7 +580,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     // will push rewards if needed
     address[] memory contractAddresses = new address[](1);
     contractAddresses[0] = contractAddress;
-    _pushRewards(contractAddresses);
+    _pushRewards(contractAddresses, false);
 
     ContractReward storage contractRewards = accumulatedRewards[contractAddress];
     contractRewards.amount = contractRewards.amount.add(amount);

@@ -17,7 +17,7 @@
 
 pragma solidity ^0.5.7;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "./external/openzeppelin-solidity/math/SafeMath.sol";
 import "./abstract/MasterAware.sol";
 import "./interfaces/IPooledStaking.sol";
 import "./NXMToken.sol";
@@ -961,7 +961,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function initialize() public {
     require(!initialized, "Contract is already initialized");
-
     tokenController.addToWhitelist(address(this));
     initialized = true;
   }

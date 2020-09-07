@@ -1,10 +1,9 @@
 const { accounts, defaultSender, web3 } = require('@openzeppelin/test-environment');
-const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-helpers');
-const { exec } = require('child_process');
+const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 require('chai').should();
 
 const { getQuoteValues, getValue } = require('../external');
-const { hex, sleep } = require('../utils').helpers;
+const { hex } = require('../utils').helpers;
 const setup = require('../setup');
 
 const BN = web3.utils.BN;
@@ -13,24 +12,6 @@ const LOCK_REASON_CLAIM = hex('CLA');
 
 function coverToCoverDetailsArray (cover) {
   return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
-}
-
-async function debugTx (promise) {
-  try {
-    await promise;
-  } catch (e) {
-    if (e.tx) {
-      console.error(`Tx ${e.tx} failed. ${e.stack}`);
-      const rpc = web3.eth.currentProvider.wrappedProvider.host.replace(/^http:\/\//, '');
-      const cmd = `tenderly export ${e.tx} --debug --rpc ${rpc}`;
-      console.log(`Executing ${cmd}`);
-      exec(cmd);
-
-      await sleep(1000000000);
-    } else {
-      throw e;
-    }
-  }
 }
 
 describe('burns', function () {
@@ -63,7 +44,7 @@ describe('burns', function () {
   const initialMemberFunds = ether('2500');
 
   async function initMembers () {
-    const { mr, mcr, pd, tk, tc, cd } = this;
+    const { mr, mcr, pd, tk, tc } = this;
 
     await mr.addMembersBeforeLaunch([], []);
     (await mr.launched()).should.be.equal(true);
@@ -89,11 +70,9 @@ describe('burns', function () {
     for (const member of members) {
       await mr.payJoiningFee(member, { from: member, value: fee });
       await mr.kycVerdict(member, true);
-      // await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
+      await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
       await tk.transfer(member, initialMemberFunds);
     }
-
-    const maxVotingTime = await cd.maxVotingTime();
 
     for (const member of members) {
       await tc.lock(LOCK_REASON_CLAIM, tokensLockedForVoting, validity, {
@@ -102,9 +81,6 @@ describe('burns', function () {
     }
 
     this.allMembers = members;
-
-    const currency = hex('ETH');
-    const tokenPrice = await mcr.calculateTokenPrice(currency);
   }
 
   async function buyCover (cover, coverHolder) {

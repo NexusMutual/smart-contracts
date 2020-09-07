@@ -82,7 +82,17 @@ module.exports = function (deployer, network, accounts) {
     const psProxyAddress = await master.getLatestAddress(toHex('PS'));
     const ps = await PooledStaking.at(psProxyAddress);
 
-    await ps.migrateStakers('1');
+    await ps.initializeRewardRoundsStart();
+
+    const expectedRewardRoundDuration = `${7 * 24 * 3600}`;
+    const rewardRoundDuration = await ps.REWARD_ROUND_DURATION();
+
+    assert.strictEqual(
+      expectedRewardRoundDuration,
+      rewardRoundDuration.toString(),
+      'REWARD_ROUND_DURATION should have been initialized'
+    );
+
     assert(await ps.initialized(), 'Pooled staking contract should have been initialized');
 
     // transfer master ownership and init governance

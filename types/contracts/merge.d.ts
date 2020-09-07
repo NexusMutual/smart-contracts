@@ -19,9 +19,6 @@ declare global {
         name: "ITokenController"
       ): TruffleContracts.ITokenControllerContract;
       require(name: "ITokenData"): TruffleContracts.ITokenDataContract;
-      require(
-        name: "ITokenFunctions"
-      ): TruffleContracts.ITokenFunctionsContract;
       require(name: "Iupgradable"): TruffleContracts.IupgradableContract;
       require(name: "MasterAware"): TruffleContracts.MasterAwareContract;
       require(name: "MasterMock"): TruffleContracts.MasterMockContract;
@@ -33,6 +30,9 @@ declare global {
       ): TruffleContracts.NewInternalContractContract;
       require(name: "NXMToken"): TruffleContracts.NXMTokenContract;
       require(name: "PooledStaking"): TruffleContracts.PooledStakingContract;
+      require(
+        name: "PooledStakingMock"
+      ): TruffleContracts.PooledStakingMockContract;
       require(
         name: "TokenControllerMock"
       ): TruffleContracts.TokenControllerMockContract;

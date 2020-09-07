@@ -490,13 +490,18 @@ describe('depositAndStake', function () {
   });
 
   it('should revert when called with pending actions', async function () {
+
     const { staking, token, tokenController } = this;
+    const roundDuration = await staking.REWARD_ROUND_DURATION();
 
     await fundAndApprove(token, tokenController, staking, ether('20'), memberOne); // MAX_EXPOSURE = 2
     await setUnstakeLockTime(staking, 90 * 24 * 3600); // UNSTAKE_LOCK_TIME = 90 days
 
     // Push reward
-    await staking.pushReward(firstContract, ether('10'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('10'), { from: internalContract });
+    await time.increase(roundDuration);
+    await staking.pushRewards([firstContract]);
+
     await expectRevert(
       staking.depositAndStake(ether('15'), [firstContract], [ether('15')], { from: memberOne }),
       'Unable to execute request with unprocessed actions',

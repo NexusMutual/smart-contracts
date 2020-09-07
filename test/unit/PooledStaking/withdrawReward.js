@@ -1,4 +1,4 @@
-const { expectRevert, ether, expectEvent } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
@@ -35,8 +35,12 @@ describe('withdrawReward', function () {
     await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // Generate reward and process it
+    const roundDuration = await staking.REWARD_ROUND_DURATION();
     const reward = ether('2');
-    await staking.pushReward(firstContract, reward, { from: internalContract });
+
+    await staking.accumulateReward(firstContract, reward, { from: internalContract });
+    await time.increase(roundDuration);
+    await staking.pushRewards([firstContract]);
     await staking.processPendingActions('100');
 
     // Check balances
@@ -77,8 +81,12 @@ describe('withdrawReward', function () {
     await staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne });
 
     // Generate reward and process it
+    const roundDuration = await staking.REWARD_ROUND_DURATION();
     const reward = ether('5');
-    await staking.pushReward(firstContract, reward, { from: internalContract });
+
+    await staking.accumulateReward(firstContract, reward, { from: internalContract });
+    await time.increase(roundDuration);
+    await staking.pushRewards([firstContract]);
     await staking.processPendingActions('100');
 
     // Withdraw all left reward

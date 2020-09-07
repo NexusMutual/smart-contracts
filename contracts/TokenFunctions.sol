@@ -43,7 +43,7 @@ contract TokenFunctions is Iupgradable {
      */
     function pushStakerRewards(address _contractAddress, uint _coverPriceNXM) external onlyInternal {
         uint rewardValue = _coverPriceNXM.mul(td.stakerCommissionPer()).div(100);
-        pooledStaking.pushReward(_contractAddress, rewardValue);
+        pooledStaking.accumulateReward(_contractAddress, rewardValue);
     }
 
     /**
@@ -103,10 +103,10 @@ contract TokenFunctions is Iupgradable {
      */
     function getUserLockedCNTokens(address _of, uint _coverId) external view returns(uint) {
         return _getUserLockedCNTokens(_of, _coverId);
-    } 
+    }
 
     /**
-     * @dev to get the all the cover locked tokens of a user 
+     * @dev to get the all the cover locked tokens of a user
      * @param _of is the user address in concern
      * @return amount locked
      */
@@ -127,7 +127,7 @@ contract TokenFunctions is Iupgradable {
     /**
      * @dev Returns total amount of staked NXM Tokens on all smart contracts.
      * @param _stakerAddress address of the Staker.
-     */ 
+     */
     function deprecated_getStakerAllLockedTokens(address _stakerAddress) external view returns (uint amount) {
         uint stakedAmount = 0;
         address scAddress;
@@ -194,29 +194,29 @@ contract TokenFunctions is Iupgradable {
     /**
      * @dev Set the flag to check if cover note is deposited against the cover id
      * @param coverId Cover Id.
-     */ 
+     */
     function depositCN(uint coverId) public onlyInternal returns (bool success) {
         require(_getLockedCNAgainstCover(coverId) > 0, "No cover note available");
         td.setDepositCN(coverId, true);
-        success = true;    
+        success = true;
     }
 
     /**
      * @param _of address of Member
      * @param _coverId Cover Id
      * @param _lockTime Pending Time + Cover Period 7*1 days
-     */ 
+     */
     function extendCNEPOff(address _of, uint _coverId, uint _lockTime) public onlyInternal {
         uint timeStamp = now.add(_lockTime);
         uint coverValidUntil = qd.getValidityOfCover(_coverId);
         if (timeStamp >= coverValidUntil) {
             bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
             tc.extendLockOf(_of, reason, timeStamp);
-        } 
+        }
     }
 
     /**
-     * @dev to burn the deposited cover tokens 
+     * @dev to burn the deposited cover tokens
      * @param coverId is id of cover whose tokens have to be burned
      * @return the status of the successful burning
      */
@@ -231,9 +231,9 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev Unlocks covernote locked against a given cover 
+     * @dev Unlocks covernote locked against a given cover
      * @param coverId id of cover
-     */ 
+     */
     function unlockCN(uint coverId) public onlyInternal {
         (, bool isDeposited) = td.depositedCN(coverId);
         require(!isDeposited,"Cover note is deposited and can not be released");
@@ -245,12 +245,12 @@ contract TokenFunctions is Iupgradable {
         }
     }
 
-    /** 
+    /**
      * @dev Burns tokens used for fraudulent voting against a claim
      * @param claimid Claim Id.
      * @param _value number of tokens to be burned
      * @param _of Claim Assessor's address.
-     */     
+     */
     function burnCAToken(uint claimid, uint _value, address _of) public {
 
         require(ms.checkIsAuthToGoverned(msg.sender));
@@ -281,7 +281,7 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev to check if a  member is locked for member vote 
+     * @dev to check if a  member is locked for member vote
      * @param _of is the member address in concern
      * @return the boolean status
      */
@@ -331,7 +331,7 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev releases unlockable staked tokens to staker 
+     * @dev releases unlockable staked tokens to staker
      */
     function deprecated_unlockStakerUnlockableTokens(address _stakerAddress) public checkPause {
         uint unlockableAmount;
@@ -352,16 +352,16 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev to get tokens of staker locked before burning that are allowed to burn 
-     * @param stakerAdd is the address of the staker 
-     * @param stakedAdd is the address of staked contract in concern 
+     * @dev to get tokens of staker locked before burning that are allowed to burn
+     * @param stakerAdd is the address of the staker
+     * @param stakedAdd is the address of staked contract in concern
      * @param stakerIndex is the staker index in concern
      * @return amount of unlockable tokens
      * @return amount of tokens that can burn
      */
     function _deprecated_unlockableBeforeBurningAndCanBurn(
-        address stakerAdd, 
-        address stakedAdd, 
+        address stakerAdd,
+        address stakedAdd,
         uint stakerIndex
     )
     public
@@ -391,8 +391,8 @@ contract TokenFunctions is Iupgradable {
 
     /**
      * @dev to get tokens of staker that are unlockable
-     * @param _stakerAddress is the address of the staker 
-     * @param _stakedContractAddress is the address of staked contract in concern 
+     * @param _stakerAddress is the address of the staker
+     * @param _stakedContractAddress is the address of staked contract in concern
      * @param _stakedContractIndex is the staked contract index in concern
      * @return amount of unlockable tokens
      */
@@ -400,12 +400,12 @@ contract TokenFunctions is Iupgradable {
         address _stakerAddress,
         address _stakedContractAddress,
         uint _stakedContractIndex
-    ) 
+    )
         public
         view
         returns
         (uint amount)
-    {   
+    {
         uint initialStake;
         uint stakerIndex = td.getStakedContractStakerIndex(
             _stakedContractAddress, _stakedContractIndex);
@@ -434,7 +434,7 @@ contract TokenFunctions is Iupgradable {
         view
         returns
         (uint amount)
-    {   
+    {
         bytes32 reason = keccak256(abi.encodePacked("UW", _stakerAddress,
             _stakedContractAddress, _stakedContractIndex));
         amount = tc.tokensLocked(_stakerAddress, reason);
@@ -447,7 +447,7 @@ contract TokenFunctions is Iupgradable {
     function _getLockedCNAgainstCover(uint _coverId) internal view returns(uint) {
         address coverHolder = qd.getCoverMemberAddress(_coverId);
         bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, _coverId));
-        return tc.tokensLockedAtTime(coverHolder, reason, now); 
+        return tc.tokensLockedAtTime(coverHolder, reason, now);
     }
 
     /**
@@ -457,7 +457,7 @@ contract TokenFunctions is Iupgradable {
      */
     function _getUserLockedCNTokens(address _of, uint _coverId) internal view returns(uint) {
         bytes32 reason = keccak256(abi.encodePacked("CN", _of, _coverId));
-        return tc.tokensLockedAtTime(_of, reason, now); 
+        return tc.tokensLockedAtTime(_of, reason, now);
     }
 
     /**
@@ -471,9 +471,9 @@ contract TokenFunctions is Iupgradable {
         uint _stakeAmount,
         uint _stakeDays,
         uint _validDays
-    ) 
+    )
         internal
-        pure 
+        pure
         returns (uint amount)
     {
         if (_validDays > _stakeDays) {
@@ -485,7 +485,7 @@ contract TokenFunctions is Iupgradable {
     }
 
     /**
-     * @dev Gets the total staked NXM tokens against Smart contract 
+     * @dev Gets the total staked NXM tokens against Smart contract
      * by all stakers
      * @param _stakedContractAddress smart contract address.
      * @return amount total staked NXM tokens.
@@ -495,7 +495,7 @@ contract TokenFunctions is Iupgradable {
         address _stakedContractAddress,
         uint _stakedContractIndex,
         uint _amount
-    ) 
+    )
         internal
     {
         uint stakerIndex = td.getStakedContractStakerIndex(

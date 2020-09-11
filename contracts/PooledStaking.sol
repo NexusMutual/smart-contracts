@@ -971,7 +971,7 @@ contract PooledStaking is MasterAware {
 
   function initializeRewardRoundsStart() public {
     require(REWARD_ROUNDS_START == 0, 'REWARD_ROUNDS_START already initialized');
-    REWARD_ROUNDS_START = 1599307200;
+    REWARD_ROUNDS_START = 1600074000;
     REWARD_ROUND_DURATION = 7 days;
   }
 

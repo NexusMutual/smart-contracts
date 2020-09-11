@@ -159,30 +159,15 @@ describe.only('accumulateReward', function () {
     let lastRewardId = await staking.lastRewardId();
     assert(lastRewardId.eqn(0), `Expected lastRewardId to be 0, found ${lastRewardId}`);
 
-    const acc1 = await staking.accumulateReward(firstContract, ether('2'), { from: internalContract });
-    const acc2 = await staking.accumulateReward(firstContract, ether('3'), { from: internalContract });
-    const acc3 = await staking.accumulateReward(secondContract, ether('4'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('2'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('3'), { from: internalContract });
+    await staking.accumulateReward(secondContract, ether('4'), { from: internalContract });
 
     await time.increase(await staking.REWARD_ROUND_DURATION());
     // attempt push with firstContract twice in the array:
-    const push1 = await staking.pushRewards([firstContract, firstContract]);
+    await staking.pushRewards([firstContract, firstContract]);
     // attempt an additional push:
-    const push2 = await staking.pushRewards([firstContract]);
-
-    console.log('acc1');
-    logEvents(acc1);
-
-    console.log('acc2');
-    logEvents(acc2);
-
-    console.log('acc3');
-    logEvents(acc3);
-
-    console.log('push1');
-    logEvents(push1);
-
-    console.log('push2');
-    logEvents(push2);
+    await staking.pushRewards([firstContract]);
 
     lastRewardId = await staking.lastRewardId();
     assert(lastRewardId.eqn(1), `Expected lastRewardId to be 1, found ${lastRewardId}`);

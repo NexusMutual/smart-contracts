@@ -537,11 +537,16 @@ contract PooledStaking is MasterAware {
 
       address contractAddress = contractAddresses[i];
       ContractReward storage contractRewards = accumulatedRewards[contractAddress];
+      uint lastRound = contractRewards.lastDistributionRound;
       uint amount = contractRewards.amount;
 
-      bool canPush = amount > 0 && (skipRoundCheck || currentRound > contractRewards.lastDistributionRound);
+      bool shouldPush = amount > 0 && (skipRoundCheck || currentRound > lastRound);
 
-      if (!canPush) {
+      if (!shouldPush) {
+        // prevent unintended distribution of the first reward in round
+        if (lastRound != currentRound) {
+          contractRewards.lastDistributionRound = currentRound;
+        }
         continue;
       }
 

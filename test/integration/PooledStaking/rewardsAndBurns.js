@@ -194,6 +194,9 @@ describe('burns', function () {
 
       await buyCover.call(this, cover, coverHolder);
 
+      time.increase(await ps.REWARD_ROUND_DURATION());
+      await ps.pushRewards([cover.contractAddress]);
+
       const stakerRewardPreProcessing = await ps.stakerReward(staker1);
       await ps.processPendingActions('100');
       const stakerRewardPostProcessing = await ps.stakerReward(staker1);
@@ -269,6 +272,9 @@ describe('burns', function () {
       const { ps, td } = this;
 
       await buyCover.call(this, cover, coverHolder);
+
+      time.increase(await ps.REWARD_ROUND_DURATION());
+      await ps.pushRewards([cover.contractAddress]);
 
       const stakerRewardPreProcessing = await ps.stakerReward(staker1);
       await ps.processPendingActions('100');
@@ -352,6 +358,9 @@ describe('burns', function () {
 
       await buyCover.call(this, cover, coverHolder);
 
+      time.increase(await ps.REWARD_ROUND_DURATION());
+      await ps.pushRewards([cover.contractAddress]);
+
       await ps.processPendingActions('100');
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], { from: coverHolder });
@@ -402,6 +411,9 @@ describe('burns', function () {
         from: staker1,
       });
       await buyCover.call(this, cover, coverHolder);
+
+      time.increase(await ps.REWARD_ROUND_DURATION());
+      await ps.pushRewards([cover.contractAddress]);
       await ps.processPendingActions('100');
 
       await ps.requestUnstake([cover.contractAddress], [stakeTokens], 0, {
@@ -463,6 +475,10 @@ describe('burns', function () {
         from: staker1,
       });
       await buyCover.call(this, cover, coverHolder);
+
+      time.increase(await ps.REWARD_ROUND_DURATION());
+      await ps.pushRewards([cover.contractAddress]);
+
       await ps.processPendingActions('100');
       const coverID = await qd.getAllCoversOfUser(coverHolder);
       await cl.submitClaim(coverID[0], { from: coverHolder });
@@ -535,6 +551,9 @@ describe('burns', function () {
         from: staker1,
       });
       await buyCover.call(this, cover, coverHolder);
+
+      time.increase(await ps.REWARD_ROUND_DURATION());
+      await ps.pushRewards([cover.contractAddress]);
       await ps.processPendingActions('100');
 
       const unstakeRequest = await ps.requestUnstake([cover.contractAddress], [stakeTokens], 0, {

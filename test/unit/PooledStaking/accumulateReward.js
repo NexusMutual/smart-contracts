@@ -15,6 +15,7 @@ const {
 
 const firstContract = '0x0000000000000000000000000000000000000001';
 const secondContract = '0x0000000000000000000000000000000000000002';
+const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundApproveDepositStake (token, tokenController, staking, amount, contract, member) {
   await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
@@ -23,7 +24,7 @@ async function fundApproveDepositStake (token, tokenController, staking, amount,
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
-describe.only('getCurrentRewardsRound', function () {
+describe('getCurrentRewardsRound', function () {
   beforeEach(setup);
 
   it('returns incrementing round numbers as rounds pass', async function () {
@@ -158,14 +159,15 @@ describe('accumulateReward', function () {
     // Push first reward
     await staking.accumulateReward(firstContract, ether('2'), { from: internalContract });
     await staking.accumulateReward(secondContract, ether('4'), { from: internalContract });
+    await staking.accumulateReward(thirdContract, ether('13'), { from: internalContract });
     await time.increase(await staking.REWARD_ROUND_DURATION());
-    await staking.pushRewards([secondContract, firstContract]);
+    await staking.pushRewards([secondContract, firstContract, thirdContract]);
 
     firstReward = await staking.firstReward();
     lastRewardId = await staking.lastRewardId();
 
     assert(firstReward.eqn(1), `Expected firstReward to be 1, found ${firstReward}`);
-    assert(lastRewardId.eqn(2), `Expected lastRewardId to be 2, found ${lastRewardId}`);
+    assert(lastRewardId.eqn(3), `Expected lastRewardId to be 2, found ${lastRewardId}`);
   });
 
   it('should not push the same contract multiple times in the same round', async function () {
@@ -216,19 +218,22 @@ describe('accumulateReward', function () {
     await staking.accumulateReward(firstContract, ether('7'), { from: internalContract });
     await staking.accumulateReward(secondContract, ether('5'), { from: internalContract });
 
+    let currentRound = await staking.getCurrentRewardsRound();
+
     // accumulated
     accumulated = await staking.accumulatedRewards(firstContract);
     expAmount = ether('10');
 
     assert(accumulated.amount.eq(expAmount), `Expected amount to be ${expAmount}, found ${accumulated.amount}`);
     assert(
-      accumulated.lastDistributionRound.eqn(0),
+      accumulated.lastDistributionRound.eqn(currentRound.toNumber()),
       `Expected lastDistributionRound to be 0, found ${accumulated.lastDistributionRound}`,
     );
 
     // push
     await time.increase(await staking.REWARD_ROUND_DURATION());
-    const currentRound = await staking.getCurrentRewardsRound();
+    currentRound = await staking.getCurrentRewardsRound();
+
     await staking.pushRewards([firstContract, secondContract]);
 
     // next round
@@ -236,6 +241,7 @@ describe('accumulateReward', function () {
     expAmount = ether('0');
 
     assert(accumulated.amount.eq(expAmount), `Expected amount to be ${expAmount}, found ${accumulated.amount}`);
+
     assert(
       accumulated.lastDistributionRound.eq(currentRound),
       `Expected lastDistributionRound to be ${currentRound}, found ${accumulated.lastDistributionRound}`,

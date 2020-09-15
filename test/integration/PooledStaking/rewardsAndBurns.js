@@ -560,8 +560,8 @@ describe('burns', function () {
         from: staker1,
       });
 
-      const latestBlockTime = await time.latest();
-      const expectedUnstakeTime = latestBlockTime.addn(90 * 24 * 3600);
+      const block = await web3.eth.getBlock(unstakeRequest.receipt.blockNumber);
+      const expectedUnstakeTime = new BN(block.timestamp + 90 * 24 * 3600);
 
       expectEvent(unstakeRequest, 'UnstakeRequested', {
         staker: staker1,

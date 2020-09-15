@@ -30,7 +30,7 @@ const QuotationData = contract.fromArtifact('QuotationData');
 const Governance = contract.fromArtifact('GovernanceMock');
 const ProposalCategory = contract.fromArtifact('ProposalCategoryMock');
 const MemberRoles = contract.fromArtifact('MemberRoles');
-const PooledStaking = contract.fromArtifact('PooledStakingMock');
+const PooledStaking = contract.fromArtifact('ConfigurablePooledStaking');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const INITIAL_SUPPLY = ether('1500000');
@@ -86,6 +86,7 @@ async function setup () {
   const gvImpl = await Governance.new();
   const pcImpl = await ProposalCategory.new();
   const mrImpl = await MemberRoles.new();
+
   const psImpl = await PooledStaking.new();
 
   const addresses = [
@@ -116,7 +117,17 @@ async function setup () {
   await master.addNewVersion(addresses);
 
   const ps = await getProxyFromMaster(master, PooledStaking, 'PS');
-  await ps.initializeMock();
+
+  const params = {
+    MIN_STAKE: ether('20'),
+    MIN_UNSTAKE: ether('20'),
+    MAX_EXPOSURE: '2',
+    UNSTAKE_LOCK_TIME: 90 * 24 * 60 * 60, // 90 days
+    REWARD_ROUND_DURATION: 7 * 24 * 60 * 60, // 7 days
+  };
+  await ps.initializeMock(
+    params.MIN_STAKE, params.MIN_UNSTAKE, params.MAX_EXPOSURE, params.UNSTAKE_LOCK_TIME, params.REWARD_ROUND_DURATION,
+  );
   assert(await ps.initialized(), 'Pooled staking contract should have been initialized');
 
   // fetch proxy contract addresses

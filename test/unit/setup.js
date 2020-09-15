@@ -8,7 +8,7 @@ const { hex } = require('./utils').helpers;
 
 const MasterMock = contract.fromArtifact('MasterMock');
 const MemberRolesMock = contract.fromArtifact('MemberRolesMock');
-const PooledStaking = contract.fromArtifact('PooledStakingMock');
+const PooledStaking = contract.fromArtifact('ConfigurablePooledStaking');
 const TokenMock = contract.fromArtifact('TokenMock');
 const TokenControllerMock = contract.fromArtifact('TokenControllerMock');
 
@@ -16,6 +16,7 @@ async function setup () {
 
   const master = await MasterMock.new();
   const memberRoles = await MemberRolesMock.new();
+
   const staking = await PooledStaking.new();
   const token = await TokenMock.new();
   const tokenController = await TokenControllerMock.new();

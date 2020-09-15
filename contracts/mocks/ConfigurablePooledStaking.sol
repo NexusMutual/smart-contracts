@@ -19,17 +19,22 @@ pragma solidity ^0.5.17;
 
 import "../PooledStaking.sol";
 
-contract PooledStakingMock is PooledStaking {
+contract ConfigurablePooledStaking is PooledStaking {
 
-  function initializeMock() public {
+  function initializeMock(
+    uint minStake,
+    uint minUnstake,
+    uint maxExposure,
+    uint unstakeLockTime,
+    uint rewardRoundDuration
+  ) public {
 
-    MIN_STAKE = 20 ether;
-    MIN_UNSTAKE = 20 ether;
-    MAX_EXPOSURE = 2;
-    UNSTAKE_LOCK_TIME = 7200;
-
+    MIN_STAKE = minStake;
+    MIN_UNSTAKE = minUnstake;
+    MAX_EXPOSURE = maxExposure;
+    UNSTAKE_LOCK_TIME = unstakeLockTime;
     REWARD_ROUNDS_START = now;
-    REWARD_ROUND_DURATION = 3600;
+    REWARD_ROUND_DURATION = rewardRoundDuration;
   }
 
 }

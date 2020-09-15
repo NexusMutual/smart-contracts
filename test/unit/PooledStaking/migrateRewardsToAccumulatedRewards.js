@@ -72,16 +72,15 @@ describe.only('migrateRewardsToAccumulatedRewards', function () {
     expectEvent(migrationRun1, 'RewardsMigrationCompleted', {
       finished: false,
       iterationsLeft: '0',
-      firstReward: (maxIterations + 1).toString()
+      firstReward: (maxIterations + 1).toString(),
     });
 
     const migrationRun2 = await staking.migrateRewardsToAccumulatedRewards(maxIterations);
     expectEvent(migrationRun2, 'RewardsMigrationCompleted', {
       finished: true,
       iterationsLeft: (2 * maxIterations - rewards.length).toString(),
-      firstReward: '0'
+      firstReward: '0',
     });
-
 
     await assertAccumulatedRewards(staking, rewards);
 
@@ -122,7 +121,7 @@ describe.only('migrateRewardsToAccumulatedRewards', function () {
     expectEvent(migration, 'RewardsMigrationCompleted', {
       finished: true,
       iterationsLeft: (maxIterations - rewards.length).toString(),
-      firstReward: expectedFirstReward.toString()
+      firstReward: expectedFirstReward.toString(),
     });
 
     assertAccumulatedRewards(staking, rewards);

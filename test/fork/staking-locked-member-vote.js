@@ -59,7 +59,7 @@ describe('migration', function () {
     const { contractsName, contractsAddress } = await master.getVersionData();
 
     const nameToAddressMap = {
-      NXMTOKEN: await master.dAppToken()
+      NXMTOKEN: await master.dAppToken(),
     };
 
     for (let i = 0; i < contractsName.length; i++) {

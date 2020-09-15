@@ -16,5 +16,5 @@ describe('PooledStaking unit tests', function () {
   require('./processFirstReward');
   require('./getters');
   require('./accumulateReward');
-
+  require('./migrateRewardsToAccumulatedRewards');
 });

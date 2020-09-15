@@ -37,4 +37,18 @@ contract ConfigurablePooledStaking is PooledStaking {
     REWARD_ROUND_DURATION = rewardRoundDuration;
   }
 
+  function legacy_pushReward(address contractAddress, uint amount) external whenNotPausedAndInitialized {
+
+    rewards[++lastRewardId] = Reward(amount, now, contractAddress);
+
+    if (firstReward == 0) {
+      firstReward = lastRewardId;
+    }
+
+    emit RewardRequested(contractAddress, amount);
+  }
+
+  function setRewardRoundStart(uint value) external {
+    REWARD_ROUNDS_START = value;
+  }
 }

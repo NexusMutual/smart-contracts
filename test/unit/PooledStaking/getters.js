@@ -1,4 +1,4 @@
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const { accounts, constants, helpers } = require('../utils');
@@ -55,6 +55,25 @@ describe('getters', function () {
     for (let i = 0; i < contracts.length; i++) {
       const stake = await staking.stakerContractStake(memberOne, contracts[i]);
       assert(stake.lte(deposit));
+    }
+  });
+
+  it('getCurrentRewardsRound', async function () {
+    const { staking } = this;
+
+    const roundDuration = (await staking.REWARD_ROUND_DURATION()).toNumber();
+    const startTime = (await staking.REWARD_ROUNDS_START()).toNumber();
+    const now = (await time.latest()).toNumber();
+    let currentExpectedRound = now <= startTime ? 0 : Math.floor((now - startTime) / roundDuration);
+
+    let currentRound = (await staking.getCurrentRewardsRound()).toNumber();
+    assert.strictEqual(currentRound, currentExpectedRound);
+
+    for (let i = 0; i < 5; i++) {
+      await time.increase(await staking.REWARD_ROUND_DURATION());
+      currentRound = (await staking.getCurrentRewardsRound()).toNumber();
+      currentExpectedRound++;
+      assert.strictEqual(currentRound, currentExpectedRound);
     }
   });
 });

@@ -24,29 +24,6 @@ async function fundApproveDepositStake (token, tokenController, staking, amount,
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
-describe('getCurrentRewardsRound', function () {
-  beforeEach(setup);
-
-  it('returns incrementing round numbers as rounds pass', async function () {
-    const { staking } = this;
-
-    const roundDuration = (await staking.REWARD_ROUND_DURATION()).toNumber();
-    const startTime = (await staking.REWARD_ROUNDS_START()).toNumber();
-    const now = (await time.latest()).toNumber();
-    let currentExpectedRound = now <= startTime ? 0 : Math.floor((now - startTime) / roundDuration);
-
-    let currentRound = (await staking.getCurrentRewardsRound()).toNumber();
-    assert.strictEqual(currentRound, currentExpectedRound);
-
-    for (let i = 0; i < 5; i++) {
-      await time.increase(await staking.REWARD_ROUND_DURATION());
-      currentRound = (await staking.getCurrentRewardsRound()).toNumber();
-      currentExpectedRound++;
-      assert.strictEqual(currentRound, currentExpectedRound);
-    }
-  });
-});
-
 describe('accumulateReward', function () {
 
   beforeEach(setup);

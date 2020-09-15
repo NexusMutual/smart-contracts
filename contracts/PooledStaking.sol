@@ -135,6 +135,7 @@ contract PooledStaking is MasterAware {
 
   uint public REWARD_ROUND_DURATION;
   uint public REWARD_ROUNDS_START;
+  uint ACCUMULATED_REWARDS_MIGRATION_LAST_ID;
 
   /* Modifiers */
 
@@ -973,6 +974,7 @@ contract PooledStaking is MasterAware {
     require(REWARD_ROUNDS_START == 0, 'REWARD_ROUNDS_START already initialized');
     REWARD_ROUNDS_START = 1600074000;
     REWARD_ROUND_DURATION = 7 days;
+    ACCUMULATED_REWARDS_MIGRATION_LAST_ID = lastRewardId;
   }
 
   function changeDependentContractAddress() public {
@@ -989,4 +991,28 @@ contract PooledStaking is MasterAware {
     }
   }
 
+  function migrateRewardsToAccumulatedRewards(uint maxIterations) external returns (bool finished, uint iterationsLeft)  {
+    require(firstReward != 0, "Nothing to migrate");
+    require(firstReward <= ACCUMULATED_REWARDS_MIGRATION_LAST_ID, "Exceeded last migration id");
+    iterationsLeft = maxIterations;
+
+    while (!finished && iterationsLeft-- > 0) {
+      Reward storage reward = rewards[firstReward];
+
+      ContractReward storage accumulatedReward = accumulatedRewards[reward.contractAddress];
+      accumulatedReward.amount = accumulatedReward.amount.add(reward.amount);
+
+      delete rewards[firstReward];
+      firstReward++;
+      if (firstReward > ACCUMULATED_REWARDS_MIGRATION_LAST_ID) {
+        finished = true;
+      }
+
+      if (firstReward > lastRewardId) {
+        firstReward = 0;
+        finished = true;
+      }
+    }
+    return (finished, iterationsLeft);
+  }
 }

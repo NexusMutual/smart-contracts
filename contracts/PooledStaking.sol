@@ -991,6 +991,12 @@ contract PooledStaking is MasterAware {
     }
   }
 
+  event RewardsMigrationCompleted(
+    bool finished,
+    uint firstReward,
+    uint iterationsLeft
+  );
+
   function migrateRewardsToAccumulatedRewards(uint maxIterations) external returns (bool finished, uint iterationsLeft)  {
     require(firstReward != 0, "Nothing to migrate");
     require(firstReward <= ACCUMULATED_REWARDS_MIGRATION_LAST_ID, "Exceeded last migration id");
@@ -1013,6 +1019,7 @@ contract PooledStaking is MasterAware {
         finished = true;
       }
     }
+    emit RewardsMigrationCompleted(finished, firstReward, iterationsLeft);
     return (finished, iterationsLeft);
   }
 }

@@ -1002,7 +1002,8 @@ contract PooledStaking is MasterAware {
     require(firstReward <= ACCUMULATED_REWARDS_MIGRATION_LAST_ID, "Exceeded last migration id");
     iterationsLeft = maxIterations;
 
-    while (!finished && iterationsLeft-- > 0) {
+    while (!finished && iterationsLeft > 0) {
+      iterationsLeft--;
       Reward storage reward = rewards[firstReward];
 
       ContractReward storage accumulatedReward = accumulatedRewards[reward.contractAddress];

@@ -21,7 +21,7 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 const fourthContract = '0x0000000000000000000000000000000000000004';
 
-describe('migrateRewardsToAccumulatedRewards', function () {
+describe.only('migrateRewardsToAccumulatedRewards', function () {
   beforeEach(setup);
 
   async function assertAccumulatedRewards (staking, rewards) {
@@ -44,6 +44,30 @@ describe('migrateRewardsToAccumulatedRewards', function () {
       );
     }
   }
+
+  it('skips migration if no rewards are present', async function () {
+    const { staking } = this;
+    // reset to pre-initialization state
+    staking.setRewardRoundStart(0);
+
+    const rewards = [
+      { contractAddress: firstContract, amount: ether('1') },
+      { contractAddress: secondContract, amount: ether('2') },
+    ];
+    for (const reward of rewards) {
+      await staking.legacy_pushReward(reward.contractAddress, reward.amount);
+    }
+
+    await staking.initializeRewardRoundsStart();
+
+    await staking.processPendingActions('100');
+
+    const maxIterations = 4;
+    await expectRevert(
+      staking.migrateRewardsToAccumulatedRewards(maxIterations),
+      'Nothing to migrate',
+    );
+  });
 
   it('migrates existing rewards accumulatedRewards with contracts occurring multiple times', async function () {
     const { staking } = this;
@@ -94,7 +118,7 @@ describe('migrateRewardsToAccumulatedRewards', function () {
     );
   });
 
-  it('migrates existing rewards accumulatedRewards and skips the delayed reward (post round initialization)', async function () {
+  it('migrates existing rewards accumulatedRewards and skips the delayed rewards (post round initialization)', async function () {
     const { staking } = this;
 
     // reset to pre-initialization state
@@ -133,6 +157,21 @@ describe('migrateRewardsToAccumulatedRewards', function () {
     assert.strictEqual(rewards.length + 1, lastRewardId.toNumber());
     assert.strictEqual(remainingReward.contractAddress.toString(), delayedReward.contractAddress.toString());
     assert.strictEqual(remainingReward.amount.toString(), delayedReward.amount.toString());
+
+    await expectRevert(
+      staking.migrateRewardsToAccumulatedRewards(maxIterations),
+      'Exceeded last migration id',
+    );
+
+    await staking.processPendingActions('100');
+
+    await expectRevert(
+      staking.migrateRewardsToAccumulatedRewards(maxIterations),
+      'Nothing to migrate',
+    );
+
+    const delayedReward2 = { contractAddress: fourthContract, amount: ether('14') };
+    await staking.legacy_pushReward(delayedReward2.contractAddress, delayedReward2.amount);
 
     await expectRevert(
       staking.migrateRewardsToAccumulatedRewards(maxIterations),

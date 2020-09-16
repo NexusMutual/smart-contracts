@@ -155,6 +155,8 @@ describe.only('rewards migration', function () {
     console.log({
       totalRewardsMigrated: totalRewardsMigrated.toString(),
     });
+
+    return expectedAggregated;
   }
 
   it('migrates rewards to accumulated rewards', async function () {
@@ -164,7 +166,8 @@ describe.only('rewards migration', function () {
     const roundsStart = await ps.REWARD_ROUNDS_START();
     const roundsDuration = await ps.REWARD_ROUND_DURATION();
 
-    assert.strictEqual(roundsDuration.toNumber(), 7 * 24 * 60 * 60);
+    const oneWeek = 7 * 24 * 60 * 60;
+    assert.strictEqual(roundsDuration.toNumber(), oneWeek);
     assert.strictEqual(roundsStart.toNumber(), 1600074000);
 
     let firstReward = await ps.firstReward();
@@ -226,7 +229,56 @@ describe.only('rewards migration', function () {
     );
 
     console.log(`Asserting reward accumulation..`);
-    await assertAccumulatedRewards(ps, existingRewards);
-    console.log(`Done`);
+    const expectedAggregated = await assertAccumulatedRewards(ps, existingRewards);
+    const contracts = Object.keys(expectedAggregated);
+    console.log(`Done for ${contracts.length} contracts`);
+
+    console.log(`Moving on to the next round..`);
+    await time.increase(oneWeek);
+
+
+    console.log(`Pushing rewards for ${JSON.stringify(contracts)}`);
+    const pushTx = await ps.pushRewards(contracts);
+    console.log({
+      gasUsedByPushRewards: pushTx.receipt.gasUsed
+    });
+
+    firstReward = await ps.firstReward();
+    lastRewardId = await ps.lastRewardId();
+    console.log({
+      firstReward: firstReward.toString(),
+      lastRewardId: lastRewardId.toString()
+    });
+
+    await expectRevert(
+      ps.migrateRewardsToAccumulatedRewards(10),
+      'Exceeded last migration id',
+    );
+
+    console.log(`Processing pending actions..`);
+
+    let processPendingActionsTotalGasUsed = 0;
+    let totalCalls = 0;
+    for (let i = 0; i < 102; i++) {
+      console.log(`ps.processPendingActions('100');`);
+      const processTx = await ps.processPendingActions('100');
+      const gasUsed = processTx.receipt.gasUsed;
+      processPendingActionsTotalGasUsed += gasUsed;
+      firstReward = await ps.firstReward();
+      lastRewardId = await ps.lastRewardId();
+      console.log({
+        i,
+        gasUsed,
+        processPendingActionsTotalGasUsed,
+        firstReward: firstReward.toString(),
+        lastRewardId: lastRewardId.toString()
+      });
+      totalCalls++;
+    }
+
+    console.log({
+      totalCalls,
+      processPendingActionsTotalGasUsed
+    });
   });
 });

@@ -1024,6 +1024,7 @@ contract PooledStaking is MasterAware {
       Reward storage reward = rewards[firstReward];
       ContractReward storage accumulatedReward = accumulatedRewards[reward.contractAddress];
       accumulatedReward.amount = accumulatedReward.amount.add(reward.amount);
+      emit RewardAdded(reward.contractAddress, reward.amount);
 
       delete rewards[firstReward];
       firstReward++;

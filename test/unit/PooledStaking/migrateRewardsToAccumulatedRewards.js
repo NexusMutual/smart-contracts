@@ -45,6 +45,25 @@ describe.only('migrateRewardsToAccumulatedRewards', function () {
     }
   }
 
+  it('skips migration if rounds not initalized', async function () {
+    const { staking } = this;
+    // reset to pre-initialization state
+    staking.setRewardRoundStart(0);
+
+    const rewards = [
+      { contractAddress: firstContract, amount: ether('1') },
+      { contractAddress: secondContract, amount: ether('2') },
+    ];
+    for (const reward of rewards) {
+      await staking.legacy_pushReward(reward.contractAddress, reward.amount);
+    }
+
+    await expectRevert(
+      staking.migrateRewardsToAccumulatedRewards(4),
+      'Exceeded last migration id',
+    );
+  });
+
   it('skips migration if no rewards are present', async function () {
     const { staking } = this;
     // reset to pre-initialization state

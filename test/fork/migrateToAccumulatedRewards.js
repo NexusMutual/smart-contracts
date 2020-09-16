@@ -12,7 +12,7 @@ const NXMaster = contract.fromArtifact('NXMaster');
 const NXMToken = contract.fromArtifact('NXMToken');
 const Governance = contract.fromArtifact('Governance');
 const PooledStaking = contract.fromArtifact('PooledStaking');
-const TokenController = contract.fromArtifact('TokenController');
+const TokenFunctions = contract.fromArtifact('TokenFunctions');
 const UpgradeabilityProxy = contract.fromArtifact('UpgradeabilityProxy');
 
 const upgradeProxyImplementationCategoryId = 5;
@@ -46,7 +46,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
-describe('migration', function () {
+describe.only('rewards migration', function () {
 
   this.timeout(0);
 
@@ -72,10 +72,10 @@ describe('migration', function () {
 
     const owners = await mr.members('3');
     const firstBoardMember = owners.memberArray[0];
-    const secondBoardMember = owners.memberArray[1];
 
     const members = await mr.members('1');
     const boardMembers = members.memberArray;
+    const secondBoardMember = boardMembers[1];
 
     assert.equal(boardMembers.length, 5);
     console.log('Board members:', boardMembers);
@@ -130,7 +130,35 @@ describe('migration', function () {
     this.ps = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
   });
 
-  it('stakes on a contract', async function () {
+  it('migrates rewards to accumulated rewards', async function () {
+    const { ps } = this;
+
+    const roundsStart = await ps.REWARD_ROUNDS_START();
+    const roundsDuration = await ps.REWARD_ROUND_DURATION();
+
+    assert.strictEqual(roundsDuration.toNumber(), 7 * 24 * 60 * 60);
+    assert.strictEqual(roundsStart.toNumber(), 1600074000);
+
+    let firstReward = await ps.firstReward();
+    let lastRewardId = await ps.lastRewardId();
+    console.log({
+      firstReward: firstReward.toString(),
+      lastRewardId: lastRewardId.toString()
+    });
+
+    let finished = false;
+    while (!finished) {
+      const iterations = 20;
+      console.log(`migrating with ${iterations} iterations`);
+      await ps.migrateRewardsToAccumulatedRewards(iterations);
+      firstReward = await ps.firstReward();
+      lastRewardId = await ps.lastRewardId();
+      console.log({
+        firstReward: firstReward.toString(),
+        lastRewardId: lastRewardId.toString()
+      });
+      break;
+    }
 
   });
 });

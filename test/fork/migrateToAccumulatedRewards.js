@@ -106,7 +106,6 @@ describe.only('rewards migration', function () {
     const storedNewPSAddress = await psProxy.implementation();
     assert.equal(storedNewPSAddress, newPS.address);
 
-
     const newTF = await TokenFunctions.new();
     const upgradeMultipleContractsActionHash = encode1(
       ['bytes2[]', 'address[]'],
@@ -130,7 +129,36 @@ describe.only('rewards migration', function () {
     this.ps = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
   });
 
+  async function assertAccumulatedRewards (staking, rewards) {
+
+    const expectedAggregated = {};
+    let totalRewardsMigrated = new BN('0');
+    for (const reward of rewards) {
+      if (!expectedAggregated[reward.contractAddress]) {
+        expectedAggregated[reward.contractAddress] = new BN('0');
+      }
+      expectedAggregated[reward.contractAddress] = expectedAggregated[reward.contractAddress].add(reward.amount);
+    }
+
+    for (const contractAddress of Object.keys(expectedAggregated)) {
+      const expectedAccumulatedReward = expectedAggregated[contractAddress];
+      const accumulated = await staking.accumulatedRewards(contractAddress);
+      totalRewardsMigrated = totalRewardsMigrated.add(accumulated.amount);
+      assert.strictEqual(
+        accumulated.amount.toString(), expectedAccumulatedReward.toString(), `accumulatedRewards does not match for ${contractAddress}`,
+      );
+      assert.strictEqual(
+        accumulated.lastDistributionRound.toString(), '0', `accumulatedRewards does not match for ${contractAddress}`,
+      );
+    }
+
+    console.log({
+      totalRewardsMigrated: totalRewardsMigrated.toString(),
+    });
+  }
+
   it('migrates rewards to accumulated rewards', async function () {
+
     const { ps } = this;
 
     const roundsStart = await ps.REWARD_ROUNDS_START();
@@ -143,22 +171,62 @@ describe.only('rewards migration', function () {
     let lastRewardId = await ps.lastRewardId();
     console.log({
       firstReward: firstReward.toString(),
-      lastRewardId: lastRewardId.toString()
+      lastRewardId: lastRewardId.toString(),
     });
 
+    const existingRewards = [];
+    for (let i = firstReward.toNumber(); i <= lastRewardId.toNumber(); i++) {
+      const reward = await ps.rewards(i);
+      existingRewards.push(reward);
+    }
+    console.log(`Detected ${existingRewards.length}`);
+
+    let maxGasUsagePerCall = 0;
+    let totalGasUsage = 0;
+    let totalCallCount = 0;
     let finished = false;
     while (!finished) {
-      const iterations = 20;
+      const iterations = 209;
       console.log(`migrating with ${iterations} iterations`);
-      await ps.migrateRewardsToAccumulatedRewards(iterations);
+      const tx = await ps.migrateRewardsToAccumulatedRewards(iterations);
+
+      logEvents(tx);
+
+      const [rewardsMigrationCompleted] = tx.logs.filter(log => log.event === 'RewardsMigrationCompleted');
+      finished = rewardsMigrationCompleted.args.finished;
+      console.log(`Processing migration finished: ${finished}`);
+      totalCallCount++;
+      const gasUsed = tx.receipt.gasUsed;
+      totalGasUsage += gasUsed;
+
+      if (maxGasUsagePerCall < gasUsed) {
+        maxGasUsagePerCall = gasUsed;
+      }
+
       firstReward = await ps.firstReward();
       lastRewardId = await ps.lastRewardId();
       console.log({
+        gasUsed,
+        maxGasUsagePerCall,
+        totalGasUsage,
         firstReward: firstReward.toString(),
-        lastRewardId: lastRewardId.toString()
+        lastRewardId: lastRewardId.toString(),
       });
-      break;
     }
 
+    console.log({
+      maxGasUsagePerCall,
+      totalGasUsage,
+      totalCallCount,
+    });
+
+    await expectRevert(
+      ps.migrateRewardsToAccumulatedRewards(10),
+      'Nothing to migrate',
+    );
+
+    console.log(`Asserting reward accumulation..`);
+    await assertAccumulatedRewards(ps, existingRewards);
+    console.log(`Done`);
   });
 });

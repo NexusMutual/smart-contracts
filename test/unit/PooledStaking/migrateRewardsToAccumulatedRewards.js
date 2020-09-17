@@ -21,7 +21,7 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 const fourthContract = '0x0000000000000000000000000000000000000004';
 
-describe.only('migrateRewardsToAccumulatedRewards', function () {
+describe('migrateRewardsToAccumulatedRewards', function () {
   beforeEach(setup);
 
   async function assertAccumulatedRewards (staking, rewards) {

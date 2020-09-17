@@ -1037,6 +1037,13 @@ contract PooledStaking is MasterAware {
         finished = true;
       }
     }
+
+    if (finished) {
+      assembly {
+        sstore(location, 0)
+      }
+    }
+
     emit RewardsMigrationCompleted(finished, firstReward, iterationsLeft);
     return (finished, iterationsLeft);
   }

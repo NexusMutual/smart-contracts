@@ -23,7 +23,7 @@ contract PooledStakingMock is PooledStaking {
 
   function initializeMock() public {
 
-    MIN_STAKE = 20 ether;
+    MIN_STAKE = 0 ether;
     MIN_UNSTAKE = 20 ether;
     MAX_EXPOSURE = 10;
     UNSTAKE_LOCK_TIME = 7200;

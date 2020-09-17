@@ -1,7 +1,7 @@
 const { assertRevert } = require('./utils/assertRevert');
 const { advanceBlock } = require('./utils/advanceToBlock');
 const { ether, toBN, toHex, toWei } = require('./utils/ethTools');
-const { increaseTimeTo, duration, latestTime } = require('./utils/increaseTime');
+const { increaseTimeTo, duration, latestTime, increaseTime } = require('./utils/increaseTime');
 const { gvProposal } = require('./utils/gvProposal');
 const { encode } = require('./utils/encoder');
 const { getQuoteValues } = require('./utils/getQuote');
@@ -104,6 +104,7 @@ contract('Claim: Assessment 2', function (addresses) {
   const SC3 = '0x618e75ac90b12c6049ba3b27f5d5f8651b0037f6';
   const SC4 = '0x40395044Ac3c0C57051906dA938B54BD6557F212';
   const SC5 = '0xee74110fb5a1007b06282e0de5d73a61bf41d9cd';
+  const contracts = [SC1, SC2, SC3, SC4, SC5];
 
   before(async function () {
     snapshotId = await takeSnapshot();
@@ -254,6 +255,9 @@ contract('Claim: Assessment 2', function (addresses) {
       }
 
       async function claimAllUWRewards() {
+        const roundDuration = await ps.REWARD_ROUND_DURATION();
+        await increaseTime(roundDuration.toNumber());
+        await ps.pushRewards(contracts);
         await ps.processPendingActions('100');
         for (let i = 0; i < underwriters.length; i++) {
           await ps.withdrawReward(underwriters[i]);

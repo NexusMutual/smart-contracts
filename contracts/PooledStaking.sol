@@ -23,7 +23,7 @@ import "./interfaces/IPooledStaking.sol";
 import "./NXMToken.sol";
 import "./TokenController.sol";
 
-contract PooledStaking is MasterAware, IPooledStaking {
+contract PooledStaking is MasterAware {
   using SafeMath for uint;
 
   /* Data types */
@@ -538,11 +538,16 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
       address contractAddress = contractAddresses[i];
       ContractReward storage contractRewards = accumulatedRewards[contractAddress];
+      uint lastRound = contractRewards.lastDistributionRound;
       uint amount = contractRewards.amount;
 
-      bool canPush = amount > 0 && (skipRoundCheck || currentRound > contractRewards.lastDistributionRound);
+      bool shouldPush = amount > 0 && (skipRoundCheck || currentRound > lastRound);
 
-      if (!canPush) {
+      if (!shouldPush) {
+        // prevent unintended distribution of the first reward in round
+        if (lastRound != currentRound) {
+          contractRewards.lastDistributionRound = currentRound;
+        }
         continue;
       }
 
@@ -967,8 +972,14 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function initializeRewardRoundsStart() public {
     require(REWARD_ROUNDS_START == 0, 'REWARD_ROUNDS_START already initialized');
-    REWARD_ROUNDS_START = 1599307200;
+    REWARD_ROUNDS_START = 1600074000;
     REWARD_ROUND_DURATION = 7 days;
+
+    bytes32 location = MIGRATION_LAST_ID_POSITION;
+    uint lastRewardIdValue = lastRewardId;
+    assembly {
+      sstore(location, lastRewardIdValue)
+    }
   }
 
   function changeDependentContractAddress() public {
@@ -985,4 +996,50 @@ contract PooledStaking is MasterAware, IPooledStaking {
     }
   }
 
+  event RewardsMigrationCompleted(
+    bool finished,
+    uint firstReward,
+    uint iterationsLeft
+  );
+
+  bytes32 private constant MIGRATION_LAST_ID_POSITION = keccak256("nexusmutual.pooledstaking.MIGRATION_LAST_ID_POINTER");
+
+  function migrateRewardsToAccumulatedRewards(uint maxIterations) external returns (bool finished, uint iterationsLeft)  {
+    require(firstReward != 0, "Nothing to migrate");
+
+    uint ACCUMULATED_REWARDS_MIGRATION_LAST_ID;
+    bytes32 location = MIGRATION_LAST_ID_POSITION;
+    assembly {
+      ACCUMULATED_REWARDS_MIGRATION_LAST_ID := sload(location)
+    }
+
+    require(firstReward <= ACCUMULATED_REWARDS_MIGRATION_LAST_ID, "Exceeded last migration id");
+
+
+    iterationsLeft = maxIterations;
+
+    while (!finished && iterationsLeft > 0) {
+
+      iterationsLeft--;
+
+      Reward storage reward = rewards[firstReward];
+      ContractReward storage accumulatedReward = accumulatedRewards[reward.contractAddress];
+      accumulatedReward.amount = accumulatedReward.amount.add(reward.amount);
+      emit RewardAdded(reward.contractAddress, reward.amount);
+
+      delete rewards[firstReward];
+      firstReward++;
+
+      if (firstReward > ACCUMULATED_REWARDS_MIGRATION_LAST_ID) {
+        finished = true;
+      }
+      if (firstReward > lastRewardId) {
+        firstReward = 0;
+        finished = true;
+      }
+    }
+    emit RewardsMigrationCompleted(finished, firstReward, iterationsLeft);
+    return (finished, iterationsLeft);
+  }
 }
+

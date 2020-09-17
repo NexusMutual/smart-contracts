@@ -25,7 +25,7 @@ contract PooledStakingMock is PooledStaking {
 
     MIN_STAKE = 20 ether;
     MIN_UNSTAKE = 20 ether;
-    MAX_EXPOSURE = 2;
+    MAX_EXPOSURE = 10;
     UNSTAKE_LOCK_TIME = 7200;
 
     REWARD_ROUNDS_START = now;

@@ -18,7 +18,7 @@ const PooledStaking = artifacts.require('PooledStakingMock');
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
+const {increaseTimeTo, duration, latestTime, increaseTime } = require('./utils/increaseTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode1 = require('./utils/encoder.js').encode1;
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
@@ -33,6 +33,7 @@ const smartConAdd2 = '0xB8c77482e45F1F44dE1745F52C74426C631bDD52';
 const smartConAdd3 = '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2';
 const smartConAdd4 = '0x0d8775f648430679a709e98d2b0cb6250d2887ef';
 const smartConAdd5 = '0xd850942ef8811f2a866692a623011bde52a462c1';
+const contracts = [smartConAdd, smartConAdd1, smartConAdd2, smartConAdd3, smartConAdd4, smartConAdd5];
 const coverPeriod = 61;
 const coverDetails = [1, '3362445813369838', '744892736679184', '7972408607'];
 
@@ -269,6 +270,9 @@ contract('ClaimsReward', function([
       // await increaseTimeTo((await latestTime()) + duration.days(7));
     });
     it('9.1 should be able to claim reward', async function() {
+      const roundDuration = await ps.REWARD_ROUND_DURATION();
+      await increaseTime(roundDuration.toNumber());
+      await ps.pushRewards(contracts);
       await ps.processPendingActions('100');
 
       let proposalIds = [];
@@ -422,6 +426,10 @@ contract('ClaimsReward', function([
           {from: newMember2, value: coverDetailsTest[1].toString()}
         );
       }
+
+      const roundDuration = await ps.REWARD_ROUND_DURATION();
+      await increaseTime(roundDuration.toNumber());
+      await ps.pushRewards(contracts);
       await ps.processPendingActions('100');
     });
 
@@ -467,6 +475,9 @@ contract('ClaimsReward', function([
         {from: newMember2, value: coverDetailsTest[1].toString()}
       );
 
+      const roundDuration = await ps.REWARD_ROUND_DURATION();
+      await increaseTime(roundDuration.toNumber());
+      await ps.pushRewards(contracts);
       await ps.processPendingActions('100');
 
       initialBal = await tk.balanceOf(newMember1);

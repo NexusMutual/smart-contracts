@@ -3,8 +3,7 @@ const HDWalletProvider = require('@truffle/hdwallet-provider');
 const { setupLoader } = require('@openzeppelin/contract-loader');
 const axios = require('axios');
 
-const STAKER_MIGRATION_COMPLETED_EVENT = 'StakersMigrationCompleted';
-const MIGRATED_MEMBER_EVENT = 'MigratedMember';
+const REWARDS_MIGRATION_COMPLETED_EVENT = 'RewardsMigrationCompleted';
 const MASTER_ADDRESS = '0x01bfd82675dbcc7762c84019ca518e701c0cd07e';
 const GWEI_IN_WEI = 1e9;
 
@@ -19,6 +18,8 @@ function getenv (key, fallback = false) {
   return value;
 }
 
+
+// UNUSED. here just in case
 async function getGasPrice () {
 
   try {
@@ -41,23 +42,38 @@ async function main () {
 
   const privateKey = getenv('MAINNET_MNEMONIC');
   const providerURL = getenv(`MAINNET_PROVIDER_URL`);
-  const iterations = getenv(`ITERATIONS`, '10');
+  const iterations = getenv(`ITERATIONS`, '200');
 
   const provider = new HDWalletProvider(privateKey, providerURL);
   const [address] = provider.getAddresses();
   console.log(`Using first address ${address} for sending transactions.`);
 
+  // based on simulation no call exceeds 3 million
+  const FIXED_GAS_ESTIMATE = 3e6; // 3 million
+  /*
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  TODO: adjust this according to the gas prices at the time
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+   */
+  const FIXED_GAS_PRICE = 200e9; // 200 GWEI
+  console.log({
+    FIXED_GAS_ESTIMATE,
+    FIXED_GAS_PRICE
+  })
+
   const loader = setupLoader({
     provider,
     defaultSender: address,
-    defaultGas: 1e6, // 1 million
-    defaultGasPrice: 5e9, // 5 gwei
+    defaultGas: FIXED_GAS_ESTIMATE,
+    defaultGasPrice: FIXED_GAS_PRICE,
   }).truffle;
 
-  const gas = 5e6;
+
 
   let totalGasUsage = 0;
-  let completed = false;
+  let finished = false;
   let maxGasUsagePerCall = 0;
   let totalCallCount = 0;
 
@@ -66,23 +82,20 @@ async function main () {
   const psAddress = await master.getLatestAddress(hex('PS'));
   console.log(`Loading PooledStaking at ${psAddress}..`)
   const pooledStaking = loader.fromArtifact('PooledStaking', psAddress);
-  while (!completed) {
+  while (!finished) {
 
-    const gasPrice = await getGasPrice();
-
-    if (gasPrice > 60 * GWEI_IN_WEI) {
-      throw new Error(`Gas price too high: ${gasPrice.toString()}`);
-    }
+    console.log(` running migrateRewardsToAccumulatedRewards ..`);
+    const gasPrice =  FIXED_GAS_PRICE; // await getGasPrice();
 
     const begin = Date.now();
-    console.log({ gasEstimate: gas, gasPrice, iterations });
-    const tx = await pooledStaking.migrateStakers(iterations, { gas, gasPrice });
+    console.log({ gasEstimate: FIXED_GAS_ESTIMATE, gasPrice, iterations });
+    const tx = await pooledStaking.migrateRewardsToAccumulatedRewards(iterations, { gas: FIXED_GAS_ESTIMATE, gasPrice });
     const end = Date.now();
     console.log(`Call took ${end - begin} milliseconds to complete.`);
 
-    const [stakerMigrationCompleted] = tx.logs.filter(log => log.event === STAKER_MIGRATION_COMPLETED_EVENT);
-    completed = stakerMigrationCompleted.args.completed;
-    console.log(`Processing migration completed: ${completed}`);
+    const [rewardsMigrationCompleted] = tx.logs.filter(log => log.event === REWARDS_MIGRATION_COMPLETED_EVENT);
+    finished = rewardsMigrationCompleted.args.finished;
+    console.log(`Processing migration completed: ${finished}`);
 
     totalCallCount++;
     const gasUsed = tx.receipt.gasUsed;
@@ -91,12 +104,6 @@ async function main () {
       maxGasUsagePerCall = gasUsed;
     }
     console.log(JSON.stringify({ gasUsed, totalGasUsage, maxGasUsagePerCall, totalCallCount }));
-
-    const migratedMemberEvents = tx.logs.filter(log => log.event === MIGRATED_MEMBER_EVENT);
-    for (const migratedMemberEvent of migratedMemberEvents) {
-      const migratedMember = migratedMemberEvent.args.member;
-      console.log(`Finished migrating: ${migratedMember}`);
-    }
   }
 }
 

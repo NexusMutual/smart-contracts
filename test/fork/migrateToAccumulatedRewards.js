@@ -147,6 +147,13 @@ describe.only('rewards migration', function () {
       const expectedAccumulatedReward = expectedAggregated[contractAddress];
       const accumulated = await staking.accumulatedRewards(contractAddress);
       totalRewardsMigrated = totalRewardsMigrated.add(accumulated.amount);
+      const stakerCount = await staking.contractStakerCount(contractAddress);
+      console.log({
+        contractAddress,
+        stakerCount,
+        expectedAccumulatedReward: expectedAccumulatedReward.toString() / 1e18
+      });
+
       assert.strictEqual(
         accumulated.amount.toString(), expectedAccumulatedReward.toString(), `accumulatedRewards does not match for ${contractAddress}`,
       );
@@ -183,6 +190,15 @@ describe.only('rewards migration', function () {
       firstReward: firstReward.toString(),
       lastRewardId: lastRewardId.toString(),
     });
+
+    // process partials
+    const partialIterations = '60';
+    console.log(`using partial iterations: ${partialIterations}`);
+    await ps.processPendingActions('60');
+    const processedToStakerIndex = await ps.processedToStakerIndex();
+    assert.equal(processedToStakerIndex.toString(), '0');
+    const isContractStakeCalculated = await ps.isContractStakeCalculated();
+    assert.equal(isContractStakeCalculated, false);
 
     const balancePreMigration = await tk.balanceOf(ps.address);
 

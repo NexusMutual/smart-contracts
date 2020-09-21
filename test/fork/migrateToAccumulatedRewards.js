@@ -88,11 +88,13 @@ describe.only('rewards migration', function () {
     }
 
     console.log(`Deploying new contracts`);
-    const newPS = await PooledStaking.new();
+    // const newPS = await PooledStaking.new();
+
+    const newPSAddress = '0x4D1328BaBaeA16f9A8F43237a8270a73619F11fA';
 
     const txData = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('PS')], [newPS.address]],
+      [[hex('PS')], [newPSAddress]],
     );
 
     console.log(`Proposal tx data: ${txData}`);
@@ -104,12 +106,13 @@ describe.only('rewards migration', function () {
 
     const psProxy = await UpgradeabilityProxy.at(await master.getLatestAddress(hex('PS')));
     const storedNewPSAddress = await psProxy.implementation();
-    assert.equal(storedNewPSAddress, newPS.address);
+    assert.equal(storedNewPSAddress, newPSAddress);
 
-    const newTF = await TokenFunctions.new();
+    // const newTF = await TokenFunctions.new();
+    const newTFAddress = '0x38B704Ba216C762565Da03D1603935d0f579Ef01';
     const upgradeMultipleContractsActionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('TF')], [newTF.address]],
+      [[hex('TF')], [newTFAddress]],
     );
 
     await submitGovernanceProposal(
@@ -117,7 +120,7 @@ describe.only('rewards migration', function () {
     );
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
 
-    assert.equal(storedTFAddress, newTF.address);
+    assert.equal(storedTFAddress, newTFAddress);
 
     console.log(`Successfully deployed new contracts`);
 
@@ -156,12 +159,16 @@ describe.only('rewards migration', function () {
       totalRewardsMigrated: totalRewardsMigrated.toString(),
     });
 
-    return expectedAggregated;
+    return {
+      expectedAggregated,
+      totalRewardsMigrated
+    };
+
   }
 
   it('migrates rewards to accumulated rewards', async function () {
 
-    const { ps } = this;
+    const { ps, tk } = this;
 
     const roundsStart = await ps.REWARD_ROUNDS_START();
     const roundsDuration = await ps.REWARD_ROUND_DURATION();
@@ -177,12 +184,15 @@ describe.only('rewards migration', function () {
       lastRewardId: lastRewardId.toString(),
     });
 
+    const balancePreMigration = await tk.balanceOf(ps.address);
+
     const existingRewards = [];
     for (let i = firstReward.toNumber(); i <= lastRewardId.toNumber(); i++) {
       const reward = await ps.rewards(i);
       existingRewards.push(reward);
     }
     console.log(`Detected ${existingRewards.length}`);
+
 
     let maxGasUsagePerCall = 0;
     let totalGasUsage = 0;
@@ -229,7 +239,7 @@ describe.only('rewards migration', function () {
     );
 
     console.log(`Asserting reward accumulation..`);
-    const expectedAggregated = await assertAccumulatedRewards(ps, existingRewards);
+    const { expectedAggregated, totalRewardsMigrated } = await assertAccumulatedRewards(ps, existingRewards);
     const contracts = Object.keys(expectedAggregated);
     console.log(`Done for ${contracts.length} contracts`);
 
@@ -259,8 +269,16 @@ describe.only('rewards migration', function () {
 
     let processPendingActionsTotalGasUsed = 0;
     let totalCalls = 0;
-    for (let i = 0; i < 102; i++) {
+    let i = 0;
+    while (true) {
       console.log(`ps.processPendingActions('100');`);
+
+      const hasActions = await ps.hasPendingActions();
+      if (!hasActions) {
+        console.log(`Done processing.`);
+        break;
+      }
+
       const processTx = await ps.processPendingActions('100');
       const gasUsed = processTx.receipt.gasUsed;
       processPendingActionsTotalGasUsed += gasUsed;
@@ -274,11 +292,23 @@ describe.only('rewards migration', function () {
         lastRewardId: lastRewardId.toString()
       });
       totalCalls++;
+      i++;
     }
+
+    const balancePostMigration = await tk.balanceOf(ps.address);
+    const diff = balancePostMigration.sub(balancePreMigration);
+
+    console.log({
+      balancePostMigration: balancePostMigration.toString() / 1e18,
+      balancePreMigration: balancePreMigration.toString() / 1e18,
+      diff: diff.toString() / 1e18
+    });
 
     console.log({
       totalCalls,
       processPendingActionsTotalGasUsed
     });
+
+    assert.strictEqual(diff.toString(), totalRewardsMigrated.toString());
   });
 });

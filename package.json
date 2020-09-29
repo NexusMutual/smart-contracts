@@ -23,15 +23,14 @@
     "@openzeppelin/cli": "^2.8.2",
     "@openzeppelin/contract-loader": "^0.6.1",
     "@openzeppelin/contracts": "^2.5.1",
-    "@openzeppelin/test-helpers": "^0.5.5",
+    "@openzeppelin/test-helpers": "^0.5.6",
     "@openzeppelin/upgrades": "^2.8.0",
     "@truffle/hdwallet-provider": "^1.0.42",
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0"
   },
   "devDependencies": {
-    "@openzeppelin/test-environment": "^0.1.4",
-    "axios": "^0.19.2",
+    "@openzeppelin/test-environment": "^0.1.5",
     "chai": "^4.2.0",
     "chai-bignumber": "^3.0.0",
     "eslint": "^6.8.0",

@@ -6,8 +6,6 @@ const {
   constants: { ParamType, Role },
 } = require('../utils');
 
-const setup = require('../setup');
-
 const {
   members: [memberOne, memberTwo, memberThree],
   internalContracts: [internalContract],
@@ -26,10 +24,6 @@ async function fundApproveDepositStake (token, tokenController, staking, amount,
 }
 
 describe('processFirstReward', function () {
-
-  this.timeout(0);
-
-  beforeEach(setup);
 
   it('should mint the reward amount in the PS contract', async function () {
     const { token, tokenController, staking } = this;

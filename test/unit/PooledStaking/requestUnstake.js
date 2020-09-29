@@ -1,12 +1,9 @@
 const { expectRevert, expectEvent, ether, time } = require('@openzeppelin/test-helpers');
-
-const { assert, expect } = require('chai');
+const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
 const { filterArgsKeys } = require('../utils').helpers;
-
-const setup = require('../setup');
 
 const {
   nonMembers: [nonMember],
@@ -40,9 +37,6 @@ async function setMinUnstake (staking, amount) {
 }
 
 describe('requestUnstake', function () {
-
-  beforeEach(setup);
-  this.timeout(0);
 
   it('should revert when called by non members', async function () {
     const { master, staking } = this;
@@ -214,7 +208,7 @@ describe('requestUnstake', function () {
     );
 
     // request unstake of 9, that would decrease stake to 2 (= MIN_STAKE)
-    staking.requestUnstake([firstContract], [ether('8')], 0, { from: memberOne });
+    await staking.requestUnstake([firstContract], [ether('8')], 0, { from: memberOne });
   });
 
   it('should revert if requested unstake time < unstake time at insertAfter index', async function () {

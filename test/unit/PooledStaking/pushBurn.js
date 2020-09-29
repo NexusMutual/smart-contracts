@@ -3,7 +3,6 @@ const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
-const setup = require('../setup');
 
 const {
   members: [memberOne, memberTwo, memberThree],
@@ -28,8 +27,6 @@ async function setLockTime (staking, lockTime) {
 }
 
 describe('pushBurn', function () {
-
-  beforeEach(setup);
 
   it('should revert when called by non internal contract', async function () {
 

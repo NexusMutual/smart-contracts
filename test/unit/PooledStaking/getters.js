@@ -1,14 +1,11 @@
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const { accounts, constants, helpers } = require('../utils');
-const setup = require('../setup');
 const { ParamType } = constants;
-const { parseLogs } = helpers;
 
 const {
-  nonMembers: [nonMember],
-  members: [memberOne, memberTwo, memberThree],
+  members: [memberOne],
   governanceContracts: [governanceContract],
   internalContracts: [internalContract],
 } = accounts;
@@ -31,8 +28,6 @@ async function setLockTime (staking, lockTime) {
 }
 
 describe('getters', function () {
-
-  beforeEach(setup);
 
   it('stakerContractStake', async function () {
 

@@ -1,14 +1,12 @@
-const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const { accounts, constants } = require('../utils');
-const setup = require('../setup');
 const { ParamType } = constants;
 
 const {
   members: [memberOne],
   internalContracts: [internalContract],
-  nonInternalContracts: [nonInternal],
   governanceContracts: [governanceContract],
 } = accounts;
 
@@ -30,8 +28,6 @@ async function setUnstakeLockTime (staking, lockTime) {
 }
 
 describe('processUnstakeRequest', function () {
-
-  beforeEach(setup);
 
   it('should have no pending actions after processing the unstake requests', async function () {
 

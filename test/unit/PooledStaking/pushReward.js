@@ -2,7 +2,6 @@ const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-h
 const { assert } = require('chai');
 
 const { accounts, constants } = require('../utils');
-const setup = require('../setup');
 const { ParamType } = constants;
 
 const {
@@ -22,8 +21,6 @@ async function fundApproveDepositStake (token, tokenController, staking, amount,
 }
 
 describe('pushReward', function () {
-
-  beforeEach(setup);
 
   it('should revert when called by non internal contract', async function () {
 

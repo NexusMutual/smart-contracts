@@ -1,13 +1,12 @@
-const { expectRevert, ether, expectEvent } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
-const setup = require('../setup');
 const { ParamType } = require('../utils').constants;
 
 const {
   nonMembers: [nonMember],
-  members: [memberOne, memberTwo],
+  members: [memberOne],
   internalContracts: [internalContract],
   governanceContracts: [governanceContract],
 } = accounts;
@@ -23,8 +22,6 @@ async function fundAndApprove (token, tokenController, staking, amount, member) 
 }
 
 describe('withdrawReward', function () {
-
-  beforeEach(setup);
 
   it("should properly move tokens from the PooledStaking contract to the member's address", async function () {
     const { token, tokenController, staking } = this;

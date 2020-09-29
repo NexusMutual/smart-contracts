@@ -3,7 +3,6 @@ const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
-const setup = require('../setup');
 
 const {
   nonMembers: [nonMember],
@@ -64,8 +63,6 @@ const expectMemberState = async (staking, staker, contracts, stakes) => {
 };
 
 describe('depositAndStake', function () {
-
-  beforeEach(setup);
 
   it('should revert when called by non members', async function () {
 

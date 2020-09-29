@@ -2,9 +2,9 @@ const { contract, defaultSender } = require('@openzeppelin/test-environment');
 const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { Role, ParamType } = require('./utils').constants;
-const accounts = require('./utils').accounts;
-const { hex } = require('./utils').helpers;
+const { Role, ParamType } = require('../utils').constants;
+const accounts = require('../utils').accounts;
+const { hex } = require('../utils').helpers;
 
 const MasterMock = contract.fromArtifact('MasterMock');
 const MemberRolesMock = contract.fromArtifact('MemberRolesMock');

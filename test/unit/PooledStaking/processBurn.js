@@ -1,15 +1,12 @@
-const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType, Role } = require('../utils').constants;
-const { logEvents } = require('../utils').helpers;
-const setup = require('../setup');
 
 const {
   members: [memberOne, memberTwo, memberThree],
   internalContracts: [internalContract],
-  nonInternalContracts: [nonInternal],
   governanceContracts: [governanceContract],
 } = accounts;
 
@@ -29,10 +26,6 @@ async function setLockTime (staking, lockTime) {
 }
 
 describe('processBurn', function () {
-
-  this.timeout(0);
-
-  beforeEach(setup);
 
   it('should update staker deposit & stake correctly', async function () {
 

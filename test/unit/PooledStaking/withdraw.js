@@ -3,7 +3,6 @@ const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
-const setup = require('../setup');
 
 const {
   nonMembers: [nonMember],
@@ -25,8 +24,6 @@ async function fundAndApprove (token, tokenController, staking, amount, member) 
 }
 
 describe('withdraw', function () {
-
-  beforeEach(setup);
 
   it('should revert when called by non members', async function () {
 

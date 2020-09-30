@@ -18,7 +18,7 @@ import "./external/openzeppelin-solidity/math/SafeMath.sol";
 
 
 contract Aggregator {
-    function latestAnswer() public view returns (int); 
+    function latestAnswer() public view returns (int);
 }
 
 
@@ -27,17 +27,17 @@ contract NXMDSValue {
     using SafeMath for uint;
 
     /// @dev Get DAI-ETH feed from Chainlink and convert it to ETH-DAI(in bytes32).
-    /// @return Return ETH-DAI rate in wei. 
+    /// @return Return ETH-DAI rate in wei.
     function read() public view returns (bytes32)
     {
-        
+
         // Instance to get DAI-ETH feed from chainlink.
-        Aggregator aggregator = Aggregator(0x037E8F2125bF532F3e228991e051c8A7253B642c);
+        Aggregator aggregator = Aggregator(0x773616E4d11A78F511299002da57A0a94577F1f4);
         int rate = aggregator.latestAnswer();
 
-        // Chainlink returns an int256. Ensure the value is always positive. 
-        require(rate > 0, "Rate should be a positive integer"); 
-        
+        // Chainlink returns an int256. Ensure the value is always positive.
+        require(rate > 0, "Rate should be a positive integer");
+
         // Reciprocating the obtained value because DSValue requires the value to be in format (ETH-DAI).
         // Convert value to bytes32 to follow the DSValue format.
         return bytes32(uint(10**36).div(uint(rate)));

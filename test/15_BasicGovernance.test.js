@@ -85,12 +85,6 @@ contract(
       pd = await PoolData.deployed();
       await nxmToken.approve(tc.address, maxAllowance);
 
-      //To cover functions in govblocks interface, which are not implemented by NexusMutual
-      await gv.addSolution(0, '', '0x');
-      await gv.openProposalForVoting(0);
-      await gv.pauseProposal(0);
-      await gv.resumeProposal(0);
-
       actionHash = encode1(['bytes8', 'uint256'], [toHex('ACWT'), 0]);
       pId = (await gv.getProposalLength()).toNumber();
       await gvProp(22, actionHash, mr, gv, 2);

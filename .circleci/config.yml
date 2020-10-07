@@ -6,4 +6,5 @@ version: 2.1
 workflows:
   sc-tests:
     jobs:
-      - node/test
+      - node/test:
+          version: 10.22.1

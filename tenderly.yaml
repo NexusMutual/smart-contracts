@@ -15,4 +15,4 @@ exports:
     project_slug: NexusMutual/nexusmutual
     rpc_address: 127.0.0.1:8545
 project_slug: ""
-provider: Truffle
+provider: OpenZeppelin

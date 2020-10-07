@@ -17,7 +17,7 @@ const ClaimsReward = contract.fromArtifact('ClaimsReward');
 const MCR = contract.fromArtifact('MCR');
 const TokenData = contract.fromArtifact('TokenData');
 const TokenFunctions = contract.fromArtifact('TokenFunctions');
-const Pool1 = contract.fromArtifact('Pool1');
+const Pool1 = contract.fromArtifact('Pool1Mock');
 const Pool2 = contract.fromArtifact('Pool2');
 const PoolData = contract.fromArtifact('PoolData');
 const Quotation = contract.fromArtifact('Quotation');
@@ -151,10 +151,12 @@ async function setup () {
   await pc.initialize(mr.address, { gas: 10e6 });
 
   await gv.initialize(
-    300,
-    3600,
-    5,
-    40,
+    300, // tokenHoldingTime
+    3600, // maxDraftTime
+    5, // maxVoteWeigthPer
+    40, // maxFollowers
+    75, // specialResolutionMajPerc
+    300, // actionWaitingTime
   );
 
   await ps.initialize(
@@ -183,9 +185,6 @@ async function setup () {
   await td.updateUintParameters(hex('MVLOCKT'), 1); // ca lock mv 1 day
 
   await gv.changeMasterAddress(master.address);
-  await gv.updateUintParameters(hex('GOVHOLD'), 1); // token holding time 1 day
-  await gv.updateUintParameters(hex('ACWT'), 1); // action waiting time 1h
-
   await master.switchGovernanceAddress(gv.address);
 
   // trigger changeDependentContractAddress() on all contracts

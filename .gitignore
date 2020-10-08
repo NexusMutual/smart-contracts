@@ -1,4 +1,5 @@
 .idea
+.openzeppelin/.lock
 .openzeppelin/.session
 .openzeppelin/personal.json
 .env

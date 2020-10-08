@@ -43,8 +43,6 @@ const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const INITIAL_SUPPLY = ether('1500000');
 const EXCHANGE_TOKEN = ether('10000');
 const EXCHANGE_ETHER = ether('10');
-const POOL_ETHER = ether('3500');
-const POOL_DAI = ether('900000');
 
 const deployProxy = async contract => {
   const implementation = await contract.new();
@@ -74,7 +72,7 @@ async function setup () {
   const exchange = await ExchangeMock.new(dai.address, factory.address);
 
   // initialize external contracts
-  await dai.mint(ether('1000000'));
+  await dai.mint(ether('10000000'));
   await factory.setFactory(dai.address, exchange.address);
   await dai.transfer(exchange.address, EXCHANGE_TOKEN);
   await exchange.recieveEther({ value: EXCHANGE_ETHER });
@@ -195,6 +193,7 @@ async function setup () {
   await upgradeProxy(ps.address, PooledStaking);
   await upgradeProxy(pc.address, ProposalCategory);
   await upgradeProxy(master.address, NXMaster);
+  await upgradeProxy(gv.address, Governance);
 
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
@@ -203,24 +202,27 @@ async function setup () {
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
+  const POOL_ETHER = ether('90000');
+  const POOL_DAI = ether('2000000');
+
   // fund pools
-  await p1.sendEther({ from: owner, value: POOL_ETHER });
-  await p2.sendEther({ from: owner, value: POOL_ETHER });
+  await p1.sendEther({ from: owner, value: POOL_ETHER.divn(2) });
+  await p2.sendEther({ from: owner, value: POOL_ETHER.divn(2) });
   await dai.transfer(p2.address, POOL_DAI);
 
   // add mcr
   await mc.addMCRData(
-    13000,
-    ether('1000'),
-    ether('70000'),
+    20000, // mcr% = 200.00%
+    ether('50000'), // mcr = 5000 eth
+    ether('100000'), // vFull = 90000 ETH + 2M DAI = 90000 ETH + 10000 ETH = 100000 ETH
     [hex('ETH'), hex('DAI')],
-    [100, 15517],
+    [100, 20000], // rates: 1.00 eth/eth, 200.00 dai/eth
     20190103,
   );
 
   await p2.saveIADetails(
     [hex('ETH'), hex('DAI')],
-    [100, 15517],
+    [100, 20000],
     20190103,
     true,
   );

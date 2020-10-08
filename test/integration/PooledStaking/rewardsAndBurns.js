@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 
 const { getQuoteValues } = require('../utils/getQuote');
-const { hex, tenderly, to } = require('../utils').helpers;
+const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('../setup');
 
@@ -76,12 +76,7 @@ async function submitMemberVotes (voteValue, maxVotingMembers) {
   const voters = maxVotingMembers ? baseMembers.slice(0, maxVotingMembers) : baseMembers;
 
   for (const member of voters) {
-    const [, voteErr] = await to(cl.submitCAVote(claimId, voteValue, { from: member }));
-    if (voteErr) {
-      console.log(`revert when voting with ${member}`);
-      // await tenderly(voteErr.tx);
-      throw voteErr;
-    }
+    await cl.submitCAVote(claimId, voteValue, { from: member });
   }
 
   const finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
@@ -345,7 +340,6 @@ describe('burns', function () {
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
 
-    // await ps.requestUnstake([cover.contractAddress], [stakeTokens], 0, { from: staker1 });
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
@@ -400,10 +394,8 @@ describe('burns', function () {
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
-    const now = await time.latest();
     const minVotingTime = await cd.minVotingTime();
-    const minTime = minVotingTime.add(now);
-    await time.increaseTo(minTime.add(new BN('2')));
+    await time.increase(minVotingTime.addn(1));
 
     const balanceBefore = await tk.balanceOf(ps.address);
     await submitMemberVotes.call(this, 1, 1);
@@ -455,9 +447,10 @@ describe('burns', function () {
     await ps.processPendingActions('100');
 
     const unstakeRequest = await ps.requestUnstake([cover.contractAddress], [stakeTokens], 0, { from: staker1 });
+    const { timestamp: unstakeRequestedAt } = await web3.eth.getBlock(unstakeRequest.receipt.blockNumber);
 
-    const latestBlockTime = await time.latest();
-    const expectedUnstakeTime = latestBlockTime.addn(90 * 24 * 3600);
+    const unstakeLockTime = await ps.UNSTAKE_LOCK_TIME();
+    const expectedUnstakeTime = toBN(unstakeRequestedAt).add(unstakeLockTime);
 
     expectEvent(unstakeRequest, 'UnstakeRequested', {
       staker: staker1,
@@ -465,7 +458,6 @@ describe('burns', function () {
       unstakeAt: expectedUnstakeTime,
     });
 
-    const unstakeLockTime = await ps.UNSTAKE_LOCK_TIME();
     await time.increase(unstakeLockTime.addn(24 * 60 * 60).toString());
 
     assert(await ps.hasPendingActions());

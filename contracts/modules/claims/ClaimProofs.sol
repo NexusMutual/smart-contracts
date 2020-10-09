@@ -17,9 +17,9 @@ contract ClaimProofs {
 
   function addProof(uint _coverId, string calldata _ipfsHash) external {
     QuotationData qd = QuotationData(ms.getLatestAddress("QD"));
-    uint8 cStatus;
-    (, cStatus,,,) = qd.getCoverDetailsByCoverID2(_coverId);
-    require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
+    uint8 coverStatus;
+    (, coverStatus,,,) = qd.getCoverDetailsByCoverID2(_coverId);
+    require(coverStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
     emit ProofAdded(_coverId, msg.sender, _ipfsHash);
   }
 

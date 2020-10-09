@@ -20,7 +20,7 @@ contract DisposableGovernance is IGovernance, Iupgradable {
 
   // mainnet param values added in comments
   function initialize(
-    uint _tokenHoldingTime, // 7 days
+    uint _tokenHoldingTime, // 3 days
     uint _maxDraftTime, // 14 days
     uint _maxVoteWeigthPer, // 5
     uint _maxFollowers, // 40

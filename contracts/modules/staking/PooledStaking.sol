@@ -102,15 +102,15 @@ contract PooledStaking is MasterAware, IPooledStaking {
   uint public MIN_UNSTAKE;       // Forbid unstake of small amounts to prevent spam
   uint public UNSTAKE_LOCK_TIME; // Lock period in seconds before unstaking takes place
 
-  mapping(address => Staker) internal stakers;     // stakerAddress => Staker
+  mapping(address => Staker) stakers;     // stakerAddress => Staker
 
   // temporary variables
-  uint internal contractStaked;   // used when processing burns and rewards
-  uint internal contractBurned;   // used when processing burns
-  uint internal contractRewarded; // used when processing rewards
+  uint contractStaked;   // used when processing burns and rewards
+  uint contractBurned;   // used when processing burns
+  uint contractRewarded; // used when processing rewards
 
   // list of stakers for all contracts
-  mapping(address => address[]) internal contractStakers;
+  mapping(address => address[]) contractStakers;
 
   // there can be only one pending burn
   Burn public burn;

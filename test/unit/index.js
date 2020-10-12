@@ -1,1 +1,2 @@
+require('./ClaimProofs');
 require('./PooledStaking');

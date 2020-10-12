@@ -4,15 +4,12 @@ const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 
 const { getQuoteValues } = require('../utils/getQuote');
+const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('../setup');
 
 require('chai').should();
-
-function coverToCoverDetailsArray (cover) {
-  return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
-}
 
 const [
   member1, member2, member3,
@@ -44,27 +41,6 @@ async function initMembers () {
   }
 
   this.allMembers = members;
-}
-
-async function buyCover (cover, coverHolder) {
-  const { qt, p1 } = this;
-  const vrsData = await getQuoteValues(
-    coverToCoverDetailsArray(cover),
-    cover.currency,
-    cover.period,
-    cover.contractAddress,
-    qt.address,
-  );
-  await p1.makeCoverBegin(
-    cover.contractAddress,
-    cover.currency,
-    coverToCoverDetailsArray(cover),
-    cover.period,
-    vrsData[0],
-    vrsData[1],
-    vrsData[2],
-    { from: coverHolder, value: cover.price },
-  );
 }
 
 async function submitMemberVotes (voteValue, maxVotingMembers) {
@@ -138,7 +114,7 @@ describe('burns', function () {
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
 
-    const { ps, tk, td, qd, cl, mcr } = this;
+    const { ps, tk, td, qd, cl, mcr, qt, p1 } = this;
 
     const currency = hex('ETH');
     const cover = {
@@ -160,7 +136,7 @@ describe('burns', function () {
       stakeTokens, [cover.contractAddress, secondCoveredAddress], [stakeTokens, stakeTokens], { from: staker1 },
     );
 
-    await buyCover.call(this, cover, coverHolder);
+    await buyCover({ cover, coverHolder, qt, p1 });
     assert(await ps.hasPendingActions());
 
     const stakerRewardPreProcessing = await ps.stakerReward(staker1);
@@ -219,7 +195,7 @@ describe('burns', function () {
     };
 
     const stakeTokens = ether('20');
-    const { ps, tk, td, qd, cl, mcr } = this;
+    const { ps, tk, td, qd, cl, mcr, qt, p1 } = this;
 
     for (const staker of this.allStakers) {
       await tk.approve(ps.address, stakeTokens, {
@@ -230,7 +206,7 @@ describe('burns', function () {
       });
     }
 
-    await buyCover.call(this, cover, coverHolder);
+    await buyCover({ cover, coverHolder, qt, p1 });
 
     const stakerRewardPreProcessing = await ps.stakerReward(staker1);
     await ps.processPendingActions('100');
@@ -278,7 +254,7 @@ describe('burns', function () {
 
   it('claim is rejected', async function () {
 
-    const { ps, tk, qd, cl } = this;
+    const { ps, tk, qd, cl, qt, p1 } = this;
     const currency = hex('ETH');
 
     const cover = {
@@ -297,7 +273,7 @@ describe('burns', function () {
     await tk.approve(ps.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover.call(this, cover, coverHolder);
+    await buyCover({ cover, coverHolder, qt, p1 });
 
     await ps.processPendingActions('100');
     const coverID = await qd.getAllCoversOfUser(coverHolder);
@@ -318,7 +294,7 @@ describe('burns', function () {
 
   it('claim is accepted and burn happens after an unprocessed unstake request by staker', async function () {
 
-    const { mcr, ps, tk, qd, cl } = this;
+    const { mcr, ps, tk, qd, cl, qt, p1 } = this;
 
     const currency = hex('ETH');
     const cover = {
@@ -336,7 +312,7 @@ describe('burns', function () {
     await tk.approve(ps.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover.call(this, cover, coverHolder);
+    await buyCover({ cover, coverHolder, qt, p1 });
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
 
@@ -367,7 +343,7 @@ describe('burns', function () {
 
   it('claim is accepted and burn happens when the final vote is submitted', async function () {
 
-    const { ps, tk, cd, qd, cl, mcr } = this;
+    const { ps, tk, cd, qd, cl, mcr, qt, p1 } = this;
 
     const currency = hex('ETH');
 
@@ -387,7 +363,7 @@ describe('burns', function () {
     await tk.approve(ps.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover.call(this, cover, coverHolder);
+    await buyCover({ cover, coverHolder, qt, p1 });
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
 
@@ -425,7 +401,7 @@ describe('burns', function () {
 
   it('claim is accepted and burn happens after an unstake request by staker is processed', async function () {
 
-    const { ps, tk, qd, cl } = this;
+    const { ps, tk, qd, cl, qt, p1 } = this;
     const currency = hex('ETH');
 
     const cover = {
@@ -442,7 +418,7 @@ describe('burns', function () {
 
     await tk.approve(ps.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
-    await buyCover.call(this, cover, coverHolder);
+    await buyCover({ cover, coverHolder, qt, p1 });
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
 

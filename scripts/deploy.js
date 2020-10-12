@@ -195,6 +195,10 @@ async function run () {
   // trigger changeDependentContractAddress() on all contracts
   await master.changeAllAddress();
 
+  console.log('Deploying non-upgradable contracts');
+  const cp = await loader.fromArtifact('ClaimProofs').new(master.address);
+  verifier.add('ClaimProofs', cp.address);
+
   console.log('Upgrading to non-disposable contracts');
   const { implementation: newMasterImpl } = await upgradeProxy(master.address, 'NXMaster');
   const { implementation: newMrImpl } = await upgradeProxy(mr.address, 'MemberRoles');

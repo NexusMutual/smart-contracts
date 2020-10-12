@@ -22,6 +22,7 @@ const Pool2 = contract.fromArtifact('Pool2');
 const PoolData = contract.fromArtifact('PoolData');
 const Quotation = contract.fromArtifact('Quotation');
 const QuotationData = contract.fromArtifact('QuotationData');
+const ClaimProofs = contract.fromArtifact('ClaimProofs');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = contract.fromArtifact('DisposableNXMaster');
@@ -101,6 +102,9 @@ async function setup () {
   const ps = await deployProxy(DisposablePooledStaking);
   const pc = await deployProxy(DisposableProposalCategory);
   const gv = await deployProxy(DisposableGovernance);
+
+  // non-upgradable contracts
+  const cp = await ClaimProofs.new(master.address);
 
   const contractType = code => {
 
@@ -228,12 +232,14 @@ async function setup () {
   );
 
   const external = { dai, dsv, factory, exchange };
+  const nonUpgradable = { cp };
   const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr: mc };
   const proxies = { tc, gv, pc, mr, ps };
 
   Object.assign(this, {
     master,
     ...external,
+    ...nonUpgradable,
     ...instances,
     ...proxies,
   });

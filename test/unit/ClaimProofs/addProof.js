@@ -11,7 +11,6 @@ describe('addProof', function () {
     const cid = new BN(1);
     const ipfsHash = 'mockedIpfsHash';
     const res = await claimProofs.addProof(cid, ipfsHash);
-    console.log(res.logs);
     const proofAddedLog = res.logs.find(x => x.event === 'ProofAdded');
     assert(proofAddedLog !== undefined, 'Expected a ProofAdded event');
     assert(proofAddedLog.args[0].eq(cid), `Expected ProofAdded event first argument to be ${cid}`);

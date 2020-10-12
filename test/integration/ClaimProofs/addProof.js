@@ -60,7 +60,6 @@ describe('addProof', function () {
     };
     await buyCover({ cover, coverHolder, qt, p1 });
     const coverID = await qd.getAllCoversOfUser(coverHolder);
-    console.log(coverID);
     const latestCoverId = coverID[coverID.length - 1];
     await cl.submitClaim(latestCoverId, { from: coverHolder });
     await expectRevert(cp.addProof(latestCoverId, ''), revertReason);

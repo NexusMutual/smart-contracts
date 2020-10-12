@@ -15,50 +15,50 @@
     along with this program.  If not, see http://www.gnu.org/licenses/
 */
 
-pragma solidity ^0.5.7;
+pragma solidity ^0.5.0;
 
-import "../INXMMaster.sol";
+import "./INXMMaster.sol";
 
 contract MasterAware {
 
-    INXMMaster public master;
+  INXMMaster public master;
 
-    modifier onlyMember {
-        require(master.isMember(msg.sender), "Caller is not a member");
-        _;
-    }
+  modifier onlyMember {
+    require(master.isMember(msg.sender), "Caller is not a member");
+    _;
+  }
 
-    modifier onlyInternal {
-        require(master.isInternal(msg.sender), "Caller is not an internal contract");
-        _;
-    }
+  modifier onlyInternal {
+    require(master.isInternal(msg.sender), "Caller is not an internal contract");
+    _;
+  }
 
-    modifier onlyMaster {
-        if (address(master) != address(0)) {
-            require(address(master) == msg.sender, "Not master");
-        }
-        _;
+  modifier onlyMaster {
+    if (address(master) != address(0)) {
+      require(address(master) == msg.sender, "Not master");
     }
+    _;
+  }
 
-    modifier onlyGovernance {
-        require(
-            master.checkIsAuthToGoverned(msg.sender),
-            "Caller is not authorized to govern"
-        );
-        _;
-    }
+  modifier onlyGovernance {
+    require(
+      master.checkIsAuthToGoverned(msg.sender),
+      "Caller is not authorized to govern"
+    );
+    _;
+  }
 
-    modifier whenPaused {
-        require(master.isPause(), "System is not paused");
-        _;
-    }
+  modifier whenPaused {
+    require(master.isPause(), "System is not paused");
+    _;
+  }
 
-    modifier whenNotPaused {
-        require(!master.isPause(), "System is paused");
-        _;
-    }
+  modifier whenNotPaused {
+    require(!master.isPause(), "System is paused");
+    _;
+  }
 
-    function changeMasterAddress(address masterAddress) public onlyMaster {
-        master = INXMMaster(masterAddress);
-    }
+  function changeMasterAddress(address masterAddress) public onlyMaster {
+    master = INXMMaster(masterAddress);
+  }
 }

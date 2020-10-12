@@ -6,9 +6,9 @@
 
 **Requirements**: `Node >= 10`  
 **Install**: `npm i`  
-**Compile**: `npx truffle compile`  
+**Compile**: `npm run compile`  
 **Test**: `npm test`  
-**Deploy**: `npx truffle deploy`
+**Deploy**: `NETWORK=kovan npm run deploy`
 
 ## Smart Contracts Details 
 

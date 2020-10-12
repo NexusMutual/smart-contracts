@@ -1,3 +1,5 @@
+const { web3 } = require('@openzeppelin/test-environment');
+
 const send = (method, params = []) => new Promise((resolve, reject) => {
   web3.currentProvider.send(
     { jsonrpc: '2.0', id: Date.now(), method, params },
@@ -5,10 +7,14 @@ const send = (method, params = []) => new Promise((resolve, reject) => {
   );
 });
 
-const takeSnapshot = async () => send('evm_snapshot');
-const revertSnapshot = async id => send('evm_revert', [id]);
+const takeSnapshot = async () => {
+  const { result } = await send('evm_snapshot');
+  return result;
+};
+
+const revertToSnapshot = async id => send('evm_revert', [id]);
 
 module.exports = {
   takeSnapshot,
-  revertSnapshot,
+  revertToSnapshot,
 };

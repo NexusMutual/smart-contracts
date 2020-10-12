@@ -2,9 +2,6 @@
   "name": "nexusmutual",
   "version": "1.0.0",
   "description": "NexusMutual smart contracts",
-  "scripts": {
-    "test": "scripts/test.sh"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NexusMutual/smart-contracts.git"
@@ -23,17 +20,41 @@
   },
   "homepage": "https://github.com/NexusMutual/smart-contracts",
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.38",
-    "chai": "^4.1.2",
-    "chai-bignumber": "^2.0.2",
-    "ethereumjs-abi": "^0.6.5",
-    "ganache-cli": "^6.9.1",
-    "mocha": "^8.0.1",
-    "solc": "^0.5.7",
-    "solhint": "^1.5.1",
-    "truffle": "^5.1.34",
-    "truffle-plugin-verify": "^0.3.11",
-    "web3": "^1.2.9"
+    "@openzeppelin/cli": "^2.8.2",
+    "@openzeppelin/contract-loader": "^0.6.1",
+    "@openzeppelin/contracts": "^2.5.1",
+    "@openzeppelin/test-helpers": "^0.5.6",
+    "@openzeppelin/upgrades": "^2.8.0",
+    "@truffle/hdwallet-provider": "^1.0.42",
+    "bn.js": "^5.1.2",
+    "dotenv": "^8.2.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@openzeppelin/test-environment": "^0.1.5",
+    "chai": "^4.2.0",
+    "chai-bignumber": "^3.0.0",
+    "eslint": "^6.8.0",
+    "eslint-config-semistandard": "^15.0.0",
+    "eslint-config-standard": "^13.0.1",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-node": "^11.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "ethlint": "^1.2.5",
+    "mocha": "^7.1.2",
+    "nodemon": "^2.0.2",
+    "truffle-flattener": "github:shark0der/truffle-flattener",
+    "truffle-typings": "^1.0.8"
+  },
+  "scripts": {
+    "compile": "oz compile",
+    "dev": "nodemon --ext js,sol -x 'oz compile && mocha --exit --bail'",
+    "dev-integration": "npm run dev -- -- test/integration",
+    "dev-unit": "npm run dev -- -- test/unit",
+    "test": "oz compile && mocha --exit",
+    "test-integration": "oz compile && mocha --exit test/integration",
+    "test-unit": "oz compile && mocha --exit test/unit",
+    "deploy": "oz compile && node scripts/deploy.js",
+    "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork"
+  }
 }

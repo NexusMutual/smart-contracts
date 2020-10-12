@@ -1,9 +1,8 @@
 const { accounts, web3 } = require('@openzeppelin/test-environment');
-const { ether } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { toBN } = web3.utils;
 
 const { hex } = require('../utils').helpers;
-const { expectThrowsAsync } = require('../utils').expectThrowsAsync;
 const { buyCover } = require('../utils/buyCover');
 const snapshot = require('../utils').snapshot;
 const setup = require('../setup');
@@ -15,7 +14,6 @@ const [coverHolder] = accounts;
 const UNLIMITED_ALLOWANCE = toBN('2')
   .pow(toBN('256'))
   .subn(1);
-const initialMemberFunds = ether('2500');
 
 async function initMembers () {
   const { mr, tk, tc } = this;
@@ -26,7 +24,6 @@ async function initMembers () {
     await mr.payJoiningFee(member, { from: member, value: ether('0.002') });
     await mr.kycVerdict(member, true);
     await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
-    await tk.transfer(member, initialMemberFunds);
   }
 
   this.allMembers = members;
@@ -47,9 +44,9 @@ describe('addProof', function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
 
-  it('should reject proof after a claim for a given cover is submitted', async function () {
+  it('should revert after a claim for a given cover is submitted', async function () {
     const { qd, cl, qt, p1, cp } = this;
-    const rejectReason = 'Claim already submitted';
+    const revertReason = 'Claim already submitted';
     const currency = hex('ETH');
     const cover = {
       amount: 1,
@@ -63,8 +60,9 @@ describe('addProof', function () {
     };
     await buyCover({ cover, coverHolder, qt, p1 });
     const coverID = await qd.getAllCoversOfUser(coverHolder);
-    await cl.submitClaim(coverID[0], { from: coverHolder });
-    await expectThrowsAsync(() => cp.addProof(coverID[0], ''));
-    await expectThrowsAsync(() => cp.addProof(coverID[0], ''), rejectReason);
+    console.log(coverID);
+    const latestCoverId = coverID[coverID.length - 1];
+    await cl.submitClaim(latestCoverId, { from: coverHolder });
+    await expectRevert(cp.addProof(latestCoverId, ''), revertReason);
   });
 });

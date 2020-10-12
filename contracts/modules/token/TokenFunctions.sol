@@ -48,7 +48,7 @@ contract TokenFunctions is Iupgradable {
    */
   function pushStakerRewards(address _contractAddress, uint _coverPriceNXM) external onlyInternal {
     uint rewardValue = _coverPriceNXM.mul(td.stakerCommissionPer()).div(100);
-    pooledStaking.pushReward(_contractAddress, rewardValue);
+    pooledStaking.accumulateReward(_contractAddress, rewardValue);
   }
 
   /**

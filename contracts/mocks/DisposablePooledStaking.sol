@@ -21,6 +21,8 @@ contract DisposablePooledStaking is PooledStaking {
     MIN_UNSTAKE = minUnstake;
     MAX_EXPOSURE = maxExposure;
     UNSTAKE_LOCK_TIME = unstakeLockTime;
+
+    REWARD_ROUND_DURATION = 7 days;
     REWARD_ROUNDS_START = now;
   }
 

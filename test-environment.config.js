@@ -1,11 +1,6 @@
 const node = {
   gasLimit: 10e6, // Maximum gas per block
-  // When the vmErrorsOnRPCResponse setting value is:
-  //    false: thrown errors contain tx hash, blockHash, gasUsed but have a generic error message
-  //    true:  thrown errors contain the exact error (out of gas, or revert) but no transaction details
-  // The default is true
-  // If you need to debug the tx in tenderly, change this to FALSE, otherwise leave set to true.
-  vmErrorsOnRPCResponse: true,
+  vmErrorsOnRPCResponse: false, // Set to false to throw errors with tx hash, blockHash, gasUsed etc.
 };
 
 if (process.env.TEST_ENV_FORK) {

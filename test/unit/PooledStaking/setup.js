@@ -56,18 +56,11 @@ async function setup () {
     await master.enrollGovernance(governanceContract);
   }
 
-  await expectRevert(
-    staking.depositAndStake(ether('1'), [], []),
-    'Contract is not initialized',
-  );
-
   // initialize token
   await token.setOperator(tokenController.address);
 
   // initialize then migrate
   await staking.changeDependentContractAddress();
-  await staking.migrateStakers('1');
-
   assert(await staking.initialized(), 'Pooled staking contract should have been initialized');
 
   // revert initialized values for unit tests

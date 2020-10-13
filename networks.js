@@ -33,4 +33,12 @@ module.exports = {
       networkId: '*',
     },
   },
+  compilers: {
+    solc: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
 };

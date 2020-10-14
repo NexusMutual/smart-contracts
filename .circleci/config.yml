@@ -1,0 +1,10 @@
+orbs:
+  node: circleci/node@4.1.0
+
+version: 2.1
+
+workflows:
+  sc-truffle-tests:
+    jobs:
+      - node/test:
+          version: 10.22.1

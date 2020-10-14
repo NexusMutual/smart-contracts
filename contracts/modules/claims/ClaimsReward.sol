@@ -44,6 +44,7 @@ contract ClaimsReward is Iupgradable {
   PoolData internal pd;
   Governance internal gv;
   IPooledStaking internal pooledStaking;
+  MemberRoles internal memberRoles;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
 
@@ -60,6 +61,7 @@ contract ClaimsReward is Iupgradable {
     qd = QuotationData(ms.getLatestAddress("QD"));
     gv = Governance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
+    memberRoles = MemberRoles(ms.getLatestAddress("MR"));
   }
 
   /// @dev Decides the next course of action for a given claim.
@@ -81,7 +83,9 @@ contract ClaimsReward is Iupgradable {
       uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
       address payable coverHolder = qd.getCoverMemberAddress(coverid);
       bytes4 coverCurrency = qd.getCurrencyOfCover(coverid);
-      bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, coverHolder, coverCurrency);
+
+      address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
+      bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, payoutAddress, coverCurrency);
 
       if (success) {
         tf.burnStakedTokens(coverid, coverCurrency, sumAssured);

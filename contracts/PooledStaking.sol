@@ -104,15 +104,15 @@ contract PooledStaking is MasterAware {
   uint public MIN_UNSTAKE;       // Forbid unstake of small amounts to prevent spam
   uint public UNSTAKE_LOCK_TIME; // Lock period in seconds before unstaking takes place
 
-  mapping(address => Staker) stakers;     // stakerAddress => Staker
+  mapping(address => Staker) public stakers;     // stakerAddress => Staker
 
   // temporary variables
-  uint contractStaked;   // used when processing burns and rewards
-  uint contractBurned;   // used when processing burns
-  uint contractRewarded; // used when processing rewards
+  uint public contractStaked;   // used when processing burns and rewards
+  uint public contractBurned;   // used when processing burns
+  uint public contractRewarded; // used when processing rewards
 
   // list of stakers for all contracts
-  mapping(address => address[]) contractStakers;
+  mapping(address => address[]) public contractStakers;
 
   // there can be only one pending burn
   Burn public burn;
@@ -140,22 +140,22 @@ contract PooledStaking is MasterAware {
   /* Modifiers */
 
   modifier noPendingActions {
-    require(!hasPendingActions(), 'Unable to execute request with unprocessed actions');
+    require(!hasPendingActions(), "Unable to execute request with unprocessed actions");
     _;
   }
 
   modifier noPendingBurns {
-    require(!hasPendingBurns(), 'Unable to execute request with unprocessed burns');
+    require(!hasPendingBurns(), "Unable to execute request with unprocessed burns");
     _;
   }
 
   modifier noPendingUnstakeRequests {
-    require(!hasPendingUnstakeRequests(), 'Unable to execute request with unprocessed unstake requests');
+    require(!hasPendingUnstakeRequests(), "Unable to execute request with unprocessed unstake requests");
     _;
   }
 
   modifier noPendingRewards {
-    require(!hasPendingRewards(), 'Unable to execute request with unprocessed rewards');
+    require(!hasPendingRewards(), "Unable to execute request with unprocessed rewards");
     _;
   }
 
@@ -406,7 +406,7 @@ contract PooledStaking is MasterAware {
       "Contracts and amounts arrays should have the same length"
     );
 
-    require(_insertAfter <= lastUnstakeRequestId, 'Invalid unstake request id provided');
+    require(_insertAfter <= lastUnstakeRequestId, "Invalid unstake request id provided");
 
     Staker storage staker = stakers[msg.sender];
     uint deposit = staker.deposit;
@@ -516,7 +516,7 @@ contract PooledStaking is MasterAware {
     uint roundDuration = REWARD_ROUND_DURATION;
     uint startTime = REWARD_ROUNDS_START;
 
-    require(startTime != 0, 'REWARD_ROUNDS_START is not initialized');
+    require(startTime != 0, "REWARD_ROUNDS_START is not initialized");
 
     return now <= startTime ? 0 : (now - startTime) / roundDuration;
   }
@@ -971,7 +971,7 @@ contract PooledStaking is MasterAware {
   }
 
   function initializeRewardRoundsStart() public {
-    require(REWARD_ROUNDS_START == 0, 'REWARD_ROUNDS_START already initialized');
+    require(REWARD_ROUNDS_START == 0, "REWARD_ROUNDS_START already initialized");
     REWARD_ROUNDS_START = 1600074000;
     REWARD_ROUND_DURATION = 7 days;
 

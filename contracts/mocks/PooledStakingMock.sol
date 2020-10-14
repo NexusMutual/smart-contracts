@@ -18,23 +18,18 @@
 pragma solidity ^0.5.7;
 
 import "../PooledStaking.sol";
-import "../NXMToken.sol";
-import "../TokenController.sol";
 
 contract PooledStakingMock is PooledStaking {
 
-  function changeDependentContractAddress() public {
+  function initializeMock() public {
 
-    token = NXMToken(master.tokenAddress());
-    tokenController = TokenController(master.getLatestAddress("TC"));
+    MIN_STAKE = 0 ether;
+    MIN_UNSTAKE = 20 ether;
+    MAX_EXPOSURE = 10;
+    UNSTAKE_LOCK_TIME = 7200;
 
-    if (!initialized) {
-      initialize();
-      MIN_STAKE = 0;
-      MIN_UNSTAKE = 0;
-      MAX_EXPOSURE = 10;
-      UNSTAKE_LOCK_TIME = 0;
-    }
+    REWARD_ROUNDS_START = now;
+    REWARD_ROUND_DURATION = 3600;
   }
 
 }

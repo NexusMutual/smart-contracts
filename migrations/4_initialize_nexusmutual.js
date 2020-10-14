@@ -82,14 +82,17 @@ module.exports = function (deployer, network, accounts) {
     const psProxyAddress = await master.getLatestAddress(toHex('PS'));
     const ps = await PooledStaking.at(psProxyAddress);
 
-    await ps.migrateStakers('1');
-    assert(await ps.initialized(), 'Pooled staking contract should have been initialized');
-
     // transfer master ownership and init governance
     await proxyMaster.transferProxyOwnership(gvProxyAddress);
     await gv._initiateGovernance();
     await pc.proposalCategoryInitiate();
     await pc.updateCategoryActionHashes();
+
+    await ps.initializeMock();
+    const rewardRoundDuration = await ps.REWARD_ROUND_DURATION();
+
+    assert.notStrictEqual(rewardRoundDuration.toString(), '0', 'REWARD_ROUND_DURATION should have been initialized');
+    assert(await ps.initialized(), 'Pooled staking contract should have been initialized');
 
     // fund pools
     await p1.sendEther({ from: owner, value: POOL_ETHER });

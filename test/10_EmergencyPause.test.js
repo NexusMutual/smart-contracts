@@ -19,7 +19,7 @@ const PooledStaking = artifacts.require('PooledStakingMock');
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, duration, latestTime} = require('./utils/increaseTime');
+const {increaseTimeTo, duration, latestTime, increaseTime } = require('./utils/increaseTime');
 const getQuoteValues = require('./utils/getQuote.js').getQuoteValues;
 const getValue = require('./utils/getMCRPerThreshold.js').getValue;
 const { takeSnapshot, revertSnapshot } = require('./utils/snapshot');
@@ -224,6 +224,9 @@ contract('NXMaster: Emergency Pause', function([
       });
       let proposalsIDs = [];
 
+      const roundDuration = await ps.REWARD_ROUND_DURATION();
+      await increaseTime(roundDuration.toNumber());
+      await ps.pushRewards([smartConAdd]);
       await ps.processPendingActions('100');
 
       await cr.claimAllPendingReward(20, {from: member4});

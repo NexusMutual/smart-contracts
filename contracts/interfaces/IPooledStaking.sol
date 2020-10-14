@@ -2,7 +2,7 @@ pragma solidity ^0.5.7;
 
 interface IPooledStaking {
 
-    function pushReward(address contractAddress, uint amount) external;
+    function accumulateReward(address contractAddress, uint amount) external;
     function pushBurn(address contractAddress, uint amount) external;
     function hasPendingActions() external view returns (bool);
 

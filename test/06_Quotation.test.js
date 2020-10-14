@@ -19,7 +19,7 @@ const PooledStaking = artifacts.require('PooledStakingMock');
 const {assertRevert} = require('./utils/assertRevert');
 const {advanceBlock} = require('./utils/advanceToBlock');
 const {ether, toHex, toWei} = require('./utils/ethTools');
-const {increaseTimeTo, latestTime} = require('./utils/increaseTime');
+const {increaseTimeTo, latestTime, increaseTime } = require('./utils/increaseTime');
 const gvProp = require('./utils/gvProposal.js').gvProposal;
 const encode = require('./utils/encoder.js').encode;
 const encode1 = require('./utils/encoder.js').encode1;
@@ -585,6 +585,9 @@ contract('Quotation', function([
                 {from: coverHolder}
               );
 
+              const roundDuration = await ps.REWARD_ROUND_DURATION();
+              await increaseTime(roundDuration.toNumber());
+              await ps.pushRewards([smartConAdd]);
               await ps.processPendingActions('100');
 
               const presentLockedCN = await tf.getUserAllLockedCNTokens.call(
@@ -745,7 +748,11 @@ contract('Quotation', function([
             });
 
             it('6.22 staker gets commission', async function() {
+              const roundDuration = await ps.REWARD_ROUND_DURATION();
+              await increaseTime(roundDuration.toNumber());
+              await ps.pushRewards([smartConAdd]);
               await ps.processPendingActions('100');
+
               const commission =
                 ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
                   1) /
@@ -821,6 +828,9 @@ contract('Quotation', function([
               );
             });
             it('6.24 staker gets commission', async function() {
+              const roundDuration = await ps.REWARD_ROUND_DURATION();
+              await increaseTime(roundDuration.toNumber());
+              await ps.pushRewards([smartConAdd]);
               await ps.processPendingActions('100');
               const commission =
                 ((coverDetails[2] * (await td.stakerCommissionPer())) / 100 -
@@ -875,6 +885,9 @@ contract('Quotation', function([
               );
             });
             it('6.26 staker gets commission', async function() {
+              const roundDuration = await ps.REWARD_ROUND_DURATION();
+              await increaseTime(roundDuration.toNumber());
+              await ps.pushRewards([smartConAdd]);
               await ps.processPendingActions('100');
               const commission =
                 ((coverDetailsDai[2] * (await td.stakerCommissionPer())) / 100 -

@@ -289,6 +289,9 @@ contract('NXMaster', function(accounts) {
       let cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
 
+      const roundDuration = await ps.REWARD_ROUND_DURATION();
+      await increaseTime(roundDuration.toNumber());
+      await ps.pushRewards([smartConAdd]);
       await ps.processPendingActions('100');
 
       apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);

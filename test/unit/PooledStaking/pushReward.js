@@ -42,7 +42,9 @@ describe('pushReward', function () {
 
     // Push reward
     const rewardAmount = ether('2');
-    const reward = await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
+    await staking.accumulateReward(firstContract, rewardAmount, { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    const reward = await staking.pushRewards([firstContract]);
 
     expectEvent(reward, 'RewardRequested', {
       contractAddress: firstContract,
@@ -57,7 +59,9 @@ describe('pushReward', function () {
 
     // Push first reward
     const firstRewardAmount = ether('2');
-    await staking.pushReward(firstContract, firstRewardAmount, { from: internalContract });
+    await staking.accumulateReward(firstContract, firstRewardAmount, { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
 
     // Check the Reward has been pushed to the rewards mapping
     const { amount, rewardedAt, contractAddress } = await staking.rewards(1);
@@ -87,14 +91,19 @@ describe('pushReward', function () {
     assert(lastRewardId.eqn(0), `Expected lastRewardId to be 0, found ${lastRewardId}`);
 
     // Push first reward
-    await staking.pushReward(firstContract, ether('5'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('5'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
+
     lastRewardId = await staking.firstReward();
     assert(lastRewardId.eqn(1), `Expected lastRewardId to be 1, found ${lastRewardId}`);
 
     await staking.processPendingActions('100');
 
     // Push second reward
-    await staking.pushReward(firstContract, ether('1'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('1'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
     lastRewardId = await staking.firstReward();
     assert(lastRewardId.eqn(2), `Expected firstReward to be 2, found ${lastRewardId}`);
   });
@@ -109,14 +118,18 @@ describe('pushReward', function () {
     assert(firstReward.eqn(0), `Expected firstReward to be 0, found ${firstReward}`);
 
     // Push first reward
-    await staking.pushReward(firstContract, ether('2'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('2'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
     firstReward = await staking.firstReward();
     assert(firstReward.eqn(1), `Expected firstReward to be 1, found ${firstReward}`);
 
     await staking.processPendingActions('100');
 
     // Push second reward
-    await staking.pushReward(firstContract, ether('4'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('4'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
     firstReward = await staking.firstReward();
     assert(firstReward.eqn(2), `Expected firstBurn to be 2, found ${firstReward}`);
   });

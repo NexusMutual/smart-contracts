@@ -27,9 +27,13 @@ describe('processFirstReward', function () {
 
   it('should mint the reward amount in the PS contract', async function () {
     const { token, tokenController, staking } = this;
+    const roundDuration = await staking.REWARD_ROUND_DURATION();
+
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
-    await staking.pushReward(firstContract, ether('2'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('2'), { from: internalContract });
+    await time.increase(roundDuration);
+    await staking.pushRewards([firstContract]);
     await staking.processPendingActions('100');
 
     const currentBalance = await token.balanceOf(staking.address);
@@ -57,14 +61,19 @@ describe('processFirstReward', function () {
     );
 
     // push reward and process in batches
-    await staking.pushReward(firstContract, ether('3'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('3'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
+
     await staking.processPendingActions('3');
     assert.equal(await staking.hasPendingActions(), true, 'should have not finished processing all pending actions');
     await staking.processPendingActions('1');
     assert.equal(await staking.hasPendingActions(), false, 'should have finished processing all pending actions');
 
     // push reward and process it
-    await staking.pushReward(firstContract, ether('3'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('3'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
     await staking.processPendingActions('4');
     assert.equal(await staking.hasPendingActions(), false, 'should have finished processing all pending actions');
 
@@ -79,7 +88,10 @@ describe('processFirstReward', function () {
   it('should reward stakers proportionally to their stake', async function () {
     const { token, tokenController, staking } = this;
 
-    await staking.pushReward(firstContract, ether('20'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('20'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
+
     await expectRevert(
       fundApproveDepositStake(token, tokenController, staking, ether('100'), firstContract, memberOne),
       `Unable to execute request with unprocessed actions`,
@@ -92,7 +104,10 @@ describe('processFirstReward', function () {
     await fundApproveDepositStake(token, tokenController, staking, ether('180'), firstContract, memberTwo);
     await fundApproveDepositStake(token, tokenController, staking, ether('230'), firstContract, memberThree);
 
-    await staking.pushReward(firstContract, ether('50'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('50'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
+
     await time.advanceBlock();
     await staking.processPendingActions('100');
 
@@ -152,7 +167,10 @@ describe('processFirstReward', function () {
 
     // Reward 50
     await time.advanceBlock();
-    await staking.pushReward(firstContract, ether('50'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('50'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
+
     await time.advanceBlock();
     await staking.processPendingActions('100');
 
@@ -201,7 +219,9 @@ describe('processFirstReward', function () {
     );
 
     // Push reward 20 on secondContract
-    await staking.pushReward(secondContract, ether('20'), { from: internalContract });
+    await staking.accumulateReward(secondContract, ether('20'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([secondContract]);
     await time.increase(60);
 
     // Burn 100 on firstContract
@@ -209,7 +229,9 @@ describe('processFirstReward', function () {
     await time.increase(60);
 
     // Push reward 30 on thirdContract
-    await staking.pushReward(thirdContract, ether('30'), { from: internalContract });
+    await staking.accumulateReward(thirdContract, ether('30'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([thirdContract]);
     await time.increase(60);
 
     // Process Actions
@@ -274,7 +296,9 @@ describe('processFirstReward', function () {
 
     const preRewardBalance = await token.balanceOf(staking.address);
 
-    await staking.pushReward(firstContract, ether('50'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('50'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
     await time.advanceBlock();
     await staking.processPendingActions('100');
 
@@ -291,7 +315,9 @@ describe('processFirstReward', function () {
     const { token, tokenController, staking } = this;
 
     await fundApproveDepositStake(token, tokenController, staking, ether('300'), firstContract, memberOne);
-    await staking.pushReward(firstContract, ether('10'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('10'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
 
     let hasPendingRewards = await staking.hasPendingRewards();
     assert.isTrue(hasPendingRewards, `Expect hasPendingRewards to be true`);
@@ -313,7 +339,9 @@ describe('processFirstReward', function () {
       await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, account);
     }
 
-    await staking.pushReward(firstContract, ether('2'), { from: internalContract });
+    await staking.accumulateReward(firstContract, ether('2'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
 
     let process = await staking.processPendingActions(`${iterationsNeeded - 1}`);
     expectEvent(process, 'PendingActionsProcessed', { finished: false });
@@ -385,7 +413,9 @@ describe('processFirstReward', function () {
     );
 
     // push a small reward on secondContract and expect firstStaker to be removed
-    await staking.pushReward(secondContract, ether('1'), { from: internalContract });
+    await staking.accumulateReward(secondContract, ether('1'), { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([secondContract]);
     await staking.processPendingActions('100');
 
     const finalStakers = await staking.contractStakersArray(secondContract);
@@ -420,7 +450,9 @@ describe('processFirstReward', function () {
     await fundApproveDepositStake(token, tokenController, staking, ether('10'), firstContract, memberOne);
 
     const rewardAmount = ether('2');
-    await staking.pushReward(firstContract, rewardAmount, { from: internalContract });
+    await staking.accumulateReward(firstContract, rewardAmount, { from: internalContract });
+    await time.increase(await staking.REWARD_ROUND_DURATION());
+    await staking.pushRewards([firstContract]);
     const process = await staking.processPendingActions('100');
 
     expectEvent(process, 'Rewarded', {

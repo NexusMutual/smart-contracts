@@ -21,6 +21,7 @@ import "../capital/MCR.sol";
 import "../capital/PoolData.sol";
 import "../claims/ClaimsReward.sol";
 import "../governance/Governance.sol";
+import "../cover/QuotationData.sol";
 import "./NXMToken.sol";
 import "./TokenController.sol";
 import "./TokenData.sol";
@@ -48,7 +49,7 @@ contract TokenFunctions is Iupgradable {
    */
   function pushStakerRewards(address _contractAddress, uint _coverPriceNXM) external onlyInternal {
     uint rewardValue = _coverPriceNXM.mul(td.stakerCommissionPer()).div(100);
-    pooledStaking.pushReward(_contractAddress, rewardValue);
+    pooledStaking.accumulateReward(_contractAddress, rewardValue);
   }
 
   /**

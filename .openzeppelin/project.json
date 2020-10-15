@@ -51,7 +51,7 @@
       }
     },
     "typechain": {
-      "enabled": true,
+      "enabled": false,
       "outDir": "./types/contracts",
       "target": "truffle"
     },

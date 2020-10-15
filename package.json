@@ -56,6 +56,6 @@
     "test-unit": "oz compile && mocha --exit test/unit",
     "deploy": "oz compile && node scripts/deploy.js",
     "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork",
-    "typechain": "oz compile --typechain truffle --typechain-outdir ./types/contracts"
+    "typechain": "cp .openzeppelin/project.json .bck && (oz compile --typechain truffle --typechain-outdir ./types/contracts || true) && mv .bck .openzeppelin/project.json"
   }
 }

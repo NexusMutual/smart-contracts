@@ -273,10 +273,15 @@ contract ClaimsReward is Iupgradable {
       p2.internalLiquiditySwap(curr);
 
     } else if (status == 7 || status == 8 || status == 10) {
+
       cd.changeFinalVerdict(claimid, 1);
       td.setDepositCN(coverid, false); // Unset flag
       tf.unlockCN(coverid);
-      bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, qd.getCoverMemberAddress(coverid), curr);
+
+      address payable coverHolder = qd.getCoverMemberAddress(coverid);
+      address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
+      bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, payoutAddress, curr);
+
       if (success) {
         tf.burnStakedTokens(coverid, curr, sumAssured);
       }

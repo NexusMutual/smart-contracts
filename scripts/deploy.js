@@ -96,6 +96,11 @@ async function run () {
   verifier.add('Quotation', qt.address);
   verifier.add('QuotationData', qd.address, ['address', 'address'], [owner, owner]);
 
+  // Non-upgradable contracts
+  console.log('Deploying non-upgradable contracts');
+  const cp = await loader.fromArtifact('ClaimProofs').new();
+  verifier.add('ClaimProofs', cp.address);
+
   // proxy contracts
   console.log('Deploying proxy contracts');
   const { instance: master, implementation: masterImpl } = await deployProxy('DisposableNXMaster');
@@ -194,10 +199,6 @@ async function run () {
 
   // trigger changeDependentContractAddress() on all contracts
   await master.changeAllAddress();
-
-  console.log('Deploying non-upgradable contracts');
-  const cp = await loader.fromArtifact('ClaimProofs').new(master.address);
-  verifier.add('ClaimProofs', cp.address);
 
   console.log('Upgrading to non-disposable contracts');
   const { implementation: newMasterImpl } = await upgradeProxy(master.address, 'NXMaster');

@@ -3,7 +3,6 @@ pragma solidity ^0.5.0;
 import "../modules/staking/PooledStaking.sol";
 import "../modules/token/TokenController.sol";
 
-// TODO: modify PS and get rid of this contract
 contract DisposablePooledStaking is PooledStaking {
 
   function initialize(
@@ -23,6 +22,8 @@ contract DisposablePooledStaking is PooledStaking {
     MAX_EXPOSURE = maxExposure;
     UNSTAKE_LOCK_TIME = unstakeLockTime;
 
+    REWARD_ROUND_DURATION = 7 days;
+    REWARD_ROUNDS_START = now;
   }
 
 }

@@ -67,6 +67,11 @@ contract PooledStaking is MasterAware, IPooledStaking {
     uint next; // id of the next unstake request in the linked list
   }
 
+  struct ContractReward {
+    uint amount;
+    uint lastDistributionRound;
+  }
+
   /* Events */
 
   // deposits
@@ -83,6 +88,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
   event Burned(address indexed contractAddress, uint amount, uint contractStakeBeforeBurn);
 
   // rewards
+  event RewardAdded(address indexed contractAddress, uint amount);
   event RewardRequested(address indexed contractAddress, uint amount);
   event Rewarded(address indexed contractAddress, uint amount, uint contractStake);
   event RewardWithdrawn(address indexed staker, uint amount);
@@ -102,15 +108,15 @@ contract PooledStaking is MasterAware, IPooledStaking {
   uint public MIN_UNSTAKE;       // Forbid unstake of small amounts to prevent spam
   uint public UNSTAKE_LOCK_TIME; // Lock period in seconds before unstaking takes place
 
-  mapping(address => Staker) internal stakers;     // stakerAddress => Staker
+  mapping(address => Staker) public stakers;     // stakerAddress => Staker
 
   // temporary variables
-  uint internal contractStaked;   // used when processing burns and rewards
-  uint internal contractBurned;   // used when processing burns
-  uint internal contractRewarded; // used when processing rewards
+  uint public contractStaked;   // used when processing burns and rewards
+  uint public contractBurned;   // used when processing burns
+  uint public contractRewarded; // used when processing rewards
 
   // list of stakers for all contracts
-  mapping(address => address[]) internal contractStakers;
+  mapping(address => address[]) public contractStakers;
 
   // there can be only one pending burn
   Burn public burn;
@@ -125,6 +131,15 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   uint public processedToStakerIndex; // we processed the action up this staker
   bool public isContractStakeCalculated; // flag to indicate whether staked amount is up to date or not
+
+  /* state vars for rewards groupping upgrade */
+
+  // rewards to be distributed at the end of the current round
+  // contract address => ContractRewards
+  mapping(address => ContractReward) public accumulatedRewards;
+
+  uint public REWARD_ROUND_DURATION;
+  uint public REWARD_ROUNDS_START;
 
   /* Modifiers */
 
@@ -489,6 +504,10 @@ contract PooledStaking is MasterAware, IPooledStaking {
     address contractAddress, uint amount
   ) public onlyInternal whenNotPausedAndInitialized noPendingBurns {
 
+    address[] memory contractAddresses = new address[](1);
+    contractAddresses[0] = contractAddress;
+    _pushRewards(contractAddresses, true);
+
     burn.amount = amount;
     burn.burnedAt = now;
     burn.contractAddress = contractAddress;
@@ -496,21 +515,97 @@ contract PooledStaking is MasterAware, IPooledStaking {
     emit BurnRequested(contractAddress, amount);
   }
 
-  function pushReward(address contractAddress, uint amount) external onlyInternal whenNotPausedAndInitialized {
+  function _getCurrentRewardsRound() internal view returns (uint) {
 
-    rewards[++lastRewardId] = Reward(amount, now, contractAddress);
+    uint roundDuration = REWARD_ROUND_DURATION;
+    uint startTime = REWARD_ROUNDS_START;
 
-    if (firstReward == 0) {
-      firstReward = lastRewardId;
-    }
+    require(startTime != 0, "REWARD_ROUNDS_START is not initialized");
 
-    emit RewardRequested(contractAddress, amount);
+    return now <= startTime ? 0 : (now - startTime) / roundDuration;
   }
 
-  function processPendingActions(uint maxIterations) public whenNotPausedAndInitialized returns (bool) {
+  function getCurrentRewardsRound() external view returns (uint) {
+    return _getCurrentRewardsRound();
+  }
 
-    uint iterationsLeft = maxIterations;
-    bool finished;
+  /**
+   * @dev Pushes accumulated rewards to the processing queue.
+   */
+  function _pushRewards(address[] memory contractAddresses, bool skipRoundCheck) internal {
+
+    uint currentRound = _getCurrentRewardsRound();
+    uint lastRewardIdCounter = lastRewardId;
+    uint pushedRewards = 0;
+
+    for (uint i = 0; i < contractAddresses.length; i++) {
+
+      address contractAddress = contractAddresses[i];
+      ContractReward storage contractRewards = accumulatedRewards[contractAddress];
+      uint lastRound = contractRewards.lastDistributionRound;
+      uint amount = contractRewards.amount;
+
+      bool shouldPush = amount > 0 && (skipRoundCheck || currentRound > lastRound);
+
+      if (!shouldPush) {
+        // prevent unintended distribution of the first reward in round
+        if (lastRound != currentRound) {
+          contractRewards.lastDistributionRound = currentRound;
+        }
+        continue;
+      }
+
+      rewards[++lastRewardIdCounter] = Reward(amount, now, contractAddress);
+      emit RewardRequested(contractAddress, amount);
+
+      contractRewards.amount = 0;
+      contractRewards.lastDistributionRound = currentRound;
+      ++pushedRewards;
+
+      if (pushedRewards == 1 && firstReward == 0) {
+        firstReward = lastRewardIdCounter;
+      }
+    }
+
+    if (pushedRewards != 0) {
+      lastRewardId = lastRewardIdCounter;
+    }
+  }
+
+  /**
+   * @dev External function for pushing accumulated rewards in the processing queue.
+   * @dev `_pushRewards` checks the current round and will only push if rewards can be distributed.
+   */
+  function pushRewards(address[] calldata contractAddresses) external whenNotPausedAndInitialized {
+    _pushRewards(contractAddresses, false);
+  }
+
+  /**
+   * @dev Add reward for contract. Automatically triggers distribution if enough time has passed.
+   */
+  function accumulateReward(address contractAddress, uint amount) external onlyInternal whenNotPausedAndInitialized {
+
+    // will push rewards if needed
+    address[] memory contractAddresses = new address[](1);
+    contractAddresses[0] = contractAddress;
+    _pushRewards(contractAddresses, false);
+
+    ContractReward storage contractRewards = accumulatedRewards[contractAddress];
+    contractRewards.amount = contractRewards.amount.add(amount);
+    emit RewardAdded(contractAddress, amount);
+  }
+
+  function processPendingActions(uint maxIterations) public whenNotPausedAndInitialized returns (bool finished) {
+    (finished,) = _processPendingActions(maxIterations);
+  }
+
+  function processPendingActionsReturnLeft(uint maxIterations) public whenNotPausedAndInitialized returns (bool finished, uint iterationsLeft) {
+    (finished, iterationsLeft) = _processPendingActions(maxIterations);
+  }
+
+  function _processPendingActions(uint maxIterations) public whenNotPausedAndInitialized returns (bool finished, uint iterationsLeft) {
+
+    iterationsLeft = maxIterations;
 
     while (true) {
 
@@ -542,7 +637,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
         if (!finished) {
           emit PendingActionsProcessed(false);
-          return false;
+          return (false, iterationsLeft);
         }
 
         continue;
@@ -556,7 +651,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
         // _processFirstUnstakeRequest is O(1) so we'll handle the iteration checks here
         if (iterationsLeft == 0) {
           emit PendingActionsProcessed(false);
-          return false;
+          return (false, iterationsLeft);
         }
 
         _processFirstUnstakeRequest();
@@ -568,13 +663,13 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
       if (!finished) {
         emit PendingActionsProcessed(false);
-        return false;
+        return (false, iterationsLeft);
       }
     }
 
     // everything is processed!
     emit PendingActionsProcessed(true);
-    return true;
+    return (true, iterationsLeft);
   }
 
   function _processBurn(uint maxIterations) internal returns (bool finished, uint iterationsLeft) {
@@ -873,147 +968,22 @@ contract PooledStaking is MasterAware, IPooledStaking {
     }
   }
 
-  function initialize() internal {
-
+  function initialize() public {
     require(!initialized, "Contract is already initialized");
-
     tokenController.addToWhitelist(address(this));
-
-    MIN_STAKE = 20 ether;
-    MIN_UNSTAKE = 20 ether;
-    MAX_EXPOSURE = 10;
-    UNSTAKE_LOCK_TIME = 90 days;
-  }
-
-  event StakersMigrationCompleted(
-    bool completed,
-    uint memberIndex,
-    uint stakeIndex
-  );
-
-  event MigratedMember(
-    address member,
-    uint memberIndex
-  );
-
-  function migrateStakers(uint maxIterations) external returns (bool){
-
-    require(!initialized, "Migration already completed");
-
-    TokenFunctions tokenFunctions = TokenFunctions(master.getLatestAddress("TF"));
-    TokenData tokenData = TokenData(master.getLatestAddress("TD"));
-    ClaimsReward claimsReward = ClaimsReward(master.getLatestAddress("CR"));
-    MemberRoles memberRoles = MemberRoles(master.getLatestAddress("MR"));
-
-    uint iterationsLeft = maxIterations;
-    uint membersLength = memberRoles.membersLength(uint(MemberRoles.Role.Member));
-
-    for (uint memberIndex = processedToStakerIndex; memberIndex < membersLength; memberIndex++) {
-
-      (address member, bool isActive) = memberRoles.memberAtIndex(uint(MemberRoles.Role.Member), memberIndex);
-
-      if (!isActive) {
-        continue;
-      }
-
-      uint stakedContractsCount = tokenData.getStakerStakedContractLength(member);
-      uint commissionsLeftToProcess = tokenData.getStakerTotalEarnedStakeCommission(member)
-      .sub(tokenData.getStakerTotalReedmedStakeCommission(member));
-
-      if (commissionsLeftToProcess > 0) {
-        claimsReward._claimStakeCommission(stakedContractsCount, member);
-      }
-
-      // we're reusing firstReward storage variable in order to avoid
-      // declaration of variables that will only be used for the migration
-      for (uint i = firstReward; i < stakedContractsCount; i++) {
-
-        if (iterationsLeft == 0) {
-          processedToStakerIndex = memberIndex;
-          firstReward = i;
-          emit StakersMigrationCompleted(false, memberIndex, i);
-          return false;
-        }
-
-        --iterationsLeft;
-
-        address contractAddress = tokenData.getStakerStakedContractByIndex(member, i);
-        uint stakerContractIndex = tokenData.getStakerStakedContractIndex(member, i);
-
-        unlockStakerUnlockableTokensForContract(
-          tokenData, tokenFunctions, member, contractAddress, stakerContractIndex, i
-        );
-
-        (, uint stakedAmount) = tokenFunctions._deprecated_unlockableBeforeBurningAndCanBurn(member, contractAddress, i);
-
-        if (stakedAmount > 0) {
-          stakeForMemberOnContract(tokenData, member, contractAddress, stakedAmount, stakerContractIndex, i);
-        }
-      }
-
-      emit MigratedMember(member, memberIndex);
-
-      // reset start index for the next iteration
-      firstReward = 0;
-    }
-
     initialized = true;
-
-    // reset migration indexes
-    processedToStakerIndex = 0;
-    firstReward = 0;
-    emit StakersMigrationCompleted(true, processedToStakerIndex, firstReward);
-
-    return true;
   }
 
-  function stakeForMemberOnContract(
-    TokenData tokenData,
-    address stakerAddress,
-    address contractAddress,
-    uint stakedAmount,
-    uint stakerContractIndex,
-    uint i
-  ) internal {
+  function initializeRewardRoundsStart() public {
+    require(REWARD_ROUNDS_START == 0, "REWARD_ROUNDS_START already initialized");
+    REWARD_ROUNDS_START = 1600074000;
+    REWARD_ROUND_DURATION = 7 days;
 
-    Staker storage staker = stakers[stakerAddress];
-    staker.deposit = staker.deposit.add(stakedAmount);
-    staker.stakes[contractAddress] = staker.stakes[contractAddress].add(stakedAmount);
-
-    emit Staked(contractAddress, stakerAddress, stakedAmount);
-    emit Deposited(stakerAddress, stakedAmount);
-
-    tokenData.pushBurnedTokens(stakerAddress, i, stakedAmount);
-    bytes32 lockReason = keccak256(abi.encodePacked("UW", stakerAddress, contractAddress, stakerContractIndex));
-    tokenController.burnLockedTokens(stakerAddress, lockReason, stakedAmount);
-
-    if (!staker.isInContractStakers[contractAddress]) {
-      staker.contracts.push(contractAddress);
-      staker.isInContractStakers[contractAddress] = true;
-      contractStakers[contractAddress].push(stakerAddress);
+    bytes32 location = MIGRATION_LAST_ID_POSITION;
+    uint lastRewardIdValue = lastRewardId;
+    assembly {
+      sstore(location, lastRewardIdValue)
     }
-
-    tokenController.mint(address(this), stakedAmount);
-  }
-
-  function unlockStakerUnlockableTokensForContract(
-    TokenData tokenData,
-    TokenFunctions tokenFunctions,
-    address stakerAddress,
-    address contractAddress,
-    uint stakerContractIndex,
-    uint i
-  ) internal {
-
-    uint unlockableAmount = tokenFunctions._deprecated_getStakerUnlockableTokensOnSmartContract(
-      stakerAddress, contractAddress, stakerContractIndex
-    );
-
-    tokenData.setUnlockableBeforeLastBurnTokens(stakerAddress, i, 0);
-    tokenData.pushUnlockedStakedTokens(stakerAddress, i, unlockableAmount);
-
-    bytes32 lockReason = keccak256(abi.encodePacked("UW", stakerAddress, contractAddress, stakerContractIndex));
-    tokenController.releaseLockedTokens(stakerAddress, lockReason, unlockableAmount);
   }
 
   function changeDependentContractAddress() public {
@@ -1024,6 +994,62 @@ contract PooledStaking is MasterAware, IPooledStaking {
     if (!initialized) {
       initialize();
     }
+
+    if (REWARD_ROUNDS_START == 0) {
+      initializeRewardRoundsStart();
+    }
   }
 
+  event RewardsMigrationCompleted(
+    bool finished,
+    uint firstReward,
+    uint iterationsLeft
+  );
+
+  bytes32 private constant MIGRATION_LAST_ID_POSITION = keccak256("nexusmutual.pooledstaking.MIGRATION_LAST_ID_POINTER");
+
+  function migrateRewardsToAccumulatedRewards(uint maxIterations) external returns (bool finished, uint iterationsLeft)  {
+    require(firstReward != 0, "Nothing to migrate");
+
+    uint ACCUMULATED_REWARDS_MIGRATION_LAST_ID;
+    bytes32 location = MIGRATION_LAST_ID_POSITION;
+    assembly {
+      ACCUMULATED_REWARDS_MIGRATION_LAST_ID := sload(location)
+    }
+
+    require(firstReward <= ACCUMULATED_REWARDS_MIGRATION_LAST_ID, "Exceeded last migration id");
+
+    iterationsLeft = maxIterations;
+
+    while (!finished && iterationsLeft > 0) {
+
+      iterationsLeft--;
+
+      Reward storage reward = rewards[firstReward];
+      ContractReward storage accumulatedReward = accumulatedRewards[reward.contractAddress];
+      accumulatedReward.amount = accumulatedReward.amount.add(reward.amount);
+      emit RewardAdded(reward.contractAddress, reward.amount);
+
+      delete rewards[firstReward];
+      firstReward++;
+
+      if (firstReward > ACCUMULATED_REWARDS_MIGRATION_LAST_ID) {
+        finished = true;
+      }
+
+      if (firstReward > lastRewardId) {
+        firstReward = 0;
+        finished = true;
+      }
+    }
+
+    if (finished) {
+      assembly {
+        sstore(location, 0)
+      }
+    }
+
+    emit RewardsMigrationCompleted(finished, firstReward, iterationsLeft);
+    return (finished, iterationsLeft);
+  }
 }

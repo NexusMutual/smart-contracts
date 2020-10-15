@@ -55,6 +55,7 @@
     "test-integration": "oz compile && mocha --exit test/integration",
     "test-unit": "oz compile && mocha --exit test/unit",
     "deploy": "oz compile && node scripts/deploy.js",
-    "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork"
+    "fork-test": "TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork",
+    "typechain": "oz compile --typechain truffle --typechain-outdir ./types/contracts"
   }
 }

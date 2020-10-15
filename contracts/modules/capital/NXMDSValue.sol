@@ -31,7 +31,7 @@ contract NXMDSValue {
   {
 
     // Instance to get DAI-ETH feed from chainlink.
-    Aggregator aggregator = Aggregator(0x037E8F2125bF532F3e228991e051c8A7253B642c);
+    Aggregator aggregator = Aggregator(0x773616E4d11A78F511299002da57A0a94577F1f4);
     int rate = aggregator.latestAnswer();
 
     // Chainlink returns an int256. Ensure the value is always positive.

@@ -128,7 +128,7 @@ async function setup () {
   await master.initialize(
     owner,
     tk.address,
-    300, // emergency pause time
+    28 * 24 * 3600, // emergency pause time 28 days
     codes.map(hex), // codes
     codes.map(contractType), // types
     addresses, // addresses
@@ -138,7 +138,7 @@ async function setup () {
     master.address,
     tk.address,
     ps.address,
-    600, // minCALockTime
+    30 * 24 * 3600, // minCALockTime
   );
 
   await mr.initialize(
@@ -153,38 +153,38 @@ async function setup () {
   await pc.initialize(mr.address, { gas: 10e6 });
 
   await gv.initialize(
-    300, // tokenHoldingTime
-    3600, // maxDraftTime
+    3 * 24 * 3600, // tokenHoldingTime
+    14 * 24 * 3600, // maxDraftTime
     5, // maxVoteWeigthPer
     40, // maxFollowers
     75, // specialResolutionMajPerc
-    300, // actionWaitingTime
+    24 * 3600, // actionWaitingTime
   );
 
   await ps.initialize(
     tc.address,
-    ether('2'), // min stake
-    ether('2'), // min unstake
+    ether('20'), // min stake
+    ether('20'), // min unstake
     10, // max exposure
-    600, // unstake lock time
+    90 * 24 * 3600, // unstake lock time
   );
 
   await pd.changeMasterAddress(master.address);
-  await pd.updateUintParameters(hex('MCRMIN'), ether('12000')); // minimum capital in eth
+  await pd.updateUintParameters(hex('MCRMIN'), ether('7000')); // minimum capital in eth
   await pd.updateUintParameters(hex('MCRSHOCK'), 50); // mcr shock parameter
-  await pd.updateUintParameters(hex('MCRCAPL'), 10); // capacityLimit 10 (% ?)
+  await pd.updateUintParameters(hex('MCRCAPL'), 20); // capacityLimit 10: seemingly unused parameter
 
   await cd.changeMasterAddress(master.address);
-  await cd.updateUintParameters(hex('CAMINVT'), 1); // min voting time 1h
-  await cd.updateUintParameters(hex('CAMAXVT'), 2); // max voting time 2h
-  await cd.updateUintParameters(hex('CADEPT'), 1); // claim deposit time 1 day
-  await cd.updateUintParameters(hex('CAPAUSET'), 1); // claim assessment pause time 1 day
+  await cd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
+  await cd.updateUintParameters(hex('CAMAXVT'), 72); // max voting time 72h
+  await cd.updateUintParameters(hex('CADEPT'), 7); // claim deposit time 7 days
+  await cd.updateUintParameters(hex('CAPAUSET'), 3); // claim assessment pause time 3 days
 
   await td.changeMasterAddress(master.address);
   await td.updateUintParameters(hex('RACOMM'), 50); // staker commission percentage 50%
-  await td.updateUintParameters(hex('CABOOKT'), 1); // "book time" 1h
-  await td.updateUintParameters(hex('CALOCKT'), 1); // ca lock 1 day
-  await td.updateUintParameters(hex('MVLOCKT'), 1); // ca lock mv 1 day
+  await td.updateUintParameters(hex('CABOOKT'), 6); // "book time" 6h
+  await td.updateUintParameters(hex('CALOCKT'), 7); // ca lock 7 days
+  await td.updateUintParameters(hex('MVLOCKT'), 2); // ca lock mv 2 days
 
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);

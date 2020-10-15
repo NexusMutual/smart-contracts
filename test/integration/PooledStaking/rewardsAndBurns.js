@@ -54,7 +54,7 @@ async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
   const finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
   const actualVoteTokensDiff = finalCAVoteTokens[1] - initialCAVoteTokens[1];
   const expectedVoteTokensDiff = tokensLockedForVoting * voters.length;
-  assert.equal(expectedVoteTokensDiff, actualVoteTokensDiff);
+  assert.equal(actualVoteTokensDiff, expectedVoteTokensDiff);
 
   const allVotes = await cd.getAllVotesForClaim(claimId);
   const expectedVotes = allVotes[1].length;
@@ -76,16 +76,16 @@ async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimSt
     new BN(minTime.toString()).add(new BN('2')),
   );
 
-  const expectedVoteClosingBefore = await cl.checkVoteClosing(claimId);
-  assert.equal(expectedVoteClosingBefore.toString(), '1');
+  const actualVoteClosingBefore = await cl.checkVoteClosing(claimId);
+  assert.equal(actualVoteClosingBefore.toString(), '1');
 
   const APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
   await p1.__callback(APIID, '');
   const newCStatus = await cd.getClaimStatusNumber(claimId);
   assert.equal(newCStatus[1].toString(), expectedClaimStatusNumber);
 
-  const expectedVoteClosingAfter = await cl.checkVoteClosing(claimId);
-  assert.equal(expectedVoteClosingAfter.toString(), '-1');
+  const actualVoteClosingAfter = await cl.checkVoteClosing(claimId);
+  assert.equal(actualVoteClosingAfter.toString(), '-1');
 }
 
 describe('burns', function () {
@@ -394,8 +394,8 @@ describe('burns', function () {
     const balanceAfter = await tk.balanceOf(ps.address);
 
     const claimId = (await cd.actualClaimLength()) - 1;
-    const expectedVoteClosing = await cl.checkVoteClosing(claimId);
-    assert.equal(expectedVoteClosing.toString(), '-1');
+    const actualVoteClosing = await cl.checkVoteClosing(claimId);
+    assert.equal(actualVoteClosing.toString(), '-1');
 
     const claimStatus = await cd.getClaimStatusNumber(claimId);
     assert.equal(claimStatus.statno.toString(), '7');

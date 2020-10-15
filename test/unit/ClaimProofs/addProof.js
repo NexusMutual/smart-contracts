@@ -1,4 +1,5 @@
 const { defaultSender } = require('@openzeppelin/test-environment');
+const { expectEvent } = require('@openzeppelin/test-helpers');
 const BN = require('bn.js');
 const { assert } = require('chai');
 const accounts = require('../utils').accounts;
@@ -16,13 +17,12 @@ describe('addProof', function () {
 
     const coverId = new BN(1);
     const ipfsHash = 'mockedIpfsHash';
-    const res = await claimProofs.addProof(coverId, ipfsHash);
-    const proofAddedLog = res.logs.find(x => x.event === 'ProofAdded');
-    assert(proofAddedLog !== undefined, 'Expected a ProofAdded event');
-    assert(proofAddedLog.args[0].eq(coverId), `Expected ProofAdded event first argument to be ${coverId}`);
-    assert(proofAddedLog.args[1] === defaultSender, `Expected ProofAdded event first argument to be ${defaultSender}`);
-    assert(proofAddedLog.args[2] === ipfsHash, `Expected ProofAdded event first argument to be ${ipfsHash}`);
-
+    const tx = await claimProofs.addProof(coverId, ipfsHash);
+    await expectEvent(tx, 'ProofAdded', {
+      coverId: coverId,
+      owner: defaultSender,
+      ipfsHash,
+    });
   });
 
   it('should allow anyone to submit a proof for the same coverId', async function () {

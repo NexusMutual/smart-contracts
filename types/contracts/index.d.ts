@@ -9,6 +9,11 @@ export interface AggregatorContract
   "new"(meta?: Truffle.TransactionDetails): Promise<AggregatorInstance>;
 }
 
+export interface ClaimProofsContract
+  extends Truffle.Contract<ClaimProofsInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<ClaimProofsInstance>;
+}
+
 export interface ClaimsContract extends Truffle.Contract<ClaimsInstance> {
   "new"(meta?: Truffle.TransactionDetails): Promise<ClaimsInstance>;
 }
@@ -354,6 +359,31 @@ export interface usingOraclizeContract
 
 export interface AggregatorInstance extends Truffle.ContractInstance {
   latestAnswer(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+}
+
+export interface ClaimProofsInstance extends Truffle.ContractInstance {
+  addProof: {
+    (
+      _coverId: number | BigNumber | string,
+      _ipfsHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      _coverId: number | BigNumber | string,
+      _ipfsHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _coverId: number | BigNumber | string,
+      _ipfsHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _coverId: number | BigNumber | string,
+      _ipfsHash: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 }
 
 export interface ClaimsInstance extends Truffle.ContractInstance {

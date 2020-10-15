@@ -3,16 +3,10 @@ const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 
-const { getQuoteValues } = require('../utils/getQuote');
-const { hex, tenderly, to } = require('../utils').helpers;
+const { buyCover } = require('../utils/buyCover');
+const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('../setup');
-
-require('chai').should();
-
-function coverToCoverDetailsArray (cover) {
-  return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
-}
 
 const [
   member1, member2, member3,
@@ -46,27 +40,7 @@ async function initMembers () {
   this.allMembers = members;
 }
 
-async function buyCover ({ qt, p1 }, cover, coverHolder) {
-  const vrsData = await getQuoteValues(
-    coverToCoverDetailsArray(cover),
-    cover.currency,
-    cover.period,
-    cover.contractAddress,
-    qt.address,
-  );
-  await p1.makeCoverBegin(
-    cover.contractAddress,
-    cover.currency,
-    coverToCoverDetailsArray(cover),
-    cover.period,
-    vrsData[0],
-    vrsData[1],
-    vrsData[2],
-    { from: coverHolder, value: cover.price },
-  );
-}
-
-async function submitMemberVotes ({ cd, td, cl }, voteValue, maxVotingMembers) {
+async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
 
   const claimId = (await cd.actualClaimLength()) - 1;
   const initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
@@ -80,19 +54,19 @@ async function submitMemberVotes ({ cd, td, cl }, voteValue, maxVotingMembers) {
   const finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
   const actualVoteTokensDiff = finalCAVoteTokens[1] - initialCAVoteTokens[1];
   const expectedVoteTokensDiff = tokensLockedForVoting * voters.length;
-  actualVoteTokensDiff.should.be.equal(expectedVoteTokensDiff);
+  assert.equal(expectedVoteTokensDiff, actualVoteTokensDiff);
 
   const allVotes = await cd.getAllVotesForClaim(claimId);
   const expectedVotes = allVotes[1].length;
-  expectedVotes.should.be.equal(voters.length);
+  assert.equal(voters.length, expectedVotes);
 
   const isBooked = await td.isCATokensBooked(member1);
-  isBooked.should.be.equal(true);
+  assert.isTrue(isBooked);
 }
 
-async function concludeClaimWithOraclize ({ cl, pd, cd, p1 }, now, expectedClaimStatusNumber) {
-  const claimId = (await cd.actualClaimLength()) - 1;
+async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimStatusNumber }) {
 
+  const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
   const minTime = new BN(minVotingTime.toString()).add(
     new BN(now.toString()),
@@ -102,18 +76,16 @@ async function concludeClaimWithOraclize ({ cl, pd, cd, p1 }, now, expectedClaim
     new BN(minTime.toString()).add(new BN('2')),
   );
 
-  (await cl.checkVoteClosing(claimId))
-    .toString()
-    .should.be.equal('1');
+  const expectedVoteClosingBefore = await cl.checkVoteClosing(claimId);
+  assert.equal(expectedVoteClosingBefore.toString(), '1');
 
   const APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
   await p1.__callback(APIID, '');
   const newCStatus = await cd.getClaimStatusNumber(claimId);
-  newCStatus[1].toString().should.be.equal(expectedClaimStatusNumber);
+  assert.equal(newCStatus[1].toString(), expectedClaimStatusNumber);
 
-  (await cl.checkVoteClosing(claimId))
-    .toString()
-    .should.be.equal('-1');
+  const expectedVoteClosingAfter = await cl.checkVoteClosing(claimId);
+  assert.equal(expectedVoteClosingAfter.toString(), '-1');
 }
 
 describe('burns', function () {
@@ -156,9 +128,10 @@ describe('burns', function () {
       stakeTokens, [cover.contractAddress, secondCoveredAddress], [stakeTokens, stakeTokens], { from: staker1 },
     );
 
-    await buyCover(this, cover, coverHolder);
+    await buyCover({ ...this, cover, coverHolder });
     await time.increase(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
+    assert(await ps.hasPendingActions());
 
     const stakerRewardPreProcessing = await ps.stakerReward(staker1);
     await ps.processPendingActions('100');
@@ -172,17 +145,17 @@ describe('burns', function () {
       .mul(new BN(stakerRewardPercentage))
       .div(new BN(100));
 
-    rewardValue.toString().should.be.equal(expectedTotalReward.toString());
+    assert.equal(rewardValue.toString(), expectedTotalReward.toString());
 
     const staked = await ps.contractStake('0xd0a6E6C54DbC68Db5db3A091B171A77407Ff7ccf');
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await time.latest();
-    await submitMemberVotes(this, 1);
+    await submitMemberVotes({ ...this, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize(this, now, '7');
+    await concludeClaimWithOraclize({ ...this, now, expectedClaimStatusNumber: '7' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -194,7 +167,8 @@ describe('burns', function () {
     const sumAssuredInNxm = sumAssured.mul(ether('1')).div(new BN(tokenPrice));
     const expectedBurnedNXMAmount = staked.lt(sumAssuredInNxm) ? staked : sumAssuredInNxm;
 
-    totalBurn.toString().should.be.equal(
+    assert.equal(
+      totalBurn.toString(),
       expectedBurnedNXMAmount.toString(),
       `Total burn: ${totalBurn}, expected: ${expectedBurnedNXMAmount}`,
     );
@@ -227,7 +201,7 @@ describe('burns', function () {
       });
     }
 
-    await buyCover(this, cover, coverHolder);
+    await buyCover({ ...this, cover, coverHolder });
     await time.increase(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -242,16 +216,16 @@ describe('burns', function () {
       .mul(new BN(stakerRewardPercentage))
       .div(new BN(100)).div(new BN(this.allStakers.length));
 
-    rewardValue.toString().should.be.equal(expectedRewardPerStaker.toString());
+    assert.equal(rewardValue.toString(), expectedRewardPerStaker.toString());
 
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await time.latest();
-    await submitMemberVotes(this, 1);
+    await submitMemberVotes({ ...this, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize(this, now, '7');
+    await concludeClaimWithOraclize({ ...this, now, expectedClaimStatusNumber: '7' });
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
@@ -269,7 +243,8 @@ describe('burns', function () {
       expectedBurnedNXMAmount = expectedBurnedNXMAmount.add(stakerBurn);
     }
 
-    actualBurn.toString().should.be.equal(
+    assert.equal(
+      actualBurn.toString(),
       expectedBurnedNXMAmount.toString(),
       `Total burn: ${actualBurn}, expected: ${expectedBurnedNXMAmount}`,
     );
@@ -296,7 +271,7 @@ describe('burns', function () {
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover(this, cover, coverHolder);
+    await buyCover({ ...this, cover, coverHolder });
     await time.increase(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -307,23 +282,29 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await time.latest();
-    await submitMemberVotes(this, -1);
+    await submitMemberVotes({ ...this, voteValue: -1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize(this, now, '6');
+    await concludeClaimWithOraclize({ ...this, now, expectedClaimStatusNumber: '6' });
+
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
     await ps.processPendingActions('100');
 
     const totalBurn = balanceBefore.sub(balanceAfter);
-    totalBurn.toString().should.be.equal('0', `Total burn: ${totalBurn}, expected: ${0}`);
+
+    assert.equal(
+      totalBurn.toString(),
+      '0',
+      `Total burn: ${totalBurn}, expected: ${0}`,
+    );
   });
 
   it('claim is accepted and burn happens after an unprocessed unstake request by staker', async function () {
 
     const { mcr, ps, tk, qd, cl, tc } = this;
-
     const currency = hex('ETH');
+
     const cover = {
       amount: 1,
       price: '3362445813369838',
@@ -339,7 +320,7 @@ describe('burns', function () {
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover(this, cover, coverHolder);
+    await buyCover({ ...this, cover, coverHolder });
     await time.increase(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -350,9 +331,9 @@ describe('burns', function () {
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await time.latest();
-    await submitMemberVotes(this, 1);
+    await submitMemberVotes({ ...this, voteValue: 1 });
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize(this, now, '7');
+    await concludeClaimWithOraclize({ ...this, now, expectedClaimStatusNumber: '7' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -365,7 +346,8 @@ describe('burns', function () {
     const balanceAfter = await tk.balanceOf(ps.address);
     const totalBurn = balanceBefore.sub(balanceAfter);
 
-    totalBurn.toString().should.be.equal(
+    assert.equal(
+      totalBurn.toString(),
       expectedBurnedNXMAmount.toString(),
       `Total burn: ${totalBurn}, expected: ${expectedBurnedNXMAmount}`,
     );
@@ -374,7 +356,6 @@ describe('burns', function () {
   it('claim is accepted and burn happens when the final vote is submitted', async function () {
 
     const { ps, tk, cd, qd, cl, mcr, tc } = this;
-
     const currency = hex('ETH');
 
     const cover = {
@@ -392,7 +373,7 @@ describe('burns', function () {
     await tk.approve(tc.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover(this, cover, coverHolder);
+    await buyCover({ ...this, cover, coverHolder });
     await time.increase(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -406,26 +387,27 @@ describe('burns', function () {
     await time.increase(minVotingTime.addn(1));
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await submitMemberVotes(this, 1, 1);
+    await submitMemberVotes({ ...this, voteValue: 1, maxVotingMembers: 1 });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
     const claimId = (await cd.actualClaimLength()) - 1;
-    (await cl.checkVoteClosing(claimId))
-      .toString()
-      .should.be.equal('-1');
+    const expectedVoteClosing = await cl.checkVoteClosing(claimId);
+    assert.equal(expectedVoteClosing.toString(), '-1');
 
     const claimStatus = await cd.getClaimStatusNumber(claimId);
-    claimStatus.statno.toString().should.be.equal('7');
+    assert.equal(claimStatus.statno.toString(), '7');
 
     const tokenPrice = await mcr.calculateTokenPrice(currency);
     const sumAssured = new BN(ether(cover.amount.toString()));
     const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
 
     const totalBurn = balanceBefore.sub(balanceAfter);
-    totalBurn.toString().should.be.equal(
+
+    assert.equal(
+      totalBurn.toString(),
       expectedBurnedNXMAmount.toString(),
       `Total burn: ${totalBurn}, expected: ${expectedBurnedNXMAmount}`,
     );
@@ -433,7 +415,7 @@ describe('burns', function () {
 
   it('claim is accepted and burn happens after an unstake request by staker is processed', async function () {
 
-    const { ps, tk, qd, cl } = this;
+    const { ps, tk, qd, cl, qt, p1 } = this;
     const currency = hex('ETH');
 
     const cover = {
@@ -451,7 +433,7 @@ describe('burns', function () {
     await tk.approve(ps.address, stakeTokens, { from: staker1 });
     await ps.depositAndStake(stakeTokens, [cover.contractAddress], [stakeTokens], { from: staker1 });
 
-    await buyCover(this, cover, coverHolder);
+    await buyCover({ cover, coverHolder, qt, p1 });
     await time.increase(await ps.REWARD_ROUND_DURATION());
     await ps.pushRewards([cover.contractAddress]);
 
@@ -476,26 +458,26 @@ describe('burns', function () {
     await ps.processPendingActions('100');
 
     const hasPendingRequests = await ps.hasPendingUnstakeRequests();
-    hasPendingRequests.should.be.equal(false);
+    assert.isFalse(hasPendingRequests);
 
     const currentTotalStake = await ps.contractStake(cover.contractAddress);
-    currentTotalStake.toString().should.be.equal('0');
+    assert.equal(currentTotalStake.toString(), '0');
 
     const coverID = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverID[0], { from: coverHolder });
 
     const now = await time.latest();
-    await submitMemberVotes(this, 1);
+    await submitMemberVotes({ ...this, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize(this, now, '7');
+    await concludeClaimWithOraclize({ ...this, now, expectedClaimStatusNumber: '7' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
     const totalBurn = balanceBefore.sub(balanceAfter);
-    totalBurn.toString().should.be.equal('0');
+    assert.equal(totalBurn.toString(), '0');
   });
 
 });

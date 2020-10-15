@@ -88,7 +88,7 @@ async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimSt
   assert.equal(expectedVoteClosingAfter.toString(), '-1');
 }
 
-describe.only('burns', function () {
+describe('burns', function () {
 
   this.timeout(0);
   this.slow(5000);

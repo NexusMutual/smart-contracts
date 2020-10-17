@@ -7109,6 +7109,19 @@ export interface MasterMockInstance extends Truffle.ContractInstance {
 }
 
 export interface MCRInstance extends Truffle.ContractInstance {
+  calculateTokenSpotPrice(
+    mcrPercentage: number | BigNumber | string,
+    mcrEth: number | BigNumber | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
+  calculateTokenPriceForDeltaEth(
+    currentTotalAssetValue: number | BigNumber | string,
+    nextTotalAssetValue: number | BigNumber | string,
+    mcrEth: number | BigNumber | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
   changeDependentContractAddress: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse
@@ -7149,7 +7162,13 @@ export interface MCRInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
+  sellSpread(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
   dynamicMincapIncrementx100(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
+  MCR_PERCENTAGE_MULTIPLIER(
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
 
@@ -7272,7 +7291,24 @@ export interface MCRInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<[BigNumber, BigNumber]>;
 
+  calculateTokensUpToAssetValue(
+    assetValue: number | BigNumber | string,
+    mcrEth: number | BigNumber | string,
+    c: number | BigNumber | string,
+    tokenExponent: number | BigNumber | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
+
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  calculateAdjustedTokenAmount(
+    assetValue: number | BigNumber | string,
+    nextTotalAssetValue: number | BigNumber | string,
+    mcrEth: number | BigNumber | string,
+    c: number | BigNumber | string,
+    tokenExponent: number | BigNumber | string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
 
   variableMincap(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 }
@@ -9138,6 +9174,25 @@ export interface Pool1Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  buyTokens: {
+    (
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   mcrOracliseFail: {
     (
       id: number | BigNumber | string,
@@ -9225,6 +9280,8 @@ export interface Pool1Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  sellSpread(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
   getInvestmentAssetBalance(
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
@@ -9247,6 +9304,10 @@ export interface Pool1Instance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  MCR_PERCENTAGE_MULTIPLIER(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
 
   makeCoverUsingCA: {
     (
@@ -9383,15 +9444,6 @@ export interface Pool1Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  buyToken: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   transferEther: {
     (
       amount: number | BigNumber | string,
@@ -9415,6 +9467,8 @@ export interface Pool1Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  DECIMAL1E05(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
   mcrOraclise: {
     (
       time: number | BigNumber | string,
@@ -9433,6 +9487,8 @@ export interface Pool1Instance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  DECIMAL1E18(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   changeMasterAddress: {
     (
@@ -9472,15 +9528,33 @@ export interface Pool1Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  getToken(
-    weiPaid: number | BigNumber | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
   getWei(
     amount: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
+
+  sellTokens: {
+    (
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 }
@@ -9569,6 +9643,25 @@ export interface Pool1MockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  buyTokens: {
+    (
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      minTokenAmount: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   mcrOracliseFail: {
     (
       id: number | BigNumber | string,
@@ -9656,6 +9749,8 @@ export interface Pool1MockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  sellSpread(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
   getInvestmentAssetBalance(
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
@@ -9678,6 +9773,10 @@ export interface Pool1MockInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  MCR_PERCENTAGE_MULTIPLIER(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BigNumber>;
 
   makeCoverUsingCA: {
     (
@@ -9814,15 +9913,6 @@ export interface Pool1MockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  buyToken: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   transferEther: {
     (
       amount: number | BigNumber | string,
@@ -9846,6 +9936,8 @@ export interface Pool1MockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  DECIMAL1E05(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
+
   mcrOraclise: {
     (
       time: number | BigNumber | string,
@@ -9864,6 +9956,8 @@ export interface Pool1MockInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  DECIMAL1E18(txDetails?: Truffle.TransactionDetails): Promise<BigNumber>;
 
   changeMasterAddress: {
     (
@@ -9903,15 +9997,33 @@ export interface Pool1MockInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  getToken(
-    weiPaid: number | BigNumber | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BigNumber>;
-
   getWei(
     amount: number | BigNumber | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BigNumber>;
+
+  sellTokens: {
+    (
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      tokenAmount: number | BigNumber | string,
+      minEthOut: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 }

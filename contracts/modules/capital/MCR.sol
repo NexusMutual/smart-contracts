@@ -40,6 +40,8 @@ contract MCR is Iupgradable {
   uint private constant DECIMAL1E05 = uint(10) ** 5;
   uint private constant DECIMAL1E19 = uint(10) ** 19;
   uint private constant minCapFactor = uint(10) ** 21;
+  uint public sellSpread = 25;
+  uint public constant MCR_PERCENTAGE_MULTIPLIER = uint(10) ** 4;
 
   uint public variableMincap;
   uint public dynamicMincapThresholdx100 = 13000;
@@ -111,7 +113,7 @@ contract MCR is Iupgradable {
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
-  function changeDependentContractAddress() public onlyInternal {
+  function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
     p1 = Pool1(ms.getLatestAddress("P1"));
     pd = PoolData(ms.getLatestAddress("PD"));
@@ -181,6 +183,101 @@ contract MCR is Iupgradable {
   returns (uint tokenPrice)
   {
     return _calculateTokenPrice(curr, mcrtp);
+  }
+
+
+  function calculateTokenPriceForDeltaEth(
+    uint currentTotalAssetValue,
+    uint nextTotalAssetValue,
+    uint mcrEth
+  ) public view returns (uint) {
+
+
+    /*
+      const tokenExponent = 4;
+  const c = new BN(C);
+  const a = new BN((A * 1e18).toString());
+  MCReth = new BN(MCReth).mul(wad);
+  Vt0 = new BN(Vt0).mul(wad);
+  deltaETH = new BN(deltaETH).mul(wad);
+  const Vt1 = Vt0.add(deltaETH);
+  function integral (point) {
+    point = new BN(point);
+    let result = MCReth.mul(c).muln(-1).divn(3).div(point);
+    for (let i = 0; i < tokenExponent - 2; i++) {
+      result = result.mul(MCReth).div(point);
+    }
+    return result;
+    // return MInverted.muln(-1).divn(3).div(new BN(point).pow(new BN(3)));
+  }
+  const adjustedTokenAmount = integral(Vt1).sub(integral(Vt0));
+  const averageAdjustedPrice = deltaETH.div(adjustedTokenAmount);
+  const genuinePrice = averageAdjustedPrice.add(new BN(a));
+  const tokens = deltaETH.mul(wad).div(genuinePrice);
+  return tokens;
+    */
+
+    uint a;
+    uint c;
+    (a, c, ) = pd.getTokenPriceDetails("ETH");
+    uint tokenExponent = td.tokenExponent();
+    uint ethBuyAmount = nextTotalAssetValue > currentTotalAssetValue ?
+      nextTotalAssetValue.sub(currentTotalAssetValue) :
+      currentTotalAssetValue.sub(nextTotalAssetValue);
+
+    uint adjustedTokenAmount =
+    nextTotalAssetValue > currentTotalAssetValue ?
+    calculateAdjustedTokenAmount(currentTotalAssetValue, nextTotalAssetValue, mcrEth, c, tokenExponent) :
+    calculateAdjustedTokenAmount(nextTotalAssetValue, currentTotalAssetValue,  mcrEth, c, tokenExponent);
+
+    uint adjustedTokenPrice = ethBuyAmount.div(adjustedTokenAmount);
+    uint tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E18));
+    return tokenPrice;
+  }
+
+  function calculateAdjustedTokenAmount(
+    uint assetValue,
+    uint nextTotalAssetValue,
+    uint mcrEth,
+    uint c,
+    uint tokenExponent
+  ) public pure returns (uint) {
+    require(nextTotalAssetValue > assetValue, "nextTotalAssetValue > assetValue is required");
+    uint point0 = calculateTokensUpToAssetValue(assetValue, mcrEth, c, tokenExponent);
+    uint point1 = calculateTokensUpToAssetValue(nextTotalAssetValue, mcrEth, c, tokenExponent);
+    return point0.sub(point1);
+  }
+
+  function calculateTokensUpToAssetValue(
+    uint assetValue,
+    uint mcrEth,
+    uint c,
+    uint tokenExponent
+  ) public pure returns (uint result) {
+    result = mcrEth.mul(c).div(tokenExponent - 1).div(assetValue);
+    for (uint i = 0; i < tokenExponent - 2; i++) {
+      result = result.mul(mcrEth).div(assetValue);
+    }
+  }
+
+  function calculateTokenSpotPrice(
+    uint mcrPercentage,
+    uint mcrEth
+  ) public view returns (uint tokenPrice) {
+
+    uint a;
+    uint c;
+    uint tokenExponentValue = td.tokenExponent();
+
+    uint max = mcrPercentage ** tokenExponentValue;
+    uint dividingFactor = tokenExponentValue.mul(4);
+
+    (a, c, ) = pd.getTokenPriceDetails("ETH");
+    c = c.mul(DECIMAL1E18);
+    tokenPrice = (mcrEth.mul(DECIMAL1E18).mul(max).div(c)).div(10 ** dividingFactor);
+    tokenPrice = tokenPrice.add(a.mul(DECIMAL1E18).div(DECIMAL1E05));
+    tokenPrice = tokenPrice.mul(100 * 10);
+    tokenPrice = (tokenPrice).div(10 ** 3);
   }
 
   /**

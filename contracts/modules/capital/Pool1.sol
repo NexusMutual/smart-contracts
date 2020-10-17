@@ -241,14 +241,6 @@ contract Pool1 is Iupgradable {
     q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
   }
 
-  /// @dev Enables user to purchase NXM at the current token price.
-  function buyToken() public payable isMember checkPause returns (bool success) {
-    require(msg.value > 0);
-    uint tokenPurchased = _getToken(address(this).balance, msg.value);
-    tc.mint(msg.sender, tokenPurchased);
-    success = true;
-  }
-
   /// @dev Sends a given amount of Ether to a given address.
   /// @param amount amount (in wei) to send.
   /// @param _add Receiver's address.
@@ -284,11 +276,10 @@ contract Pool1 is Iupgradable {
     uint c;
     uint totalValue0;
     uint mcrPercentage0;
-    (a, c, ) = pd.getTokenPriceDetails("ETH");
     (totalValue0, mcrPercentage0) = mcr._calVtpAndMCRtp(address(this).balance);
     uint mcrEth = pd.getLastMCREther();
     uint totalValue1 = totalValue0.add(ethBuyAmount);
-    uint tokenPrice = calculateTokenPriceForDeltaEth(totalValue0, totalValue1, mcrEth, a, c);
+    uint tokenPrice = mcr.calculateTokenPriceForDeltaEth(totalValue0, totalValue1, mcrEth);
     uint purchasedTokenAmount = ethBuyAmount.div(tokenPrice);
 
     require(purchasedTokenAmount > minTokenAmount, "tokenAmount is below minTokenAmount");
@@ -296,7 +287,7 @@ contract Pool1 is Iupgradable {
   }
 
   function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause {
-    //    require(tk.balanceOf(msg.sender) >= _amount, "Not enough balance");
+    require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
 
     uint a;
@@ -315,7 +306,7 @@ contract Pool1 is Iupgradable {
       uint spotEthAmount = tokenAmount.mul(spotPrice0);
       uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
       uint mcrPercentagePostSpotPriceSell = totalValuePostSpotPriceSell.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
-      uint spotPrice1 = calculateTokenSpotPrice(mcrEth, mcrPercentagePostSpotPriceSell);
+      uint spotPrice1 = mcr.calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
       uint finalPrice = spotPrice0WithSpread < spotPrice1 ? spotPrice0WithSpread : spotPrice1;
       ethOut = finalPrice.mul(tokenAmount);
     }
@@ -324,56 +315,6 @@ contract Pool1 is Iupgradable {
 
     tc.burnFrom(msg.sender, tokenAmount);
     msg.sender.transfer(ethOut);
-  }
-
-  function calculateTokenPriceForDeltaEth(
-    uint currentTotalAssetValue,
-    uint nextTotalAssetValue,
-    uint mcrEth,
-    uint a,
-    uint c
-  ) public view returns (uint) {
-    uint mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
-    uint mcrPercentage1 = nextTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
-    uint ethBuyAmount = nextTotalAssetValue.sub(currentTotalAssetValue);
-    uint constNumerator = c.mul(DECIMAL1E18).div(mcrEth);
-    uint adjustedTokenAmount =
-    nextTotalAssetValue > currentTotalAssetValue ?
-    calculateAdjustedTokenAmount(mcrPercentage1, mcrPercentage0, constNumerator) :
-    calculateAdjustedTokenAmount(mcrPercentage0, mcrPercentage1, constNumerator);
-    uint adjustedTokenPrice = ethBuyAmount.div(adjustedTokenAmount);
-    uint tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E18).div(DECIMAL1E05));
-    return tokenPrice;
-  }
-
-  function calculateAdjustedTokenAmount(
-    uint mcrPercentage0,
-    uint mcrPercentage1,
-    uint constNumerator
-  ) public view returns (uint) {
-    uint point0 = constNumerator.div(3).div(mcrPercentage0 ** 3);
-    uint point1 = constNumerator.div(3).div(mcrPercentage1 ** 3);
-    return point0.sub(point1);
-  }
-
-  function calculateTokenSpotPrice(
-    uint mcrEth,
-    uint mcrPercentage
-  ) public view returns (uint tokenPrice) {
-
-    uint getA;
-    uint getC;
-    uint tokenExponentValue = td.tokenExponent();
-
-    uint max = mcrPercentage ** tokenExponentValue;
-    uint dividingFactor = tokenExponentValue.mul(4);
-
-    (getA, getC, ) = pd.getTokenPriceDetails("ETH");
-    getC = getC.mul(DECIMAL1E18);
-    tokenPrice = (mcrEth.mul(DECIMAL1E18).mul(max).div(getC)).div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(getA.mul(DECIMAL1E18).div(DECIMAL1E05));
-    tokenPrice = tokenPrice.mul(100 * 10);
-    tokenPrice = (tokenPrice).div(10 ** 3);
   }
 
   /**
@@ -401,15 +342,6 @@ contract Pool1 is Iupgradable {
    */
   function getWei(uint amount) public view returns (uint weiToPay) {
     return _getWei(amount);
-  }
-
-  /**
-   * @dev Returns the amount of token a buyer will get for corresponding wei
-   * @param weiPaid Amount of wei
-   * @return tokenToGet Amount of tokens the buyer will get
-   */
-  function getToken(uint weiPaid) public view returns (uint tokenToGet) {
-    return _getToken((address(this).balance).add(weiPaid), weiPaid);
   }
 
   /**
@@ -441,43 +373,6 @@ contract Pool1 is Iupgradable {
         weiPaid = (tokenPrice.mul(td.priceStep().mul(DECIMAL1E18))).div(DECIMAL1E18);
         vtp = vtp.sub(weiPaid);
         weiToPay = weiToPay.add(weiPaid);
-      }
-    }
-  }
-
-  /**
-   * @dev gives the token
-   * @param _poolBalance is the pool balance
-   * @param _weiPaid is the amount paid in wei
-   * @return the token to get
-   */
-  function _getToken(uint _poolBalance, uint _weiPaid) internal view returns (uint tokenToGet) {
-    uint tokenPrice;
-    uint superWeiLeft = (_weiPaid).mul(DECIMAL1E18);
-    uint tempTokens;
-    uint superWeiSpent;
-    uint tokenSupply = tk.totalSupply();
-    uint vtp;
-    uint mcrFullperc;
-    uint vFull;
-    uint mcrtp;
-    (mcrFullperc, , vFull,) = pd.getLastMCR();
-    (vtp,) = mcr.calculateVtpAndMCRtp((_poolBalance).sub(_weiPaid));
-
-    require(mcr.calculateTokenPrice("ETH") > 0, "Token price can not be zero");
-    while (superWeiLeft > 0) {
-      mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
-      tokenPrice = mcr.calculateStepTokenPrice("ETH", mcrtp);
-      tempTokens = superWeiLeft.div(tokenPrice);
-      if (tempTokens <= td.priceStep().mul(DECIMAL1E18)) {
-        tokenToGet = tokenToGet.add(tempTokens);
-        break;
-      } else {
-        tokenToGet = tokenToGet.add(td.priceStep().mul(DECIMAL1E18));
-        tokenSupply = tokenSupply.add(td.priceStep().mul(DECIMAL1E18));
-        superWeiSpent = td.priceStep().mul(DECIMAL1E18).mul(tokenPrice);
-        superWeiLeft = superWeiLeft.sub(superWeiSpent);
-        vtp = vtp.add((td.priceStep().mul(DECIMAL1E18).mul(tokenPrice)).div(DECIMAL1E18));
       }
     }
   }

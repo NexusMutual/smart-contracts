@@ -14,6 +14,7 @@ declare global {
       require(name: "ClaimsData"): TruffleContracts.ClaimsDataContract;
       require(name: "ClaimsReward"): TruffleContracts.ClaimsRewardContract;
       require(name: "Context"): TruffleContracts.ContextContract;
+      require(name: "Deployer"): TruffleContracts.DeployerContract;
       require(
         name: "DisposableGovernance"
       ): TruffleContracts.DisposableGovernanceContract;

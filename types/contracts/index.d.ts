@@ -32,6 +32,10 @@ export interface ContextContract extends Truffle.Contract<ContextInstance> {
   "new"(meta?: Truffle.TransactionDetails): Promise<ContextInstance>;
 }
 
+export interface DeployerContract extends Truffle.Contract<DeployerInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<DeployerInstance>;
+}
+
 export interface DisposableGovernanceContract
   extends Truffle.Contract<DisposableGovernanceInstance> {
   "new"(
@@ -1668,6 +1672,31 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
 }
 
 export interface ContextInstance extends Truffle.ContractInstance {}
+
+export interface DeployerInstance extends Truffle.ContractInstance {
+  deploy: {
+    (
+      data: string,
+      salt: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse>;
+    call(
+      data: string,
+      salt: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      data: string,
+      salt: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      data: string,
+      salt: number | BigNumber | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+}
 
 export interface DisposableGovernanceInstance extends Truffle.ContractInstance {
   closeProposal: {

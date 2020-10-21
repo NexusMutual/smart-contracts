@@ -36,7 +36,7 @@ contract MCR is Iupgradable {
   TokenData internal td;
   ProposalCategory internal proposalCategory;
 
-  uint private constant DECIMAL1E18 = uint(10) ** 18;
+  uint private constant DECIMAL1E18 = 1e18; // uint(10) ** 18;
   uint private constant DECIMAL1E13 = uint(10) ** 13;
   uint private constant DECIMAL1E05 = uint(10) ** 5;
   uint private constant DECIMAL1E19 = uint(10) ** 19;
@@ -187,37 +187,41 @@ contract MCR is Iupgradable {
   }
 
 
-  function calculateTokenBuyPrice(
-    uint currentTotalAssetValue,
-    uint ethBuyAmount,
-    uint mcrEth
-  ) public view returns (uint tokenPrice) {
+  function getTokenBuyValue(
+    uint ethAmount
+  ) public view returns (uint tokenValue) {
 
     uint a;
     uint c;
+    uint currentTotalAssetValue;
     (a, c, ) = pd.getTokenPriceDetails("ETH");
+    (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(this).balance);
+    uint mcrEth = pd.getLastMCREther();
     uint tokenExponent = td.tokenExponent();
-
-    uint nextTotalAssetValue = currentTotalAssetValue.add(ethBuyAmount);
-    uint adjustedTokenAmount = calculateAdjustedTokenAmount(
-      currentTotalAssetValue, nextTotalAssetValue, mcrEth, c, tokenExponent
-    );
-    uint adjustedTokenPrice = ethBuyAmount.div(adjustedTokenAmount);
-    tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E13));
+    tokenValue = 1; //calculateTokenBuyValue(ethAmount, currentTotalAssetValue, mcrEth, a, c, tokenExponent);
   }
 
-  function calculateAdjustedTokenAmount(
+  function calculateTokenBuyValue(
+    uint ethAmount,
     uint currentTotalAssetValue,
-    uint nextTotalAssetValue,
     uint mcrEth,
+    uint a,
     uint c,
     uint tokenExponent
-  ) public pure returns (uint) {
+  ) public pure returns (uint tokenValue) {
 
-    require(nextTotalAssetValue > currentTotalAssetValue, "nextTotalAssetValue > assetValue is required");
-    uint point0 = calculateTokensUpToAssetValue(currentTotalAssetValue, mcrEth, c, tokenExponent);
-    uint point1 = calculateTokensUpToAssetValue(nextTotalAssetValue, mcrEth, c, tokenExponent);
-    return point0.sub(point1);
+    uint tokenPrice;
+    {
+      uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
+
+      uint point0 = calculateTokensUpToAssetValue(currentTotalAssetValue, mcrEth, c, tokenExponent);
+      uint point1 = calculateTokensUpToAssetValue(nextTotalAssetValue, mcrEth, c, tokenExponent);
+      uint adjustedTokenAmount = point0.sub(point1);
+
+      uint adjustedTokenPrice = ethAmount.div(adjustedTokenAmount);
+      tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E13));
+    }
+    tokenValue = ethAmount.mul(1e18).div(tokenPrice);
   }
 
   function calculateTokensUpToAssetValue(
@@ -225,7 +229,7 @@ contract MCR is Iupgradable {
     uint mcrEth,
     uint c,
     uint tokenExponent
-  ) private pure returns (uint result) {
+  ) public pure returns (uint result) {
 
     result = mcrEth.mul(c).div(tokenExponent - 1).div(assetValue);
     for (uint i = 0; i < tokenExponent - 2; i++) {
@@ -251,6 +255,27 @@ contract MCR is Iupgradable {
     tokenPrice = tokenPrice.add(a.mul(DECIMAL1E18).div(DECIMAL1E05));
     tokenPrice = tokenPrice.mul(100 * 10);
     tokenPrice = (tokenPrice).div(10 ** 3);
+  }
+
+  function getTokenSellValue(uint tokenAmount) public returns (uint ethValue) {
+    uint a;
+    uint c;
+    uint currentTotalAssetValue;
+    (a, c, ) = pd.getTokenPriceDetails("ETH");
+    (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(this).balance);
+
+    uint mcrEth = pd.getLastMCREther();
+    uint mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
+    {
+      uint spotPrice0 = calculateStepTokenPrice("ETH", mcrPercentage0);
+      uint spotPrice0WithSpread = spotPrice0.mul(1000 - sellSpread).div(1000);
+      uint spotEthAmount = tokenAmount.mul(spotPrice0);
+      uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
+      uint mcrPercentagePostSpotPriceSell = totalValuePostSpotPriceSell.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
+      uint spotPrice1 = calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
+      uint finalPrice = spotPrice0WithSpread < spotPrice1 ? spotPrice0WithSpread : spotPrice1;
+      ethValue = finalPrice.mul(tokenAmount);
+    }
   }
 
   /**

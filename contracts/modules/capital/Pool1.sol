@@ -268,46 +268,22 @@ contract Pool1 is Iupgradable {
   }
 
 
-  function buyTokens(uint minTokenAmount) public payable isMember checkPause {
+  function buyTokens(uint minTokensOut) public payable isMember checkPause {
 
-    uint ethBuyAmount = msg.value;
-    require(ethBuyAmount > 0);
+    uint ethBuyValue = msg.value;
+    require(ethBuyValue > 0);
 
-    uint currentTotalAssetValue;
-    (currentTotalAssetValue, ) = mcr._calVtpAndMCRtp(address(this).balance);
-    uint mcrEth = pd.getLastMCREther();
-
-    uint tokenPrice = mcr.calculateTokenBuyPrice(currentTotalAssetValue, ethBuyAmount, mcrEth);
-    uint purchasedTokenAmount = ethBuyAmount.div(tokenPrice);
-    require(purchasedTokenAmount > minTokenAmount, "tokenAmount is below minTokenAmount");
-    tc.mint(msg.sender, purchasedTokenAmount);
+    uint boughtTokens = mcr.getTokenBuyValue(ethBuyValue);
+    require(boughtTokens > minTokensOut, "boughtTokens is less than minTokensBought");
+    tc.mint(msg.sender, boughtTokens);
   }
 
   function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause {
+
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
 
-    uint a;
-    uint c;
-    uint currentTotalAssetValue;
-    (a, c, ) = pd.getTokenPriceDetails("ETH");
-    (currentTotalAssetValue, ) = mcr._calVtpAndMCRtp(address(this).balance);
-
-    uint mcrEth = pd.getLastMCREther();
-    uint mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
-
-    uint ethOut;
-    {
-      uint spotPrice0 = mcr.calculateStepTokenPrice("ETH", mcrPercentage0);
-      uint spotPrice0WithSpread = spotPrice0.mul(1000 - sellSpread).div(1000);
-      uint spotEthAmount = tokenAmount.mul(spotPrice0);
-      uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
-      uint mcrPercentagePostSpotPriceSell = totalValuePostSpotPriceSell.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
-      uint spotPrice1 = mcr.calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
-      uint finalPrice = spotPrice0WithSpread < spotPrice1 ? spotPrice0WithSpread : spotPrice1;
-      ethOut = finalPrice.mul(tokenAmount);
-    }
-
+    uint ethOut = mcr.getTokenSellValue(tokenAmount);
     require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");
 
     tc.burnFrom(msg.sender, tokenAmount);

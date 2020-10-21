@@ -4,56 +4,28 @@ const { assert } = require('chai');
 const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = require('../utils').tokenPrice;
-const BN = web3.utils.BN;
-
-const {
-  nonMembers: [nonMember],
-  members: [memberOne, memberTwo],
-  governanceContracts: [governanceContract],
-  internalContracts: [internalContract],
-} = accounts;
+const { BN } = web3.utils;
 
 
-describe.only('calculateTokenBuyPrice', function () {
+describe('calculateTokenBuyPrice', function () {
   it('calculates token  price for a change in total assets correctly', async function () {
     const { mcr, poolData, tokenData } = this;
 
-    const { _a: rawA, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
+    const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
     const tokenExponent = await tokenData.tokenExponent();
-    const a = rawA.mul(new BN(1e13.toString()));
 
     const mcrEth = new BN('162424730681679380000000');
     const initialAssetValue = new BN('210959924071154460525457');
     const deltaEth = new BN('1000').mul(new BN(1e18.toString()));
-    const nextAssetValue = initialAssetValue.add(deltaEth);
 
-
-    const adjustedTokenAmount = await mcr.calculateAdjustedTokenAmount(
-      initialAssetValue,
-      nextAssetValue,
-      mcrEth,
-      c,
-      tokenExponent
+    const tokenValue = await mcr.calculateTokenBuyValue(
+      deltaEth, initialAssetValue, mcrEth, a, c, tokenExponent
     );
 
-    console.log({
-      adjustedTokenAmount: adjustedTokenAmount.toString(),
-    });
-
-    const { tokenPrice: price, adjustedTokenAmount: resultingAdjustedTokenAmount, ethBuyAmount, adjustedTokenPrice } = await mcr.calculateTokenPriceForDeltaEth(initialAssetValue, nextAssetValue, mcrEth);
-
-
-    const { tokens: tokensPurchased, price: expectedPrice } = calculatePurchasedTokens(
-      initialAssetValue, deltaEth, mcrEth, c, a, tokenExponent
+    const { tokens: expectedtokenValue } = calculatePurchasedTokens(
+      initialAssetValue, deltaEth, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
     );
 
-    console.log({
-      price: price.toString() / 1e18,
-      resultingAdjustedTokenAmount: resultingAdjustedTokenAmount.toString(),
-      ethBuyAmount: ethBuyAmount.toString(),
-      adjustedTokenPrice: adjustedTokenPrice.toString(),
-      expectedPrice: expectedPrice.toString() / 1e18,
-      tokensPurchased: tokensPurchased.toString()
-    });
+    assert.equal(tokenValue.toString(), expectedtokenValue.toString());
   });
 });

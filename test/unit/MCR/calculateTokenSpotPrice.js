@@ -4,14 +4,6 @@ const { assert } = require('chai');
 const accounts = require('../utils').accounts;
 const BN = web3.utils.BN;
 
-const {
-  nonMembers: [nonMember],
-  members: [memberOne, memberTwo],
-  governanceContracts: [governanceContract],
-  internalContracts: [internalContract],
-} = accounts;
-
-
 describe('calculateTokenSpotPrice', function () {
 
   it('calculates token spot price correctly', async function () {

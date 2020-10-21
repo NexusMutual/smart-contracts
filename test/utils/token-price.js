@@ -1,5 +1,5 @@
 const Decimal = require('decimal.js');
-const fs = require('fs');
+const { web3 } = require('@openzeppelin/test-environment');
 const BN = require('bn.js');
 
 const wad = new BN(1e18.toString());
@@ -97,6 +97,13 @@ function calculatePurchasedTokens (
   }
   const adjustedTokenAmount = integral(nextAssetValue).sub(integral(initialAssetValue));
   const averageAdjustedPrice = deltaEth.div(adjustedTokenAmount);
+
+  console.log({
+    adjustedTokenAmount: adjustedTokenAmount.toString() / 1e18,
+    mcrEth: mcrEth.toString(),
+    c: c.toString()
+  })
+
   const finalPrice = averageAdjustedPrice.add(new BN(a));
   const tokens = deltaEth.mul(wad).div(finalPrice);
 

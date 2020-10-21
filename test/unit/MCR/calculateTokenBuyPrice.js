@@ -14,7 +14,7 @@ const {
 } = accounts;
 
 
-describe.only('calculateTokenPriceForDeltaEth', function () {
+describe.only('calculateTokenBuyPrice', function () {
   it('calculates token  price for a change in total assets correctly', async function () {
     const { mcr, poolData, tokenData } = this;
 
@@ -40,13 +40,18 @@ describe.only('calculateTokenPriceForDeltaEth', function () {
       adjustedTokenAmount: adjustedTokenAmount.toString(),
     });
 
-    const price = await mcr.calculateTokenPriceForDeltaEth(initialAssetValue, nextAssetValue, mcrEth);
+    const { tokenPrice: price, adjustedTokenAmount: resultingAdjustedTokenAmount, ethBuyAmount, adjustedTokenPrice } = await mcr.calculateTokenPriceForDeltaEth(initialAssetValue, nextAssetValue, mcrEth);
+
+
     const { tokens: tokensPurchased, price: expectedPrice } = calculatePurchasedTokens(
       initialAssetValue, deltaEth, mcrEth, c, a, tokenExponent
     );
 
     console.log({
       price: price.toString() / 1e18,
+      resultingAdjustedTokenAmount: resultingAdjustedTokenAmount.toString(),
+      ethBuyAmount: ethBuyAmount.toString(),
+      adjustedTokenPrice: adjustedTokenPrice.toString(),
       expectedPrice: expectedPrice.toString() / 1e18,
       tokensPurchased: tokensPurchased.toString()
     });

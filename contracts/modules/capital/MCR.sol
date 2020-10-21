@@ -37,6 +37,7 @@ contract MCR is Iupgradable {
   ProposalCategory internal proposalCategory;
 
   uint private constant DECIMAL1E18 = uint(10) ** 18;
+  uint private constant DECIMAL1E13 = uint(10) ** 13;
   uint private constant DECIMAL1E05 = uint(10) ** 5;
   uint private constant DECIMAL1E19 = uint(10) ** 19;
   uint private constant minCapFactor = uint(10) ** 21;
@@ -186,64 +187,35 @@ contract MCR is Iupgradable {
   }
 
 
-  function calculateTokenPriceForDeltaEth(
+  function calculateTokenBuyPrice(
     uint currentTotalAssetValue,
-    uint nextTotalAssetValue,
+    uint ethBuyAmount,
     uint mcrEth
-  ) public view returns (uint) {
-
-
-    /*
-      const tokenExponent = 4;
-  const c = new BN(C);
-  const a = new BN((A * 1e18).toString());
-  MCReth = new BN(MCReth).mul(wad);
-  Vt0 = new BN(Vt0).mul(wad);
-  deltaETH = new BN(deltaETH).mul(wad);
-  const Vt1 = Vt0.add(deltaETH);
-  function integral (point) {
-    point = new BN(point);
-    let result = MCReth.mul(c).muln(-1).divn(3).div(point);
-    for (let i = 0; i < tokenExponent - 2; i++) {
-      result = result.mul(MCReth).div(point);
-    }
-    return result;
-    // return MInverted.muln(-1).divn(3).div(new BN(point).pow(new BN(3)));
-  }
-  const adjustedTokenAmount = integral(Vt1).sub(integral(Vt0));
-  const averageAdjustedPrice = deltaETH.div(adjustedTokenAmount);
-  const genuinePrice = averageAdjustedPrice.add(new BN(a));
-  const tokens = deltaETH.mul(wad).div(genuinePrice);
-  return tokens;
-    */
+  ) public view returns (uint tokenPrice) {
 
     uint a;
     uint c;
     (a, c, ) = pd.getTokenPriceDetails("ETH");
     uint tokenExponent = td.tokenExponent();
-    uint ethBuyAmount = nextTotalAssetValue > currentTotalAssetValue ?
-      nextTotalAssetValue.sub(currentTotalAssetValue) :
-      currentTotalAssetValue.sub(nextTotalAssetValue);
 
-    uint adjustedTokenAmount =
-    nextTotalAssetValue > currentTotalAssetValue ?
-    calculateAdjustedTokenAmount(currentTotalAssetValue, nextTotalAssetValue, mcrEth, c, tokenExponent) :
-    calculateAdjustedTokenAmount(nextTotalAssetValue, currentTotalAssetValue,  mcrEth, c, tokenExponent);
-
+    uint nextTotalAssetValue = currentTotalAssetValue.add(ethBuyAmount);
+    uint adjustedTokenAmount = calculateAdjustedTokenAmount(
+      currentTotalAssetValue, nextTotalAssetValue, mcrEth, c, tokenExponent
+    );
     uint adjustedTokenPrice = ethBuyAmount.div(adjustedTokenAmount);
-    uint tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E18));
-    return tokenPrice;
+    tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E13));
   }
 
   function calculateAdjustedTokenAmount(
-    uint assetValue,
+    uint currentTotalAssetValue,
     uint nextTotalAssetValue,
     uint mcrEth,
     uint c,
     uint tokenExponent
   ) public pure returns (uint) {
-    require(nextTotalAssetValue > assetValue, "nextTotalAssetValue > assetValue is required");
-    uint point0 = calculateTokensUpToAssetValue(assetValue, mcrEth, c, tokenExponent);
+
+    require(nextTotalAssetValue > currentTotalAssetValue, "nextTotalAssetValue > assetValue is required");
+    uint point0 = calculateTokensUpToAssetValue(currentTotalAssetValue, mcrEth, c, tokenExponent);
     uint point1 = calculateTokensUpToAssetValue(nextTotalAssetValue, mcrEth, c, tokenExponent);
     return point0.sub(point1);
   }
@@ -253,7 +225,8 @@ contract MCR is Iupgradable {
     uint mcrEth,
     uint c,
     uint tokenExponent
-  ) public pure returns (uint result) {
+  ) private pure returns (uint result) {
+
     result = mcrEth.mul(c).div(tokenExponent - 1).div(assetValue);
     for (uint i = 0; i < tokenExponent - 2; i++) {
       result = result.mul(mcrEth).div(assetValue);

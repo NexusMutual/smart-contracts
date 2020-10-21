@@ -269,19 +269,16 @@ contract Pool1 is Iupgradable {
 
 
   function buyTokens(uint minTokenAmount) public payable isMember checkPause {
+
     uint ethBuyAmount = msg.value;
     require(ethBuyAmount > 0);
 
-    uint a;
-    uint c;
-    uint totalValue0;
-    uint mcrPercentage0;
-    (totalValue0, mcrPercentage0) = mcr._calVtpAndMCRtp(address(this).balance);
+    uint currentTotalAssetValue;
+    (currentTotalAssetValue, ) = mcr._calVtpAndMCRtp(address(this).balance);
     uint mcrEth = pd.getLastMCREther();
-    uint totalValue1 = totalValue0.add(ethBuyAmount);
-    uint tokenPrice = mcr.calculateTokenPriceForDeltaEth(totalValue0, totalValue1, mcrEth);
-    uint purchasedTokenAmount = ethBuyAmount.div(tokenPrice);
 
+    uint tokenPrice = mcr.calculateTokenBuyPrice(currentTotalAssetValue, ethBuyAmount, mcrEth);
+    uint purchasedTokenAmount = ethBuyAmount.div(tokenPrice);
     require(purchasedTokenAmount > minTokenAmount, "tokenAmount is below minTokenAmount");
     tc.mint(msg.sender, purchasedTokenAmount);
   }

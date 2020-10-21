@@ -17,5 +17,5 @@ describe('MCR unit tests', function () {
   });
 
   require('./calculateTokenSpotPrice');
-  require('./calculateTokenPriceForDeltaEth');
+  require('./calculateTokenBuyPrice');
 });

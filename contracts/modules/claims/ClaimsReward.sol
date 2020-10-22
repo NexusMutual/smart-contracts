@@ -284,6 +284,7 @@ contract ClaimsReward is Iupgradable {
 
       if (success) {
         tf.burnStakedTokens(coverid, curr, sumAssured);
+        c1.setClaimStatus(claimid, 14);
       }
     }
   }

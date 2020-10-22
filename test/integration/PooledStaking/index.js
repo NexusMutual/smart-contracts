@@ -1,4 +1,4 @@
-describe('PooledStaking integration tests', function () {
+describe('Pooled staking', function () {
 
   this.timeout(0);
 

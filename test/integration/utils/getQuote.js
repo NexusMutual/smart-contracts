@@ -36,7 +36,7 @@ async function getQuoteValues (...args) {
   const message = ethABI.soliditySHA3(types, values);
   const msgHash = util.hashPersonalMessage(message);
 
-  const privateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76cc68e82b754015d6e7af794cc8', 'hex')
+  const privateKey = Buffer.from('45571723d6f6fa704623beb284eda724459d76cc68e82b754015d6e7af794cc8', 'hex');
   const sig = util.ecsign(msgHash, privateKey);
 
   return [

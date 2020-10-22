@@ -26,16 +26,16 @@ import "./PoolData.sol";
 contract Pool1 is Iupgradable {
   using SafeMath for uint;
 
-  Quotation internal q2;
-  NXMToken internal tk;
-  TokenController internal tc;
-  TokenFunctions internal tf;
-  Pool2 internal p2;
-  PoolData internal pd;
-  MCR internal mcr;
+  Quotation public q2;
+  NXMToken public tk;
+  TokenController public tc;
+  TokenFunctions public tf;
+  Pool2 public p2;
+  PoolData public pd;
+  MCR public mcr;
   Claims public c1;
-  TokenData internal td;
-  bool internal locked;
+  TokenData public td;
+  bool public locked;
 
   uint public sellSpread = 25;
   uint public constant DECIMAL1E18 = uint(10) ** 18;

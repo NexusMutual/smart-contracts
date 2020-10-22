@@ -28,13 +28,13 @@ import "./PoolData.sol";
 contract MCR is Iupgradable {
   using SafeMath for uint;
 
-  Pool1 internal p1;
-  PoolData internal pd;
-  NXMToken internal tk;
-  QuotationData internal qd;
-  MemberRoles internal mr;
-  TokenData internal td;
-  ProposalCategory internal proposalCategory;
+  Pool1 public p1;
+  PoolData public pd;
+  NXMToken public tk;
+  QuotationData public qd;
+  MemberRoles public mr;
+  TokenData public td;
+  ProposalCategory public proposalCategory;
 
   uint private constant DECIMAL1E18 = 1e18; // uint(10) ** 18;
   uint private constant DECIMAL1E13 = uint(10) ** 13;
@@ -245,16 +245,13 @@ contract MCR is Iupgradable {
     uint a;
     uint c;
     uint tokenExponentValue = td.tokenExponent();
+    (a, c, ) = pd.getTokenPriceDetails("ETH");
 
     uint max = mcrPercentage ** tokenExponentValue;
     uint dividingFactor = tokenExponentValue.mul(4);
-
-    (a, c, ) = pd.getTokenPriceDetails("ETH");
-    c = c.mul(DECIMAL1E18);
-    tokenPrice = (mcrEth.mul(DECIMAL1E18).mul(max).div(c)).div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(a.mul(DECIMAL1E18).div(DECIMAL1E05));
-    tokenPrice = tokenPrice.mul(100 * 10);
-    tokenPrice = (tokenPrice).div(10 ** 3);
+    c = c.mul(1e18);
+    tokenPrice = (mcrEth.mul(1e18).mul(max).div(c)).div(10 ** dividingFactor);
+    tokenPrice = tokenPrice.add(a.mul(1e13));
   }
 
   function getTokenSellValue(uint tokenAmount) public returns (uint ethValue) {
@@ -287,6 +284,10 @@ contract MCR is Iupgradable {
     uint mcrtp;
     (, mcrtp) = _calVtpAndMCRtp(address(p1).balance);
     return _calculateTokenPrice(curr, mcrtp);
+  }
+
+  function getTotalAssetValueAndMCRPercentage() public view returns (uint totalAssetValue, uint mcrPercentage) {
+    (totalAssetValue, mcrPercentage) = _calVtpAndMCRtp(address(p1).balance);
   }
 
   function calVtpAndMCRtp() public view returns (uint vtp, uint mcrtp) {

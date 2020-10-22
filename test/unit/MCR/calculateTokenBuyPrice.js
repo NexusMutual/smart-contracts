@@ -1,7 +1,6 @@
 const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { web3 } = require('@openzeppelin/test-environment');
 const { assert } = require('chai');
-const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
@@ -16,7 +15,7 @@ describe('calculateTokenBuyPrice', function () {
 
     const mcrEth = new BN('162424730681679380000000');
     const initialAssetValue = new BN('210959924071154460525457');
-    const deltaEth = new BN('1000').mul(new BN(1e18.toString()));
+    const deltaEth = ether('1000');
 
     const tokenValue = await mcr.calculateTokenBuyValue(
       deltaEth, initialAssetValue, mcrEth, a, c, tokenExponent

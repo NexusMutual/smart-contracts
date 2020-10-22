@@ -155,7 +155,7 @@ describe('burns', function () {
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '7' });
+    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -225,7 +225,7 @@ describe('burns', function () {
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '7' });
+    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
@@ -333,7 +333,7 @@ describe('burns', function () {
     const now = await time.latest();
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '7' });
+    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -398,7 +398,7 @@ describe('burns', function () {
     assert.equal(actualVoteClosing.toString(), '-1');
 
     const claimStatus = await cd.getClaimStatusNumber(claimId);
-    assert.equal(claimStatus.statno.toString(), '7');
+    assert.equal(claimStatus.statno.toString(), '14');
 
     const tokenPrice = await mcr.calculateTokenPrice(currency);
     const sumAssured = new BN(ether(cover.amount.toString()));
@@ -470,7 +470,7 @@ describe('burns', function () {
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '7' });
+    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');

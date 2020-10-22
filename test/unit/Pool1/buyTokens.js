@@ -17,7 +17,7 @@ describe('buyTokens', function () {
   const ethRate = new BN('100');
 
   it('successfully buys tokens', async function () {
-    const { pool1, mcr, poolData } = this;
+    const { pool1, mcr, poolData, token } = this;
 
     const mcrEth = new BN('162424730681679380000000');
     const initialAssetValue = new BN('210959924071154460525457');
@@ -57,10 +57,12 @@ describe('buyTokens', function () {
     };
     console.log(data);
 
-    return;
 
-    const r = await mcr.calVtpAndMCRtp();
-    console.log(r);
+    const { vtp, mcrtp } = await mcr.calVtpAndMCRtp();
+    console.log({
+      vtp: vtp.toString(),
+      mcrtp: mcrtp.toString()
+    });
     const { totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage();
     console.log({
       totalAssetValue: totalAssetValue.toString()
@@ -68,7 +70,23 @@ describe('buyTokens', function () {
     // await pool1.buyTokens()
 
 
-    assert(true);
+    const buyValue = ether('1000');
+
+
+    const tokensExpected = await mcr.getTokenBuyValue(buyValue);
+    console.log({
+      tokensExpected: tokensExpected.toString()
+    });
+
+    await pool1.buyTokens( '0', {
+      from: memberOne,
+      value: buyValue
+    });
+
+    const postBuyBalance = await token.balanceOf(memberOne);
+    console.log({
+      postBuyBalance: postBuyBalance.toString()
+    })
   });
 });
 

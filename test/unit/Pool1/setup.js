@@ -46,6 +46,9 @@ async function setup () {
   await tokenController.changeMasterAddress(master.address);
   await tokenController.changeDependentContractAddress();
 
+  // required to be able to mint
+  await master.enrollInternal(pool1.address);
+
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
   }

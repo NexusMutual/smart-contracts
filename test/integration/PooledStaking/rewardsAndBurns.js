@@ -90,9 +90,6 @@ async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimSt
 
 describe('burns', function () {
 
-  this.timeout(0);
-  this.slow(5000);
-
   before(setup);
   before(initMembers);
 

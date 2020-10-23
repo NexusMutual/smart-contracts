@@ -36,7 +36,7 @@ const coverTemplate = {
 // 13  final      Claim Accepted No Payout
 // 14  final      Claim Accepted Payout Done
 
-describe('set claim payout address', function () {
+describe('send claim payout to the payout address', function () {
 
   it('[A1, status: 0, 7, 14] CA accept, closed with closeClaim()', async function () {
 

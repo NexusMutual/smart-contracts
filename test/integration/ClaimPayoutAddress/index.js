@@ -6,7 +6,7 @@ const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('../setup');
 
-const [member1, member2, member3, staker1, coverHolder] = accounts;
+const [member1, member2, member3, staker1, coverHolder, switchable1, switchable2] = accounts;
 
 const tokensLockedForVoting = ether('2000');
 const validity = 360 * 24 * 60 * 60; // 360 days
@@ -16,7 +16,7 @@ const initialMemberFunds = ether('2500');
 async function initMembers () {
 
   const { mr, tk, tc } = this.contracts;
-  const members = [member1, member2, member3, staker1, coverHolder];
+  const members = [member1, member2, member3, staker1, coverHolder, switchable1, switchable2];
 
   for (const member of members) {
     await mr.payJoiningFee(member, { from: member, value: ether('0.002') });
@@ -49,6 +49,7 @@ describe('Claim payout address', function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
 
-  require('./claimPayoutAddress');
+  require('./membership');
+  require('./payouts');
 
 });

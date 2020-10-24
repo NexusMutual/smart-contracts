@@ -28,6 +28,14 @@ describe('buyTokens', function () {
       value: initialAssetValue
     });
 
+    const pool1Balance = await web3.eth.getBalance(pool1.address);
+    const pool2Balance = await web3.eth.getBalance('0x0000000000000000000000000000000000000000');
+    console.log({
+      pool1Balance: pool1Balance.toString(),
+      pool2Balance: pool2Balance.toString(),
+      // pool2Balance: pool2Balance.toString()
+    });
+
 
     const refs = {
       p1: await mcr.p1(),
@@ -35,6 +43,7 @@ describe('buyTokens', function () {
       tk: await mcr.tk(),
       qd: await mcr.qd(),
       mr: await mcr.td(),
+      p2: await pool1.p2(),
       proposalCategory: await mcr.proposalCategory()
     };
 
@@ -48,12 +57,14 @@ describe('buyTokens', function () {
 
     const currency = hex('DAI');
 
+    const lastMcr = await poolData.getLastMCR();
     const data = {
       getCurrenciesByIndex: await poolData.getCurrenciesByIndex(0),
       getAllCurrenciesLen: await poolData.getAllCurrenciesLen(),
       dai: await poolData.getCurrencyAssetAddress(currency),
       avgRate: await poolData.getCAAvgRate(currency),
-      lastMCR: JSON.stringify(await poolData.getLastMCR())
+      lastMCR: JSON.stringify(),
+      mcrEth: lastMcr.mcrEtherx1E18.toString()
     };
     console.log(data);
 
@@ -69,16 +80,57 @@ describe('buyTokens', function () {
     });
     // await pool1.buyTokens()
 
-
-    const buyValue = ether('1000');
-
-
-    const tokensExpected = await mcr.getTokenBuyValue(buyValue);
+    const r_calVtpAndMCRtp = await mcr._calVtpAndMCRtp(pool1Balance);
     console.log({
-      tokensExpected: tokensExpected.toString()
+      totalAssetValue_calVtpAndMCRtp: r_calVtpAndMCRtp.vtp.toString()
     });
 
-    await pool1.buyTokens( '0', {
+    const buyValue = ether('600');
+
+
+    // const tokensExpected = await mcr.getTokenBuyValue(buyValue);
+    // console.log({
+    //   tokensExpected: tokensExpected.toString()
+    // });
+
+
+
+    const tokenValue = await mcr.getTokenBuyValue(buyValue);
+
+    console.log({
+      tokenValue: tokenValue.toString(),
+    });
+    //
+    // const calculatedValue = await mcr.calculateTokenBuyValue(buyValue, currentTotalAssetValue, mcrEthReturned, a, c, tokenExponent);
+    //  console.log({
+    //    calculatedValue: calculatedValue.toString()
+    //  });
+    //
+    // const pool2Balance2 = await web3.eth.getBalance('0x0000000000000000000000000000000000000000');
+    // console.log({
+    //   pool2Balance2: pool2Balance2.toString(),
+    // });
+    //
+    // const investmentBalance = await pool1.getInvestmentAssetBalance();
+    // const investmentBalanceLoop = await pool1.getInvestmentAssetBalanceLoop();
+    // let investmentBalanceP2 = await pool1.getInvestmentAssetBalanceP2Balance();
+    //
+    // console.log({
+    //   investmentBalance: investmentBalance.toString(),
+    //   investmentBalanceLoop: investmentBalanceLoop.toString(),
+    //   investmentBalanceP2: investmentBalanceP2.toString()
+    // });
+    // time.advanceBlock();
+    //
+    // investmentBalanceP2 = await pool1.getInvestmentAssetBalanceP2Balance();
+    // console.log({
+    //   investmentBalance: investmentBalance.toString(),
+    //   investmentBalanceLoop: investmentBalanceLoop.toString(),
+    //   investmentBalanceP2: investmentBalanceP2.toString()
+    // });
+//11021649250155438134356
+
+    await pool1.buyTokens( '1', {
       from: memberOne,
       value: buyValue
     });

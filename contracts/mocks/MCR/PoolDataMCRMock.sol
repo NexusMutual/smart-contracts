@@ -37,4 +37,27 @@ contract PoolDataMCRMock is PoolData {
     lastMCR = LastMCR(mcrPercentagex100, mcrEtherx1E18, vFull, date);
   }
 
+  /// @dev Gets last Minimum Capital Requirement percentage of Capital Model
+  /// @return val MCR% value,multiplied by 100.
+  function getLastMCRPerc() external view returns (uint) {
+    return lastMCR.mcrPercentagex100;
+  }
+
+  /// @dev Gets last Ether price of Capital Model
+  /// @return val ether value,multiplied by 100.
+  function getLastMCREther() external view returns (uint) {
+    return lastMCR.mcrEtherx1E18;
+  }
+
+  /// @dev Gets Pool fund value in Ether used in the last full daily calculation from the Capital model.
+  function getLastVfull() external view returns (uint) {
+    return lastMCR.vFull;
+  }
+
+  /// @dev Gets last Minimum Capital Requirement in Ether.
+  /// @return date of MCR.
+  function getLastMCRDate() external view returns (uint64 date) {
+    return lastMCR.date;
+  }
+
 }

@@ -186,7 +186,6 @@ contract MCR is Iupgradable {
     return _calculateTokenPrice(curr, mcrtp);
   }
 
-
   function getTokenBuyValue(
     uint ethAmount
   ) public view returns (uint tokenValue) {
@@ -195,10 +194,10 @@ contract MCR is Iupgradable {
     uint c;
     uint currentTotalAssetValue;
     (a, c, ) = pd.getTokenPriceDetails("ETH");
-    (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(this).balance);
+    (currentTotalAssetValue, ) = calVtpAndMCRtp();
     uint mcrEth = pd.getLastMCREther();
     uint tokenExponent = td.tokenExponent();
-    tokenValue = 1; //calculateTokenBuyValue(ethAmount, currentTotalAssetValue, mcrEth, a, c, tokenExponent);
+    tokenValue = calculateTokenBuyValue(ethAmount, currentTotalAssetValue, mcrEth, a, c, tokenExponent);
   }
 
   function calculateTokenBuyValue(
@@ -259,7 +258,7 @@ contract MCR is Iupgradable {
     uint c;
     uint currentTotalAssetValue;
     (a, c, ) = pd.getTokenPriceDetails("ETH");
-    (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(this).balance);
+    (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(p1).balance);
 
     uint mcrEth = pd.getLastMCREther();
     uint mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);

@@ -18,7 +18,7 @@ async function setup () {
   const master = await MasterMock.new();
 
   const daiFeedAddress = '0x0000000000000000000000000000000000000001';
-  const daiAddress = '0x0000000000000000000000000000000000000001';
+  const daiAddress = '0x0000000000000000000000000000000000000011';
 
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, daiAddress);
   const tokenData = await TokenData.new(accounts.notariseAddress);

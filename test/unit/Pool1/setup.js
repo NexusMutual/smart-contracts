@@ -20,6 +20,7 @@ async function setup () {
   const master = await MasterMock.new();
 
   const daiFeedAddress = '0x0000000000000000000000000000000000000001';
+  const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await DAI.new();
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
@@ -36,6 +37,7 @@ async function setup () {
   await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
+  await master.setLatestAddress(hex('P2'), mockP2Address);
 
   await mcr.changeMasterAddress(master.address);
   await mcr.changeDependentContractAddress();

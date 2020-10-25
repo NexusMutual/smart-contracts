@@ -17,7 +17,7 @@ describe('buyTokens', function () {
   const ethRate = new BN('100');
 
   it('successfully buys tokens', async function () {
-    const { pool1, mcr, poolData, token, tokenData } = this;
+    const { pool1, poolData, token, tokenData } = this;
 
     const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
     const tokenExponent = await tokenData.tokenExponent();
@@ -31,130 +31,26 @@ describe('buyTokens', function () {
       value: initialAssetValue
     });
 
-    const pool1Balance = await web3.eth.getBalance(pool1.address);
-    const pool2Balance = await web3.eth.getBalance('0x0000000000000000000000000000000000000000');
-    console.log({
-      pool1Balance: pool1Balance.toString(),
-      pool2Balance: pool2Balance.toString(),
-      // pool2Balance: pool2Balance.toString()
-    });
-
-
-    const refs = {
-      p1: await mcr.p1(),
-      pd: await mcr.pd(),
-      tk: await mcr.tk(),
-      qd: await mcr.qd(),
-      mr: await mcr.td(),
-      p2: await pool1.p2(),
-      proposalCategory: await mcr.proposalCategory()
-    };
-
-    console.log(refs);
-
     await poolData.setAverageRate(hex('ETH'), ethRate);
     await poolData.setAverageRate(hex('DAI'), daiRate);
 
     const date = new Date().getTime();
     await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
 
-    const currency = hex('DAI');
-
-    const lastMcr = await poolData.getLastMCR();
-    const data = {
-      getCurrenciesByIndex: await poolData.getCurrenciesByIndex(0),
-      getAllCurrenciesLen: await poolData.getAllCurrenciesLen(),
-      dai: await poolData.getCurrencyAssetAddress(currency),
-      avgRate: await poolData.getCAAvgRate(currency),
-      lastMCR: JSON.stringify(),
-      mcrEth: lastMcr.mcrEtherx1E18.toString()
-    };
-    console.log(data);
-
-
-    const { vtp, mcrtp } = await mcr.calVtpAndMCRtp();
-    console.log({
-      vtp: vtp.toString(),
-      mcrtp: mcrtp.toString()
-    });
-    const { totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage();
-    console.log({
-      totalAssetValue: totalAssetValue.toString()
-    });
-    // await pool1.buyTokens()
-
-    const r_calVtpAndMCRtp = await mcr._calVtpAndMCRtp(pool1Balance);
-    console.log({
-      totalAssetValue_calVtpAndMCRtp: r_calVtpAndMCRtp.vtp.toString()
-    });
-
     const buyValue = ether('1000');
-
-
-    // const tokensExpected = await mcr.getTokenBuyValue(buyValue);
-    // console.log({
-    //   tokensExpected: tokensExpected.toString()
-    // });
-
-
-
-    const tokenValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
-
-    console.log({
-      tokenValue: tokenValue.toString(),
-    });
-    //
-    // const calculatedValue = await mcr.calculateTokenBuyValue(buyValue, currentTotalAssetValue, mcrEthReturned, a, c, tokenExponent);
-    //  console.log({
-    //    calculatedValue: calculatedValue.toString()
-    //  });
-    //
-    // const pool2Balance2 = await web3.eth.getBalance('0x0000000000000000000000000000000000000000');
-    // console.log({
-    //   pool2Balance2: pool2Balance2.toString(),
-    // });
-    //
-    // const investmentBalance = await pool1.getInvestmentAssetBalance();
-    // const investmentBalanceLoop = await pool1.getInvestmentAssetBalanceLoop();
-    // let investmentBalanceP2 = await pool1.getInvestmentAssetBalanceP2Balance();
-    //
-    // console.log({
-    //   investmentBalance: investmentBalance.toString(),
-    //   investmentBalanceLoop: investmentBalanceLoop.toString(),
-    //   investmentBalanceP2: investmentBalanceP2.toString()
-    // });
-    // time.advanceBlock();
-    //
-    // investmentBalanceP2 = await pool1.getInvestmentAssetBalanceP2Balance();
-    // console.log({
-    //   investmentBalance: investmentBalance.toString(),
-    //   investmentBalanceLoop: investmentBalanceLoop.toString(),
-    //   investmentBalanceP2: investmentBalanceP2.toString()
-    // });
-//11021649250155438134356
-
     const preBuyBalance = await token.balanceOf(memberOne);
 
-    const tx = await pool1.buyTokens( '1', {
+    await pool1.buyTokens( '1', {
       from: memberOne,
       value: buyValue
     });
-
-    console.log(tx.logs[0].args.ethBuyValue.toString());
-    console.log(tx.logs[0].args.boughtTokens.toString());
-    console.log(tx.logs[0].args.pool1Balance.toString());
-
     const postBuyBalance = await token.balanceOf(memberOne);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
-
 
     const { tokens: expectedtokenValue }  = calculatePurchasedTokens(
       initialAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
     );
     assert.equal(tokensReceived.toString(), expectedtokenValue.toString());
-    console.log({
-      postBuyBalance: postBuyBalance.toString()
-    })
   });
 });
 

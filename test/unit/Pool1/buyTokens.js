@@ -12,10 +12,10 @@ const {
   members: [memberOne],
 } = accounts;
 
-const maxRelativeError = Decimal(0.001);
+const maxRelativeError = Decimal(0.01);
 
 async function assertBuyValues(
-  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData }
   ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();
@@ -62,8 +62,15 @@ async function assertBuyValues(
     const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).div(expectedIdealTokenValue);
     assert(
       relativeError.lt(maxRelativeError),
-      `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}`
+      `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
+       Relative error: ${relativeError}`
     );
+
+    const extraStepValue = poolBalanceStep.sub(buyValue);
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: extraStepValue
+    });
 
     ({ totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage());
   }
@@ -81,9 +88,10 @@ describe('buyTokens', function () {
     const mcrEth = new BN('162424730681679380000000');
     const initialAssetValue = new BN('210959924071154460525457');
     const buyValue = ether('1000');
+    const poolBalanceStep = ether('10000');
 
     await assertBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, buyValue, mcr, pool1, token, poolData, daiRate, ethRate, tokenData }
+      { initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, mcr, pool1, token, poolData, daiRate, ethRate, tokenData }
       );
   });
 });

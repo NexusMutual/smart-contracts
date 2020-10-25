@@ -14,33 +14,27 @@ const {
 
 const maxRelativeError = Decimal(0.001);
 
-describe('buyTokens', function () {
+async function assertBuyValues(
+  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+  ) {
+  const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
+  const tokenExponent = await tokenData.tokenExponent();
+  const mcrPercentagex100 = initialAssetValue.mul(new BN(10000)).div(mcrEth);
 
-  const daiRate = new BN('39459');
-  const ethRate = new BN('100');
+  await pool1.sendTransaction({
+    from: fundSource,
+    value: initialAssetValue
+  });
 
-  it('mints bought tokens to member in exchange of ETH', async function () {
-    const { pool1, poolData, token, tokenData, mcr } = this;
+  await poolData.setAverageRate(hex('ETH'), ethRate);
+  await poolData.setAverageRate(hex('DAI'), daiRate);
 
-    const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
-    const tokenExponent = await tokenData.tokenExponent();
+  const date = new Date().getTime();
+  await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
 
-    const mcrEth = new BN('162424730681679380000000');
-    const initialAssetValue = new BN('210959924071154460525457');
-    const mcrPercentagex100 = initialAssetValue.mul(new BN(10000)).div(mcrEth);
-
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue
-    });
-
-    await poolData.setAverageRate(hex('ETH'), ethRate);
-    await poolData.setAverageRate(hex('DAI'), daiRate);
-
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
-
-    const buyValue = ether('1000');
+  let { totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage();
+  while (mcrPercentage < maxPercentage * 100) {
+    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
 
@@ -56,11 +50,11 @@ describe('buyTokens', function () {
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
     const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-      initialAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
     );
 
     const { tokens: expectedTokenValue }  = calculatePurchasedTokens(
-      initialAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
     );
     assert.equal(tokensReceived.toString(), expectedTokenValue.toString());
 
@@ -70,6 +64,27 @@ describe('buyTokens', function () {
       relativeError.lt(maxRelativeError),
       `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}`
     );
+
+    ({ totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage());
+  }
+}
+
+describe('buyTokens', function () {
+
+  const daiRate = new BN('39459');
+  const ethRate = new BN('100');
+  const maxPercentage = 400;
+
+  it('mints bought tokens to member in exchange of ETH', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
+
+    const mcrEth = new BN('162424730681679380000000');
+    const initialAssetValue = new BN('210959924071154460525457');
+    const buyValue = ether('1000');
+
+    await assertBuyValues(
+      { initialAssetValue, mcrEth, maxPercentage, buyValue, mcr, pool1, token, poolData, daiRate, ethRate, tokenData }
+      );
   });
 });
 

@@ -17,7 +17,10 @@ describe('buyTokens', function () {
   const ethRate = new BN('100');
 
   it('successfully buys tokens', async function () {
-    const { pool1, mcr, poolData, token } = this;
+    const { pool1, mcr, poolData, token, tokenData } = this;
+
+    const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
+    const tokenExponent = await tokenData.tokenExponent();
 
     const mcrEth = new BN('162424730681679380000000');
     const initialAssetValue = new BN('210959924071154460525457');
@@ -85,7 +88,7 @@ describe('buyTokens', function () {
       totalAssetValue_calVtpAndMCRtp: r_calVtpAndMCRtp.vtp.toString()
     });
 
-    const buyValue = ether('600');
+    const buyValue = ether('1000');
 
 
     // const tokensExpected = await mcr.getTokenBuyValue(buyValue);
@@ -95,7 +98,7 @@ describe('buyTokens', function () {
 
 
 
-    const tokenValue = await mcr.getTokenBuyValue(buyValue);
+    const tokenValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
 
     console.log({
       tokenValue: tokenValue.toString(),
@@ -130,12 +133,25 @@ describe('buyTokens', function () {
     // });
 //11021649250155438134356
 
-    await pool1.buyTokens( '1', {
+    const preBuyBalance = await token.balanceOf(memberOne);
+
+    const tx = await pool1.buyTokens( '1', {
       from: memberOne,
       value: buyValue
     });
 
+    console.log(tx.logs[0].args.ethBuyValue.toString());
+    console.log(tx.logs[0].args.boughtTokens.toString());
+    console.log(tx.logs[0].args.pool1Balance.toString());
+
     const postBuyBalance = await token.balanceOf(memberOne);
+    const tokensReceived = postBuyBalance.sub(preBuyBalance);
+
+
+    const { tokens: expectedtokenValue }  = calculatePurchasedTokens(
+      initialAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+    );
+    assert.equal(tokensReceived.toString(), expectedtokenValue.toString());
     console.log({
       postBuyBalance: postBuyBalance.toString()
     })

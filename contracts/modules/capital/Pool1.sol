@@ -268,14 +268,20 @@ contract Pool1 is Iupgradable {
   }
 
 
-  function buyTokens(uint minTokensOut) public payable isMember checkPause {
+  event DebugBuyTokens (
+    uint ethBuyValue,
+    uint boughtTokens,
+    uint pool1Balance
+  );
+  function buyTokens(uint minTokensOut) public payable isMember checkPause returns (uint boughtTokens) {
 
     uint ethBuyValue = msg.value;
     require(ethBuyValue > 0);
 
-    uint boughtTokens = mcr.getTokenBuyValue(ethBuyValue);
+    boughtTokens = mcr.getTokenBuyValue(address(this).balance.sub(ethBuyValue), ethBuyValue);
     require(boughtTokens > minTokensOut, "boughtTokens is less than minTokensBought");
     tc.mint(msg.sender, boughtTokens);
+    emit DebugBuyTokens(ethBuyValue, boughtTokens, address(this).balance);
   }
 
   function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause {

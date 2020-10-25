@@ -187,6 +187,7 @@ contract MCR is Iupgradable {
   }
 
   function getTokenBuyValue(
+    uint poolBalance,
     uint ethAmount
   ) public view returns (uint tokenValue) {
 
@@ -194,7 +195,7 @@ contract MCR is Iupgradable {
     uint c;
     uint currentTotalAssetValue;
     (a, c, ) = pd.getTokenPriceDetails("ETH");
-    (currentTotalAssetValue, ) = calVtpAndMCRtp();
+    (currentTotalAssetValue, ) = _calVtpAndMCRtp(poolBalance);
     uint mcrEth = pd.getLastMCREther();
     uint tokenExponent = td.tokenExponent();
     tokenValue = calculateTokenBuyValue(ethAmount, currentTotalAssetValue, mcrEth, a, c, tokenExponent);

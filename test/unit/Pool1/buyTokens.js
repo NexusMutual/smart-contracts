@@ -19,8 +19,8 @@ describe('buyTokens', function () {
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
 
-  it('successfully buys tokens', async function () {
-    const { pool1, poolData, token, tokenData } = this;
+  it('mints bought tokens to member in exchange of ETH', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
 
     const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
     const tokenExponent = await tokenData.tokenExponent();
@@ -41,9 +41,14 @@ describe('buyTokens', function () {
     await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
 
     const buyValue = ether('1000');
+
+    const pool1Balance = await web3.eth.getBalance(pool1.address);
+
+    const preEstimatedTokenBuyValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
+
     const preBuyBalance = await token.balanceOf(memberOne);
 
-    await pool1.buyTokens( '1', {
+    await pool1.buyTokens(preEstimatedTokenBuyValue, {
       from: memberOne,
       value: buyValue
     });

@@ -4,12 +4,15 @@ const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
 const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
-const { accounts, constants } = require('../utils');
+const Decimal = require('decimal.js');
+const { accounts } = require('../utils');
 
 const {
   nonMembers: [fundSource],
   members: [memberOne],
 } = accounts;
+
+const maxRelativeError = Decimal(0.001);
 
 describe('buyTokens', function () {
 
@@ -47,10 +50,21 @@ describe('buyTokens', function () {
     const postBuyBalance = await token.balanceOf(memberOne);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
-    const { tokens: expectedtokenValue }  = calculatePurchasedTokens(
+    const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
       initialAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
     );
-    assert.equal(tokensReceived.toString(), expectedtokenValue.toString());
+
+    const { tokens: expectedTokenValue }  = calculatePurchasedTokens(
+      initialAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+    );
+    assert.equal(tokensReceived.toString(), expectedTokenValue.toString());
+
+    const tokensReceivedDecimal = Decimal(tokensReceived.toString());
+    const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).div(expectedIdealTokenValue);
+    assert(
+      relativeError.lt(maxRelativeError),
+      `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}`
+    );
   });
 });
 

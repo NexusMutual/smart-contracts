@@ -22,16 +22,18 @@ const tokenExponent = 4;
  * @param a
  * @returns {{tokens: Decimal, price: Decimal | *}}
  */
-function calculatePurchasedTokensWithFullIntegral (
-  initialAssetValue, deltaEth, mcrEth, c, a
-) {
-  initialAssetValue = Decimal(initialAssetValue);
-  deltaEth = Decimal(deltaEth);
-  const nextAssetValue = initialAssetValue.add(deltaEth);
+function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, mcrEth, c, a, tokenExponent) {
+  if (tokenExponent.toString() !== tokenExponent.toString()) {
+    throw new Error(`Only tokenExponent === ${tokenExponent} supported.`);
+  }
 
-  const mcrEthDecimal = Decimal(mcrEth);
-  const CDecimal = Decimal(c);
-  const m = Decimal(1).div(CDecimal.mul(mcrEthDecimal.pow(3)));
+  initialAssetValue = Decimal(initialAssetValue.toString()).div(1e18);
+  deltaEth = Decimal(deltaEth.toString()).div(1e18);
+  mcrEth = Decimal(mcrEth.toString()).div(1e18);
+  a = Decimal(a.toString()).div(1e18);
+  const nextAssetValue = initialAssetValue.add(deltaEth);
+  const CDecimal = Decimal(c.toString());
+  const m = Decimal(1).div(CDecimal.mul(mcrEth.pow(3)));
   a = Decimal(a);
   function integral (x) {
     x = Decimal(x);
@@ -60,13 +62,13 @@ function calculatePurchasedTokensWithFullIntegral (
     return result;
   }
 
-  const tokens = integral(nextAssetValue).sub(integral(initialAssetValue));
-  const price = deltaEth.div(tokens);
+  const tokens = integral(nextAssetValue).sub(integral(initialAssetValue)).mul(1e18);
+  const price = deltaEth.div(tokens).mul(1e18);
   return {
     tokens,
     price
   }
-}
+};
 
 /**
  *  Calculate the purchased tokens with the on-chain formula
@@ -115,6 +117,7 @@ function calculatePurchasedTokens (
 
 module.exports = {
   calculatePurchasedTokens,
+  calculatePurchasedTokensWithFullIntegral,
   A,
   C,
   tokenExponent

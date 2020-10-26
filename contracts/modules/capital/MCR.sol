@@ -41,7 +41,9 @@ contract MCR is Iupgradable {
   uint private constant DECIMAL1E05 = uint(10) ** 5;
   uint private constant DECIMAL1E19 = uint(10) ** 19;
   uint private constant minCapFactor = uint(10) ** 21;
-  uint public sellSpread = 25;
+  uint public constant sellSpread = 25;
+  uint public constant maxBuySellMcrEthPercentage = 5;
+  uint public constant maxMCRPercentage = 400 * 100; // 400%
   uint public constant MCR_PERCENTAGE_MULTIPLIER = uint(10) ** 4;
 
   uint public variableMincap;
@@ -194,10 +196,13 @@ contract MCR is Iupgradable {
     uint a;
     uint c;
     uint currentTotalAssetValue;
+    uint mcrPercentage;
     (a, c, ) = pd.getTokenPriceDetails("ETH");
-    (currentTotalAssetValue, ) = _calVtpAndMCRtp(poolBalance);
+    (currentTotalAssetValue, mcrPercentage) = _calVtpAndMCRtp(poolBalance);
     uint mcrEth = pd.getLastMCREther();
     uint tokenExponent = td.tokenExponent();
+
+    require(mcrPercentage <= maxMCRPercentage);
     tokenValue = calculateTokenBuyValue(ethAmount, currentTotalAssetValue, mcrEth, a, c, tokenExponent);
   }
 
@@ -209,7 +214,10 @@ contract MCR is Iupgradable {
     uint c,
     uint tokenExponent
   ) public pure returns (uint tokenValue) {
-
+    require(
+      ethAmount <= mcrEth.mul(maxBuySellMcrEthPercentage).div(100),
+      "Purchases worth higher than 5% of MCR eth are not allowed"
+    );
     uint tokenPrice;
     {
       uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);

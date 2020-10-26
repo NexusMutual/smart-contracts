@@ -82,17 +82,46 @@ describe('buyTokens', function () {
   const ethRate = new BN('100');
   const maxPercentage = 400;
 
-  it('mints bought tokens to member in exchange of ETH', async function () {
+  it('mints bought tokens to member in exchange of 1000 ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
-    const mcrEth = new BN('162424730681679380000000');
-    const initialAssetValue = new BN('210959924071154460525457');
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
     const poolBalanceStep = ether('10000');
 
-    await assertBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, mcr, pool1, token, poolData, daiRate, ethRate, tokenData }
-      );
+    await assertBuyValues({
+      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep,
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData
+    });
+  });
+
+  it('mints bought tokens to member in exchange of ETH for mcrEth = 16k', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
+
+    const mcrEth = ether('16000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('1000');
+    const poolBalanceStep = ether('1000');
+
+    await assertBuyValues({
+      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep,
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData
+    });
+  });
+
+  it.only('mints bought tokens to member in exchange of ETH for mcrEth = 320k', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
+
+    const mcrEth = ether('320000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('1000');
+    const poolBalanceStep = ether('20000');
+
+    await assertBuyValues({
+      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep,
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData
+    });
   });
 });
 

@@ -1,19 +1,19 @@
-const axios = require('axios');
-const { contract, accounts, web3 } = require('@openzeppelin/test-environment');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { artifacts, accounts, web3 } = require('hardhat');
+const { ether, time } = require('@openzeppelin/test-helpers');
+const fetch = require('node-fetch');
 const { assert } = require('chai');
 const BN = require('web3').utils.BN;
 
 const { encode1 } = require('./external');
-const { logEvents, hex } = require('../utils/helpers');
+const { expectRevert, logEvents, hex } = require('../utils').helpers;
 
-const MemberRoles = contract.fromArtifact('MemberRoles');
-const NXMaster = contract.fromArtifact('NXMaster');
-const NXMToken = contract.fromArtifact('NXMToken');
-const Governance = contract.fromArtifact('Governance');
-const PooledStaking = contract.fromArtifact('PooledStaking');
-const TokenFunctions = contract.fromArtifact('TokenFunctions');
-const UpgradeabilityProxy = contract.fromArtifact('UpgradeabilityProxy');
+const MemberRoles = artifacts.require('MemberRoles');
+const NXMaster = artifacts.require('NXMaster');
+const NXMToken = artifacts.require('NXMToken');
+const Governance = artifacts.require('Governance');
+const PooledStaking = artifacts.require('PooledStaking');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const UpgradeabilityProxy = artifacts.require('UpgradeabilityProxy');
 
 const upgradeProxyImplementationCategoryId = 5;
 const newContractAddressUpgradeCategoryId = 29;
@@ -52,7 +52,7 @@ describe.only('rewards migration', function () {
 
   it('performs contract upgrades', async function () {
 
-    const { data: versionData } = await axios.get('https://api.nexusmutual.io/version-data/data.json');
+    const { data: versionData } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
     const [{ address: masterAddress }] = versionData.mainnet.abis.filter(({ code }) => code === 'NXMASTER');
 
     const master = await NXMaster.at(masterAddress);

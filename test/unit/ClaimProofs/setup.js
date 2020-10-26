@@ -1,12 +1,9 @@
-const { contract } = require('@openzeppelin/test-environment');
+const { artifacts } = require('hardhat');
 
-const ClaimProofs = contract.fromArtifact('ClaimProofs');
+const ClaimProofs = artifacts.require('ClaimProofs');
 
 async function setup () {
-
-  const claimProofs = await ClaimProofs.new();
-
-  this.claimProofs = claimProofs;
+  this.claimProofs = await ClaimProofs.new();
 }
 
 module.exports = setup;

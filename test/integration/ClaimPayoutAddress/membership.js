@@ -1,8 +1,8 @@
-const { accounts } = require('@openzeppelin/test-environment');
+const { accounts } = require('hardhat');
 const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const [member1, payoutAddress, switchable1, switchable2] = accounts.slice(3);
+const [member1, payoutAddress, switchable1, switchable2] = accounts.slice(4); // skip first four accounts
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 
 const notEmitted = (receipt, event, args, message) => {

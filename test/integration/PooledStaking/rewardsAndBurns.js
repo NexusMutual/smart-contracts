@@ -1,14 +1,13 @@
-const { accounts, web3 } = require('@openzeppelin/test-environment');
+const { accounts, web3 } = require('hardhat');
 const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
-const snapshot = require('../utils').snapshot;
-const setup = require('../setup');
 
 const [
+  /* owner */,
   member1, member2, member3,
   staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10,
   coverHolder,
@@ -90,16 +89,7 @@ async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimSt
 
 describe('burns', function () {
 
-  before(setup);
   before(initMembers);
-
-  beforeEach(async function () {
-    this.snapshotId = await snapshot.takeSnapshot();
-  });
-
-  afterEach(async function () {
-    await snapshot.revertToSnapshot(this.snapshotId);
-  });
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
 

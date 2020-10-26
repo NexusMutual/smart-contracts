@@ -1,4 +1,4 @@
-const { web3 } = require('@openzeppelin/test-environment');
+const { web3 } = require('hardhat');
 
 const send = (method, params = []) => new Promise((resolve, reject) => {
   web3.currentProvider.send(

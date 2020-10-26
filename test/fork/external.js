@@ -1,5 +1,5 @@
 const abi = require('ethereumjs-abi');
-const { hex } = require('../utils/helpers');
+const { hex } = require('../utils').helpers;
 
 function encode (...args) {
   const signature = args[0];

@@ -1,7 +1,7 @@
-const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { accounts, constants } = require('../utils');
+const { accounts, constants, helpers: { expectRevert } } = require('../utils');
 const { ParamType } = constants;
 
 const {

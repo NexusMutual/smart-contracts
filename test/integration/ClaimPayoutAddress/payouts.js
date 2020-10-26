@@ -1,4 +1,4 @@
-const { accounts, web3 } = require('@openzeppelin/test-environment');
+const { accounts, web3 } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
@@ -6,7 +6,7 @@ const { toBN } = web3.utils;
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 
-const [member1, member2, member3, coverHolder, payoutAddress] = accounts;
+const [, member1, member2, member3, coverHolder, payoutAddress] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth

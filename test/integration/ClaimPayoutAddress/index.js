@@ -1,12 +1,7 @@
-const { accounts, web3 } = require('@openzeppelin/test-environment');
+const { accounts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
-const { toBN } = web3.utils;
-
 const { hex } = require('../utils').helpers;
-const snapshot = require('../utils').snapshot;
-const setup = require('../setup');
-
-const [member1, member2, member3, staker1, coverHolder, switchable1, switchable2] = accounts;
+const { toBN } = web3.utils;
 
 const tokensLockedForVoting = ether('2000');
 const validity = 360 * 24 * 60 * 60; // 360 days
@@ -16,7 +11,8 @@ const initialMemberFunds = ether('2500');
 async function initMembers () {
 
   const { mr, tk, tc } = this.contracts;
-  const members = [member1, member2, member3, staker1, coverHolder, switchable1, switchable2];
+  const [, member1, member2, member3, coverHolder] = accounts;
+  const members = [member1, member2, member3, coverHolder];
 
   for (const member of members) {
     await mr.payJoiningFee(member, { from: member, value: ether('0.002') });
@@ -28,23 +24,11 @@ async function initMembers () {
   for (const member of [member1, member2, member3]) {
     await tc.lock(hex('CLA'), tokensLockedForVoting, validity, { from: member });
   }
-
-  this.members = members;
-  this.stakers = [staker1];
 }
 
 describe('Claim payout address', function () {
 
-  before(setup);
-  before(initMembers);
-
-  beforeEach(async function () {
-    this.snapshotId = await snapshot.takeSnapshot();
-  });
-
-  afterEach(async function () {
-    await snapshot.revertToSnapshot(this.snapshotId);
-  });
+  beforeEach(initMembers);
 
   require('./membership');
   require('./payouts');

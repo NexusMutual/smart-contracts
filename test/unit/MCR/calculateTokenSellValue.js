@@ -6,7 +6,7 @@ const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = r
 const { BN } = web3.utils;
 
 
-describe('calculateTokenBuyValue', function () {
+describe('calculateTokenSellValue', function () {
   it('calculates token  price for a change in total assets correctly', async function () {
     const { mcr, poolData, tokenData } = this;
 
@@ -20,11 +20,21 @@ describe('calculateTokenBuyValue', function () {
     const tokenValue = await mcr.calculateTokenBuyValue(
       deltaEth, initialAssetValue, mcrEth, a, c, tokenExponent
     );
+    const postBuyAssetValue = initialAssetValue.add(deltaEth);
 
-    const { tokens: expectedtokenValue } = calculatePurchasedTokens(
-      initialAssetValue, deltaEth, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+
+    //mcr.calculateToken
+
+    const ethSellValue = await mcr.calculateTokenSellValue(
+      tokenValue,
+      postBuyAssetValue,
+      mcrEth,
+      a,
+      c
     );
 
-    assert.equal(tokenValue.toString(), expectedtokenValue.toString());
+    console.log({
+      ethSellValue: ethSellValue.toString()
+    });
   });
 });

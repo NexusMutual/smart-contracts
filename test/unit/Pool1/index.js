@@ -17,4 +17,5 @@ describe('Pool1 unit tests', function () {
   });
 
   require('./buyTokens');
+  require('./sellTokens');
 });

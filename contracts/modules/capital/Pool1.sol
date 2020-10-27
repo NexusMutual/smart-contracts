@@ -267,7 +267,6 @@ contract Pool1 is Iupgradable {
     success = true;
   }
 
-
   event DebugBuyTokens (
     uint ethBuyValue,
     uint boughtTokens,

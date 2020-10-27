@@ -6,7 +6,7 @@ const BN = web3.utils.BN;
 
 describe('calculateTokenSpotPrice', function () {
 
-  it('calculates token spot price correctly', async function () {
+  it.only('calculates token spot price correctly', async function () {
     const { mcr } = this;
 
     const mcrEth = new BN('162424730681679380000000');

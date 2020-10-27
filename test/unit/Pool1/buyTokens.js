@@ -6,6 +6,7 @@ const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = r
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
+const { setupContractState } = require('./utils');
 
 const {
   nonMembers: [fundSource],
@@ -14,38 +15,11 @@ const {
 
 const maxRelativeError = Decimal(0.01);
 
-async function setupContractState(
-  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
-) {
-  const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
-  const tokenExponent = await tokenData.tokenExponent();
-  const mcrPercentagex100 = initialAssetValue.mul(new BN(10000)).div(mcrEth);
-
-  await pool1.sendTransaction({
-    from: fundSource,
-    value: initialAssetValue
-  });
-
-  await poolData.setAverageRate(hex('ETH'), ethRate);
-  await poolData.setAverageRate(hex('DAI'), daiRate);
-
-  const date = new Date().getTime();
-  await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
-  let { totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage();
-  return {
-    a,
-    c,
-    tokenExponent,
-    totalAssetValue,
-    mcrPercentage
-  };
-}
-
 async function assertBuyValues(
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData }
 ) {
   let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await setupContractState(
-    { initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
   );
 
   let highestRelativeError = 0;
@@ -96,20 +70,20 @@ async function assertBuyValues(
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe('buyTokens', function () {
+describe.only('buyTokens', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
   const maxPercentage = 400;
 
-  it.only('reverts on purchase higher than of 5% ETH of mcrEth', async function () {
+  it('reverts on purchase higher than of 5% ETH of mcrEth', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
     await setupContractState(
-      { initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
     );
 
     await expectRevert(
@@ -118,14 +92,14 @@ describe('buyTokens', function () {
     );
   });
 
-  it.only('reverts on purchase where the bought tokens are below min expected out token amount', async function () {
+  it('reverts on purchase where the bought tokens are below min expected out token amount', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
     await setupContractState(
-      { initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
     );
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
@@ -136,12 +110,12 @@ describe('buyTokens', function () {
     );
   });
 
-  it('mints bought tokens to member in exchange of 1000 ETH for mcrEth = 16k', async function () {
+  it('mints bought tokens to member in exchange of 100 ETH for mcrEth = 16k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('16000');
     const initialAssetValue = mcrEth;
-    const buyValue = ether('1000');
+    const buyValue = ether('100');
     const poolBalanceStep = ether('1000');
 
     await assertBuyValues({

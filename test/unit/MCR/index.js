@@ -17,5 +17,6 @@ describe('MCR unit tests', function () {
   });
 
   require('./calculateTokenSpotPrice');
-  require('./calculateTokenBuyPrice');
+  require('./calculateTokenBuyValue');
+  require('./calculateTokenSellValue');
 });

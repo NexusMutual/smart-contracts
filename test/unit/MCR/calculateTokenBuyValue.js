@@ -7,7 +7,7 @@ const { BN } = web3.utils;
 
 
 describe('calculateTokenBuyValue', function () {
-  it.only('calculates token  price for a change in total assets correctly', async function () {
+  it('calculates token value received for an increment in total assets correctly', async function () {
     const { mcr, poolData, tokenData } = this;
 
     const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));

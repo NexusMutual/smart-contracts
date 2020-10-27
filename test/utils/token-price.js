@@ -140,11 +140,20 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
   };
 }
 
+
+function getTokenSpotPrice (mcrPercentage, mcrEth) {
+  mcrPercentage = Decimal(mcrPercentage.toString()).div(100);
+  mcrEth = Decimal(mcrEth.toString()).div(1e18);
+  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrPercentage).pow(tokenExponent)));
+}
+
+
 module.exports = {
   calculatePurchasedTokens,
   calculatePurchasedTokensWithFullIntegral,
   calculateSellValue,
   A,
   C,
-  tokenExponent
+  tokenExponent,
+  getTokenSpotPrice
 }

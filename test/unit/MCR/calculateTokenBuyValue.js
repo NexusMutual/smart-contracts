@@ -7,7 +7,7 @@ const { BN } = web3.utils;
 
 
 describe('calculateTokenBuyValue', function () {
-  it('calculates token  price for a change in total assets correctly', async function () {
+  it.only('calculates token  price for a change in total assets correctly', async function () {
     const { mcr, poolData, tokenData } = this;
 
     const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
@@ -18,7 +18,7 @@ describe('calculateTokenBuyValue', function () {
     const deltaEth = ether('1000');
 
     const tokenValue = await mcr.calculateTokenBuyValue(
-      deltaEth, initialAssetValue, mcrEth, a, c, tokenExponent
+      deltaEth, initialAssetValue, mcrEth
     );
 
     const { tokens: expectedtokenValue } = calculatePurchasedTokens(

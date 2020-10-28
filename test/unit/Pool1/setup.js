@@ -14,6 +14,7 @@ const TokenMock = contract.fromArtifact('NXMTokenMock');
 const Pool1 = contract.fromArtifact('Pool1');
 const MCR = contract.fromArtifact('MCR');
 const DAI = contract.fromArtifact('MockDAI');
+const TokenFunctions = contract.fromArtifact('TokenFunctions');
 
 async function setup () {
 
@@ -28,6 +29,7 @@ async function setup () {
   const token = await TokenMock.new();
   const mcr = await MCR.new();
   const tokenController = await TokenController.new();
+  const tokenFunctions = await TokenFunctions.new();
   await token.mint(defaultSender, ether('10000'));
 
   // set contract addresses
@@ -38,15 +40,14 @@ async function setup () {
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
   await master.setLatestAddress(hex('P2'), mockP2Address);
+  await master.setLatestAddress(hex('TF'), tokenFunctions.address);
 
-  await mcr.changeMasterAddress(master.address);
-  await mcr.changeDependentContractAddress();
-
-  await pool1.changeMasterAddress(master.address);
-  await pool1.changeDependentContractAddress();
-
-  await tokenController.changeMasterAddress(master.address);
-  await tokenController.changeDependentContractAddress();
+  const contractsToUpdate = [mcr, pool1, tokenController, tokenFunctions];
+  for (const contract of contractsToUpdate) {
+    console.log(contract.address);
+    await contract.changeMasterAddress(master.address);
+    await contract.changeDependentContractAddress();
+  }
 
   // required to be able to mint
   await master.enrollInternal(pool1.address);

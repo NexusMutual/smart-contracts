@@ -2,7 +2,6 @@ const { ether } = require('@openzeppelin/test-helpers');
 const { web3 } = require('@openzeppelin/test-environment');
 const Decimal = require('decimal.js');
 const { assert } = require('chai');
-const { calculateSellValue } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 
 const maxRelativeError = Decimal(0.0001);
@@ -21,7 +20,6 @@ describe('calculateTokenSellValue', function () {
     const postBuyAssetValue = initialAssetValue.add(deltaEth);
 
     const sellSpread = Decimal(0.025);
-    const { ethEstimate: expectedEthSellValue } = calculateSellValue(postBuyAssetValue, mcrEth, tokenValue, sellSpread);
 
     const ethValue = await mcr.calculateTokenSellValue(
       tokenValue.toString(), postBuyAssetValue.toString(), mcrEth.toString()
@@ -33,9 +31,5 @@ describe('calculateTokenSellValue', function () {
     const relativeError = expectedEthValue.sub(Decimal(ethValue.toString())).div(expectedEthValue);
 
     assert(relativeError.lt(maxRelativeError), `Relative error too high: ${relativeError.toFixed()}`);
-
-    console.log({
-      ethValue: ethValue.toString(),
-    });
   });
 });

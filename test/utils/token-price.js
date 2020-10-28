@@ -119,7 +119,6 @@ function getPriceDecimal (MCRPerc, MCReth) {
   return Decimal(A).add(Decimal(MCReth).div(C).mul(Decimal(MCRPerc).pow(4)));
 }
 
-
 /**
  * 1. Calculate spot price and amount of ETH at current values
  * 2. Calculate spot price and amount of ETH using V = V0 - ETH from step 1

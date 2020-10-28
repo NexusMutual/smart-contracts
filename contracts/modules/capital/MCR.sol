@@ -250,12 +250,12 @@ contract MCR is Iupgradable {
     tokenPrice = tokenPrice.add(a.mul(1e13));
   }
 
-  function getTokenSellValue(uint tokenAmount) public returns (uint ethValue) {
+  function getTokenSellValue(uint tokenAmount) public view returns (uint ethValue) {
     uint currentTotalAssetValue;
     (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(p1).balance);
     uint mcrEth = pd.getLastMCREther();
 
-    // ethValue = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
+    ethValue = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
   }
 
   function calculateTokenSellValue(

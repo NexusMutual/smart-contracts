@@ -14,7 +14,7 @@ const {
 } = accounts;
 
 
-const sellSpread = 250; // multiplied
+const sellSpread = 250; // multiplied by 10000
 
 async function assertSellValues(
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
@@ -44,16 +44,23 @@ async function assertSellValues(
     const minEthOut = buyValue.mul(new BN(10000 - (sellSpread + 10))).div(new BN(10000));
 
     const balancePreSell = await web3.eth.getBalance(memberOne);
+
+    const precomputedEthValue =  await mcr.getTokenSellValue(tokensReceived);
+    console.log({ precomputedEthValue: precomputedEthValue.toString() });
+    await token.approve(pool1.address, tokensReceived, {
+      from: memberOne
+    });
     await pool1.sellTokens(tokensReceived, minEthOut, {
       from: memberOne,
       value: buyValue
     });
     const balancePostSell = await web3.eth.getBalance(memberOne);
-    const sellEthReceived = balancePostSell.sub(balancePreSell);
+    const sellEthReceived = Decimal(balancePostSell.sub(balancePreSell).toString());
 
-    const expectedEthOut = buyValue.mul(new BN(10000 - sellSpread)).div(new BN(10000));
+    const expectedEthOut = Decimal(buyValue.toString()).mul(new BN(10000 - sellSpread)).div(new BN(10000));
 
-    const relativeError = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
+    assert(sellEthReceived.lt(expectedEthOut));
+    const relativeError = expectedEthOut.sub(sellEthReceived).div(expectedEthOut);
     highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
     console.log({ relativeError: relativeError.toString() });
     assert(
@@ -88,13 +95,12 @@ describe('sellTokens', function () {
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
     const poolBalanceStep = ether('10000');
-    const maxRelativeError = Decimal(0.001);
+    const maxRelativeError = Decimal(0.0001);
 
     await assertSellValues({
       initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
       mcr, pool1, token, poolData, daiRate, ethRate, tokenData
     });
   });
-
 });
 

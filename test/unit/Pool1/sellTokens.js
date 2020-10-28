@@ -18,7 +18,7 @@ const sellSpread = 250; // multiplied by 10000
 
 async function assertSellValues(
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
-    pool1, token, buyValue, poolData, tokenData }
+    pool1, token, buyValue, poolData, tokenData, tokenController }
 ) {
   let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
@@ -46,12 +46,17 @@ async function assertSellValues(
     const balancePreSell = await web3.eth.getBalance(memberOne);
 
     const precomputedEthValue =  await mcr.getTokenSellValue(tokensReceived);
-    console.log({ precomputedEthValue: precomputedEthValue.toString() });
+    console.log({ precomputedEthValue: precomputedEthValue.toString(),
+      postBuyBalance: postBuyBalance.toString(),
+      tokensReceived: tokensReceived.toString()});
 
-    const tx = await pool1.sellTokens(tokensReceived, minEthOut, {
+    await token.approve(tokenController.address, tokensReceived, {
       from: memberOne
     });
-    console.log(tx.logs);
+
+    await pool1.sellTokens(tokensReceived, minEthOut, {
+      from: memberOne
+    });
     const balancePostSell = await web3.eth.getBalance(memberOne);
     const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell));
 
@@ -87,7 +92,7 @@ describe('sellTokens', function () {
   const maxPercentage = 400;
 
   it.only('burns tokens from member in exchange for ETH for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr } = this;
+    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
@@ -97,7 +102,7 @@ describe('sellTokens', function () {
 
     await assertSellValues({
       initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
-      mcr, pool1, token, poolData, daiRate, ethRate, tokenData
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
     });
   });
 });

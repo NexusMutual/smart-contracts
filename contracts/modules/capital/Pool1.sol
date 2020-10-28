@@ -296,7 +296,7 @@ contract Pool1 is Iupgradable {
     uint ethOut = mcr.getTokenSellValue(tokenAmount);
     require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");
 
-    //tc.burnFrom(msg.sender, tokenAmount);
+    tk.burnFrom(msg.sender, tokenAmount);
     msg.sender.transfer(ethOut);
     emit TokensSold(msg.sender, tokenAmount, ethOut);
   }

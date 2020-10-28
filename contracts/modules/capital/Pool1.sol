@@ -283,16 +283,22 @@ contract Pool1 is Iupgradable {
     emit DebugBuyTokens(ethBuyValue, boughtTokens, address(this).balance);
   }
 
-  function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause {
+  event TokensSold (
+    address seller,
+    uint tokenAmount,
+    uint ethReceived
+  );
 
+  function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
 
     uint ethOut = mcr.getTokenSellValue(tokenAmount);
     require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");
 
-    tc.burnFrom(msg.sender, tokenAmount);
+    //tc.burnFrom(msg.sender, tokenAmount);
     msg.sender.transfer(ethOut);
+    emit TokensSold(msg.sender, tokenAmount, ethOut);
   }
 
   /**

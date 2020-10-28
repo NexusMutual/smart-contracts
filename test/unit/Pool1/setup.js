@@ -44,7 +44,6 @@ async function setup () {
 
   const contractsToUpdate = [mcr, pool1, tokenController, tokenFunctions];
   for (const contract of contractsToUpdate) {
-    console.log(contract.address);
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();
   }

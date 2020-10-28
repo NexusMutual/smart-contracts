@@ -47,17 +47,15 @@ async function assertSellValues(
 
     const precomputedEthValue =  await mcr.getTokenSellValue(tokensReceived);
     console.log({ precomputedEthValue: precomputedEthValue.toString() });
-    await token.approve(pool1.address, tokensReceived, {
+
+    const tx = await pool1.sellTokens(tokensReceived, minEthOut, {
       from: memberOne
     });
-    await pool1.sellTokens(tokensReceived, minEthOut, {
-      from: memberOne,
-      value: buyValue
-    });
+    console.log(tx.logs);
     const balancePostSell = await web3.eth.getBalance(memberOne);
-    const sellEthReceived = Decimal(balancePostSell.sub(balancePreSell).toString());
+    const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell));
 
-    const expectedEthOut = Decimal(buyValue.toString()).mul(new BN(10000 - sellSpread)).div(new BN(10000));
+    const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
 
     assert(sellEthReceived.lt(expectedEthOut));
     const relativeError = expectedEthOut.sub(sellEthReceived).div(expectedEthOut);

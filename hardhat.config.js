@@ -27,25 +27,28 @@ if (process.env.TEST_ENV_FORK) {
 };
 
 module.exports = {
+
   mocha: {
     exit: true,
     bail: true,
     recursive: false,
   },
+
   networks: {
     hardhat: hardhatNetworkConfig
   },
+
   solidity: {
-    version: '0.5.17',
-    settings: {
-      optimizer: {
-        enabled: false,
-        runs: 1000
-      }
-    }
+    compilers: [
+      { version: '0.5.17' }, // nexus mutual
+      { version: '0.5.16' }, // uniswap v2 core
+      { version: '0.6.6' }, // uniswap v2 peripherals
+    ],
   },
+
   typechain: {
     outDir: 'types',
     target: 'truffle-v5',
   },
+
 };

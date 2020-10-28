@@ -24,6 +24,8 @@
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/test-helpers": "^0.5.9",
     "@truffle/hdwallet-provider": "^1.0.42",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "bn.js": "^5.1.2",
     "dotenv": "^8.2.0"
   },

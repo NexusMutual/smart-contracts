@@ -6,13 +6,11 @@ const { hex } = require('../utils').helpers;
 const { calculatePurchasedTokensWithFullIntegral, calculateSellValue } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 
+const maxRelativeError = Decimal(0.0001);
 
 describe('calculateTokenSellValue', function () {
   it.only('calculates token  price for a change in total assets correctly', async function () {
-    const { mcr, poolData, tokenData } = this;
-
-    const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
-    const tokenExponent = await tokenData.tokenExponent();
+    const { mcr } = this;
 
     const mcrEth = new BN('162424730681679380000000');
     const initialAssetValue = new BN('210959924071154460525457');
@@ -32,6 +30,13 @@ describe('calculateTokenSellValue', function () {
             tokenValue.toString(), postBuyAssetValue.toString(), mcrEth.toString()
     );
 
+    const expectedEthValue = Decimal(1).sub(sellSpread).mul(Decimal(deltaEth.toString()));
+    const ethValueDecimal = Decimal(ethValue.toString());
+    assert(ethValueDecimal.lt(expectedEthValue), `The spread is lower than ${sellSpread}`);
+    const relativeError = expectedEthValue.sub(Decimal(ethValue.toString())).div(expectedEthValue);
+
+    assert(relativeError.lt(maxRelativeError), `Relative error too high: ${relativeError.toFixed()}`);
+
     console.log({
       ethValue: ethValue.toString(),
       mcrPercentage0: mcrPercentage0.toString(),
@@ -45,6 +50,7 @@ describe('calculateTokenSellValue', function () {
       averagePriceWithSpread: averagePriceWithSpread.toString(),
       spotPrice1: spotPrice1.toString(),
       expectedEthSellValue: expectedEthSellValue.toString(),
+      relativeError: relativeError.toString()
       // spotPrice0: spotPrice0.toString(),
       // spotPrice0WithSpread: spotPrice0WithSpread.toString(),
       // spotEthAmount: spotEthAmount.toString()

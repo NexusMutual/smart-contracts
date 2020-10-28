@@ -143,19 +143,6 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
   const finalPrice = Decimal.min(leftPrice, spotPrice1);
   const ethEstimate = finalPrice.mul(nxmToSell).mul(1e18);
 
-  console.log({
-    initialAssetValue: initialAssetValue.toFixed(),
-    mcrEth: nxmToSell.toFixed(),
-    sellSpread: sellSpread.toFixed(),
-    nxmToSell: nxmToSell.toFixed(),
-    spotETH: spotETH.toFixed(),
-    MCRPerc1: MCRPerc1.toFixed(),
-    spotPrice0: spotPrice0.mul(1e18).toFixed(),
-    leftPrice:leftPrice.mul(1e18).toFixed(),
-    spotPrice1: spotPrice1.mul(1e18).toFixed(),
-    finalPrice: finalPrice.mul(1e18).toFixed()
-  });
-
   return {
     ethEstimate
   };

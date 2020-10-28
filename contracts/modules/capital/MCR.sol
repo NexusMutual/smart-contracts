@@ -44,7 +44,8 @@ contract MCR is Iupgradable {
   uint public constant sellSpread = 25;
   uint public constant maxBuySellMcrEthPercentage = 5;
   uint public constant maxMCRPercentage = 400 * 100; // 400%
-  uint public constant MCR_PERCENTAGE_MULTIPLIER = uint(10) ** 4;
+  uint public constant MCR_PERCENTAGE_DECIMALS = 6;
+  uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
   uint c = 5800000;
   uint a = 1028;
   uint tokenExponent = 4;
@@ -244,7 +245,7 @@ contract MCR is Iupgradable {
     uint mcrEth
   ) public view returns (uint tokenPrice) {
     uint max = mcrPercentage ** tokenExponent;
-    uint dividingFactor = tokenExponent.mul(4);
+    uint dividingFactor = tokenExponent.mul(MCR_PERCENTAGE_DECIMALS);
     tokenPrice = (mcrEth.mul(1e18).mul(max).div(c.mul(1e18))).div(10 ** dividingFactor);
     tokenPrice = tokenPrice.add(a.mul(1e13));
   }
@@ -254,25 +255,28 @@ contract MCR is Iupgradable {
     (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(p1).balance);
     uint mcrEth = pd.getLastMCREther();
 
-    ethValue = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
+    // ethValue = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
   }
 
   function calculateTokenSellValue(
     uint tokenAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public returns (uint ethValue) {
-    uint mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
-    {
-      uint spotPrice0 = calculateTokenSpotPrice(mcrPercentage0, mcrEth);
-//      uint spotPrice0WithSpread = spotPrice0.mul(1000 - sellSpread).div(1000);
-//      uint spotEthAmount = tokenAmount.mul(spotPrice0);
-//      uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
-//      uint mcrPercentagePostSpotPriceSell = totalValuePostSpotPriceSell.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
-//      uint spotPrice1 = calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
-//      uint finalPrice = spotPrice0WithSpread < spotPrice1 ? spotPrice0WithSpread : spotPrice1;
-//      ethValue = finalPrice.mul(tokenAmount);
-    }
+  ) public view returns (
+    uint ethValue, uint mcrPercentage0, uint spotEthAmount, uint mcrPercentagePostSpotPriceSell,
+    uint averagePriceWithSpread,
+    uint spotPrice0, uint spotPrice1, uint finalPrice
+  ) {
+
+    mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
+    spotPrice0 = calculateTokenSpotPrice(mcrPercentage0, mcrEth);
+    spotEthAmount = tokenAmount.mul(spotPrice0).div(1e18);
+    uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
+    mcrPercentagePostSpotPriceSell = totalValuePostSpotPriceSell.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
+    spotPrice1 = calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
+    averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(1000 - sellSpread).div(1000);
+    finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
+    ethValue = finalPrice.mul(tokenAmount).div(1e18);
   }
 
   /**

@@ -81,7 +81,7 @@ describe('sellTokens', function () {
   const ethRate = new BN('100');
   const maxPercentage = 400;
 
-  it('burns tokens from member in exchange for ETH for mcrEth = 160k', async function () {
+  it.only('burns tokens from member in exchange for ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');

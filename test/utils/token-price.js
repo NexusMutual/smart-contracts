@@ -115,6 +115,11 @@ function calculatePurchasedTokens (
   };
 }
 
+function getPriceDecimal (MCRPerc, MCReth) {
+  return Decimal(A).add(Decimal(MCReth).div(C).mul(Decimal(MCRPerc).pow(4)));
+}
+
+
 /**
  * 1. Calculate spot price and amount of ETH at current values
  * 2. Calculate spot price and amount of ETH using V = V0 - ETH from step 1
@@ -126,6 +131,8 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
   mcrEth = Decimal(mcrEth.toString()).div(1e18);
   nxmToSell = Decimal(nxmToSell.toString()).div(1e18);
   sellSpread = Decimal(sellSpread);
+
+
   const MCRPerc0 = initialAssetValue.div(mcrEth);
   const spotPrice0 = getPriceDecimal(MCRPerc0, mcrEth);
   const spotETH = nxmToSell.mul(spotPrice0);
@@ -135,6 +142,20 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
   const leftPrice = spotPrice0.add(spotPrice1).div(2).mul(Decimal(1).sub(sellSpread));
   const finalPrice = Decimal.min(leftPrice, spotPrice1);
   const ethEstimate = finalPrice.mul(nxmToSell).mul(1e18);
+
+  console.log({
+    initialAssetValue: initialAssetValue.toFixed(),
+    mcrEth: nxmToSell.toFixed(),
+    sellSpread: sellSpread.toFixed(),
+    nxmToSell: nxmToSell.toFixed(),
+    spotETH: spotETH.toFixed(),
+    MCRPerc1: MCRPerc1.toFixed(),
+    spotPrice0: spotPrice0.mul(1e18).toFixed(),
+    leftPrice:leftPrice.mul(1e18).toFixed(),
+    spotPrice1: spotPrice1.mul(1e18).toFixed(),
+    finalPrice: finalPrice.mul(1e18).toFixed()
+  });
+
   return {
     ethEstimate
   };
@@ -142,9 +163,9 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
 
 
 function getTokenSpotPrice (mcrPercentage, mcrEth) {
-  mcrPercentage = Decimal(mcrPercentage.toString()).div(100);
+  mcrPercentage = Decimal(mcrPercentage.toString()).div(1e4);
   mcrEth = Decimal(mcrEth.toString()).div(1e18);
-  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrPercentage).pow(tokenExponent)));
+  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrPercentage).pow(tokenExponent))).mul(1e18).round();
 }
 
 

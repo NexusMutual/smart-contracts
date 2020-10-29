@@ -240,16 +240,6 @@ contract MCR is Iupgradable {
     }
   }
 
-  function calculateTokenSpotPrice(
-    uint mcrPercentage,
-    uint mcrEth
-  ) public view returns (uint tokenPrice) {
-    uint max = mcrPercentage ** tokenExponent;
-    uint dividingFactor = tokenExponent.mul(MCR_PERCENTAGE_DECIMALS);
-    tokenPrice = (mcrEth.mul(1e18).mul(max).div(c.mul(1e18))).div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(a.mul(1e13));
-  }
-
   function getTokenSellValue(uint tokenAmount) public view returns (uint ethValue) {
     uint currentTotalAssetValue;
     (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(p1).balance);
@@ -275,6 +265,16 @@ contract MCR is Iupgradable {
     uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(1000 - sellSpread).div(1000);
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
     ethValue = finalPrice.mul(tokenAmount).div(1e18);
+  }
+
+  function calculateTokenSpotPrice(
+    uint mcrPercentage,
+    uint mcrEth
+  ) public view returns (uint tokenPrice) {
+    uint max = mcrPercentage ** tokenExponent;
+    uint dividingFactor = tokenExponent.mul(MCR_PERCENTAGE_DECIMALS);
+    tokenPrice = (mcrEth.mul(1e18).mul(max).div(c.mul(1e18))).div(10 ** dividingFactor);
+    tokenPrice = tokenPrice.add(a.mul(1e13));
   }
 
   /**
@@ -320,25 +320,6 @@ contract MCR is Iupgradable {
       // Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
       lowerThreshold = vtp.mul(100).mul(100).div(lower);
     }
-  }
-
-  /**
-   * @dev Gets max numbers of tokens that can be sold at the moment.
-   */
-  function getMaxSellTokens() public view returns (uint maxTokens) {
-    uint baseMin = pd.getCurrencyAssetBaseMin("ETH");
-    uint maxTokensAccPoolBal;
-    if (address(p1).balance > baseMin.mul(50).div(100)) {
-      maxTokensAccPoolBal = address(p1).balance.sub(
-        (baseMin.mul(50)).div(100));
-    }
-    maxTokensAccPoolBal = (maxTokensAccPoolBal.mul(DECIMAL1E18)).div(
-      (calculateTokenPrice("ETH").mul(975)).div(1000));
-    uint lastMCRPerc = pd.getLastMCRPerc();
-    if (lastMCRPerc > 10000)
-      maxTokens = (((uint(lastMCRPerc).sub(10000)).mul(2000)).mul(DECIMAL1E18)).div(10000);
-    if (maxTokens > maxTokensAccPoolBal)
-      maxTokens = maxTokensAccPoolBal;
   }
 
   /**

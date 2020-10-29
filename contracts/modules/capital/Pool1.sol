@@ -257,7 +257,7 @@ contract Pool1 is Iupgradable {
   }
 
   /**
-   * @dev Allows selling of NXM for ether.
+   * @dev (DEPRECATED, use sellTokens function instead) Allows selling of NXM for ether.
    * Seller first needs to give this contract allowance to
    * transfer/burn tokens in the NXMToken contract
    * @param  _amount Amount of NXM to sell
@@ -268,6 +268,20 @@ contract Pool1 is Iupgradable {
     success = true;
   }
 
+  /**
+   * @dev (DEPRECATED, use MCR.getTokenSellValue function instead) Returns the amount of wei a seller will get for selling NXM
+   * @param amount Amount of NXM to sell
+   * @return weiToPay Amount of wei the seller will get
+   */
+  function getWei(uint amount) external view returns(uint weiToPay) {
+    return mcr.getTokenSellValue(amount);
+  }
+
+  /**
+   * @dev Buys NXM tokens with ETH.
+   * @param  minTokensOut Minimum amount of tokens to be bought. Revert if boughtTokens falls below this number.
+   * @return boughtTokens number of bought tokens.
+   */
   function buyTokens(uint minTokensOut) public payable isMember checkPause returns (uint boughtTokens) {
 
     uint ethBuyValue = msg.value;
@@ -277,11 +291,18 @@ contract Pool1 is Iupgradable {
     require(boughtTokens >= minTokensOut, "boughtTokens is less than minTokensBought");
     tc.mint(msg.sender, boughtTokens);
   }
-  function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause {
+
+  /**
+   * @dev Sell NXM tokens and receive ETH.
+   * @param tokenAmount Amount of tokens to sell.
+   * @param  minEthOut Minimum amount of ETH to be received. Revert if ethOut falls below this number.
+   * @return ethOut amount of ETH received in exchange for the tokens.
+   */
+  function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause returns (uint ethOut) {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
 
-    uint ethOut = mcr.getTokenSellValue(tokenAmount);
+    ethOut = mcr.getTokenSellValue(tokenAmount);
     require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");
 
     tc.burnFrom(msg.sender, tokenAmount);

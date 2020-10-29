@@ -37,11 +37,6 @@ contract Pool1 is Iupgradable {
   TokenData public td;
   bool public locked;
 
-  uint public sellSpread = 25;
-  uint public constant DECIMAL1E18 = uint(10) ** 18;
-  uint public constant DECIMAL1E05 = uint(10) ** 5;
-  uint public constant MCR_PERCENTAGE_MULTIPLIER = uint(10) ** 4;
-
   event Apiresult(address indexed sender, string msg, bytes32 myid);
   event Payout(address indexed to, uint coverId, uint tokens);
 
@@ -79,7 +74,7 @@ contract Pool1 is Iupgradable {
   returns (bool succ)
   {
 
-    uint sa = sumAssured.div(DECIMAL1E18);
+    uint sa = sumAssured.div(1e18);
     bool check;
     IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
 

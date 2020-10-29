@@ -202,7 +202,7 @@ contract MCR is Iupgradable {
     (currentTotalAssetValue, mcrPercentage) = _calVtpAndMCRtp(poolBalance);
     uint mcrEth = pd.getLastMCREther();
 
-    require(mcrPercentage <= maxMCRPercentage);
+    require(mcrPercentage <= maxMCRPercentage, "Cannot exceed 400% MCR percentage");
     tokenValue = calculateTokenBuyValue(ethAmount, currentTotalAssetValue, mcrEth);
   }
 

@@ -325,48 +325,6 @@ contract Pool1 is Iupgradable {
   }
 
   /**
-   * @dev Returns the amount of wei a seller will get for selling NXM
-   * @param amount Amount of NXM to sell
-   * @return weiToPay Amount of wei the seller will get
-   */
-  function getWei(uint amount) public view returns (uint weiToPay) {
-    return _getWei(amount);
-  }
-
-  /**
-   * @dev Returns the amount of wei a seller will get for selling NXM
-   * @param _amount Amount of NXM to sell
-   * @return weiToPay Amount of wei the seller will get
-   */
-  function _getWei(uint _amount) internal view returns (uint weiToPay) {
-    uint tokenPrice;
-    uint weiPaid;
-    uint tokenSupply = tk.totalSupply();
-    uint vtp;
-    uint mcrFullperc;
-    uint vFull;
-    uint mcrtp;
-    (mcrFullperc, , vFull,) = pd.getLastMCR();
-    (vtp,) = mcr.calVtpAndMCRtp();
-
-    while (_amount > 0) {
-      mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
-      tokenPrice = mcr.calculateStepTokenPrice("ETH", mcrtp);
-      tokenPrice = (tokenPrice.mul(975)).div(1000); // 97.5%
-      if (_amount <= td.priceStep().mul(DECIMAL1E18)) {
-        weiToPay = weiToPay.add((tokenPrice.mul(_amount)).div(DECIMAL1E18));
-        break;
-      } else {
-        _amount = _amount.sub(td.priceStep().mul(DECIMAL1E18));
-        tokenSupply = tokenSupply.sub(td.priceStep().mul(DECIMAL1E18));
-        weiPaid = (tokenPrice.mul(td.priceStep().mul(DECIMAL1E18))).div(DECIMAL1E18);
-        vtp = vtp.sub(weiPaid);
-        weiToPay = weiToPay.add(weiPaid);
-      }
-    }
-  }
-
-  /**
    * @dev transfers currency asset
    * @param _curr is currency of asset to transfer
    * @param _amount is the amount to be transferred

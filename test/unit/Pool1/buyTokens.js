@@ -126,6 +126,21 @@ describe('buyTokens', function () {
     });
   });
 
+  it.only('mints bought tokens to member in exchange of 0.01 ETH for mcrEth = 160k', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('0.01');
+    const poolBalanceStep = ether('10000');
+
+    await assertBuyValues({
+      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep,
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData
+    });
+  });
+
+
   it('mints bought tokens to member in exchange of 1000 ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 

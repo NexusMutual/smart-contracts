@@ -2,7 +2,7 @@ const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-h
 const { web3 } = require('@openzeppelin/test-environment');
 const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
-const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = require('../utils').tokenPrice;
+const { calculateSellValue } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
@@ -88,12 +88,27 @@ describe('sellTokens', function () {
   const ethRate = new BN('100');
   const maxPercentage = 400;
 
-  it.only('burns tokens from member in exchange for ETH for mcrEth = 160k', async function () {
+  it('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
+    const poolBalanceStep = ether('20000');
+    const maxRelativeError = Decimal(0.0005);
+
+    await assertSellValues({
+      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
+    });
+  });
+
+  it.only('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
+    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('1');
     const poolBalanceStep = ether('20000');
     const maxRelativeError = Decimal(0.0005);
 

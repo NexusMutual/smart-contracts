@@ -45,6 +45,12 @@ contract Pool1 is Iupgradable {
   event Apiresult(address indexed sender, string msg, bytes32 myid);
   event Payout(address indexed to, uint coverId, uint tokens);
 
+  event TokensSold (
+    address seller,
+    uint tokenAmount,
+    uint ethReceived
+  );
+
   modifier noReentrancy() {
     require(!locked, "Reentrant call.");
     locked = true;
@@ -258,20 +264,10 @@ contract Pool1 is Iupgradable {
    * @return success returns true on successfull sale
    */
   function sellNXMTokens(uint _amount) public isMember noReentrancy checkPause returns (bool success) {
-    require(tk.balanceOf(msg.sender) >= _amount, "Not enough balance");
-    require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
-    require(_amount <= mcr.getMaxSellTokens(), "exceeds maximum token sell limit");
-    uint sellingPrice = _getWei(_amount);
-    tc.burnFrom(msg.sender, _amount);
-    msg.sender.transfer(sellingPrice);
+    sellTokens(_amount, 0);
     success = true;
   }
 
-  event DebugBuyTokens (
-    uint ethBuyValue,
-    uint boughtTokens,
-    uint pool1Balance
-  );
   function buyTokens(uint minTokensOut) public payable isMember checkPause returns (uint boughtTokens) {
 
     uint ethBuyValue = msg.value;
@@ -280,15 +276,7 @@ contract Pool1 is Iupgradable {
     boughtTokens = mcr.getTokenBuyValue(address(this).balance.sub(ethBuyValue), ethBuyValue);
     require(boughtTokens >= minTokensOut, "boughtTokens is less than minTokensBought");
     tc.mint(msg.sender, boughtTokens);
-    emit DebugBuyTokens(ethBuyValue, boughtTokens, address(this).balance);
   }
-
-  event TokensSold (
-    address seller,
-    uint tokenAmount,
-    uint ethReceived
-  );
-
   function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!tf.isLockedForMemberVote(msg.sender), "Member voted");

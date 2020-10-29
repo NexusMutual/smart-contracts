@@ -126,7 +126,7 @@ describe('buyTokens', function () {
     });
   });
 
-  it.only('mints bought tokens to member in exchange of 0.01 ETH for mcrEth = 160k', async function () {
+  it('mints bought tokens to member in exchange of 0.01 ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');

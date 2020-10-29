@@ -53,7 +53,6 @@ async function assertSellValues(
     await token.approve(tokenController.address, tokensReceived, {
       from: memberOne
     });
-
     await pool1.sellTokens(tokensReceived, minEthOut, {
       from: memberOne
     });
@@ -89,14 +88,14 @@ describe('sellTokens', function () {
   const ethRate = new BN('100');
   const maxPercentage = 400;
 
-  it('burns tokens from member in exchange for ETH for mcrEth = 160k', async function () {
+  it.only('burns tokens from member in exchange for ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
     const poolBalanceStep = ether('20000');
-    const maxRelativeError = Decimal(0.001);
+    const maxRelativeError = Decimal(0.0005);
 
     await assertSellValues({
       initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,

@@ -19,7 +19,7 @@ async function setupContractState(
 
   const date = new Date().getTime();
   await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
-  let { totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage();
+  let { totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp();
   return {
     a,
     c,

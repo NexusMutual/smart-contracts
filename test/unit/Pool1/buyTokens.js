@@ -66,7 +66,7 @@ async function assertBuyValues(
       });
     }
 
-    ({ totalAssetValue, mcrPercentage } = await mcr.getTotalAssetValueAndMCRPercentage());
+    ({ totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp());
   }
 
   console.log({ highestRelativeError: highestRelativeError.toString() });

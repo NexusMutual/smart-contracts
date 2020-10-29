@@ -103,7 +103,7 @@ describe('sellTokens', function () {
     });
   });
 
-  it.only('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
+  it('burns tokens from member in exchange for 1 ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
 
     const mcrEth = ether('160000');

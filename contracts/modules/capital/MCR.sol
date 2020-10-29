@@ -44,7 +44,7 @@ contract MCR is Iupgradable {
   uint public constant sellSpread = 25;
   uint public constant maxBuySellMcrEthPercentage = 5;
   uint public constant maxMCRPercentage = 400 * 100; // 400%
-  uint public constant MCR_PERCENTAGE_DECIMALS = 6;
+  uint public constant MCR_PERCENTAGE_DECIMALS = 4;
   uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
   uint c = 5800000;
   uint a = 1028;
@@ -148,12 +148,12 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Calculates V(Tp) and MCR%(Tp), i.e, Pool Fund Value in Ether
+   * @dev Calculates V(Tp), i.e, Pool Fund Value in Ether
    * and MCR% used in the Token Price Calculation.
    * @return vtp  Pool Fund Value in Ether used for the Token Price Model
    * @return mcrtp MCR% used in the Token Price Model.
    */
-  function _calVtpAndMCRtp(uint poolBalance) public view returns (uint vtp, uint mcrtp) {
+  function getTotalAssetValue(uint poolBalance) public view returns (uint vtp) {
     vtp = 0;
     IERC20 erc20;
     uint currTokens = 0;
@@ -167,43 +167,25 @@ contract MCR is Iupgradable {
     }
 
     vtp = vtp.add(poolBalance).add(p1.getInvestmentAssetBalance());
-    uint mcrFullperc;
-    uint vFull;
-    (mcrFullperc, , vFull,) = pd.getLastMCR();
-    if (vFull > 0) {
-      mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
-    }
   }
 
   /**
-   * @dev Calculates the Token Price of NXM in a given currency.
-   * @param curr Currency name.
-
-   */
-  function calculateStepTokenPrice(
-    bytes4 curr,
-    uint mcrtp
-  )
-  public
-  view
-  onlyInternal
-  returns (uint tokenPrice)
-  {
-    return _calculateTokenPrice(curr, mcrtp);
-  }
-
+  * @dev Get value in tokens for an ethAmount purchase.
+  * @param poolBalance ETH balance of Pool1
+  * @param ethAmount amount of ETH used for buying.
+  * @return tokenValue tokens obtained by buying worth of ethAmount
+  */
   function getTokenBuyValue(
     uint poolBalance,
     uint ethAmount
   ) public view returns (uint tokenValue) {
 
-    uint currentTotalAssetValue;
-    uint mcrPercentage;
-    (currentTotalAssetValue, mcrPercentage) = _calVtpAndMCRtp(poolBalance);
+    uint totalAssetValue = getTotalAssetValue(poolBalance);
     uint mcrEth = pd.getLastMCREther();
+    uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
 
     require(mcrPercentage <= maxMCRPercentage, "Cannot exceed 400% MCR percentage");
-    tokenValue = calculateTokenBuyValue(ethAmount, currentTotalAssetValue, mcrEth);
+    tokenValue = calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
   }
 
   function calculateTokenBuyValue(
@@ -241,8 +223,7 @@ contract MCR is Iupgradable {
   }
 
   function getTokenSellValue(uint tokenAmount) public view returns (uint ethValue) {
-    uint currentTotalAssetValue;
-    (currentTotalAssetValue, ) = _calVtpAndMCRtp(address(p1).balance);
+    uint currentTotalAssetValue = getTotalAssetValue(address(p1).balance);
     uint mcrEth = pd.getLastMCREther();
 
     ethValue = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
@@ -265,6 +246,15 @@ contract MCR is Iupgradable {
     uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(1000 - sellSpread).div(1000);
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
     ethValue = finalPrice.mul(tokenAmount).div(1e18);
+
+    require(
+      ethValue <= mcrEth.mul(maxBuySellMcrEthPercentage).div(100),
+      "Sales worth higher than 5% of MCR eth are not allowed"
+    );
+  }
+
+  function calculateMCRPercentage(uint totalAssetValue, uint mcrEth) public pure returns (uint) {
+    return totalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
   }
 
   function calculateTokenSpotPrice(
@@ -280,24 +270,20 @@ contract MCR is Iupgradable {
   /**
    * @dev Calculates the Token Price of NXM in a given currency
    * with provided token supply for dynamic token price calculation
-   * @param curr Currency name.
+   * @param currency Currency name.
    */
-  function calculateTokenPrice(bytes4 curr) public view returns (uint tokenPrice) {
-    uint mcrtp;
-    (, mcrtp) = _calVtpAndMCRtp(address(p1).balance);
-    return _calculateTokenPrice(curr, mcrtp);
+  function calculateTokenPrice(bytes4 currency) public view returns (uint tokenPrice) {
+    uint totalAssetValue = getTotalAssetValue(address(p1).balance);
+    uint mcrEth = pd.getLastMCREther();
+    uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
+    return _calculateTokenPrice(currency, mcrPercentage);
   }
 
-  function getTotalAssetValueAndMCRPercentage() public view returns (uint totalAssetValue, uint mcrPercentage) {
-    (totalAssetValue, mcrPercentage) = _calVtpAndMCRtp(address(p1).balance);
-  }
-
-  function calVtpAndMCRtp() public view returns (uint vtp, uint mcrtp) {
-    return _calVtpAndMCRtp(address(p1).balance);
-  }
-
-  function calculateVtpAndMCRtp(uint poolBalance) public view returns (uint vtp, uint mcrtp) {
-    return _calVtpAndMCRtp(poolBalance);
+  // TODO: discuss removal/rename for this function. ONLY used in Pool2.sol in current contracts
+  function calVtpAndMCRtp() public view returns (uint totalAssetValue, uint mcrPercentage) {
+    totalAssetValue = getTotalAssetValue(address(p1).balance);
+    uint mcrEth = pd.getLastMCREther();
+    mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
   }
 
   function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns (uint lowerThreshold, uint upperThreshold)
@@ -383,6 +369,7 @@ contract MCR is Iupgradable {
   view
   returns (uint tokenPrice)
   {
+    // TODO: refactor this
     uint getA;
     uint getC;
     uint getCAAvgRate;
@@ -418,7 +405,7 @@ contract MCR is Iupgradable {
     uint lowerThreshold = 0;
     uint upperThreshold = 0;
     if (len > 1) {
-      (vtp,) = _calVtpAndMCRtp(address(p1).balance);
+      vtp = getTotalAssetValue(address(p1).balance);
       (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
 
     }

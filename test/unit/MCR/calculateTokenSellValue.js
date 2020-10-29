@@ -7,7 +7,7 @@ const { BN } = web3.utils;
 const maxRelativeError = Decimal(0.0001);
 
 describe('calculateTokenSellValue', function () {
-  it.only('calculates token  price for a change in total assets correctly', async function () {
+  it('calculates token  price for a change in total assets correctly', async function () {
     const { mcr } = this;
 
     const mcrEth = new BN('162424730681679380000000');
@@ -27,8 +27,7 @@ describe('calculateTokenSellValue', function () {
 
     const expectedEthValue = Decimal(1).sub(sellSpread).mul(Decimal(deltaEth.toString()));
     const ethValueDecimal = Decimal(ethValue.toString());
-    assert(ethValueDecimal.lt(expectedEthValue), `The spread is lower than ${sellSpread}`);
-    const relativeError = expectedEthValue.sub(Decimal(ethValue.toString())).div(expectedEthValue);
+    const relativeError = expectedEthValue.sub(ethValueDecimal).abs().div(expectedEthValue);
 
     assert(relativeError.lt(maxRelativeError), `Relative error too high: ${relativeError.toFixed()}`);
   });

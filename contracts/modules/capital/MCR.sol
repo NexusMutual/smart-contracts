@@ -223,7 +223,7 @@ contract MCR is Iupgradable {
       uint point1 = calculateTokensUpToAssetValue(nextTotalAssetValue, mcrEth);
       uint adjustedTokenAmount = point0.sub(point1);
 
-      uint adjustedTokenPrice = ethAmount.div(adjustedTokenAmount);
+      uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
       tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E13));
     }
     tokenValue = ethAmount.mul(1e18).div(tokenPrice);
@@ -232,9 +232,9 @@ contract MCR is Iupgradable {
   function calculateTokensUpToAssetValue(
     uint assetValue,
     uint mcrEth
-  ) public view returns (uint result) {
+  ) internal view returns (uint result) {
 
-    result = mcrEth.mul(c).div(tokenExponent - 1).div(assetValue);
+    result = mcrEth.mul(c).mul(1e18).div(tokenExponent - 1).div(assetValue);
     for (uint i = 0; i < tokenExponent - 2; i++) {
       result = result.mul(mcrEth).div(assetValue);
     }

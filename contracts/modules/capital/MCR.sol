@@ -46,9 +46,9 @@ contract MCR is Iupgradable {
   uint public constant maxMCRPercentage = 400 * 100; // 400%
   uint public constant MCR_PERCENTAGE_DECIMALS = 4;
   uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
-  uint c = 5800000;
-  uint a = 1028;
-  uint tokenExponent = 4;
+  uint constant c = 5800000;
+  uint constant a = 1028;
+  uint constant tokenExponent = 4;
 
   uint public variableMincap;
   uint public dynamicMincapThresholdx100 = 13000;
@@ -192,7 +192,7 @@ contract MCR is Iupgradable {
     uint ethAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public view returns (uint tokenValue) {
+  ) public pure returns (uint tokenValue) {
     require(
       ethAmount <= mcrEth.mul(maxBuySellMcrEthPercentage).div(100),
       "Purchases worth higher than 5% of MCR eth are not allowed"
@@ -214,7 +214,7 @@ contract MCR is Iupgradable {
   function calculateTokensUpToAssetValue(
     uint assetValue,
     uint mcrEth
-  ) internal view returns (uint result) {
+  ) internal pure returns (uint result) {
 
     result = mcrEth.mul(c).mul(1e18).div(tokenExponent - 1).div(assetValue);
     for (uint i = 0; i < tokenExponent - 2; i++) {
@@ -233,7 +233,7 @@ contract MCR is Iupgradable {
     uint tokenAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public view returns (uint ethValue) {
+  ) public pure returns (uint ethValue) {
 
     uint mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
     uint spotPrice0 = calculateTokenSpotPrice(mcrPercentage0, mcrEth);
@@ -260,7 +260,7 @@ contract MCR is Iupgradable {
   function calculateTokenSpotPrice(
     uint mcrPercentage,
     uint mcrEth
-  ) public view returns (uint tokenPrice) {
+  ) public pure returns (uint tokenPrice) {
     uint max = mcrPercentage ** tokenExponent;
     uint dividingFactor = tokenExponent.mul(MCR_PERCENTAGE_DECIMALS);
     tokenPrice = (mcrEth.mul(1e18).mul(max).div(c.mul(1e18))).div(10 ** dividingFactor);

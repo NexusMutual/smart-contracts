@@ -36,10 +36,6 @@ contract MCR is Iupgradable {
   TokenData public td;
   ProposalCategory public proposalCategory;
 
-  uint private constant DECIMAL1E18 = 1e18; // uint(10) ** 18;
-  uint private constant DECIMAL1E13 = uint(10) ** 13;
-  uint private constant DECIMAL1E05 = uint(10) ** 5;
-  uint private constant DECIMAL1E19 = uint(10) ** 19;
   uint private constant minCapFactor = uint(10) ** 21;
   uint public constant sellSpread = 25;
   uint public constant maxBuySellMcrEthPercentage = 5;
@@ -206,7 +202,7 @@ contract MCR is Iupgradable {
       uint adjustedTokenAmount = point0.sub(point1);
 
       uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-      tokenPrice = adjustedTokenPrice.add(a.mul(DECIMAL1E13));
+      tokenPrice = adjustedTokenPrice.add(a.mul(1e13));
     }
     tokenValue = ethAmount.mul(1e18).div(tokenPrice);
   }
@@ -298,7 +294,7 @@ contract MCR is Iupgradable {
     }
 
     if (vtp > 0) {
-      lower = totalSA.mul(DECIMAL1E18).mul(pd.shockParameter()).div(100);
+      lower = totalSA.mul(1e18).mul(pd.shockParameter()).div(100);
       if (lower < minCap.mul(11).div(10))
         lower = minCap.mul(11).div(10);
     }
@@ -379,9 +375,9 @@ contract MCR is Iupgradable {
     uint dividingFactor = tokenExponentValue.mul(4);
     (getA, getC, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
     uint mcrEth = pd.getLastMCREther();
-    getC = getC.mul(DECIMAL1E18);
-    tokenPrice = (mcrEth.mul(DECIMAL1E18).mul(max).div(getC)).div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(getA.mul(DECIMAL1E18).div(DECIMAL1E05));
+    getC = getC.mul(1e18);
+    tokenPrice = (mcrEth.mul(1e18).mul(max).div(getC)).div(10 ** dividingFactor);
+    tokenPrice = tokenPrice.add(getA.mul(1e18).div(1e5));
     tokenPrice = tokenPrice.mul(getCAAvgRate * 10);
     tokenPrice = (tokenPrice).div(10 ** 3);
   }

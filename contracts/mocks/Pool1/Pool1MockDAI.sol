@@ -3,7 +3,7 @@ pragma solidity 0.5.7;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract MockDAI is IERC20 {
+contract Pool1MockDAI is IERC20 {
   using SafeMath for uint256;
 
   string public name = "DAI";

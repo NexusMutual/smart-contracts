@@ -7,13 +7,13 @@ const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 
 const MasterMock = contract.fromArtifact('MasterMock');
-const PoolData = contract.fromArtifact('PoolDataMCRMock');
+const PoolData = contract.fromArtifact('Pool1MockPoolData');
 const TokenData = contract.fromArtifact('TokenData');
 const TokenController = contract.fromArtifact('TokenControllerMock');
 const TokenMock = contract.fromArtifact('NXMTokenMock');
 const Pool1 = contract.fromArtifact('Pool1');
 const MCR = contract.fromArtifact('MCR');
-const DAI = contract.fromArtifact('MockDAI');
+const DAI = contract.fromArtifact('Pool1MockDAI');
 const TokenFunctions = contract.fromArtifact('TokenFunctions');
 
 async function setup () {

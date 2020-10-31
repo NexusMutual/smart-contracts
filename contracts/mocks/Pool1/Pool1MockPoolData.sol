@@ -1,6 +1,6 @@
 import "../../modules/capital/PoolData.sol";
 
-contract PoolDataMCRMock is PoolData {
+contract Pool1MockPoolData is PoolData {
 
 
   constructor(address _notariseAdd, address _daiFeedAdd, address _daiAdd) PoolData(_notariseAdd, _daiFeedAdd, _daiAdd) public {

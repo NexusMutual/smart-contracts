@@ -42,8 +42,8 @@ contract MCR is Iupgradable {
   uint public constant MAX_MCR_PERCENTAGE = 400 * 100; // 400%
   uint public constant MCR_PERCENTAGE_DECIMALS = 4;
   uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
-  uint constant c = 5800000;
-  uint constant a = 1028;
+  uint constant CONSTANT_C = 5800000;
+  uint constant CONSTANT_A = 1028;
   uint constant TOKEN_EXPONENT = 4;
 
   uint public variableMincap;
@@ -202,7 +202,7 @@ contract MCR is Iupgradable {
       uint adjustedTokenAmount = point0.sub(point1);
 
       uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-      tokenPrice = adjustedTokenPrice.add(a.mul(1e13));
+      tokenPrice = adjustedTokenPrice.add(CONSTANT_A.mul(1e13));
     }
     tokenValue = ethAmount.mul(1e18).div(tokenPrice);
   }
@@ -212,7 +212,7 @@ contract MCR is Iupgradable {
     uint mcrEth
   ) internal pure returns (uint result) {
 
-    result = mcrEth.mul(c).mul(1e18).div(TOKEN_EXPONENT - 1).div(assetValue);
+    result = mcrEth.mul(CONSTANT_C).mul(1e18).div(TOKEN_EXPONENT - 1).div(assetValue);
     for (uint i = 0; i < TOKEN_EXPONENT - 2; i++) {
       result = result.mul(mcrEth).div(assetValue);
     }
@@ -259,8 +259,8 @@ contract MCR is Iupgradable {
   ) public pure returns (uint tokenPrice) {
     uint max = mcrPercentage ** TOKEN_EXPONENT;
     uint dividingFactor = TOKEN_EXPONENT.mul(MCR_PERCENTAGE_DECIMALS);
-    tokenPrice = (mcrEth.mul(1e18).mul(max).div(c.mul(1e18))).div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(a.mul(1e13));
+    tokenPrice = (mcrEth.mul(1e18).mul(max).div(CONSTANT_C.mul(1e18))).div(10 ** dividingFactor);
+    tokenPrice = tokenPrice.add(CONSTANT_A.mul(1e13));
   }
 
   /**

@@ -37,14 +37,14 @@ contract MCR is Iupgradable {
   ProposalCategory public proposalCategory;
 
   uint private constant minCapFactor = uint(10) ** 21;
-  uint public constant sellSpread = 25;
-  uint public constant maxBuySellMcrEthPercentage = 5;
-  uint public constant maxMCRPercentage = 400 * 100; // 400%
+  uint public constant SELL_SPREAD = 25;
+  uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 5;
+  uint public constant MAX_MCR_PERCENTAGE = 400 * 100; // 400%
   uint public constant MCR_PERCENTAGE_DECIMALS = 4;
   uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
   uint constant c = 5800000;
   uint constant a = 1028;
-  uint constant tokenExponent = 4;
+  uint constant TOKEN_EXPONENT = 4;
 
   uint public variableMincap;
   uint public dynamicMincapThresholdx100 = 13000;
@@ -180,7 +180,7 @@ contract MCR is Iupgradable {
     uint mcrEth = pd.getLastMCREther();
     uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
 
-    require(mcrPercentage <= maxMCRPercentage, "Cannot exceed 400% MCR percentage");
+    require(mcrPercentage <= MAX_MCR_PERCENTAGE, "Cannot exceed 400% MCR percentage");
     tokenValue = calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
   }
 
@@ -190,7 +190,7 @@ contract MCR is Iupgradable {
     uint mcrEth
   ) public pure returns (uint tokenValue) {
     require(
-      ethAmount <= mcrEth.mul(maxBuySellMcrEthPercentage).div(100),
+      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100),
       "Purchases worth higher than 5% of MCR eth are not allowed"
     );
     uint tokenPrice;
@@ -212,8 +212,8 @@ contract MCR is Iupgradable {
     uint mcrEth
   ) internal pure returns (uint result) {
 
-    result = mcrEth.mul(c).mul(1e18).div(tokenExponent - 1).div(assetValue);
-    for (uint i = 0; i < tokenExponent - 2; i++) {
+    result = mcrEth.mul(c).mul(1e18).div(TOKEN_EXPONENT - 1).div(assetValue);
+    for (uint i = 0; i < TOKEN_EXPONENT - 2; i++) {
       result = result.mul(mcrEth).div(assetValue);
     }
   }
@@ -239,12 +239,12 @@ contract MCR is Iupgradable {
     uint mcrPercentagePostSpotPriceSell = totalValuePostSpotPriceSell.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
     uint spotPrice1 = calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
 
-    uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(1000 - sellSpread).div(1000);
+    uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(1000 - SELL_SPREAD).div(1000);
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
     ethValue = finalPrice.mul(tokenAmount).div(1e18);
 
     require(
-      ethValue <= mcrEth.mul(maxBuySellMcrEthPercentage).div(100),
+      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100),
       "Sales worth higher than 5% of MCR eth are not allowed"
     );
   }
@@ -257,8 +257,8 @@ contract MCR is Iupgradable {
     uint mcrPercentage,
     uint mcrEth
   ) public pure returns (uint tokenPrice) {
-    uint max = mcrPercentage ** tokenExponent;
-    uint dividingFactor = tokenExponent.mul(MCR_PERCENTAGE_DECIMALS);
+    uint max = mcrPercentage ** TOKEN_EXPONENT;
+    uint dividingFactor = TOKEN_EXPONENT.mul(MCR_PERCENTAGE_DECIMALS);
     tokenPrice = (mcrEth.mul(1e18).mul(max).div(c.mul(1e18))).div(10 ** dividingFactor);
     tokenPrice = tokenPrice.add(a.mul(1e13));
   }

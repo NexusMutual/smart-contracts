@@ -11,7 +11,7 @@ const setup = require('../setup');
 const [
   member1, member2, member3,
   staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10,
-  coverHolder,
+  coverHolder, fundSource
 ] = accounts;
 
 const tokensLockedForVoting = ether('200');
@@ -64,28 +64,67 @@ async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
   assert.isTrue(isBooked);
 }
 
-async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimStatusNumber }) {
+async function getContractState(
 
-  const claimId = (await cd.actualClaimLength()) - 1;
-  const minVotingTime = await cd.minVotingTime();
-  const minTime = new BN(minVotingTime.toString()).add(
-    new BN(now.toString()),
+) {
+
+}
+
+async function assertBuyValues(
+  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData }
+) {
+  let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await getContractState(
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
   );
 
-  await time.increaseTo(
-    new BN(minTime.toString()).add(new BN('2')),
-  );
+  let highestRelativeError = 0;
+  while (mcrPercentage < maxPercentage * 100) {
+    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
 
-  const actualVoteClosingBefore = await cl.checkVoteClosing(claimId);
-  assert.equal(actualVoteClosingBefore.toString(), '1');
+    const pool1Balance = await web3.eth.getBalance(pool1.address);
 
-  const APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-  await p1.__callback(APIID, '');
-  const newCStatus = await cd.getClaimStatusNumber(claimId);
-  assert.equal(newCStatus[1].toString(), expectedClaimStatusNumber);
+    const preEstimatedTokenBuyValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
 
-  const actualVoteClosingAfter = await cl.checkVoteClosing(claimId);
-  assert.equal(actualVoteClosingAfter.toString(), '-1');
+    const preBuyBalance = await token.balanceOf(memberOne);
+
+    await pool1.buyTokens(preEstimatedTokenBuyValue, {
+      from: memberOne,
+      value: buyValue
+    });
+    const postBuyBalance = await token.balanceOf(memberOne);
+    const tokensReceived = postBuyBalance.sub(preBuyBalance);
+
+    const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
+      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+    );
+
+    const { tokens: expectedTokenValue } = calculatePurchasedTokens(
+      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+    );
+    assert.equal(tokensReceived.toString(), expectedTokenValue.toString());
+
+    const tokensReceivedDecimal = Decimal(tokensReceived.toString());
+    const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
+    highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
+    console.log({ relativeError: relativeError.toString() });
+    assert(
+      relativeError.lt(maxRelativeError),
+      `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
+       Relative error: ${relativeError}`
+    );
+
+    if (buyValue.lt(poolBalanceStep)) {
+      const extraStepValue = poolBalanceStep.sub(buyValue);
+      await pool1.sendTransaction({
+        from: fundSource,
+        value: extraStepValue
+      });
+    }
+
+    ({ totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp());
+  }
+
+  console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
 describe('buyTokens', function () {
@@ -104,8 +143,8 @@ describe('buyTokens', function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
 
-  it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
+  it('mints tokens for member in exchange of ETH', async function () {
 
-    const { ps, tk, td, qd, cl, mcr, tc } = this;
+    const { ps, tk, td, qd, cl, mcr, tc, p1 } = this;
   });
 });

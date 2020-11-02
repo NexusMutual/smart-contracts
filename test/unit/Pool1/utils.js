@@ -29,8 +29,6 @@ async function setupContractState(
   };
 }
 
-
-
 module.exports = {
   setupContractState,
 }

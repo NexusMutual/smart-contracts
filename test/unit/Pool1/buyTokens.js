@@ -43,7 +43,7 @@ async function assertBuyValues(
       totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
     );
 
-    const { tokens: expectedTokenValue }  = calculatePurchasedTokens(
+    const { tokens: expectedTokenValue } = calculatePurchasedTokens(
       totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
     );
     assert.equal(tokensReceived.toString(), expectedTokenValue.toString());

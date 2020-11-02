@@ -2,6 +2,8 @@ const { accounts, web3 } = require('@openzeppelin/test-environment');
 const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
+const Decimal = require('decimal.js');
+const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = require('../utils').tokenPrice;
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
@@ -65,16 +67,21 @@ async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
 }
 
 async function getContractState(
-
+  { mcr, poolData, tokenData }
 ) {
+  const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
+  const tokenExponent = await tokenData.tokenExponent();
+  const mcrEth = await poolData.getLastMCREther();
 
+  const { totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp();
+  return { a, c, tokenExponent, totalAssetValue, mcrPercentage, mcrEth };
 }
 
 async function assertBuyValues(
-  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData }
+  { maxPercentage, poolBalanceStep, buyValue, maxRelativeError, mcr, pool1, token, poolData, tokenData }
 ) {
-  let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await getContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+  let { a, c, tokenExponent, totalAssetValue, mcrPercentage, mcrEth } = await getContractState(
+    { mcr, poolData, tokenData }
   );
 
   let highestRelativeError = 0;
@@ -85,13 +92,13 @@ async function assertBuyValues(
 
     const preEstimatedTokenBuyValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
 
-    const preBuyBalance = await token.balanceOf(memberOne);
+    const preBuyBalance = await token.balanceOf(member1);
 
     await pool1.buyTokens(preEstimatedTokenBuyValue, {
-      from: memberOne,
+      from: member1,
       value: buyValue
     });
-    const postBuyBalance = await token.balanceOf(memberOne);
+    const postBuyBalance = await token.balanceOf(member1);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
     const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
@@ -145,6 +152,14 @@ describe('buyTokens', function () {
 
   it('mints tokens for member in exchange of ETH', async function () {
 
-    const { ps, tk, td, qd, cl, mcr, tc, p1 } = this;
+    const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData } = this;
+
+    const maxPercentage = 400;
+    const poolBalanceStep = ether('50000');
+    const buyValue = ether('1000');
+    const maxRelativeError = Decimal(0.0006);
+    await assertBuyValues(
+      { maxPercentage, poolBalanceStep, buyValue, mcr, pool1, token, poolData, tokenData, maxRelativeError }
+    );
   });
 });

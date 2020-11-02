@@ -290,6 +290,10 @@ contract Pool1 is Iupgradable {
     uint mcrEth = pd.getLastMCREther();
     uint mcrPercentage = mcr.calculateMCRPercentage(totalAssetValue, mcrEth);
     require(mcrPercentage <= MAX_MCR_PERCENTAGE, "Cannot purchase if MCR% > 400%");
+    require(
+      ethAmount <= mcrEth.mul(mcr.MAX_BUY_SELL_MCR_ETH_PERCENTAGE()).div(100 * MCR_PERCENTAGE_MULTIPLIER),
+      "Purchases worth higher than 5% of MCReth are not allowed"
+    );
     boughtTokens = mcr.calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
     require(boughtTokens >= minTokensOut, "boughtTokens is less than minTokensBought");
     tc.mint(msg.sender, boughtTokens);
@@ -308,6 +312,10 @@ contract Pool1 is Iupgradable {
     uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
     uint mcrEth = pd.getLastMCREther();
     ethOut = mcr.calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
+    require(
+      ethOut <= mcrEth.mul(mcr.MAX_BUY_SELL_MCR_ETH_PERCENTAGE()).div(100 * MCR_PERCENTAGE_MULTIPLIER),
+      "Sales worth higher than 5% of MCReth are not allowed"
+    );
     require(currentTotalAssetValue.sub(ethOut) > mcrEth, "MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");
 

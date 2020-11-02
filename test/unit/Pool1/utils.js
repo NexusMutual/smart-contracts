@@ -3,7 +3,7 @@ const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
 async function setupContractState(
-  { fundSource, initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData }
 ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();
@@ -19,7 +19,7 @@ async function setupContractState(
 
   const date = new Date().getTime();
   await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
-  let { totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp();
+  const { totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp();
   return {
     a,
     c,

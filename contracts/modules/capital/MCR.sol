@@ -38,7 +38,7 @@ contract MCR is Iupgradable {
 
   uint private constant minCapFactor = uint(10) ** 21;
   uint public constant SELL_SPREAD = 25;
-  uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 5;
+  uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 5 * MCR_PERCENTAGE_MULTIPLIER;
   uint public constant MCR_PERCENTAGE_DECIMALS = 4;
   uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
   uint constant CONSTANT_C = 5800000;
@@ -286,8 +286,8 @@ contract MCR is Iupgradable {
     ethValue = finalPrice.mul(tokenAmount).div(1e18);
 
     require(
-      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100),
-      "Sales worth higher than 5% of MCR eth are not allowed"
+      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100 * MCR_PERCENTAGE_MULTIPLIER),
+      "Sales worth higher than 5% of MCReth are not allowed"
     );
   }
 

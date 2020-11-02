@@ -191,29 +191,71 @@ contract MCR is Iupgradable {
   ) public pure returns (uint tokenValue) {
     require(
       ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100),
-      "Purchases worth higher than 5% of MCR eth are not allowed"
+      "Purchases worth higher than 5% of MCReth are not allowed"
     );
+
+    /*
+      The price formula is:
+      P(V) = A + MCReth / C *  MCR% ^ 4
+      where MCR% = V / MCReth
+      P(V) = A + 1 / (C * MCReth ^ 3) *  V ^ 4
+
+      To compute the number of tokens issued we can integrate with respect to V the following:
+        ΔT = ΔV / P(V)
+        which assumes that for an infinitesimally small change in locked value V price is constant and we
+        get an infinitesimally change in token supply ΔT.
+     This is not computable on-chain, below we use an approximation that works well assuming
+       * MCR% stays within 100%-400%
+       * ethAmount <= 5% * MCReth
+    */
+
     uint tokenPrice;
     {
       uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
 
-      uint point0 = calculateTokensUpToAssetValue(currentTotalAssetValue, mcrEth);
-      uint point1 = calculateTokensUpToAssetValue(nextTotalAssetValue, mcrEth);
-      uint adjustedTokenAmount = point0.sub(point1);
+      /*
+        Use a simplified formula excluding the A constant to compute the amount of tokens to be minted.
+        AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
+        AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
 
+        For a small variation in tokens  ΔT = ΔV / P(V)
+        adjustedTokenAmount = integral (dV / AdjustedP(V)) from V0 (currentTotalAssetValue) to V1 (nextTotalAssetValue)
+        adjustedTokenAmount = integral (1 / (1 / (C * MCReth3) *  V4) * dV) from V0 to V1
+        Evaluating the above we get:
+        adjustedTokenAmount = - MCReth * C / (3 * V1 ^3) + MCReth * C /(3 * V0 ^ 3)
+      */
+      // MCReth * C /(3 * V0 ^ 3)
+      uint point0 = antiderivative(currentTotalAssetValue, mcrEth);
+      // MCReth * C / (3 * V1 ^3)
+      uint point1 = antiderivative(nextTotalAssetValue, mcrEth);
+      uint adjustedTokenAmount = point0.sub(point1);
+      /*
+        Compute a preliminary adjustedPrice for the minted tokens,
+        and to that add the A constant (previously removed in the adjusted Price formula)
+        to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
+
+        adjustedPrice = ethAmount / adjustedTokenAmount
+        finalPrice = adjustedPrice + A
+        tokenValue = ethAmount  / finalPrice
+      */
+      // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
       uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
       tokenPrice = adjustedTokenPrice.add(CONSTANT_A.mul(1e13));
     }
     tokenValue = ethAmount.mul(1e18).div(tokenPrice);
   }
 
-  function calculateTokensUpToAssetValue(
+  /**
+  * @dev antiderivative(V) =  MCReth * C / (3 * V ^3) * 1e18
+  * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
+  * NOTE: omits the minus sign of the correct antiderivative to use a uint result type for simplicity
+  */
+  function antiderivative(
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint result) {
-
-    result = mcrEth.mul(CONSTANT_C).mul(1e18).div(TOKEN_EXPONENT - 1).div(assetValue);
-    for (uint i = 0; i < TOKEN_EXPONENT - 2; i++) {
+    result = mcrEth.mul(CONSTANT_C).mul(1e18).div(TOKEN_EXPONENT.sub(1)).div(assetValue);
+    for (uint i = 0; i < TOKEN_EXPONENT.sub(2); i++) {
       result = result.mul(mcrEth).div(assetValue);
     }
   }
@@ -225,20 +267,28 @@ contract MCR is Iupgradable {
     ethValue = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
   }
 
+  /**
+  * @dev Computes token sell value for a tokenAmount in ETH with a sell spread SELL_SPREAD.
+  * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of SELL_SPREAD.
+  * for values higher than that sell spread may exceed 5% (The higher amount being sold at any given time the higher the spread)
+  */
   function calculateTokenSellValue(
     uint tokenAmount,
     uint currentTotalAssetValue,
     uint mcrEth
   ) public pure returns (uint ethValue) {
 
+    // Step 1. Calculate spot price and amount of ETH at current values
     uint mcrPercentage0 = currentTotalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
     uint spotPrice0 = calculateTokenSpotPrice(mcrPercentage0, mcrEth);
     uint spotEthAmount = tokenAmount.mul(spotPrice0).div(1e18);
 
+    //  Step 2. Calculate spot price and amount of ETH using V = currentTotalAssetValue - spotEthAmount from step 1
     uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
     uint mcrPercentagePostSpotPriceSell = totalValuePostSpotPriceSell.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
     uint spotPrice1 = calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
 
+     // Step 3. Min [average[Price(1), Price(2)] x ( 1 - Sell Spread), Price(2) ]
     uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(1000 - SELL_SPREAD).div(1000);
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
     ethValue = finalPrice.mul(tokenAmount).div(1e18);

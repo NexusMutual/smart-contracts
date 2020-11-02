@@ -43,6 +43,8 @@ contract MemberRoles is Governed, Iupgradable {
 
   event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
 
+  event ClaimPayoutAddressSet(address indexed member, address indexed payoutAddress);
+
   MemberRoleDetails[] internal memberRoleData;
   bool internal constructorCheck;
   uint public maxABCount;
@@ -262,6 +264,7 @@ contract MemberRoles is Governed, Iupgradable {
 
     if (claimPayoutAddress[msg.sender] != address(0)) {
       claimPayoutAddress[msg.sender] = address(0);
+      emit ClaimPayoutAddressSet(msg.sender, msg.sender);
     }
   }
 
@@ -284,11 +287,23 @@ contract MemberRoles is Governed, Iupgradable {
     _updateRole(msg.sender, uint(Role.Member), false);
     dAppToken.removeFromWhitelist(msg.sender);
 
-    address payable payoutAddress = claimPayoutAddress[msg.sender];
+    address payable previousPayoutAddress = claimPayoutAddress[msg.sender];
 
-    if (payoutAddress != address(0)) {
+    if (previousPayoutAddress != address(0)) {
+
+      address payable storedAddress = previousPayoutAddress == _add ? address(0) : previousPayoutAddress;
+      address payable payoutAddress = storedAddress == address(0) ? msg.sender : storedAddress;
+
       claimPayoutAddress[msg.sender] = address(0);
-      claimPayoutAddress[_add] = payoutAddress;
+      claimPayoutAddress[_add] = storedAddress;
+
+      // emit event for old address reset
+      emit ClaimPayoutAddressSet(msg.sender, msg.sender);
+
+      if (_add != payoutAddress) {
+        // emit event for setting the payout address on the new member address
+        emit ClaimPayoutAddressSet(_add, payoutAddress);
+      }
     }
 
     emit switchedMembership(msg.sender, _add, now);
@@ -300,9 +315,18 @@ contract MemberRoles is Governed, Iupgradable {
   }
 
   function setClaimPayoutAddress(address payable _address) external {
+
     require(!ms.isPause(), "system is paused");
     require(ms.isMember(msg.sender), "sender is not a member");
-    claimPayoutAddress[msg.sender] = _address;
+
+    // store zero address if _address == member address
+    address payable storedAddress = _address == msg.sender ? address(0) : _address;
+
+    // deduct payout address from stored addres
+    address payable payoutAddress = storedAddress == address(0) ? msg.sender : storedAddress;
+
+    claimPayoutAddress[msg.sender] = storedAddress;
+    emit ClaimPayoutAddressSet(msg.sender, payoutAddress);
   }
 
   /// @dev Return number of member roles

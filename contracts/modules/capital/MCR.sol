@@ -39,7 +39,6 @@ contract MCR is Iupgradable {
   uint private constant minCapFactor = uint(10) ** 21;
   uint public constant SELL_SPREAD = 25;
   uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 5;
-  uint public constant MAX_MCR_PERCENTAGE = 4 * MCR_PERCENTAGE_MULTIPLIER; // 400%
   uint public constant MCR_PERCENTAGE_DECIMALS = 4;
   uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
   uint constant CONSTANT_C = 5800000;
@@ -178,9 +177,6 @@ contract MCR is Iupgradable {
 
     uint totalAssetValue = getTotalAssetValue(poolBalance);
     uint mcrEth = pd.getLastMCREther();
-    uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
-
-    require(mcrPercentage <= MAX_MCR_PERCENTAGE, "Cannot purchase if MCR% > 400%");
     tokenValue = calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
   }
 

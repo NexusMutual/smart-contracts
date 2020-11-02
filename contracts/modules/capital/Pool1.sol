@@ -37,6 +37,10 @@ contract Pool1 is Iupgradable {
   TokenData public td;
   bool public locked;
 
+  uint public constant MCR_PERCENTAGE_DECIMALS = 4;
+  uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
+  uint public constant MAX_MCR_PERCENTAGE = 4 * MCR_PERCENTAGE_MULTIPLIER; // 400%
+
   event Apiresult(address indexed sender, string msg, bytes32 myid);
   event Payout(address indexed to, uint coverId, uint tokens);
 
@@ -279,10 +283,14 @@ contract Pool1 is Iupgradable {
    */
   function buyTokens(uint minTokensOut) public payable isMember checkPause returns (uint boughtTokens) {
 
-    uint ethBuyValue = msg.value;
-    require(ethBuyValue > 0);
+    uint ethAmount = msg.value;
+    require(ethAmount > 0);
 
-    boughtTokens = mcr.getTokenBuyValue(address(this).balance.sub(ethBuyValue), ethBuyValue);
+    uint totalAssetValue = mcr.getTotalAssetValue(address(this).balance.sub(ethAmount));
+    uint mcrEth = pd.getLastMCREther();
+    uint mcrPercentage = mcr.calculateMCRPercentage(totalAssetValue, mcrEth);
+    require(mcrPercentage <= MAX_MCR_PERCENTAGE, "Cannot purchase if MCR% > 400%");
+    boughtTokens = mcr.calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
     require(boughtTokens >= minTokensOut, "boughtTokens is less than minTokensBought");
     tc.mint(msg.sender, boughtTokens);
   }
@@ -297,7 +305,10 @@ contract Pool1 is Iupgradable {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
 
-    ethOut = mcr.getTokenSellValue(tokenAmount);
+    uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
+    uint mcrEth = pd.getLastMCREther();
+    ethOut = mcr.calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
+    require(currentTotalAssetValue.sub(ethOut) > mcrEth, "MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");
 
     tc.burnFrom(msg.sender, tokenAmount);

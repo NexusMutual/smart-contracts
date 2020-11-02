@@ -44,7 +44,7 @@ async function assertSellValues(
 
     const balancePreSell = await web3.eth.getBalance(memberOne);
 
-    const precomputedEthValue =  await mcr.getTokenSellValue(tokensReceived);
+    const precomputedEthValue = await mcr.getTokenSellValue(tokensReceived);
     console.log({ precomputedEthValue: precomputedEthValue.toString(),
       postBuyBalance: postBuyBalance.toString(),
       tokensReceived: tokensReceived.toString()});
@@ -86,6 +86,25 @@ describe('sellTokens', function () {
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
   const maxPercentage = 400;
+
+  it.only('reverts on sales that decrease the MCR% below 100%', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
+    await setupContractState(
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+    );
+
+    const tokenAmountToSell = ether('1000');
+    await token.mint(memberOne, tokenAmountToSell);
+
+    await expectRevert(
+      pool1.sellTokens(tokenAmountToSell, '0', { from: memberOne }),
+      `MCR% cannot fall below 100%`
+    );
+  });
 
   it('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController } = this;

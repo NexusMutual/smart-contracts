@@ -112,7 +112,7 @@ describe.only('buyTokens', function () {
     );
   });
 
-  it.only('reverts on purchase if current MCR% exceeds 400%', async function () {
+  it('reverts on purchase if current MCR% exceeds 400%', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');

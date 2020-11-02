@@ -112,6 +112,23 @@ describe.only('buyTokens', function () {
     );
   });
 
+  it.only('reverts on purchase if current MCR% exceeds 400%', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth.mul(new BN(4)).add(new BN(1e20.toString()));
+    const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
+
+    await setupContractState(
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+    );
+
+    await expectRevert(
+      pool1.buyTokens('1', { from: memberOne, value: buyValue }),
+      `Cannot purchase if MCR% > 400%`
+    );
+  });
+
   it('mints bought tokens to member in exchange of 100 ETH for mcrEth = 16k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 

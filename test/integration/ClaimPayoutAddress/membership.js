@@ -1,8 +1,9 @@
 const { accounts } = require('@openzeppelin/test-environment');
+const { expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const [member1, payoutAddress] = accounts.slice(3);
-const switchAddress = '0x1111111111111111111111111111111111111111';
+const [member1, payoutAddress, switchable1, switchable2] = accounts.slice(3);
+const zeroAddress = '0x0000000000000000000000000000000000000000';
 
 describe('set claim payout address', function () {
 
@@ -16,7 +17,13 @@ describe('set claim payout address', function () {
       'payout address should be the member address',
     );
 
-    await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
+    const receipt = await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
+
+    expectEvent(receipt, 'ClaimPayoutAddressSet', {
+      member: member1,
+      payoutAddress: payoutAddress,
+    });
+
     assert.strictEqual(
       await mr.getClaimPayoutAddress(member1),
       payoutAddress,
@@ -24,33 +31,98 @@ describe('set claim payout address', function () {
     );
   });
 
-  it('should clear cpa from the old address when switching membership', async function () {
+  it('should clear cpa on the old address & set cpa on the new one when switching membership', async function () {
 
     const { mr, tk } = this.contracts;
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
     await tk.approve(mr.address, -1, { from: member1 });
-    await mr.switchMembership(switchAddress, { from: member1 });
+    const receipt = await mr.switchMembership(switchable1, { from: member1 });
+
+    expectEvent(receipt, 'ClaimPayoutAddressSet', {
+      member: member1,
+      payoutAddress: member1,
+    });
+
+    expectEvent(receipt, 'ClaimPayoutAddressSet', {
+      member: switchable1,
+      payoutAddress: payoutAddress,
+    });
 
     assert.strictEqual(
       await mr.getClaimPayoutAddress(member1),
       member1,
       'should have been cleared for the old address',
     );
+
+    assert.strictEqual(
+      await mr.getClaimPayoutAddress(switchable1),
+      payoutAddress,
+      'should have transfered the claim payout address to the new member address',
+    );
   });
 
-  it('should set cpa on the new address when switching membership', async function () {
+  it('should not set old member address as payout address when switching membership', async function () {
 
     const { mr, tk } = this.contracts;
 
-    await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
+    await mr.setClaimPayoutAddress(member1, { from: member1 });
     await tk.approve(mr.address, -1, { from: member1 });
-    await mr.switchMembership(switchAddress, { from: member1 });
+    await mr.switchMembership(switchable1, { from: member1 });
 
     assert.strictEqual(
-      await mr.getClaimPayoutAddress(switchAddress),
+      await mr.getClaimPayoutAddress(switchable1),
+      switchable1,
+      'cpa should be the new memebership address',
+    );
+  });
+
+  it('when switching membership should handle new member eq to payout address case', async function () {
+
+    const { mr, tk } = this.contracts;
+
+    await mr.setClaimPayoutAddress(switchable1, { from: member1 });
+    await tk.approve(mr.address, -1, { from: member1 });
+    await mr.switchMembership(switchable1, { from: member1 });
+
+    assert.strictEqual(
+      await mr.getClaimPayoutAddress(switchable1),
+      switchable1,
+      'cpa should be the new membership address',
+    );
+
+    await tk.approve(mr.address, -1, { from: switchable1 });
+    await mr.switchMembership(switchable2, { from: switchable1 });
+
+    assert.strictEqual(
+      await mr.getClaimPayoutAddress(switchable1),
+      switchable1,
+      'cpa on old address should have been reset',
+    );
+
+    assert.strictEqual(
+      await mr.getClaimPayoutAddress(switchable2),
+      switchable2,
+      'cpa should be the same as the membership address',
+    );
+  });
+
+  it('should reset payout address when setting zero address', async function () {
+
+    const { mr } = this.contracts;
+
+    await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
+    assert.strictEqual(
+      await mr.getClaimPayoutAddress(member1),
       payoutAddress,
-      'should have transfered the claim payout address on the new member address',
+      'cpa should be the payout address',
+    );
+
+    await mr.setClaimPayoutAddress(zeroAddress, { from: member1 });
+    assert.strictEqual(
+      await mr.getClaimPayoutAddress(member1),
+      member1,
+      'cpa should be the member address',
     );
   });
 
@@ -60,7 +132,12 @@ describe('set claim payout address', function () {
 
     await mr.setClaimPayoutAddress(payoutAddress, { from: member1 });
     await tk.approve(mr.address, -1, { from: member1 });
-    await mr.withdrawMembership({ from: member1 });
+    const receipt = await mr.withdrawMembership({ from: member1 });
+
+    expectEvent(receipt, 'ClaimPayoutAddressSet', {
+      member: member1,
+      payoutAddress: member1,
+    });
 
     assert.strictEqual(
       await mr.getClaimPayoutAddress(member1),

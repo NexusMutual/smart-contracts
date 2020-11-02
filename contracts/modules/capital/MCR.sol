@@ -205,48 +205,43 @@ contract MCR is Iupgradable {
         which assumes that for an infinitesimally small change in locked value V price is constant and we
         get an infinitesimally change in token supply ΔT.
      This is not computable on-chain, below we use an approximation that works well assuming
-       * MCR% stays within 100%-400%
+       * MCR% stays within [100%, 400%]
        * ethAmount <= 5% * MCReth
+
+      Use a simplified formula excluding the constant A price offset to compute the amount of tokens to be minted.
+      AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
+      AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
+
+      For a very small variation in tokens ΔT, we have,  ΔT = ΔV / P(V), to get total T we integrate with respect to V.
+      adjustedTokenAmount = ∫ (dV / AdjustedP(V)) from V0 (currentTotalAssetValue) to V1 (nextTotalAssetValue)
+      adjustedTokenAmount = ∫ ((C * MCReth ^ 3) / V ^ 4 * dV) from V0 to V1
+      Evaluating the above using the antiderivative of the function we get:
+      adjustedTokenAmount = - MCReth ^ 3 * C / (3 * V1 ^3) + MCReth * C /(3 * V0 ^ 3)
     */
+    uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
 
-    uint tokenPrice;
-    {
-      uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
+    // MCReth * C /(3 * V0 ^ 3)
+    uint point0 = antiderivative(currentTotalAssetValue, mcrEth);
+    // MCReth * C / (3 * V1 ^3)
+    uint point1 = antiderivative(nextTotalAssetValue, mcrEth);
+    uint adjustedTokenAmount = point0.sub(point1);
+    /*
+      Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
+      and to that add the A constant (the price offset previously removed in the adjusted Price formula)
+      to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
 
-      /*
-        Use a simplified formula excluding the A constant to compute the amount of tokens to be minted.
-        AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
-        AdjustedP(V) = 1 / (C * MCReth ^ 3) *  V ^ 4
-
-        For a small variation in tokens  ΔT = ΔV / P(V)
-        adjustedTokenAmount = integral (dV / AdjustedP(V)) from V0 (currentTotalAssetValue) to V1 (nextTotalAssetValue)
-        adjustedTokenAmount = integral (1 / (1 / (C * MCReth3) *  V4) * dV) from V0 to V1
-        Evaluating the above we get:
-        adjustedTokenAmount = - MCReth * C / (3 * V1 ^3) + MCReth * C /(3 * V0 ^ 3)
-      */
-      // MCReth * C /(3 * V0 ^ 3)
-      uint point0 = antiderivative(currentTotalAssetValue, mcrEth);
-      // MCReth * C / (3 * V1 ^3)
-      uint point1 = antiderivative(nextTotalAssetValue, mcrEth);
-      uint adjustedTokenAmount = point0.sub(point1);
-      /*
-        Compute a preliminary adjustedPrice for the minted tokens,
-        and to that add the A constant (previously removed in the adjusted Price formula)
-        to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
-
-        adjustedPrice = ethAmount / adjustedTokenAmount
-        finalPrice = adjustedPrice + A
-        tokenValue = ethAmount  / finalPrice
-      */
-      // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
-      uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-      tokenPrice = adjustedTokenPrice.add(CONSTANT_A.mul(1e13));
-    }
+      adjustedPrice = ethAmount / adjustedTokenAmount
+      finalPrice = adjustedPrice + A
+      tokenValue = ethAmount  / finalPrice
+    */
+    // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
+    uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
+    uint tokenPrice = adjustedTokenPrice.add(CONSTANT_A.mul(1e13));
     tokenValue = ethAmount.mul(1e18).div(tokenPrice);
   }
 
   /**
-  * @dev antiderivative(V) =  MCReth * C / (3 * V ^3) * 1e18
+  * @dev antiderivative(V) =  MCReth ^ 3 * C / (3 * V ^ 3) * 1e18
   * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
   * NOTE: omits the minus sign of the correct antiderivative to use a uint result type for simplicity
   */
@@ -255,6 +250,7 @@ contract MCR is Iupgradable {
     uint mcrEth
   ) internal pure returns (uint result) {
     result = mcrEth.mul(CONSTANT_C).mul(1e18).div(TOKEN_EXPONENT.sub(1)).div(assetValue);
+
     for (uint i = 0; i < TOKEN_EXPONENT.sub(2); i++) {
       result = result.mul(mcrEth).div(assetValue);
     }

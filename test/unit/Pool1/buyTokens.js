@@ -32,7 +32,7 @@ async function assertBuyValues(
 
     const preBuyBalance = await token.balanceOf(memberOne);
 
-    await pool1.buyTokens(preEstimatedTokenBuyValue, {
+    const tx = await pool1.buyTokens(preEstimatedTokenBuyValue, {
       from: memberOne,
       value: buyValue
     });
@@ -90,7 +90,7 @@ describe.only('buyTokens', function () {
 
     await expectRevert(
       pool1.buyTokens('1', { from: memberOne, value: buyValue }),
-      `Purchases worth higher than 5% of MCR eth are not allowed`
+      `Purchases worth higher than 5% of MCReth are not allowed`
     );
   });
 

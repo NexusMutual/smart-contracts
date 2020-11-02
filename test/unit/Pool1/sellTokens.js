@@ -13,8 +13,7 @@ const {
   members: [memberOne],
 } = accounts;
 
-
-const sellSpread = 250; // multiplied by 10000
+const sellSpread = 0.025 * 10000;
 
 async function assertSellValues(
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,

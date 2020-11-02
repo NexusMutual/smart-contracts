@@ -287,7 +287,7 @@ contract MCR is Iupgradable {
 
     require(
       ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100 * MCR_PERCENTAGE_MULTIPLIER),
-      "Sales worth higher than 5% of MCReth are not allowed"
+      "Sales worth more than 5% of MCReth are not allowed"
     );
   }
 

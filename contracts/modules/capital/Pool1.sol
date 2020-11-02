@@ -311,10 +311,10 @@ contract Pool1 is Iupgradable {
 
     uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
     uint mcrEth = pd.getLastMCREther();
-    ethOut = mcr.calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
+    ethOut = mcr.calculateTokenSgetTokenSellValueellValue(tokenAmount, currentTotalAssetValue, mcrEth);
     require(
       ethOut <= mcrEth.mul(mcr.MAX_BUY_SELL_MCR_ETH_PERCENTAGE()).div(100 * MCR_PERCENTAGE_MULTIPLIER),
-      "Sales worth higher than 5% of MCReth are not allowed"
+      "Sales worth more than 5% of MCReth are not allowed"
     );
     require(currentTotalAssetValue.sub(ethOut) > mcrEth, "MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");

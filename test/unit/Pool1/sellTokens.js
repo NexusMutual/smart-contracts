@@ -87,7 +87,7 @@ describe('sellTokens', function () {
   const ethRate = new BN('100');
   const maxPercentage = 400;
 
-  it.only('reverts on sales that decrease the MCR% below 100%', async function () {
+  it('reverts on sales that decrease the MCR% below 100%', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
@@ -105,7 +105,7 @@ describe('sellTokens', function () {
     );
   });
 
-  it('reverts on sales worth more than 5% of MCReth', async function () {
+  it.only('reverts on sales worth more than 5% of MCReth', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
@@ -115,32 +115,17 @@ describe('sellTokens', function () {
     );
 
     const buyValue = mcrEth.div(new BN(20));
-    let balancePostOneSell;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       await pool1.buyTokens('1', { from: memberOne, value: buyValue });
-      balancePostOneSell = balancePostOneSell ? balancePostOneSell : await token.balanceOf(memberOne);
     }
     const entireBalance = await token.balanceOf(memberOne);
-
-    const p1Balance = await web3.eth.getBalance(pool1.address);
-    const currentTotalAssetValue = await mcr.getTotalAssetValue(p1Balance);
-    const mcrEthStored = await poolData.getLastMCREther();
-    const expectedEthOut = await mcr.getTokenSellValue(entireBalance);
-    console.log({
-      currentTotalAssetValue: currentTotalAssetValue.toString(),
-      mcrEthStored: mcrEthStored.toString(),
-      balancePostOneSell: balancePostOneSell.toString(),
-      entireBalance: entireBalance.toString(),
-      expectedEthOut: expectedEthOut.toString()
-    })
-
     await expectRevert(
-      pool1.sellTokens(balancePostOneSell, '0', { from: memberOne }),
-      `Sales worth higher than 5% of MCReth are not allowed`
+      pool1.sellTokens(entireBalance, '0', { from: memberOne }),
+      `Sales worth more than 5% of MCReth are not allowed`
     );
   });
 
-  it.only('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
+  it('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
 
     const mcrEth = ether('160000');

@@ -264,7 +264,7 @@ contract MemberRoles is Governed, Iupgradable {
 
     if (claimPayoutAddress[msg.sender] != address(0)) {
       claimPayoutAddress[msg.sender] = address(0);
-      emit ClaimPayoutAddressSet(msg.sender, msg.sender);
+      emit ClaimPayoutAddressSet(msg.sender, address(0));
     }
   }
 
@@ -292,17 +292,16 @@ contract MemberRoles is Governed, Iupgradable {
     if (previousPayoutAddress != address(0)) {
 
       address payable storedAddress = previousPayoutAddress == _add ? address(0) : previousPayoutAddress;
-      address payable payoutAddress = storedAddress == address(0) ? msg.sender : storedAddress;
 
       claimPayoutAddress[msg.sender] = address(0);
       claimPayoutAddress[_add] = storedAddress;
 
       // emit event for old address reset
-      emit ClaimPayoutAddressSet(msg.sender, msg.sender);
+      emit ClaimPayoutAddressSet(msg.sender, address(0));
 
-      if (_add != payoutAddress) {
-        // emit event for setting the payout address on the new member address
-        emit ClaimPayoutAddressSet(_add, payoutAddress);
+      if (storedAddress != address(0)) {
+        // emit event for setting the payout address on the new member address if it's non zero
+        emit ClaimPayoutAddressSet(_add, storedAddress);
       }
     }
 
@@ -318,15 +317,10 @@ contract MemberRoles is Governed, Iupgradable {
 
     require(!ms.isPause(), "system is paused");
     require(ms.isMember(msg.sender), "sender is not a member");
+    require(_address != msg.sender, "should be different than the member address");
 
-    // store zero address if _address == member address
-    address payable storedAddress = _address == msg.sender ? address(0) : _address;
-
-    // deduct payout address from stored addres
-    address payable payoutAddress = storedAddress == address(0) ? msg.sender : storedAddress;
-
-    claimPayoutAddress[msg.sender] = storedAddress;
-    emit ClaimPayoutAddressSet(msg.sender, payoutAddress);
+    claimPayoutAddress[msg.sender] = _address;
+    emit ClaimPayoutAddressSet(msg.sender, _address);
   }
 
   /// @dev Return number of member roles

@@ -19,7 +19,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./Pool1MockOldPool1.sol";
 import "../../modules/cover/QuotationData.sol";
-// import "../../modules/governance/MemberRoles.sol";
+import "../../modules/governance/MemberRoles.sol";
 import "../../modules/governance/ProposalCategory.sol";
 import "../../modules/token/NXMToken.sol";
 import "../../modules/token/TokenData.sol";
@@ -58,7 +58,7 @@ contract Pool1MockOldMCR is Iupgradable {
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
-  function changeDependentContractAddress() public onlyInternal {
+  function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
     p1 = Pool1MockOldPool1(ms.getLatestAddress("P1"));
     pd = PoolData(ms.getLatestAddress("PD"));

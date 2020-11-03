@@ -29,6 +29,13 @@ async function setupContractState(
   };
 }
 
+function keysToString (object) {
+  for (const key of Object.keys(object)) {
+    object[key] = object[key].toString();
+  }
+}
+
 module.exports = {
   setupContractState,
+  keysToString
 }

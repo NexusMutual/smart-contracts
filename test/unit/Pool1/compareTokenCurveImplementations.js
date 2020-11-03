@@ -27,11 +27,18 @@ const TokenFunctions = contract.fromArtifact('TokenFunctions');
 const Pool1MockOldMCR = contract.fromArtifact('Pool1MockOldMCR');
 const Pool1MockOldPool1 = contract.fromArtifact('Pool1MockOldPool1');
 
-const maxRelativeError = Decimal(0.001);
+const maxRelativeError = Decimal(0.002);
 
-async function assertBuyValues({
-  totalAssetValue, mcrPercentage, maxPercentage, poolBalanceStep, buyValue, old, current
-}) {
+async function compareBuyValues(
+  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
+) {
+  const oldState = await setupContractState(
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old }
+  );
+  console.log(keysToString(oldState));
+  let { totalAssetValue, mcrPercentage } = await setupContractState(
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...current }
+  );
 
   let highestRelativeError = 0;
   while (mcrPercentage < maxPercentage * 100) {
@@ -80,9 +87,11 @@ async function assertBuyValues({
         value: extraStepValue
       });
     }
-
     ({ totalAssetValue, mcrPercentage } = await current.mcr.calVtpAndMCRtp());
   }
+  console.log({
+    highestRelativeError: highestRelativeError.toFixed()
+  });
 }
 
 async function setup ({ MCR, Pool1 }) {
@@ -164,27 +173,39 @@ describe('compareTokenCurveImplementations', function () {
 
   before(setupBothImplementations);
 
-  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens', async function () {
+  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 100 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('100');
-
     const poolBalanceStep = ether('30000');
-    console.log(`Setup system with old implementation.`);
-    const oldState = await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old }
+    await compareBuyValues(
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
     );
-    console.log(keysToString(oldState));
+  });
 
-    console.log(`Setup system with current implementation.`);
-    const { totalAssetValue, mcrPercentage, a, c, tokenExponent } = await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...current }
+  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 100 ETH', async function () {
+    const { old, current } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('100');
+    const poolBalanceStep = ether('30000');
+    await compareBuyValues(
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
     );
+  });
 
-    await assertBuyValues(
-      { totalAssetValue, mcrPercentage, maxPercentage, poolBalanceStep, buyValue, old, current }
+  it.only('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 1000 ETH', async function () {
+    const { old, current } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('1000');
+    const poolBalanceStep = ether('30000');
+    await compareBuyValues(
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
     );
   });
 });

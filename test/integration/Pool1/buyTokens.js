@@ -1,4 +1,4 @@
-const { accounts, web3 } = require('@openzeppelin/test-environment');
+const { accounts, web3 } = require('hardhat');
 const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
@@ -11,7 +11,7 @@ const snapshot = require('../utils').snapshot;
 const setup = require('../setup');
 
 const [
-  member1, member2, member3,
+  , member1, member2, member3,
   staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10,
   coverHolder, fundSource
 ] = accounts;
@@ -23,7 +23,7 @@ const initialMemberFunds = ether('2500');
 
 async function initMembers () {
 
-  const { mr, tk, tc } = this;
+  const { mr, tk, tc } = this.contracts;
 
   this.allStakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
   const members = [member1, member2, member3, ...this.allStakers, coverHolder];
@@ -110,25 +110,15 @@ async function assertBuyValues(
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe('buyTokens', function () {
+describe.only('buyTokens', function () {
 
   this.timeout(0);
   this.slow(5000);
-
-  before(setup);
-  before(initMembers);
-
-  beforeEach(async function () {
-    this.snapshotId = await snapshot.takeSnapshot();
-  });
-
-  afterEach(async function () {
-    await snapshot.revertToSnapshot(this.snapshotId);
-  });
+  beforeEach(initMembers);
 
   it('mints tokens for member in exchange of ETH', async function () {
 
-    const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData } = this;
+    const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData } = this.contracts;
 
     const maxPercentage = 400;
     const poolBalanceStep = ether('30000');

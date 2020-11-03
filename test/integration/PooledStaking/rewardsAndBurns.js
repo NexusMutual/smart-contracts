@@ -63,7 +63,7 @@ async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
   assert.isTrue(isBooked);
 }
 
-async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimStatusNumber }) {
+async function concludeClaimWithOraclize ({ cl, cd, master, now, expectedClaimStatusNumber }) {
 
   const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
@@ -78,8 +78,7 @@ async function concludeClaimWithOraclize ({ cl, pd, cd, p1, now, expectedClaimSt
   const actualVoteClosingBefore = await cl.checkVoteClosing(claimId);
   assert.equal(actualVoteClosingBefore.toString(), '1');
 
-  const APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-  await p1.__callback(APIID, '');
+  await master.closeClaim(claimId); // trigger changeClaimStatus
   const newCStatus = await cd.getClaimStatusNumber(claimId);
   assert.equal(newCStatus[1].toString(), expectedClaimStatusNumber);
 

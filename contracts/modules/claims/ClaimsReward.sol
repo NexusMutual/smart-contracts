@@ -508,4 +508,11 @@ contract ClaimsReward is Iupgradable {
     if (total > 0)
       require(tk.transfer(_user, total)); // solhint-disable-line
   }
+
+  function fixStuckStatuses() external {
+    cd.setClaimStatus(2, 14);
+    cd.setClaimStatus(3, 14);
+    cd.setClaimStatus(5, 14);
+  }
+
 }

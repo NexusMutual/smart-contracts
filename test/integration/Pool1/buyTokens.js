@@ -42,30 +42,6 @@ async function initMembers () {
   this.allMembers = members;
 }
 
-async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
-
-  const claimId = (await cd.actualClaimLength()) - 1;
-  const initialCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-  const baseMembers = [member1, member2, member3];
-  const voters = maxVotingMembers ? baseMembers.slice(0, maxVotingMembers) : baseMembers;
-
-  for (const member of voters) {
-    await cl.submitCAVote(claimId, voteValue, { from: member });
-  }
-
-  const finalCAVoteTokens = await cd.getCaClaimVotesToken(claimId);
-  const actualVoteTokensDiff = finalCAVoteTokens[1] - initialCAVoteTokens[1];
-  const expectedVoteTokensDiff = tokensLockedForVoting * voters.length;
-  assert.equal(actualVoteTokensDiff, expectedVoteTokensDiff);
-
-  const allVotes = await cd.getAllVotesForClaim(claimId);
-  const expectedVotes = allVotes[1].length;
-  assert.equal(voters.length, expectedVotes);
-
-  const isBooked = await td.isCATokensBooked(member1);
-  assert.isTrue(isBooked);
-}
-
 async function getContractState(
   { mcr, poolData, tokenData }
 ) {
@@ -155,7 +131,7 @@ describe('buyTokens', function () {
     const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData } = this;
 
     const maxPercentage = 400;
-    const poolBalanceStep = ether('50000');
+    const poolBalanceStep = ether('30000');
     const buyValue = ether('1000');
     const maxRelativeError = Decimal(0.0006);
     await assertBuyValues(

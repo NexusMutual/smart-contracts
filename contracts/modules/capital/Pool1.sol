@@ -109,16 +109,12 @@ contract Pool1 is Iupgradable {
     _saveQueryId("EP", 0);
   }
 
-  /// @dev Calls the Oraclize Query to close a given Claim after a given period of time.
-  /// @param id Claim Id to be closed
-  function closeClaimsOraclise(uint id, uint) external onlyInternal {
-    _saveQueryId("CLA", id);
+  function closeClaimsOraclise(uint, uint) external onlyInternal {
+    // deprecated
   }
 
-  /// @dev Calls Oraclize Query to expire a given Cover after a given period of time.
-  /// @param id Quote Id to be expired
-  function closeCoverOraclise(uint id, uint64) external onlyInternal {
-    _saveQueryId("COV", id);
+  function closeCoverOraclise(uint, uint64) external onlyInternal {
+    // deprecated
   }
 
   function mcrOraclise(uint) external onlyInternal {

@@ -141,7 +141,7 @@ contract Pool1MockOldMCR is Iupgradable {
     return _calculateTokenPrice(curr, mcrtp);
   }
 
-  function calVtpAndMCRtp() public view returns (uint vtp, uint mcrtp) {
+  function calVtpAndMCRtp() public view returns (uint totalAssetValue, uint mcrPercentage) {
     return _calVtpAndMCRtp(address(p1).balance);
   }
 

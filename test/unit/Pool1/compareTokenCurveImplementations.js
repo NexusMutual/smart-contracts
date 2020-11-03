@@ -1,31 +1,30 @@
-const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
-const { web3, contract, defaultSender } = require('@openzeppelin/test-environment');
+const { ether } = require('@openzeppelin/test-helpers');
+const { web3, artifacts } = require('hardhat');
 const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
-const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState, keysToString } = require('./utils');
 
-const { Role, ParamType } = require('../utils').constants;
+const { Role } = require('../utils').constants;
 
 const {
   nonMembers: [fundSource],
   members: [member1, member2],
 } = accounts;
 
-const MasterMock = contract.fromArtifact('MasterMock');
-const PoolData = contract.fromArtifact('Pool1MockPoolData');
-const TokenData = contract.fromArtifact('TokenData');
-const TokenController = contract.fromArtifact('TokenControllerMock');
-const TokenMock = contract.fromArtifact('NXMTokenMock');
-const Pool1 = contract.fromArtifact('Pool1');
-const MCR = contract.fromArtifact('MCR');
-const DAI = contract.fromArtifact('Pool1MockDAI');
-const TokenFunctions = contract.fromArtifact('TokenFunctions');
-const Pool1MockOldMCR = contract.fromArtifact('Pool1MockOldMCR');
-const Pool1MockOldPool1 = contract.fromArtifact('Pool1MockOldPool1');
+const MasterMock = artifacts.require('MasterMock');
+const PoolData = artifacts.require('Pool1MockPoolData');
+const TokenData = artifacts.require('TokenData');
+const TokenController = artifacts.require('TokenControllerMock');
+const TokenMock = artifacts.require('NXMTokenMock');
+const Pool1 = artifacts.require('Pool1');
+const MCR = artifacts.require('MCR');
+const DAI = artifacts.require('Pool1MockDAI');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const Pool1MockOldMCR = artifacts.require('Pool1MockOldMCR');
+const Pool1MockOldPool1 = artifacts.require('Pool1MockOldPool1');
 
 const maxRelativeError = Decimal(0.002);
 
@@ -108,7 +107,7 @@ async function setup ({ MCR, Pool1 }) {
   const mcr = await MCR.new();
   const tokenController = await TokenController.new();
   const tokenFunctions = await TokenFunctions.new();
-  await token.mint(defaultSender, ether('10000'));
+  await token.mint(accounts.defaultSender, ether('10000'));
 
   // set contract addresses
   await master.setTokenAddress(token.address);
@@ -197,7 +196,7 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it.only('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 1000 ETH', async function () {
+  it.skip('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 1000 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');

@@ -1,4 +1,4 @@
-const { web3 } = require('@openzeppelin/test-environment');
+const { web3 } = require('hardhat');
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 

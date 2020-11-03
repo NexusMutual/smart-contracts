@@ -1,7 +1,5 @@
-const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
-const { web3 } = require('@openzeppelin/test-environment');
+const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const accounts = require('../utils').accounts;
 const { getTokenSpotPrice } = require('../utils').tokenPrice;
 const BN = web3.utils.BN;
 

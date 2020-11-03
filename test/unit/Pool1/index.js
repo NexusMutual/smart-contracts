@@ -20,7 +20,7 @@ describe('Pool1 unit tests', function () {
   require('./sellTokens');
 });
 
-describe.only('Pool1 comparison unit tests', function () {
+describe('Pool1 comparison unit tests', function () {
   this.timeout(0);
   this.slow(2000);
 

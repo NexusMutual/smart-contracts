@@ -5,5 +5,6 @@ describe('UNIT TESTS', function () {
 
   require('./ClaimProofs');
   require('./PooledStaking');
-
+  require('./MCR');
+  require('./Pool1');
 });

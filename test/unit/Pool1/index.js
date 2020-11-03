@@ -19,3 +19,18 @@ describe('Pool1 unit tests', function () {
   require('./buyTokens');
   require('./sellTokens');
 });
+
+describe.only('Pool1 comparison unit tests', function () {
+  this.timeout(0);
+  this.slow(2000);
+
+  beforeEach(async function () {
+    this.snapshotId = await snapshot.takeSnapshot();
+  });
+
+  afterEach(async function () {
+    await snapshot.revertToSnapshot(this.snapshotId);
+  });
+
+  require('./compareTokenCurveImplementations');
+});

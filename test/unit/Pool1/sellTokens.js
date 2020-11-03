@@ -105,7 +105,7 @@ describe('sellTokens', function () {
     );
   });
 
-  it.only('reverts on sales worth more than 5% of MCReth', async function () {
+  it('reverts on sales worth more than 5% of MCReth', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');

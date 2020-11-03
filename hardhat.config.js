@@ -21,7 +21,7 @@ module.exports = {
     hardhat: {
       accounts: {
         count: 100,
-        accountsBalance: toWei('100000'),
+        accountsBalance: toWei('100000000'),
       },
       allowUnlimitedContractSize: true,
       blockGasLimit: 12e9,

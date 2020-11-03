@@ -1,5 +1,4 @@
 const Decimal = require('decimal.js');
-const { web3 } = require('@openzeppelin/test-environment');
 const BN = require('bn.js');
 
 const wad = new BN(1e18.toString());

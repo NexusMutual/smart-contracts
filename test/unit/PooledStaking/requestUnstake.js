@@ -1,9 +1,9 @@
-const { expectEvent, ether, time } = require('@openzeppelin/test-helpers');
+const { expectEvent, expectRevert, ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
-const { expectRevert, filterArgsKeys } = require('../utils').helpers;
+const { filterArgsKeys } = require('../utils').helpers;
 
 const {
   nonMembers: [nonMember],

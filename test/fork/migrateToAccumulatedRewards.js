@@ -1,11 +1,11 @@
 const { artifacts, accounts, web3 } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const fetch = require('node-fetch');
 const { assert } = require('chai');
 const BN = require('web3').utils.BN;
 
 const { encode1 } = require('./external');
-const { expectRevert, logEvents, hex } = require('../utils').helpers;
+const { logEvents, hex } = require('../utils').helpers;
 
 const MemberRoles = artifacts.require('MemberRoles');
 const NXMaster = artifacts.require('NXMaster');

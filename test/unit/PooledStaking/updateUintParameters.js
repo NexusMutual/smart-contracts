@@ -1,8 +1,8 @@
 const { assert } = require('chai');
+const { expectRevert } = require('@openzeppelin/test-helpers');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
-const { expectRevert } = require('../utils').helpers;
 
 const {
   nonMembers: [nonMember],

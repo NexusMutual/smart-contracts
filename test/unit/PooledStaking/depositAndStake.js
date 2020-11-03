@@ -1,9 +1,8 @@
-const { ether, expectEvent, time } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
 const { ParamType } = require('../utils').constants;
-const { expectRevert } = require('../utils').helpers;
 
 const {
   nonMembers: [nonMember],
@@ -210,7 +209,7 @@ describe('depositAndStake', function () {
 
     await expectRevert(
       staking.depositAndStake(stakeAmount, [firstContract], [stakeAmount], { from: memberOne }),
-      'ERC20: transfer amount exceeds allowance.',
+      'ERC20: transfer amount exceeds allowance',
     );
   });
 
@@ -562,7 +561,7 @@ describe('depositAndStake', function () {
     contracts = [secondContract, thirdContract, fourthContract, fifthContract, sixthContract];
     await expectRevert(
       staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne }),
-      `Staking on fewer contracts is not allowed.`,
+      `Staking on fewer contracts is not allowed`,
     );
 
     amounts = [ether('0'), ether('20'), ether('10'), ether('7'), ether('10'), ether('12')];

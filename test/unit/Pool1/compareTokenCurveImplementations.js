@@ -162,7 +162,7 @@ async function setupBothImplementations() {
   this.old = await setup({ MCR: Pool1MockOldMCR, Pool1: Pool1MockOldPool1 });
 }
 
-describe.only('compareTokenCurveImplementations', function () {
+describe('compareTokenCurveImplementations', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -170,7 +170,7 @@ describe.only('compareTokenCurveImplementations', function () {
 
   before(setupBothImplementations);
 
-  it.only('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 0.1 ETH', async function () {
+  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 0.1 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');

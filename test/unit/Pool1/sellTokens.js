@@ -15,7 +15,7 @@ const sellSpread = 0.025 * 10000;
 
 async function assertSellValues(
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
-    pool1, token, buyValue, poolData, tokenData, tokenController }
+    pool1, token, buyValue, poolData, tokenData, tokenController, isLessThanExpectedEthOut }
 ) {
   let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
@@ -40,28 +40,36 @@ async function assertSellValues(
 
     const minEthOut = buyValue.mul(new BN(10000 - (sellSpread + 10))).div(new BN(10000));
 
-    const balancePreSell = await web3.eth.getBalance(memberOne);
-
     const precomputedEthValue = await mcr.getTokenSellValue(tokensReceived);
     console.log({ precomputedEthValue: precomputedEthValue.toString(),
       postBuyBalance: postBuyBalance.toString(),
-      tokensReceived: tokensReceived.toString()});
+      tokensReceived: tokensReceived.toString(),
+      minEthOut: minEthOut.toString()
+    });
 
     await token.approve(tokenController.address, tokensReceived, {
       from: memberOne
     });
-    await pool1.sellTokens(tokensReceived, minEthOut, {
+    const balancePreSell = await web3.eth.getBalance(memberOne);
+    const sellTx = await pool1.sellTokens(tokensReceived, precomputedEthValue, {
       from: memberOne
     });
+
+    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+    console.log({ gasSpentOnTx: ethSpentOnGas.toString() });
+
     const balancePostSell = await web3.eth.getBalance(memberOne);
-    const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell));
+    const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
 
     const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
 
-    //assert(sellEthReceived.lt(expectedEthOut));
     const relativeError = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
     highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
     console.log({ relativeError: relativeError.toString() });
+    if (isLessThanExpectedEthOut) {
+      assert(sellEthReceived.lt(expectedEthOut), `${sellEthReceived.toFixed()} is greater than ${expectedEthOut.toFixed()}`);
+    }
     assert(
       relativeError.lt(maxRelativeError),
       `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
@@ -79,7 +87,7 @@ async function assertSellValues(
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe('sellTokens', function () {
+describe.only('sellTokens', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -123,14 +131,14 @@ describe('sellTokens', function () {
     );
   });
 
-  it('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
+  it('burns tokens from member in exchange for 0.01 ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
-    const buyValue = ether('1000');
+    const buyValue = ether('0.01');
     const poolBalanceStep = ether('20000');
-    const maxRelativeError = Decimal(0.0005);
+    const maxRelativeError = Decimal(0.0001);
 
     await assertSellValues({
       initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
@@ -149,6 +157,36 @@ describe('sellTokens', function () {
 
     await assertSellValues({
       initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
+    });
+  });
+
+  it('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
+    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('1000');
+    const poolBalanceStep = ether('20000');
+    const maxRelativeError = Decimal(0.0005);
+
+    await assertSellValues({
+      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
+      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
+    });
+  });
+
+  it('burns tokens from member in exchange for 5% of mcrEth for mcrEth = 160k', async function () {
+    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = mcrEth.div(new BN(20));
+    const poolBalanceStep = ether('20000');
+    const maxRelativeError = Decimal(0.06);
+
+    await assertSellValues({
+      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError, isLessThanExpectedEthOut: true,
       mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
     });
   });

@@ -265,10 +265,7 @@ contract('Claim: Assessment', function([
             await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
           it('8.7 should be able to change claim status', async function() {
-            let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-
-            APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(APIID, '');
+            await nxms.closeClaim(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
             newCStatus[1].toString().should.be.equal((6).toString());
           });
@@ -324,13 +321,12 @@ contract('Claim: Assessment', function([
             await assertRevert(cl.submitCAVote(claimId, 1, {from: member1}));
           });
           it('8.11 orcalise call should be able to change claim status', async function() {
-            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
             priceinEther = await mcr.calculateTokenPrice(CA_ETH);
-            await P1.__callback(apiid, '');
+            await nxms.closeClaim(claimId);
             (await ps.hasPendingBurns()).should.be.equal(true);
             await ps.processPendingActions('100');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
-            newCStatus[1].toString().should.be.equal((7).toString());
+            newCStatus[1].toString().should.be.equal('14');
           });
           it('8.12 voting should be closed', async function() {
             (await cl.checkVoteClosing(claimId))
@@ -353,8 +349,7 @@ contract('Claim: Assessment', function([
           );
         });
         it('8.14 oracalise call should open voting for members after CA voting time expires', async function() {
-          let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-          await P1.__callback(apiid, '');
+          await nxms.closeClaim(claimId);
           const newCStatus = await cd.getClaimStatusNumber(claimId);
           newCStatus[1].toString().should.be.equal((3).toString());
         });
@@ -376,10 +371,7 @@ contract('Claim: Assessment', function([
                 .should.be.equal((1).toString());
             });
             it('8.16 oracalise call should change claim status ', async function() {
-              let apiid = await pd.allAPIcall(
-                (await pd.getApilCallLength()) - 1
-              );
-              await P1.__callback(apiid, '');
+              await nxms.closeClaim(claimId);
               const newCStatus = await cd.getClaimStatusNumber(claimId);
               newCStatus[1].toString().should.be.equal((11).toString());
             });
@@ -421,16 +413,14 @@ contract('Claim: Assessment', function([
             await increaseTimeTo(
               new BN(closingTime.toString()).add(new BN((2).toString()))
             );
-            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(apiid, '');
+            await nxms.closeClaim(claimId);
             await cd.getAllClaimsByAddress(coverHolder);
           });
           it('8.18 member should be able to cast vote', async function() {
             await cl.submitMemberVote(claimId, -1, {from: member1});
             await cl.submitMemberVote(claimId, -1, {from: member2});
             await cl.submitMemberVote(claimId, -1, {from: member3});
-            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(apiid, '');
+            await nxms.closeClaim(claimId);
             let claimed = await cr.getRewardAndClaimedStatus(0, claimId, {
               from: member1
             });
@@ -464,7 +454,7 @@ contract('Claim: Assessment', function([
             let claimCALen = await cd.getClaimVoteLength(claimId, 1);
             let claimMemLen = await cd.getClaimVoteLength(claimId, 0);
             let verdict = await cd.getVoteVerdict(claimId, 1, 0);
-            parseFloat(verdict).should.be.equal(-1);
+            verdict.toString().should.be.equal('-1');
             let userClaimCount = await cd.getUserClaimCount(coverHolder);
             await assertRevert(tk.transfer(member2, tokens, {from: member1}));
             await tk.approve(member2, tokens, {from: coverHolder});
@@ -482,14 +472,9 @@ contract('Claim: Assessment', function([
             );
           });
           it('8.23 should change claim status', async function() {
-            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            let _val = await pd.getIdOfApiId(apiid);
-            await nxms.closeClaim(_val);
+            await nxms.closeClaim(claimId);
             const newCStatus = await cd.getClaimStatusNumber(claimId);
-            newCStatus[1].toString().should.be.equal((9).toString());
-            // await cd.updateState12Count(claimId, 1);
-            // await cr.getRewardAndClaimedStatus(0, claimId, { from: member1 });
-            // await cr.getRewardToBeDistributedByUser(member1);
+            newCStatus[1].toString().should.be.equal('9');
           });
         });
 
@@ -504,8 +489,7 @@ contract('Claim: Assessment', function([
             await increaseTimeTo(
               new BN(closingTime.toString()).add(new BN((2).toString()))
             );
-            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(apiid, '');
+            await nxms.closeClaim(claimId);
             // await cd.getAllClaimsByAddress(coverHolder);
           });
           it('8.24 member should be able to cast vote', async function() {
@@ -531,12 +515,11 @@ contract('Claim: Assessment', function([
             await increaseTimeTo(
               new BN(closingTime.toString()).add(new BN((2).toString()))
             );
-            let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-            await P1.__callback(apiid, '');
+            await nxms.closeClaim(claimId);
             (await ps.hasPendingBurns()).should.be.equal(true);
             await ps.processPendingActions('100');
             const newCStatus = await cd.getClaimStatusNumber(claimId);
-            newCStatus[1].toString().should.be.equal((8).toString());
+            newCStatus[1].toString().should.be.equal('14');
           });
         });
       });
@@ -621,40 +604,34 @@ contract('Claim: Assessment', function([
     it('8.28 Payout fails', async function() {
       await tf.upgradeCapitalPool(DAI.address);
       let clid = (await cd.actualClaimLength()) - 1;
-      let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await P1.__callback(apiid, '');
+      await nxms.closeClaim(clid);
       let cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
     });
     it('8.29 Retry Payout 60 times and should not take action from 61st attempt', async function() {
       await tf.upgradeCapitalPool(DAI.address);
-      let apiid;
       let clid = (await cd.actualClaimLength()) - 1;
       let payOutRetry = await cd.payoutRetryTime();
+      let check;
+
       for (var i = 0; i < 61; i++) {
         let now = await latestTime();
         await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
         check = await cl.checkVoteClosing(clid);
         let cStatus = await cd.getClaimStatusNumber(clid);
 
-        if (i != 60) {
+        if (i !== 60) {
           parseFloat(check).should.be.equal(1);
         }
-
-        let subVal = 2;
-        if (i == 0) {
-          subVal = 1;
-        }
-        apiid = await pd.allAPIcall((await pd.getApilCallLength()) - subVal);
-        await P1.__callback(apiid, '');
+        await nxms.closeClaim(clid);
       }
+
       check = await cl.checkVoteClosing(clid);
       parseFloat(check).should.be.equal(-1);
       let cStatus = await cd.getClaimStatusNumber(clid);
       (13).should.be.equal(parseFloat(cStatus[1]));
       await P1.sendEther({from: owner, value: toWei(10)});
-      apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
-      await P1.__callback(apiid, '');
+      await nxms.closeClaim(claimId);
       cStatus = await cd.getClaimStatusNumber(clid);
       coverID = await qd.getAllCoversOfUser(coverHolder);
       let coveStatus = await qd.getCoverStatusNo(coverID[coverID.length - 1]);
@@ -693,16 +670,14 @@ contract('Claim: Assessment', function([
       let maxVoteTime = await cd.maxVotingTime();
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 100);
       cStatus = await cd.getClaimStatusNumber(clid);
-      let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await P1.__callback(apiid, '');
+      await nxms.closeClaim(clid);
       cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
       await cad.transfer(P1.address, toWei(20));
-      apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       let payOutRetry = await cd.payoutRetryTime();
       now = await latestTime();
       await increaseTimeTo(payOutRetry / 1 + now / 1 + 10);
-      await P1.__callback(apiid, '');
+      await nxms.closeClaim(clid);
       cStatus = await cd.getClaimStatusNumber(clid);
       (14).should.be.equal(parseFloat(cStatus[1]));
     });
@@ -789,8 +764,7 @@ contract('Claim: Assessment', function([
       let now = await latestTime();
       let maxVoteTime = await cd.maxVotingTime();
       await increaseTimeTo(now / 1 + maxVoteTime / 1 + 10);
-      let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await P1.__callback(apiid, '');
+      await nxms.closeClaim(clid);
       now = await latestTime();
       let minVoteTime = await cd.minVotingTime();
       await increaseTimeTo(now / 1 + minVoteTime / 1 + 10);

@@ -63,7 +63,7 @@ async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
   assert.isTrue(isBooked);
 }
 
-async function concludeClaimWithOraclize ({ cl, cd, master, now, expectedClaimStatusNumber }) {
+async function closeClaim ({ cl, cd, master, now, expectedClaimStatusNumber }) {
 
   const claimId = (await cd.actualClaimLength()) - 1;
   const minVotingTime = await cd.minVotingTime();
@@ -141,7 +141,7 @@ describe('burns', function () {
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -211,7 +211,7 @@ describe('burns', function () {
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
@@ -271,7 +271,7 @@ describe('burns', function () {
     await submitMemberVotes({ ...this.contracts, voteValue: -1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '6' });
+    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '6' });
 
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
@@ -319,7 +319,7 @@ describe('burns', function () {
     const now = await time.latest();
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');
@@ -456,7 +456,7 @@ describe('burns', function () {
     await submitMemberVotes({ ...this.contracts, voteValue: 1 });
 
     const balanceBefore = await tk.balanceOf(ps.address);
-    await concludeClaimWithOraclize({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
+    await closeClaim({ ...this.contracts, now, expectedClaimStatusNumber: '14' });
 
     assert(await ps.hasPendingActions());
     await ps.processPendingActions('100');

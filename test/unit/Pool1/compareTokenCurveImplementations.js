@@ -26,10 +26,8 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool1MockOldMCR = artifacts.require('Pool1MockOldMCR');
 const Pool1MockOldPool1 = artifacts.require('Pool1MockOldPool1');
 
-const maxRelativeError = Decimal(0.002);
-
 async function compareBuyValues(
-  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
+  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
 ) {
   const oldState = await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old }
@@ -67,11 +65,11 @@ async function compareBuyValues(
       .sub(tokensReceivedMember1Decimal)
       .abs().div(tokensReceivedMember2Decimal);
     highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
-    console.log({ relativeError: relativeError.toString() });
+    console.log({ relativeError: relativeError.toString(), highestRelativeError: highestRelativeError.toString() });
     assert(
       relativeError.lt(maxRelativeError),
       `Resulting token value ${tokensReceivedMember1Decimal.toFixed()} is not close enough to expected ${tokensReceivedMember2Decimal.toFixed()}
-       Relative error: ${relativeError}`
+       Relative error: ${relativeError}. Difference: ${tokensReceivedMember1Decimal.sub(tokensReceivedMember2Decimal).div(1e18).toFixed()}`
     );
 
     if (buyValue.lt(poolBalanceStep)) {
@@ -89,7 +87,7 @@ async function compareBuyValues(
     ({ totalAssetValue, mcrPercentage } = await current.mcr.calVtpAndMCRtp());
   }
   console.log({
-    highestRelativeError: highestRelativeError.toFixed()
+    highestRelativeError: highestRelativeError
   });
 }
 
@@ -164,7 +162,7 @@ async function setupBothImplementations() {
   this.old = await setup({ MCR: Pool1MockOldMCR, Pool1: Pool1MockOldPool1 });
 }
 
-describe('compareTokenCurveImplementations', function () {
+describe.only('compareTokenCurveImplementations', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -172,39 +170,55 @@ describe('compareTokenCurveImplementations', function () {
 
   before(setupBothImplementations);
 
-  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 100 ETH', async function () {
+  it.only('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 0.1 ETH', async function () {
+    const { old, current } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('0.1');
+    const poolBalanceStep = ether('30000');
+    const maxRelativeError = Decimal(0.0001);
+    await compareBuyValues(
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
+    );
+  });
+
+  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 10 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('100');
     const poolBalanceStep = ether('30000');
+    const maxRelativeError = Decimal(0.002);
     await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
     );
   });
 
-  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 100 ETH', async function () {
-    const { old, current } = this;
-
-    const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth;
-    const buyValue = ether('100');
-    const poolBalanceStep = ether('30000');
-    await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
-    );
-  });
-
-  it.skip('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 1000 ETH', async function () {
+  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 1000 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
     const poolBalanceStep = ether('30000');
+    const maxRelativeError = Decimal(0.01);
     await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, daiRate, ethRate, old, current }
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
+    );
+  });
+
+  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 10000 ETH', async function () {
+    const { old, current } = this;
+
+    const mcrEth = ether('320000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('10000');
+    const poolBalanceStep = ether('30000');
+    const maxRelativeError = Decimal(0.017);
+    await compareBuyValues(
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
     );
   });
 });

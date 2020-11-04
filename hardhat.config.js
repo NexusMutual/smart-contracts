@@ -27,7 +27,15 @@ module.exports = {
       blockGasLimit: 12e9,
     },
   },
-  solidity: '0.5.17',
+  solidity: {
+    version: '0.5.17',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 1000
+      }
+    }
+  },
   typechain: {
     outDir: 'types',
     target: 'truffle-v5',

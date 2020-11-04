@@ -308,6 +308,8 @@ contract('MCR', function([owner, notOwner]) {
     it('11.21 mcr if vtp is 0', async function() {
       await tf.upgradeCapitalPool(cad.address);
       await p1.upgradeInvestmentPool(cad.address);
+      const mcrLengthBefore = await pd.getMCRDataLength();
+
       await mcr.addMCRData(
         18000,
         toWei(100),
@@ -320,17 +322,16 @@ contract('MCR', function([owner, notOwner]) {
       ((await mcr.variableMincap()) / 1e18)
         .toString()
         .should.be.equal((357.0703507).toString());
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      let timeINC =
-        (await pd.getDateAddOfAPI(APIID)) / 1 +
-        (await pd.mcrFailTime()) / 1 +
-        100;
-      await increaseTimeTo(timeINC);
-      await p1.__callback(APIID, '');
+
+      const mcrLengthAfter = await pd.getMCRDataLength();
+      assert.strictEqual(
+        mcrLengthBefore.toString(),
+        mcrLengthAfter.toString(),
+        'mcr should have not been posted',
+      );
     });
     it('11.22 rebalancing trade if total risk balance is 0', async function() {
       await p1.sendEther({from: owner, value: toWei(2)});
-
       await p2.saveIADetails(
         ['0x455448', '0x444149'],
         [100, 15517],
@@ -341,6 +342,8 @@ contract('MCR', function([owner, notOwner]) {
     it('11.23 if mcr fails and retry after new mcr posted', async function() {
       await tf.upgradeCapitalPool(cad.address);
       await p1.upgradeInvestmentPool(cad.address);
+      const mcrLengthBefore = await pd.getMCRDataLength();
+
       await mcr.addMCRData(
         18000,
         toWei(100),
@@ -353,7 +356,14 @@ contract('MCR', function([owner, notOwner]) {
       ((await mcr.variableMincap()) / 1e18)
         .toString()
         .should.be.equal((430.64105420699997).toString());
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
+
+      const mcrLengthMid = await pd.getMCRDataLength();
+      assert.strictEqual(
+        mcrLengthBefore.toString(),
+        mcrLengthMid.toString(),
+        'mcr should have not been posted',
+      );
+
       await mcr.addMCRData(
         18000,
         toWei(100),
@@ -366,22 +376,15 @@ contract('MCR', function([owner, notOwner]) {
       ((await mcr.variableMincap()) / 1e18)
         .toString()
         .should.be.equal((504.94746474907004).toString());
-      await assertRevert(p1.__callback(APIID, '')); // to cover else branch (if call comes before callback time)
-      let timeINC =
-        (await pd.getDateAddOfAPI(APIID)) / 1 +
-        (await pd.mcrFailTime()) / 1 +
-        100;
-      await increaseTimeTo(timeINC);
-      await p1.__callback(APIID, '');
+
+      const mcrLengthAfter = await pd.getMCRDataLength();
+      assert.strictEqual(
+        mcrLengthMid.toString(),
+        mcrLengthAfter.toString(),
+        'mcr should have not been posted',
+      );
     });
 
-    it('11.24 get orcalise call details', async function() {
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      let curr = await pd.getCurrOfApiId(APIID);
-      let id = await pd.getApiCallIndex(1);
-      let dateUPD = await pd.getDateUpdOfAPI(APIID);
-      let details = await pd.getApiCallDetails(APIID);
-    });
     it('should not be able to update capital model parameters directly', async function() {
       await assertRevert(mcr.updateUintParameters('0x49434e', 12));
     });

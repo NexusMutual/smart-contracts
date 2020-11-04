@@ -242,7 +242,6 @@ contract('NXMaster', function(accounts) {
         (await gov.getUintParameters(toHex('MAXFOL')))[1].toNumber(),
         7
       );
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
     });
 
     it('Status=12 issue should be resolved after upgrade', async function() {
@@ -280,12 +279,11 @@ contract('NXMaster', function(accounts) {
       clid = (await cd.actualClaimLength()) - 1;
       let payOutRetry = await cd.payoutRetryTime();
       await increaseTime(payOutRetry / 1);
-      let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
 
       const psAddress = await nxms.getLatestAddress(toHex('PS'));
       const ps = await PooledStaking.at(psAddress);
 
-      await pl1.__callback(apiid, '');
+      await nxms.closeClaim(clid);
       let cStatus = await cd.getClaimStatusNumber(clid);
       (12).should.be.equal(parseFloat(cStatus[1]));
 
@@ -294,37 +292,17 @@ contract('NXMaster', function(accounts) {
       await ps.pushRewards([smartConAdd]);
       await ps.processPendingActions('100');
 
-      apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 2);
-      await assertRevert(pl1.__callback(apiid, ''));
       await assertRevert(nxms.closeClaim(clid));
       await increaseTime(payOutRetry / 1);
       await nxms.closeClaim(clid);
       assert.equal(await cd.getClaimState12Count(clid), 1);
       await increaseTime(payOutRetry / 1);
-      await pl1.__callback(apiid, '');
+      await nxms.closeClaim(clid);
       assert.equal(await cd.getClaimState12Count(clid), 2);
       await pl1.sendEther({from: owner, value: BalE});
       await dai.transfer(pl1.address, BalD);
       await increaseTime(payOutRetry / 1);
       await nxms.closeClaim(clid);
-    });
-
-    it('Creating scenario for external liquidity trade, Should not allow to call before call time is reached', async function() {
-      await pl1.transferFundToOtherAdd(owner, toWei(999));
-      // await pl1.upgradeInvestmentPool(owner);
-      await pl1.sendEther({from: owner, value: toWei(1000)});
-      await dai.transfer(pl2.address, toWei(20));
-      await pl1.internalLiquiditySwap(toHex('ETH'));
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await assertRevert(pl1.__callback(APIID, ''));
-    });
-
-    it('Creating scenario for external liquidity trade, Should not allow to call multiple times when time is reached', async function() {
-      await increaseTime(5 * 60 * 60);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await pl1.__callback(APIID, '');
-      await assertRevert(pl1.__callback(APIID, ''));
-      await assertRevert(pl1.__callback(APIID, ''));
     });
 
     it('Create scenario start emergency pause, should be closed by callback after pauseTime', async function() {

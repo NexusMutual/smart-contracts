@@ -1427,6 +1427,10 @@ contract('Quotation', function([
         );
       });
       it('6.53 should fail add mcr if lower threshold not reached', async function() {
+
+        const oraclizeLength = await pd.getApilCallLength();
+        const mcrLength = await pd.getMCRDataLength();
+
         await mcr.addMCRData(
           parseInt((await getValue(toWei(2), pd, mcr)) / 2),
           toWei(100),
@@ -1435,8 +1439,24 @@ contract('Quotation', function([
           [100, 65407],
           20181011
         );
-        var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-        (await pd.getApiIdTypeOf(APIID)).should.be.equal('0x4d435246');
+
+        const oraclizeLengthAfter = await pd.getApilCallLength();
+        const mcrLengthAfter = await pd.getMCRDataLength();
+
+        // addMCRData shouldn't have added the erroneous mcr
+        assert.strictEqual(
+          mcrLength.toString(),
+          mcrLengthAfter.toString(),
+          'mcr should not have been added',
+        );
+
+        // oraclize length should stay the same as we removed this feature
+        assert.strictEqual(
+          oraclizeLength.toString(),
+          oraclizeLengthAfter.toString(),
+          'oraclize length should stay the same'
+        );
+
       });
       it('6.54 should throw if call kycVerdict with non authorised address', async function() {
         await assertRevert(qt.kycVerdict(member1, true, {from: member1}));

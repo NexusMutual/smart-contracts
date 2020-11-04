@@ -299,19 +299,12 @@ contract('Claim', function(accounts) {
                 vrsdata[2],
                 {from: coverHolder, value: coverDetails[1]}
               );
+
               coverID = await qd.getAllCoversOfUser(coverHolder);
-              var APIID = await pd.allAPIcall(
-                (await pd.getApilCallLength()) - 1
-              );
-
               const validity = await qd.getValidityOfCover(coverID[1]);
-              await increaseTimeTo(
-                new BN(validity.toString()).add(new BN((2).toString()))
-              );
-              qt.expireCover(coverID[1]);
 
-              APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-              await P1.__callback(APIID, '');
+              await increaseTimeTo(validity.addn(2).toNumber());
+              await qt.expireCover(coverID[1]);
             });
             it('7.7 reverts', async function() {
               coverID = await qd.getAllCoversOfUser(coverHolder);

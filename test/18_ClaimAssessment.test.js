@@ -509,7 +509,6 @@ contract('Claim: Assessment 2', function (addresses) {
       await assertRevert(tf.depositCN(46, { from: owner }));
 
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       // try submitting the same claim again (to pass the TokenData.sol setDepositCN's require condition of the coverage report)
       // await assertRevert(cl.submitClaim(coverID[0], { from: coverHolder5 }));
@@ -537,7 +536,7 @@ contract('Claim: Assessment 2', function (addresses) {
       closingTime = minVotingTime.add(now);
 
       await increaseTimeTo(closingTime.sub(toBN(10)));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       assert.equal((await cd.getClaimStatusNumber(claimID))[1].toString(), '0');
@@ -550,7 +549,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const balanceBefore = toBN((await web3.eth.getBalance(coverHolder5)).toString());
 
       // changing the claim status here
-      await nxms.closeClaim(await pd.getIdOfApiId(APIID));
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       const balanceAfter = toBN((await web3.eth.getBalance(coverHolder5)).toString());
@@ -622,8 +621,6 @@ contract('Claim: Assessment 2', function (addresses) {
 
       const coverID = await qd.getAllCoversOfUser(coverHolder5);
       await cl.submitClaim(coverID[0], { from: coverHolder5 });
-
-      const APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
       const claimID = (await cd.actualClaimLength()).subn(1);
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
@@ -646,7 +643,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const balanceBefore = toBN((await web3.eth.getBalance(coverHolder5)).toString());
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder5);
 
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(await ps.hasPendingActions(), 'should have pending actions');
       await ps.processPendingActions('100');
 
@@ -747,8 +744,7 @@ contract('Claim: Assessment 2', function (addresses) {
       let balanceBefore = await dai.balanceOf(coverHolder3);
       let totalBalanceBefore = await tc.totalBalanceOf(coverHolder3);
 
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -770,8 +766,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.add(toBN(2)));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
@@ -852,7 +847,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder3);
       await cl.submitClaim(coverID[0], { from: coverHolder3 });
       const claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -875,7 +869,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder3);
 
       // changing the claim status here, vote is not conclusive
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(!(await ps.hasPendingActions()), 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -893,8 +887,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert((await ps.hasPendingActions()), 'should have pending actions');
       await ps.processPendingActions('100');
 
@@ -1010,8 +1003,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder1);
 
       // // changing the claim status here
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -1032,8 +1024,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
@@ -1126,7 +1117,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder1);
       await cl.submitClaim(coverID[0], { from: coverHolder1 });
       const claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -1156,7 +1146,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const balanceBefore = toBN((await web3.eth.getBalance(coverHolder1)).toString());
 
       // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(!(await ps.hasPendingActions()), 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -1177,8 +1167,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(await ps.hasPendingActions(), 'should have pending actions');
       await ps.processPendingActions('100');
 
@@ -1299,8 +1288,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder2);
 
       // // changing the claim status here
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(!(await ps.hasPendingActions()), 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -1322,8 +1310,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(!(await ps.hasPendingActions()), 'should not have pending actions');
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
@@ -1418,7 +1405,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder2);
       await cl.submitClaim(coverID[0], { from: coverHolder2 });
       const claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -1445,7 +1431,7 @@ contract('Claim: Assessment 2', function (addresses) {
       let totalBalanceBefore = await tc.totalBalanceOf(coverHolder2);
 
       // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(!(await ps.hasPendingActions()), 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -1466,8 +1452,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
       await ps.processPendingActions('100');
 
@@ -1559,7 +1544,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder4);
       await cl.submitClaim(coverID[0], { from: coverHolder4 });
       const claimID = (await cd.actualClaimLength()).subn(1);
-      const APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -1589,7 +1573,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder4);
 
       // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert(!(await ps.hasPendingActions()), 'should not have pending actions');
 
       const balanceAfter = toBN((await web3.eth.getBalance(coverHolder4)).toString());
@@ -1673,7 +1657,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder4);
       await cl.submitClaim(coverID[0], { from: coverHolder4 });
       const claimID = (await cd.actualClaimLength()).subn(1);
-      const APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -1703,7 +1686,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder4);
 
       // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
       await ps.processPendingActions('100');
 
@@ -1788,7 +1771,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder6);
       await cl.submitClaim(coverID[0], { from: coverHolder6 });
       let claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -1812,7 +1794,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder6);
 
       // // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -1830,8 +1812,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
@@ -1908,7 +1889,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder6);
       await cl.submitClaim(coverID[0], { from: coverHolder6 });
       let claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -1932,7 +1912,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder6);
 
       // // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -1950,8 +1930,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
       await ps.processPendingActions('100');
 
@@ -2026,7 +2005,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder7);
       await cl.submitClaim(coverID[0], { from: coverHolder7 });
       let claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       let maxVotingTime = await cd.maxVotingTime();
       let now = await latestTime();
@@ -2038,7 +2016,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder7);
 
       // // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       // now member voting started
@@ -2052,8 +2030,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should have pending actions');
 
       member1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(member1);
@@ -2113,7 +2090,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder7);
       await cl.submitClaim(coverID[0], { from: coverHolder7 });
       let claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -2143,7 +2119,7 @@ contract('Claim: Assessment 2', function (addresses) {
       let totalBalanceBefore = await tc.totalBalanceOf(coverHolder7);
 
       // // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -2164,8 +2140,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
@@ -2258,7 +2233,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder8);
       await cl.submitClaim(coverID[0], { from: coverHolder8 });
       let claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -2288,7 +2262,7 @@ contract('Claim: Assessment 2', function (addresses) {
       let totalBalanceBefore = await tc.totalBalanceOf(coverHolder8);
 
       // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -2308,8 +2282,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
       await ps.processPendingActions('100');
 
@@ -2403,7 +2376,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder9);
       await cl.submitClaim(coverID[0], { from: coverHolder9 });
       let claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -2423,7 +2395,7 @@ contract('Claim: Assessment 2', function (addresses) {
       let balanceBefore = toBN((await web3.eth.getBalance(coverHolder9)).toString());
       let totalBalanceBefore = await tc.totalBalanceOf(coverHolder9);
 
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -2443,8 +2415,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       await cr.claimAllPendingReward(20, { from: claimAssessor1 });
@@ -2531,7 +2502,6 @@ contract('Claim: Assessment 2', function (addresses) {
       const coverID = await qd.getAllCoversOfUser(coverHolder9);
       await cl.submitClaim(coverID[0], { from: coverHolder9 });
       let claimID = (await cd.actualClaimLength()).subn(1);
-      let APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
 
       claimAssessor1Data.initialDate = await tc.getLockedTokensValidity(claimAssessor1, CLA);
       claimAssessor2Data.initialDate = await tc.getLockedTokensValidity(claimAssessor2, CLA);
@@ -2552,7 +2522,7 @@ contract('Claim: Assessment 2', function (addresses) {
       const totalBalanceBefore = await tc.totalBalanceOf(coverHolder9);
 
       // changing the claim status here
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), false, 'should not have pending actions');
 
       claimAssessor1Data.rewardReceived = await cr.getRewardToBeDistributedByUser(claimAssessor1);
@@ -2573,8 +2543,7 @@ contract('Claim: Assessment 2', function (addresses) {
       await increaseTimeTo(closingTime.addn(2));
 
       // now member voting will be closed
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()).subn(1));
-      await p1.__callback(APIID, '');
+      await nxms.closeClaim(claimID);
       assert.equal(await ps.hasPendingActions(), true, 'should have pending actions');
       await ps.processPendingActions('100');
 

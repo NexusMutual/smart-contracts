@@ -252,8 +252,7 @@ contract('ClaimsReward', function([
         from: member1
       });
       claimed[1].should.be.equal(false);
-      let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await P1.__callback(apiid, '');
+      await nxms.closeClaim(claimId);
     });
     it('9.1 should change claim reward contract', async function() {
       let newCr = await ClaimsReward.new();
@@ -503,14 +502,13 @@ contract('ClaimsReward', function([
         newMember1,
         cl,
         cd,
-        pd,
-        P1,
+        nxms,
         '2000'
       );
       let initialBal = await tk.balanceOf(newMember1);
       await cr.claimAllPendingReward(3, {from: newMember1});
       let finalBal = await tk.balanceOf(newMember1);
-      assert.equal(parseFloat(returnData[0]), toWei(180));
+      assert.equal(parseFloat(returnData.totalOf3), toWei(180));
       balanceDifference = finalBal.sub(initialBal).toString();
       assert.equal(balanceDifference, toWei(180));
       let newLastIndex = await cd.getRewardDistributedIndex(newMember1);
@@ -522,7 +520,7 @@ contract('ClaimsReward', function([
       assert.equal(newLastIndex[0], initialLastClaimed[0] / 1 + 3);
       balanceDifference = finalBal.sub(initialBal).toString();
       assert.equal(balanceDifference, toWei(30));
-      await P1.__callback(returnData[1], '');
+      await nxms.closeClaim(returnData.pendingClaimId);
       initialBal = await tk.balanceOf(newMember1);
       await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
@@ -543,14 +541,13 @@ contract('ClaimsReward', function([
         newMember1,
         cl,
         cd,
-        pd,
-        P1,
+        nxms,
         '2000'
       );
       let initialBal = await tk.balanceOf(newMember1);
       await cr.claimAllPendingReward(3, {from: newMember1});
       let finalBal = await tk.balanceOf(newMember1);
-      assert.equal(parseFloat(returnData[0]), toWei(180));
+      assert.equal(parseFloat(returnData.totalOf3), toWei(180));
       balanceDifference = finalBal.sub(initialBal).toString();
       assert.equal(balanceDifference, toWei(180));
       let newLastIndex = await cd.getRewardDistributedIndex(newMember1);
@@ -562,7 +559,7 @@ contract('ClaimsReward', function([
       assert.equal(newLastIndex[1], initialLastClaimed[1] / 1 + 3);
       balanceDifference = finalBal.sub(initialBal).toString();
       assert.equal(balanceDifference, toWei(30));
-      await P1.__callback(returnData[1], '');
+      await nxms.closeClaim(returnData.pendingClaimId);
       initialBal = await tk.balanceOf(newMember1);
       await cr.claimAllPendingReward(3, {from: newMember1});
       finalBal = await tk.balanceOf(newMember1);
@@ -586,45 +583,53 @@ async function claimAssesmentVoting(
   newMember1,
   cl,
   cd,
-  pd,
-  P1,
+  nxms,
   _increaseTime
 ) {
-  let totalOf3;
-  let total;
-  let pendingClaimAPIId;
 
-  claimId = await cd.actualClaimLength();
+  const increaseTime = parseInt(_increaseTime.toString(), 10);
+  let firstClaimId = (await cd.actualClaimLength()).toNumber();
+  let totalOf3;
+  let pendingClaimId;
+
   for (let i = 0; i < 5; i++) {
-    await cl.submitClaim(coverid[i], {from: newMember2});
-    if (ca == 1) await cl.submitCAVote(claimId, -1, {from: newMember1});
-    let now = await latestTime();
-    closingTime = new BN(_increaseTime.toString()).add(new BN(now.toString()));
-    await increaseTimeTo(
-      new BN(closingTime.toString()).add(new BN((1).toString()))
-    );
-    let apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-    if (i != 3 || ca != 1) await P1.__callback(apiid, '');
-    else pendingClaimAPIId = apiid;
-    if (ca != 1) {
-      await cl.submitMemberVote(claimId, -1, {from: newMember1});
-      now = await latestTime();
-      closingTime = new BN(_increaseTime.toString()).add(
-        new BN(now.toString())
-      );
-      await increaseTimeTo(
-        new BN(closingTime.toString()).add(new BN((1).toString()))
-      );
-      apiid = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      if (i != 3) await P1.__callback(apiid, '');
-      else pendingClaimAPIId = apiid;
+
+    await cl.submitClaim(coverid[i], { from: newMember2 });
+    const claimId = firstClaimId + i;
+
+    if (ca === 1) {
+      await cl.submitCAVote(claimId, -1, { from: newMember1 });
     }
-    claimId = claimId / 1 + 1;
-    if (i == 2) totalOf3 = await cr.getRewardToBeDistributedByUser(newMember1);
+
+    const now = await latestTime();
+    await increaseTimeTo(increaseTime + now + 1);
+
+    if (i !== 3 || ca !== 1) {
+      await nxms.closeClaim(claimId);
+    } else {
+      pendingClaimId = claimId;
+    }
+
+    if (ca !== 1) {
+
+      await cl.submitMemberVote(claimId, -1, { from: newMember1 });
+      const now = await latestTime();
+      await increaseTimeTo(increaseTime + now + 1);
+
+      if (i !== 3) {
+        await nxms.closeClaim(claimId);
+      } else {
+        pendingClaimId = claimId;
+      }
+
+    }
+
+    if (i === 2) {
+      totalOf3 = await cr.getRewardToBeDistributedByUser(newMember1);
+    }
   }
-  total = await cr.getRewardToBeDistributedByUser(newMember1);
-  let returnData = [];
-  returnData.push(totalOf3);
-  returnData.push(pendingClaimAPIId);
-  return returnData;
+
+  await cr.getRewardToBeDistributedByUser(newMember1);
+
+  return { totalOf3, pendingClaimId };
 }

@@ -1,6 +1,4 @@
-describe('PooledStaking integration tests', function () {
-
-  this.timeout(0);
+describe('Pooled staking', function () {
 
   require('./rewardsAndBurns');
 

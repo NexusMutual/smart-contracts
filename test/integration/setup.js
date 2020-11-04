@@ -236,13 +236,13 @@ async function setup () {
   const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr: mc };
   const proxies = { tc, gv, pc, mr, ps };
 
-  Object.assign(this, {
+  this.contracts = {
     master,
     ...external,
     ...nonUpgradable,
     ...instances,
     ...proxies,
-  });
+  };
 }
 
 module.exports = setup;

@@ -1,7 +1,6 @@
-.idea
-.openzeppelin/.lock
-.openzeppelin/.session
-.openzeppelin/personal.json
 .env
+.idea
+artifacts
+cache
 build
 node_modules

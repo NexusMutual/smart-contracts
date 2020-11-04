@@ -1,44 +1,44 @@
-const { contract, defaultSender } = require('@openzeppelin/test-environment');
+const { accounts, artifacts } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 
 // external
-const ERC20Mock = contract.fromArtifact('ERC20Mock');
-const DSValue = contract.fromArtifact('NXMDSValueMock');
-const ExchangeFactoryMock = contract.fromArtifact('ExchangeFactoryMock');
-const ExchangeMock = contract.fromArtifact('ExchangeMock');
-const OwnedUpgradeabilityProxy = contract.fromArtifact('OwnedUpgradeabilityProxy');
+const ERC20Mock = artifacts.require('ERC20Mock');
+const DSValue = artifacts.require('NXMDSValueMock');
+const ExchangeFactoryMock = artifacts.require('ExchangeFactoryMock');
+const ExchangeMock = artifacts.require('ExchangeMock');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 
 // nexusmutual
-const NXMToken = contract.fromArtifact('NXMToken');
-const Claims = contract.fromArtifact('Claims');
-const ClaimsData = contract.fromArtifact('ClaimsData');
-const ClaimsReward = contract.fromArtifact('ClaimsReward');
-const MCR = contract.fromArtifact('MCR');
-const TokenData = contract.fromArtifact('TokenData');
-const TokenFunctions = contract.fromArtifact('TokenFunctions');
-const Pool1 = contract.fromArtifact('Pool1Mock');
-const Pool2 = contract.fromArtifact('Pool2');
-const PoolData = contract.fromArtifact('PoolData');
-const Quotation = contract.fromArtifact('Quotation');
-const QuotationData = contract.fromArtifact('QuotationData');
-const ClaimProofs = contract.fromArtifact('ClaimProofs');
+const NXMToken = artifacts.require('NXMToken');
+const Claims = artifacts.require('Claims');
+const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsReward = artifacts.require('ClaimsReward');
+const MCR = artifacts.require('MCR');
+const TokenData = artifacts.require('TokenData');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const Pool1 = artifacts.require('Pool1Mock');
+const Pool2 = artifacts.require('Pool2');
+const PoolData = artifacts.require('PoolData');
+const Quotation = artifacts.require('Quotation');
+const QuotationData = artifacts.require('QuotationData');
+const ClaimProofs = artifacts.require('ClaimProofs');
 
 // temporary contracts used for initialization
-const DisposableNXMaster = contract.fromArtifact('DisposableNXMaster');
-const DisposableMemberRoles = contract.fromArtifact('DisposableMemberRoles');
-const DisposableTokenController = contract.fromArtifact('DisposableTokenController');
-const DisposableProposalCategory = contract.fromArtifact('DisposableProposalCategory');
-const DisposableGovernance = contract.fromArtifact('DisposableGovernance');
-const DisposablePooledStaking = contract.fromArtifact('DisposablePooledStaking');
+const DisposableNXMaster = artifacts.require('DisposableNXMaster');
+const DisposableMemberRoles = artifacts.require('DisposableMemberRoles');
+const DisposableTokenController = artifacts.require('DisposableTokenController');
+const DisposableProposalCategory = artifacts.require('DisposableProposalCategory');
+const DisposableGovernance = artifacts.require('DisposableGovernance');
+const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
 
 // target contracts
-const NXMaster = contract.fromArtifact('NXMaster');
-const MemberRoles = contract.fromArtifact('MemberRoles');
-const TokenController = contract.fromArtifact('TokenController');
-const ProposalCategory = contract.fromArtifact('ProposalCategory');
-const Governance = contract.fromArtifact('Governance');
-const PooledStaking = contract.fromArtifact('PooledStaking');
+const NXMaster = artifacts.require('NXMaster');
+const MemberRoles = artifacts.require('MemberRoles');
+const TokenController = artifacts.require('TokenController');
+const ProposalCategory = artifacts.require('ProposalCategory');
+const Governance = artifacts.require('Governance');
+const PooledStaking = artifacts.require('PooledStaking');
 
 const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
 const INITIAL_SUPPLY = ether('1500000');
@@ -64,7 +64,7 @@ const transferProxyOwnership = async (proxyAddress, newOwner) => {
 
 async function setup () {
 
-  const owner = defaultSender;
+  const [owner] = accounts;
 
   // deploy external contracts
   const dai = await ERC20Mock.new();

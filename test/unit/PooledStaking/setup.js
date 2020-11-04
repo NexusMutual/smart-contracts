@@ -1,16 +1,16 @@
-const { contract, defaultSender } = require('@openzeppelin/test-environment');
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { artifacts } = require('hardhat');
+const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const { Role, ParamType } = require('../utils').constants;
-const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
+const accounts = require('../utils').accounts;
 
-const MasterMock = contract.fromArtifact('MasterMock');
-const MemberRolesMock = contract.fromArtifact('MemberRolesMock');
-const PooledStaking = contract.fromArtifact('PooledStaking');
-const TokenMock = contract.fromArtifact('NXMTokenMock');
-const TokenControllerMock = contract.fromArtifact('TokenControllerMock');
+const MasterMock = artifacts.require('MasterMock');
+const MemberRolesMock = artifacts.require('MemberRolesMock');
+const PooledStaking = artifacts.require('PooledStaking');
+const TokenMock = artifacts.require('NXMTokenMock');
+const TokenControllerMock = artifacts.require('TokenControllerMock');
 
 async function setup () {
 
@@ -20,7 +20,7 @@ async function setup () {
   const token = await TokenMock.new();
   const tokenController = await TokenControllerMock.new();
 
-  await token.mint(defaultSender, ether('10000'));
+  await token.mint(accounts.defaultSender, ether('10000'));
 
   // set contract addresses
   await master.setTokenAddress(token.address);

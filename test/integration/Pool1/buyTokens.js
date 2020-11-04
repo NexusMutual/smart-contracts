@@ -1,5 +1,5 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 const Decimal = require('decimal.js');
@@ -10,11 +10,7 @@ const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('../setup');
 
-const [
-  , member1, member2, member3,
-  staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10,
-  coverHolder, fundSource
-] = accounts;
+const [, member1, member2, member3, fundSource, nonMember1] = accounts;
 
 const tokensLockedForVoting = ether('200');
 const validity = 360 * 24 * 60 * 60; // 360 days
@@ -24,9 +20,7 @@ const initialMemberFunds = ether('2500');
 async function initMembers () {
 
   const { mr, tk, tc } = this.contracts;
-
-  this.allStakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
-  const members = [member1, member2, member3, ...this.allStakers, coverHolder];
+  const members = [member1, member2, member3];
 
   for (const member of members) {
     await mr.payJoiningFee(member, { from: member, value: ether('0.002') });
@@ -38,8 +32,6 @@ async function initMembers () {
   for (const member of members) {
     await tc.lock(hex('CLA'), tokensLockedForVoting, validity, { from: member });
   }
-
-  this.allMembers = members;
 }
 
 async function getContractState(
@@ -115,6 +107,16 @@ describe.only('buyTokens', function () {
   this.timeout(0);
   this.slow(5000);
   beforeEach(initMembers);
+
+  it('reverts for non-member', async function () {
+    const { p1: pool1 } = this.contracts;
+
+    const buyValue = ether('10');
+    await expectRevert(
+      pool1.buyTokens('0', { from: nonMember1, value: buyValue }),
+      'Not member'
+    );
+  });
 
   it('mints tokens for member in exchange of ETH', async function () {
 

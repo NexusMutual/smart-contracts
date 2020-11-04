@@ -237,15 +237,13 @@ contract('NXMaster: Emergency Pause', function([
     it('10.2 should let deny claim', async function() {
       const coverID = await qd.getAllCoversOfUser(coverHolder3);
       await cl.submitClaim(coverID[0], {from: coverHolder3});
-      var APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
       const claimId = (await cd.actualClaimLength()) - 1;
       let nowTime = await latestTime();
       await increaseTimeTo(nowTime / 1 + (await cd.maxVotingTime()) / 1 + 100);
-      await P1.__callback(APIID, '');
+      await nxms.closeClaim(claimId);
       nowTime = await latestTime();
       await increaseTimeTo(nowTime / 1 + (await cd.maxVotingTime()) / 1 + 100);
-      APIID = await pd.allAPIcall((await pd.getApilCallLength()) - 1);
-      await P1.__callback(APIID, '');
+      await nxms.closeClaim(claimId);
       let cid = await cd.getAllClaimsByIndex(claimId);
       ((await qd.getCoverStatusNo(cid[0])) / 1)
         .toString()

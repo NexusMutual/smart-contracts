@@ -602,8 +602,7 @@ async function claimAssesmentVoting(
     }
 
     const now = await latestTime();
-    const closingTime = increaseTime + now + 1;
-    await increaseTimeTo(closingTime);
+    await increaseTimeTo(increaseTime + now + 1);
 
     if (i !== 3 || ca !== 1) {
       await nxms.closeClaim(claimId);
@@ -614,7 +613,8 @@ async function claimAssesmentVoting(
     if (ca !== 1) {
 
       await cl.submitMemberVote(claimId, -1, { from: newMember1 });
-      await increaseTimeTo(closingTime);
+      const now = await latestTime();
+      await increaseTimeTo(increaseTime + now + 1);
 
       if (i !== 3) {
         await nxms.closeClaim(claimId);

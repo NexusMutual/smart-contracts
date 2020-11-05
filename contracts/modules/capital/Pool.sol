@@ -21,14 +21,16 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../abstract/MasterAware.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
-import "./OracleAggregator.sol";
+import "../oracles/UniswapOracle.sol";
 
 contract Pool is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
+  /* storage */
+
   IUniswapV2Router02 public router;
-  OracleAggregator public oracle;
+  UniswapOracle public twapOracle;
   address public swapController;
 
   address[] public assets;
@@ -36,7 +38,18 @@ contract Pool is MasterAware, ReentrancyGuard {
   mapping(address => uint) public maxAmount;
   mapping(address => uint) public lastSwapTime;
 
+  /* constants */
+
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+  // 18 decimals of precision. 1e14 = 0.0001 = 0.01%
+  uint constant public MAX_SLIPPAGE = 1e14;
+
+  /* events */
+
+  event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
+
+  /* logic */
 
   modifier onlySwapController {
     require(msg.sender == swapController, '!swapController');
@@ -65,7 +78,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     }
 
     router = IUniswapV2Router02(_router);
-    oracle = OracleAggregator(_oracle);
+    twapOracle = UniswapOracle(_oracle);
     swapController = _swapController;
   }
 
@@ -74,6 +87,8 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   // for Pool1 upgrade compatibility
   function sendEther() external payable {}
+
+  /* swap functions */
 
   function getSwapQuote(
     uint tokenAmountIn,
@@ -84,50 +99,89 @@ contract Pool is MasterAware, ReentrancyGuard {
     address[] memory path = new address[](2);
     path[0] = address(fromToken);
     path[1] = address(toToken);
-
     uint[] memory amountsOut = router.getAmountsOut(tokenAmountIn, path);
 
     return amountsOut[1];
   }
 
-  function swapETHForTokens(address toToken, uint amountIn, uint amountOutMin) external onlySwapController {
-  }
+  function swapETHForTokens(address toTokenAddress, uint amountIn, uint amountOutMin) external onlySwapController nonReentrant {
 
-  function swapTokensForETH(address fromToken, uint amountIn, uint amountOutMin) external onlySwapController {
-  }
+    IERC20 toToken = IERC20(toTokenAddress);
+    uint balanceBefore = toToken.balanceOf(address(this));
 
-  function _swapETHForTokens(IERC20 toToken, uint amountIn, uint amountOutMin) internal {
+    {
+      // scope for ether checks
+      uint ethBalanceBefore = address(this).balance;
+      uint ethBalanceAfter = ethBalanceBefore.sub(amountIn);
+      uint minEth = minAmount[ETH];
 
-    uint amountBefore = toToken.balanceOf(address(this));
+      require(ethBalanceAfter >= minEth, 'inssufficient ether left');
+    }
+
+    {
+      // scope for token checks
+      uint min = minAmount[toTokenAddress];
+      uint max = maxAmount[toTokenAddress];
+
+      uint avgAmountOut = twapOracle.consult(ETH, amountIn, toTokenAddress);
+      uint maxSlippageAmount = avgAmountOut.mul(MAX_SLIPPAGE).div(1e18);
+      uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
+
+      require(amountOutMin > minOutOnMaxSlippage, 'max slippage exceeded');
+      require(balanceBefore < min, 'balanceBefore >= min');
+      require(balanceBefore.add(amountOutMin) <= max, 'balanceAfter > max');
+    }
 
     address[] memory path = new address[](2);
     path[0] = router.WETH();
-    path[1] = address(toToken);
-
+    path[1] = toTokenAddress;
     router.swapExactETHForTokens.value(amountIn)(amountOutMin, path, address(this), block.timestamp);
 
-    uint amountAfter = toToken.balanceOf(address(this));
-    require(amountAfter.sub(amountBefore) >= amountOutMin, 'deficit');
+    uint balanceAfter = toToken.balanceOf(address(this));
+    uint amountOut = balanceAfter.sub(balanceBefore);
+    require(balanceAfter.sub(balanceBefore) >= amountOutMin, 'amount out too small');
+
+    emit Swapped(ETH, toTokenAddress, amountIn, amountOut);
   }
 
-  function _swapTokensForETH(IERC20 fromToken, uint amountIn, uint amountOutMin) internal {
+  function swapTokensForETH(address fromTokenAddress, uint amountIn, uint amountOutMin) external onlySwapController nonReentrant {
 
-    uint amountBefore = address(this).balance;
+    IERC20 fromToken = IERC20(fromTokenAddress);
+    uint balanceBefore = address(this).balance;
+
+    {
+      // scope for token checks
+      uint min = minAmount[fromTokenAddress];
+      uint max = maxAmount[fromTokenAddress];
+
+      uint avgAmountOut = twapOracle.consult(fromTokenAddress, amountIn, ETH);
+      uint maxSlippageAmount = avgAmountOut.mul(MAX_SLIPPAGE).div(1e18);
+      uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
+
+      require(amountOutMin > minOutOnMaxSlippage, 'max slippage exceeded');
+      require(balanceBefore < min, 'balanceBefore >= min');
+      require(balanceBefore.add(amountOutMin) <= max, 'balanceAfter > max');
+    }
 
     address[] memory path = new address[](2);
     path[0] = address(fromToken);
     path[1] = router.WETH();
-
     fromToken.safeApprove(address(router), amountIn);
     router.swapExactTokensForETH(amountIn, amountOutMin, path, address(this), block.timestamp);
 
-    uint amountAfter = address(this).balance;
-    require(amountAfter.sub(amountBefore) >= amountOutMin, 'deficit');
+    uint balanceAfter = address(this).balance;
+    uint amountOut = balanceAfter.sub(balanceBefore);
+    require(amountOut >= amountOutMin, 'amount out too small');
+
+    emit Swapped(fromTokenAddress, ETH, amountIn, amountOut);
   }
 
-  function transferAsset(address asset, uint amount, address payable destination) external onlyGovernance {
+  /* pool lifecycle functions */
+
+  function transferAsset(address asset, uint amount, address payable destination) external onlyGovernance nonReentrant {
 
     require(maxAmount[asset] == 0, 'max not zero');
+    require(destination != address(0), 'dest zero');
 
     IERC20 token = IERC20(asset);
     uint balance = token.balanceOf(address(this));
@@ -136,7 +190,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransfer(destination, transferable);
   }
 
-  function upgradePool(address payable newPoolAddress) external onlyGovernance {
+  function upgradePool(address payable newPoolAddress) external onlyGovernance nonReentrant {
 
     for (uint i = 0; i < assets.length; i++) {
 

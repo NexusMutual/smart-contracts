@@ -95,6 +95,59 @@ contract Pool is MasterAware, ReentrancyGuard {
   // for Pool1 upgrade compatibility
   function sendEther() external payable {}
 
+  /* asset related functions */
+
+  function getAssets() external view returns (address[] assets) {
+    return assets;
+  }
+
+  function getAssetMinMax(address _asset) external view returns (uint min, uint max) {
+    return (minAmount[_asset], maxAmount[_asset]);
+  }
+
+  function addAsset(address _asset, uint _min, uint _max) external onlyGovernance {
+
+    for (uint i = 0; i < assets.length; i++) {
+      require(_asset != assets[i], 'asset exists');
+    }
+
+    assets.push(_asset);
+    minAmount[_asset] = _min;
+    maxAmount[_asset] = _max;
+  }
+
+  function removeAsset(address _asset) external onlyGovernance {
+
+    IERC20 token = IERC20(_asset);
+    uint tokenBalance = token.balanceOf(address(this));
+
+    require(tokenBalance == 0, 'balance must be 0');
+
+    for (uint i = 0; i < assets.length; i++) {
+
+      if (_asset != assets[i]) {
+        continue;
+      }
+
+      uint lastAssetIndex = assets.length - 1;
+      assets[i] = assets[lastAssetIndex];
+      assets.pop();
+
+      minAmount[_asset] = 0;
+      maxAmount[_asset] = 0;
+
+      return;
+    }
+
+    require(false, 'asset not found');
+  }
+
+  function setAssetMinMax(address _asset, uint _min, uint _max) external onlyGovernance {
+    require(_min <= _max, 'min > max');
+    minAmount[_asset] = _min;
+    maxAmount[_asset] = _max;
+  }
+
   /* swap functions */
 
   function getSwapQuote(

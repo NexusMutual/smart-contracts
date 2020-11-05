@@ -399,37 +399,6 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Calculates the Token Price of NXM in a given currency
-   * with provided token supply for dynamic token price calculation
-   * @param _curr Currency name.
-   * @return tokenPrice Token price.
-   */
-  function _calculateTokenPrice(
-    bytes4 _curr,
-    uint mcrtp
-  )
-  internal
-  view
-  returns (uint tokenPrice)
-  {
-    // TODO: refactor this
-    uint getA;
-    uint getC;
-    uint getCAAvgRate;
-    uint tokenExponentValue = td.tokenExponent();
-    // uint max = (mcrtp.mul(mcrtp).mul(mcrtp).mul(mcrtp));
-    uint max = mcrtp ** tokenExponentValue;
-    uint dividingFactor = tokenExponentValue.mul(4);
-    (getA, getC, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
-    uint mcrEth = pd.getLastMCREther();
-    getC = getC.mul(1e18);
-    tokenPrice = (mcrEth.mul(1e18).mul(max).div(getC)).div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(getA.mul(1e18).div(1e5));
-    tokenPrice = tokenPrice.mul(getCAAvgRate * 10);
-    tokenPrice = (tokenPrice).div(10 ** 3);
-  }
-
-  /**
    * @dev Adds MCR Data. Checks if MCR is within valid
    * thresholds in order to rule out any incorrect calculations
    */

@@ -31,6 +31,7 @@ contract Pool is MasterAware, ReentrancyGuard {
   /* storage */
 
   IUniswapV2Router02 public router;
+  // TODO: make oracle and controller updatable parameters
   UniswapOracle public twapOracle;
   address public swapController;
 
@@ -43,8 +44,10 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  // 18 decimals of precision. 1e14 = 0.0001 = 0.01%, 3 * 1e15 = 0.3%
+  // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
   uint constant public MAX_SLIPPAGE = 1e14;
+
+  // 0.3% -> 0.003 -> 3 * 1e15
   uint constant public MAX_TRADABLE_PAIR_LIQUIDITY = 3 * 1e15;
 
   /* events */
@@ -62,8 +65,9 @@ contract Pool is MasterAware, ReentrancyGuard {
     address[] memory _assets,
     uint[] memory _minAmounts,
     uint[] memory _maxAmounts,
+    address _master,
     address _router,
-    address _oracle,
+    address _twapOracle,
     address _swapController
   ) public {
 
@@ -79,8 +83,9 @@ contract Pool is MasterAware, ReentrancyGuard {
       maxAmount[_assets[i]] = _maxAmounts[i];
     }
 
+    master = INXMMaster(_master);
     router = IUniswapV2Router02(_router);
-    twapOracle = UniswapOracle(_oracle);
+    twapOracle = UniswapOracle(_twapOracle);
     swapController = _swapController;
   }
 
@@ -106,10 +111,18 @@ contract Pool is MasterAware, ReentrancyGuard {
     return amountsOut[1];
   }
 
-  function swapETHForTokens(address toTokenAddress, uint amountIn, uint amountOutMin) external onlySwapController nonReentrant {
+  function swapETHForTokens(
+    address toTokenAddress,
+    uint amountIn,
+    uint amountOutMin
+  ) external onlySwapController nonReentrant {
 
     IERC20 toToken = IERC20(toTokenAddress);
     uint balanceBefore = toToken.balanceOf(address(this));
+
+    // TODO: should we allow more frequent trades?
+    uint timeSinceLastTrade = block.timestamp.sub(lastSwapTime[toTokenAddress]);
+    require(timeSinceLastTrade > twapOracle.periodSize(), 'too fast');
 
     {
       // scope for liquidity check
@@ -127,41 +140,47 @@ contract Pool is MasterAware, ReentrancyGuard {
       // scope for ether checks
       uint ethBalanceBefore = address(this).balance;
       uint ethBalanceAfter = ethBalanceBefore.sub(amountIn);
-      uint minEth = minAmount[ETH];
-
-      require(ethBalanceAfter >= minEth, 'inssufficient ether left');
+      require(ethBalanceAfter >= minAmount[ETH], 'insufficient ether left');
     }
 
     {
       // scope for token checks
-      uint min = minAmount[toTokenAddress];
-      uint max = maxAmount[toTokenAddress];
-
       uint avgAmountOut = twapOracle.consult(ETH, amountIn, toTokenAddress);
       uint maxSlippageAmount = avgAmountOut.mul(MAX_SLIPPAGE).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
       require(amountOutMin > minOutOnMaxSlippage, 'max slippage exceeded');
-      require(balanceBefore < min, 'balanceBefore >= min');
-      require(balanceBefore.add(amountOutMin) <= max, 'balanceAfter > max');
+      require(balanceBefore < minAmount[toTokenAddress], 'balanceBefore >= min');
+      require(balanceBefore.add(amountOutMin) <= maxAmount[toTokenAddress], 'balanceAfter > max');
     }
 
     address[] memory path = new address[](2);
     path[0] = router.WETH();
     path[1] = toTokenAddress;
+    // TODO: pass deadline from off-chain?
     router.swapExactETHForTokens.value(amountIn)(amountOutMin, path, address(this), block.timestamp);
 
     uint balanceAfter = toToken.balanceOf(address(this));
     uint amountOut = balanceAfter.sub(balanceBefore);
     require(balanceAfter.sub(balanceBefore) >= amountOutMin, 'amount out too small');
 
+    lastSwapTime[toTokenAddress] = block.timestamp;
+
     emit Swapped(ETH, toTokenAddress, amountIn, amountOut);
   }
 
-  function swapTokensForETH(address fromTokenAddress, uint amountIn, uint amountOutMin) external onlySwapController nonReentrant {
+  function swapTokensForETH(
+    address fromTokenAddress,
+    uint amountIn,
+    uint amountOutMin
+  ) external onlySwapController nonReentrant {
 
     IERC20 fromToken = IERC20(fromTokenAddress);
     uint balanceBefore = address(this).balance;
+
+    // TODO: should we allow more frequent trades?
+    uint timeSinceLastTrade = block.timestamp.sub(lastSwapTime[fromTokenAddress]);
+    require(timeSinceLastTrade > twapOracle.periodSize(), 'too fast');
 
     {
       // scope for liquidity check
@@ -177,22 +196,20 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     {
       // scope for token checks
-      uint min = minAmount[fromTokenAddress];
-      uint max = maxAmount[fromTokenAddress];
-
       uint avgAmountOut = twapOracle.consult(fromTokenAddress, amountIn, ETH);
       uint maxSlippageAmount = avgAmountOut.mul(MAX_SLIPPAGE).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
       require(amountOutMin > minOutOnMaxSlippage, 'max slippage exceeded');
-      require(balanceBefore < min, 'balanceBefore >= min');
-      require(balanceBefore.add(amountOutMin) <= max, 'balanceAfter > max');
+      require(balanceBefore > maxAmount[fromTokenAddress], 'balanceBefore <= max');
+      require(balanceBefore.sub(amountIn) >= minAmount[fromTokenAddress], 'balanceAfter < min');
     }
 
     address[] memory path = new address[](2);
     path[0] = address(fromToken);
     path[1] = router.WETH();
     fromToken.safeApprove(address(router), amountIn);
+    // TODO: pass deadline from off-chain?
     router.swapExactTokensForETH(amountIn, amountOutMin, path, address(this), block.timestamp);
 
     uint balanceAfter = address(this).balance;
@@ -216,7 +233,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     token.safeTransfer(destination, transferable);
   }
 
-  function upgradePool(address payable newPoolAddress) external onlyGovernance nonReentrant {
+  function upgradeCapitalPool(address payable newPoolAddress) external onlyMaster nonReentrant {
 
     for (uint i = 0; i < assets.length; i++) {
 

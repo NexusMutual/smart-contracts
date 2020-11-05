@@ -1,0 +1,64 @@
+{
+  "manifestVersion": "2.2",
+  "contracts": {
+    "PooledStaking": "PooledStaking",
+    "MasterMock": "MasterMock",
+    "TokenControllerMock": "TokenControllerMock",
+    "Pool2": "Pool2",
+    "Pool1": "Pool1",
+    "Quotation": "Quotation",
+    "QuotationData": "QuotationData",
+    "NXMDSValue": "NXMDSValue",
+    "PoolData": "PoolData",
+    "MCR": "MCR",
+    "MemberRoles": "MemberRoles",
+    "ProposalCategory": "ProposalCategory",
+    "Governed": "Governed",
+    "UpgradeabilityProxy": "UpgradeabilityProxy",
+    "OwnedUpgradeabilityProxy": "OwnedUpgradeabilityProxy",
+    "NXMaster": "NXMaster",
+    "Governance": "Governance",
+    "ClaimsReward": "ClaimsReward",
+    "ClaimsData": "ClaimsData",
+    "Claims": "Claims",
+    "TokenController": "TokenController",
+    "NXMToken": "NXMToken",
+    "OZSafeMath": "OZSafeMath",
+    "TokenFunctions": "TokenFunctions",
+    "TokenData": "TokenData",
+    "console": "console",
+    "Logger": "Logger",
+    "DisposableMemberRoles": "DisposableMemberRoles",
+    "NXMTokenMock": "NXMTokenMock",
+    "DisposableNXMaster": "DisposableNXMaster",
+    "DisposablePooledStaking": "DisposablePooledStaking",
+    "NXMDSValueMock": "NXMDSValueMock",
+    "ExchangeFactoryMock": "ExchangeFactoryMock",
+    "ERC20Mock": "ERC20Mock",
+    "DisposableProposalCategory": "DisposableProposalCategory",
+    "DisposableTokenController": "DisposableTokenController",
+    "ExchangeMock": "ExchangeMock",
+    "MemberRolesMock": "MemberRolesMock"
+  },
+  "dependencies": {},
+  "name": "nexus-mutual",
+  "version": "1.0.0",
+  "compiler": {
+    "compilerSettings": {
+      "optimizer": {
+        "enabled": true,
+        "runs": "200"
+      }
+    },
+    "typechain": {
+      "enabled": false,
+      "outDir": "./types/contracts",
+      "target": "truffle"
+    },
+    "manager": "openzeppelin",
+    "solcVersion": "0.5.7",
+    "artifactsDir": "build/contracts",
+    "contractsDir": "contracts"
+  },
+  "telemetryOptIn": false
+}

@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "../../abstract/MasterAware.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../oracles/UniswapOracle.sol";
@@ -42,8 +43,9 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  // 18 decimals of precision. 1e14 = 0.0001 = 0.01%
+  // 18 decimals of precision. 1e14 = 0.0001 = 0.01%, 3 * 1e15 = 0.3%
   uint constant public MAX_SLIPPAGE = 1e14;
+  uint constant public MAX_TRADABLE_PAIR_LIQUIDITY = 3 * 1e15;
 
   /* events */
 
@@ -110,6 +112,18 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint balanceBefore = toToken.balanceOf(address(this));
 
     {
+      // scope for liquidity check
+      address pairAddress = twapOracle.pairFor(ETH, toTokenAddress);
+      IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
+      (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
+
+      uint ethReserve = ETH < toTokenAddress ? reserve0 : reserve1;
+      uint maxTradable = ethReserve.mul(MAX_TRADABLE_PAIR_LIQUIDITY).div(1e18);
+
+      require(amountIn <= maxTradable, 'exceeds max tradable amount');
+    }
+
+    {
       // scope for ether checks
       uint ethBalanceBefore = address(this).balance;
       uint ethBalanceAfter = ethBalanceBefore.sub(amountIn);
@@ -148,6 +162,18 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     IERC20 fromToken = IERC20(fromTokenAddress);
     uint balanceBefore = address(this).balance;
+
+    {
+      // scope for liquidity check
+      address pairAddress = twapOracle.pairFor(fromTokenAddress, ETH);
+      IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
+      (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
+
+      uint tokenReserve = fromTokenAddress < ETH ? reserve0 : reserve1;
+      uint maxTradable = tokenReserve.mul(MAX_TRADABLE_PAIR_LIQUIDITY).div(1e18);
+
+      require(amountIn <= maxTradable, 'exceeds max tradable amount');
+    }
 
     {
       // scope for token checks

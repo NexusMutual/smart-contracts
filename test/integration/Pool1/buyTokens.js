@@ -102,7 +102,7 @@ async function assertBuyValues(
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe.only('buyTokens', function () {
+describe('buyTokens', function () {
 
   this.timeout(0);
   this.slow(5000);

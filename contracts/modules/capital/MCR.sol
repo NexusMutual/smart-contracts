@@ -301,7 +301,9 @@ contract MCR is Iupgradable {
   ) public pure returns (uint tokenPrice) {
     uint max = mcrPercentage ** TOKEN_EXPONENT;
     uint dividingFactor = TOKEN_EXPONENT.mul(MCR_PERCENTAGE_DECIMALS);
-    tokenPrice = (mcrEth.mul(1e18).mul(max).div(CONSTANT_C.mul(1e18))).div(10 ** dividingFactor);
+    tokenPrice = (mcrEth.mul(1e18).mul(max)
+      .div(CONSTANT_C.mul(1e18)))
+      .div(10 ** dividingFactor);
     tokenPrice = tokenPrice.add(CONSTANT_A.mul(1e13));
   }
 
@@ -314,7 +316,10 @@ contract MCR is Iupgradable {
     uint totalAssetValue = getTotalAssetValue(address(p1).balance);
     uint mcrEth = pd.getLastMCREther();
     uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
-    return _calculateTokenPrice(currency, mcrPercentage);
+    uint tokenSpotPriceEth = calculateTokenSpotPrice(mcrPercentage, mcrEth);
+    uint currencyRate;
+    (, , currencyRate) = pd.getTokenPriceDetails(currency);
+    tokenPrice = tokenSpotPriceEth.mul(currencyRate).div(100);
   }
 
   // TODO: discuss removal/rename for this function. ONLY used in Pool2.sol in current contracts

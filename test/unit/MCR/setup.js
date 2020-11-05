@@ -6,20 +6,21 @@ const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 
 const MasterMock = artifacts.require('MasterMock');
-const PoolData = artifacts.require('PoolData');
+const PoolData = artifacts.require('Pool1MockPoolData');
 const TokenData = artifacts.require('TokenData');
 const TokenMock = artifacts.require('NXMTokenMock');
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
+const ERC20Mock = artifacts.require('ERC20Mock');
 
 async function setup () {
 
   const master = await MasterMock.new();
 
-  const daiFeedAddress = '0x0000000000000000000000000000000000000001';
-  const daiAddress = '0x0000000000000000000000000000000000000011';
+  const daiFeedAddress = '0x0000000000000000000000000000000000000013';
+  const dai = await ERC20Mock.new();
 
-  const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, daiAddress);
+  const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool1 = await Pool1.new();
   const token = await TokenMock.new();
@@ -66,6 +67,7 @@ async function setup () {
   this.mcr = mcr;
   this.poolData = poolData;
   this.tokenData = tokenData;
+  this.dai = dai;
 }
 
 module.exports = setup;

@@ -131,6 +131,25 @@ describe('sellTokens', function () {
     );
   });
 
+  it('reverts on sales that exceed member balance', async function () {
+    const { pool1, poolData, token, tokenData, mcr } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    await setupContractState(
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData }
+    );
+
+    const buyValue = mcrEth.div(new BN(20));
+    await pool1.buyTokens('1', { from: memberOne, value: buyValue });
+
+    const entireBalance = await token.balanceOf(memberOne);
+    await expectRevert(
+      pool1.sellTokens(entireBalance.addn(1), '0', { from: memberOne }),
+      `Not enough balance`
+    );
+  });
+
   it('burns tokens from member in exchange for 0.01 ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
 

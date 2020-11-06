@@ -7,9 +7,6 @@ const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = r
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
-const snapshot = require('../utils').snapshot;
-const setup = require('../setup');
-
 const [, member1, member2, member3, fundSource, nonMember1] = accounts;
 
 const tokensLockedForVoting = ether('200');

@@ -149,7 +149,7 @@ describe('buyTokens and sellTokens', function () {
     );
   });
 
-  it.only('mints tokens for member in exchange of ETH', async function () {
+  it('mints tokens for member in exchange of ETH', async function () {
 
     const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData, tk: tokenController } = this.contracts;
 

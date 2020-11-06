@@ -27,7 +27,7 @@ async function assertSellValues(
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
 
-    const preEstimatedTokenBuyValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getTokenBuyValue(pool1Balance, buyValue);
 
     const preBuyBalance = await token.balanceOf(memberOne);
 
@@ -40,7 +40,7 @@ async function assertSellValues(
 
     const minEthOut = buyValue.mul(new BN(10000 - (sellSpread + 10))).div(new BN(10000));
 
-    const precomputedEthValue = await mcr.getTokenSellValue(tokensReceived);
+    const precomputedEthValue = await pool1.getTokenSellValue(tokensReceived);
     console.log({ precomputedEthValue: precomputedEthValue.toString(),
       postBuyBalance: postBuyBalance.toString(),
       tokensReceived: tokensReceived.toString(),

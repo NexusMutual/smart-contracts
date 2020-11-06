@@ -1,7 +1,7 @@
 const setup = require('./setup');
 const snapshot = require('../utils').snapshot;
 
-describe('MCR unit tests', function () {
+describe.only('MCR unit tests', function () {
 
   this.timeout(0);
   this.slow(2000);

@@ -27,7 +27,7 @@ async function assertBuyValues(
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
 
-    const preEstimatedTokenBuyValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getTokenBuyValue(pool1Balance, buyValue);
 
     const preBuyBalance = await token.balanceOf(memberOne);
 
@@ -104,7 +104,7 @@ describe('buyTokens', function () {
     );
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
-    const preEstimatedTokenBuyValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getTokenBuyValue(pool1Balance, buyValue);
     await expectRevert(
       pool1.buyTokens(preEstimatedTokenBuyValue.add(new BN(1)), { from: memberOne, value: buyValue }),
       `boughtTokens is less than minTokensBought`

@@ -41,8 +41,8 @@ contract Pool1 is Iupgradable {
   uint public constant MCR_PERCENTAGE_MULTIPLIER = 10 ** MCR_PERCENTAGE_DECIMALS;
   uint public constant MAX_MCR_PERCENTAGE = 4 * MCR_PERCENTAGE_MULTIPLIER; // 400%
 
-  uint public constant SELL_SPREAD = 25;
-  uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 5 * MCR_PERCENTAGE_MULTIPLIER;
+  uint public constant SELL_SPREAD = 250;
+  uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 500;
   uint constant CONSTANT_C = 5800000;
   uint constant CONSTANT_A = 1028 * 1e13;
   uint constant TOKEN_EXPONENT = 4;
@@ -297,7 +297,7 @@ contract Pool1 is Iupgradable {
     uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
     require(mcrPercentage <= MAX_MCR_PERCENTAGE, "Cannot purchase if MCR% > 400%");
     require(
-      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100 * MCR_PERCENTAGE_MULTIPLIER),
+      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(MCR_PERCENTAGE_MULTIPLIER),
       "Purchases worth higher than 5% of MCReth are not allowed"
     );
     boughtTokens = calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
@@ -319,7 +319,7 @@ contract Pool1 is Iupgradable {
     uint mcrEth = pd.getLastMCREther();
     ethOut = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
     require(
-      ethOut <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100 * MCR_PERCENTAGE_MULTIPLIER),
+      ethOut <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(MCR_PERCENTAGE_MULTIPLIER),
       "Sales worth more than 5% of MCReth are not allowed"
     );
     require(currentTotalAssetValue.sub(ethOut) > mcrEth, "MCR% cannot fall below 100%");
@@ -352,7 +352,7 @@ contract Pool1 is Iupgradable {
     uint mcrEth
   ) public pure returns (uint tokenValue) {
     require(
-      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100),
+      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(MCR_PERCENTAGE_MULTIPLIER),
       "Purchases worth higher than 5% of MCReth are not allowed"
     );
 
@@ -447,12 +447,12 @@ contract Pool1 is Iupgradable {
     uint spotPrice1 = calculateTokenSpotPrice(mcrPercentagePostSpotPriceSell, mcrEth);
 
     // Step 3. Min [average[Price(1), Price(2)] x ( 1 - Sell Spread), Price(2) ]
-    uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(1000 - SELL_SPREAD).div(1000);
+    uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(MCR_PERCENTAGE_MULTIPLIER.sub(SELL_SPREAD)).div(MCR_PERCENTAGE_MULTIPLIER);
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
     ethValue = finalPrice.mul(tokenAmount).div(1e18);
 
     require(
-      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(100 * MCR_PERCENTAGE_MULTIPLIER),
+      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(MCR_PERCENTAGE_MULTIPLIER),
       "Sales worth more than 5% of MCReth are not allowed"
     );
   }

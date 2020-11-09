@@ -4,7 +4,7 @@ const { getTokenSpotPrice } = require('../utils').tokenPrice;
 const { hex } = require('../utils').helpers;
 const BN = web3.utils.BN;
 const { accounts } = require('../utils');
-const { setupContractState } = require('../Pool1/utils');
+const { setupContractState } = require('./utils');
 
 const {
   nonMembers: [fundSource],

@@ -15,7 +15,10 @@ describe('Pool1 unit tests', function () {
   afterEach(async function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
-
+  require('./calculateTokenSpotPrice');
+  require('./calculateTokenPrice');
+  require('./calculateTokenBuyValue');
+  require('./calculateTokenSellValue');
   require('./buyTokens');
   require('./sellTokens');
 });

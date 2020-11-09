@@ -1,7 +1,7 @@
 const setup = require('./setup');
 const snapshot = require('../utils').snapshot;
 
-describe.only('MCR unit tests', function () {
+describe('MCR unit tests', function () {
 
   this.timeout(0);
   this.slow(2000);
@@ -15,9 +15,4 @@ describe.only('MCR unit tests', function () {
   afterEach(async function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
-
-  require('./calculateTokenSpotPrice');
-  require('./calculateTokenPrice');
-  require('./calculateTokenBuyValue');
-  require('./calculateTokenSellValue');
 });

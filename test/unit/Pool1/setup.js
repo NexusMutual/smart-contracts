@@ -12,7 +12,7 @@ const TokenController = artifacts.require('TokenControllerMock');
 const TokenMock = artifacts.require('NXMTokenMock');
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
-const DAI = artifacts.require('Pool1MockDAI');
+const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
 
 async function setup () {
@@ -21,7 +21,7 @@ async function setup () {
 
   const daiFeedAddress = '0x0000000000000000000000000000000000000001';
   const mockP2Address = '0x0000000000000000000000000000000000000012';
-  const dai = await DAI.new();
+  const dai = await ERC20Mock.new();
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool1 = await Pool1.new();

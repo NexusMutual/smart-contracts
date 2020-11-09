@@ -383,9 +383,9 @@ contract Pool1 is Iupgradable {
     uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
 
     // MCReth * C /(3 * V0 ^ 3)
-    uint point0 = antiderivative(currentTotalAssetValue, mcrEth);
+    uint point0 = calculateAntiderivative(currentTotalAssetValue, mcrEth);
     // MCReth * C / (3 * V1 ^3)
-    uint point1 = antiderivative(nextTotalAssetValue, mcrEth);
+    uint point1 = calculateAntiderivative(nextTotalAssetValue, mcrEth);
     uint adjustedTokenAmount = point0.sub(point1);
     /*
       Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
@@ -407,7 +407,7 @@ contract Pool1 is Iupgradable {
   * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
   * NOTE: omits the minus sign of the correct antiderivative to use a uint result type for simplicity
   */
-  function antiderivative(
+  function calculateAntiderivative(
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint result) {
@@ -461,6 +461,9 @@ contract Pool1 is Iupgradable {
     return totalAssetValue.mul(MCR_PERCENTAGE_MULTIPLIER).div(mcrEth);
   }
 
+  /**
+  * @dev Calculates token price in ETH 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
+  */
   function calculateTokenSpotPrice(
     uint mcrPercentage,
     uint mcrEth
@@ -471,8 +474,6 @@ contract Pool1 is Iupgradable {
       .div(10 ** dividingFactor);
     tokenPrice = tokenPrice.add(CONSTANT_A);
   }
-
-
 
   /**
    * @dev gives the investment asset balance

@@ -12,10 +12,8 @@ const {
   members: [memberOne],
 } = accounts;
 
-const maxRelativeError = Decimal(0.0006);
-
 async function assertBuyValues (
-  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData },
+  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData, maxRelativeError },
 ) {
   let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData },
@@ -135,6 +133,7 @@ describe('buyTokens', function () {
     const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('100');
     const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,
@@ -149,6 +148,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 
@@ -159,6 +159,7 @@ describe('buyTokens', function () {
     const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('0.01');
     const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,
@@ -173,6 +174,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 
@@ -183,6 +185,7 @@ describe('buyTokens', function () {
     const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('1000');
     const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,
@@ -197,6 +200,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 
@@ -207,6 +211,7 @@ describe('buyTokens', function () {
     const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('1000');
     const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,
@@ -221,6 +226,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 
@@ -228,9 +234,10 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth.div(new BN(2));
+    const initialAssetValue = ether('1');
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.002);
 
     await assertBuyValues({
       initialAssetValue,
@@ -245,6 +252,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 
@@ -252,7 +260,7 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('320000');
-    const initialAssetValue = mcrEth;
+    const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = ether('20000');
 

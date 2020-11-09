@@ -26,15 +26,15 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool1MockOldMCR = artifacts.require('Pool1MockOldMCR');
 const Pool1MockOldPool1 = artifacts.require('Pool1MockOldPool1');
 
-async function compareBuyValues(
-  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current, isLessThanExpectedTokensOut }
+async function compareBuyValues (
+  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
 ) {
   const oldState = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old }
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old },
   );
   console.log(keysToString(oldState));
   let { totalAssetValue, mcrPercentage } = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...current }
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...current },
   );
 
   let highestRelativeError = 0;
@@ -43,7 +43,7 @@ async function compareBuyValues(
     const preBuyBalanceMember1 = await current.token.balanceOf(member1);
     const tx = await current.pool1.buyTokens('0', {
       from: member1,
-      value: buyValue
+      value: buyValue,
     });
     const postBuyBalanceMember1 = await current.token.balanceOf(member1);
     const tokensReceivedMember1 = postBuyBalanceMember1.sub(preBuyBalanceMember1);
@@ -51,7 +51,7 @@ async function compareBuyValues(
     const preBuyBalanceMember2 = await old.token.balanceOf(member2);
     await old.pool1.buyToken({
       from: member2,
-      value: buyValue
+      value: buyValue,
     });
     const postBuyBalanceMember2 = await old.token.balanceOf(member2);
     const tokensReceivedMember2 = postBuyBalanceMember2.sub(preBuyBalanceMember2);
@@ -72,25 +72,25 @@ async function compareBuyValues(
     assert(
       relativeError.lt(maxRelativeError),
       `Resulting token value ${tokensReceivedMember1Decimal.toFixed()} is not close enough to old system value ${tokensReceivedMember2Decimal.toFixed()}
-       Relative error: ${relativeError}. Difference: ${tokensReceivedMember1Decimal.sub(tokensReceivedMember2Decimal).div(1e18).toFixed()}`
+       Relative error: ${relativeError}. Difference: ${tokensReceivedMember1Decimal.sub(tokensReceivedMember2Decimal).div(1e18).toFixed()}`,
     );
 
     if (buyValue.lt(poolBalanceStep)) {
       const extraStepValue = poolBalanceStep.sub(buyValue);
       await current.pool1.sendTransaction({
         from: fundSource,
-        value: extraStepValue
+        value: extraStepValue,
       });
 
       await old.pool1.sendTransaction({
         from: fundSource,
-        value: extraStepValue
+        value: extraStepValue,
       });
     }
     ({ totalAssetValue, mcrPercentage } = await current.mcr.calVtpAndMCRtp());
   }
   console.log({
-    highestRelativeError: highestRelativeError
+    highestRelativeError: highestRelativeError,
   });
 }
 
@@ -156,11 +156,11 @@ async function setup ({ MCR, Pool1 }) {
     mcr,
     poolData,
     tokenData,
-    tokenController
+    tokenController,
   };
 }
 
-async function setupBothImplementations() {
+async function setupBothImplementations () {
   this.current = await setup({ MCR, Pool1 });
   this.old = await setup({ MCR: Pool1MockOldMCR, Pool1: Pool1MockOldPool1 });
 }
@@ -182,7 +182,7 @@ describe('compareTokenCurveImplementations', function () {
     const poolBalanceStep = ether('30000');
     const maxRelativeError = Decimal(0.0001);
     await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current },
     );
   });
 
@@ -195,7 +195,7 @@ describe('compareTokenCurveImplementations', function () {
     const poolBalanceStep = ether('30000');
     const maxRelativeError = Decimal(0.002);
     await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current },
     );
   });
 
@@ -208,7 +208,7 @@ describe('compareTokenCurveImplementations', function () {
     const poolBalanceStep = ether('30000');
     const maxRelativeError = Decimal(0.01);
     await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current }
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current },
     );
   });
 
@@ -221,7 +221,7 @@ describe('compareTokenCurveImplementations', function () {
     const poolBalanceStep = ether('30000');
     const maxRelativeError = Decimal(0.017);
     await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, isLessThanExpectedTokensOut: true, daiRate, ethRate, old, current }
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, isLessThanExpectedTokensOut: true, daiRate, ethRate, old, current },
     );
   });
 });

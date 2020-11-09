@@ -15,14 +15,14 @@ describe('calculateTokenSellValue', function () {
     const deltaEth = ether('1000');
 
     const tokenValue = await pool1.calculateTokenBuyValue(
-      deltaEth, initialAssetValue, mcrEth
+      deltaEth, initialAssetValue, mcrEth,
     );
     const postBuyAssetValue = initialAssetValue.add(deltaEth);
 
     const sellSpread = Decimal(0.025);
 
     const ethValue = await pool1.calculateTokenSellValue(
-      tokenValue.toString(), postBuyAssetValue.toString(), mcrEth.toString()
+      tokenValue.toString(), postBuyAssetValue.toString(), mcrEth.toString(),
     );
 
     const expectedEthValue = Decimal(1).sub(sellSpread).mul(Decimal(deltaEth.toString()));

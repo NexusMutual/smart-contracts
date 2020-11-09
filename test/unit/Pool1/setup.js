@@ -70,7 +70,6 @@ async function setup () {
   // initialize token
   await token.setOperator(tokenController.address);
 
-
   this.master = master;
   this.token = token;
   this.pool1 = pool1;

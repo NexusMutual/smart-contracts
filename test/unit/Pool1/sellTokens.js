@@ -13,12 +13,12 @@ const {
 
 const sellSpread = 0.025 * 10000;
 
-async function assertSellValues(
+async function assertSellValues (
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
-    pool1, token, buyValue, poolData, tokenData, tokenController, isLessThanExpectedEthOut }
+    pool1, token, buyValue, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
 ) {
   let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData }
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData },
   );
 
   let highestRelativeError = 0;
@@ -33,7 +33,7 @@ async function assertSellValues(
 
     await pool1.buyTokens(preEstimatedTokenBuyValue, {
       from: memberOne,
-      value: buyValue
+      value: buyValue,
     });
     const postBuyBalance = await token.balanceOf(memberOne);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
@@ -44,15 +44,15 @@ async function assertSellValues(
     console.log({ precomputedEthValue: precomputedEthValue.toString(),
       postBuyBalance: postBuyBalance.toString(),
       tokensReceived: tokensReceived.toString(),
-      minEthOut: minEthOut.toString()
+      minEthOut: minEthOut.toString(),
     });
 
     await token.approve(tokenController.address, tokensReceived, {
-      from: memberOne
+      from: memberOne,
     });
     const balancePreSell = await web3.eth.getBalance(memberOne);
     const sellTx = await pool1.sellTokens(tokensReceived, precomputedEthValue, {
-      from: memberOne
+      from: memberOne,
     });
 
     const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
@@ -73,12 +73,12 @@ async function assertSellValues(
     assert(
       relativeError.lt(maxRelativeError),
       `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
-       Relative error: ${relativeError}`
+       Relative error: ${relativeError}`,
     );
 
     await pool1.sendTransaction({
       from: fundSource,
-      value: poolBalanceStep
+      value: poolBalanceStep,
     });
 
     ({ totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp());
@@ -99,7 +99,7 @@ describe('sellTokens', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData }
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData },
     );
 
     const tokenAmountToSell = ether('1000');
@@ -107,7 +107,7 @@ describe('sellTokens', function () {
 
     await expectRevert(
       pool1.sellTokens(tokenAmountToSell, '0', { from: memberOne }),
-      `MCR% cannot fall below 100%`
+      `MCR% cannot fall below 100%`,
     );
   });
 
@@ -117,7 +117,7 @@ describe('sellTokens', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData }
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData },
     );
 
     const buyValue = mcrEth.div(new BN(20));
@@ -127,7 +127,7 @@ describe('sellTokens', function () {
     const entireBalance = await token.balanceOf(memberOne);
     await expectRevert(
       pool1.sellTokens(entireBalance, '0', { from: memberOne }),
-      `Sales worth more than 5% of MCReth are not allowed`
+      `Sales worth more than 5% of MCReth are not allowed`,
     );
   });
 
@@ -137,7 +137,7 @@ describe('sellTokens', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData }
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData },
     );
 
     const buyValue = mcrEth.div(new BN(20));
@@ -146,7 +146,7 @@ describe('sellTokens', function () {
     const entireBalance = await token.balanceOf(memberOne);
     await expectRevert(
       pool1.sellTokens(entireBalance.addn(1), '0', { from: memberOne }),
-      `Not enough balance`
+      `Not enough balance`,
     );
   });
 
@@ -160,8 +160,20 @@ describe('sellTokens', function () {
     const maxRelativeError = Decimal(0.0001);
 
     await assertSellValues({
-      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
-      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
+      initialAssetValue,
+      mcrEth,
+      maxPercentage,
+      buyValue,
+      poolBalanceStep,
+      maxRelativeError,
+      mcr,
+      pool1,
+      token,
+      poolData,
+      daiRate,
+      ethRate,
+      tokenData,
+      tokenController,
     });
   });
 
@@ -175,8 +187,20 @@ describe('sellTokens', function () {
     const maxRelativeError = Decimal(0.0005);
 
     await assertSellValues({
-      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
-      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
+      initialAssetValue,
+      mcrEth,
+      maxPercentage,
+      buyValue,
+      poolBalanceStep,
+      maxRelativeError,
+      mcr,
+      pool1,
+      token,
+      poolData,
+      daiRate,
+      ethRate,
+      tokenData,
+      tokenController,
     });
   });
 
@@ -190,8 +214,20 @@ describe('sellTokens', function () {
     const maxRelativeError = Decimal(0.0005);
 
     await assertSellValues({
-      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError,
-      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
+      initialAssetValue,
+      mcrEth,
+      maxPercentage,
+      buyValue,
+      poolBalanceStep,
+      maxRelativeError,
+      mcr,
+      pool1,
+      token,
+      poolData,
+      daiRate,
+      ethRate,
+      tokenData,
+      tokenController,
     });
   });
 
@@ -205,9 +241,21 @@ describe('sellTokens', function () {
     const maxRelativeError = Decimal(0.06);
 
     await assertSellValues({
-      initialAssetValue, mcrEth, maxPercentage, buyValue, poolBalanceStep, maxRelativeError, isLessThanExpectedEthOut: true,
-      mcr, pool1, token, poolData, daiRate, ethRate, tokenData, tokenController
+      initialAssetValue,
+      mcrEth,
+      maxPercentage,
+      buyValue,
+      poolBalanceStep,
+      maxRelativeError,
+      isLessThanExpectedEthOut: true,
+      mcr,
+      pool1,
+      token,
+      poolData,
+      daiRate,
+      ethRate,
+      tokenData,
+      tokenController,
     });
   });
 });
-

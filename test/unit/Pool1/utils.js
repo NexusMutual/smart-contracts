@@ -2,8 +2,8 @@ const { web3 } = require('hardhat');
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
-async function setupContractState(
-  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData }
+async function setupContractState (
+  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData },
 ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();
@@ -11,7 +11,7 @@ async function setupContractState(
 
   await pool1.sendTransaction({
     from: fundSource,
-    value: initialAssetValue
+    value: initialAssetValue,
   });
 
   await poolData.setAverageRate(hex('ETH'), ethRate);
@@ -25,7 +25,7 @@ async function setupContractState(
     c,
     tokenExponent,
     totalAssetValue,
-    mcrPercentage
+    mcrPercentage,
   };
 }
 
@@ -40,5 +40,5 @@ function keysToString (object) {
 
 module.exports = {
   setupContractState,
-  keysToString
-}
+  keysToString,
+};

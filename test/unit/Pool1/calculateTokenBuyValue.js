@@ -1,10 +1,9 @@
-const { ether} = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { hex } = require('../utils').helpers;
 const { calculatePurchasedTokens } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
-
 
 describe('calculateTokenBuyValue', function () {
   it('calculates token value received for an increment in total assets correctly', async function () {
@@ -18,11 +17,11 @@ describe('calculateTokenBuyValue', function () {
     const deltaEth = ether('1000');
 
     const tokenValue = await pool1.calculateTokenBuyValue(
-      deltaEth, initialAssetValue, mcrEth
+      deltaEth, initialAssetValue, mcrEth,
     );
 
     const { tokens: expectedtokenValue } = calculatePurchasedTokens(
-      initialAssetValue, deltaEth, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+      initialAssetValue, deltaEth, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
     );
 
     assert.equal(tokenValue.toString(), expectedtokenValue.toString());

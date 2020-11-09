@@ -22,7 +22,7 @@ describe('calculateTokenPrice', function () {
     const ethRate = new BN('100');
 
     await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData }
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData },
     );
     const expectedPrice = getTokenSpotPrice(mcrPercentage, mcrEth);
     const price = await mcr.calculateTokenPrice(hex('ETH'));

@@ -32,8 +32,8 @@ async function initMembers () {
   }
 }
 
-async function getContractState(
-  { mcr, poolData, tokenData }
+async function getContractState (
+  { mcr, poolData, tokenData },
 ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();
@@ -43,11 +43,11 @@ async function getContractState(
   return { a, c, tokenExponent, totalAssetValue, mcrPercentage, mcrEth };
 }
 
-async function assertBuyAndSellValues(
-  { maxPercentage, poolBalanceStep, buyValue, maxRelativeError, mcr, pool1, token, poolData, tokenData, tokenController, isLessThanExpectedEthOut }
+async function assertBuyAndSellValues (
+  { maxPercentage, poolBalanceStep, buyValue, maxRelativeError, mcr, pool1, token, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
 ) {
   let { a, c, tokenExponent, totalAssetValue, mcrPercentage, mcrEth } = await getContractState(
-    { mcr, poolData, tokenData }
+    { mcr, poolData, tokenData },
   );
 
   let highestRelativeError = 0;
@@ -62,17 +62,17 @@ async function assertBuyAndSellValues(
 
     await pool1.buyTokens(preEstimatedTokenBuyValue, {
       from: member1,
-      value: buyValue
+      value: buyValue,
     });
     const postBuyBalance = await token.balanceOf(member1);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
     const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
     );
 
     const { tokens: expectedTokenValue } = calculatePurchasedTokens(
-      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent
+      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
     );
     assert.equal(tokensReceived.toString(), expectedTokenValue.toString());
 
@@ -83,22 +83,22 @@ async function assertBuyAndSellValues(
     assert(
       relativeError.lt(maxRelativeError),
       `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
-       Relative error: ${relativeError}`
+       Relative error: ${relativeError}`,
     );
 
     const precomputedEthValue = await mcr.getTokenSellValue(tokensReceived);
     console.log({
       precomputedEthValue: precomputedEthValue.toString(),
       postBuyBalance: postBuyBalance.toString(),
-      tokensReceived: tokensReceived.toString()
+      tokensReceived: tokensReceived.toString(),
     });
 
     await token.approve(tokenController.address, tokensReceived, {
-      from: member1
+      from: member1,
     });
     const balancePreSell = await web3.eth.getBalance(member1);
     const sellTx = await pool1.sellTokens(tokensReceived, precomputedEthValue, {
-      from: member1
+      from: member1,
     });
 
     const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
@@ -119,12 +119,12 @@ async function assertBuyAndSellValues(
     assert(
       relativeErrorForSell.lt(maxRelativeError),
       `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
-       Relative error: ${relativeErrorForSell}`
+       Relative error: ${relativeErrorForSell}`,
     );
 
     await pool1.sendTransaction({
       from: fundSource,
-      value: poolBalanceStep
+      value: poolBalanceStep,
     });
 
     ({ totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp());
@@ -145,7 +145,7 @@ describe('buyTokens and sellTokens', function () {
     const buyValue = ether('10');
     await expectRevert(
       pool1.buyTokens('0', { from: nonMember1, value: buyValue }),
-      'Not member'
+      'Not member',
     );
   });
 
@@ -158,7 +158,7 @@ describe('buyTokens and sellTokens', function () {
     const buyValue = ether('1000');
     const maxRelativeError = Decimal(0.0006);
     await assertBuyAndSellValues(
-      { maxPercentage, poolBalanceStep, buyValue, mcr, pool1, token, poolData, tokenData, tokenController, maxRelativeError }
+      { maxPercentage, poolBalanceStep, buyValue, mcr, pool1, token, poolData, tokenData, tokenController, maxRelativeError },
     );
   });
 });

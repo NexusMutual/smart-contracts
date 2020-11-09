@@ -22,7 +22,7 @@ async function assertBuyValues (
   );
 
   let highestRelativeError = 0;
-  while (mcrPercentage < maxPercentage * 100) {
+  while (mcrPercentage <= maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
@@ -132,9 +132,9 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('16000');
-    const initialAssetValue = mcrEth;
+    const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('100');
-    const poolBalanceStep = ether('1000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
 
     await assertBuyValues({
       initialAssetValue,
@@ -156,9 +156,9 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth;
+    const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('0.01');
-    const poolBalanceStep = ether('10000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
 
     await assertBuyValues({
       initialAssetValue,
@@ -180,9 +180,9 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth;
+    const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('1000');
-    const poolBalanceStep = ether('10000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
 
     await assertBuyValues({
       initialAssetValue,
@@ -204,9 +204,9 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('320000');
-    const initialAssetValue = mcrEth;
+    const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = ether('1000');
-    const poolBalanceStep = ether('20000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
 
     await assertBuyValues({
       initialAssetValue,
@@ -228,9 +228,9 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth;
+    const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = ether('10000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
 
     await assertBuyValues({
       initialAssetValue,

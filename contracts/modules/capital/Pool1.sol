@@ -44,7 +44,7 @@ contract Pool1 is Iupgradable {
   uint public constant SELL_SPREAD = 25;
   uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 5 * MCR_PERCENTAGE_MULTIPLIER;
   uint constant CONSTANT_C = 5800000;
-  uint constant CONSTANT_A = 1028;
+  uint constant CONSTANT_A = 1028 * 1e13;
   uint constant TOKEN_EXPONENT = 4;
 
   event Apiresult(address indexed sender, string msg, bytes32 myid);
@@ -398,7 +398,7 @@ contract Pool1 is Iupgradable {
     */
     // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
     uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-    uint tokenPrice = adjustedTokenPrice.add(CONSTANT_A.mul(1e13));
+    uint tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
     tokenValue = ethAmount.mul(1e18).div(tokenPrice);
   }
 
@@ -470,7 +470,7 @@ contract Pool1 is Iupgradable {
     tokenPrice = (mcrEth.mul(1e18).mul(max)
     .div(CONSTANT_C.mul(1e18)))
     .div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(CONSTANT_A.mul(1e13));
+    tokenPrice = tokenPrice.add(CONSTANT_A);
   }
 
 

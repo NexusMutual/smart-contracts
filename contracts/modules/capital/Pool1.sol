@@ -465,9 +465,8 @@ contract Pool1 is Iupgradable {
     uint mcrPercentage,
     uint mcrEth
   ) public pure returns (uint tokenPrice) {
-    uint max = mcrPercentage ** TOKEN_EXPONENT;
     uint dividingFactor = TOKEN_EXPONENT.mul(MCR_PERCENTAGE_DECIMALS);
-    tokenPrice = (mcrEth.mul(1e18).mul(max)
+    tokenPrice = (mcrEth.mul(1e18).mul( mcrPercentage ** TOKEN_EXPONENT)
       .div(CONSTANT_C.mul(1e18)))
       .div(10 ** dividingFactor);
     tokenPrice = tokenPrice.add(CONSTANT_A);

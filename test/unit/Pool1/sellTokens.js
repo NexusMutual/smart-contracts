@@ -5,6 +5,7 @@ const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState } = require('./utils');
+const setup = require('./setup');
 
 const {
   nonMembers: [fundSource],
@@ -156,7 +157,7 @@ describe('sellTokens', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('0.01');
-    const poolBalanceStep = ether('20000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0001);
 
     await assertSellValues({
@@ -183,7 +184,7 @@ describe('sellTokens', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1');
-    const poolBalanceStep = ether('20000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0005);
 
     await assertSellValues({
@@ -210,7 +211,7 @@ describe('sellTokens', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
-    const poolBalanceStep = ether('20000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0005);
 
     await assertSellValues({
@@ -237,7 +238,7 @@ describe('sellTokens', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = ether('20000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.06);
 
     await assertSellValues({

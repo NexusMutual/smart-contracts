@@ -179,7 +179,7 @@ describe('compareTokenCurveImplementations', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('0.1');
-    const poolBalanceStep = ether('30000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0001);
     await compareBuyValues(
       { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current },
@@ -192,7 +192,7 @@ describe('compareTokenCurveImplementations', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('100');
-    const poolBalanceStep = ether('30000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.002);
     await compareBuyValues(
       { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current },
@@ -205,7 +205,7 @@ describe('compareTokenCurveImplementations', function () {
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
-    const poolBalanceStep = ether('30000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.01);
     await compareBuyValues(
       { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current },
@@ -218,7 +218,7 @@ describe('compareTokenCurveImplementations', function () {
     const mcrEth = ether('320000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('10000');
-    const poolBalanceStep = ether('30000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.017);
     await compareBuyValues(
       { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, isLessThanExpectedTokensOut: true, daiRate, ethRate, old, current },

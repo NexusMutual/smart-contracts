@@ -234,7 +234,7 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = ether('1');
+    const initialAssetValue = mcrEth.div(new BN(2));
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.002);
@@ -260,9 +260,10 @@ describe('buyTokens', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('320000');
-    const initialAssetValue = mcrEth.div(new BN(2));
+    const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = ether('20000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,
@@ -277,6 +278,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 
@@ -286,7 +288,8 @@ describe('buyTokens', function () {
     const mcrEth = ether('1000000');
     const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = ether('60000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,
@@ -301,6 +304,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 
@@ -310,7 +314,8 @@ describe('buyTokens', function () {
     const mcrEth = ether('10000000');
     const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = ether('60000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,
@@ -325,6 +330,7 @@ describe('buyTokens', function () {
       daiRate,
       ethRate,
       tokenData,
+      maxRelativeError
     });
   });
 });

@@ -107,11 +107,6 @@ contract Pool1 is Iupgradable {
     } else {
       c1.setClaimStatus(claimid, 12);
     }
-
-    // _triggerExternalLiquidityTrade();
-    // p2.internalLiquiditySwap(coverCurr);
-
-    tf.burnStakerLockedToken(coverid, coverCurr, sumAssured);
   }
 
   function triggerExternalLiquidityTrade() external onlyInternal {
@@ -182,7 +177,6 @@ contract Pool1 is Iupgradable {
   function changeDependentContractAddress() public {
     mcr = MCR(ms.getLatestAddress("MC"));
     tk = NXMToken(ms.tokenAddress());
-    tf = TokenFunctions(ms.getLatestAddress("TF"));
     tc = TokenController(ms.getLatestAddress("TC"));
     pd = PoolData(ms.getLatestAddress("PD"));
     q2 = Quotation(ms.getLatestAddress("QT"));
@@ -313,7 +307,7 @@ contract Pool1 is Iupgradable {
    */
   function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause returns (uint ethOut) {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
-    require(!tf.isLockedForMemberVote(msg.sender), "Member voted");
+    require(!(now < tk.isLockedForMV(msg.sender)), "Member voted");
 
     uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
     uint mcrEth = pd.getLastMCREther();

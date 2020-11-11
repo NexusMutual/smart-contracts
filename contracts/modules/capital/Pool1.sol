@@ -49,11 +49,18 @@ contract Pool1 is Iupgradable {
   event Apiresult(address indexed sender, string msg, bytes32 myid);
   event Payout(address indexed to, uint coverId, uint tokens);
 
-  event TokensSold (
+  event NXMSold (
     address seller,
     uint tokenAmount,
     uint ethReceived
   );
+
+  event NXMBought (
+    address buyer,
+    uint ethAmount,
+    uint tokensReceived
+  );
+
 
   modifier noReentrancy() {
     require(!locked, "Reentrant call.");
@@ -296,6 +303,8 @@ contract Pool1 is Iupgradable {
     boughtTokens = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
     require(boughtTokens >= minTokensOut, "boughtTokens is less than minTokensBought");
     tc.mint(msg.sender, boughtTokens);
+
+    emit NXMBought(msg.sender, ethAmount, boughtTokens);
   }
 
   /**
@@ -320,7 +329,7 @@ contract Pool1 is Iupgradable {
 
     tc.burnFrom(msg.sender, tokenAmount);
     msg.sender.transfer(ethOut);
-    emit TokensSold(msg.sender, tokenAmount, ethOut);
+    emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 
   /**

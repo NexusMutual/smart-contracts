@@ -3,7 +3,7 @@ require('@nomiclabs/hardhat-truffle5');
 require('hardhat-typechain');
 
 const { task } = require('hardhat/config');
-const { toWei } = require('web3').utils;
+const ether = n => `${n}${'0'.repeat(18)}`;
 
 task('test', async (_, hre, runSuper) => {
   hre.accounts = await hre.web3.eth.getAccounts();
@@ -14,7 +14,7 @@ task('test', async (_, hre, runSuper) => {
 const hardhatNetworkConfig = {
   accounts: {
     count: 100,
-    accountsBalance: toWei('10000000000'),
+    accountsBalance: ether('10000000000'),
   },
   allowUnlimitedContractSize: true,
   blockGasLimit: 12e9,

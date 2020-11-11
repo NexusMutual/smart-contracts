@@ -405,11 +405,12 @@ contract Pool1 is Iupgradable {
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint result) {
-    result = mcrEth.mul(CONSTANT_C).mul(1e18).div(TOKEN_EXPONENT.sub(1)).div(assetValue);
-
-    for (uint i = 0; i < TOKEN_EXPONENT.sub(2); i++) {
-      result = result.mul(mcrEth).div(assetValue);
-    }
+    result = CONSTANT_C
+      .mul(1e18)
+      .div(3)
+      .mul(mcrEth).div(assetValue)
+      .mul(mcrEth).div(assetValue)
+      .mul(mcrEth).div(assetValue);
   }
 
   function getEthForNXM(uint tokenAmount) public view returns (uint ethValue) {

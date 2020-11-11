@@ -21,7 +21,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "../../abstract/MasterAware.sol";
-import "../../external/uniswap/IUniswapV2Router02.sol";
+import "../../external/uniswap/IUniswapV2Router01.sol";
 import "../oracles/TwapOracle.sol";
 
 contract Pool is MasterAware, ReentrancyGuard {
@@ -30,7 +30,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   /* storage */
 
-  IUniswapV2Router02 public router;
+  IUniswapV2Router01 public router;
   // TODO: make oracle and controller updatable parameters
   TwapOracle public twapOracle;
   address public swapController;
@@ -84,7 +84,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     }
 
     master = INXMMaster(_master);
-    router = IUniswapV2Router02(_router);
+    router = IUniswapV2Router01(_router);
     twapOracle = TwapOracle(_twapOracle);
     swapController = _swapController;
   }
@@ -97,7 +97,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   /* asset related functions */
 
-  function getAssets() external view returns (address[] assets) {
+  function getAssets() external view returns (address[] memory) {
     return assets;
   }
 

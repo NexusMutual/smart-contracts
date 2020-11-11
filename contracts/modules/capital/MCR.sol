@@ -135,21 +135,6 @@ contract MCR is Iupgradable {
     }
   }
 
-  /**
-   * @dev Calculates the Token Price of NXM in a given currency
-   * with provided token supply for dynamic token price calculation
-   * @param currency Currency name.
-   */
-  function calculateTokenPrice(bytes4 currency) public view returns (uint tokenPrice) {
-    uint totalAssetValue = p1.getPoolValueinEth();
-    uint mcrEth = pd.getLastMCREther();
-    uint mcrPercentage = p1.calculateMCRPercentage(totalAssetValue, mcrEth);
-    uint tokenSpotPriceEth = p1.calculateTokenSpotPrice(mcrPercentage, mcrEth);
-    uint currencyRate;
-    (, , currencyRate) = pd.getTokenPriceDetails(currency);
-    tokenPrice = tokenSpotPriceEth.mul(currencyRate).div(100);
-  }
-
   // TODO: discuss removal/rename for this function. ONLY used in Pool2.sol in current contracts
   function calVtpAndMCRtp() public view returns (uint totalAssetValue, uint mcrPercentage) {
     totalAssetValue = p1.getPoolValueinEth();

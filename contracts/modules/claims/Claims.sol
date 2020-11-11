@@ -124,7 +124,7 @@ contract Claims is Iupgradable {
     uint coverId;
     (, coverId) = cd.getClaimCoverId(claimId);
     bytes4 curr = qd.getCurrencyOfCover(coverId);
-    uint tokenx1e18 = m1.calculateTokenPrice(curr);
+    uint tokenx1e18 = p1.getTokenPrice(curr);
     uint accept;
     uint deny;
     if (member == 0) {
@@ -346,7 +346,7 @@ contract Claims is Iupgradable {
     uint coverId;
     (, coverId) = cd.getClaimCoverId(claimId);
     bytes4 curr = qd.getCurrencyOfCover(coverId);
-    uint tokenx1e18 = m1.calculateTokenPrice(curr);
+    uint tokenx1e18 = p1.getTokenPrice(curr);
     uint accept;
     uint deny;
     (, accept, deny) = cd.getClaimsTokenCA(claimId);

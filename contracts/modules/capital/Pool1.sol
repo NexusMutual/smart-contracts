@@ -468,6 +468,21 @@ contract Pool1 is Iupgradable {
     tokenPrice = tokenPrice.add(CONSTANT_A);
   }
 
+  /**
+   * @dev Calculates the Token Price of NXM in a given currency
+   * with provided token supply for dynamic token price calculation
+   * @param currency Currency name.
+  */
+  function getTokenPrice(bytes4 currency) public view returns (uint tokenPrice) {
+    uint totalAssetValue = getPoolValueinEth();
+    uint mcrEth = pd.getLastMCREther();
+    uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
+    uint tokenSpotPriceEth = calculateTokenSpotPrice(mcrPercentage, mcrEth);
+    uint currencyRate;
+    (, , currencyRate) = pd.getTokenPriceDetails(currency);
+    tokenPrice = tokenSpotPriceEth.mul(currencyRate).div(100);
+  }
+
     /**
    * @dev Calculates V(Tp), i.e, Pool Fund Value in Ether
    * and MCR% used in the Token Price Calculation.

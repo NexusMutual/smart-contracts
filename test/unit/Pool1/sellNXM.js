@@ -88,7 +88,7 @@ async function assertSellValues (
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe.only('sellNXM', function () {
+describe('sellNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');

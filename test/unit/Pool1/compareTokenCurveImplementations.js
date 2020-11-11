@@ -41,7 +41,7 @@ async function compareBuyValues (
   while (mcrPercentage < maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
     const preBuyBalanceMember1 = await current.token.balanceOf(member1);
-    const tx = await current.pool1.buyTokens('0', {
+    const tx = await current.pool1.buyNXM('0', {
       from: member1,
       value: buyValue,
     });
@@ -173,7 +173,7 @@ describe('compareTokenCurveImplementations', function () {
 
   before(setupBothImplementations);
 
-  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 0.1 ETH', async function () {
+  it('mints similar number of tokens with current buyNXM call as the old sellNXMTokens for buyValue 0.1 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
@@ -186,7 +186,7 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 10 ETH', async function () {
+  it('returns similar ETH value with current buyNXM call as the old buyToken for buyValue 10 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
@@ -199,7 +199,7 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 1000 ETH', async function () {
+  it('returns similar ETH value with current buyNXM call as the old buyToken for buyValue 1000 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
@@ -212,7 +212,7 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it('mints similar number of tokens with current sellTokens call as the old sellNXMTokens for buyValue 10000 ETH', async function () {
+  it('returns similar ETH value with current buyNXM call as the old buyToken for buyValue 10000 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('320000');

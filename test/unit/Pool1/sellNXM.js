@@ -28,11 +28,11 @@ async function assertSellValues (
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
 
-    const preEstimatedTokenBuyValue = await pool1.getTokenBuyValue(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(pool1Balance, buyValue);
 
     const preBuyBalance = await token.balanceOf(memberOne);
 
-    await pool1.buyTokens(preEstimatedTokenBuyValue, {
+    await pool1.buyNXM(preEstimatedTokenBuyValue, {
       from: memberOne,
       value: buyValue,
     });
@@ -41,7 +41,7 @@ async function assertSellValues (
 
     const minEthOut = buyValue.mul(new BN(10000 - (sellSpread + 10))).div(new BN(10000));
 
-    const precomputedEthValue = await pool1.getTokenSellValue(tokensReceived);
+    const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
     console.log({ precomputedEthValue: precomputedEthValue.toString(),
       postBuyBalance: postBuyBalance.toString(),
       tokensReceived: tokensReceived.toString(),
@@ -52,7 +52,7 @@ async function assertSellValues (
       from: memberOne,
     });
     const balancePreSell = await web3.eth.getBalance(memberOne);
-    const sellTx = await pool1.sellTokens(tokensReceived, precomputedEthValue, {
+    const sellTx = await pool1.sellNXM(tokensReceived, precomputedEthValue, {
       from: memberOne,
     });
 
@@ -88,7 +88,7 @@ async function assertSellValues (
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe('sellTokens', function () {
+describe.only('sellNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -107,7 +107,7 @@ describe('sellTokens', function () {
     await token.mint(memberOne, tokenAmountToSell);
 
     await expectRevert(
-      pool1.sellTokens(tokenAmountToSell, '0', { from: memberOne }),
+      pool1.sellNXM(tokenAmountToSell, '0', { from: memberOne }),
       `MCR% cannot fall below 100%`,
     );
   });
@@ -123,11 +123,11 @@ describe('sellTokens', function () {
 
     const buyValue = mcrEth.div(new BN(20));
     for (let i = 0; i < 2; i++) {
-      await pool1.buyTokens('1', { from: memberOne, value: buyValue });
+      await pool1.buyNXM('1', { from: memberOne, value: buyValue });
     }
     const entireBalance = await token.balanceOf(memberOne);
     await expectRevert(
-      pool1.sellTokens(entireBalance, '0', { from: memberOne }),
+      pool1.sellNXM(entireBalance, '0', { from: memberOne }),
       `Sales worth more than 5% of MCReth are not allowed`,
     );
   });
@@ -142,11 +142,11 @@ describe('sellTokens', function () {
     );
 
     const buyValue = mcrEth.div(new BN(20));
-    await pool1.buyTokens('1', { from: memberOne, value: buyValue });
+    await pool1.buyNXM('1', { from: memberOne, value: buyValue });
 
     const entireBalance = await token.balanceOf(memberOne);
     await expectRevert(
-      pool1.sellTokens(entireBalance.addn(1), '0', { from: memberOne }),
+      pool1.sellNXM(entireBalance.addn(1), '0', { from: memberOne }),
       `Not enough balance`,
     );
   });

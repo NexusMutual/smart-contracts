@@ -5,7 +5,7 @@ const { hex } = require('../utils').helpers;
 const { calculatePurchasedTokens } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 
-describe('calculateTokenBuyValue', function () {
+describe('calculateNXMForEth', function () {
   it('calculates token value received for an increment in total assets correctly', async function () {
     const { pool1, poolData, tokenData } = this;
 
@@ -16,7 +16,7 @@ describe('calculateTokenBuyValue', function () {
     const initialAssetValue = new BN('210959924071154460525457');
     const deltaEth = ether('1000');
 
-    const tokenValue = await pool1.calculateTokenBuyValue(
+    const tokenValue = await pool1.calculateNXMForEth(
       deltaEth, initialAssetValue, mcrEth,
     );
 

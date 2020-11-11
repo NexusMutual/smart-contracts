@@ -263,7 +263,7 @@ contract Pool1 is Iupgradable {
    * @return success returns true on successfull sale
    */
   function sellNXMTokens(uint _amount) public isMember noReentrancy checkPause returns (bool success) {
-    sellTokens(_amount, 0);
+    sellNXM(_amount, 0);
     success = true;
   }
 
@@ -273,7 +273,7 @@ contract Pool1 is Iupgradable {
    * @return weiToPay Amount of wei the seller will get
    */
   function getWei(uint amount) external view returns(uint weiToPay) {
-    return getTokenSellValue(amount);
+    return getEthForNXM(amount);
   }
 
   /**
@@ -281,7 +281,7 @@ contract Pool1 is Iupgradable {
    * @param  minTokensOut Minimum amount of tokens to be bought. Revert if boughtTokens falls below this number.
    * @return boughtTokens number of bought tokens.
    */
-  function buyTokens(uint minTokensOut) public payable isMember checkPause returns (uint boughtTokens) {
+  function buyNXM(uint minTokensOut) public payable isMember checkPause returns (uint boughtTokens) {
 
     uint ethAmount = msg.value;
     require(ethAmount > 0);
@@ -294,7 +294,7 @@ contract Pool1 is Iupgradable {
       ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(MCR_PERCENTAGE_MULTIPLIER),
       "Purchases worth higher than 5% of MCReth are not allowed"
     );
-    boughtTokens = calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
+    boughtTokens = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
     require(boughtTokens >= minTokensOut, "boughtTokens is less than minTokensBought");
     tc.mint(msg.sender, boughtTokens);
   }
@@ -305,13 +305,13 @@ contract Pool1 is Iupgradable {
    * @param  minEthOut Minimum amount of ETH to be received. Revert if ethOut falls below this number.
    * @return ethOut amount of ETH received in exchange for the tokens.
    */
-  function sellTokens(uint tokenAmount, uint minEthOut) public isMember checkPause returns (uint ethOut) {
+  function sellNXM(uint tokenAmount, uint minEthOut) public isMember checkPause returns (uint ethOut) {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!(now < tk.isLockedForMV(msg.sender)), "Member voted");
 
     uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
     uint mcrEth = pd.getLastMCREther();
-    ethOut = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
+    ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(
       ethOut <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(MCR_PERCENTAGE_MULTIPLIER),
       "Sales worth more than 5% of MCReth are not allowed"
@@ -330,17 +330,17 @@ contract Pool1 is Iupgradable {
  * @param ethAmount amount of ETH used for buying.
  * @return tokenValue tokens obtained by buying worth of ethAmount
  */
-  function getTokenBuyValue(
+  function getNXMForEth(
     uint poolBalance,
     uint ethAmount
   ) public view returns (uint tokenValue) {
 
     uint totalAssetValue = mcr.getTotalAssetValue(poolBalance);
     uint mcrEth = pd.getLastMCREther();
-    tokenValue = calculateTokenBuyValue(ethAmount, totalAssetValue, mcrEth);
+    tokenValue = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
   }
 
-  function calculateTokenBuyValue(
+  function calculateNXMForEth(
     uint ethAmount,
     uint currentTotalAssetValue,
     uint mcrEth
@@ -377,9 +377,9 @@ contract Pool1 is Iupgradable {
     uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
 
     // MCReth * C /(3 * V0 ^ 3)
-    uint point0 = calculateAntiderivative(currentTotalAssetValue, mcrEth);
+    uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
     // MCReth * C / (3 * V1 ^3)
-    uint point1 = calculateAntiderivative(nextTotalAssetValue, mcrEth);
+    uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
     uint adjustedTokenAmount = point0.sub(point1);
     /*
       Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
@@ -401,7 +401,7 @@ contract Pool1 is Iupgradable {
   * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
   * NOTE: omits the minus sign of the correct antiderivative to use a uint result type for simplicity
   */
-  function calculateAntiderivative(
+  function calculateIntegralAtPoint(
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint result) {
@@ -412,11 +412,11 @@ contract Pool1 is Iupgradable {
     }
   }
 
-  function getTokenSellValue(uint tokenAmount) public view returns (uint ethValue) {
+  function getEthForNXM(uint tokenAmount) public view returns (uint ethValue) {
     uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
     uint mcrEth = pd.getLastMCREther();
 
-    ethValue = calculateTokenSellValue(tokenAmount, currentTotalAssetValue, mcrEth);
+    ethValue = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
   }
 
   /**
@@ -424,7 +424,7 @@ contract Pool1 is Iupgradable {
   * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of SELL_SPREAD.
   * for values higher than that sell spread may exceed 5% (The higher amount being sold at any given time the higher the spread)
   */
-  function calculateTokenSellValue(
+  function calculateEthForNXM(
     uint tokenAmount,
     uint currentTotalAssetValue,
     uint mcrEth

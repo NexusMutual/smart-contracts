@@ -25,11 +25,11 @@ async function assertBuyValues (
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
 
-    const preEstimatedTokenBuyValue = await pool1.getTokenBuyValue(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(pool1Balance, buyValue);
 
     const preBuyBalance = await token.balanceOf(memberOne);
 
-    const tx = await pool1.buyTokens(preEstimatedTokenBuyValue, {
+    const tx = await pool1.buyNXM(preEstimatedTokenBuyValue, {
       from: memberOne,
       value: buyValue,
     });
@@ -69,7 +69,7 @@ async function assertBuyValues (
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe('buyTokens', function () {
+describe('buyNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -86,7 +86,7 @@ describe('buyTokens', function () {
     );
 
     await expectRevert(
-      pool1.buyTokens('1', { from: memberOne, value: buyValue }),
+      pool1.buyNXM('1', { from: memberOne, value: buyValue }),
       `Purchases worth higher than 5% of MCReth are not allowed`,
     );
   });
@@ -102,9 +102,9 @@ describe('buyTokens', function () {
     );
 
     const pool1Balance = await web3.eth.getBalance(pool1.address);
-    const preEstimatedTokenBuyValue = await pool1.getTokenBuyValue(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(pool1Balance, buyValue);
     await expectRevert(
-      pool1.buyTokens(preEstimatedTokenBuyValue.add(new BN(1)), { from: memberOne, value: buyValue }),
+      pool1.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: memberOne, value: buyValue }),
       `boughtTokens is less than minTokensBought`,
     );
   });
@@ -121,7 +121,7 @@ describe('buyTokens', function () {
     );
 
     await expectRevert(
-      pool1.buyTokens('1', { from: memberOne, value: buyValue }),
+      pool1.buyNXM('1', { from: memberOne, value: buyValue }),
       `Cannot purchase if MCR% > 400%`,
     );
   });

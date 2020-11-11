@@ -1,7 +1,7 @@
 const setup = require('./setup');
 const snapshot = require('../utils').snapshot;
 
-describe('Pool1 unit tests', function () {
+describe.only('Pool1 unit tests', function () {
 
   this.timeout(0);
   this.slow(2000);
@@ -17,13 +17,13 @@ describe('Pool1 unit tests', function () {
   });
   require('./calculateTokenSpotPrice');
   require('./calculateTokenPrice');
-  require('./calculateTokenBuyValue');
-  require('./calculateTokenSellValue');
-  require('./buyTokens');
-  require('./sellTokens');
+  require('./calculateNXMForEth');
+  require('./calculateEthForNXM');
+  require('./buyNXM');
+  require('./sellNXM');
 });
 
-describe('Pool1 comparison unit tests', function () {
+describe.only('Pool1 comparison unit tests', function () {
   this.timeout(0);
   this.slow(2000);
 

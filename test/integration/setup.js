@@ -232,8 +232,8 @@ async function setup () {
   );
 
   const external = { dai, dsv, factory, exchange };
-  const nonUpgradable = { cp };
-  const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr: mc };
+  const nonUpgradable = { cp, qd, td, cd, pd };
+  const instances = { tk, qt, tf, cl, cr, p1, p2, mcr: mc };
   const proxies = { tc, gv, pc, mr, ps };
 
   this.contracts = {

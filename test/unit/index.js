@@ -5,5 +5,7 @@ describe('UNIT TESTS', function () {
 
   require('./ClaimProofs');
   require('./PooledStaking');
+  require('./SwapAgent');
+  require('./TwapOracle');
 
 });

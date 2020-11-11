@@ -16,7 +16,7 @@ describe.only('Pool1 unit tests', function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
   require('./calculateTokenSpotPrice');
-  require('./calculateTokenPrice');
+  require('./getTokenPrice');
   require('./calculateNXMForEth');
   require('./calculateEthForNXM');
   require('./buyNXM');

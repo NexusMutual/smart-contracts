@@ -23,9 +23,7 @@ async function assertBuyValues (
   while (mcrPercentage <= maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
 
-    const pool1Balance = await web3.eth.getBalance(pool1.address);
-
-    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
 
     const preBuyBalance = await token.balanceOf(memberOne);
 
@@ -101,8 +99,7 @@ describe('buyNXM', function () {
       { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData },
     );
 
-    const pool1Balance = await web3.eth.getBalance(pool1.address);
-    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
     await expectRevert(
       pool1.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: memberOne, value: buyValue }),
       `boughtTokens is less than minTokensBought`,

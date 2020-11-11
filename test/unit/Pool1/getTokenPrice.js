@@ -10,10 +10,10 @@ const {
   nonMembers: [fundSource],
 } = accounts;
 
-describe('calculateTokenPrice', function () {
+describe('getTokenPrice', function () {
 
   it('calculates token spot price correctly', async function () {
-    const { mcr, pool1, poolData, tokenData } = this;
+    const { pool1, poolData, tokenData, mcr } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
@@ -25,7 +25,7 @@ describe('calculateTokenPrice', function () {
       { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData },
     );
     const expectedPrice = getTokenSpotPrice(mcrPercentage, mcrEth);
-    const price = await mcr.calculateTokenPrice(hex('ETH'));
+    const price = await pool1.getTokenPrice(hex('ETH'));
     assert.equal(price.toString(), expectedPrice.toFixed());
   });
 });

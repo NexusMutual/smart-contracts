@@ -25,10 +25,7 @@ async function assertSellValues (
   let highestRelativeError = 0;
   while (mcrPercentage < maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
-
-    const pool1Balance = await web3.eth.getBalance(pool1.address);
-
-    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
 
     const preBuyBalance = await token.balanceOf(memberOne);
 

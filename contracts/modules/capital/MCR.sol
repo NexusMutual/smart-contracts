@@ -139,7 +139,7 @@ contract MCR is Iupgradable {
   function calVtpAndMCRtp() public view returns (uint totalAssetValue, uint mcrPercentage) {
     totalAssetValue = p1.getPoolValueinEth();
     uint mcrEth = pd.getLastMCREther();
-    mcrPercentage = p1.calculateMCRPercentage(totalAssetValue, mcrEth);
+    mcrPercentage = p1.calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
   function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns (uint lowerThreshold, uint upperThreshold)

@@ -18,7 +18,7 @@ pragma solidity ^0.5.0;
 import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
 import "@uniswap/v2-periphery/contracts/libraries/UniswapV2OracleLibrary.sol";
 
-contract UniswapOracle {
+contract TwapOracle {
   using FixedPoint for *;
 
   struct Bucket {

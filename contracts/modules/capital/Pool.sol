@@ -22,7 +22,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "../../abstract/MasterAware.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
-import "../oracles/UniswapOracle.sol";
+import "../oracles/TwapOracle.sol";
 
 contract Pool is MasterAware, ReentrancyGuard {
   using SafeMath for uint;
@@ -32,7 +32,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   IUniswapV2Router02 public router;
   // TODO: make oracle and controller updatable parameters
-  UniswapOracle public twapOracle;
+  TwapOracle public twapOracle;
   address public swapController;
 
   address[] public assets;
@@ -85,7 +85,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     master = INXMMaster(_master);
     router = IUniswapV2Router02(_router);
-    twapOracle = UniswapOracle(_twapOracle);
+    twapOracle = TwapOracle(_twapOracle);
     swapController = _swapController;
   }
 

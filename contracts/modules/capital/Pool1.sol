@@ -286,7 +286,7 @@ contract Pool1 is Iupgradable {
     uint ethAmount = msg.value;
     require(ethAmount > 0);
 
-    uint totalAssetValue = mcr.getTotalAssetValue(address(this).balance.sub(ethAmount));
+    uint totalAssetValue = getPoolValueinEth().sub(ethAmount);
     uint mcrEth = pd.getLastMCREther();
     uint mcrPercentage = calculateMCRPercentage(totalAssetValue, mcrEth);
     require(mcrPercentage <= MAX_MCR_PERCENTAGE, "Cannot purchase if MCR% > 400%");
@@ -309,7 +309,7 @@ contract Pool1 is Iupgradable {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!(now < tk.isLockedForMV(msg.sender)), "Member voted");
 
-    uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
+    uint currentTotalAssetValue = getPoolValueinEth();
     uint mcrEth = pd.getLastMCREther();
     ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(
@@ -326,16 +326,14 @@ contract Pool1 is Iupgradable {
 
   /**
  * @dev Get value in tokens for an ethAmount purchase.
- * @param poolBalance ETH balance of Pool1
  * @param ethAmount amount of ETH used for buying.
  * @return tokenValue tokens obtained by buying worth of ethAmount
  */
   function getNXMForEth(
-    uint poolBalance,
     uint ethAmount
   ) public view returns (uint tokenValue) {
 
-    uint totalAssetValue = mcr.getTotalAssetValue(poolBalance);
+    uint totalAssetValue = getPoolValueinEth();
     uint mcrEth = pd.getLastMCREther();
     tokenValue = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
   }
@@ -414,7 +412,7 @@ contract Pool1 is Iupgradable {
   }
 
   function getEthForNXM(uint tokenAmount) public view returns (uint ethValue) {
-    uint currentTotalAssetValue = mcr.getTotalAssetValue(address(this).balance);
+    uint currentTotalAssetValue = getPoolValueinEth();
     uint mcrEth = pd.getLastMCREther();
 
     ethValue = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
@@ -468,6 +466,28 @@ contract Pool1 is Iupgradable {
       .div(CONSTANT_C.mul(1e18)))
       .div(10 ** dividingFactor);
     tokenPrice = tokenPrice.add(CONSTANT_A);
+  }
+
+    /**
+   * @dev Calculates V(Tp), i.e, Pool Fund Value in Ether
+   * and MCR% used in the Token Price Calculation.
+   * @return vtp  Pool Fund Value in Ether used for the Token Price Model
+   * @return mcrtp MCR% used in the Token Price Model.
+   */
+  function getPoolValueinEth() public view returns (uint vtp) {
+    vtp = address(this).balance;
+    IERC20 erc20;
+    uint currTokens = 0;
+    uint i;
+    for (i = 1; i < pd.getAllCurrenciesLen(); i++) {
+      bytes4 currency = pd.getCurrenciesByIndex(i);
+      erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
+      currTokens = erc20.balanceOf(address(this));
+      if (pd.getCAAvgRate(currency) > 0)
+        vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
+    }
+
+    vtp = vtp.add(getInvestmentAssetBalance());
   }
 
   /**

@@ -136,34 +136,12 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Calculates V(Tp), i.e, Pool Fund Value in Ether
-   * and MCR% used in the Token Price Calculation.
-   * @return vtp  Pool Fund Value in Ether used for the Token Price Model
-   * @return mcrtp MCR% used in the Token Price Model.
-   */
-  function getTotalAssetValue(uint poolBalance) public view returns (uint vtp) {
-    vtp = 0;
-    IERC20 erc20;
-    uint currTokens = 0;
-    uint i;
-    for (i = 1; i < pd.getAllCurrenciesLen(); i++) {
-      bytes4 currency = pd.getCurrenciesByIndex(i);
-      erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
-      currTokens = erc20.balanceOf(address(p1));
-      if (pd.getCAAvgRate(currency) > 0)
-        vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
-    }
-
-    vtp = vtp.add(poolBalance).add(p1.getInvestmentAssetBalance());
-  }
-
-  /**
    * @dev Calculates the Token Price of NXM in a given currency
    * with provided token supply for dynamic token price calculation
    * @param currency Currency name.
    */
   function calculateTokenPrice(bytes4 currency) public view returns (uint tokenPrice) {
-    uint totalAssetValue = getTotalAssetValue(address(p1).balance);
+    uint totalAssetValue = p1.getPoolValueinEth();
     uint mcrEth = pd.getLastMCREther();
     uint mcrPercentage = p1.calculateMCRPercentage(totalAssetValue, mcrEth);
     uint tokenSpotPriceEth = p1.calculateTokenSpotPrice(mcrPercentage, mcrEth);
@@ -174,7 +152,7 @@ contract MCR is Iupgradable {
 
   // TODO: discuss removal/rename for this function. ONLY used in Pool2.sol in current contracts
   function calVtpAndMCRtp() public view returns (uint totalAssetValue, uint mcrPercentage) {
-    totalAssetValue = getTotalAssetValue(address(p1).balance);
+    totalAssetValue = p1.getPoolValueinEth();
     uint mcrEth = pd.getLastMCREther();
     mcrPercentage = p1.calculateMCRPercentage(totalAssetValue, mcrEth);
   }
@@ -267,7 +245,7 @@ contract MCR is Iupgradable {
     uint lowerThreshold = 0;
     uint upperThreshold = 0;
     if (len > 1) {
-      vtp = getTotalAssetValue(address(p1).balance);
+      vtp = p1.getPoolValueinEth();
       (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
 
     }

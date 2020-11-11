@@ -18,13 +18,13 @@ async function assertSellValues (
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
     pool1, token, buyValue, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
 ) {
-  let { a, c, tokenExponent, totalAssetValue, mcrPercentage } = await setupContractState(
+  let { totalAssetValue, mcrRatio } = await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData },
   );
 
   let highestRelativeError = 0;
-  while (mcrPercentage < maxPercentage * 100) {
-    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
+  while (mcrRatio < maxPercentage * 100) {
+    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
     const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
 
     const preBuyBalance = await token.balanceOf(memberOne);
@@ -79,7 +79,8 @@ async function assertSellValues (
       value: poolBalanceStep,
     });
 
-    ({ totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp());
+    totalAssetValue = await pool1.getPoolValueInEth();
+    mcrRatio = await pool1.getMCRRatio();
   }
 
   console.log({ highestRelativeError: highestRelativeError.toString() });

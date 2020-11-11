@@ -29,17 +29,16 @@ const Pool1MockOldPool1 = artifacts.require('Pool1MockOldPool1');
 async function compareBuyValues (
   { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
 ) {
-  const oldState = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old },
+  await setupContractState(
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old, fetchStoredState: false },
   );
-  console.log(keysToString(oldState));
-  let { totalAssetValue, mcrPercentage } = await setupContractState(
+  let { totalAssetValue, mcrRatio } = await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...current },
   );
 
   let highestRelativeError = 0;
-  while (mcrPercentage < maxPercentage * 100) {
-    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
+  while (mcrRatio < maxPercentage * 100) {
+    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
     const preBuyBalanceMember1 = await current.token.balanceOf(member1);
     const tx = await current.pool1.buyNXM('0', {
       from: member1,
@@ -87,7 +86,7 @@ async function compareBuyValues (
         value: extraStepValue,
       });
     }
-    ({ totalAssetValue, mcrPercentage } = await current.mcr.calVtpAndMCRtp());
+    ({ totalAssetValue, mcrPercentage: mcrRatio } = await current.mcr.calVtpAndMCRtp());
   }
   console.log({
     highestRelativeError: highestRelativeError,

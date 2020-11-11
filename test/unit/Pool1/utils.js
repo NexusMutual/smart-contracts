@@ -3,11 +3,13 @@ const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
 async function setupContractState (
-  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData },
+  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData, fetchStoredState = true },
 ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();
-  const mcrPercentagex100 = initialAssetValue.mul(new BN(10000)).div(mcrEth);
+
+  const MCR_RATIO_DECIMALS = 4;
+  const mcrRatio = initialAssetValue.mul(new BN(10 ** MCR_RATIO_DECIMALS)).div(mcrEth);
 
   await pool1.sendTransaction({
     from: fundSource,
@@ -18,15 +20,21 @@ async function setupContractState (
   await poolData.setAverageRate(hex('DAI'), daiRate);
 
   const date = new Date().getTime();
-  await poolData.setLastMCR(mcrPercentagex100, mcrEth, initialAssetValue, date);
-  const { totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp();
-  return {
+  await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+
+
+  const stateValues = {
     a,
     c,
     tokenExponent,
-    totalAssetValue,
-    mcrPercentage,
   };
+  if (fetchStoredState) {
+    const totalAssetValue = await pool1.getPoolValueInEth();
+    const storedMCRRatio = await pool1.getMCRRatio();
+    stateValues.totalAssetValue = totalAssetValue;
+    stateValues.mcrRatio = storedMCRRatio;
+  }
+  return stateValues;
 }
 
 function keysToString (object) {

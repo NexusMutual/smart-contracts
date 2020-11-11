@@ -40,8 +40,8 @@ contract Pool1 is Iupgradable {
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint public constant MAX_MCR_RATIO = 4 *  10 ** MCR_RATIO_DECIMALS; // 400%
 
-  uint public constant SELL_SPREAD = 250;
-  uint public constant MAX_BUY_SELL_MCR_ETH_PERCENTAGE = 500;
+  uint public constant SELL_SPREAD = 250; // 2.5%. 4 decimal points
+  uint public constant MAX_BUY_SELL_MCR_ETH_FRACTION = 500; // 5%. 4 decimal points
   uint constant CONSTANT_C = 5800000;
   uint constant CONSTANT_A = 1028 * 1e13;
   uint constant TOKEN_EXPONENT = 4;
@@ -285,12 +285,12 @@ contract Pool1 is Iupgradable {
     uint ethAmount = msg.value;
     require(ethAmount > 0);
 
-    uint totalAssetValue = getPoolValueinEth().sub(ethAmount);
+    uint totalAssetValue = getPoolValueInEth().sub(ethAmount);
     uint mcrEth = pd.getLastMCREther();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     require(mcrRatio <= MAX_MCR_RATIO, "Cannot purchase if MCR% > 400%");
     require(
-      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div( 10 ** MCR_RATIO_DECIMALS),
+      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div( 10 ** MCR_RATIO_DECIMALS),
       "Purchases worth higher than 5% of MCReth are not allowed"
     );
     boughtTokens = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
@@ -308,11 +308,11 @@ contract Pool1 is Iupgradable {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
     require(!(now < tk.isLockedForMV(msg.sender)), "Member voted");
 
-    uint currentTotalAssetValue = getPoolValueinEth();
+    uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
     ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(
-      ethOut <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div( 10 ** MCR_RATIO_DECIMALS),
+      ethOut <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div( 10 ** MCR_RATIO_DECIMALS),
       "Sales worth more than 5% of MCReth are not allowed"
     );
     require(currentTotalAssetValue.sub(ethOut) > mcrEth, "MCR% cannot fall below 100%");
@@ -332,7 +332,7 @@ contract Pool1 is Iupgradable {
     uint ethAmount
   ) public view returns (uint tokenValue) {
 
-    uint totalAssetValue = getPoolValueinEth();
+    uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
     tokenValue = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
   }
@@ -343,7 +343,7 @@ contract Pool1 is Iupgradable {
     uint mcrEth
   ) public pure returns (uint tokenValue) {
     require(
-      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(10 ** MCR_RATIO_DECIMALS),
+      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
       "Purchases worth higher than 5% of MCReth are not allowed"
     );
 
@@ -411,7 +411,7 @@ contract Pool1 is Iupgradable {
   }
 
   function getEthForNXM(uint tokenAmount) public view returns (uint ethValue) {
-    uint currentTotalAssetValue = getPoolValueinEth();
+    uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
 
     ethValue = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
@@ -444,7 +444,7 @@ contract Pool1 is Iupgradable {
     ethValue = finalPrice.mul(tokenAmount).div(1e18);
 
     require(
-      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_PERCENTAGE).div(10 ** MCR_RATIO_DECIMALS),
+      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
       "Sales worth more than 5% of MCReth are not allowed"
     );
   }
@@ -473,7 +473,7 @@ contract Pool1 is Iupgradable {
    * @param currency Currency name.
   */
   function getTokenPrice(bytes4 currency) public view returns (uint tokenPrice) {
-    uint totalAssetValue = getPoolValueinEth();
+    uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint tokenSpotPriceEth = calculateTokenSpotPrice(mcrRatio, mcrEth);
@@ -488,8 +488,8 @@ contract Pool1 is Iupgradable {
    * @return vtp  Pool Fund Value in Ether used for the Token Price Model
    * @return mcrtp MCR% used in the Token Price Model.
    */
-  function getPoolValueinEth() public view returns (uint vtp) {
-    vtp = address(this).balance;
+  function getPoolValueInEth() public view returns (uint value) {
+    value = address(this).balance;
     IERC20 erc20;
     uint currTokens = 0;
     uint i;
@@ -498,10 +498,16 @@ contract Pool1 is Iupgradable {
       erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
       currTokens = erc20.balanceOf(address(this));
       if (pd.getCAAvgRate(currency) > 0)
-        vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
+        value = value.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
     }
 
-    vtp = vtp.add(getInvestmentAssetBalance());
+    value = value.add(getInvestmentAssetBalance());
+  }
+
+  function getMCRRatio() public view returns (uint mcrRatio) {
+    uint totalAssetValue = getPoolValueInEth();
+    uint mcrEth = pd.getLastMCREther();
+    mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
   /**

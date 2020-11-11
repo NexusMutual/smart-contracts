@@ -135,9 +135,9 @@ contract MCR is Iupgradable {
     }
   }
 
-  // TODO: discuss removal/rename for this function. ONLY used in Pool2.sol in current contracts
+  // TODO: remove this upon merge with the Pool2 implementation
   function calVtpAndMCRtp() public view returns (uint totalAssetValue, uint mcrPercentage) {
-    totalAssetValue = p1.getPoolValueinEth();
+    totalAssetValue = p1.getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
     mcrPercentage = p1.calculateMCRRatio(totalAssetValue, mcrEth);
   }
@@ -230,7 +230,7 @@ contract MCR is Iupgradable {
     uint lowerThreshold = 0;
     uint upperThreshold = 0;
     if (len > 1) {
-      vtp = p1.getPoolValueinEth();
+      vtp = p1.getPoolValueInEth();
       (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
 
     }

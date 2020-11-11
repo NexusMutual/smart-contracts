@@ -33,34 +33,33 @@ async function initMembers () {
 }
 
 async function getContractState (
-  { mcr, poolData, tokenData },
+  { poolData, tokenData, pool1 },
 ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();
   const mcrEth = await poolData.getLastMCREther();
 
-  const { totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp();
-  return { a, c, tokenExponent, totalAssetValue, mcrPercentage, mcrEth };
+  const totalAssetValue = await pool1.getPoolValueInEth();
+  const mcrRatio = await pool1.getMCRRatio();
+  return { a, c, tokenExponent, totalAssetValue, mcrRatio, mcrEth };
 }
 
 async function assertBuyAndSellValues (
   { maxPercentage, poolBalanceStep, buyValue, maxRelativeError, mcr, pool1, token, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
 ) {
-  let { a, c, tokenExponent, totalAssetValue, mcrPercentage, mcrEth } = await getContractState(
-    { mcr, poolData, tokenData },
+  let { a, c, tokenExponent, totalAssetValue, mcrRatio, mcrEth } = await getContractState(
+    { poolData, tokenData, pool1 },
   );
 
   let highestRelativeError = 0;
-  while (mcrPercentage < maxPercentage * 100) {
-    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrPercentage.toString() });
+  while (mcrRatio < maxPercentage * 100) {
+    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
 
-    const pool1Balance = await web3.eth.getBalance(pool1.address);
-
-    const preEstimatedTokenBuyValue = await mcr.getTokenBuyValue(pool1Balance, buyValue);
+    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
 
     const preBuyBalance = await token.balanceOf(member1);
 
-    await pool1.buyTokens(preEstimatedTokenBuyValue, {
+    await pool1.buyNXM(preEstimatedTokenBuyValue, {
       from: member1,
       value: buyValue,
     });
@@ -86,7 +85,7 @@ async function assertBuyAndSellValues (
        Relative error: ${relativeError}`,
     );
 
-    const precomputedEthValue = await mcr.getTokenSellValue(tokensReceived);
+    const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
     console.log({
       precomputedEthValue: precomputedEthValue.toString(),
       postBuyBalance: postBuyBalance.toString(),
@@ -97,7 +96,7 @@ async function assertBuyAndSellValues (
       from: member1,
     });
     const balancePreSell = await web3.eth.getBalance(member1);
-    const sellTx = await pool1.sellTokens(tokensReceived, precomputedEthValue, {
+    const sellTx = await pool1.sellNXM(tokensReceived, precomputedEthValue, {
       from: member1,
     });
 
@@ -127,13 +126,14 @@ async function assertBuyAndSellValues (
       value: poolBalanceStep,
     });
 
-    ({ totalAssetValue, mcrPercentage } = await mcr.calVtpAndMCRtp());
+    totalAssetValue = await pool1.getPoolValueInEth();
+    mcrRatio = await pool1.getMCRRatio();
   }
 
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe('buyTokens and sellTokens', function () {
+describe('buyNXM and sellNXM', function () {
 
   this.timeout(0);
   this.slow(5000);
@@ -144,7 +144,7 @@ describe('buyTokens and sellTokens', function () {
 
     const buyValue = ether('10');
     await expectRevert(
-      pool1.buyTokens('0', { from: nonMember1, value: buyValue }),
+      pool1.buyNXM('0', { from: nonMember1, value: buyValue }),
       'Not member',
     );
   });

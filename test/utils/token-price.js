@@ -114,8 +114,8 @@ function calculatePurchasedTokens (
   };
 }
 
-function getPriceDecimal (MCRPerc, MCReth) {
-  return Decimal(A).add(Decimal(MCReth).div(C).mul(Decimal(MCRPerc).pow(4)));
+function getPriceDecimal (mcrRatio, mcrEth) {
+  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(4)));
 }
 
 /**
@@ -147,10 +147,10 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
 }
 
 
-function getTokenSpotPrice (mcrPercentage, mcrEth) {
-  mcrPercentage = Decimal(mcrPercentage.toString()).div(1e4);
+function getTokenSpotPrice (mcrRatio, mcrEth) {
+  mcrRatio = Decimal(mcrRatio.toString()).div(1e4);
   mcrEth = Decimal(mcrEth.toString()).div(1e18);
-  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrPercentage).pow(tokenExponent))).mul(1e18).round();
+  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
 }
 
 

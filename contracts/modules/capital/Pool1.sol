@@ -31,7 +31,6 @@ contract Pool1 is Iupgradable {
   Pool2 public p2;
   PoolData public pd;
   Claims public c1;
-  TokenData public td;
   bool public locked;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
@@ -47,15 +46,15 @@ contract Pool1 is Iupgradable {
   event Payout(address indexed to, uint coverId, uint tokens);
 
   event NXMSold (
-    address seller,
-    uint tokenAmount,
-    uint ethReceived
+    address member,
+    uint nxmIn,
+    uint ethOut
   );
 
   event NXMBought (
-    address buyer,
-    uint ethAmount,
-    uint tokensReceived
+    address member,
+    uint ethIn,
+    uint nxmOut
   );
 
 
@@ -184,7 +183,6 @@ contract Pool1 is Iupgradable {
     q2 = Quotation(ms.getLatestAddress("QT"));
     p2 = Pool2(ms.getLatestAddress("P2"));
     c1 = Claims(ms.getLatestAddress("CL"));
-    td = TokenData(ms.getLatestAddress("TD"));
   }
 
   function sendEther() public payable {
@@ -283,24 +281,24 @@ contract Pool1 is Iupgradable {
    * @param  minTokensOut Minimum amount of tokens to be bought. Revert if boughtTokens falls below this number.
    * @return boughtTokens number of bought tokens.
    */
-  function buyNXM(uint minTokensOut) public payable isMember checkPause returns (uint boughtTokens) {
+  function buyNXM(uint minTokensOut) public payable isMember checkPause returns (uint tokensOut) {
 
-    uint ethAmount = msg.value;
-    require(ethAmount > 0);
+    uint ethIn = msg.value;
+    require(ethIn > 0);
 
-    uint totalAssetValue = getPoolValueInEth().sub(ethAmount);
+    uint totalAssetValue = getPoolValueInEth().sub(ethIn);
     uint mcrEth = pd.getLastMCREther();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     require(mcrRatio <= MAX_MCR_RATIO, "Cannot purchase if MCR% > 400%");
     require(
-      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div( 10 ** MCR_RATIO_DECIMALS),
+      ethIn <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div( 10 ** MCR_RATIO_DECIMALS),
       "Purchases worth higher than 5% of MCReth are not allowed"
     );
-    boughtTokens = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
-    require(boughtTokens >= minTokensOut, "boughtTokens is less than minTokensBought");
-    tc.mint(msg.sender, boughtTokens);
+    tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
+    require(tokensOut >= minTokensOut, "tokensOut is less than minTokensBought");
+    tc.mint(msg.sender, tokensOut);
 
-    emit NXMBought(msg.sender, ethAmount, boughtTokens);
+    emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
   /**
@@ -311,7 +309,7 @@ contract Pool1 is Iupgradable {
    */
   function sellNXM(uint tokenAmount, uint minEthOut) public isMember checkPause returns (uint ethOut) {
     require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
-    require(!(now < tk.isLockedForMV(msg.sender)), "Member voted");
+    require(tk.isLockedForMV(msg.sender) <= now, "NXM tokens are locked for voting");
 
     uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
@@ -430,11 +428,11 @@ contract Pool1 is Iupgradable {
       .mul(mcrEth).div(assetValue);
   }
 
-  function getEthForNXM(uint tokenAmount) public view returns (uint ethValue) {
+  function getEthForNXM(uint nxmAmount) public view returns (uint ethAmount) {
     uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
 
-    ethValue = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
+    return calculateEthForNXM(nxmAmount, currentTotalAssetValue, mcrEth);
   }
 
   /**
@@ -443,15 +441,15 @@ contract Pool1 is Iupgradable {
   * for values higher than that sell spread may exceed 5% (The higher amount being sold at any given time the higher the spread)
   */
   function calculateEthForNXM(
-    uint tokenAmount,
+    uint nxmAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public pure returns (uint ethValue) {
+  ) public pure returns (uint ethAmount) {
 
     // Step 1. Calculate spot price and amount of ETH at current values
     uint mcrRatio0 = currentTotalAssetValue.mul(10 ** MCR_RATIO_DECIMALS).div(mcrEth);
     uint spotPrice0 = calculateTokenSpotPrice(mcrRatio0, mcrEth);
-    uint spotEthAmount = tokenAmount.mul(spotPrice0).div(1e18);
+    uint spotEthAmount = nxmAmount.mul(spotPrice0).div(1e18);
 
     //  Step 2. Calculate spot price and amount of ETH using V = currentTotalAssetValue - spotEthAmount from step 1
     uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
@@ -461,12 +459,13 @@ contract Pool1 is Iupgradable {
     // Step 3. Min [average[Price(1), Price(2)] x ( 1 - Sell Spread), Price(2) ]
     uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul((10 ** MCR_RATIO_DECIMALS).sub(SELL_SPREAD)).div(10 ** MCR_RATIO_DECIMALS);
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
-    ethValue = finalPrice.mul(tokenAmount).div(1e18);
+    ethAmount = finalPrice.mul(nxmAmount).div(1e18);
 
     require(
-      ethValue <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
+      ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
       "Sales worth more than 5% of MCReth are not allowed"
     );
+    return ethAmount;
   }
 
   function calculateMCRRatio(uint totalAssetValue, uint mcrEth) public pure returns (uint) {
@@ -545,23 +544,6 @@ contract Pool1 is Iupgradable {
         balance = balance.add((currTokens.mul(100)).div(pd.getIAAvgRate(currency)));
     }
 
-    balance = balance.add(address(p2).balance);
-  }
-
-  function getInvestmentAssetBalanceLoop() public view returns (uint balance) {
-    IERC20 erc20;
-    uint currTokens;
-    for (uint i = 1; i < pd.getInvestmentCurrencyLen(); i++) {
-      bytes4 currency = pd.getInvestmentCurrencyByIndex(i);
-      erc20 = IERC20(pd.getInvestmentAssetAddress(currency));
-      currTokens = erc20.balanceOf(address(p2));
-      if (pd.getIAAvgRate(currency) > 0)
-        balance = balance.add((currTokens.mul(100)).div(pd.getIAAvgRate(currency)));
-    }
-    return balance;
-  }
-
-  function getInvestmentAssetBalanceP2Balance() public view returns (uint balance) {
     balance = balance.add(address(p2).balance);
   }
 

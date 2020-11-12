@@ -101,8 +101,19 @@ contract Pool is MasterAware, ReentrancyGuard {
     return assets;
   }
 
-  function getAssetMinMax(address _asset) external view returns (uint min, uint max) {
-    return (minAmount[_asset], maxAmount[_asset]);
+  function getAssetDetails(address _asset) external view returns (
+    uint balance, uint min, uint max, uint lastAssetSwapTime
+  ) {
+
+    IERC20 token = IERC20(_asset);
+    balance = token.balanceOf(address(this));
+
+    return (
+      balance,
+      minAmount[_asset],
+      maxAmount[_asset],
+      lastSwapTime[_asset]
+    );
   }
 
   function addAsset(address _asset, uint _min, uint _max) external onlyGovernance {

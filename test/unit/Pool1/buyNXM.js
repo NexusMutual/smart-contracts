@@ -65,7 +65,12 @@ async function assertBuyOutcome(
 
   const tokensReceivedDecimal = Decimal(tokensReceived.toString());
   const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
-  console.log({ relativeError: relativeError.toString() });
+
+  console.log({
+    expectedIdealTokenValue: expectedIdealTokenValue.toString(),
+    tokensReceivedDecimal: tokensReceivedDecimal.toString(),
+    relativeError: relativeError.toString()
+  });
   assert(
     relativeError.lt(maxRelativeError),
     `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
@@ -143,12 +148,12 @@ describe.only('buyNXM', function () {
     await assertBuyOutcome({ buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
   });
 
-  it('mints bought tokens to member in exchange of 100 ETH for mcrEth = 16k', async function () {
+  it('mints bought tokens to member in exchange of 0.0001 ETH for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
-    const mcrEth = ether('16000');
+    const mcrEth = ether('160000');
     const initialAssetValue = mcrEth.div(new BN(2));
-    const buyValue = ether('100');
+    const buyValue = ether('0.0001');
     const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0006);
 
@@ -169,12 +174,12 @@ describe.only('buyNXM', function () {
     });
   });
 
-  it('mints bought tokens to member in exchange of 0.01 ETH for mcrEth = 160k', async function () {
+  it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth = 16k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
-    const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth.div(new BN(2));
-    const buyValue = ether('0.01');
+    const mcrEth = ether('16000');
+    const initialAssetValue = mcrEth;
+    const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0006);
 
@@ -247,10 +252,10 @@ describe.only('buyNXM', function () {
     });
   });
 
-  it('mints bought tokens to member in exchange of 5% ETH for mcrEth = 1 million', async function () {
+  it.only('mints bought tokens to member in exchange of 5% ETH for mcrEth = 10 million', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
-    const mcrEth = ether('1000000');
+    const mcrEth = ether(1e8.toString());
     const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(2));
@@ -273,14 +278,20 @@ describe.only('buyNXM', function () {
     });
   });
 
-  it('mints bought tokens to member in exchange of 5% ETH for mcrEth = 10 million', async function () {
+  it('mints bought tokens to member in exchange of 5% of mcrEth for mcrEth = 10 million and initialAssetValue = 0 up to 100% MCR%', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
-
-    const mcrEth = ether('10000000');
-    const initialAssetValue = mcrEth;
+    /*
+      In the interval 0-100 MCR% for large mcrEth (100 million here) tokens are sold cheaper than they should be
+      and the relative error goes as large as 3.7%.
+      This is considered safe, because no arbitrage is possible in this interval, since no sells are allowed below 100%.
+     */
+    const mcrEth = ether(1e8.toString());
+    const initialAssetValue = new BN(0);
     const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.0006);
+    const poolBalanceStep = mcrEth.div(new BN(8));
+    // IMPORTANT: max relative error here is 3.7%
+    const maxRelativeError = Decimal(0.037);
+    const maxPercentage = 100;
 
     await assertBuyValues({
       initialAssetValue,

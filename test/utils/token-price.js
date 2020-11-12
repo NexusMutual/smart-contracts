@@ -88,6 +88,9 @@ function calculatePurchasedTokens (
   initialAssetValue = new BN(initialAssetValue.toString());
   deltaEth = new BN(deltaEth.toString());
   const nextAssetValue = initialAssetValue.add(deltaEth);
+  if (initialAssetValue.eq(new BN(0))) {
+    initialAssetValue = new BN('1');
+  }
   function integral (point) {
     point = new BN(point);
     let result = mcrEth.mul(c).mul(wad).muln(-1).divn(3).div(point);
@@ -98,13 +101,6 @@ function calculatePurchasedTokens (
   }
   const adjustedTokenAmount = integral(nextAssetValue).sub(integral(initialAssetValue));
   const averageAdjustedPrice = deltaEth.mul(wad).div(adjustedTokenAmount);
-
-  console.log({
-    adjustedTokenAmount: adjustedTokenAmount.toString() / 1e18,
-    mcrEth: mcrEth.toString(),
-    c: c.toString()
-  })
-
   const finalPrice = averageAdjustedPrice.add(new BN(a));
   const tokens = deltaEth.mul(wad).div(finalPrice);
 

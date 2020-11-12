@@ -380,25 +380,39 @@ contract Pool1 is Iupgradable {
       Evaluating the above using the antiderivative of the function we get:
       adjustedTokenAmount = - MCReth ^ 3 * C / (3 * V1 ^3) + MCReth * C /(3 * V0 ^ 3)
     */
+
+    // make it at least 1 wei to avoid division by 0
+    currentTotalAssetValue = currentTotalAssetValue == 0 ? 1 : currentTotalAssetValue;
     uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
+    uint tokenPrice;
 
-    // MCReth * C /(3 * V0 ^ 3)
-    uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
-    // MCReth * C / (3 * V1 ^3)
-    uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
-    uint adjustedTokenAmount = point0.sub(point1);
-    /*
-      Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
-      and to that add the A constant (the price offset previously removed in the adjusted Price formula)
-      to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
+    if (mcrEth.div(currentTotalAssetValue) > 1e12) {
+      /*
+       If currentTotalAssetValue is significantly less than mcrEth, MCR% approaches 0, let the price be A (baseline price).
+        This avoids overflow in the calculateIntegralAtPoint computation.
+        This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
+      */
+      tokenPrice = CONSTANT_A;
+    }  else {
+      // MCReth * C /(3 * V0 ^ 3)
+      uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
+      // MCReth * C / (3 * V1 ^3)
+      uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
+      uint adjustedTokenAmount = point0.sub(point1);
+      /*
+        Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
+        and to that add the A constant (the price offset previously removed in the adjusted Price formula)
+        to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
 
-      adjustedPrice = ethAmount / adjustedTokenAmount
-      finalPrice = adjustedPrice + A
-      tokenValue = ethAmount  / finalPrice
-    */
-    // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
-    uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-    uint tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
+        adjustedPrice = ethAmount / adjustedTokenAmount
+        finalPrice = adjustedPrice + A
+        tokenValue = ethAmount  / finalPrice
+      */
+      // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
+      uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
+      tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
+    }
+
     tokenValue = ethAmount.mul(1e18).div(tokenPrice);
   }
 
@@ -411,6 +425,7 @@ contract Pool1 is Iupgradable {
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint result) {
+    require(mcrEth.div(assetValue) > 1e17, "mcrEth too large compared to assetValue.");
     result = CONSTANT_C
       .mul(1e18)
       .div(3)

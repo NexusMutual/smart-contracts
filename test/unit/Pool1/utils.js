@@ -3,7 +3,7 @@ const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
 async function setupContractState (
-  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData, fetchStoredState = true },
+  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, pool1, poolData, tokenData, fetchStoredState = true },
 ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();

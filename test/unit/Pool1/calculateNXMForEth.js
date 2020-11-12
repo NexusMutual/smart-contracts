@@ -26,4 +26,25 @@ describe('calculateNXMForEth', function () {
 
     assert.equal(tokenValue.toString(), expectedtokenValue.toString());
   });
+
+  it('calculates token value received for an increment in total assets correctly for asset value = 0', async function () {
+    const { pool1, poolData, tokenData } = this;
+
+    const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
+    const tokenExponent = await tokenData.tokenExponent();
+
+    const mcrEth = new BN('162424730681679380000000');
+    const initialAssetValue = new BN('0');
+    const deltaEth = ether('1000');
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      deltaEth, initialAssetValue, mcrEth,
+    );
+
+    const { tokens: expectedtokenValue } = calculatePurchasedTokens(
+      initialAssetValue.add(new BN(1)), deltaEth, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
+    );
+
+    assert.equal(tokenValue.toString(), expectedtokenValue.toString());
+  });
 });

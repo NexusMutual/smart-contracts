@@ -19,7 +19,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../claims/Claims.sol";
 import "../cover/Quotation.sol";
-import "./MCR.sol";
 import "./Pool2.sol";
 import "./PoolData.sol";
 
@@ -29,10 +28,8 @@ contract Pool1 is Iupgradable {
   Quotation public q2;
   NXMToken public tk;
   TokenController public tc;
-  TokenFunctions public tf;
   Pool2 public p2;
   PoolData public pd;
-  MCR public mcr;
   Claims public c1;
   TokenData public td;
   bool public locked;
@@ -181,7 +178,6 @@ contract Pool1 is Iupgradable {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    mcr = MCR(ms.getLatestAddress("MC"));
     tk = NXMToken(ms.tokenAddress());
     tc = TokenController(ms.getLatestAddress("TC"));
     pd = PoolData(ms.getLatestAddress("PD"));
@@ -274,7 +270,7 @@ contract Pool1 is Iupgradable {
   }
 
   /**
-   * @dev (DEPRECATED, use MCR.getTokenSellValue function instead) Returns the amount of wei a seller will get for selling NXM
+   * @dev (DEPRECATED, use calculateNXMForEth function instead) Returns the amount of wei a seller will get for selling NXM
    * @param amount Amount of NXM to sell
    * @return weiToPay Amount of wei the seller will get
    */

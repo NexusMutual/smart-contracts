@@ -22,7 +22,6 @@ async function setupContractState (
   const date = new Date().getTime();
   await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
 
-
   const stateValues = {
     a,
     c,

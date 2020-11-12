@@ -40,9 +40,9 @@ async function assertBuyValues (
   console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-async function assertBuyOutcome(
-  { buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token }
-  ) {
+async function assertBuyOutcome (
+  { buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token },
+) {
   const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
 
   const preBuyBalance = await token.balanceOf(memberOne);
@@ -61,7 +61,12 @@ async function assertBuyOutcome(
   const { tokens: expectedTokenValue } = calculatePurchasedTokens(
     totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
   );
-  assert.equal(tokensReceived.toString(), expectedTokenValue.toString());
+  const differenceInBNResults = tokensReceived.sub(expectedTokenValue);
+  const maxDifference = new BN(1);
+  assert(differenceInBNResults.lte(maxDifference),
+    `Resulting token value ${tokensReceived.toString()} is not close enough to
+      js clone function result with ${expectedTokenValue.toString()}
+       absolute difference: ${differenceInBNResults}`);
 
   const tokensReceivedDecimal = Decimal(tokensReceived.toString());
   const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
@@ -69,7 +74,7 @@ async function assertBuyOutcome(
   console.log({
     expectedIdealTokenValue: expectedIdealTokenValue.toString(),
     tokensReceivedDecimal: tokensReceivedDecimal.toString(),
-    relativeError: relativeError.toString()
+    relativeError: relativeError.toString(),
   });
   assert(
     relativeError.lt(maxRelativeError),
@@ -79,7 +84,7 @@ async function assertBuyOutcome(
   return relativeError;
 }
 
-describe.only('buyNXM', function () {
+describe('buyNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -170,7 +175,7 @@ describe.only('buyNXM', function () {
       daiRate,
       ethRate,
       tokenData,
-      maxRelativeError
+      maxRelativeError,
     });
   });
 
@@ -196,7 +201,7 @@ describe.only('buyNXM', function () {
       daiRate,
       ethRate,
       tokenData,
-      maxRelativeError
+      maxRelativeError,
     });
   });
 
@@ -222,7 +227,7 @@ describe.only('buyNXM', function () {
       daiRate,
       ethRate,
       tokenData,
-      maxRelativeError
+      maxRelativeError,
     });
   });
 
@@ -248,11 +253,11 @@ describe.only('buyNXM', function () {
       daiRate,
       ethRate,
       tokenData,
-      maxRelativeError
+      maxRelativeError,
     });
   });
 
-  it.only('mints bought tokens to member in exchange of 5% ETH for mcrEth = 10 million', async function () {
+  it('mints bought tokens to member in exchange of 5% ETH for mcrEth = 10 million', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether(1e8.toString());
@@ -274,7 +279,7 @@ describe.only('buyNXM', function () {
       daiRate,
       ethRate,
       tokenData,
-      maxRelativeError
+      maxRelativeError,
     });
   });
 
@@ -282,15 +287,15 @@ describe.only('buyNXM', function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
     /*
       In the interval 0-100 MCR% for large mcrEth (100 million here) tokens are sold cheaper than they should be
-      and the relative error goes as large as 3.7%.
+      and the relative error goes as large as 3.8% (error increases with mcrEth here).
       This is considered safe, because no arbitrage is possible in this interval, since no sells are allowed below 100%.
      */
     const mcrEth = ether(1e8.toString());
     const initialAssetValue = new BN(0);
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(8));
-    // IMPORTANT: max relative error here is 3.7%
-    const maxRelativeError = Decimal(0.037);
+    // IMPORTANT: max relative error here is 3.8%
+    const maxRelativeError = Decimal(0.038);
     const maxPercentage = 100;
 
     await assertBuyValues({
@@ -306,7 +311,7 @@ describe.only('buyNXM', function () {
       daiRate,
       ethRate,
       tokenData,
-      maxRelativeError
+      maxRelativeError,
     });
   });
 });

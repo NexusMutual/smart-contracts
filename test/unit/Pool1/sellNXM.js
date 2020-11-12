@@ -6,6 +6,7 @@ const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState } = require('./utils');
 const setup = require('./setup');
+const { calculatePurchasedTokensWithFullIntegral } = require('../utils').tokenPrice;
 
 const {
   nonMembers: [fundSource],
@@ -18,7 +19,7 @@ async function assertSellValues (
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
     pool1, token, buyValue, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
 ) {
-  let { totalAssetValue, mcrRatio } = await setupContractState(
+  let { totalAssetValue, mcrRatio, a, c, tokenExponent } = await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData },
   );
 
@@ -29,22 +30,37 @@ async function assertSellValues (
 
     const preBuyBalance = await token.balanceOf(memberOne);
 
-    await pool1.buyNXM(preEstimatedTokenBuyValue, {
-      from: memberOne,
-      value: buyValue,
-    });
-    const postBuyBalance = await token.balanceOf(memberOne);
-    const tokensReceived = postBuyBalance.sub(preBuyBalance);
+    let tokensReceived;
+    if (mcrRatio <= 400 * 100) {
+      await pool1.buyNXM(preEstimatedTokenBuyValue, {
+        from: memberOne,
+        value: buyValue,
+      });
+      const postBuyBalance = await token.balanceOf(memberOne);
+      tokensReceived = postBuyBalance.sub(preBuyBalance);
+    } else {
+      // cannot buy past upper MCR% treshold. Can only send ether to the pool.
+      await pool1.sendTransaction({
+        from: fundSource,
+        value: buyValue,
+      });
+
+      // mint ideal number of tokens
+      const { tokens: idealTokensReceived } = calculatePurchasedTokensWithFullIntegral(
+        totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
+      );
+      tokensReceived = new BN(idealTokensReceived.toFixed());
+      await token.mint(memberOne, tokensReceived);
+    }
 
     const minEthOut = buyValue.mul(new BN(10000 - (sellSpread + 10))).div(new BN(10000));
 
     const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
-    console.log({ precomputedEthValue: precomputedEthValue.toString(),
-      postBuyBalance: postBuyBalance.toString(),
+    console.log({
+      precomputedEthValue: precomputedEthValue.toString(),
       tokensReceived: tokensReceived.toString(),
       minEthOut: minEthOut.toString(),
     });
-
     await token.approve(tokenController.address, tokensReceived, {
       from: memberOne,
     });
@@ -78,7 +94,6 @@ async function assertSellValues (
       from: fundSource,
       value: poolBalanceStep,
     });
-
     totalAssetValue = await pool1.getPoolValueInEth();
     mcrRatio = await pool1.getMCRRatio();
   }
@@ -90,7 +105,12 @@ describe('sellNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
-  const maxPercentage = 400;
+
+  /*
+    tests sells for percentages higher than 400% because anyone can send ETH to the pool, increase total value in the
+    pool without receiving any tokens in the pool.
+   */
+  const maxPercentage = 650;
 
   it('reverts on sales that decrease the MCR% below 100%', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
@@ -240,13 +260,13 @@ describe('sellNXM', function () {
     const maxRelativeError = Decimal(0.06);
 
     await assertSellValues({
+      isLessThanExpectedEthOut: true,
       initialAssetValue,
       mcrEth,
       maxPercentage,
       buyValue,
       poolBalanceStep,
       maxRelativeError,
-      isLessThanExpectedEthOut: true,
       mcr,
       pool1,
       token,

@@ -22,7 +22,7 @@ async function assertBuyValues (
   let highestRelativeError = 0;
   while (mcrRatio <= maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
-    const relativeError = assertBuyOutcome({ buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
+    const relativeError = await assertBuyOutcome({ buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
     highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
 
     if (buyValue.lt(poolBalanceStep)) {

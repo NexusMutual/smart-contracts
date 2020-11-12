@@ -425,7 +425,7 @@ contract Pool1 is Iupgradable {
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint result) {
-    require(mcrEth.div(assetValue) > 1e17, "mcrEth too large compared to assetValue.");
+    require(mcrEth.div(assetValue) < 1e17, "mcrEth too large compared to assetValue.");
     result = CONSTANT_C
       .mul(1e18)
       .div(3)

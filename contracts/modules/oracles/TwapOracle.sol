@@ -76,28 +76,26 @@ contract TwapOracle {
 
   /* update */
 
-  function _update(address pair) internal {
 
-    // note: not reusing canUpdate() because we need the bucket variable
-    uint index = timestampToIndex(block.timestamp);
-    Bucket storage bucket = buckets[pair][index];
-    uint timeElapsed = block.timestamp - bucket.timestamp;
+  function update(address[] calldata pairs) external {
 
-    if (timeElapsed <= periodSize) {
-      return;
-    }
+    for (uint i = 0; i < pairs.length; i++) {
 
-    (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
+      // note: not reusing canUpdate() because we need the bucket variable
+      address pair = pairs[i];
+      uint index = timestampToIndex(block.timestamp);
+      Bucket storage bucket = buckets[pair][index];
+
+      if (block.timestamp - bucket.timestamp <= periodSize) {
+        continue;
+      }
+
+      (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
     bucket.timestamp = block.timestamp;
     bucket.price0Cumulative = price0Cumulative;
     bucket.price1Cumulative = price1Cumulative;
 
-    emit Updated(pair, block.timestamp, price0Cumulative, price1Cumulative);
-  }
-
-  function update(address[] calldata pairs) external {
-    for (uint i = 0; i < pairs.length; i++) {
-      _update(pairs[i]);
+      emit Updated(pair, block.timestamp, price0Cumulative, price1Cumulative);
     }
   }
 

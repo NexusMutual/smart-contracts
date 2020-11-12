@@ -74,7 +74,7 @@ async function assertBuyOutcome(
   return relativeError;
 }
 
-describe('buyNXM', function () {
+describe.only('buyNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -195,66 +195,14 @@ describe('buyNXM', function () {
     });
   });
 
-  it('mints bought tokens to member in exchange of 1000 ETH for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr } = this;
-
-    const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth.div(new BN(2));
-    const buyValue = ether('1000');
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.0006);
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError
-    });
-  });
-
-  it('mints bought tokens to member in exchange of 1000 ETH for mcrEth = 320k', async function () {
-    const { pool1, poolData, token, tokenData, mcr } = this;
-
-    const mcrEth = ether('320000');
-    const initialAssetValue = mcrEth.div(new BN(2));
-    const buyValue = ether('1000');
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.0006);
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError
-    });
-  });
-
   it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth.div(new BN(2));
+    const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.002);
+    const maxRelativeError = Decimal(0.0006);
 
     await assertBuyValues({
       initialAssetValue,

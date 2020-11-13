@@ -3,7 +3,7 @@ const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 
 async function setupContractState (
-  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, pool1, poolData, tokenData, fetchStoredState = true },
+  { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, pool1, poolData, tokenData, chainlinkAggregators, fetchStoredState = true },
 ) {
   const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
   const tokenExponent = await tokenData.tokenExponent();
@@ -18,6 +18,7 @@ async function setupContractState (
 
   await poolData.setAverageRate(hex('ETH'), ethRate);
   await poolData.setAverageRate(hex('DAI'), daiRate);
+  await chainlinkAggregators['DAI'].setLatestAnswer(daiRate);
 
   const date = new Date().getTime();
   await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);

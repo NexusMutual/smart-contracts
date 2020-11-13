@@ -32,7 +32,7 @@ contract Pool1 is Iupgradable {
   Pool2 public p2;
   PoolData public pd;
   Claims public c1;
-  PriceFeedOracle public priceOracle;
+  PriceFeedOracle public priceFeedOracle;
   bool public locked;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
@@ -68,7 +68,7 @@ contract Pool1 is Iupgradable {
   }
 
   constructor(address _priceOracle) public {
-    priceOracle = PriceFeedOracle(_priceOracle);
+    priceFeedOracle = PriceFeedOracle(_priceOracle);
   }
 
   function() external payable {} // solhint-disable-line
@@ -502,8 +502,7 @@ contract Pool1 is Iupgradable {
     uint mcrEth = pd.getLastMCREther();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint tokenSpotPriceEth = calculateTokenSpotPrice(mcrRatio, mcrEth);
-    uint currencyRate;
-    (, , currencyRate) = pd.getTokenPriceDetails(currency);
+    uint currencyRate = priceFeedOracle.getETHToAssetRate(currency);
     tokenPrice = tokenSpotPriceEth.mul(currencyRate).div(100);
   }
 

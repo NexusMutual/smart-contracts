@@ -15,6 +15,7 @@ const MCR = artifacts.require('MCR');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 async function setup () {
 
@@ -24,7 +25,9 @@ async function setup () {
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
-  const priceFeedOracle = await PriceFeedOracle.new([], []);
+  const chainlinkAggregators = {};
+  chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
+  const priceFeedOracle = await PriceFeedOracle.new([hex('DAI')], [chainlinkAggregators['DAI'].address]);
 
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
@@ -81,6 +84,7 @@ async function setup () {
   this.poolData = poolData;
   this.tokenData = tokenData;
   this.tokenController = tokenController;
+  this.chainlinkAggregators = chainlinkAggregators;
 }
 
 module.exports = setup;

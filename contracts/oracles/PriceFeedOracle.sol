@@ -17,11 +17,10 @@ contract Aggregator {
 }
 
 contract PriceFeedOracle {
-  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  mapping (address => address) public chainlinkAggregators;
+  mapping (bytes4 => address) public chainlinkAggregators;
 
-  constructor (address[] memory assets, address[] memory _chainlinkAggregators) public {
+  constructor (bytes4[] memory assets, address[] memory _chainlinkAggregators) public {
     require(assets.length == _chainlinkAggregators.length, "assets and _chainlinkAggregators need to have same length");
     for (uint i = 0; i < assets.length; i++) {
       chainlinkAggregators[assets[i]] = _chainlinkAggregators[i];
@@ -33,9 +32,9 @@ contract PriceFeedOracle {
    * @param asset quoted currency
    * @return price in ether
    */
-  function getETHToAssetRate(address asset) external view returns (uint) {
+  function getETHToAssetRate(bytes4 asset) external view returns (uint) {
 
-    if (asset == ETH) {
+    if (asset == "ETH") {
       return 1 ether;
     }
 
@@ -54,9 +53,9 @@ contract PriceFeedOracle {
    * @param asset quoted currency
    * @return price in ether
    */
-  function getAssetToETHRate(address asset) external view returns (uint) {
+  function getAssetToETHRate(bytes4 asset) external view returns (uint) {
 
-    if (asset == ETH) {
+    if (asset == "ETH") {
       return 1 ether;
     }
 

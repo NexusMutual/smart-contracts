@@ -12,39 +12,61 @@
 
 pragma solidity ^0.5.0;
 
+contract Aggregator {
+  function latestAnswer() public view returns (int);
+}
+
 contract PriceFeedOracle {
+  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  mapping (address => address) public chainlinkAggregators;
 
-    /**
-     * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-     * @param asset quoted currency
-     * @return price in ether
-     */
-    function getETHToAssetRate(address asset) external view returns (uint) {
+  constructor (address[] memory assets, address[] memory _chainlinkAggregators) public {
+    require(assets.length == _chainlinkAggregators.length, "assets and _chainlinkAggregators need to have same length");
+    for (uint i = 0; i < assets.length; i++) {
+      chainlinkAggregators[assets[i]] = _chainlinkAggregators[i];
+    }
+  }
 
-        if (asset == ETH) {
-            return 1 ether;
-        }
+  /**
+   * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
+   * @param asset quoted currency
+   * @return price in ether
+   */
+  function getETHToAssetRate(address asset) external view returns (uint) {
 
-        // set max uint as the price for any unknown asset
-        // should result in a revert when accidentally swapping from/to it
-        return uint(-1);
+    if (asset == ETH) {
+      return 1 ether;
     }
 
-    /**
-     * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-     * @param asset quoted currency
-     * @return price in ether
-     */
-    function getAssetToETHRate(address asset) external view returns (uint) {
-
-        if (asset == ETH) {
-            return 1 ether;
-        }
-
-        // set max uint as the price for any unknown asset
-        // should result in a revert when accidentally swapping from/to it
-        return uint(- 1);
+    address aggregatorAddress = chainlinkAggregators[asset];
+    if (aggregatorAddress == address(0)) {
+      revert("Oracle asset not found");
     }
+    Aggregator aggregator = Aggregator(aggregatorAddress);
+    int rate = aggregator.latestAnswer();
+    require(rate > 0, "Rate must be > 0");
+    return uint(1e36 / rate);
+  }
+
+  /**
+   * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
+   * @param asset quoted currency
+   * @return price in ether
+   */
+  function getAssetToETHRate(address asset) external view returns (uint) {
+
+    if (asset == ETH) {
+      return 1 ether;
+    }
+
+    address aggregatorAddress = chainlinkAggregators[asset];
+    if (aggregatorAddress == address(0)) {
+      revert("Oracle asset not found");
+    }
+    Aggregator aggregator = Aggregator(aggregatorAddress);
+    int rate = aggregator.latestAnswer();
+    require(rate > 0, "Rate must be > 0");
+    return uint(rate);
+  }
 }

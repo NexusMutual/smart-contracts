@@ -503,7 +503,7 @@ contract Pool1 is Iupgradable {
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint tokenSpotPriceEth = calculateTokenSpotPrice(mcrRatio, mcrEth);
     uint currencyRate = priceFeedOracle.getETHToAssetRate(currency);
-    tokenPrice = tokenSpotPriceEth.mul(currencyRate);
+    tokenPrice = tokenSpotPriceEth.mul(currencyRate).div(1e18);
   }
 
     /**

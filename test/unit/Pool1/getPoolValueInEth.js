@@ -12,7 +12,7 @@ const {
 } = accounts;
 
 describe('getPoolValueInEth', function () {
-  it.only('calculates total pool value correctly', async function () {
+  it('calculates total pool value correctly', async function () {
     const { pool1, poolData, tokenData, mcr, chainlinkAggregators, dai } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');

@@ -1,7 +1,7 @@
 const setup = require('./setup');
 const snapshot = require('../utils').snapshot;
 
-describe('Pool1 unit tests', function () {
+describe.only('Pool1 unit tests', function () {
 
   this.timeout(0);
   this.slow(2000);

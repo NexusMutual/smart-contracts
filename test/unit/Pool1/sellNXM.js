@@ -17,10 +17,10 @@ const sellSpread = 0.025 * 10000;
 
 async function assertSellValues (
   { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
-    pool1, token, buyValue, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
+    pool1, token, buyValue, poolData, tokenData, tokenController, chainlinkAggregators, isLessThanExpectedEthOut },
 ) {
   let { totalAssetValue, mcrRatio, a, c, tokenExponent } = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData },
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
   );
 
   let highestRelativeError = 0;
@@ -113,12 +113,12 @@ describe('sellNXM', function () {
   const maxPercentage = 650;
 
   it('reverts on sales that decrease the MCR% below 100%', async function () {
-    const { pool1, poolData, token, tokenData, mcr } = this;
+    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData },
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, poolData, tokenData, chainlinkAggregators },
     );
 
     const tokenAmountToSell = ether('1000');
@@ -131,12 +131,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sales worth more than 5% of MCReth', async function () {
-    const { pool1, poolData, token, tokenData, mcr } = this;
+    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData },
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData, chainlinkAggregators },
     );
 
     const buyValue = mcrEth.div(new BN(20));
@@ -151,12 +151,12 @@ describe('sellNXM', function () {
   });
 
   it('reverts on sales that exceed member balance', async function () {
-    const { pool1, poolData, token, tokenData, mcr } = this;
+    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData },
+      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, poolData, tokenData, chainlinkAggregators },
     );
 
     const buyValue = mcrEth.div(new BN(20));
@@ -170,7 +170,7 @@ describe('sellNXM', function () {
   });
 
   it('burns tokens from member in exchange for 0.01 ETH for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
+    const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
@@ -193,11 +193,12 @@ describe('sellNXM', function () {
       ethRate,
       tokenData,
       tokenController,
+      chainlinkAggregators
     });
   });
 
   it('burns tokens from member in exchange for 1 ETH for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
+    const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
@@ -220,11 +221,12 @@ describe('sellNXM', function () {
       ethRate,
       tokenData,
       tokenController,
+      chainlinkAggregators
     });
   });
 
   it('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
+    const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
@@ -247,11 +249,12 @@ describe('sellNXM', function () {
       ethRate,
       tokenData,
       tokenController,
+      chainlinkAggregators
     });
   });
 
   it('burns tokens from member in exchange for 5% of mcrEth for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, tokenController } = this;
+    const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
@@ -275,6 +278,7 @@ describe('sellNXM', function () {
       ethRate,
       tokenData,
       tokenController,
+      chainlinkAggregators
     });
   });
 });

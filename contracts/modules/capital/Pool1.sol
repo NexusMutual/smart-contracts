@@ -503,7 +503,7 @@ contract Pool1 is Iupgradable {
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint tokenSpotPriceEth = calculateTokenSpotPrice(mcrRatio, mcrEth);
     uint currencyRate = priceFeedOracle.getETHToAssetRate(currency);
-    tokenPrice = tokenSpotPriceEth.mul(currencyRate).div(100);
+    tokenPrice = tokenSpotPriceEth.mul(currencyRate);
   }
 
     /**
@@ -515,14 +515,16 @@ contract Pool1 is Iupgradable {
   function getPoolValueInEth() public view returns (uint value) {
     value = address(this).balance;
     IERC20 erc20;
-    uint currTokens = 0;
+    uint assetTokens = 0;
     uint i;
     for (i = 1; i < pd.getAllCurrenciesLen(); i++) {
       bytes4 currency = pd.getCurrenciesByIndex(i);
       erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
-      currTokens = erc20.balanceOf(address(this));
-      if (pd.getCAAvgRate(currency) > 0)
-        value = value.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
+      assetTokens = erc20.balanceOf(address(this));
+      uint rate = priceFeedOracle.getAssetToETHRate(currency);
+      if (rate > 0) {
+        value = value.add(assetTokens.mul(rate).div(1e18));
+      }
     }
 
     value = value.add(getInvestmentAssetBalance());

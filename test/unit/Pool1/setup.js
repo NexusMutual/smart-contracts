@@ -84,6 +84,7 @@ async function setup () {
   this.poolData = poolData;
   this.tokenData = tokenData;
   this.tokenController = tokenController;
+  this.dai = dai;
   this.chainlinkAggregators = chainlinkAggregators;
 }
 

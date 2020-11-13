@@ -19,6 +19,7 @@ describe('Pool1 unit tests', function () {
   require('./getTokenPrice');
   require('./calculateNXMForEth');
   require('./calculateEthForNXM');
+  require('./getPoolValueInEth');
   require('./buyNXM');
   require('./sellNXM');
 });

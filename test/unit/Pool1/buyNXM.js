@@ -84,7 +84,7 @@ async function assertBuyOutcome (
   return relativeError;
 }
 
-describe.only('buyNXM', function () {
+describe('buyNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');

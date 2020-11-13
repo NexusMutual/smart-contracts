@@ -21,6 +21,7 @@ import "../claims/Claims.sol";
 import "../cover/Quotation.sol";
 import "./Pool2.sol";
 import "./PoolData.sol";
+import "../../oracles/PriceFeedOracle.sol";
 
 contract Pool1 is Iupgradable {
   using SafeMath for uint;
@@ -31,6 +32,7 @@ contract Pool1 is Iupgradable {
   Pool2 public p2;
   PoolData public pd;
   Claims public c1;
+  PriceFeedOracle public priceOracle;
   bool public locked;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
@@ -63,6 +65,10 @@ contract Pool1 is Iupgradable {
     locked = true;
     _;
     locked = false;
+  }
+
+  constructor(address _priceOracle) public {
+    priceOracle = PriceFeedOracle(_priceOracle);
   }
 
   function() external payable {} // solhint-disable-line
@@ -295,7 +301,7 @@ contract Pool1 is Iupgradable {
       "Purchases worth higher than 5% of MCReth are not allowed"
     );
     tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
-    require(tokensOut >= minTokensOut, "tokensOut is less than minTokensBought");
+    require(tokensOut >= minTokensOut, "tokensOut is less than minTokensOut");
     tc.mint(msg.sender, tokensOut);
 
     emit NXMBought(msg.sender, ethIn, tokensOut);

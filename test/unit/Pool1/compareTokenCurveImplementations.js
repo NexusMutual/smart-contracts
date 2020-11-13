@@ -25,6 +25,7 @@ const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool1MockOldMCR = artifacts.require('Pool1MockOldMCR');
 const Pool1MockOldPool1 = artifacts.require('Pool1MockOldPool1');
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
 async function compareBuyValues (
   { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
@@ -97,12 +98,13 @@ async function setup ({ MCR, Pool1 }) {
 
   const master = await MasterMock.new();
 
+  const priceFeedOracle = await PriceFeedOracle.new([], []);
   const daiFeedAddress = '0x0000000000000000000000000000000000000001';
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
-  const pool1 = await Pool1.new();
+  const pool1 = await Pool1.new(priceFeedOracle.address);
   const token = await TokenMock.new();
   const mcr = await MCR.new();
   const tokenController = await TokenController.new();

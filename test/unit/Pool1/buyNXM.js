@@ -119,7 +119,7 @@ describe('buyNXM', function () {
     const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
     await expectRevert(
       pool1.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: memberOne, value: buyValue }),
-      `boughtTokens is less than minTokensBought`,
+      `tokensOut is less than minTokensOut`,
     );
   });
 

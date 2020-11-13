@@ -14,6 +14,7 @@ const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
 async function setup () {
 
@@ -22,9 +23,12 @@ async function setup () {
   const daiFeedAddress = '0x0000000000000000000000000000000000000001';
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
+
+  const priceFeedOracle = await PriceFeedOracle.new([], []);
+
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
-  const pool1 = await Pool1.new();
+  const pool1 = await Pool1.new(priceFeedOracle.address);
   const token = await TokenMock.new();
   const mcr = await MCR.new();
   const tokenController = await TokenController.new();

@@ -12,19 +12,25 @@
 
 pragma solidity ^0.5.0;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 contract Aggregator {
   function latestAnswer() public view returns (int);
 }
 
 contract PriceFeedOracle {
+  using SafeMath for uint;
 
-  mapping (bytes4 => address) public chainlinkAggregators;
+  mapping (address => address) public aggregators;
+  address public daiAddress;
+  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-  constructor (bytes4[] memory assets, address[] memory _chainlinkAggregators) public {
-    require(assets.length == _chainlinkAggregators.length, "assets and _chainlinkAggregators need to have same length");
+  constructor (address[] memory assets, address[] memory _aggregators, address _daiAddress) public {
+    require(assets.length == _aggregators.length, "PriceFeedOracle: assets and _aggregators need to have same length");
     for (uint i = 0; i < assets.length; i++) {
-      chainlinkAggregators[assets[i]] = _chainlinkAggregators[i];
+      aggregators[assets[i]] = _aggregators[i];
     }
+    daiAddress = _daiAddress;
   }
 
   /**
@@ -32,40 +38,46 @@ contract PriceFeedOracle {
    * @param asset quoted currency
    * @return price in ether
    */
-  function getETHToAssetRate(bytes4 asset) external view returns (uint) {
+  function getAssetToEthRate(address asset) public view returns (uint) {
 
-    if (asset == "ETH") {
+    if (asset == ETH) {
       return 1 ether;
     }
 
-    address aggregatorAddress = chainlinkAggregators[asset];
+    address aggregatorAddress = aggregators[asset];
     if (aggregatorAddress == address(0)) {
-      revert("Oracle asset not found");
+      revert("PriceFeedOracle: Oracle asset not found");
     }
     Aggregator aggregator = Aggregator(aggregatorAddress);
     int rate = aggregator.latestAnswer();
-    require(rate > 0, "Rate must be > 0");
-    return uint(1e36 / rate);
-  }
-
-  /**
-   * @dev Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of asset
-   * @param asset quoted currency
-   * @return price in ether
-   */
-  function getAssetToETHRate(bytes4 asset) external view returns (uint) {
-
-    if (asset == "ETH") {
-      return 1 ether;
-    }
-
-    address aggregatorAddress = chainlinkAggregators[asset];
-    if (aggregatorAddress == address(0)) {
-      revert("Oracle asset not found");
-    }
-    Aggregator aggregator = Aggregator(aggregatorAddress);
-    int rate = aggregator.latestAnswer();
-    require(rate > 0, "Rate must be > 0");
+    require(rate > 0, "PriceFeedOracle: Rate must be > 0");
     return uint(rate);
   }
+
+  function getCurrencyToEthRate(bytes4 currency) external view returns (uint) {
+
+    if (currency == "DAI") {
+      return getAssetToEthRate(daiAddress);
+    }
+
+    if (currency == "ETH") {
+      return getAssetToEthRate(ETH);
+    }
+
+    revert("PriceFeedOracle: Unknown currency");
+  }
+
+  function getCurrencyForEth(bytes4 currency, uint ethIn) external view returns (uint) {
+
+    if (currency == "DAI") {
+      return ethIn.mul(getAssetToEthRate(daiAddress)).div(1e18);
+    }
+
+    if (currency == "ETH") {
+      return ethIn;
+    }
+
+    revert("PriceFeedOracle: Unknown currency");
+  }
+
 }

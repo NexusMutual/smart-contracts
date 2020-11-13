@@ -36,9 +36,8 @@ contract Pool1 is Iupgradable {
   bool public locked;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
-  uint public constant MAX_MCR_RATIO = 4 *  10 ** MCR_RATIO_DECIMALS; // 400%
+  uint public constant MAX_MCR_RATIO = 40000; // 400%
 
-  uint public constant SELL_SPREAD = 250; // 2.5%. 4 decimal points
   uint public constant MAX_BUY_SELL_MCR_ETH_FRACTION = 500; // 5%. 4 decimal points
   uint constant CONSTANT_C = 5800000;
   uint constant CONSTANT_A = 1028 * 1e13;
@@ -287,20 +286,16 @@ contract Pool1 is Iupgradable {
    * @param  minTokensOut Minimum amount of tokens to be bought. Revert if boughtTokens falls below this number.
    * @return boughtTokens number of bought tokens.
    */
-  function buyNXM(uint minTokensOut) public payable isMember checkPause returns (uint tokensOut) {
+  function buyNXM(uint minTokensOut) public payable isMember checkPause {
 
     uint ethIn = msg.value;
-    require(ethIn > 0);
+    require(ethIn > 0, "ethIn > 0");
 
     uint totalAssetValue = getPoolValueInEth().sub(ethIn);
     uint mcrEth = pd.getLastMCREther();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     require(mcrRatio <= MAX_MCR_RATIO, "Cannot purchase if MCR% > 400%");
-    require(
-      ethIn <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div( 10 ** MCR_RATIO_DECIMALS),
-      "Purchases worth higher than 5% of MCReth are not allowed"
-    );
-    tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
+    uint tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
     require(tokensOut >= minTokensOut, "tokensOut is less than minTokensOut");
     tc.mint(msg.sender, tokensOut);
 
@@ -313,22 +308,19 @@ contract Pool1 is Iupgradable {
    * @param  minEthOut Minimum amount of ETH to be received. Revert if ethOut falls below this number.
    * @return ethOut amount of ETH received in exchange for the tokens.
    */
-  function sellNXM(uint tokenAmount, uint minEthOut) public isMember checkPause returns (uint ethOut) {
-    require(tk.balanceOf(msg.sender) >= tokenAmount, "Not enough balance");
-    require(tk.isLockedForMV(msg.sender) <= now, "NXM tokens are locked for voting");
+  function sellNXM(uint tokenAmount, uint minEthOut) public isMember noReentrancy checkPause {
+    require(tk.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
+    require(tk.isLockedForMV(msg.sender) <= now, "Pool: NXM tokens are locked for voting");
 
     uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
-    ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
-    require(
-      ethOut <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div( 10 ** MCR_RATIO_DECIMALS),
-      "Sales worth more than 5% of MCReth are not allowed"
-    );
-    require(currentTotalAssetValue.sub(ethOut) > mcrEth, "MCR% cannot fall below 100%");
-    require(ethOut >= minEthOut, "Token amount must be greater than minNXMTokensIn");
+    uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
+    require(currentTotalAssetValue.sub(ethOut) >= mcrEth, "Pool: MCR% cannot fall below 100%");
+    require(ethOut >= minEthOut, "Pool: Token amount must be greater than minNXMTokensIn");
 
     tc.burnFrom(msg.sender, tokenAmount);
-    msg.sender.transfer(ethOut);
+    (bool ok, /* data */) = msg.sender.call.value(ethOut)("");
+    require(ok, "Pool: Sell transfer failed");
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 
@@ -339,11 +331,10 @@ contract Pool1 is Iupgradable {
  */
   function getNXMForEth(
     uint ethAmount
-  ) public view returns (uint tokenValue) {
-
+  ) public view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
-    tokenValue = calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
+    return calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
   }
 
   function calculateNXMForEth(
@@ -386,6 +377,7 @@ contract Pool1 is Iupgradable {
     uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
     uint tokenPrice;
 
+    // TODO: see if this approximation can be improved
     if (mcrEth.div(currentTotalAssetValue) > 1e12) {
       /*
        If currentTotalAssetValue is significantly less than mcrEth, MCR% approaches 0, let the price be A (baseline price).
@@ -393,40 +385,42 @@ contract Pool1 is Iupgradable {
         This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
       */
       tokenPrice = CONSTANT_A;
-    }  else {
-      // MCReth * C /(3 * V0 ^ 3)
-      uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
-      // MCReth * C / (3 * V1 ^3)
-      uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
-      uint adjustedTokenAmount = point0.sub(point1);
-      /*
-        Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
-        and to that add the A constant (the price offset previously removed in the adjusted Price formula)
-        to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
-
-        adjustedPrice = ethAmount / adjustedTokenAmount
-        finalPrice = adjustedPrice + A
-        tokenValue = ethAmount  / finalPrice
-      */
-      // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
-      uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-      tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
+      return ethAmount.mul(1e18).div(tokenPrice);
     }
 
-    tokenValue = ethAmount.mul(1e18).div(tokenPrice);
+    // TODO: see if this approximation can be improved for the 0-50% MCR% interval.
+    // MCReth * C /(3 * V0 ^ 3)
+    uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
+    // MCReth * C / (3 * V1 ^3)
+    uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
+    uint adjustedTokenAmount = point0.sub(point1);
+    /*
+      Compute a preliminary adjustedTokenPrice for the minted tokens based on the adjustedTokenAmount above,
+      and to that add the A constant (the price offset previously removed in the adjusted Price formula)
+      to obtain the finalPrice and ultimately the tokenValue based on the finalPrice.
+
+      adjustedPrice = ethAmount / adjustedTokenAmount
+      finalPrice = adjustedPrice + A
+      tokenValue = ethAmount  / finalPrice
+    */
+    // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
+    uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
+    tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
+    return ethAmount.mul(1e18).div(tokenPrice);
   }
 
   /**
-  * @dev antiderivative(V) =  MCReth ^ 3 * C / (3 * V ^ 3) * 1e18
+  * @dev integral(V) =  MCReth ^ 3 * C / (3 * V ^ 3) * 1e18
   * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
-  * NOTE: omits the minus sign of the correct antiderivative to use a uint result type for simplicity
+  * NOTE: omits the minus sign of the correct integral to use a uint result type for simplicity
+  * WARNING: this low-level function should be called from a contract which checks that
+  * mcrEth / assetValue < 1e17 (no overflow) and assetValue != 0
   */
   function calculateIntegralAtPoint(
     uint assetValue,
     uint mcrEth
-  ) internal pure returns (uint result) {
-    require(mcrEth.div(assetValue) < 1e17, "mcrEth too large compared to assetValue.");
-    result = CONSTANT_C
+  ) internal pure returns (uint) {
+    return CONSTANT_C
       .mul(1e18)
       .div(3)
       .mul(mcrEth).div(assetValue)
@@ -437,39 +431,37 @@ contract Pool1 is Iupgradable {
   function getEthForNXM(uint nxmAmount) public view returns (uint ethAmount) {
     uint currentTotalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
-
     return calculateEthForNXM(nxmAmount, currentTotalAssetValue, mcrEth);
   }
 
   /**
-  * @dev Computes token sell value for a tokenAmount in ETH with a sell spread SELL_SPREAD.
-  * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of SELL_SPREAD.
+  * @dev Computes token sell value for a tokenAmount in ETH with a sell spread of 2.5%.
+  * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of 2.5%.
   * for values higher than that sell spread may exceed 5% (The higher amount being sold at any given time the higher the spread)
   */
   function calculateEthForNXM(
     uint nxmAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public pure returns (uint ethAmount) {
+  ) public pure returns (uint) {
 
     // Step 1. Calculate spot price and amount of ETH at current values
-    uint mcrRatio0 = currentTotalAssetValue.mul(10 ** MCR_RATIO_DECIMALS).div(mcrEth);
-    uint spotPrice0 = calculateTokenSpotPrice(mcrRatio0, mcrEth);
+    uint spotPrice0 = calculateTokenSpotPrice(currentTotalAssetValue, mcrEth);
     uint spotEthAmount = nxmAmount.mul(spotPrice0).div(1e18);
 
     //  Step 2. Calculate spot price and amount of ETH using V = currentTotalAssetValue - spotEthAmount from step 1
     uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
-    uint mcrRatioPostSpotPriceSell = totalValuePostSpotPriceSell.mul(10 ** MCR_RATIO_DECIMALS).div(mcrEth);
-    uint spotPrice1 = calculateTokenSpotPrice(mcrRatioPostSpotPriceSell, mcrEth);
+    uint spotPrice1 = calculateTokenSpotPrice(totalValuePostSpotPriceSell, mcrEth);
 
-    // Step 3. Min [average[Price(1), Price(2)] x ( 1 - Sell Spread), Price(2) ]
-    uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul((10 ** MCR_RATIO_DECIMALS).sub(SELL_SPREAD)).div(10 ** MCR_RATIO_DECIMALS);
+    // Step 3. Min [average[Price(0), Price(1)] x ( 1 - Sell Spread), Price(1) ]
+    // Sell Spread = 2.5%
+    uint averagePriceWithSpread = spotPrice0.add(spotPrice1).div(2).mul(975).div(1000);
     uint finalPrice = averagePriceWithSpread < spotPrice1 ? averagePriceWithSpread : spotPrice1;
-    ethAmount = finalPrice.mul(nxmAmount).div(1e18);
+    uint ethAmount = finalPrice.mul(nxmAmount).div(1e18);
 
     require(
       ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
-      "Sales worth more than 5% of MCReth are not allowed"
+      "Pool: Sales worth more than 5% of MCReth are not allowed"
     );
     return ethAmount;
   }
@@ -482,14 +474,17 @@ contract Pool1 is Iupgradable {
   * @dev Calculates token price in ETH 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
   */
   function calculateTokenSpotPrice(
-    uint mcrRatio,
+    uint totalAssetValue,
     uint mcrEth
   ) public pure returns (uint tokenPrice) {
-    uint dividingFactor = TOKEN_EXPONENT.mul(MCR_RATIO_DECIMALS);
-    tokenPrice = (mcrEth.mul(1e18).mul( mcrRatio ** TOKEN_EXPONENT)
-      .div(CONSTANT_C.mul(1e18)))
-      .div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(CONSTANT_A);
+    uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
+    uint precisionDecimals = 10 ** TOKEN_EXPONENT.mul(MCR_RATIO_DECIMALS);
+    // TODO: can take out mul(1e18) on next and third next line, check again
+    return mcrEth.mul(1e18)
+      .mul(mcrRatio ** TOKEN_EXPONENT)
+      .div(CONSTANT_C.mul(1e18))
+      .div(precisionDecimals)
+      .add(CONSTANT_A);
   }
 
   /**
@@ -500,10 +495,8 @@ contract Pool1 is Iupgradable {
   function getTokenPrice(bytes4 currency) public view returns (uint tokenPrice) {
     uint totalAssetValue = getPoolValueInEth();
     uint mcrEth = pd.getLastMCREther();
-    uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-    uint tokenSpotPriceEth = calculateTokenSpotPrice(mcrRatio, mcrEth);
-    uint currencyRate = priceFeedOracle.getETHToAssetRate(currency);
-    tokenPrice = tokenSpotPriceEth.mul(currencyRate).div(1e18);
+    uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
+    return priceFeedOracle.getCurrencyForEth(currency, tokenSpotPriceEth);
   }
 
     /**
@@ -512,8 +505,9 @@ contract Pool1 is Iupgradable {
    * @return vtp  Pool Fund Value in Ether used for the Token Price Model
    * @return mcrtp MCR% used in the Token Price Model.
    */
-  function getPoolValueInEth() public view returns (uint value) {
-    value = address(this).balance;
+  function getPoolValueInEth() public view returns (uint) {
+
+    uint value = address(this).balance;
     IERC20 erc20;
     uint assetTokens = 0;
     uint i;
@@ -521,13 +515,13 @@ contract Pool1 is Iupgradable {
       bytes4 currency = pd.getCurrenciesByIndex(i);
       erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
       assetTokens = erc20.balanceOf(address(this));
-      uint rate = priceFeedOracle.getAssetToETHRate(currency);
+      uint rate = priceFeedOracle.getCurrencyToEthRate(currency);
       if (rate > 0) {
         value = value.add(assetTokens.mul(rate).div(1e18));
       }
     }
 
-    value = value.add(getInvestmentAssetBalance());
+    return value.add(getInvestmentAssetBalance());
   }
 
   function getMCRRatio() public view returns (uint mcrRatio) {

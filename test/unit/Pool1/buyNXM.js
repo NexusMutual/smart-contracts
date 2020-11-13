@@ -288,7 +288,7 @@ describe('buyNXM', function () {
     });
   });
 
-  it('mints bought tokens to member in exchange of 5% of mcrEth for mcrEth = 10 million and initialAssetValue = 0 up to 100% MCR%', async function () {
+  it.only('mints bought tokens to member in exchange of 5% of mcrEth for mcrEth = 10 million and initialAssetValue = 0 up to 100% MCR%', async function () {
     const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
     /*
       In the interval 0-100 MCR% for large mcrEth (100 million here) tokens are sold cheaper than they should be
@@ -298,7 +298,7 @@ describe('buyNXM', function () {
     const mcrEth = ether(1e8.toString());
     const initialAssetValue = new BN(0);
     const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = mcrEth.div(new BN(8));
+    const poolBalanceStep = mcrEth.div(new BN(32));
     // IMPORTANT: max relative error here is 3.8%
     const maxRelativeError = Decimal(0.038);
     const maxPercentage = 100;

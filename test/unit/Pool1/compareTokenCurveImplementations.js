@@ -26,9 +26,11 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 const Pool1MockOldMCR = artifacts.require('Pool1MockOldMCR');
 const Pool1MockOldPool1 = artifacts.require('Pool1MockOldPool1');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 async function compareBuyValues (
-  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
+  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
+    daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
 ) {
   await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old, fetchStoredState: false },
@@ -98,10 +100,14 @@ async function setup ({ MCR, Pool1 }) {
 
   const master = await MasterMock.new();
 
-  const priceFeedOracle = await PriceFeedOracle.new([], []);
   const daiFeedAddress = '0x0000000000000000000000000000000000000001';
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
+
+  const chainlinkAggregators = {};
+  chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
+  const priceFeedOracle = await PriceFeedOracle.new([hex('DAI')], [chainlinkAggregators['DAI'].address]);
+
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool1 = await Pool1.new(priceFeedOracle.address);
@@ -158,6 +164,7 @@ async function setup ({ MCR, Pool1 }) {
     poolData,
     tokenData,
     tokenController,
+    chainlinkAggregators
   };
 }
 
@@ -166,7 +173,7 @@ async function setupBothImplementations () {
   this.old = await setup({ MCR: Pool1MockOldMCR, Pool1: Pool1MockOldPool1 });
 }
 
-describe('compareTokenCurveImplementations', function () {
+describe.only('compareTokenCurveImplementations', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');

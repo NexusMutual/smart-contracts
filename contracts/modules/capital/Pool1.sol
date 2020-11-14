@@ -60,7 +60,7 @@ contract Pool1 is Iupgradable {
 
 
   modifier noReentrancy() {
-    require(!locked, "Reentrant call.");
+    require(!locked, "Pool: Reentrant call.");
     locked = true;
     _;
     locked = false;
@@ -230,7 +230,7 @@ contract Pool1 is Iupgradable {
     bytes32 _r,
     bytes32 _s
   ) public isMember checkPause payable {
-    require(msg.value == coverDetails[1]);
+    require(msg.value == coverDetails[1], "Pool: ETH amount does not match premium");
     q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
   }
 
@@ -247,7 +247,7 @@ contract Pool1 is Iupgradable {
     bytes32 _s
   ) public isMember checkPause {
     IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
-    require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]), "Transfer failed");
+    require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]), "Pool: Token amount does not match premium");
     q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
   }
 
@@ -289,14 +289,14 @@ contract Pool1 is Iupgradable {
   function buyNXM(uint minTokensOut) public payable isMember checkPause {
 
     uint ethIn = msg.value;
-    require(ethIn > 0, "ethIn > 0");
+    require(ethIn > 0, "Pool: ethIn > 0");
 
     uint totalAssetValue = getPoolValueInEth().sub(ethIn);
     uint mcrEth = pd.getLastMCREther();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-    require(mcrRatio <= MAX_MCR_RATIO, "Cannot purchase if MCR% > 400%");
+    require(mcrRatio <= MAX_MCR_RATIO, "Pool: Cannot purchase if MCR% > 400%");
     uint tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
-    require(tokensOut >= minTokensOut, "tokensOut is less than minTokensOut");
+    require(tokensOut >= minTokensOut, "Pool: tokensOut is less than minTokensOut");
     tc.mint(msg.sender, tokensOut);
 
     emit NXMBought(msg.sender, ethIn, tokensOut);
@@ -344,7 +344,7 @@ contract Pool1 is Iupgradable {
   ) public pure returns (uint tokenValue) {
     require(
       ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
-      "Purchases worth higher than 5% of MCReth are not allowed"
+      "Pool: Purchases worth higher than 5% of MCReth are not allowed"
     );
 
     /*
@@ -479,10 +479,9 @@ contract Pool1 is Iupgradable {
   ) public pure returns (uint tokenPrice) {
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint precisionDecimals = 10 ** TOKEN_EXPONENT.mul(MCR_RATIO_DECIMALS);
-    // TODO: can take out mul(1e18) on next and third next line, check again
-    return mcrEth.mul(1e18)
+    return mcrEth
       .mul(mcrRatio ** TOKEN_EXPONENT)
-      .div(CONSTANT_C.mul(1e18))
+      .div(CONSTANT_C)
       .div(precisionDecimals)
       .add(CONSTANT_A);
   }

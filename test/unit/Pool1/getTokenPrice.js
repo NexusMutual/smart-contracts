@@ -11,7 +11,7 @@ const {
   nonMembers: [fundSource],
 } = accounts;
 
-describe.only('getTokenPrice', function () {
+describe('getTokenPrice', function () {
 
   it('calculates token price correctly for ETH', async function () {
     const { pool1, poolData, tokenData, mcr, chainlinkAggregators } = this;
@@ -47,11 +47,6 @@ describe.only('getTokenPrice', function () {
     const expectedEthPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
     const expectedPrice = new BN(expectedEthPrice.toFixed()).mul(ether('1')).div(daiToEthRate);
     const price = await pool1.getTokenPrice(hex('DAI'));
-
-    console.log({
-      expectedEthPrice: expectedEthPrice.toFixed(),
-      price: price.toString(),
-    });
     assert.equal(price.toString(), expectedPrice.toString());
   });
 });

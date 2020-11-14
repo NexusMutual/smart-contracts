@@ -1,6 +1,7 @@
-const { accounts, artifacts } = require('hardhat');
+const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
+const { BN } = web3.utils;
 
 // external
 const ERC20Mock = artifacts.require('ERC20Mock');
@@ -8,6 +9,7 @@ const DSValue = artifacts.require('NXMDSValueMock');
 const ExchangeFactoryMock = artifacts.require('ExchangeFactoryMock');
 const ExchangeMock = artifacts.require('ExchangeMock');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
+const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
 
 // nexusmutual
 const NXMToken = artifacts.require('NXMToken');
@@ -23,6 +25,7 @@ const PoolData = artifacts.require('PoolData');
 const Quotation = artifacts.require('Quotation');
 const QuotationData = artifacts.require('QuotationData');
 const ClaimProofs = artifacts.require('ClaimProofs');
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -78,13 +81,18 @@ async function setup () {
   await dai.transfer(exchange.address, EXCHANGE_TOKEN);
   await exchange.recieveEther({ value: EXCHANGE_ETHER });
 
+  const chainlinkAggregators = {};
+  chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
+
+  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
+
   // regular contracts
   const cl = await Claims.new();
   const cd = await ClaimsData.new();
   const cr = await ClaimsReward.new();
 
   const mc = await MCR.new();
-  const p1 = await Pool1.new();
+  const p1 = await Pool1.new(priceFeedOracle.address);
   const p2 = await Pool2.new(factory.address);
   const pd = await PoolData.new(owner, dsv.address, dai.address);
 
@@ -214,15 +222,21 @@ async function setup () {
   await p2.sendEther({ from: owner, value: POOL_ETHER.divn(2) });
   await dai.transfer(p2.address, POOL_DAI);
 
+  const ethEthRate = 100;
+  const ethToDaiRate = 20000;
+
   // add mcr
   await mc.addMCRData(
     20000, // mcr% = 200.00%
     ether('50000'), // mcr = 5000 eth
     ether('100000'), // vFull = 90000 ETH + 2M DAI = 90000 ETH + 10000 ETH = 100000 ETH
     [hex('ETH'), hex('DAI')],
-    [100, 20000], // rates: 1.00 eth/eth, 200.00 dai/eth
+    [ethEthRate, ethToDaiRate], // rates: 1.00 eth/eth, 200.00 dai/eth
     20190103,
   );
+
+  const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
+  await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
 
   await p2.saveIADetails(
     [hex('ETH'), hex('DAI')],
@@ -231,7 +245,7 @@ async function setup () {
     true,
   );
 
-  const external = { dai, dsv, factory, exchange };
+  const external = { dai, dsv, factory, exchange, chainlinkAggregators };
   const nonUpgradable = { cp };
   const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr: mc };
   const proxies = { tc, gv, pc, mr, ps };

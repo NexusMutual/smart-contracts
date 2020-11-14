@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const { getTokenSpotPrice } = require('../utils').tokenPrice;
 const BN = web3.utils.BN;
 
-describe.only('calculateTokenSpotPrice', function () {
+describe('calculateTokenSpotPrice', function () {
 
   it('calculates token spot price correctly', async function () {
     const { pool1 } = this;

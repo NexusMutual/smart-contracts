@@ -106,7 +106,7 @@ async function setup ({ MCR, Pool1 }) {
 
   const chainlinkAggregators = {};
   chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
-  const priceFeedOracle = await PriceFeedOracle.new([hex('DAI')], [chainlinkAggregators['DAI'].address]);
+  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
 
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);

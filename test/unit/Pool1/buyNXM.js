@@ -319,5 +319,33 @@ describe('buyNXM', function () {
       maxRelativeError,
       chainlinkAggregators
     });
+
+
+    it('mints bought tokens to member in exchange of 5% ETH for mcrEth = 10 million', async function () {
+      const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
+
+      const mcrEth = ether(1e8.toString());
+      const initialAssetValue = mcrEth;
+      const buyValue = mcrEth.div(new BN(20));
+      const poolBalanceStep = mcrEth.div(new BN(2));
+      const maxRelativeError = Decimal(0.0006);
+
+      await assertBuyValues({
+        initialAssetValue,
+        mcrEth,
+        maxPercentage,
+        buyValue,
+        poolBalanceStep,
+        mcr,
+        pool1,
+        token,
+        poolData,
+        daiRate,
+        ethRate,
+        tokenData,
+        maxRelativeError,
+        chainlinkAggregators
+      });
+    });
   });
 });

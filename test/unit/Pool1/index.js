@@ -22,6 +22,7 @@ describe('Pool1 unit tests', function () {
   require('./getPoolValueInEth');
   require('./buyNXM');
   require('./sellNXM');
+  require('./getMCRRatio');
 });
 
 describe('Pool1 comparison unit tests', function () {

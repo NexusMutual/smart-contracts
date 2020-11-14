@@ -44,6 +44,77 @@ async function getContractState (
   return { a, c, tokenExponent, totalAssetValue, mcrRatio, mcrEth };
 }
 
+async function assertBuy ({ totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token }) {
+  const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
+
+  const preBuyBalance = await token.balanceOf(member1);
+
+  await pool1.buyNXM(preEstimatedTokenBuyValue, {
+    from: member1,
+    value: buyValue,
+  });
+  const postBuyBalance = await token.balanceOf(member1);
+  const tokensReceived = postBuyBalance.sub(preBuyBalance);
+
+  const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
+    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
+  );
+
+  const { tokens: expectedTokenValue } = calculatePurchasedTokens(
+    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
+  );
+  assert.equal(tokensReceived.toString(), expectedTokenValue.toString());
+
+  const tokensReceivedDecimal = Decimal(tokensReceived.toString());
+  const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
+  console.log({ relativeError: relativeError.toString() });
+  assert(
+    relativeError.lt(maxRelativeError),
+    `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
+       Relative error: ${relativeError}`,
+  );
+  return tokensReceived;
+}
+
+async function assertSell (
+  { tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
+  ) {
+  const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
+  console.log({
+    precomputedEthValue: precomputedEthValue.toString(),
+    tokensReceived: tokensReceived.toString(),
+  });
+
+  await token.approve(tokenController.address, tokensReceived, {
+    from: member1,
+  });
+  const balancePreSell = await web3.eth.getBalance(member1);
+  const sellTx = await pool1.sellNXM(tokensReceived, precomputedEthValue, {
+    from: member1,
+  });
+
+  const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+  const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+  console.log({ gasSpentOnTx: ethSpentOnGas.toString() });
+
+  const balancePostSell = await web3.eth.getBalance(member1);
+  const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
+
+  const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
+
+  const relativeErrorForSell = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
+  console.log({ relativeError: relativeErrorForSell.toString() });
+  if (isLessThanExpectedEthOut) {
+    assert(sellEthReceived.lt(expectedEthOut), `${sellEthReceived.toFixed()} is greater than ${expectedEthOut.toFixed()}`);
+  }
+  assert(
+    relativeErrorForSell.lt(maxRelativeError),
+    `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
+       Relative error: ${relativeErrorForSell}`,
+  );
+
+}
+
 async function assertBuyAndSellValues (
   { maxPercentage, poolBalanceStep, buyValue, maxRelativeError, mcr, pool1, token, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
 ) {
@@ -51,75 +122,14 @@ async function assertBuyAndSellValues (
     { poolData, tokenData, pool1 },
   );
 
-  let highestRelativeError = 0;
   while (mcrRatio < maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
 
-    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
-
-    const preBuyBalance = await token.balanceOf(member1);
-
-    await pool1.buyNXM(preEstimatedTokenBuyValue, {
-      from: member1,
-      value: buyValue,
-    });
-    const postBuyBalance = await token.balanceOf(member1);
-    const tokensReceived = postBuyBalance.sub(preBuyBalance);
-
-    const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
-    );
-
-    const { tokens: expectedTokenValue } = calculatePurchasedTokens(
-      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
-    );
-    assert.equal(tokensReceived.toString(), expectedTokenValue.toString());
-
-    const tokensReceivedDecimal = Decimal(tokensReceived.toString());
-    const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
-    highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
-    console.log({ relativeError: relativeError.toString() });
-    assert(
-      relativeError.lt(maxRelativeError),
-      `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
-       Relative error: ${relativeError}`,
-    );
-
-    const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
-    console.log({
-      precomputedEthValue: precomputedEthValue.toString(),
-      postBuyBalance: postBuyBalance.toString(),
-      tokensReceived: tokensReceived.toString(),
+    const tokensReceived = await assertBuy({
+      totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token
     });
 
-    await token.approve(tokenController.address, tokensReceived, {
-      from: member1,
-    });
-    const balancePreSell = await web3.eth.getBalance(member1);
-    const sellTx = await pool1.sellNXM(tokensReceived, precomputedEthValue, {
-      from: member1,
-    });
-
-    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
-    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
-    console.log({ gasSpentOnTx: ethSpentOnGas.toString() });
-
-    const balancePostSell = await web3.eth.getBalance(member1);
-    const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
-
-    const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
-
-    const relativeErrorForSell = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
-    highestRelativeError = Math.max(relativeErrorForSell.toNumber(), highestRelativeError);
-    console.log({ relativeError: relativeErrorForSell.toString() });
-    if (isLessThanExpectedEthOut) {
-      assert(sellEthReceived.lt(expectedEthOut), `${sellEthReceived.toFixed()} is greater than ${expectedEthOut.toFixed()}`);
-    }
-    assert(
-      relativeErrorForSell.lt(maxRelativeError),
-      `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
-       Relative error: ${relativeErrorForSell}`,
-    );
+    await assertSell({ tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut });
 
     await pool1.sendTransaction({
       from: fundSource,
@@ -129,11 +139,9 @@ async function assertBuyAndSellValues (
     totalAssetValue = await pool1.getPoolValueInEth();
     mcrRatio = await pool1.getMCRRatio();
   }
-
-  console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
-describe('buyNXM and sellNXM', function () {
+describe.only('buyNXM and sellNXM', function () {
 
   this.timeout(0);
   this.slow(5000);

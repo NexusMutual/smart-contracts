@@ -288,11 +288,11 @@ describe('buyNXM', function () {
     });
   });
 
-  it.only('mints bought tokens to member in exchange of 5% of mcrEth for mcrEth = 10 million and initialAssetValue = 0 up to 100% MCR%', async function () {
+  it('mints bought tokens to member in exchange of 5% of mcrEth for mcrEth = 100 million and initialAssetValue = 0 up to 50% MCR%', async function () {
     const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
     /*
-      In the interval 0-100 MCR% for large mcrEth (100 million here) tokens are sold cheaper than they should be
-      and the relative error goes as large as 3.8% (error increases with mcrEth here).
+      In the interval 0-50% MCR% for large mcrEth (100 million here) tokens are sold cheaper than they should be
+      and the relative error goes as large as 4.4% (error increases with mcrEth here).
       This is considered safe, because no arbitrage is possible in this interval, since no sells are allowed below 100%.
      */
     const mcrEth = ether(1e8.toString());
@@ -300,8 +300,8 @@ describe('buyNXM', function () {
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(32));
     // IMPORTANT: max relative error here is 3.8%
-    const maxRelativeError = Decimal(0.038);
-    const maxPercentage = 100;
+    const maxRelativeError = Decimal(0.044);
+    const maxPercentage = 50;
 
     await assertBuyValues({
       initialAssetValue,

@@ -142,9 +142,14 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
   };
 }
 
-
-function getTokenSpotPrice (mcrRatio, mcrEth) {
-  mcrRatio = Decimal(mcrRatio.toString()).div(1e4);
+/**
+ *
+ * @param totalAssetValue
+ * @param mcrEth
+ * @returns {Decimal}
+ */
+function getTokenSpotPrice (totalAssetValue, mcrEth) {
+  const mcrRatio = Decimal(totalAssetValue.toString()).div(Decimal(mcrEth.toString())).toPrecision(5, Decimal.ROUND_DOWN);
   mcrEth = Decimal(mcrEth.toString()).div(1e18);
   return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
 }

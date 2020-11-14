@@ -70,7 +70,7 @@ contract PriceFeedOracle {
   function getCurrencyForEth(bytes4 currency, uint ethIn) external view returns (uint) {
 
     if (currency == "DAI") {
-      return ethIn.mul(getAssetToEthRate(daiAddress)).div(1e18);
+      return ethIn.mul(1e18).div(getAssetToEthRate(daiAddress));
     }
 
     if (currency == "ETH") {

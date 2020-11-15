@@ -6,7 +6,7 @@ const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState } = require('./utils');
 const setup = require('./setup');
-const { calculatePurchasedTokensWithFullIntegral } = require('../utils').tokenPrice;
+const { calculatePurchasedTokensWithFullIntegral, assertSell } = require('../utils').tokenPrice;
 
 const {
   nonMembers: [fundSource],
@@ -53,41 +53,8 @@ async function assertSellValues (
       await token.mint(memberOne, tokensReceived);
     }
 
-    const minEthOut = buyValue.mul(new BN(10000 - (sellSpread + 10))).div(new BN(10000));
-
-    const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
-    console.log({
-      precomputedEthValue: precomputedEthValue.toString(),
-      tokensReceived: tokensReceived.toString(),
-      minEthOut: minEthOut.toString(),
-    });
-    await token.approve(tokenController.address, tokensReceived, {
-      from: memberOne,
-    });
-    const balancePreSell = await web3.eth.getBalance(memberOne);
-    const sellTx = await pool1.sellNXM(tokensReceived, precomputedEthValue, {
-      from: memberOne,
-    });
-
-    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
-    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
-    console.log({ gasSpentOnTx: ethSpentOnGas.toString() });
-
-    const balancePostSell = await web3.eth.getBalance(memberOne);
-    const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
-
-    const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
-
-    const relativeError = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
-    highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
-    console.log({ relativeError: relativeError.toString() });
-    if (isLessThanExpectedEthOut) {
-      assert(sellEthReceived.lt(expectedEthOut), `${sellEthReceived.toFixed()} is greater than ${expectedEthOut.toFixed()}`);
-    }
-    assert(
-      relativeError.lt(maxRelativeError),
-      `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
-       Relative error: ${relativeError}`,
+    await assertSell(
+      { member: memberOne, tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
     );
 
     await pool1.sendTransaction({

@@ -1,7 +1,7 @@
 const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens } = require('../utils').tokenPrice;
+const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens, assertBuy } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
@@ -9,7 +9,7 @@ const { setupContractState } = require('./utils');
 
 const {
   nonMembers: [fundSource],
-  members: [memberOne],
+  members: [member1],
 } = accounts;
 
 async function assertBuyValues (
@@ -19,11 +19,9 @@ async function assertBuyValues (
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
   );
 
-  let highestRelativeError = 0;
   while (mcrRatio <= maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
-    const relativeError = await assertBuyOutcome({ buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
-    highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
+    await assertBuy({ member: member1, buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
 
     if (buyValue.lt(poolBalanceStep)) {
       const extraStepValue = poolBalanceStep.sub(buyValue);
@@ -36,52 +34,6 @@ async function assertBuyValues (
     totalAssetValue = await pool1.getPoolValueInEth();
     mcrRatio = await pool1.getMCRRatio();
   }
-
-  console.log({ highestRelativeError: highestRelativeError.toString() });
-}
-
-async function assertBuyOutcome (
-  { buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token },
-) {
-  const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
-
-  const preBuyBalance = await token.balanceOf(memberOne);
-
-  const tx = await pool1.buyNXM(preEstimatedTokenBuyValue, {
-    from: memberOne,
-    value: buyValue,
-  });
-  const postBuyBalance = await token.balanceOf(memberOne);
-  const tokensReceived = postBuyBalance.sub(preBuyBalance);
-
-  const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
-  );
-
-  const { tokens: expectedTokenValue } = calculatePurchasedTokens(
-    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
-  );
-  const differenceInBNResults = tokensReceived.sub(expectedTokenValue);
-  const maxDifference = new BN(1);
-  assert(differenceInBNResults.lte(maxDifference),
-    `Resulting token value ${tokensReceived.toString()} is not close enough to
-      js clone function result with ${expectedTokenValue.toString()}
-       absolute difference: ${differenceInBNResults}`);
-
-  const tokensReceivedDecimal = Decimal(tokensReceived.toString());
-  const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
-
-  console.log({
-    expectedIdealTokenValue: expectedIdealTokenValue.toString(),
-    tokensReceivedDecimal: tokensReceivedDecimal.toString(),
-    relativeError: relativeError.toString(),
-  });
-  assert(
-    relativeError.lt(maxRelativeError),
-    `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
-       Relative error: ${relativeError}`,
-  );
-  return relativeError;
 }
 
 describe('buyNXM', function () {
@@ -101,7 +53,7 @@ describe('buyNXM', function () {
     );
 
     await expectRevert(
-      pool1.buyNXM('1', { from: memberOne, value: buyValue }),
+      pool1.buyNXM('1', { from: member1, value: buyValue }),
       `Purchases worth higher than 5% of MCReth are not allowed`,
     );
   });
@@ -118,7 +70,7 @@ describe('buyNXM', function () {
 
     const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
     await expectRevert(
-      pool1.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: memberOne, value: buyValue }),
+      pool1.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: member1, value: buyValue }),
       `tokensOut is less than minTokensOut`,
     );
   });
@@ -135,7 +87,7 @@ describe('buyNXM', function () {
     );
 
     await expectRevert(
-      pool1.buyNXM('1', { from: memberOne, value: buyValue }),
+      pool1.buyNXM('1', { from: member1, value: buyValue }),
       `Cannot purchase if MCR% > 400%`,
     );
   });
@@ -150,7 +102,7 @@ describe('buyNXM', function () {
     const { a, c, tokenExponent, totalAssetValue } = await setupContractState(
       { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
     );
-    await assertBuyOutcome({ buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
+    await assertBuy({ member: member1, buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
   });
 
   it('mints bought tokens to member in exchange of 0.0001 ETH for mcrEth = 160k', async function () {

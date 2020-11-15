@@ -1,11 +1,13 @@
 const Decimal = require('decimal.js');
 const BN = require('bn.js');
+const { web3 } = require('hardhat');
 
 const wad = new BN(1e18.toString());
 
 const A = 0.01028;
 const C = 5800000;
-const tokenExponent = 4;
+const TOKEN_EXPONENT = 4;
+const sellSpread = 0.025 * 10000;
 
 /**
  *
@@ -22,7 +24,7 @@ const tokenExponent = 4;
  * @returns {{tokens: Decimal, price: Decimal | *}}
  */
 function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, mcrEth, c, a, tokenExponent) {
-  if (tokenExponent.toString() !== tokenExponent.toString()) {
+  if (tokenExponent.toString() !== TOKEN_EXPONENT.toString()) {
     throw new Error(`Only tokenExponent === ${tokenExponent} supported.`);
   }
 
@@ -151,9 +153,82 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
 function getTokenSpotPrice (totalAssetValue, mcrEth) {
   const mcrRatio = Decimal(totalAssetValue.toString()).div(Decimal(mcrEth.toString())).toPrecision(5, Decimal.ROUND_DOWN);
   mcrEth = Decimal(mcrEth.toString()).div(1e18);
-  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
+  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(TOKEN_EXPONENT))).mul(1e18).round();
 }
 
+async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token }) {
+  const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
+
+  const preBuyBalance = await token.balanceOf(member);
+
+  await pool1.buyNXM(preEstimatedTokenBuyValue, {
+    from: member,
+    value: buyValue,
+  });
+  const postBuyBalance = await token.balanceOf(member);
+  const tokensReceived = postBuyBalance.sub(preBuyBalance);
+
+  const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
+    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
+  );
+
+  const { tokens: expectedTokenValue } = calculatePurchasedTokens(
+    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
+  );
+
+  assert(
+    new BN(expectedTokenValue.toString()).sub(tokensReceived).lte(new BN(1)),
+    `expectedPrice ${expectedTokenValue.toString()} - price ${tokensReceived.toString()} > 1 wei`
+  );
+
+  const tokensReceivedDecimal = Decimal(tokensReceived.toString());
+  const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
+  console.log({ relativeError: relativeError.toString() });
+  assert(
+    relativeError.lt(maxRelativeError),
+    `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
+       Relative error: ${relativeError}`,
+  );
+  return tokensReceived;
+}
+
+async function assertSell (
+  { member, tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
+) {
+  const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
+  console.log({
+    precomputedEthValue: precomputedEthValue.toString(),
+    tokensReceived: tokensReceived.toString(),
+  });
+
+  await token.approve(tokenController.address, tokensReceived, {
+    from: member,
+  });
+  const balancePreSell = await web3.eth.getBalance(member);
+  const sellTx = await pool1.sellNXM(tokensReceived, precomputedEthValue, {
+    from: member,
+  });
+
+  const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+  const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+  console.log({ gasSpentOnTx: ethSpentOnGas.toString() });
+
+  const balancePostSell = await web3.eth.getBalance(member);
+  const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
+
+  const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
+
+  const relativeErrorForSell = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
+  console.log({ relativeError: relativeErrorForSell.toString() });
+  if (isLessThanExpectedEthOut) {
+    assert(sellEthReceived.lt(expectedEthOut), `${sellEthReceived.toFixed()} is greater than ${expectedEthOut.toFixed()}`);
+  }
+  assert(
+    relativeErrorForSell.lt(maxRelativeError),
+    `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
+       Relative error: ${relativeErrorForSell}`,
+  );
+}
 
 module.exports = {
   calculatePurchasedTokens,
@@ -161,6 +236,7 @@ module.exports = {
   calculateSellValue,
   A,
   C,
-  tokenExponent,
-  getTokenSpotPrice
+  getTokenSpotPrice,
+  assertBuy,
+  assertSell
 }

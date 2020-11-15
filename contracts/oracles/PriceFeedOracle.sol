@@ -54,6 +54,12 @@ contract PriceFeedOracle {
     return uint(rate);
   }
 
+  /**
+  * @dev DEPRECATED - use getAssetToEthRate instead.
+  * Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of currency
+  * @param currency quoted currency. Supported values: ["DAI", "ETH"]
+  * @return price in ether
+ */
   function getCurrencyToEthRate(bytes4 currency) external view returns (uint) {
 
     if (currency == "DAI") {
@@ -67,6 +73,13 @@ contract PriceFeedOracle {
     revert("PriceFeedOracle: Unknown currency");
   }
 
+  /**
+  * @dev
+  * DEPRECATED - Returns the amount of currency that is equivalent to ethIn amount of ether.
+  * @param currency quoted  Supported values: ["DAI", "ETH"]
+  * @param etherIn amount of ether to be converted to the currency
+  * @return price in ether
+  */
   function getCurrencyForEth(bytes4 currency, uint ethIn) external view returns (uint) {
 
     if (currency == "DAI") {

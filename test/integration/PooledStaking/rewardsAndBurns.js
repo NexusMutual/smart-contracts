@@ -92,7 +92,7 @@ describe('burns', function () {
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
 
-    const { ps, tk, td, qd, cl, mcr, tc } = this.contracts;
+    const { ps, tk, td, qd, cl, mcr, tc, p1 } = this.contracts;
 
     const currency = hex('ETH');
     const cover = {
@@ -148,7 +148,7 @@ describe('burns', function () {
     const balanceAfter = await tk.balanceOf(ps.address);
 
     const totalBurn = balanceBefore.sub(balanceAfter);
-    const tokenPrice = await mcr.calculateTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(currency);
     const sumAssured = ether(cover.amount.toString());
     const sumAssuredInNxm = sumAssured.mul(ether('1')).div(new BN(tokenPrice));
     const expectedBurnedNXMAmount = staked.lt(sumAssuredInNxm) ? staked : sumAssuredInNxm;
@@ -176,7 +176,7 @@ describe('burns', function () {
     };
 
     const stakeTokens = ether('20');
-    const { ps, tk, td, qd, cl, mcr, tc } = this.contracts;
+    const { ps, tk, td, qd, cl, p1, tc } = this.contracts;
 
     for (const staker of this.allStakers) {
       await tk.approve(tc.address, stakeTokens, {
@@ -215,7 +215,7 @@ describe('burns', function () {
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
-    const tokenPrice = await mcr.calculateTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(currency);
     const sumAssured = new BN(ether(cover.amount.toString()));
     const actualBurn = balanceBefore.sub(balanceAfter);
 
@@ -288,7 +288,7 @@ describe('burns', function () {
 
   it('claim is accepted and burn happens after an unprocessed unstake request by staker', async function () {
 
-    const { mcr, ps, tk, qd, cl, tc } = this.contracts;
+    const { p1, ps, tk, qd, cl, tc } = this.contracts;
     const currency = hex('ETH');
 
     const cover = {
@@ -325,7 +325,7 @@ describe('burns', function () {
     await ps.processPendingActions('100');
     assert.isFalse(await ps.hasPendingActions());
 
-    const tokenPrice = await mcr.calculateTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(currency);
     const sumAssured = new BN(ether(cover.amount.toString()));
     const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
 
@@ -341,7 +341,7 @@ describe('burns', function () {
 
   it('claim is accepted and burn happens when the final vote is submitted', async function () {
 
-    const { ps, tk, cd, qd, cl, mcr, tc } = this.contracts;
+    const { ps, tk, cd, qd, cl, p1, tc } = this.contracts;
     const currency = hex('ETH');
 
     const cover = {
@@ -386,7 +386,7 @@ describe('burns', function () {
     const claimStatus = await cd.getClaimStatusNumber(claimId);
     assert.equal(claimStatus.statno.toString(), '14');
 
-    const tokenPrice = await mcr.calculateTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(currency);
     const sumAssured = new BN(ether(cover.amount.toString()));
     const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
 

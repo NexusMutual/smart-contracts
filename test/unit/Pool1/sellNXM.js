@@ -224,6 +224,9 @@ describe('sellNXM', function () {
     const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20));
     const poolBalanceStep = mcrEth.div(new BN(2));
+
+    // higher error rate as sell size grows as expected. isLessThanExpectedEthOut: true means the spread grows
+    // to the disadvantage of the seller as the sell size increases.
     const maxRelativeError = Decimal(0.06);
 
     await assertSellValues({

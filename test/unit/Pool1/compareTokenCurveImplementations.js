@@ -346,7 +346,7 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it.only('returns similar ETH value with current sellNXM call as the old sellNXMTokens for maxSellTokensAmount (old)', async function () {
+  it('returns similar ETH value with current sellNXM call as the old sellNXMTokens for maxSellTokensAmount (old)', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('320000');

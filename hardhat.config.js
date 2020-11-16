@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('hardhat-typechain');
@@ -26,8 +28,28 @@ module.exports = {
       allowUnlimitedContractSize: true,
       blockGasLimit: 12e9,
     },
+    mainnet: {
+      accounts: [process.env.MAINNET_ACCOUNT_KEY],
+      gasLimit: parseInt(process.env.MAINNET_GAS_LIMIT, 10),
+      gasPrice: parseInt(process.env.MAINNET_GAS_PRICE, 10),
+      url: process.env.MAINNET_PROVIDER_URL,
+    },
+    kovan: {
+      accounts: [process.env.KOVAN_ACCOUNT_KEY],
+      gasLimit: parseInt(process.env.KOVAN_GAS_LIMIT, 10),
+      gasPrice: parseInt(process.env.KOVAN_GAS_PRICE, 10),
+      url: process.env.KOVAN_PROVIDER_URL,
+    },
   },
-  solidity: '0.5.17',
+  solidity: {
+    version: '0.5.17',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   typechain: {
     outDir: 'types',
     target: 'truffle-v5',

@@ -6,6 +6,7 @@ const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState } = require('./utils');
+const snapshot = require('../utils').snapshot;
 
 const {
   nonMembers: [fundSource],
@@ -299,5 +300,43 @@ describe('buyNXM', function () {
         chainlinkAggregators
       });
     });
+  });
+
+  it.only('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=1 billion', async function () {
+    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
+
+    let mcrEth = ether('8000');
+    const upperBound = ether(1e9.toString());
+    while (true) {
+
+      const snapshotId = await snapshot.takeSnapshot();
+      const initialAssetValue = mcrEth.mul(new BN(3)).div(new BN(4));
+      const buyValue = mcrEth.div(new BN(20));
+      const poolBalanceStep = mcrEth.div(new BN(4));
+      const maxRelativeError = Decimal(0.0015);
+
+      await assertBuyValues({
+        initialAssetValue,
+        mcrEth,
+        maxPercentage,
+        buyValue,
+        poolBalanceStep,
+        mcr,
+        pool1,
+        token,
+        poolData,
+        daiRate,
+        ethRate,
+        tokenData,
+        maxRelativeError,
+        chainlinkAggregators
+      });
+      await snapshot.revertToSnapshot(snapshotId);
+
+      if (mcrEth.eq(upperBound)) {
+        break;
+      }
+      mcrEth = BN.min(mcrEth.mul(new BN(2)), upperBound);
+    }
   });
 });

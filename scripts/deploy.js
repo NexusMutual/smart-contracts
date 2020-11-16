@@ -3,8 +3,7 @@ require('dotenv').config();
 const { ether } = require('@openzeppelin/test-helpers');
 const Web3 = require('web3');
 const Verifier = require('../lib/verifier');
-const { getenv, init } = require('../lib/env');
-const { hex } = require('../lib/helpers');
+const { getenv, hex, init } = require('../lib/helpers');
 const { toBN } = Web3.utils;
 
 const INITIAL_SUPPLY = ether('1500000');
@@ -184,7 +183,7 @@ async function run () {
   await pd.updateUintParameters(hex('MCRCAPL'), 20); // capacity limit per contract 20%
 
   await cd.changeMasterAddress(master.address);
-  await cd.updateUintParameters(hex('CAMAXVT'), 1); // max voting time 1h
+  await cd.updateUintParameters(hex('CAMAXVT'), 2); // max voting time 2h
   await cd.updateUintParameters(hex('CAMINVT'), 1); // min voting time 1h
   await cd.updateUintParameters(hex('CADEPT'), 1); // claim deposit time 1 day
   await cd.updateUintParameters(hex('CAPAUSET'), 1); // claim assessment pause time 1 day

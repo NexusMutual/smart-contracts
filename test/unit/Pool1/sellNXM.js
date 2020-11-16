@@ -23,7 +23,6 @@ async function assertSellValues (
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
   );
 
-  let highestRelativeError = 0;
   while (mcrRatio < maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
     const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
@@ -64,8 +63,6 @@ async function assertSellValues (
     totalAssetValue = await pool1.getPoolValueInEth();
     mcrRatio = await pool1.getMCRRatio();
   }
-
-  console.log({ highestRelativeError: highestRelativeError.toString() });
 }
 
 describe('sellNXM', function () {

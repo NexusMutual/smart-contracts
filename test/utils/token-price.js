@@ -211,7 +211,6 @@ async function assertSell (
 
   const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
   const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
-  console.log({ gasSpentOnTx: ethSpentOnGas.toString() });
 
   const balancePostSell = await web3.eth.getBalance(member);
   const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);

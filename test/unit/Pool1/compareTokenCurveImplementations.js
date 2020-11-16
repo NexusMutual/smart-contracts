@@ -6,6 +6,7 @@ const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState, keysToString } = require('./utils');
+const { calculatePurchasedTokensWithFullIntegral } = require('../utils').tokenPrice;
 
 const { Role } = require('../utils').constants;
 
@@ -87,6 +88,115 @@ async function compareBuyValues (
       await old.pool1.sendTransaction({
         from: fundSource,
         value: extraStepValue,
+      });
+    }
+    ({ totalAssetValue, mcrPercentage: mcrRatio } = await current.mcr.calVtpAndMCRtp());
+  }
+  console.log({
+    highestRelativeError: highestRelativeError,
+  });
+}
+
+async function compareSellValues (
+  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
+    daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
+) {
+  await setupContractState(
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old, fetchStoredState: false },
+  );
+  let { totalAssetValue, mcrRatio, a, c, tokenExponent } = await setupContractState(
+    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...current },
+  );
+
+  let highestRelativeError = 0;
+  while (mcrRatio < maxPercentage * 100) {
+    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
+    // simulate buys
+
+    // mint ideal number of tokens
+    const { tokens: idealTokensReceived } = calculatePurchasedTokensWithFullIntegral(
+      totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
+    );
+    await current.pool1.sendTransaction({
+      from: fundSource,
+      value: buyValue,
+    });
+    await old.pool1.sendTransaction({
+      from: fundSource,
+      value: buyValue,
+    });
+
+    const tokensReceived = new BN(idealTokensReceived.toFixed());
+    await current.token.mint(member1, tokensReceived);
+    await old.token.mint(member2, tokensReceived);
+
+    const date = new Date().getTime();
+    const vFull = new BN(await web3.eth.getBalance(old.pool1.address));
+    const mcrPercentage = vFull.mul(new BN(1e4)).div(mcrEth);
+    await old.poolData.setLastMCR(mcrPercentage, mcrEth, vFull, date);
+
+    // the old system has a stricter limitation on how many tokens one can sell
+    const getCurrencyAssetBaseMin = await old.poolData.getCurrencyAssetBaseMin(hex("ETH"));
+    const getLastMCRPerc = await old.poolData.getLastMCRPerc();
+    const maxSellTokens = await old.mcr.getMaxSellTokens();
+    const tokensToSell = BN.min(maxSellTokens, tokensReceived);
+
+    console.log({
+      maxSellTokens: maxSellTokens.div(new BN(1e18.toString())).toString(),
+      tokensReceived: tokensReceived.toString(),
+      tokensToSell: tokensToSell.div(new BN(1e18.toString())).toString(),
+      getCurrencyAssetBaseMin: getCurrencyAssetBaseMin.toString(),
+      getLastMCRPerc: getLastMCRPerc.toString()
+    });
+
+    // eslint-disable-next-line
+    async function sell (system, member, sellFunction) {
+      const balancePreSell = await web3.eth.getBalance(member);
+      await system.token.approve(system.tokenController.address, tokensToSell, {
+        from: member,
+      });
+      const sellTx = await sellFunction();
+      const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+      const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+      const balancePostSell = await web3.eth.getBalance(member);
+      const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
+      return sellEthReceived;
+    }
+
+    const sellEthReceived = await sell(current, member1, () => current.pool1.sellNXM(tokensToSell, '0', {
+      from: member1,
+    }));
+    const expectedSellEthReceived = await sell(old, member2, () => old.pool1.sellNXMTokens(tokensToSell, {
+      from: member2,
+    }));
+
+    const relativeError = sellEthReceived
+      .sub(expectedSellEthReceived)
+      .abs().div(expectedSellEthReceived);
+    highestRelativeError = Math.max(relativeError.toNumber(), highestRelativeError);
+    console.log({ relativeError: relativeError.toString(), highestRelativeError: highestRelativeError.toString() });
+
+    if (isLessThanExpectedTokensOut) {
+      assert(sellEthReceived.lte(expectedSellEthReceived),
+        `${sellEthReceived} is greater than old system value ${expectedSellEthReceived}`);
+    }
+    assert(
+      relativeError.lt(maxRelativeError),
+      `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to old system value ${expectedSellEthReceived.toFixed()}
+       Relative error: ${relativeError}. Difference: ${sellEthReceived.sub(expectedSellEthReceived).div(1e18).toFixed()}`,
+    );
+
+    if (buyValue.lt(poolBalanceStep)) {
+      const extraStepValueForCurrent = poolBalanceStep.sub(buyValue).add(new BN(sellEthReceived.toFixed()));
+      await current.pool1.sendTransaction({
+        from: fundSource,
+        value: extraStepValueForCurrent,
+      });
+
+      const extraStepValueForOld = poolBalanceStep.sub(buyValue).add(new BN(expectedSellEthReceived.toFixed()));
+      await old.pool1.sendTransaction({
+        from: fundSource,
+        value: extraStepValueForOld,
       });
     }
     ({ totalAssetValue, mcrPercentage: mcrRatio } = await current.mcr.calVtpAndMCRtp());
@@ -194,7 +304,7 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it('returns similar ETH value with current buyNXM call as the old buyToken for buyValue 10 ETH', async function () {
+  it('mints similar number of tokens with current buyNXM call as the old buyToken for buyValue 10 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
@@ -207,20 +317,23 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it('returns similar ETH value with current buyNXM call as the old buyToken for buyValue 1000 ETH', async function () {
+  it('mints similar number of tokens with current buyNXM call as the old buyToken for buyValue 1000 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
     const poolBalanceStep = mcrEth.div(new BN(2));
+
+    // relative errors increases compared to old system, as purchase amount increases.
+    // Token steps computation has a high error rate as MCR% increases
     const maxRelativeError = Decimal(0.01);
     await compareBuyValues(
-      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, daiRate, ethRate, old, current },
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, isLessThanExpectedTokensOut: true, daiRate, ethRate, old, current },
     );
   });
 
-  it('returns similar ETH value with current buyNXM call as the old buyToken for buyValue 10000 ETH', async function () {
+  it('mints similar number of tokens with current buyNXM call as the old buyToken for buyValue 10000 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('320000');
@@ -229,6 +342,19 @@ describe('compareTokenCurveImplementations', function () {
     const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.017);
     await compareBuyValues(
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, isLessThanExpectedTokensOut: true, daiRate, ethRate, old, current },
+    );
+  });
+
+  it.only('returns similar ETH value with current sellNXM call as the old sellNXMTokens for maxSellTokensAmount (old)', async function () {
+    const { old, current } = this;
+
+    const mcrEth = ether('320000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('10000');
+    const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.017);
+    await compareSellValues(
       { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, isLessThanExpectedTokensOut: true, daiRate, ethRate, old, current },
     );
   });

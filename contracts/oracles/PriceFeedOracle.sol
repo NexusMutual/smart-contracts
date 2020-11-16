@@ -77,7 +77,7 @@ contract PriceFeedOracle {
   * @dev
   * DEPRECATED - Returns the amount of currency that is equivalent to ethIn amount of ether.
   * @param currency quoted  Supported values: ["DAI", "ETH"]
-  * @param etherIn amount of ether to be converted to the currency
+  * @param ethIn amount of ether to be converted to the currency
   * @return price in ether
   */
   function getCurrencyForEth(bytes4 currency, uint ethIn) external view returns (uint) {

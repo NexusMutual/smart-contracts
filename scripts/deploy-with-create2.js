@@ -2,7 +2,7 @@ const { artifacts, run } = require('hardhat');
 const path = require('path');
 const { toChecksumAddress, keccak256 } = require('ethereumjs-util');
 
-const { getenv, getNetwork, waitForInput } = require('../lib/helpers');
+const { getNetwork, waitForInput } = require('../lib/helpers');
 
 const usage = exitcode => {
   const app = path.basename(process.argv[1]);
@@ -91,7 +91,7 @@ async function main () {
   startSalt /= 1; // cast to Number
 
   const network = (await getNetwork()).toUpperCase();
-  const factoryAddress = getenv(`${network}_FACTORY_ADDRESS`);
+  const factoryAddress = process.env[`${network}_FACTORY_ADDRESS`];
   const saltGenerator = findCreate2Salt();
 
   if (!factoryAddress) {

@@ -377,7 +377,6 @@ contract Pool1 is Iupgradable {
     uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
     uint tokenPrice;
 
-    // TODO: see if this approximation can be improved
     if (mcrEth.div(currentTotalAssetValue) > 1e12) {
       /*
        If currentTotalAssetValue is significantly less than mcrEth, MCR% approaches 0, let the price be A (baseline price).
@@ -388,7 +387,6 @@ contract Pool1 is Iupgradable {
       return ethAmount.mul(1e18).div(tokenPrice);
     }
 
-    // TODO: see if this approximation can be improved for the 0-50% MCR% interval.
     // MCReth * C /(3 * V0 ^ 3)
     uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
     // MCReth * C / (3 * V1 ^3)

@@ -13,34 +13,39 @@ task('test', async (_, hre, runSuper) => {
   await runSuper({ testFiles });
 });
 
+const {
+  KOVAN_ACCOUNT_KEY,
+  KOVAN_PROVIDER_URL,
+  MAINNET_ACCOUNT_KEY,
+  MAINNET_PROVIDER_URL,
+} = process.env;
+
+const networks = {
+  hardhat: {
+    accounts: {
+      count: 100,
+      accountsBalance: toWei('100000'),
+    },
+    allowUnlimitedContractSize: true,
+    blockGasLimit: 12e9,
+  },
+};
+
+if (process.env.MAINNET_PROVIDER_URL) {
+  networks.mainnet = { accounts: [MAINNET_ACCOUNT_KEY], url: MAINNET_PROVIDER_URL };
+}
+
+if (process.env.KOVAN_PROVIDER_URL) {
+  networks.kovan = { accounts: [KOVAN_ACCOUNT_KEY], url: KOVAN_PROVIDER_URL };
+}
+
 module.exports = {
   mocha: {
     exit: true,
     bail: true,
     recursive: false,
   },
-  networks: {
-    hardhat: {
-      accounts: {
-        count: 100,
-        accountsBalance: toWei('100000'),
-      },
-      allowUnlimitedContractSize: true,
-      blockGasLimit: 12e9,
-    },
-    mainnet: {
-      accounts: [process.env.MAINNET_ACCOUNT_KEY],
-      gasLimit: parseInt(process.env.MAINNET_GAS_LIMIT, 10),
-      gasPrice: parseInt(process.env.MAINNET_GAS_PRICE, 10),
-      url: process.env.MAINNET_PROVIDER_URL,
-    },
-    kovan: {
-      accounts: [process.env.KOVAN_ACCOUNT_KEY],
-      gasLimit: parseInt(process.env.KOVAN_GAS_LIMIT, 10),
-      gasPrice: parseInt(process.env.KOVAN_GAS_PRICE, 10),
-      url: process.env.KOVAN_PROVIDER_URL,
-    },
-  },
+  networks,
   solidity: {
     version: '0.5.17',
     settings: {

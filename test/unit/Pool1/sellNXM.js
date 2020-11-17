@@ -7,6 +7,7 @@ const { accounts } = require('../utils');
 const { setupContractState } = require('./utils');
 const setup = require('./setup');
 const { calculatePurchasedTokensWithFullIntegral, assertSell } = require('../utils').tokenPrice;
+const snapshot = require('../utils').snapshot;
 
 const {
   nonMembers: [fundSource],
@@ -189,12 +190,12 @@ describe('sellNXM', function () {
     });
   });
 
-  it('burns tokens from member in exchange for 1k ETH for mcrEth = 160k', async function () {
+  it('burns tokens from member in exchange for 1% of MCReth for mcrEth = 160k', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this;
 
     const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth;
-    const buyValue = ether('1000');
+    const initialAssetValue = mcrEth; // 1% of MCReth
+    const buyValue = mcrEth.div(new BN(100));
     const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0005);
 
@@ -247,5 +248,56 @@ describe('sellNXM', function () {
       tokenController,
       chainlinkAggregators
     });
+  });
+
+  it.skip('burns tokens from member in exchange for 5% of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=1 billion', async function () {
+    const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this;
+
+    let mcrEth = ether('8000');
+    const upperBound = ether(1e9.toString());
+    while (true) {
+
+      const initialAssetValue = mcrEth;
+      let buyValue = ether('0.01');
+      const buyValueUpperBound = mcrEth.div(new BN(40));
+      const poolBalanceStep = mcrEth.div(new BN(4));
+      const maxRelativeError = Decimal(0.0015);
+
+      while (true) {
+        const snapshotId = await snapshot.takeSnapshot();
+        console.log({
+          buyValue: buyValue.toString(),
+          mcrEth: mcrEth.toString()
+        });
+        await assertSellValues({
+          initialAssetValue,
+          mcrEth,
+          maxPercentage,
+          buyValue,
+          poolBalanceStep,
+          mcr,
+          pool1,
+          token,
+          poolData,
+          daiRate,
+          ethRate,
+          tokenData,
+          tokenController,
+          maxRelativeError,
+          chainlinkAggregators
+        });
+        await snapshot.revertToSnapshot(snapshotId);
+
+        if (buyValue.eq(buyValueUpperBound)) {
+          break;
+        }
+        buyValue = BN.min(buyValue.mul(new BN(2)), buyValueUpperBound);
+      }
+
+      if (mcrEth.eq(upperBound)) {
+        break;
+      }
+      mcrEth = BN.min(mcrEth.mul(new BN(2)), upperBound);
+    }
   });
 });

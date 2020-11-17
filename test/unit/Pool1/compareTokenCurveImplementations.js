@@ -143,7 +143,7 @@ async function compareSellValues (
 
     console.log({
       maxSellTokens: maxSellTokens.div(new BN(1e18.toString())).toString(),
-      tokensReceived: tokensReceived.toString(),
+      tokensReceived: tokensReceived.div(new BN(1e18.toString())).toString(),
       tokensToSell: tokensToSell.div(new BN(1e18.toString())).toString(),
       getCurrencyAssetBaseMin: getCurrencyAssetBaseMin.toString(),
       getLastMCRPerc: getLastMCRPerc.toString()
@@ -291,12 +291,12 @@ describe('compareTokenCurveImplementations', function () {
 
   before(setupBothImplementations);
 
-  it('mints similar number of tokens with current buyNXM call as the old sellNXMTokens for buyValue 0.1 ETH', async function () {
+  it('mints similar number of tokens with current buyNXM call as the old sellNXMTokens for buyValue 0.01 ETH', async function () {
     const { old, current } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
-    const buyValue = ether('0.1');
+    const buyValue = ether('0.01');
     const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.0001);
     await compareBuyValues(
@@ -346,12 +346,25 @@ describe('compareTokenCurveImplementations', function () {
     );
   });
 
-  it('returns similar ETH value with current sellNXM call as the old sellNXMTokens for maxSellTokensAmount (old)', async function () {
+  it('returns similar ETH value with current sellNXM call as the old sellNXMTokens for maxSellTokensAmount (old) for MCReth=160k for sells of size 2.5%', async function () {
     const { old, current } = this;
 
-    const mcrEth = ether('320000');
+    const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
-    const buyValue = ether('10000');
+    const buyValue = mcrEth.div(new BN(40)); // 2.5% of MCReth max sells
+    const poolBalanceStep = mcrEth.div(new BN(2));
+    const maxRelativeError = Decimal(0.017);
+    await compareSellValues(
+      { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError, isLessThanExpectedTokensOut: true, daiRate, ethRate, old, current },
+    );
+  });
+
+  it('returns similar ETH value with current sellNXM call as the old sellNXMTokens for maxSellTokensAmount (old) for MCReth=160k for sells of 0.01ETH', async function () {
+    const { old, current } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = ether('0.01');
     const poolBalanceStep = mcrEth.div(new BN(2));
     const maxRelativeError = Decimal(0.017);
     await compareSellValues(

@@ -11,6 +11,21 @@ task('test', async (_, hre, runSuper) => {
   await runSuper({ testFiles });
 });
 
+const hardhatNetworkConfig = {
+  accounts: {
+    count: 100,
+    accountsBalance: toWei('10000000000'),
+  },
+  allowUnlimitedContractSize: true,
+  blockGasLimit: 12e9,
+};
+
+if (process.env.TEST_ENV_FORK) {
+  hardhatNetworkConfig.forking = {
+    url: process.env.TEST_ENV_FORK
+  };
+};
+
 module.exports = {
   mocha: {
     exit: true,
@@ -18,14 +33,7 @@ module.exports = {
     recursive: false,
   },
   networks: {
-    hardhat: {
-      accounts: {
-        count: 100,
-        accountsBalance: toWei('10000000000'),
-      },
-      allowUnlimitedContractSize: true,
-      blockGasLimit: 12e9,
-    },
+    hardhat: hardhatNetworkConfig
   },
   solidity: {
     version: '0.5.17',

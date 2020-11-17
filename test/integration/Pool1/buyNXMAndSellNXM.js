@@ -75,7 +75,7 @@ async function assertBuyAndSellValues (
   }
 }
 
-describe.only('buyNXM and sellNXM', function () {
+describe('buyNXM and sellNXM', function () {
 
   this.timeout(0);
   this.slow(5000);

@@ -28,8 +28,9 @@ async function setup () {
 
   const chainlinkAggregators = {};
   chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
-  const daiRate = new BN('39459');
-  await chainlinkAggregators['DAI'].setLatestAnswer(daiRate);
+  const ethToDaiRate = new BN((394.59 * 1e18).toString());
+  const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
+  await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
 
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);

@@ -250,18 +250,18 @@ describe('sellNXM', function () {
     });
   });
 
-  it.skip('burns tokens from member in exchange for 5% of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=1 billion', async function () {
+  it.skip('burns tokens from member in exchange for 5% of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
     const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this;
 
     let mcrEth = ether('8000');
-    const upperBound = ether(1e9.toString());
+    const upperBound = ether(1e8.toString());
     while (true) {
 
       const initialAssetValue = mcrEth;
-      let buyValue = ether('0.01');
-      const buyValueUpperBound = mcrEth.div(new BN(40));
+      let buyValue = ether('0.1');
+      const buyValueUpperBound = mcrEth.div(new BN(100)); // 1% of MCReth
       const poolBalanceStep = mcrEth.div(new BN(4));
-      const maxRelativeError = Decimal(0.0015);
+      const maxRelativeError = Decimal(0.002);
 
       while (true) {
         const snapshotId = await snapshot.takeSnapshot();

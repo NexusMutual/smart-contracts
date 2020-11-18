@@ -12,5 +12,7 @@ describe('Pool1 comparison unit tests', function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
 
+  require('./buyNXM');
+  require('./sellNXM');
   require('./compareTokenCurveImplementations');
 });

@@ -4,9 +4,9 @@ const { web3 } = require('hardhat');
 
 const wad = new BN(1e18.toString());
 
-const A = 0.01028;
-const C = 5800000;
-const TOKEN_EXPONENT = 4;
+const A = new BN(1028).mul(new BN(1e13.toString()));
+const C = new BN(5800000);
+const tokenExponent = 4;
 const sellSpread = 0.025 * 10000;
 
 /**
@@ -19,23 +19,17 @@ const sellSpread = 0.025 * 10000;
  * @param initialAssetValue
  * @param deltaEth
  * @param mcrEth
- * @param c
- * @param a
  * @returns {{tokens: Decimal, price: Decimal | *}}
  */
-function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, mcrEth, c, a, tokenExponent) {
-  if (tokenExponent.toString() !== TOKEN_EXPONENT.toString()) {
-    throw new Error(`Only tokenExponent === ${tokenExponent} supported.`);
-  }
+function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, mcrEth) {
 
   initialAssetValue = Decimal(initialAssetValue.toString()).div(1e18);
   deltaEth = Decimal(deltaEth.toString()).div(1e18);
   mcrEth = Decimal(mcrEth.toString()).div(1e18);
-  a = Decimal(a.toString()).div(1e18);
+  const a = Decimal(A.toString()).div(1e18);
   const nextAssetValue = initialAssetValue.add(deltaEth);
-  const CDecimal = Decimal(c.toString());
-  const m = Decimal(1).div(CDecimal.mul(mcrEth.pow(3)));
-  a = Decimal(a);
+  const c = Decimal(C.toString());
+  const m = Decimal(1).div(c.mul(mcrEth.pow(3)));
   function integral (x) {
     x = Decimal(x);
     const numeratorTerm1 =
@@ -68,7 +62,7 @@ function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, 
   return {
     tokens,
     price
-  }
+  };
 };
 
 /**
@@ -82,10 +76,12 @@ function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, 
  * @returns {{tokens: Decimal, price: Decimal}}
  */
 function calculatePurchasedTokens (
-  initialAssetValue, deltaEth, mcrEth, c, a, tokenExponent
+  initialAssetValue, deltaEth, mcrEth
 ) {
-  c = new BN(c.toString());
-  a = new BN((a).toString());
+
+  console.log({
+    initialAssetValue: initialAssetValue.toString(), deltaEth: deltaEth.toString(), mcrEth: mcrEth.toString()
+  });
   mcrEth = new BN(mcrEth.toString());
   initialAssetValue = new BN(initialAssetValue.toString());
   deltaEth = new BN(deltaEth.toString());
@@ -95,7 +91,7 @@ function calculatePurchasedTokens (
   }
   function integral (point) {
     point = new BN(point);
-    let result = mcrEth.mul(c).mul(wad).muln(-1).divn(3).div(point);
+    let result = mcrEth.mul(C).mul(wad).muln(-1).divn(3).div(point);
     for (let i = 0; i < tokenExponent - 2; i++) {
       result = result.mul(mcrEth).div(point);
     }
@@ -103,7 +99,7 @@ function calculatePurchasedTokens (
   }
   const adjustedTokenAmount = integral(nextAssetValue).sub(integral(initialAssetValue));
   const averageAdjustedPrice = deltaEth.mul(wad).div(adjustedTokenAmount);
-  const finalPrice = averageAdjustedPrice.add(new BN(a));
+  const finalPrice = averageAdjustedPrice.add(new BN(A));
   const tokens = deltaEth.mul(wad).div(finalPrice);
 
   return {
@@ -113,6 +109,8 @@ function calculatePurchasedTokens (
 }
 
 function getPriceDecimal (mcrRatio, mcrEth) {
+  const A = 0.01028;
+  const C = 5800000;
   return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(4)));
 }
 
@@ -151,9 +149,12 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
  * @returns {Decimal}
  */
 function getTokenSpotPrice (totalAssetValue, mcrEth) {
+  const A = 0.01028;
+  const C = 5800000;
+  const tokenExponent = 4;
   const mcrRatio = Decimal(totalAssetValue.toString()).div(Decimal(mcrEth.toString())).toPrecision(5, Decimal.ROUND_DOWN);
   mcrEth = Decimal(mcrEth.toString()).div(1e18);
-  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(TOKEN_EXPONENT))).mul(1e18).round();
+  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
 }
 
 async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token }) {
@@ -234,6 +235,27 @@ async function assertSell (
   );
 }
 
+function calculateMCRRatio (totalAssetValue, mcrEth) {
+  const MCR_RATIO_DECIMALS = 4;
+  return totalAssetValue.mul(new BN(10 ** MCR_RATIO_DECIMALS)).div(mcrEth);
+}
+
+function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tokenValue) {
+  const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
+    totalAssetValue, buyValue, mcrEth
+  );
+  const tokensReceived = Decimal(tokenValue.toString());
+  const relativeError = expectedIdealTokenValue.sub(tokensReceived).abs().div(expectedIdealTokenValue);
+
+  return {
+    relativeError, expectedIdealTokenValue
+  };
+}
+
+function percentageBN (x, percentage) {
+  return x.muln(percentage).divn(100);
+}
+
 module.exports = {
   calculatePurchasedTokens,
   calculatePurchasedTokensWithFullIntegral,
@@ -242,5 +264,8 @@ module.exports = {
   C,
   getTokenSpotPrice,
   assertBuy,
-  assertSell
-}
+  assertSell,
+  calculateMCRRatio,
+  calculateNXMForEthRelativeError,
+  percentageBN
+};

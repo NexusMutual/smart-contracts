@@ -7,7 +7,7 @@ const { BN } = web3.utils;
 const maxRelativeError = Decimal(0.0005);
 
 describe('calculateEthForNXM', function () {
-  it('calculates token  price for a change in total assets correctly', async function () {
+  it('calculates token price for a change in total assets correctly', async function () {
     const { pool1 } = this;
 
     const mcrEth = new BN('162424730681679380000000');

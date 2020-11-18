@@ -31,7 +31,7 @@ describe('calculateTokenSpotPrice', function () {
     assert.equal(price.toString(), expectedPrice.toFixed());
   });
 
-  it.only('should revert when mcrEth = 0', async function () {
+  it('should revert when mcrEth = 0', async function () {
 
     const { pool1 } = this;
     const mcrEth = ether('0');

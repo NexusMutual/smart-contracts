@@ -16,6 +16,7 @@ const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+const { BN } = web3.utils;
 
 async function setup () {
 
@@ -27,6 +28,8 @@ async function setup () {
 
   const chainlinkAggregators = {};
   chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
+  const daiRate = new BN('39459');
+  await chainlinkAggregators['DAI'].setLatestAnswer(daiRate);
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
 
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);

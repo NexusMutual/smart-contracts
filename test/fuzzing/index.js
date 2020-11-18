@@ -1,0 +1,9 @@
+const snapshot = require('./utils').snapshot;
+
+describe('FUZZING TESTS', function () {
+
+  this.timeout(0);
+  this.slow(5000);
+
+  require('./Pool1');
+});

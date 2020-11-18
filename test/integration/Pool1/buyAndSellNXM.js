@@ -3,10 +3,6 @@ const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 const Decimal = require('decimal.js');
-const {
-  assertBuy,
-  assertSell
-} = require('../utils').tokenPrice;
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
@@ -46,69 +42,12 @@ async function initMembers () {
   }
 }
 
-async function getContractState (
-  { poolData, tokenData, pool1 },
-) {
-  const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
-  const tokenExponent = await tokenData.tokenExponent();
-  const mcrEth = await poolData.getLastMCREther();
-
-  const totalAssetValue = await pool1.getPoolValueInEth();
-  const mcrRatio = await pool1.getMCRRatio();
-  return { a, c, tokenExponent, totalAssetValue, mcrRatio, mcrEth };
-}
-
-async function assertBuyAndSellValues (
-  { maxPercentage, poolBalanceStep, buyValue, maxRelativeError, pool1, token, poolData, tokenData, tokenController, isLessThanExpectedEthOut },
-) {
-  let { a, c, tokenExponent, totalAssetValue, mcrRatio, mcrEth } = await getContractState(
-    { poolData, tokenData, pool1 },
-  );
-
-  while (mcrRatio < maxPercentage * 100) {
-    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
-
-    const tokensReceived = await assertBuy({
-      member: member1, totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token
-    });
-
-    await assertSell({
-      member: member1, tokensToSell: tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut
-    });
-
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: poolBalanceStep,
-    });
-
-    totalAssetValue = await pool1.getPoolValueInEth();
-    mcrRatio = await pool1.getMCRRatio();
-  }
-}
 
 describe('Token price functions', function () {
 
   this.timeout(0);
   this.slow(5000);
   beforeEach(initMembers);
-
-  it('getPoolValueInEth calculates pool value correctly', async function () {
-    const { p1: pool1, dai } = this.contracts;
-    const { daiToEthRate } = this.rates;
-
-    const pool1Balance = new BN(await web3.eth.getBalance(pool1.address));
-    const daiBalance = await dai.balanceOf(pool1.address);
-    const expectedDAiValueInEth = daiToEthRate.mul(daiBalance).div(ether('1'));
-    const expectedTotalAssetValue = pool1Balance.add(expectedDAiValueInEth);
-    const totalAssetValue = await pool1.getPoolValueInEth();
-    assert(totalAssetValue.toString(), expectedTotalAssetValue.toString());
-  });
-
-  it('getMCRRatio calculates MCR ratio correctly', async function () {
-    const { p1: pool1 } = this.contracts;
-    const mcrRatio = await pool1.getMCRRatio();
-    assert.equal(mcrRatio.toString(), '21333');
-  });
 
   it('buyNXM reverts for non-member', async function () {
     const { p1: pool1 } = this.contracts;
@@ -183,28 +122,62 @@ describe('Token price functions', function () {
     await master.closeClaim(claimId);
   });
 
-  it('legacy getWei is equivalent to getEthForNXM', async function () {
-    const { p1: pool1, tk: token } = this.contracts;
+  it('buyNXM mints tokens for member in exchange of ETH', async function () {
+    const { tk: token, p1: pool1 } = this.contracts;
 
-    const memberBalance = await token.balanceOf(member1);
-    const tokensToSell = BN.min(ether('1'), memberBalance);
+    const buyValue = ether('1000');
 
-    const legacyWeiAmount = await pool1.getWei(tokensToSell);
-    const ethForNXM = await pool1.getEthForNXM(tokensToSell);
+    const expectedTokensReceived = await pool1.getNXMForEth(buyValue);
 
-    assert(legacyWeiAmount.toString(), ethForNXM.toString())
+    const member = member1;
+    const preBuyBalance = await token.balanceOf(member);
+    const tx = await pool1.buyNXM(expectedTokensReceived, {
+      from: member,
+      value: buyValue,
+    });
+    const postBuyBalance = await token.balanceOf(member);
+    const tokensReceived = postBuyBalance.sub(preBuyBalance);
+
+    assert.equal(tokensReceived.toString(), expectedTokensReceived.toString());
   });
 
-  it('mints tokens for member in exchange of ETH with buyNXM and burns tokens for ETH with sellNXM', async function () {
+  it.only('sellNXM burns tokens for member and returns ETH', async function () {
+    const { tk: token, p1: pool1 } = this.contracts;
 
-    const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData, tk: tokenController } = this.contracts;
+    const member = member1;
 
-    const maxPercentage = 400;
-    const poolBalanceStep = ether('30000');
-    const buyValue = ether('1000');
-    const maxRelativeError = Decimal(0.0006);
-    await assertBuyAndSellValues(
-      { maxPercentage, poolBalanceStep, buyValue, mcr, pool1, token, poolData, tokenData, tokenController, maxRelativeError },
-    );
+    const preSellBalance = await token.balanceOf(member);
+    const preSellTokenSupply = await token.totalSupply();
+    const tokensToSell = preSellBalance.div(new BN(2));
+    await pool1.sellNXM(tokensToSell, '0', {
+      from: member,
+    });
+    const postSellBalance = await token.balanceOf(member);
+    const postSellTokenSupply = await token.totalSupply();
+
+    const tokensTakenAway = preSellBalance.sub(postSellBalance);
+    assert(tokensTakenAway.toString(), tokensToSell.toString());
+
+    const tokensBurned = preSellTokenSupply.sub(postSellTokenSupply);
+    assert(tokensTakenAway.toString(), tokensToSell.toString());
+    assert(tokensBurned.toString(), tokensToSell.toString());
+  });
+
+  it('getPoolValueInEth calculates pool value correctly', async function () {
+    const { p1: pool1, dai } = this.contracts;
+    const { daiToEthRate } = this.rates;
+
+    const pool1Balance = new BN(await web3.eth.getBalance(pool1.address));
+    const daiBalance = await dai.balanceOf(pool1.address);
+    const expectedDAiValueInEth = daiToEthRate.mul(daiBalance).div(ether('1'));
+    const expectedTotalAssetValue = pool1Balance.add(expectedDAiValueInEth);
+    const totalAssetValue = await pool1.getPoolValueInEth();
+    assert(totalAssetValue.toString(), expectedTotalAssetValue.toString());
+  });
+
+  it('getMCRRatio calculates MCR ratio correctly', async function () {
+    const { p1: pool1 } = this.contracts;
+    const mcrRatio = await pool1.getMCRRatio();
+    assert.equal(mcrRatio.toString(), '21333');
   });
 });

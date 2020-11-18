@@ -1,14 +1,14 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { web3, artifacts } = require('hardhat');
 const { assert } = require('chai');
-const { hex } = require('../utils').helpers;
+const { hex } = require('../../unit/utils').helpers;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
-const { accounts } = require('../utils');
-const { setupContractState, keysToString } = require('./utils');
-const { calculatePurchasedTokensWithFullIntegral } = require('../utils').tokenPrice;
+const { accounts } = require('../../unit/utils');
+const { setupContractState } = require('../../unit/Pool1/utils');
+const { calculatePurchasedTokensWithFullIntegral } = require('../../unit/utils').tokenPrice;
 
-const { Role } = require('../utils').constants;
+const { Role } = require('../../unit/utils').constants;
 
 const {
   nonMembers: [fundSource],

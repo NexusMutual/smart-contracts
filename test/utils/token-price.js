@@ -149,12 +149,12 @@ function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
  * @returns {Decimal}
  */
 function getTokenSpotPrice (totalAssetValue, mcrEth) {
-  const A = 0.01028;
-  const C = 5800000;
+  const a = Decimal(A.toString()).div(1e18);
+  const c = Decimal(C.toString());
   const tokenExponent = 4;
   const mcrRatio = Decimal(totalAssetValue.toString()).div(Decimal(mcrEth.toString())).toPrecision(5, Decimal.ROUND_DOWN);
-  mcrEth = Decimal(mcrEth.toString()).div(1e18);
-  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
+  const mcrEthDecimal = Decimal(mcrEth.toString()).div(1e18);
+  return Decimal(a).add(Decimal(mcrEthDecimal).div(c).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
 }
 
 async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token }) {

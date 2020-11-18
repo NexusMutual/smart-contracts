@@ -1,4 +1,4 @@
-const { ether } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { getTokenSpotPrice } = require('../utils').tokenPrice;
@@ -29,5 +29,14 @@ describe('calculateTokenSpotPrice', function () {
     const expectedPrice = getTokenSpotPrice(totalAssetValue, mcrEth);
     const price = await pool1.calculateTokenSpotPrice(totalAssetValue, mcrEth);
     assert.equal(price.toString(), expectedPrice.toFixed());
+  });
+
+  it.only('should revert when mcrEth = 0', async function () {
+
+    const { pool1 } = this;
+    const mcrEth = ether('0');
+    const totalAssetValue = ether('200000');
+
+    await expectRevert.unspecified(pool1.calculateTokenSpotPrice(totalAssetValue, mcrEth));
   });
 });

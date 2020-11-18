@@ -252,6 +252,16 @@ function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tok
   };
 }
 
+function calculateEthForNXMRelativeError (buyValue, ethOut) {
+  const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
+
+  const relativeError = expectedEthOut.sub(Decimal(ethOut.toString())).abs().div(expectedEthOut);
+  return {
+    relativeError,
+    expectedEthOut
+  };
+}
+
 function percentageBN (x, percentage) {
   return x.muln(percentage).divn(100);
 }
@@ -267,5 +277,6 @@ module.exports = {
   assertSell,
   calculateMCRRatio,
   calculateNXMForEthRelativeError,
+  calculateEthForNXMRelativeError,
   percentageBN
 };

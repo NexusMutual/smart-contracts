@@ -1,4 +1,4 @@
-const { artifacts } = require('hardhat');
+const { artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 
 const { Role } = require('../utils').constants;

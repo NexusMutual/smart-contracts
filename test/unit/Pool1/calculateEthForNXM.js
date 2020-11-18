@@ -12,7 +12,7 @@ function errorMessage ({ ethOut, expectedEthOut, relativeError }) {
        Relative error: ${relativeError}`;
 }
 
-describe.only('calculateEthForNXM', function () {
+describe('calculateEthForNXM', function () {
 
   it('reverts when mcrEth = 0', async function () {
     const { pool1 } = this;

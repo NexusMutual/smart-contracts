@@ -101,6 +101,15 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  fixStuckStatuses: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
+
   getAllPendingRewardOfUser(
     _add: string,
     txDetails?: Truffle.TransactionDetails
@@ -233,6 +242,15 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
         records: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
+    };
+
+    fixStuckStatuses: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
     getAllPendingRewardOfUser(

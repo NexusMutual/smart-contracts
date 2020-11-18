@@ -5,8 +5,9 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface Ierc20Contract extends Truffle.Contract<Ierc20Instance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<Ierc20Instance>;
+export interface UniswapV2Erc20Contract
+  extends Truffle.Contract<UniswapV2Erc20Instance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<UniswapV2Erc20Instance>;
 }
 
 export interface Approval {
@@ -35,10 +36,14 @@ export interface Transfer {
 
 type AllEvents = Approval | Transfer;
 
-export interface Ierc20Instance extends Truffle.ContractInstance {
+export interface UniswapV2Erc20Instance extends Truffle.ContractInstance {
+  DOMAIN_SEPARATOR(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  PERMIT_TYPEHASH(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   allowance(
-    owner: string,
-    spender: string,
+    arg0: string,
+    arg1: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
@@ -65,11 +70,56 @@ export interface Ierc20Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  balanceOf(owner: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+  balanceOf(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   name(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  nonces(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+  permit: {
+    (
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   symbol(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
@@ -126,9 +176,13 @@ export interface Ierc20Instance extends Truffle.ContractInstance {
   };
 
   methods: {
+    DOMAIN_SEPARATOR(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    PERMIT_TYPEHASH(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     allowance(
-      owner: string,
-      spender: string,
+      arg0: string,
+      arg1: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
@@ -156,13 +210,58 @@ export interface Ierc20Instance extends Truffle.ContractInstance {
     };
 
     balanceOf(
-      owner: string,
+      arg0: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
     decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
     name(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    nonces(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+    permit: {
+      (
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
 
     symbol(txDetails?: Truffle.TransactionDetails): Promise<string>;
 

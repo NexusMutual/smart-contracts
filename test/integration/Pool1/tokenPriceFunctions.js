@@ -120,7 +120,7 @@ describe('Token price functions', function () {
     );
   });
 
-  it('sellNXM reverts for non-member', async function () {
+  it('SELLNXM reverts for non-member', async function () {
     const { p1: pool1 } = this.contracts;
 
     await expectRevert(
@@ -195,7 +195,7 @@ describe('Token price functions', function () {
     assert(legacyWeiAmount.toString(), ethForNXM.toString())
   });
 
-  it('mints tokens for member in exchange of ETH', async function () {
+  it('mints tokens for member in exchange of ETH with buyNXM and burns tokens for ETH with sellNXM', async function () {
 
     const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData, tk: tokenController } = this.contracts;
 

@@ -56,7 +56,7 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -76,7 +76,7 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -96,7 +96,7 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -116,7 +116,7 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -134,7 +134,7 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -158,7 +158,7 @@ describe('calculateEthForNXM', function () {
     assert(Decimal(ethOut.toString()).lte(expectedEthOut), `${ethOut.toString()} > ${expectedEthOut.toFixed()}`);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -178,7 +178,7 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -198,7 +198,7 @@ describe('calculateEthForNXM', function () {
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 
@@ -222,7 +222,7 @@ describe('calculateEthForNXM', function () {
     assert(Decimal(ethOut.toString()).lte(expectedEthOut), `${ethOut.toString()} > ${expectedEthOut.toFixed()}`);
     assert(
       relativeError.lt(maxRelativeError),
-      errorMessage({ ethOut, expectedEthOut, relativeError })
+      errorMessage({ ethOut, expectedEthOut, relativeError }),
     );
   });
 });

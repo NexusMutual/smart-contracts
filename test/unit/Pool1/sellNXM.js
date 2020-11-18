@@ -57,7 +57,7 @@ async function assertSellValues (
     }
 
     await assertSell(
-      { member: memberOne, tokensToSell: tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
+      { member: memberOne, tokensToSell: tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut },
     );
 
     await pool1.sendTransaction({
@@ -69,7 +69,7 @@ async function assertSellValues (
   }
 }
 
-describe.only('sellNXM', function () {
+describe('sellNXM', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');
@@ -233,7 +233,7 @@ describe.only('sellNXM', function () {
         const snapshotId = await snapshot.takeSnapshot();
         console.log({
           buyValue: buyValue.toString(),
-          mcrEth: mcrEth.toString()
+          mcrEth: mcrEth.toString(),
         });
         await assertSellValues({
           initialAssetValue,
@@ -250,7 +250,7 @@ describe.only('sellNXM', function () {
           tokenData,
           tokenController,
           maxRelativeError,
-          chainlinkAggregators
+          chainlinkAggregators,
         });
         await snapshot.revertToSnapshot(snapshotId);
 

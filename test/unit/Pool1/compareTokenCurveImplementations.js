@@ -136,7 +136,7 @@ async function compareSellValues (
     await old.poolData.setLastMCR(mcrPercentage, mcrEth, vFull, date);
 
     // the old system has a stricter limitation on how many tokens one can sell
-    const getCurrencyAssetBaseMin = await old.poolData.getCurrencyAssetBaseMin(hex("ETH"));
+    const getCurrencyAssetBaseMin = await old.poolData.getCurrencyAssetBaseMin(hex('ETH'));
     const getLastMCRPerc = await old.poolData.getLastMCRPerc();
     const maxSellTokens = await old.mcr.getMaxSellTokens();
     const tokensToSell = BN.min(maxSellTokens, tokensReceived);
@@ -146,7 +146,7 @@ async function compareSellValues (
       tokensReceived: tokensReceived.div(new BN(1e18.toString())).toString(),
       tokensToSell: tokensToSell.div(new BN(1e18.toString())).toString(),
       getCurrencyAssetBaseMin: getCurrencyAssetBaseMin.toString(),
-      getLastMCRPerc: getLastMCRPerc.toString()
+      getLastMCRPerc: getLastMCRPerc.toString(),
     });
 
     // eslint-disable-next-line
@@ -274,7 +274,7 @@ async function setup ({ MCR, Pool1 }) {
     poolData,
     tokenData,
     tokenController,
-    chainlinkAggregators
+    chainlinkAggregators,
   };
 }
 

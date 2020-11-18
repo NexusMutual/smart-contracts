@@ -180,7 +180,7 @@ describe('buyNXM', function () {
     await expectEvent(tx, 'NXMBought', {
       member,
       ethIn: buyValue.toString(),
-      nxmOut: expectedTokensReceived.toString()
+      nxmOut: expectedTokensReceived.toString(),
     });
   });
 
@@ -201,7 +201,7 @@ describe('buyNXM', function () {
         const snapshotId = await snapshot.takeSnapshot();
         console.log({
           buyValue: buyValue.toString(),
-          mcrEth: mcrEth.toString()
+          mcrEth: mcrEth.toString(),
         });
         await assertBuyValues({
           initialAssetValue,
@@ -217,7 +217,7 @@ describe('buyNXM', function () {
           ethRate,
           tokenData,
           maxRelativeError,
-          chainlinkAggregators
+          chainlinkAggregators,
         });
         await snapshot.revertToSnapshot(snapshotId);
 

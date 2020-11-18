@@ -120,7 +120,7 @@ describe('Token price functions', function () {
     );
   });
 
-  it('SELLNXM reverts for non-member', async function () {
+  it('sellNXM reverts for non-member', async function () {
     const { p1: pool1 } = this.contracts;
 
     await expectRevert(

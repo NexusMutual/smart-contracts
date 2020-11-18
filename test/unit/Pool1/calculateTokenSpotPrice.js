@@ -16,7 +16,7 @@ describe('calculateTokenSpotPrice', function () {
     const price = await pool1.calculateTokenSpotPrice(totalAssetValue, mcrEth);
     assert(
       new BN(expectedPrice.toString()).sub(price).lte(new BN(1)),
-      `expectedPrice ${expectedPrice.toFixed()} - price ${price.toString()} > 1 wei`
+      `expectedPrice ${expectedPrice.toFixed()} - price ${price.toString()} > 1 wei`,
     );
   });
 

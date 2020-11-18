@@ -1,11 +1,12 @@
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens, assertBuy } = require('../utils').tokenPrice;
+const { assertBuy, calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState } = require('./utils');
+const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 
 const {
@@ -43,15 +44,41 @@ describe('buyNXM', function () {
   const ethRate = new BN('100');
   const maxPercentage = 400;
 
+  it('reverts on purchase with msg.value = 0', async function () {
+    const { pool1, poolData } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = mcrEth;
+    const buyValue = new BN('0');
+
+    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: initialAssetValue,
+    });
+    const date = new Date().getTime();
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+
+    await expectRevert(
+      pool1.buyNXM('1', { from: member1, value: buyValue }),
+      `Pool: ethIn > 0`,
+    );
+  });
+
   it('reverts on purchase higher than of 5% ETH of mcrEth', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
+    const { pool1, poolData } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
-    await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
-    );
+
+    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: initialAssetValue,
+    });
+    const date = new Date().getTime();
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
 
     await expectRevert(
       pool1.buyNXM('1', { from: member1, value: buyValue }),
@@ -60,14 +87,19 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase where the bought tokens are below min expected out token amount', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
+    const { pool1, poolData } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth;
     const buyValue = ether('1000');
-    await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
-    );
+
+    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: initialAssetValue,
+    });
+    const date = new Date().getTime();
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
 
     const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
     await expectRevert(
@@ -77,15 +109,19 @@ describe('buyNXM', function () {
   });
 
   it('reverts on purchase if current MCR% exceeds 400%', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
+    const { pool1, poolData } = this;
 
     const mcrEth = ether('160000');
     const initialAssetValue = mcrEth.mul(new BN(4)).add(new BN(1e20.toString()));
     const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
 
-    await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
-    );
+    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: initialAssetValue,
+    });
+    const date = new Date().getTime();
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
 
     await expectRevert(
       pool1.buyNXM('1', { from: member1, value: buyValue }),
@@ -93,185 +129,57 @@ describe('buyNXM', function () {
     );
   });
 
-  it('mints bought to tokens to member in exchange of 100 ETH for initialAssetValue = 0 and mcrEth = 16k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
-    const mcrEth = ether('7000');
-    const initialAssetValue = new BN('0');
-    const buyValue = mcrEth.div(new BN(20));
-    const maxRelativeError = Decimal(0.0006);
+  it('reverts when MCReth is 0', async function () {
+    const { pool1, poolData } = this;
 
-    const { a, c, tokenExponent, totalAssetValue } = await setupContractState(
-      { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
+    const mcrEth = ether('0');
+    const initialAssetValue = ether('160000');
+    const buyValue = mcrEth.div(new BN(20));
+
+    const mcrRatio = new BN('0');
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: initialAssetValue,
+    });
+    const date = new Date().getTime();
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+
+    await expectRevert.unspecified(pool1.buyNXM('1', { from: member1, value: buyValue }));
+  });
+
+  it('mints expected number of tokens to member in exchange of 5% of MCReth for mcrEth = 160k and MCR% = 150%', async function () {
+    const { pool1, poolData, token } = this;
+    const mcrEth = ether('160000');
+    const initialAssetValue = percentageBN(mcrEth, 150);
+    const buyValue = mcrEth.div(new BN(20));
+
+    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: initialAssetValue,
+    });
+    const date = new Date().getTime();
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+
+    const expectedTokensReceived = await pool1.calculateNXMForEth(
+      buyValue, initialAssetValue, mcrEth,
     );
-    await assertBuy({ member: member1, buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
-  });
 
-  it('mints bought tokens to member in exchange of 0.0001 ETH for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
-
-    const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth.div(new BN(2));
-    const buyValue = ether('0.0001');
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.0006);
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError,
-      chainlinkAggregators
+    const member = member1;
+    const preBuyBalance = await token.balanceOf(member);
+    const tx = await pool1.buyNXM('0', {
+      from: member,
+      value: buyValue,
     });
-  });
+    const postBuyBalance = await token.balanceOf(member);
+    const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
-  it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth = 16k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
+    assert.equal(tokensReceived.toString(), expectedTokensReceived.toString());
 
-    const mcrEth = ether('16000');
-    const initialAssetValue = mcrEth;
-    const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.0006);
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError,
-      chainlinkAggregators
-    });
-  });
-
-  it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth = 160k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
-
-    const mcrEth = ether('160000');
-    const initialAssetValue = mcrEth;
-    const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.0006);
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError,
-      chainlinkAggregators
-    });
-  });
-
-  it('mints bought tokens to member in exchange of 5% ETH for mcrEth = 320k', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
-
-    const mcrEth = ether('320000');
-    const initialAssetValue = mcrEth;
-    const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.0006);
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError,
-      chainlinkAggregators
-    });
-  });
-
-  it('mints bought tokens to member in exchange of 5% ETH for mcrEth = 10 million', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
-
-    const mcrEth = ether(1e8.toString());
-    const initialAssetValue = mcrEth;
-    const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = mcrEth.div(new BN(2));
-    const maxRelativeError = Decimal(0.001);
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError,
-      chainlinkAggregators
-    });
-  });
-
-  it('mints bought tokens to member in exchange of 5% of mcrEth for mcrEth = 100 million and initialAssetValue = 0 up to 75% MCR%', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
-    /*
-      In the interval 0-75% MCR% for large mcrEth (100 million ETH here) tokens are sold cheaper than they should be
-      and the relative error goes as large as 4.4% (error increases with mcrEth here) which peaks around the 15-35% MCR% percentage mark.
-      and decreases as you approach 100% MCR%.
-      This is considered safe, because no arbitrage is possible in this interval, since no sells are allowed below 100%.
-     */
-    const mcrEth = ether(1e8.toString());
-    const initialAssetValue = new BN(0);
-    const buyValue = mcrEth.div(new BN(20));
-    const poolBalanceStep = mcrEth.div(new BN(32));
-    // IMPORTANT: max relative error here is 4.4%
-    const maxRelativeError = Decimal(0.044);
-    const maxPercentage = 50;
-
-    await assertBuyValues({
-      initialAssetValue,
-      mcrEth,
-      maxPercentage,
-      buyValue,
-      poolBalanceStep,
-      mcr,
-      pool1,
-      token,
-      poolData,
-      daiRate,
-      ethRate,
-      tokenData,
-      maxRelativeError,
-      chainlinkAggregators
+    await expectEvent(tx, 'NXMBought', {
+      member,
+      ethIn: buyValue.toString(),
+      nxmOut: expectedTokensReceived.toString()
     });
   });
 

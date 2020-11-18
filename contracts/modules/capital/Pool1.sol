@@ -374,8 +374,6 @@ contract Pool1 is Iupgradable {
 
     // make it at least 1 wei to avoid division by 0
     currentTotalAssetValue = currentTotalAssetValue == 0 ? 1 : currentTotalAssetValue;
-    uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
-    uint tokenPrice;
 
     if (mcrEth.div(currentTotalAssetValue) > 1e12) {
       /*
@@ -383,13 +381,14 @@ contract Pool1 is Iupgradable {
         This avoids overflow in the calculateIntegralAtPoint computation.
         This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
       */
-      tokenPrice = CONSTANT_A;
+      uint tokenPrice = CONSTANT_A;
       return ethAmount.mul(1e18).div(tokenPrice);
     }
 
     // MCReth * C /(3 * V0 ^ 3)
     uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
     // MCReth * C / (3 * V1 ^3)
+    uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
     uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
     uint adjustedTokenAmount = point0.sub(point1);
     /*
@@ -403,7 +402,7 @@ contract Pool1 is Iupgradable {
     */
     // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
     uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
-    tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
+    uint tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
     return ethAmount.mul(1e18).div(tokenPrice);
   }
 
@@ -435,7 +434,8 @@ contract Pool1 is Iupgradable {
   /**
   * @dev Computes token sell value for a tokenAmount in ETH with a sell spread of 2.5%.
   * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of 2.5%.
-  * for values higher than that sell spread may exceed 5% (The higher amount being sold at any given time the higher the spread)
+  * for values higher than that sell spread may exceed 2.5%
+  * (The higher amount being sold at any given time the higher the spread)
   */
   function calculateEthForNXM(
     uint nxmAmount,

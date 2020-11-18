@@ -1,34 +1,228 @@
-const { ether } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const Decimal = require('decimal.js');
 const { assert } = require('chai');
+const { calculateEthForNXMRelativeError, percentageBN, calculatePurchasedTokensWithFullIntegral } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 
-const maxRelativeError = Decimal(0.0005);
+const maxRelativeError = Decimal(0.0006);
 
-describe('calculateEthForNXM', function () {
-  it('calculates token price for a change in total assets correctly', async function () {
+function errorMessage ({ ethOut, expectedEthOut, relativeError }) {
+  return `Resulting eth value ${ethOut.toString()} is not close enough to expected ${expectedEthOut.toFixed()}
+       Relative error: ${relativeError}`;
+}
+
+describe.only('calculateEthForNXM', function () {
+
+  it('reverts when mcrEth = 0', async function () {
     const { pool1 } = this;
 
-    const mcrEth = new BN('162424730681679380000000');
-    const initialAssetValue = new BN('210959924071154460525457');
-    const deltaEth = ether('1000');
+    const mcrEth = ether('0');
+    const totalAssetValue = ether('160000');
+
+    await expectRevert.unspecified(pool1.calculateEthForNXM(
+      ether('1'), totalAssetValue, mcrEth,
+    ));
+  });
+
+  it('reverts when sellValue > 5% * mcrEth', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether('160000');
+    const totalAssetValue = percentageBN(mcrEth, 200);
+    const buyValue = percentageBN(mcrEth, 5);
 
     const tokenValue = await pool1.calculateNXMForEth(
-      deltaEth, initialAssetValue, mcrEth,
+      buyValue, totalAssetValue, mcrEth,
     );
-    const postBuyAssetValue = initialAssetValue.add(deltaEth);
+    await expectRevert.unspecified(pool1.calculateEthForNXM(
+      tokenValue.mul(new BN(2)), totalAssetValue, mcrEth,
+    ));
+  });
 
-    const sellSpread = Decimal(0.025);
+  it('calculates NXM for ETH at at mcrEth = 7k, MCR% = 100%, sellValue = 5% * mcrEth', async function () {
+    const { pool1 } = this;
 
-    const ethValue = await pool1.calculateEthForNXM(
-      tokenValue.toString(), postBuyAssetValue.toString(), mcrEth.toString(),
+    const mcrEth = ether('7000');
+    const totalAssetValue = mcrEth;
+    const buyValue = percentageBN(mcrEth, 5);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
     );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
 
-    const expectedEthValue = Decimal(1).sub(sellSpread).mul(Decimal(deltaEth.toString()));
-    const ethValueDecimal = Decimal(ethValue.toString());
-    const relativeError = expectedEthValue.sub(ethValueDecimal).abs().div(expectedEthValue);
+  it('calculates NXM for ETH at at mcrEth = 7k, MCR% = 400%, sellValue = 5% * mcrEth', async function () {
+    const { pool1 } = this;
 
-    assert(relativeError.lt(maxRelativeError), `Relative error too high: ${relativeError.toFixed()}`);
+    const mcrEth = ether('7000');
+    const totalAssetValue = percentageBN(mcrEth, 400);
+    const buyValue = percentageBN(mcrEth, 5);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
+    );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
+
+  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether('160000');
+    const totalAssetValue = percentageBN(mcrEth, 100);
+    const buyValue = percentageBN(mcrEth, 1);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
+    );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
+
+  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 400%, sellValue = 1% * mcrEth', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether('160000');
+    const totalAssetValue = percentageBN(mcrEth, 400);
+    const buyValue = percentageBN(mcrEth, 1);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
+    );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
+
+  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether('160000');
+    const totalAssetValue = percentageBN(mcrEth, 600);
+    const buyValue = percentageBN(mcrEth, 1);
+
+    const { tokens: tokenValue } = calculatePurchasedTokensWithFullIntegral(totalAssetValue, buyValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(
+      new BN(tokenValue.toFixed()), totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
+
+  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether('160000');
+    const totalAssetValue = percentageBN(mcrEth, 150);
+    const buyValue = percentageBN(mcrEth, 5);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
+    );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
+    // spread increases for high purchases
+    const maxRelativeError = Decimal(0.05);
+    assert(Decimal(ethOut.toString()).lte(expectedEthOut), `${ethOut.toString()} > ${expectedEthOut.toFixed()}`);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
+
+  it('calculates NXM for ETH at at mcrEth = 1e9, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether(1e9.toString());
+    const totalAssetValue = percentageBN(mcrEth, 400);
+    const buyValue = percentageBN(mcrEth, 1);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
+    );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
+
+  it('calculates NXM for ETH at at mcrEth = 1e9, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether(1e9.toString());
+    const totalAssetValue = percentageBN(mcrEth, 600);
+    const buyValue = percentageBN(mcrEth, 1);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
+    );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
+  });
+
+  it('calculates NXM for ETH at at mcrEth = 1e9, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether(1e9.toString());
+    const totalAssetValue = percentageBN(mcrEth, 150);
+    const buyValue = percentageBN(mcrEth, 5);
+
+    const tokenValue = await pool1.calculateNXMForEth(
+      buyValue, totalAssetValue, mcrEth,
+    );
+    const ethOut = await pool1.calculateEthForNXM(
+      tokenValue, totalAssetValue.add(buyValue), mcrEth,
+    );
+    const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
+    // spread increases for high purchases
+    const maxRelativeError = Decimal(0.05);
+    assert(Decimal(ethOut.toString()).lte(expectedEthOut), `${ethOut.toString()} > ${expectedEthOut.toFixed()}`);
+    assert(
+      relativeError.lt(maxRelativeError),
+      errorMessage({ ethOut, expectedEthOut, relativeError })
+    );
   });
 });

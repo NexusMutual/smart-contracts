@@ -13,7 +13,7 @@ function errorMessage (tokenValue, expectedIdealTokenValue, relativeError) {
 
 const maxRelativeError = Decimal(0.0006);
 
-describe.only('calculateNXMForEth', function () {
+describe('calculateNXMForEth', function () {
 
   it('reverts when mcrEth = 0', async function () {
     const { pool1 } = this;

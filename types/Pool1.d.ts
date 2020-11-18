@@ -36,6 +36,29 @@ export interface Payout {
 type AllEvents = Apiresult | Payout;
 
 export interface Pool1Instance extends Truffle.ContractInstance {
+  __callback: {
+    (
+      myid: string,
+      result: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      myid: string,
+      result: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      myid: string,
+      result: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      myid: string,
+      result: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   buyToken: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -76,65 +99,65 @@ export interface Pool1Instance extends Truffle.ContractInstance {
 
   closeClaimsOraclise: {
     (
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
   closeCoverOraclise: {
     (
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
   closeEmergencyPause: {
     (
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -241,42 +264,42 @@ export interface Pool1Instance extends Truffle.ContractInstance {
 
   mcrOraclise: {
     (
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
   mcrOracliseFail: {
     (
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      id: number | BN | string,
-      time: number | BN | string,
+      arg0: number | BN | string,
+      arg1: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -287,19 +310,19 @@ export interface Pool1Instance extends Truffle.ContractInstance {
 
   saveIADetailsOracalise: {
     (
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      time: number | BN | string,
+      arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -441,6 +464,29 @@ export interface Pool1Instance extends Truffle.ContractInstance {
   };
 
   methods: {
+    __callback: {
+      (
+        myid: string,
+        result: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        myid: string,
+        result: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        myid: string,
+        result: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        myid: string,
+        result: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
     buyToken: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -481,65 +527,65 @@ export interface Pool1Instance extends Truffle.ContractInstance {
 
     closeClaimsOraclise: {
       (
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
     closeCoverOraclise: {
       (
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
     closeEmergencyPause: {
       (
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -646,42 +692,42 @@ export interface Pool1Instance extends Truffle.ContractInstance {
 
     mcrOraclise: {
       (
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
     mcrOracliseFail: {
       (
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        id: number | BN | string,
-        time: number | BN | string,
+        arg0: number | BN | string,
+        arg1: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -692,19 +738,19 @@ export interface Pool1Instance extends Truffle.ContractInstance {
 
     saveIADetailsOracalise: {
       (
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        time: number | BN | string,
+        arg0: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -841,56 +887,6 @@ export interface Pool1Instance extends Truffle.ContractInstance {
       ): Promise<string>;
       estimateGas(
         newPoolAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    "__callback(bytes32,string)": {
-      (
-        myid: string,
-        result: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        myid: string,
-        result: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        myid: string,
-        result: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        myid: string,
-        result: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    "__callback(bytes32,string,bytes)": {
-      (
-        _myid: string,
-        _result: string,
-        _proof: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _myid: string,
-        _result: string,
-        _proof: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _myid: string,
-        _result: string,
-        _proof: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _myid: string,
-        _result: string,
-        _proof: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

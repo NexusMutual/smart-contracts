@@ -57,7 +57,7 @@ contract Pool is MasterAware, ReentrancyGuard {
   /* logic */
 
   modifier onlySwapController {
-    require(msg.sender == swapController, 'Pool: not swapController');
+    require(msg.sender == swapController, "Pool: not swapController");
     _;
   }
 
@@ -71,8 +71,8 @@ contract Pool is MasterAware, ReentrancyGuard {
     address _swapController
   ) public {
 
-    require(_assets.length == _minAmounts.length, 'Pool: length mismatch');
-    require(_assets.length == _maxAmounts.length, 'Pool: length mismatch');
+    require(_assets.length == _minAmounts.length, "Pool: length mismatch");
+    require(_assets.length == _maxAmounts.length, "Pool: length mismatch");
 
     // ETH is at assets[0]
     assets.push(ETH);
@@ -118,10 +118,10 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   function addAsset(address _asset, uint _min, uint _max) external onlyGovernance {
 
-    require(_max >= _min, 'Pool: max < min');
+    require(_max >= _min, "Pool: max < min");
 
     for (uint i = 0; i < assets.length; i++) {
-      require(_asset != assets[i], 'Pool: asset exists');
+      require(_asset != assets[i], "Pool: asset exists");
     }
 
     assets.push(_asset);
@@ -134,7 +134,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     IERC20 token = IERC20(_asset);
     uint tokenBalance = token.balanceOf(address(this));
 
-    require(tokenBalance == 0, 'Pool: balance must be 0');
+    require(tokenBalance == 0, "Pool: balance must be 0");
 
     for (uint i = 0; i < assets.length; i++) {
 
@@ -151,11 +151,11 @@ contract Pool is MasterAware, ReentrancyGuard {
       return;
     }
 
-    require(false, 'Pool: asset not found');
+    require(false, "Pool: asset not found");
   }
 
   function setAssetMinMax(address _asset, uint _min, uint _max) external onlyGovernance {
-    require(_min <= _max, 'Pool: min > max');
+    require(_min <= _max, "Pool: min > max");
     // TODO: revert if asset does not exist
     minAmount[_asset] = _min;
     maxAmount[_asset] = _max;
@@ -188,7 +188,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     // TODO: use a parameter for trade frequency checks
     uint timeSinceLastTrade = block.timestamp.sub(lastSwapTime[toTokenAddress]);
-    require(timeSinceLastTrade > twapOracle.periodSize(), 'Pool: too fast');
+    require(timeSinceLastTrade > twapOracle.periodSize(), "Pool: too fast");
 
     {
       // scope for liquidity check
@@ -199,14 +199,14 @@ contract Pool is MasterAware, ReentrancyGuard {
       uint ethReserve = ETH < toTokenAddress ? reserve0 : reserve1;
       uint maxTradable = ethReserve.mul(MAX_TRADABLE_PAIR_LIQUIDITY).div(1e18);
 
-      require(amountIn <= maxTradable, 'Pool: exceeds max tradable amount');
+      require(amountIn <= maxTradable, "Pool: exceeds max tradable amount");
     }
 
     {
       // scope for ether checks
       uint ethBalanceBefore = address(this).balance;
       uint ethBalanceAfter = ethBalanceBefore.sub(amountIn);
-      require(ethBalanceAfter >= minAmount[ETH], 'Pool: insufficient ether left');
+      require(ethBalanceAfter >= minAmount[ETH], "Pool: insufficient ether left");
     }
 
     {
@@ -215,9 +215,9 @@ contract Pool is MasterAware, ReentrancyGuard {
       uint maxSlippageAmount = avgAmountOut.mul(MAX_SLIPPAGE).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
-      require(amountOutMin > minOutOnMaxSlippage, 'Pool: max slippage exceeded');
-      require(balanceBefore < minAmount[toTokenAddress], 'Pool: balanceBefore >= min');
-      require(balanceBefore.add(amountOutMin) <= maxAmount[toTokenAddress], 'Pool: balanceAfter > max');
+      require(amountOutMin > minOutOnMaxSlippage, "Pool: max slippage exceeded");
+      require(balanceBefore < minAmount[toTokenAddress], "Pool: balanceBefore >= min");
+      require(balanceBefore.add(amountOutMin) <= maxAmount[toTokenAddress], "Pool: balanceAfter > max");
     }
 
     address[] memory path = new address[](2);
@@ -228,7 +228,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint balanceAfter = toToken.balanceOf(address(this));
     uint amountOut = balanceAfter.sub(balanceBefore);
     // TODO: check if uniswap does already this check
-    require(balanceAfter.sub(balanceBefore) >= amountOutMin, 'Pool: amount out too small');
+    require(balanceAfter.sub(balanceBefore) >= amountOutMin, "Pool: amount out too small");
 
     lastSwapTime[toTokenAddress] = block.timestamp;
 
@@ -246,7 +246,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
     // TODO: use a parameter for trade frequency checks
     uint timeSinceLastTrade = block.timestamp.sub(lastSwapTime[fromTokenAddress]);
-    require(timeSinceLastTrade > twapOracle.periodSize(), 'Pool: too fast');
+    require(timeSinceLastTrade > twapOracle.periodSize(), "Pool: too fast");
 
     {
       // scope for liquidity check
@@ -257,7 +257,7 @@ contract Pool is MasterAware, ReentrancyGuard {
       uint tokenReserve = fromTokenAddress < ETH ? reserve0 : reserve1;
       uint maxTradable = tokenReserve.mul(MAX_TRADABLE_PAIR_LIQUIDITY).div(1e18);
 
-      require(amountIn <= maxTradable, 'Pool: exceeds max tradable amount');
+      require(amountIn <= maxTradable, "Pool: exceeds max tradable amount");
     }
 
     {
@@ -266,9 +266,9 @@ contract Pool is MasterAware, ReentrancyGuard {
       uint maxSlippageAmount = avgAmountOut.mul(MAX_SLIPPAGE).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
-      require(amountOutMin > minOutOnMaxSlippage, 'Pool: max slippage exceeded');
-      require(balanceBefore > maxAmount[fromTokenAddress], 'Pool: balanceBefore <= max');
-      require(balanceBefore.sub(amountIn) >= minAmount[fromTokenAddress], 'Pool: balanceAfter < min');
+      require(amountOutMin > minOutOnMaxSlippage, "Pool: max slippage exceeded");
+      require(balanceBefore > maxAmount[fromTokenAddress], "Pool: balanceBefore <= max");
+      require(balanceBefore.sub(amountIn) >= minAmount[fromTokenAddress], "Pool: balanceAfter < min");
     }
 
     address[] memory path = new address[](2);
@@ -280,7 +280,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint balanceAfter = address(this).balance;
     uint amountOut = balanceAfter.sub(balanceBefore);
     // TODO: check if uniswap does already this check
-    require(amountOut >= amountOutMin, 'Pool: amount out too small');
+    require(amountOut >= amountOutMin, "Pool: amount out too small");
 
     emit Swapped(fromTokenAddress, ETH, amountIn, amountOut);
   }
@@ -289,8 +289,8 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   function transferAsset(address asset, uint amount, address payable destination) external onlyGovernance nonReentrant {
 
-    require(maxAmount[asset] == 0, 'Pool: max not zero');
-    require(destination != address(0), 'Pool: dest zero');
+    require(maxAmount[asset] == 0, "Pool: max not zero");
+    require(destination != address(0), "Pool: dest zero");
 
     IERC20 token = IERC20(asset);
     uint balance = token.balanceOf(address(this));
@@ -306,7 +306,7 @@ contract Pool is MasterAware, ReentrancyGuard {
       if (assets[i] == ETH) {
         uint amount = address(this).balance;
         (bool ok, /* data */) = newPoolAddress.call.value(amount)("");
-        require(ok, 'Pool: transfer failed');
+        require(ok, "Pool: transfer failed");
         continue;
       }
 

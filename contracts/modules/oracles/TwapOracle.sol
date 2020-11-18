@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.0;
 
-import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
+import "@uniswap/lib/contracts/libraries/FixedPoint.sol";
 import "@uniswap/v2-periphery/contracts/libraries/UniswapV2OracleLibrary.sol";
 
 contract TwapOracle {
@@ -50,8 +50,8 @@ contract TwapOracle {
     // sort tokens
     (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
 
-    require(token0 != token1, 'identical addresses');
-    require(token0 != address(0), 'zero address');
+    require(token0 != token1, "identical addresses");
+    require(token0 != address(0), "zero address");
 
     pair = address(uint(keccak256(abi.encodePacked(
         hex'ff',
@@ -76,7 +76,6 @@ contract TwapOracle {
 
   /* update */
 
-
   function update(address[] calldata pairs) external {
 
     for (uint i = 0; i < pairs.length; i++) {
@@ -91,9 +90,9 @@ contract TwapOracle {
       }
 
       (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
-    bucket.timestamp = block.timestamp;
-    bucket.price0Cumulative = price0Cumulative;
-    bucket.price1Cumulative = price1Cumulative;
+      bucket.timestamp = block.timestamp;
+      bucket.price0Cumulative = price0Cumulative;
+      bucket.price1Cumulative = price1Cumulative;
 
       emit Updated(pair, block.timestamp, price0Cumulative, price1Cumulative);
     }
@@ -122,8 +121,9 @@ contract TwapOracle {
     Bucket storage firstBucket = buckets[pair][firstBucketIndex];
 
     timeElapsed = block.timestamp - firstBucket.timestamp;
-    require(timeElapsed <= windowSize, 'missing historical reading');
-    require(timeElapsed >= windowSize - periodSize * 2, 'unexpected time elapsed');
+    // TODO: check bucket verification requirements
+    require(timeElapsed <= windowSize + periodSize, "missing historical reading");
+    require(timeElapsed >= windowSize - periodSize * 2, "unexpected time elapsed");
 
     (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
 

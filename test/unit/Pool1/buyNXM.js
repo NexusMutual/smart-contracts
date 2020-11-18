@@ -173,6 +173,7 @@ describe('buyNXM', function () {
     });
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
+    console.log(tx.receipt.gasUsed);
 
     assert.equal(tokensReceived.toString(), expectedTokensReceived.toString());
 
@@ -183,7 +184,7 @@ describe('buyNXM', function () {
     });
   });
 
-  it.skip('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
+  it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
     const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this;
 
     let mcrEth = ether('8000');

@@ -257,6 +257,9 @@ async function setup () {
     ...instances,
     ...proxies,
   };
+  this.rates = {
+    daiToEthRate
+  };
 }
 
 module.exports = setup;

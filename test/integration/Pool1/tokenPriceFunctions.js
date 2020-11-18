@@ -73,7 +73,7 @@ async function assertBuyAndSellValues (
     });
 
     await assertSell({
-      member: member1, tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut
+      member: member1, tokensToSell: tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut
     });
 
     await pool1.sendTransaction({
@@ -129,6 +129,16 @@ describe('Token price functions', function () {
     );
   });
 
+  it('sellNXM reverts if member does not have enough NXM balance', async function () {
+    const { p1: pool1, tk: token } = this.contracts;
+    const memberBalance = await token.balanceOf(member1);
+
+    await expectRevert(
+      pool1.sellNXM(memberBalance.addn(1), '0', { from: member1 }),
+      'Pool: Not enough balance',
+    );
+  });
+
   it('sellNXM reverts for member if tokens are locked for member vote', async function () {
     const { cd: claimsData, cl: claims, qd: quotationData, mr: memberRoles, p1: pool1, tk: token, master } = this.contracts;
     const cover = { ...coverTemplate };
@@ -173,7 +183,19 @@ describe('Token price functions', function () {
     await master.closeClaim(claimId);
   });
 
-  it.skip('mints tokens for member in exchange of ETH', async function () {
+  it('legacy getWei is equivalent to getEthForNXM', async function () {
+    const { p1: pool1, tk: token } = this.contracts;
+
+    const memberBalance = await token.balanceOf(member1);
+    const tokensToSell = BN.min(ether('1'), memberBalance);
+
+    const legacyWeiAmount = await pool1.getWei(tokensToSell);
+    const ethForNXM = await pool1.getEthForNXM(tokensToSell);
+
+    assert(legacyWeiAmount.toString(), ethForNXM.toString())
+  });
+
+  it('mints tokens for member in exchange of ETH', async function () {
 
     const { tk: token, td: tokenData, mcr, p1: pool1, pd: poolData, tk: tokenController } = this.contracts;
 

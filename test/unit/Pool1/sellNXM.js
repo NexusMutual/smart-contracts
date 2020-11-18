@@ -54,7 +54,7 @@ async function assertSellValues (
     }
 
     await assertSell(
-      { member: memberOne, tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
+      { member: memberOne, tokensToSell: tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
     );
 
     await pool1.sendTransaction({

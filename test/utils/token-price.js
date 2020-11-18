@@ -193,21 +193,26 @@ async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tok
 }
 
 async function assertSell (
-  { member, tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
+  { member, tokensToSell, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
 ) {
-  const precomputedEthValue = await pool1.getEthForNXM(tokensReceived);
+  const precomputedEthValue = await pool1.getEthForNXM(tokensToSell);
   console.log({
     precomputedEthValue: precomputedEthValue.toString(),
-    tokensReceived: tokensReceived.toString(),
+    tokensReceived: tokensToSell.toString(),
   });
 
-  await token.approve(tokenController.address, tokensReceived, {
+  await token.approve(tokenController.address, tokensToSell, {
     from: member,
   });
   const balancePreSell = await web3.eth.getBalance(member);
-  const sellTx = await pool1.sellNXM(tokensReceived, precomputedEthValue, {
+  const nxmBalancePreSell = await token.balanceOf(member);
+  const sellTx = await pool1.sellNXM(tokensToSell, precomputedEthValue, {
     from: member,
   });
+  const nxmBalancePostSell = await token.balanceOf(member);
+
+  const nxmBalanceDecrease = nxmBalancePreSell.sub(nxmBalancePostSell);
+  assert(nxmBalanceDecrease.toString(), tokensToSell.toString());
 
   const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
   const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));

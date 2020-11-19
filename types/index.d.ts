@@ -48,6 +48,7 @@ import { MemberRolesMockContract } from "./MemberRolesMock";
 import { NxmdsValueMockContract } from "./NxmdsValueMock";
 import { NxmTokenMockContract } from "./NxmTokenMock";
 import { TokenControllerMockContract } from "./TokenControllerMock";
+import { ToMockUniswapPairContract } from "./ToMockUniswapPair";
 import { McrContract } from "./Mcr";
 import { AggregatorContract } from "./Aggregator";
 import { NxmdsValueContract } from "./NxmdsValue";
@@ -136,6 +137,7 @@ declare global {
       require(name: "NXMDSValueMock"): NxmdsValueMockContract;
       require(name: "NXMTokenMock"): NxmTokenMockContract;
       require(name: "TokenControllerMock"): TokenControllerMockContract;
+      require(name: "TOMockUniswapPair"): ToMockUniswapPairContract;
       require(name: "MCR"): McrContract;
       require(name: "Aggregator"): AggregatorContract;
       require(name: "NXMDSValue"): NxmdsValueContract;
@@ -291,6 +293,10 @@ export {
   TokenControllerMockContract,
   TokenControllerMockInstance,
 } from "./TokenControllerMock";
+export {
+  ToMockUniswapPairContract,
+  ToMockUniswapPairInstance,
+} from "./ToMockUniswapPair";
 export { McrContract, McrInstance } from "./Mcr";
 export { AggregatorContract, AggregatorInstance } from "./Aggregator";
 export { NxmdsValueContract, NxmdsValueInstance } from "./NxmdsValue";

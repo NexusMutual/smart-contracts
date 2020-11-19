@@ -217,7 +217,7 @@ describe.only('Token price functions', function () {
 
     assert(tokensReceived.lt(expectedTokensReceivedPreMCRPosting),
       `Expected to receive fewer tokens than ${expectedTokensReceivedPreMCRPosting.toString()} at a higher mcrEth.
-       Received: ${tokensReceived.toString()}`
+       Received: ${tokensReceived.toString()}`,
     );
   });
 

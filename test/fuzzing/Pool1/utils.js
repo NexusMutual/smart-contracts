@@ -70,7 +70,7 @@ async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tok
 
   assert(
     new BN(expectedTokenValue.toString()).sub(tokensReceived).lte(new BN(1)),
-    `expectedPrice ${expectedTokenValue.toString()} - price ${tokensReceived.toString()} > 1 wei`
+    `expectedPrice ${expectedTokenValue.toString()} - price ${tokensReceived.toString()} > 1 wei`,
   );
 
   const tokensReceivedDecimal = Decimal(tokensReceived.toString());
@@ -85,7 +85,7 @@ async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tok
 }
 
 async function assertSell (
-  { member, tokensToSell, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
+  { member, tokensToSell, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut },
 ) {
   const precomputedEthValue = await pool1.getEthForNXM(tokensToSell);
   console.log({
@@ -129,5 +129,5 @@ async function assertSell (
 module.exports = {
   setupContractState,
   assertBuy,
-  assertSell
+  assertSell,
 };

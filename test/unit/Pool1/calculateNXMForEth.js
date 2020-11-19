@@ -36,7 +36,7 @@ describe('calculateNXMForEth', function () {
 
     await expectRevert(
       pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth),
-      'Pool: Purchases worth higher than 5% of MCReth are not allowed'
+      'Pool: Purchases worth higher than 5% of MCReth are not allowed',
     );
   });
 

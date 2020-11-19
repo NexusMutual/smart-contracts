@@ -8,6 +8,7 @@ const { setupContractState, assertSell } = require('./utils');
 const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('./setup');
+const { calculatePurchasedTokensWithFullIntegral } = require('../../unit/utils').tokenPrice;
 
 const {
   nonMembers: [fundSource],

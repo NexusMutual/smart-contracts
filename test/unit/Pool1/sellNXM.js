@@ -140,7 +140,7 @@ describe('sellNXM', function () {
       pool1.sellNXM(tokensToSell, expectedEthValue.add(new BN(1)), {
         from: member,
       }),
-      'Pool: ethOut < minEthOut'
+      'Pool: ethOut < minEthOut',
     );
   });
 

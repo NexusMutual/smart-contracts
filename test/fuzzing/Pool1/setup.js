@@ -93,4 +93,4 @@ async function setup ({ MCR, Pool1 }) {
   };
 }
 
-module.exports = setup
+module.exports = setup;

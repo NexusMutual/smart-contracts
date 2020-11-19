@@ -19,12 +19,8 @@ describe('getTokenPrice', function () {
     const mcrEth = new BN('162424730681679380000000');
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     const expectedPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
     const price = await pool1.getTokenPrice(hex('ETH'));
@@ -40,12 +36,9 @@ describe('getTokenPrice', function () {
     const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
+
     await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
 
     const expectedEthPrice = getTokenSpotPrice(initialAssetValue, mcrEth);

@@ -3,9 +3,6 @@ const snapshot = require('../utils').snapshot;
 
 describe.only('Pool1 unit tests', function () {
 
-  this.timeout(0);
-  this.slow(2000);
-
   before(setup);
 
   beforeEach(async function () {
@@ -15,6 +12,7 @@ describe.only('Pool1 unit tests', function () {
   afterEach(async function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
+
   require('./calculateTokenSpotPrice');
   require('./getTokenPrice');
   require('./calculateNXMForEth');
@@ -24,4 +22,5 @@ describe.only('Pool1 unit tests', function () {
   require('./sellNXM');
   require('./getMCRRatio');
   require('./getters');
+
 });

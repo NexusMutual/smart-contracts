@@ -2,16 +2,11 @@ const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { BN } = web3.utils;
-const { accounts } = require('../utils');
 const { Role } = require('../utils').constants;
 const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
+const { members: [memberOne] } = require('../utils').accounts;
 
 const P1MockMember = artifacts.require('P1MockMember');
-
-const {
-  nonMembers: [fundSource],
-  members: [memberOne],
-} = accounts;
 
 describe('sellNXM', function () {
 
@@ -22,12 +17,8 @@ describe('sellNXM', function () {
     const initialAssetValue = mcrEth;
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     const tokenAmountToSell = ether('1000');
     await token.mint(memberOne, tokenAmountToSell);
@@ -45,12 +36,8 @@ describe('sellNXM', function () {
     const initialAssetValue = mcrEth;
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     const buyValue = percentageBN(mcrEth, 5);
     await pool1.buyNXM('1', { from: memberOne, value: buyValue });
@@ -70,12 +57,8 @@ describe('sellNXM', function () {
     const initialAssetValue = mcrEth;
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     const buyValue = percentageBN(mcrEth, 5);
     await pool1.buyNXM('1', { from: memberOne, value: buyValue });
@@ -94,12 +77,8 @@ describe('sellNXM', function () {
     const initialAssetValue = percentageBN(mcrEth, 150);
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     const contractMember = await P1MockMember.new(pool1.address, token.address, tokenController.address);
     await master.enrollMember(contractMember.address, Role.Member);
@@ -120,12 +99,9 @@ describe('sellNXM', function () {
     const initialAssetValue = percentageBN(mcrEth, 150);
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
+
     const member = memberOne;
 
     const tokensToSell = ether('1');
@@ -137,9 +113,7 @@ describe('sellNXM', function () {
       from: member,
     });
     await expectRevert(
-      pool1.sellNXM(tokensToSell, expectedEthValue.add(new BN(1)), {
-        from: member,
-      }),
+      pool1.sellNXM(tokensToSell, expectedEthValue.add(new BN(1)), { from: member }),
       'Pool: ethOut < minEthOut',
     );
   });
@@ -151,12 +125,9 @@ describe('sellNXM', function () {
     const initialAssetValue = mcrEth;
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
+
     const member = memberOne;
 
     const buyValue = percentageBN(mcrEth, 1);
@@ -165,23 +136,18 @@ describe('sellNXM', function () {
 
     const expectedEthValue = await pool1.getEthForNXM(tokensToSell);
 
-    await token.approve(tokenController.address, tokensToSell, {
-      from: member,
-    });
+    await token.approve(tokenController.address, tokensToSell, { from: member });
     const balancePreSell = await web3.eth.getBalance(member);
     const nxmBalancePreSell = await token.balanceOf(member);
-    const sellTx = await pool1.sellNXM(tokensToSell, expectedEthValue, {
-      from: member,
-    });
+
+    const sellTx = await pool1.sellNXM(tokensToSell, expectedEthValue, { from: member, gasPrice: 0 });
     const nxmBalancePostSell = await token.balanceOf(member);
     const balancePostSell = await web3.eth.getBalance(member);
 
     const nxmBalanceDecrease = nxmBalancePreSell.sub(nxmBalancePostSell);
     assert(nxmBalanceDecrease.toString(), tokensToSell.toString());
 
-    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
-    const ethSpentOnGas = new BN(sellTx.receipt.gasUsed).mul(new BN(gasPrice));
-    const ethOut = new BN(balancePostSell).sub(new BN(balancePreSell)).add(ethSpentOnGas);
+    const ethOut = new BN(balancePostSell).sub(new BN(balancePreSell));
     assert(ethOut.toString(), expectedEthValue.toString());
 
     await expectEvent(sellTx, 'NXMSold', {

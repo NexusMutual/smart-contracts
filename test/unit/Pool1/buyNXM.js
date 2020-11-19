@@ -3,12 +3,8 @@ const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
-const { accounts } = require('../utils');
 
-const {
-  nonMembers: [fundSource],
-  members: [member1],
-} = accounts;
+const { members: [member] } = require('../utils').accounts;
 
 describe('buyNXM', function () {
 
@@ -20,15 +16,11 @@ describe('buyNXM', function () {
     const buyValue = new BN('0');
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     await expectRevert(
-      pool1.buyNXM('1', { from: member1, value: buyValue }),
+      pool1.buyNXM('1', { from: member, value: buyValue }),
       `Pool: ethIn > 0`,
     );
   });
@@ -41,15 +33,11 @@ describe('buyNXM', function () {
     const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     await expectRevert(
-      pool1.buyNXM('1', { from: member1, value: buyValue }),
+      pool1.buyNXM('1', { from: member, value: buyValue }),
       `Purchases worth higher than 5% of MCReth are not allowed`,
     );
   });
@@ -62,16 +50,12 @@ describe('buyNXM', function () {
     const buyValue = ether('1000');
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
     await expectRevert(
-      pool1.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: member1, value: buyValue }),
+      pool1.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: member, value: buyValue }),
       `tokensOut is less than minTokensOut`,
     );
   });
@@ -84,15 +68,11 @@ describe('buyNXM', function () {
     const buyValue = mcrEth.div(new BN(20)).add(ether('1000'));
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     await expectRevert(
-      pool1.buyNXM('1', { from: member1, value: buyValue }),
+      pool1.buyNXM('1', { from: member, value: buyValue }),
       `Cannot purchase if MCR% > 400%`,
     );
   });
@@ -105,14 +85,10 @@ describe('buyNXM', function () {
     const buyValue = mcrEth.div(new BN(20));
 
     const mcrRatio = new BN('0');
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
-    await expectRevert.unspecified(pool1.buyNXM('1', { from: member1, value: buyValue }));
+    await expectRevert.unspecified(pool1.buyNXM('1', { from: member, value: buyValue }));
   });
 
   it('mints expected number of tokens to member in exchange of 5% of MCReth for mcrEth = 160k and MCR% = 150%', async function () {
@@ -122,23 +98,15 @@ describe('buyNXM', function () {
     const buyValue = mcrEth.div(new BN(20));
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ value: initialAssetValue });
 
     const expectedTokensReceived = await pool1.calculateNXMForEth(
       buyValue, initialAssetValue, mcrEth,
     );
 
-    const member = member1;
     const preBuyBalance = await token.balanceOf(member);
-    const tx = await pool1.buyNXM('0', {
-      from: member,
-      value: buyValue,
-    });
+    const tx = await pool1.buyNXM('0', { from: member, value: buyValue });
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 

@@ -2,13 +2,9 @@ const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
 const { calculateMCRRatio } = require('../utils').tokenPrice;
-const { hex } = require('../utils').helpers;
 const BN = web3.utils.BN;
-const { accounts } = require('../utils');
 
-const {
-  nonMembers: [fundSource],
-} = accounts;
+const { nonMembers: [fundSource] } = require('../utils').accounts;
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
@@ -21,12 +17,9 @@ describe('getPoolValueInEth', function () {
     const daiAmount = ether('10000');
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: initialAssetValue,
-    });
-    const date = new Date().getTime();
-    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
+    await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
+
     await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
 
     await dai.mint(pool1.address, daiAmount);

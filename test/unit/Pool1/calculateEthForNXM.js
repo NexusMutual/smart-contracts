@@ -2,9 +2,13 @@ const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const Decimal = require('decimal.js');
 const { assert } = require('chai');
-const { calculateEthForNXMRelativeError, percentageBN, calculatePurchasedTokensWithFullIntegral } = require('../utils').tokenPrice;
-const { BN } = web3.utils;
+const {
+  calculateEthForNXMRelativeError,
+  percentageBN,
+  calculatePurchasedTokensWithFullIntegral,
+} = require('../utils').tokenPrice;
 
+const { BN } = web3.utils;
 const maxRelativeError = Decimal(0.0006);
 
 function errorMessage ({ ethOut, expectedEthOut, relativeError }) {
@@ -20,9 +24,9 @@ describe('calculateEthForNXM', function () {
     const mcrEth = ether('0');
     const totalAssetValue = ether('160000');
 
-    await expectRevert.unspecified(pool1.calculateEthForNXM(
-      ether('1'), totalAssetValue, mcrEth,
-    ));
+    await expectRevert.unspecified(
+      pool1.calculateEthForNXM(ether('1'), totalAssetValue, mcrEth),
+    );
   });
 
   it('reverts when sellValue > 5% * mcrEth', async function () {
@@ -32,9 +36,8 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 200);
     const buyValue = percentageBN(mcrEth, 5);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+
     await expectRevert.unspecified(pool1.calculateEthForNXM(
       tokenValue.mul(new BN(2)), totalAssetValue, mcrEth,
     ));
@@ -47,13 +50,10 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = mcrEth;
     const buyValue = percentageBN(mcrEth, 5);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -67,13 +67,10 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 400);
     const buyValue = percentageBN(mcrEth, 5);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -87,13 +84,10 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 100);
     const buyValue = percentageBN(mcrEth, 1);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -107,13 +101,10 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 400);
     const buyValue = percentageBN(mcrEth, 1);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -132,6 +123,7 @@ describe('calculateEthForNXM', function () {
       new BN(tokenValue.toFixed()), totalAssetValue.add(buyValue), mcrEth,
     );
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -145,17 +137,14 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 150);
     const buyValue = percentageBN(mcrEth, 5);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
 
     // spread increases for high purchases
     const maxRelativeError = Decimal(0.05);
     assert(Decimal(ethOut.toString()).lte(expectedEthOut), `${ethOut.toString()} > ${expectedEthOut.toFixed()}`);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -169,13 +158,10 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 400);
     const buyValue = percentageBN(mcrEth, 1);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -189,13 +175,10 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 600);
     const buyValue = percentageBN(mcrEth, 1);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),
@@ -209,17 +192,14 @@ describe('calculateEthForNXM', function () {
     const totalAssetValue = percentageBN(mcrEth, 150);
     const buyValue = percentageBN(mcrEth, 5);
 
-    const tokenValue = await pool1.calculateNXMForEth(
-      buyValue, totalAssetValue, mcrEth,
-    );
-    const ethOut = await pool1.calculateEthForNXM(
-      tokenValue, totalAssetValue.add(buyValue), mcrEth,
-    );
+    const tokenValue = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+    const ethOut = await pool1.calculateEthForNXM(tokenValue, totalAssetValue.add(buyValue), mcrEth);
     const { expectedEthOut, relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
 
     // spread increases for high purchases
     const maxRelativeError = Decimal(0.05);
     assert(Decimal(ethOut.toString()).lte(expectedEthOut), `${ethOut.toString()} > ${expectedEthOut.toFixed()}`);
+
     assert(
       relativeError.lt(maxRelativeError),
       errorMessage({ ethOut, expectedEthOut, relativeError }),

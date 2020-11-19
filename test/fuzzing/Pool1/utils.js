@@ -2,6 +2,7 @@ const { web3 } = require('hardhat');
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
+const { calculatePurchasedTokensWithFullIntegral, calculatePurchasedTokens, sellSpread } = require('../../unit/utils').tokenPrice;
 
 async function setupContractState (
   { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, pool1, poolData, tokenData, chainlinkAggregators, fetchStoredState = true },

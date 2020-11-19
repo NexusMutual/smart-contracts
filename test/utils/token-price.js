@@ -192,6 +192,8 @@ module.exports = {
   calculatePurchasedTokensWithFullIntegral,
   A,
   C,
+  sellSpread,
+  tokenExponent,
   getTokenSpotPrice,
   calculateMCRRatio,
   calculateNXMForEthRelativeError,

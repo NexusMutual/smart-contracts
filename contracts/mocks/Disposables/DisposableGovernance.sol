@@ -1,17 +1,16 @@
 pragma solidity ^0.5.0;
 
-import "../modules/governance/Governance.sol";
-
 /*
  * Due to the bytecode size limit on the Governance contract,
  * we don't inherit it but just copy the state variables here instead
  * to allow a safe upgrade from the disposable to the normal contract
  */
 
-import "../modules/governance/MemberRoles.sol";
-import "../modules/governance/ProposalCategory.sol";
-import "../modules/governance/external/IGovernance.sol";
-import "../modules/token/TokenController.sol";
+import "../../modules/governance/Governance.sol";
+import "../../modules/governance/MemberRoles.sol";
+import "../../modules/governance/ProposalCategory.sol";
+import "../../modules/governance/external/IGovernance.sol";
+import "../../modules/token/TokenController.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract DisposableGovernance is IGovernance, Iupgradable {

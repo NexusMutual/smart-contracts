@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "../modules/governance/NXMaster.sol";
+import "../../modules/governance/NXMaster.sol";
 
 contract DisposableNXMaster is NXMaster {
 

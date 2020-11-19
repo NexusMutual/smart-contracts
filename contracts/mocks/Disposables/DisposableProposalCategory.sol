@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../modules/governance/ProposalCategory.sol";
-import "../modules/governance/MemberRoles.sol";
+import "../../modules/governance/ProposalCategory.sol";
+import "../../modules/governance/MemberRoles.sol";
 
 contract DisposableProposalCategory is ProposalCategory {
 

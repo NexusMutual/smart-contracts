@@ -2,11 +2,10 @@
 const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const { assertBuy } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
-const { setupContractState } = require('./utils');
+const { setupContractState, assertBuy } = require('./utils');
 const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('./setup');

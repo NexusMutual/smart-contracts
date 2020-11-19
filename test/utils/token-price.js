@@ -107,40 +107,6 @@ function calculatePurchasedTokens (
   };
 }
 
-function getPriceDecimal (mcrRatio, mcrEth) {
-  const A = 0.01028;
-  const C = 5800000;
-  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(tokenExponent)));
-}
-
-/**
- * 1. Calculate spot price and amount of ETH at current values
- * 2. Calculate spot price and amount of ETH using V = V0 - ETH from step 1
- * 3. Min [average[Price(1), Price(2)] x ( 1 - Sell Spread), Price(2) ]
- */
-function calculateSellValue (initialAssetValue, mcrEth, nxmToSell, sellSpread) {
-
-  initialAssetValue = Decimal(initialAssetValue.toString()).div(1e18);
-  mcrEth = Decimal(mcrEth.toString()).div(1e18);
-  nxmToSell = Decimal(nxmToSell.toString()).div(1e18);
-  sellSpread = Decimal(sellSpread);
-
-
-  const MCRPerc0 = initialAssetValue.div(mcrEth);
-  const spotPrice0 = getPriceDecimal(MCRPerc0, mcrEth);
-  const spotETH = nxmToSell.mul(spotPrice0);
-  const Vt1 = initialAssetValue.sub(spotETH);
-  const MCRPerc1 = Vt1.div(mcrEth);
-  const spotPrice1 = getPriceDecimal(MCRPerc1, mcrEth);
-  const leftPrice = spotPrice0.add(spotPrice1).div(2).mul(Decimal(1).sub(sellSpread));
-  const finalPrice = Decimal.min(leftPrice, spotPrice1);
-  const ethEstimate = finalPrice.mul(nxmToSell).mul(1e18);
-
-  return {
-    ethEstimate
-  };
-}
-
 /**
  *
  * @param totalAssetValue

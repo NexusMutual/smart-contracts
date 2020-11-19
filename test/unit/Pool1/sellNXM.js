@@ -1,4 +1,4 @@
-const { ether, expectRevert } = require('@openzeppelin/test-helpers');
+const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { BN } = web3.utils;
@@ -182,7 +182,12 @@ describe('sellNXM', function () {
     const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
     const ethSpentOnGas = new BN(sellTx.receipt.gasUsed).mul(new BN(gasPrice));
     const ethOut = new BN(balancePostSell).sub(new BN(balancePreSell)).add(ethSpentOnGas);
-
     assert(ethOut.toString(), expectedEthValue.toString());
+
+    await expectEvent(sellTx, 'NXMSold', {
+      member,
+      nxmIn: tokensToSell.toString(),
+      ethOut: expectedEthValue.toString(),
+    });
   });
 });

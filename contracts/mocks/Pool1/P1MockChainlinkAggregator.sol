@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.17;
 
-contract ChainlinkAggregatorMock {
+contract P1MockChainlinkAggregator {
 
   uint latestAnswerRate;
   function setLatestAnswer(uint rate) public {

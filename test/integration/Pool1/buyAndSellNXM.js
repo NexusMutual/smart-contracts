@@ -42,7 +42,7 @@ async function initMembers () {
   }
 }
 
-describe('Token price functions', function () {
+describe.only('Token price functions', function () {
 
   this.timeout(0);
   this.slow(5000);
@@ -146,7 +146,7 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM burns tokens for member and returns ETH', async function () {
-    const { tk: token, p1: pool1, pd: poolData } = this.contracts;
+    const { tk: token, p1: pool1 } = this.contracts;
 
     const member = member1;
 

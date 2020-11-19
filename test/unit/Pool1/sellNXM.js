@@ -6,14 +6,14 @@ const { accounts } = require('../utils');
 const { Role } = require('../utils').constants;
 const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
 
-const Pool1MockMember = artifacts.require('Pool1MockMember');
+const P1MockMember = artifacts.require('P1MockMember');
 
 const {
   nonMembers: [fundSource],
   members: [memberOne],
 } = accounts;
 
-describe.only('sellNXM', function () {
+describe('sellNXM', function () {
 
   it('reverts on sell that decreases the MCR% below 100%', async function () {
     const { pool1, poolData, token } = this;
@@ -101,7 +101,7 @@ describe.only('sellNXM', function () {
     const date = new Date().getTime();
     await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
 
-    const contractMember = await Pool1MockMember.new(pool1.address, token.address, tokenController.address);
+    const contractMember = await P1MockMember.new(pool1.address, token.address, tokenController.address);
     await master.enrollMember(contractMember.address, Role.Member);
 
     const tokensToSell = ether('1');

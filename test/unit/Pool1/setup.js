@@ -6,7 +6,7 @@ const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 
 const MasterMock = artifacts.require('MasterMock');
-const PoolData = artifacts.require('Pool1MockPoolData');
+const PoolData = artifacts.require('P1MockPoolData');
 const TokenData = artifacts.require('TokenData');
 const TokenController = artifacts.require('TokenControllerMock');
 const TokenMock = artifacts.require('NXMTokenMock');
@@ -15,7 +15,7 @@ const MCR = artifacts.require('MCR');
 const ERC20Mock = artifacts.require('ERC20Mock');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 const { BN } = web3.utils;
 
 async function setup () {
@@ -27,7 +27,7 @@ async function setup () {
   const dai = await ERC20Mock.new();
 
   const chainlinkAggregators = {};
-  chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
+  chainlinkAggregators['DAI'] = await P1MockChainlinkAggregator.new();
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
   await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);

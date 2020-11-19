@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/Exchange.sol";
 import "../claims/ClaimsReward.sol";
 import "../cover/Quotation.sol";
+import "../../abstract/Iupgradable.sol";
 
 contract Pool2 is Iupgradable {
   using SafeMath for uint;

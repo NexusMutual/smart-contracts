@@ -21,7 +21,7 @@ contract Pool1Interface {
   function sellNXM(uint nxmAmount, uint minEthOut) public;
 }
 
-contract Pool1MockMember {
+contract P1MockMember {
 
   Pool1Interface pool1;
   NXMToken token;

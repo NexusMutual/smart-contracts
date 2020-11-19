@@ -22,9 +22,9 @@ import "../../modules/cover/Quotation.sol";
 import "../../modules/capital/MCR.sol";
 import "../../modules/capital/Pool2.sol";
 import "../../modules/capital/PoolData.sol";
-import "./Pool1MockOldMCR.sol";
+import "./P1MockOldMCR.sol";
 
-contract Pool1MockOldPool1 is Iupgradable {
+contract P1MockOldPool1 is Iupgradable {
   using SafeMath for uint;
 
   Quotation internal q2;
@@ -33,7 +33,7 @@ contract Pool1MockOldPool1 is Iupgradable {
   TokenFunctions internal tf;
   Pool2 internal p2;
   PoolData internal pd;
-  Pool1MockOldMCR internal m1;
+  P1MockOldMCR internal m1;
   Claims public c1;
   TokenData internal td;
   bool internal locked;
@@ -53,7 +53,7 @@ contract Pool1MockOldPool1 is Iupgradable {
    * @dev Iupgradable Interface to update dependent contract address
    */
   function changeDependentContractAddress() public {
-    m1 = Pool1MockOldMCR(ms.getLatestAddress("MC"));
+    m1 = P1MockOldMCR(ms.getLatestAddress("MC"));
     tk = NXMToken(ms.tokenAddress());
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     tc = TokenController(ms.getLatestAddress("TC"));

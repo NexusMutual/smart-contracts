@@ -1,48 +1,16 @@
 const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const { assertBuy, calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
+const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
-const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
-const { setupContractState } = require('./utils');
-const { hex } = require('../utils').helpers;
-const snapshot = require('../utils').snapshot;
 
 const {
   nonMembers: [fundSource],
   members: [member1],
 } = accounts;
 
-async function assertBuyValues (
-  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData, maxRelativeError, chainlinkAggregators },
-) {
-  let { a, c, tokenExponent, totalAssetValue, mcrRatio } = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
-  );
-
-  while (mcrRatio <= maxPercentage * 100) {
-    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
-    await assertBuy({ member: member1, buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
-
-    if (buyValue.lt(poolBalanceStep)) {
-      const extraStepValue = poolBalanceStep.sub(buyValue);
-      await pool1.sendTransaction({
-        from: fundSource,
-        value: extraStepValue,
-      });
-    }
-
-    totalAssetValue = await pool1.getPoolValueInEth();
-    mcrRatio = await pool1.getMCRRatio();
-  }
-}
-
 describe('buyNXM', function () {
-
-  const daiRate = new BN('39459');
-  const ethRate = new BN('100');
-  const maxPercentage = 400;
 
   it('reverts on purchase with msg.value = 0', async function () {
     const { pool1, poolData } = this;
@@ -173,7 +141,6 @@ describe('buyNXM', function () {
     });
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
-    console.log(tx.receipt.gasUsed);
 
     assert.equal(tokensReceived.toString(), expectedTokensReceived.toString());
 

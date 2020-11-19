@@ -9,7 +9,7 @@ const DSValue = artifacts.require('NXMDSValueMock');
 const ExchangeFactoryMock = artifacts.require('ExchangeFactoryMock');
 const ExchangeMock = artifacts.require('ExchangeMock');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-const ChainlinkAggregatorMock = artifacts.require('ChainlinkAggregatorMock');
+const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 
 // nexusmutual
 const NXMToken = artifacts.require('NXMToken');
@@ -82,7 +82,7 @@ async function setup () {
   await exchange.recieveEther({ value: EXCHANGE_ETHER });
 
   const chainlinkAggregators = {};
-  chainlinkAggregators['DAI'] = await ChainlinkAggregatorMock.new();
+  chainlinkAggregators['DAI'] = await P1MockChainlinkAggregator.new();
 
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
 

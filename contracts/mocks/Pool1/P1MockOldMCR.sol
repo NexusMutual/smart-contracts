@@ -17,7 +17,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./Pool1MockOldPool1.sol";
+import "./P1MockOldPool1.sol";
 import "../../modules/cover/QuotationData.sol";
 import "../../modules/governance/MemberRoles.sol";
 import "../../modules/governance/ProposalCategory.sol";
@@ -25,10 +25,10 @@ import "../../modules/token/NXMToken.sol";
 import "../../modules/token/TokenData.sol";
 import "../../modules/capital/PoolData.sol";
 
-contract Pool1MockOldMCR is Iupgradable {
+contract P1MockOldMCR is Iupgradable {
   using SafeMath for uint;
 
-  Pool1MockOldPool1 internal p1;
+  P1MockOldPool1 internal p1;
   PoolData internal pd;
   NXMToken internal tk;
   QuotationData internal qd;
@@ -60,7 +60,7 @@ contract Pool1MockOldMCR is Iupgradable {
    */
   function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
-    p1 = Pool1MockOldPool1(ms.getLatestAddress("P1"));
+    p1 = P1MockOldPool1(ms.getLatestAddress("P1"));
     pd = PoolData(ms.getLatestAddress("PD"));
     tk = NXMToken(ms.tokenAddress());
     mr = MemberRoles(ms.getLatestAddress("MR"));

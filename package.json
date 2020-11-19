@@ -25,7 +25,9 @@
     "@openzeppelin/test-helpers": "^0.5.9",
     "@truffle/hdwallet-provider": "^1.0.42",
     "bn.js": "^5.1.2",
-    "dotenv": "^8.2.0"
+    "dotenv": "^8.2.0",
+    "ethereumjs-util": "^7.0.7",
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-truffle5": "^2.0.0",

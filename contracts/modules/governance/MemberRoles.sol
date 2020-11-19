@@ -129,6 +129,15 @@ contract MemberRoles is Governed, Iupgradable {
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     tk = NXMToken(ms.tokenAddress());
     dAppToken = TokenController(ms.getLatestAddress("TC"));
+
+    // rescue future yNFT claim payouts as per gov proposal #113
+    address payable yNFT = 0x181Aea6936B407514ebFC0754A37704eB8d98F91;
+    address payable arNFT = 0x1337DEF1e9c7645352D93baf0b789D04562b4185;
+
+    if (claimPayoutAddress[yNFT] == address(0)) {
+      claimPayoutAddress[yNFT] = arNFT;
+      emit ClaimPayoutAddressSet(yNFT, arNFT);
+    }
   }
 
   /**
@@ -136,12 +145,14 @@ contract MemberRoles is Governed, Iupgradable {
    * @param _masterAddress is the new master address
    */
   function changeMasterAddress(address _masterAddress) public {
-    if (masterAddress != address(0))
+
+    if (masterAddress != address(0)) {
       require(masterAddress == msg.sender);
+    }
+
     masterAddress = _masterAddress;
     ms = INXMMaster(_masterAddress);
     nxMasterAddress = _masterAddress;
-
   }
 
   /**

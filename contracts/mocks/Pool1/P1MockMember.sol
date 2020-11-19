@@ -38,7 +38,7 @@ contract P1MockMember {
     pool1.sellNXM(amount, 0);
   }
 
-  function() external {
-    revert('I hate ether');
+  function() payable external {
+    revert('I secretly hate ether');
   }
 }

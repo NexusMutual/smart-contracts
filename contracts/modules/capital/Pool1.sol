@@ -316,7 +316,7 @@ contract Pool1 is Iupgradable {
     uint mcrEth = pd.getLastMCREther();
     uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(currentTotalAssetValue.sub(ethOut) >= mcrEth, "Pool: MCR% cannot fall below 100%");
-    require(ethOut >= minEthOut, "Pool: Token amount must be greater than minNXMTokensIn");
+    require(ethOut >= minEthOut, "Pool: ethOut < minEthOut");
 
     tc.burnFrom(msg.sender, tokenAmount);
     (bool ok, /* data */) = msg.sender.call.value(ethOut)("");
@@ -373,9 +373,9 @@ contract Pool1 is Iupgradable {
     */
 
     // make it at least 1 wei to avoid division by 0
-    currentTotalAssetValue = currentTotalAssetValue == 0 ? 1 : currentTotalAssetValue;
+    uint nonZeroCurrentTotalAssetValue = currentTotalAssetValue == 0 ? 1 : currentTotalAssetValue;
 
-    if (mcrEth.div(currentTotalAssetValue) > 1e12) {
+    if (mcrEth.div(nonZeroCurrentTotalAssetValue) > 1e12) {
       /*
        If currentTotalAssetValue is significantly less than mcrEth, MCR% approaches 0, let the price be A (baseline price).
         This avoids overflow in the calculateIntegralAtPoint computation.
@@ -386,9 +386,9 @@ contract Pool1 is Iupgradable {
     }
 
     // MCReth * C /(3 * V0 ^ 3)
-    uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
+    uint point0 = calculateIntegralAtPoint(nonZeroCurrentTotalAssetValue, mcrEth);
     // MCReth * C / (3 * V1 ^3)
-    uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
+    uint nextTotalAssetValue = nonZeroCurrentTotalAssetValue.add(ethAmount);
     uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
     uint adjustedTokenAmount = point0.sub(point1);
     /*

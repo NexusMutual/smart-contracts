@@ -1,24 +1,25 @@
 const { network: { provider } } = require('hardhat');
 
-const setTime = async time => {
-  await provider.send('evm_setNextBlockTimestamp', [time]);
-  await provider.send('evm_mine', []);
-};
+const setNextBlockTime = async time => provider.send(
+  'evm_setNextBlockTimestamp',
+  [time],
+);
 
-const impersonateAccount = async address =>
-  provider.send(
-    'hardhat_impersonateAccount',
-    [address],
-  );
+const mineNextBlock = async () => provider.send('evm_mine');
 
-const stopImpersonatingAccount = async address =>
-  provider.send(
-    'hardhat_stopImpersonatingAccount',
-    [address],
-  );
+const impersonateAccount = async address => provider.send(
+  'hardhat_impersonateAccount',
+  [address],
+);
+
+const stopImpersonatingAccount = async address => provider.send(
+  'hardhat_stopImpersonatingAccount',
+  [address],
+);
 
 module.exports = {
-  setTime,
+  setNextBlockTime,
+  mineNextBlock,
   impersonateAccount,
   stopImpersonatingAccount,
 };

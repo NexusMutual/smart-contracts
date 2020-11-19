@@ -13,6 +13,7 @@ describe.only('TwapOracle unit tests', function () {
     await snapshot.revertToSnapshot(this.snapshotId);
   });
 
+  require('./consult');
   require('./currentBucketIndex');
   require('./pairFor');
   require('./update');

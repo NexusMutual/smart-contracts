@@ -372,11 +372,10 @@ contract Pool1 is Iupgradable {
       adjustedTokenAmount = - MCReth ^ 3 * C / (3 * V1 ^3) + MCReth * C /(3 * V0 ^ 3)
     */
 
-    // make it at least 1 wei to avoid division by 0
-    uint nonZeroCurrentTotalAssetValue = currentTotalAssetValue == 0 ? 1 : currentTotalAssetValue;
-
-    if (mcrEth.div(nonZeroCurrentTotalAssetValue) > 1e12) {
+    if (currentTotalAssetValue == 0 || mcrEth.div(currentTotalAssetValue) > 1e12) {
       /*
+       If the currentTotalAssetValue = 0, adjustedTokenPrice approaches 0. Therefore we can assume the price is A.
+
        If currentTotalAssetValue is significantly less than mcrEth, MCR% approaches 0, let the price be A (baseline price).
         This avoids overflow in the calculateIntegralAtPoint computation.
         This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
@@ -386,9 +385,9 @@ contract Pool1 is Iupgradable {
     }
 
     // MCReth * C /(3 * V0 ^ 3)
-    uint point0 = calculateIntegralAtPoint(nonZeroCurrentTotalAssetValue, mcrEth);
+    uint point0 = calculateIntegralAtPoint(currentTotalAssetValue, mcrEth);
     // MCReth * C / (3 * V1 ^3)
-    uint nextTotalAssetValue = nonZeroCurrentTotalAssetValue.add(ethAmount);
+    uint nextTotalAssetValue = currentTotalAssetValue.add(ethAmount);
     uint point1 = calculateIntegralAtPoint(nextTotalAssetValue, mcrEth);
     uint adjustedTokenAmount = point0.sub(point1);
     /*

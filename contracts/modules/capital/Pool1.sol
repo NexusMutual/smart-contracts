@@ -341,7 +341,7 @@ contract Pool1 is Iupgradable {
     uint ethAmount,
     uint currentTotalAssetValue,
     uint mcrEth
-  ) public pure returns (uint tokenValue) {
+  ) public pure returns (uint) {
     require(
       ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
       "Pool: Purchases worth higher than 5% of MCReth are not allowed"

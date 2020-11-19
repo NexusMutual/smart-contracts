@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../modules/staking/PooledStaking.sol";
-import "../modules/token/TokenController.sol";
+import "../../modules/staking/PooledStaking.sol";
+import "../../modules/token/TokenController.sol";
 
 contract DisposablePooledStaking is PooledStaking {
 

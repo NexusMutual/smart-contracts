@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../modules/token/TokenController.sol";
-import "../modules/token/NXMToken.sol";
+import "../../modules/token/TokenController.sol";
+import "../../modules/token/NXMToken.sol";
 
 contract DisposableTokenController is TokenController {
 

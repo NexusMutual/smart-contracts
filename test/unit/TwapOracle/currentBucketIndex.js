@@ -1,9 +1,7 @@
-const { web3 } = require('hardhat');
-const { ether, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const { contracts } = require('./setup');
-const { setTime } = require('../utils').hardhat;
+const { setNextBlockTime, mineNextBlock } = require('../utils').hardhat;
 
 describe('currentBucketIndex', function () {
 
@@ -24,17 +22,16 @@ describe('currentBucketIndex', function () {
     assert.strictEqual(actualWindowSize.toNumber(), windowSize, 'window size should be 4h');
 
     let targetTime = 1800000000 - 1; // one second before 15 Jan 2027 08:00:00 AM UTC
-    await setTime(targetTime);
+    const increments = [1, 1798, 1]; // 3 checks per period: start, middle, end
+    assert.strictEqual(increments.reduce((a, b) => a + b, 0), periodSize);
 
     for (let i = 0; i < periodsPerWindow * 2; i++) {
-
-      const increments = [1, 99, 700, 999, 1];
-      assert.equal(increments.reduce((a, b) => a + b, 0), periodSize);
 
       for (const increment of increments) {
 
         targetTime += increment;
-        await setTime(targetTime);
+        await setNextBlockTime(targetTime);
+        await mineNextBlock();
 
         const expectedIndex = i % 8;
         const actualIndex = await oracle.currentBucketIndex();
@@ -45,7 +42,6 @@ describe('currentBucketIndex', function () {
           `expected bucket ${expectedIndex}, got ${actualIndex} at timestamp ${targetTime}`,
         );
       }
-
     }
 
   });

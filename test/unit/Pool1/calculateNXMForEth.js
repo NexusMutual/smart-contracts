@@ -40,7 +40,7 @@ describe('calculateNXMForEth', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 7k, MCR% = 0%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 7k, MCR% = 0%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('7000');
@@ -55,7 +55,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at at mcrEth = 7k, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 7k, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('7000');
@@ -70,7 +70,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 160k, MCR% = 150%, buyValue = 0.00001', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 150%, buyValue = 0.00001', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -85,7 +85,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 160k, MCR% = 0%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 0%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -100,7 +100,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 160k, MCR% = 100%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 100%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -115,7 +115,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 160k, MCR% = 150%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 150%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -130,7 +130,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 160k, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -145,7 +145,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 1e9, MCR% = 400%, buyValue = 0.001', async function () {
+  it('calculates at mcrEth = 1e9, MCR% = 400%, buyValue = 0.001', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether(1e9.toString());
@@ -162,7 +162,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 1e9, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 1e9, MCR% = 400%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether(1e9.toString());
@@ -177,7 +177,7 @@ describe('calculateNXMForEth', function () {
     assert(relativeError.lt(maxRelativeError), errorMessage(tokenValue, expectedIdealTokenValue, relativeError));
   });
 
-  it('calculates NXM for ETH at mcrEth = 1e9, MCR% = 15%, buyValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 1e9, MCR% = 15%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     /*

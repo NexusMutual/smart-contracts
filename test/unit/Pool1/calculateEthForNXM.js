@@ -40,7 +40,7 @@ describe('calculateEthForNXM', function () {
     ));
   });
 
-  it('calculates NXM for ETH at at mcrEth = 7k, MCR% = 100%, sellValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 7k, MCR% = 100%, sellValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('7000');
@@ -60,7 +60,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 7k, MCR% = 400%, sellValue = 5% * mcrEth', async function () {
+  it('calculates at mcrEth = 7k, MCR% = 400%, sellValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('7000');
@@ -80,7 +80,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -100,7 +100,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 400%, sellValue = 1% * mcrEth', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 400%, sellValue = 1% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -120,7 +120,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -138,7 +138,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 160k, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
+  it('calculates at mcrEth = 160k, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');
@@ -162,7 +162,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 1e9, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
+  it('calculates at mcrEth = 1e9, MCR% = 100%, sellValue = 1% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether(1e9.toString());
@@ -182,7 +182,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 1e9, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
+  it('calculates at mcrEth = 1e9, MCR% = 600%, sellValue = 1% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether(1e9.toString());
@@ -202,7 +202,7 @@ describe('calculateEthForNXM', function () {
     );
   });
 
-  it('calculates NXM for ETH at at mcrEth = 1e9, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
+  it('calculates at mcrEth = 1e9, MCR% = 150%, sellValue = 5% * mcrEth (high spread)', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether(1e9.toString());

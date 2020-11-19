@@ -27,7 +27,7 @@ describe('calculateNXMForEth', function () {
     ));
   });
 
-  it('reverts when purchase value < 5% * mcrEth', async function () {
+  it('reverts when purchase value > 5% * mcrEth', async function () {
     const { pool1 } = this;
 
     const mcrEth = ether('160000');

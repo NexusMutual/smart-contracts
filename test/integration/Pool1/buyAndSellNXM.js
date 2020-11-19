@@ -2,12 +2,12 @@ const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
-const { calculateEthForNXMRelativeError, percentageBN, calculateNXMForEthRelativeError } = require('../utils').tokenPrice;
+const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError } = require('../utils').tokenPrice;
 const Decimal = require('decimal.js');
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
-const [, member1, member2, member3, coverHolder, fundSource, nonMember1] = accounts;
+const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
 
 const tokensLockedForVoting = ether('200');
 const validity = 360 * 24 * 60 * 60; // 360 days
@@ -186,6 +186,7 @@ describe.only('Token price functions', function () {
     assert(relativeError.lt(maxRelativeError), `Relative error too high ${relativeError.toString()} > ${maxRelativeError.toFixed()}`);
   });
 
+  // TODO: fix, still fails for some reason
   it.skip('buyNXM token price reflects the latest MCR posting', async function () {
     const { tk: token, p1: pool1, mcr } = this.contracts;
     const { ethEthRate, ethToDaiRate } = this.rates;

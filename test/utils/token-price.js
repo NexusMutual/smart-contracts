@@ -1,12 +1,10 @@
 const BN = require('bn.js');
 const Decimal = require('decimal.js');
 
-const wad = new BN(1e18.toString());
-
-const A = new BN(1028).mul(new BN(1e13.toString()));
-const C = new BN(5800000);
+const A = Decimal(0.01028);
+const C = Decimal(5800000);
 const tokenExponent = 4;
-const sellSpread = 0.025 * 10000;
+const sellSpread = Decimal(0.025);
 
 /**
  *
@@ -25,33 +23,31 @@ function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, 
   const initialAssetValueDecimal = Decimal(initialAssetValue.toString()).div(1e18);
   const deltaEthDecimal = Decimal(deltaEth.toString()).div(1e18);
   const mcrEthDecimal = Decimal(mcrEth.toString()).div(1e18);
-  const a = Decimal(A.toString()).div(1e18);
   const nextAssetValue = initialAssetValueDecimal.add(deltaEthDecimal);
-  const c = Decimal(C.toString());
-  const m = Decimal(1).div(c.mul(mcrEthDecimal.pow(3)));
+  const m = Decimal(1).div(C.mul(mcrEthDecimal.pow(3)));
   function integral (x) {
     x = Decimal(x);
     const numeratorTerm1 =
       Decimal(2).sqrt()
         .mul(x)
-        .mul((a.mul(m)).pow(1 / 4))
-        .div((a.sqrt().add(m.sqrt().mul(x.pow(2)))))
+        .mul((A.mul(m)).pow(1 / 4))
+        .div((A.sqrt().add(m.sqrt().mul(x.pow(2)))))
         .atanh();
 
     const numeratorTerm2 =
       Decimal(1)
-        .sub(Decimal(2).sqrt().mul(x).mul((m.div(a)).pow(1 / 4)))
+        .sub(Decimal(2).sqrt().mul(x).mul((m.div(A)).pow(1 / 4)))
         .atan();
 
     const numeratorTerm3 =
       Decimal(2).sqrt()
         .mul(x)
-        .mul((m.div(a)).pow(0.25))
+        .mul((m.div(A)).pow(0.25))
         .add(1)
         .atan();
 
     const numerator = numeratorTerm1.sub(numeratorTerm2).add(numeratorTerm3);
-    const denominator = Decimal(2).mul(Decimal(2).sqrt()).mul((a.pow(3).mul(m)).pow(0.25));
+    const denominator = Decimal(2).mul(Decimal(2).sqrt()).mul((A.pow(3).mul(m)).pow(0.25));
     const result = numerator.div(denominator);
     return result;
   }
@@ -60,50 +56,7 @@ function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, 
   const price = deltaEthDecimal.div(tokens).mul(1e18);
   return {
     tokens,
-    price
-  };
-};
-
-/**
- *  Calculate the purchased tokens with the on-chain formula
- * @param initialAssetValue
- * @param deltaEth
- * @param mcrEth
- * @param c
- * @param a
- * @param tokenExponent
- * @returns {{tokens: Decimal, price: Decimal}}
- */
-function calculatePurchasedTokens (
-  initialAssetValue, deltaEth, mcrEth
-) {
-
-  console.log({
-    initialAssetValue: initialAssetValue.toString(), deltaEth: deltaEth.toString(), mcrEth: mcrEth.toString()
-  });
-  mcrEth = new BN(mcrEth.toString());
-  initialAssetValue = new BN(initialAssetValue.toString());
-  deltaEth = new BN(deltaEth.toString());
-  const nextAssetValue = initialAssetValue.add(deltaEth);
-  if (initialAssetValue.eq(new BN(0))) {
-    initialAssetValue = new BN('1');
-  }
-  function integral (point) {
-    point = new BN(point);
-    let result = mcrEth.mul(C).mul(wad).muln(-1).divn(3).div(point);
-    for (let i = 0; i < tokenExponent - 2; i++) {
-      result = result.mul(mcrEth).div(point);
-    }
-    return result;
-  }
-  const adjustedTokenAmount = integral(nextAssetValue).sub(integral(initialAssetValue));
-  const averageAdjustedPrice = deltaEth.mul(wad).div(adjustedTokenAmount);
-  const finalPrice = averageAdjustedPrice.add(new BN(A));
-  const tokens = deltaEth.mul(wad).div(finalPrice);
-
-  return {
-    tokens,
-    price: finalPrice
+    price,
   };
 }
 
@@ -114,14 +67,11 @@ function calculatePurchasedTokens (
  * @returns {Decimal}
  */
 function getTokenSpotPrice (totalAssetValue, mcrEth) {
-  const a = Decimal(A.toString()).div(1e18);
-  const c = Decimal(C.toString());
-  const tokenExponent = 4;
   const mcrRatio = Decimal(totalAssetValue.toString()).div(Decimal(mcrEth.toString())).toPrecision(5, Decimal.ROUND_DOWN);
   const mcrEthDecimal = Decimal(mcrEth.toString()).div(1e18);
 
   const mcrRatioRaisedToExponent = Decimal(mcrRatio).pow(tokenExponent);
-  return Decimal(a).add(Decimal(mcrEthDecimal).div(c).mul(mcrRatioRaisedToExponent)).mul(1e18).round();
+  return Decimal(A).add(Decimal(mcrEthDecimal).div(C).mul(mcrRatioRaisedToExponent)).mul(1e18).round();
 }
 
 function calculateMCRRatio (totalAssetValue, mcrEth) {
@@ -131,23 +81,23 @@ function calculateMCRRatio (totalAssetValue, mcrEth) {
 
 function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tokenValue) {
   const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-    totalAssetValue, buyValue, mcrEth
+    totalAssetValue, buyValue, mcrEth,
   );
   const tokensReceived = Decimal(tokenValue.toString());
   const relativeError = expectedIdealTokenValue.sub(tokensReceived).abs().div(expectedIdealTokenValue);
 
   return {
-    relativeError, expectedIdealTokenValue
+    relativeError, expectedIdealTokenValue,
   };
 }
 
 function calculateEthForNXMRelativeError (buyValue, ethOut) {
-  const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
+  const expectedEthOut = Decimal(buyValue.toString()).mul(Decimal(1).sub(sellSpread));
 
   const relativeError = expectedEthOut.sub(Decimal(ethOut.toString())).abs().div(expectedEthOut);
   return {
     relativeError,
-    expectedEthOut
+    expectedEthOut,
   };
 }
 
@@ -156,7 +106,6 @@ function percentageBN (x, percentage) {
 }
 
 module.exports = {
-  calculatePurchasedTokens,
   calculatePurchasedTokensWithFullIntegral,
   A,
   C,
@@ -166,5 +115,5 @@ module.exports = {
   calculateMCRRatio,
   calculateNXMForEthRelativeError,
   calculateEthForNXMRelativeError,
-  percentageBN
+  percentageBN,
 };

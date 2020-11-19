@@ -112,7 +112,7 @@ async function assertSell (
   const balancePostSell = await web3.eth.getBalance(member);
   const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
 
-  const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
+  const expectedEthOut = Decimal(buyValue.toString()).mul(Decimal(1).sub(sellSpread));
 
   const relativeErrorForSell = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
   console.log({ relativeError: relativeErrorForSell.toString() });

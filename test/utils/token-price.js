@@ -119,7 +119,9 @@ function getTokenSpotPrice (totalAssetValue, mcrEth) {
   const tokenExponent = 4;
   const mcrRatio = Decimal(totalAssetValue.toString()).div(Decimal(mcrEth.toString())).toPrecision(5, Decimal.ROUND_DOWN);
   const mcrEthDecimal = Decimal(mcrEth.toString()).div(1e18);
-  return Decimal(a).add(Decimal(mcrEthDecimal).div(c).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
+  
+  const mcrRatioRaisedToExponent = Decimal(mcrRatio).pow(tokenExponent);
+  return Decimal(a).add(Decimal(mcrEthDecimal).div(c).mul(mcrRatioRaisedToExponent)).mul(1e18).round();
 }
 
 function calculateMCRRatio (totalAssetValue, mcrEth) {

@@ -23,4 +23,5 @@ describe.only('Pool1 unit tests', function () {
   require('./buyNXM');
   require('./sellNXM');
   require('./getMCRRatio');
+  require('./getters');
 });

@@ -74,11 +74,25 @@ function getTokenSpotPrice (totalAssetValue, mcrEth) {
   return Decimal(A).add(Decimal(mcrEthDecimal).div(C).mul(mcrRatioRaisedToExponent)).mul(1e18).round();
 }
 
+/**
+ *
+ * @param totalAssetValue
+ * @param mcrEth
+ * @returns {BN}
+ */
 function calculateMCRRatio (totalAssetValue, mcrEth) {
   const MCR_RATIO_DECIMALS = 4;
   return totalAssetValue.mul(new BN(10 ** MCR_RATIO_DECIMALS)).div(mcrEth);
 }
 
+/**
+ *
+ * @param totalAssetValue
+ * @param buyValue
+ * @param mcrEth
+ * @param tokenValue
+ * @returns {{relativeError: Decimal, expectedIdealTokenValue: Decimal}}
+ */
 function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tokenValue) {
   const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
     totalAssetValue, buyValue, mcrEth,
@@ -91,6 +105,12 @@ function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tok
   };
 }
 
+/**
+ *
+ * @param buyValue
+ * @param ethOut
+ * @returns {{expectedEthOut: Decimal, relativeError: Decimal}}
+ */
 function calculateEthForNXMRelativeError (buyValue, ethOut) {
   const expectedEthOut = Decimal(buyValue.toString()).mul(Decimal(1).sub(sellSpread));
 
@@ -101,6 +121,12 @@ function calculateEthForNXMRelativeError (buyValue, ethOut) {
   };
 }
 
+/**
+ *
+ * @param x
+ * @param percentage
+ * @returns {BN}
+ */
 function percentageBN (x, percentage) {
   return x.muln(percentage).divn(100);
 }

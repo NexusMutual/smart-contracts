@@ -27,6 +27,19 @@ describe('calculateNXMForEth', function () {
     ));
   });
 
+  it('reverts when purchase value < 5% * mcrEth', async function () {
+    const { pool1 } = this;
+
+    const mcrEth = ether('160000');
+    const totalAssetValue = mcrEth;
+    const buyValue = percentageBN(mcrEth, 6);
+
+    await expectRevert(
+      pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth),
+      'Pool: Purchases worth higher than 5% of MCReth are not allowed'
+    );
+  });
+
   it('calculates NXM for ETH at at mcrEth = 7k, MCR% = 0%, buyValue = 5% * mcrEth', async function () {
     const { pool1 } = this;
 

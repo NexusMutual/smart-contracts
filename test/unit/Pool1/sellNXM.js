@@ -13,9 +13,9 @@ const {
   members: [memberOne],
 } = accounts;
 
-describe('sellNXM', function () {
+describe.only('sellNXM', function () {
 
-  it('reverts on sales that decrease the MCR% below 100%', async function () {
+  it('reverts on sell that decreases the MCR% below 100%', async function () {
     const { pool1, poolData, token } = this;
 
     const mcrEth = ether('160000');
@@ -38,7 +38,7 @@ describe('sellNXM', function () {
     );
   });
 
-  it('reverts on sales worth more than 5% of MCReth', async function () {
+  it('reverts on sell worth more than 5% of MCReth', async function () {
     const { pool1, poolData, token } = this;
 
     const mcrEth = ether('160000');
@@ -63,7 +63,7 @@ describe('sellNXM', function () {
     );
   });
 
-  it('reverts on sales that exceed member balance', async function () {
+  it('reverts on sell that exceeds member balance', async function () {
     const { pool1, poolData, token } = this;
 
     const mcrEth = ether('160000');
@@ -87,7 +87,7 @@ describe('sellNXM', function () {
     );
   });
 
-  it('reverts on sales from member that is a contract whose fallback function reverts', async function () {
+  it('reverts on sell from member that is a contract whose fallback function reverts', async function () {
     const { pool1, poolData, token, master, tokenController } = this;
 
     const mcrEth = ether('160000');
@@ -110,6 +110,37 @@ describe('sellNXM', function () {
     await expectRevert(
       contractMember.sellNXM(tokensToSell),
       'Pool: Sell transfer failed',
+    );
+  });
+
+  it('reverts on sell from member when ethOut < minEthOut', async function () {
+    const { pool1, poolData, token, tokenController } = this;
+
+    const mcrEth = ether('160000');
+    const initialAssetValue = percentageBN(mcrEth, 150);
+
+    const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
+    await pool1.sendTransaction({
+      from: fundSource,
+      value: initialAssetValue,
+    });
+    const date = new Date().getTime();
+    await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+    const member = memberOne;
+
+    const tokensToSell = ether('1');
+    await token.mint(member, tokensToSell);
+
+    const expectedEthValue = await pool1.getEthForNXM(tokensToSell);
+
+    await token.approve(tokenController.address, tokensToSell, {
+      from: member,
+    });
+    await expectRevert(
+      pool1.sellNXM(tokensToSell, expectedEthValue.add(new BN(1)), {
+        from: member,
+      }),
+      'Pool: ethOut < minEthOut'
     );
   });
 

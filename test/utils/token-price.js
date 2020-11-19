@@ -1,6 +1,5 @@
-const Decimal = require('decimal.js');
 const BN = require('bn.js');
-const { web3 } = require('hardhat');
+const Decimal = require('decimal.js');
 
 const wad = new BN(1e18.toString());
 
@@ -16,20 +15,20 @@ const sellSpread = 0.025 * 10000;
  * Warning: this only works correctly for a token exponent of 4. Needs to be regenerated for a different token exponent.
  * (tanh^(-1)((sqrt(2) x (a m)^(1/4))/(sqrt(a) + sqrt(m) x^2)) - tan^(-1)(1 - sqrt(2) x (m/a)^(1/4)) + tan^(-1)(sqrt(2) x (m/a)^(1/4) + 1))/(2 sqrt(2) (a^3 m)^(1/4)) + constant
  *
- * @param initialAssetValue
- * @param deltaEth
- * @param mcrEth
+ * @param initialAssetValue value in wei
+ * @param deltaEth value in wei
+ * @param mcrEth value in wei
  * @returns {{tokens: Decimal, price: Decimal | *}}
  */
 function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, mcrEth) {
 
-  initialAssetValue = Decimal(initialAssetValue.toString()).div(1e18);
-  deltaEth = Decimal(deltaEth.toString()).div(1e18);
-  mcrEth = Decimal(mcrEth.toString()).div(1e18);
+  const initialAssetValueDecimal = Decimal(initialAssetValue.toString()).div(1e18);
+  const deltaEthDecimal = Decimal(deltaEth.toString()).div(1e18);
+  const mcrEthDecimal = Decimal(mcrEth.toString()).div(1e18);
   const a = Decimal(A.toString()).div(1e18);
-  const nextAssetValue = initialAssetValue.add(deltaEth);
+  const nextAssetValue = initialAssetValueDecimal.add(deltaEthDecimal);
   const c = Decimal(C.toString());
-  const m = Decimal(1).div(c.mul(mcrEth.pow(3)));
+  const m = Decimal(1).div(c.mul(mcrEthDecimal.pow(3)));
   function integral (x) {
     x = Decimal(x);
     const numeratorTerm1 =
@@ -57,8 +56,8 @@ function calculatePurchasedTokensWithFullIntegral (initialAssetValue, deltaEth, 
     return result;
   }
 
-  const tokens = integral(nextAssetValue).sub(integral(initialAssetValue)).mul(1e18);
-  const price = deltaEth.div(tokens).mul(1e18);
+  const tokens = integral(nextAssetValue).sub(integral(initialAssetValueDecimal)).mul(1e18);
+  const price = deltaEthDecimal.div(tokens).mul(1e18);
   return {
     tokens,
     price
@@ -111,7 +110,7 @@ function calculatePurchasedTokens (
 function getPriceDecimal (mcrRatio, mcrEth) {
   const A = 0.01028;
   const C = 5800000;
-  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(4)));
+  return Decimal(A).add(Decimal(mcrEth).div(C).mul(Decimal(mcrRatio).pow(tokenExponent)));
 }
 
 /**
@@ -157,84 +156,6 @@ function getTokenSpotPrice (totalAssetValue, mcrEth) {
   return Decimal(a).add(Decimal(mcrEthDecimal).div(c).mul(Decimal(mcrRatio).pow(tokenExponent))).mul(1e18).round();
 }
 
-async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token }) {
-  const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
-
-  const preBuyBalance = await token.balanceOf(member);
-
-  await pool1.buyNXM(preEstimatedTokenBuyValue, {
-    from: member,
-    value: buyValue,
-  });
-  const postBuyBalance = await token.balanceOf(member);
-  const tokensReceived = postBuyBalance.sub(preBuyBalance);
-
-  const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
-  );
-
-  const { tokens: expectedTokenValue } = calculatePurchasedTokens(
-    totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
-  );
-
-  assert(
-    new BN(expectedTokenValue.toString()).sub(tokensReceived).lte(new BN(1)),
-    `expectedPrice ${expectedTokenValue.toString()} - price ${tokensReceived.toString()} > 1 wei`
-  );
-
-  const tokensReceivedDecimal = Decimal(tokensReceived.toString());
-  const relativeError = expectedIdealTokenValue.sub(tokensReceivedDecimal).abs().div(expectedIdealTokenValue);
-  console.log({ relativeError: relativeError.toString() });
-  assert(
-    relativeError.lt(maxRelativeError),
-    `Resulting token value ${tokensReceivedDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
-       Relative error: ${relativeError}`,
-  );
-  return tokensReceived;
-}
-
-async function assertSell (
-  { member, tokensToSell, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut }
-) {
-  const precomputedEthValue = await pool1.getEthForNXM(tokensToSell);
-  console.log({
-    precomputedEthValue: precomputedEthValue.toString(),
-    tokensReceived: tokensToSell.toString(),
-  });
-
-  await token.approve(tokenController.address, tokensToSell, {
-    from: member,
-  });
-  const balancePreSell = await web3.eth.getBalance(member);
-  const nxmBalancePreSell = await token.balanceOf(member);
-  const sellTx = await pool1.sellNXM(tokensToSell, precomputedEthValue, {
-    from: member,
-  });
-  const nxmBalancePostSell = await token.balanceOf(member);
-
-  const nxmBalanceDecrease = nxmBalancePreSell.sub(nxmBalancePostSell);
-  assert(nxmBalanceDecrease.toString(), tokensToSell.toString());
-
-  const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
-  const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
-
-  const balancePostSell = await web3.eth.getBalance(member);
-  const sellEthReceived = Decimal(balancePostSell).sub(Decimal(balancePreSell)).add(ethSpentOnGas);
-
-  const expectedEthOut = Decimal(buyValue.toString()).mul(10000 - sellSpread).div(10000);
-
-  const relativeErrorForSell = expectedEthOut.sub(sellEthReceived).abs().div(expectedEthOut);
-  console.log({ relativeError: relativeErrorForSell.toString() });
-  if (isLessThanExpectedEthOut) {
-    assert(sellEthReceived.lt(expectedEthOut), `${sellEthReceived.toFixed()} is greater than ${expectedEthOut.toFixed()}`);
-  }
-  assert(
-    relativeErrorForSell.lt(maxRelativeError),
-    `Resulting eth value ${sellEthReceived.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
-       Relative error: ${relativeErrorForSell}`,
-  );
-}
-
 function calculateMCRRatio (totalAssetValue, mcrEth) {
   const MCR_RATIO_DECIMALS = 4;
   return totalAssetValue.mul(new BN(10 ** MCR_RATIO_DECIMALS)).div(mcrEth);
@@ -269,12 +190,9 @@ function percentageBN (x, percentage) {
 module.exports = {
   calculatePurchasedTokens,
   calculatePurchasedTokensWithFullIntegral,
-  calculateSellValue,
   A,
   C,
   getTokenSpotPrice,
-  assertBuy,
-  assertSell,
   calculateMCRRatio,
   calculateNXMForEthRelativeError,
   calculateEthForNXMRelativeError,

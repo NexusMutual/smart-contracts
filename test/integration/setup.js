@@ -258,7 +258,9 @@ async function setup () {
     ...proxies,
   };
   this.rates = {
-    daiToEthRate
+    daiToEthRate,
+    ethEthRate,
+    ethToDaiRate
   };
 }
 

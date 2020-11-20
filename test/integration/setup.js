@@ -2,6 +2,7 @@ const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
 const { BN } = web3.utils;
+const { calculateMCRRatio } = require('../utils').tokenPrice;
 
 // external
 const ERC20Mock = artifacts.require('ERC20Mock');
@@ -178,7 +179,7 @@ async function setup () {
   );
 
   await pd.changeMasterAddress(master.address);
-  await pd.updateUintParameters(hex('MCRMIN'), ether('7000')); // minimum capital in eth
+  await pd.updateUintParameters(hex('MCRMIN'), new BN('50')); // minimum capital in eth
   await pd.updateUintParameters(hex('MCRSHOCK'), 50); // mcr shock parameter
   await pd.updateUintParameters(hex('MCRCAPL'), 20); // capacityLimit 10: seemingly unused parameter
 
@@ -225,18 +226,21 @@ async function setup () {
   const ethEthRate = 100;
   const ethToDaiRate = 20000;
 
+  const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
+  await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
+
+  const poolValueInEth = await p1.getPoolValueInEth();
+  const mcrEth = ether('50000');
+  const mcrRatio = calculateMCRRatio(poolValueInEth, mcrEth);
   // add mcr
   await mc.addMCRData(
-    20000, // mcr% = 200.00%
-    ether('50000'), // mcr = 5000 eth
-    ether('100000'), // vFull = 90000 ETH + 2M DAI = 90000 ETH + 10000 ETH = 100000 ETH
+    mcrRatio,
+    mcrEth,
+    poolValueInEth, // vFull = 90000 ETH + 2M DAI = 90000 ETH + 10000 ETH = 100000 ETH
     [hex('ETH'), hex('DAI')],
     [ethEthRate, ethToDaiRate], // rates: 1.00 eth/eth, 200.00 dai/eth
     20190103,
   );
-
-  const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
-  await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
 
   await p2.saveIADetails(
     [hex('ETH'), hex('DAI')],

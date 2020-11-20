@@ -2,7 +2,7 @@ const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
-const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError } = require('../utils').tokenPrice;
+const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, calculateMCRRatio } = require('../utils').tokenPrice;
 const Decimal = require('decimal.js');
 
 const { buyCover } = require('../utils/buyCover');
@@ -147,59 +147,57 @@ describe.only('Token price functions', function () {
 
   it('sellNXM burns tokens for member and returns ETH', async function () {
     const { tk: token, p1: pool1 } = this.contracts;
-
-    const member = member1;
-
-    const buyValue = ether('500');
-    const tokensToSell = await pool1.getNXMForEth(buyValue);
+    const ethIn = ether('500');
+    const nxmAmount = await pool1.getNXMForEth(ethIn);
 
     // buy tokens first
-    await pool1.buyNXM(tokensToSell, {
-      from: member,
-      value: buyValue,
-    });
+    await pool1.buyNXM(nxmAmount, { from: member1, value: ethIn });
 
     // sell them back
-    const preNXMSellBalance = await token.balanceOf(member);
+    const preNXMSellBalance = await token.balanceOf(member1);
     const preSellTokenSupply = await token.totalSupply();
-    const preSellEthBalance = await web3.eth.getBalance(member);
-    const sellTx = await pool1.sellNXM(tokensToSell, '0', {
-      from: member,
-    });
-    const postSellNXMBalance = await token.balanceOf(member);
+    const preSellEthBalance = await web3.eth.getBalance(member1);
+
+    await pool1.sellNXM(nxmAmount, '0', { from: member1, gasPrice: 0 });
+
+    const postSellEthBalance = await web3.eth.getBalance(member1);
+    const postSellNXMBalance = await token.balanceOf(member1);
     const postSellTokenSupply = await token.totalSupply();
-    const postSellEthBalance = await web3.eth.getBalance(member);
 
     const tokensTakenAway = preNXMSellBalance.sub(postSellNXMBalance);
-    assert(tokensTakenAway.toString(), tokensToSell.toString());
-
     const tokensBurned = preSellTokenSupply.sub(postSellTokenSupply);
-    assert(tokensTakenAway.toString(), tokensToSell.toString());
-    assert(tokensBurned.toString(), tokensToSell.toString());
 
-    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
-    const ethSpentOnGas = new BN(sellTx.receipt.gasUsed).mul(new BN(gasPrice));
-    const ethOut = new BN(postSellEthBalance).sub(new BN(preSellEthBalance)).add(ethSpentOnGas);
+    assert(tokensTakenAway.toString(), nxmAmount.toString());
+    assert(tokensBurned.toString(), nxmAmount.toString());
+
+    const ethOut = new BN(postSellEthBalance).sub(new BN(preSellEthBalance));
 
     const maxRelativeError = Decimal(0.0002);
-    const { relativeError } = calculateEthForNXMRelativeError(buyValue, ethOut);
-    assert(relativeError.lt(maxRelativeError), `Relative error too high ${relativeError.toString()} > ${maxRelativeError.toFixed()}`);
+    const { relativeError } = calculateEthForNXMRelativeError(ethIn, ethOut);
+
+    assert(
+      relativeError.lt(maxRelativeError),
+      `Relative error too high ${relativeError.toString()} > ${maxRelativeError.toFixed()}`,
+    );
   });
 
-  // TODO: fix, still fails for some reason
-  it.skip('buyNXM token price reflects the latest MCR posting', async function () {
-    const { tk: token, p1: pool1, mcr } = this.contracts;
+  it('buyNXM token price reflects the latest MCR posting (higher MCReth -> lower price)', async function () {
+    const { p1: pool1, mcr, pd } = this.contracts;
     const { ethEthRate, ethToDaiRate } = this.rates;
 
     const buyValue = ether('1000');
-    const expectedTokensReceivedPreMCRPosting = await pool1.getNXMForEth(buyValue);
+    const expectedNXMOutPreMCRPosting = await pool1.getNXMForEth(buyValue);
+    const spotTokenPricePreMCRPosting = await pool1.getTokenPrice(hex('ETH'));
     const currentPoolValue = await pool1.getPoolValueInEth();
+
     // post a higher MCR raising the price
-    const latestMCReth = ether('75000');
+    const lastMCREther = await pd.getLastMCREther();
+    const latestMCReth = lastMCREther.add(ether('2'));
+    const latestMCRRatio = calculateMCRRatio(currentPoolValue, latestMCReth);
 
     // add new mcr
     await mcr.addMCRData(
-      20000,
+      latestMCRRatio,
       latestMCReth,
       currentPoolValue,
       [hex('ETH'), hex('DAI')],
@@ -207,18 +205,18 @@ describe.only('Token price functions', function () {
       20200103,
     );
 
-    const member = member1;
-    const preBuyBalance = await token.balanceOf(member);
-    await pool1.buyNXM('0', {
-      from: member,
-      value: buyValue,
-    });
-    const postBuyBalance = await token.balanceOf(member);
-    const tokensReceived = postBuyBalance.sub(preBuyBalance);
+    const spotTokenPricePostMCRPosting = await pool1.getTokenPrice(hex('ETH'));
+    const expectedNXMOutPostMCRPosting = await pool1.getNXMForEth(buyValue);
 
-    assert(tokensReceived.lt(expectedTokensReceivedPreMCRPosting),
-      `Expected to receive fewer tokens than ${expectedTokensReceivedPreMCRPosting.toString()} at a higher mcrEth.
-       Received: ${tokensReceived.toString()}`,
+    assert(
+      spotTokenPricePostMCRPosting.lt(spotTokenPricePreMCRPosting),
+      `Expected token price to be lower than ${spotTokenPricePreMCRPosting.toString()} at a higher mcrEth.
+       Price: ${spotTokenPricePostMCRPosting.toString()}`,
+    );
+    assert(
+      expectedNXMOutPostMCRPosting.gt(expectedNXMOutPreMCRPosting),
+      `Expected to receive more tokens than ${expectedNXMOutPreMCRPosting.toString()} at a higher mcrEth.
+       Receiving: ${expectedNXMOutPostMCRPosting.toString()}`,
     );
   });
 

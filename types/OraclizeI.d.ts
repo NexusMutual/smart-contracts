@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import BN from "bn.js";
-import { EventData, PastEventOptions } from "web3-eth-contract";
+import {EventData, PastEventOptions} from "web3-eth-contract";
 
 export interface OraclizeIContract extends Truffle.Contract<OraclizeIInstance> {
   "new"(meta?: Truffle.TransactionDetails): Promise<OraclizeIInstance>;

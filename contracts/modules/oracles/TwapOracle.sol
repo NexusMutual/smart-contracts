@@ -50,8 +50,8 @@ contract TwapOracle {
     // sort tokens
     (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
 
-    require(token0 != token1, "identical addresses");
-    require(token0 != address(0), "zero address");
+    require(token0 != token1, "TWAP: identical addresses");
+    require(token0 != address(0), "TWAP: zero address");
 
     pair = address(uint(keccak256(abi.encodePacked(
         hex'ff',
@@ -85,7 +85,7 @@ contract TwapOracle {
       uint index = timestampToIndex(block.timestamp);
       Bucket storage bucket = buckets[pair][index];
 
-      if (block.timestamp - bucket.timestamp <= periodSize) {
+      if (block.timestamp - bucket.timestamp < periodSize) {
         continue;
       }
 
@@ -121,9 +121,8 @@ contract TwapOracle {
     Bucket storage firstBucket = buckets[pair][firstBucketIndex];
 
     timeElapsed = block.timestamp - firstBucket.timestamp;
-    // TODO: check bucket verification requirements
-    require(timeElapsed <= windowSize + periodSize, "missing historical reading");
-    require(timeElapsed >= windowSize - periodSize * 2, "unexpected time elapsed");
+    require(timeElapsed <= windowSize, "TWAP: missing historical reading");
+    require(timeElapsed >= windowSize - periodSize, "TWAP: unexpected time elapsed");
 
     (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
 

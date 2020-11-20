@@ -1,7 +1,6 @@
 const { assert } = require('chai');
-
-const { contracts } = require('./setup');
 const { setNextBlockTime, mineNextBlock } = require('../utils').hardhat;
+const { contracts } = require('./setup');
 
 describe('currentBucketIndex', function () {
 

@@ -2,17 +2,16 @@ const { artifacts, web3 } = require('hardhat');
 const { assert } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
 
-const { contracts } = require('./setup');
 const { setNextBlockTime } = require('../utils').hardhat;
-
+const { contracts } = require('./setup');
 const { toBN } = web3.utils;
 
 const PERIOD_SIZE = 1800;
 const PERIODS_PER_WINDOW = 8;
 const timestampToBucket = timestamp => toBN(timestamp).divn(PERIOD_SIZE).modn(PERIODS_PER_WINDOW);
 
-/** @var {ToMockUniswapPairContract} UniswapPair */
-const UniswapPair = artifacts.require('TOMockUniswapPair');
+/** @var {ToMockUniswapPairContract} UniswapPairMock */
+const UniswapPairMock = artifacts.require('TOMockUniswapPair');
 
 // Note: When setting the reserves on the mock it's important to the `blockTimestampLast`
 // parameter (named targetTime below) to the same block timestamp when the update will occur.
@@ -27,7 +26,7 @@ describe('update', function () {
     const { oracle } = contracts();
     const targetTime = toBN(1800000000);
 
-    const pair = await UniswapPair.new();
+    const pair = await UniswapPairMock.new();
     await pair.setCumulativePrices(ether('1'), ether('2'));
     await pair.setReserves('0', '0', targetTime);
 
@@ -43,11 +42,12 @@ describe('update', function () {
   it('should not update more than once in the same period', async function () {
 
     const { oracle } = contracts();
+
     const period0Start = toBN(1800000000);
     const period0End = toBN(1800000000 + PERIOD_SIZE - 1);
     const period1Start = toBN(1800000000 + PERIOD_SIZE);
 
-    const pair = await UniswapPair.new();
+    const pair = await UniswapPairMock.new();
     await pair.setCumulativePrices(ether('1'), ether('2'));
     await pair.setReserves('0', '0', period0Start);
 
@@ -82,11 +82,12 @@ describe('update', function () {
   it('should silently skip already updated pairs', async function () {
 
     const { oracle } = contracts();
+
     const pair0TargetTime = toBN(1800000000);
     const pair1TargetTime = toBN(1800000060);
 
-    const pair0 = await UniswapPair.new();
-    const pair1 = await UniswapPair.new();
+    const pair0 = await UniswapPairMock.new();
+    const pair1 = await UniswapPairMock.new();
 
     await pair0.setCumulativePrices(ether('1'), ether('2'));
     await pair0.setReserves('0', '0', pair0TargetTime);

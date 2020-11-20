@@ -3,6 +3,10 @@ const snapshot = require('../utils').snapshot;
 
 describe('SwapAgent unit tests', function () {
 
+  before(async function () {
+    this.unitSnapshotId = await snapshot.takeSnapshot();
+  });
+
   before(setup);
 
   beforeEach(async function () {
@@ -11,6 +15,10 @@ describe('SwapAgent unit tests', function () {
 
   afterEach(async function () {
     await snapshot.revertToSnapshot(this.snapshotId);
+  });
+
+  after(async function () {
+    await snapshot.revertToSnapshot(this.unitSnapshotId);
   });
 
   require('./addAsset');

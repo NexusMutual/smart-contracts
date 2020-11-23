@@ -119,6 +119,53 @@ describe('consult', function () {
     await oracle.consult(tokenA.address, ether('1'), weth.address);
   });
 
+  it('works with a end of period update and an start of period consult', async function () {
+
+    const { oracle, router, tokenA, weth, wethAPair } = contracts();
+
+    await tokenA.mint(owner, ether('100'));
+    await tokenA.approve(router.address, -1);
+
+    await weth.deposit({ value: ether('100') });
+    await weth.approve(router.address, -1);
+
+    await router.addLiquidity(
+      tokenA.address, // tokenA
+      weth.address, // tokenB
+      ether('100'), // amountADesired
+      ether('50'), // amountBDesired
+      ether('0'), // amountAMin
+      ether('0'), // amountBMin
+      owner, // send lp tokens to
+      -1, // deadline infinity
+    );
+
+    // [period 2, period 1] window
+    const period2 = toBN(1800000000 + PERIOD_SIZE * 3 - 1); // period 2 end
+    const period1 = period2.addn(WINDOW_SIZE - PERIOD_SIZE * 2 + 1); // period 1 start
+
+    assert.deepEqual(
+      [period2, period1].map(p => timestampToBucket(p).toString()),
+      ['2', '1'],
+      'bucket index assertion failed',
+    );
+
+    await setNextBlockTime(period2.toNumber());
+    await oracle.update([wethAPair.address]);
+
+    const bucket3 = await oracle.buckets(wethAPair.address, '2');
+    assert.strictEqual(
+      bucket3.timestamp.toString(),
+      period2.toString(),
+      'oracle update failed',
+    );
+
+    await setNextBlockTime(period1.toNumber());
+    await mineNextBlock();
+
+    await oracle.consult(tokenA.address, ether('1'), weth.address);
+  });
+
   it("offers the correct price for the pair when the price doesn't change", async function () {
 
     const { oracle, router, tokenA, weth, wethAPair } = contracts();

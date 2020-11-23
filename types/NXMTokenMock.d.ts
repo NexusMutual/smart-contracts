@@ -5,9 +5,9 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface NxmTokenMockContract
-  extends Truffle.Contract<NxmTokenMockInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<NxmTokenMockInstance>;
+export interface NXMTokenMockContract
+  extends Truffle.Contract<NXMTokenMockInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<NXMTokenMockInstance>;
 }
 
 export interface Approval {
@@ -36,7 +36,7 @@ export interface Transfer {
 
 type AllEvents = Approval | Transfer;
 
-export interface NxmTokenMockInstance extends Truffle.ContractInstance {
+export interface NXMTokenMockInstance extends Truffle.ContractInstance {
   allowance(
     owner: string,
     spender: string,

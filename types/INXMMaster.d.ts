@@ -5,14 +5,14 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface InxmMasterContract
-  extends Truffle.Contract<InxmMasterInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<InxmMasterInstance>;
+export interface INXMMasterContract
+  extends Truffle.Contract<INXMMasterInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<INXMMasterInstance>;
 }
 
 type AllEvents = never;
 
-export interface InxmMasterInstance extends Truffle.ContractInstance {
+export interface INXMMasterInstance extends Truffle.ContractInstance {
   checkIsAuthToGoverned(
     _add: string,
     txDetails?: Truffle.TransactionDetails

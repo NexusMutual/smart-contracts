@@ -5,8 +5,8 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface Erc20MockContract extends Truffle.Contract<Erc20MockInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<Erc20MockInstance>;
+export interface ERC20Contract extends Truffle.Contract<ERC20Instance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<ERC20Instance>;
 }
 
 export interface Approval {
@@ -35,7 +35,7 @@ export interface Transfer {
 
 type AllEvents = Approval | Transfer;
 
-export interface Erc20MockInstance extends Truffle.ContractInstance {
+export interface ERC20Instance extends Truffle.ContractInstance {
   allowance(
     owner: string,
     spender: string,
@@ -296,48 +296,6 @@ export interface Erc20MockInstance extends Truffle.ContractInstance {
       estimateGas(
         sender: string,
         recipient: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    "mint(address,uint256)": {
-      (
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        account: string,
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    "mint(uint256)": {
-      (
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        amount: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
         amount: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;

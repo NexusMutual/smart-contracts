@@ -5,17 +5,17 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface NxmdsValueMockContract
-  extends Truffle.Contract<NxmdsValueMockInstance> {
+export interface NXMDSValueMockContract
+  extends Truffle.Contract<NXMDSValueMockInstance> {
   "new"(
     _owner: string,
     meta?: Truffle.TransactionDetails
-  ): Promise<NxmdsValueMockInstance>;
+  ): Promise<NXMDSValueMockInstance>;
 }
 
 type AllEvents = never;
 
-export interface NxmdsValueMockInstance extends Truffle.ContractInstance {
+export interface NXMDSValueMockInstance extends Truffle.ContractInstance {
   owner(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   rate(txDetails?: Truffle.TransactionDetails): Promise<BN>;

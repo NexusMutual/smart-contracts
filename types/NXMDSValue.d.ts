@@ -5,14 +5,14 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface NxmdsValueContract
-  extends Truffle.Contract<NxmdsValueInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<NxmdsValueInstance>;
+export interface NXMDSValueContract
+  extends Truffle.Contract<NXMDSValueInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<NXMDSValueInstance>;
 }
 
 type AllEvents = never;
 
-export interface NxmdsValueInstance extends Truffle.ContractInstance {
+export interface NXMDSValueInstance extends Truffle.ContractInstance {
   read(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   methods: {

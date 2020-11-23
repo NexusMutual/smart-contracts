@@ -5,8 +5,8 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface InxmTokenContract extends Truffle.Contract<InxmTokenInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<InxmTokenInstance>;
+export interface INXMTokenContract extends Truffle.Contract<INXMTokenInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<INXMTokenInstance>;
 }
 
 export interface Approval {
@@ -35,7 +35,7 @@ export interface Transfer {
 
 type AllEvents = Approval | Transfer;
 
-export interface InxmTokenInstance extends Truffle.ContractInstance {
+export interface INXMTokenInstance extends Truffle.ContractInstance {
   allowance(
     owner: string,
     spender: string,

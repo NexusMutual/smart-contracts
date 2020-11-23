@@ -1,6 +1,5 @@
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
-require('hardhat-typechain');
 
 const { task } = require('hardhat/config');
 const ether = n => `${n}${'0'.repeat(18)}`;
@@ -11,20 +10,26 @@ task('test', async (_, hre, runSuper) => {
   await runSuper({ testFiles });
 });
 
-const hardhatNetworkConfig = {
-  accounts: {
-    count: 100,
-    accountsBalance: ether('10000000000'),
-  },
-  allowUnlimitedContractSize: true,
-  blockGasLimit: 12e9,
-};
+task('typechain', async (_, { config }) => {
+
+  const { tsGenerator } = require('ts-generator');
+  const { TypeChain } = require('typechain/dist/TypeChain');
+
+  const cwd = process.cwd();
+  const rawConfig = {
+    files: `${config.paths.artifacts}/!(build-info|hardhat)/**/+([a-zA-Z0-9]).json`,
+    outDir: 'types',
+    target: 'truffle-v5',
+  };
+
+  await tsGenerator({ cwd }, new TypeChain({ cwd, rawConfig }));
+});
+
+const forkConfig = {};
 
 if (process.env.TEST_ENV_FORK) {
-  hardhatNetworkConfig.forking = {
-    url: process.env.TEST_ENV_FORK
-  };
-};
+  forkConfig.url = process.env.TEST_ENV_FORK;
+}
 
 module.exports = {
 
@@ -35,7 +40,15 @@ module.exports = {
   },
 
   networks: {
-    hardhat: hardhatNetworkConfig
+    hardhat: {
+      accounts: {
+        count: 100,
+        accountsBalance: ether(100000),
+      },
+      allowUnlimitedContractSize: true,
+      blockGasLimit: 12e9,
+      ...forkConfig,
+    },
   },
 
   solidity: {

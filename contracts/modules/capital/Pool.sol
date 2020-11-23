@@ -30,18 +30,18 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   /* storage */
 
-  IUniswapV2Router02 public router;
-  // TODO: make oracle and controller updatable parameters
-  TwapOracle public twapOracle;
-  address public swapController;
-
   address[] public assets;
   mapping(address => uint) public minAmount;
   mapping(address => uint) public maxAmount;
   mapping(address => uint) public lastSwapTime;
 
+  // TODO: make oracle and controller updatable parameters
+  TwapOracle public twapOracle;
+  address public swapController;
+
   /* constants */
 
+  IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
@@ -66,7 +66,6 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint[] memory _minAmounts,
     uint[] memory _maxAmounts,
     address _master,
-    address _router,
     address _twapOracle,
     address _swapController
   ) public {
@@ -84,7 +83,6 @@ contract Pool is MasterAware, ReentrancyGuard {
     }
 
     master = INXMMaster(_master);
-    router = IUniswapV2Router02(_router);
     twapOracle = TwapOracle(_twapOracle);
     swapController = _swapController;
   }

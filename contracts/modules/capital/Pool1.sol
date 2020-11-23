@@ -442,11 +442,11 @@ contract Pool1 is Iupgradable {
     uint mcrEth
   ) public pure returns (uint) {
 
-    // Step 1. Calculate spot price and amount of ETH at current values
+    // Step 1. Calculate spot price at current values and amount of ETH if tokens are sold at that price
     uint spotPrice0 = calculateTokenSpotPrice(currentTotalAssetValue, mcrEth);
     uint spotEthAmount = nxmAmount.mul(spotPrice0).div(1e18);
 
-    //  Step 2. Calculate spot price and amount of ETH using V = currentTotalAssetValue - spotEthAmount from step 1
+    //  Step 2. Calculate spot price using V = currentTotalAssetValue - spotEthAmount from step 1
     uint totalValuePostSpotPriceSell = currentTotalAssetValue.sub(spotEthAmount);
     uint spotPrice1 = calculateTokenSpotPrice(totalValuePostSpotPriceSell, mcrEth);
 

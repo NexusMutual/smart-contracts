@@ -5,7 +5,7 @@ const { assert } = require('chai');
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
-const { setupContractState, assertBuy } = require('./utils');
+const { calculatePurchasedTokensWithFullIntegral, calculateMCRRatio } = require('../../unit/utils').tokenPrice;
 const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('./setup');
@@ -18,35 +18,11 @@ const {
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
 
-async function assertBuyValues (
-  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, pool1, token, buyValue, poolData, tokenData, maxRelativeError, chainlinkAggregators },
-) {
-  let { a, c, tokenExponent, totalAssetValue, mcrRatio } = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
-  );
-
-  while (mcrRatio <= maxPercentage * 100) {
-    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
-    await assertBuy({ member: member1, buyValue, mcrEth, totalAssetValue, maxRelativeError, tokenExponent, c, a, pool1, token });
-
-    if (buyValue.lt(poolBalanceStep)) {
-      const extraStepValue = poolBalanceStep.sub(buyValue);
-      await pool1.sendTransaction({
-        from: fundSource,
-        value: extraStepValue,
-      });
-    }
-
-    totalAssetValue = await pool1.getPoolValueInEth();
-    mcrRatio = await pool1.getMCRRatio();
-  }
-}
-
 async function setupAll () {
   this.contracts = await setup({ MCR, Pool1 });
 }
 
-describe('buyNXM', function () {
+describe.only('buyNXM', function () {
 
   before(setupAll);
 
@@ -66,31 +42,42 @@ describe('buyNXM', function () {
       const buyValueUpperBound = mcrEth.div(new BN(20));
       const poolBalanceStep = mcrEth.div(new BN(4));
       const maxRelativeError = Decimal(0.0015);
-
       while (true) {
-        const snapshotId = await snapshot.takeSnapshot();
         console.log({
           buyValue: buyValue.toString(),
           mcrEth: mcrEth.toString(),
+          initialAssetValue: initialAssetValue.toString(),
         });
-        await assertBuyValues({
-          initialAssetValue,
-          mcrEth,
-          maxPercentage,
-          buyValue,
-          poolBalanceStep,
-          mcr,
-          pool1,
-          token,
-          poolData,
-          daiRate,
-          ethRate,
-          tokenData,
-          maxRelativeError,
-          chainlinkAggregators,
-        });
-        await snapshot.revertToSnapshot(snapshotId);
 
+        let totalAssetValue = initialAssetValue;
+        let mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
+        console.log({
+          mcrRatio: mcrRatio.toString()
+        });
+        while (mcrRatio.lt(new BN(maxPercentage).muln(100))) {
+          console.log({
+            mcrRatio: mcrRatio.toString(),
+            mcrEth: mcrEth.toString(),
+            totalAssetValue: totalAssetValue.toString(),
+            buyValue: totalAssetValue.toString()
+          });
+          const nxmOut = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+
+          const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
+            totalAssetValue, buyValue, mcrEth
+          );
+          const nxmOutDecimal = Decimal(nxmOut.toString());
+          const relativeError = expectedIdealTokenValue.sub(nxmOutDecimal).abs().div(expectedIdealTokenValue);
+          console.log({ relativeError: relativeError.toString() });
+          assert(
+            relativeError.lt(maxRelativeError),
+            `Resulting token value ${nxmOutDecimal.toFixed()} is not close enough to expected ${expectedIdealTokenValue.toFixed()}
+       Relative error: ${relativeError}`,
+          );
+
+          totalAssetValue = totalAssetValue.add(poolBalanceStep);
+          mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
+        }
         if (buyValue.eq(buyValueUpperBound)) {
           break;
         }

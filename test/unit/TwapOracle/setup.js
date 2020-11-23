@@ -3,15 +3,17 @@ const { accounts, artifacts, web3 } = require('hardhat');
 const { impersonateAccount } = require('../utils').hardhat;
 const { ether } = require('@openzeppelin/test-helpers');
 
-// actual uniswap factory address on all chains
+// actual uniswap addresses on all chains
 const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
+const UNISWAP_ROUTER = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // will be assigned by setup()
 const instances = {};
 
-const uniswapContract = contractName => {
+const uniswapContract = (contractName, repo = 'core') => {
   const TruffleContract = require('@truffle/contract');
-  const jsonPath = `@uniswap/v2-core/build/${contractName}.json`;
+  const jsonPath = `@uniswap/v2-${repo}/build/${contractName}.json`;
   const contract = TruffleContract(require(jsonPath));
   contract.setProvider(web3.currentProvider);
   return contract;
@@ -31,7 +33,7 @@ async function setup () {
 
   const UniswapV2Factory = artifacts.require('UniswapV2Factory');
   const UniswapV2Pair = artifacts.require('UniswapV2Pair');
-  const UniswapV2Router01 = artifacts.require('UniswapV2Router01');
+  const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
 
   /* deploy tokens */
 
@@ -48,19 +50,31 @@ async function setup () {
     value: ether('1'),
   });
 
-  // deploying factory using truffle contract to have the correct addresses
-  // use hardhat's artifacts later on for interaction
-  const _factory = await uniswapContract('UniswapV2Factory').new(
-    uniswapOwner,
+  // Deploying using truffle contract to have the correct addresses:
+  const TruffleUniswapV2Factory = uniswapContract('UniswapV2Factory');
+  const TruffleUniswapV2Router = uniswapContract('UniswapV2Router02', 'periphery');
+
+  // 1. deploy factory
+  const _factory = await TruffleUniswapV2Factory.new(uniswapOwner, { from: uniswapDeployer });
+
+  // 2. consume 2 nonces
+  await web3.eth.sendTransaction({ from: uniswapDeployer, to: ZERO_ADDRESS });
+  await web3.eth.sendTransaction({ from: uniswapDeployer, to: ZERO_ADDRESS });
+
+  // 3. deploy router
+  const _router = await TruffleUniswapV2Router.new(
+    _factory.address,
+    weth.address,
     { from: uniswapDeployer },
   );
 
   // check that we landed at the correct address
   assert.strictEqual(_factory.address, UNISWAP_FACTORY);
+  assert.strictEqual(_router.address, UNISWAP_ROUTER);
 
   /** @var {UniswapV2FactoryInstance} factory */
   const factory = await UniswapV2Factory.at(_factory.address);
-  const router = await UniswapV2Router01.new(factory.address, weth.address);
+  const router = await UniswapV2Router02.at(_router.address);
   const oracle = await TwapOracle.new(factory.address);
 
   await factory.createPair(weth.address, tokenA.address);

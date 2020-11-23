@@ -122,7 +122,7 @@ contract TwapOracle {
 
     timeElapsed = block.timestamp - firstBucket.timestamp;
     require(timeElapsed <= windowSize, "TWAP: missing historical reading");
-    require(timeElapsed >= windowSize - periodSize, "TWAP: unexpected time elapsed");
+    require(timeElapsed >= windowSize - periodSize * 2, "TWAP: unexpected time elapsed");
 
     (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
 

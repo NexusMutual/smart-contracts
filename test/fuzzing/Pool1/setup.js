@@ -12,7 +12,7 @@ const {
 } = accounts;
 
 const MasterMock = artifacts.require('MasterMock');
-const PoolData = artifacts.require('Pool1MockPoolData');
+const PoolData = artifacts.require('P1MockPoolData');
 const TokenData = artifacts.require('TokenData');
 const TokenController = artifacts.require('TokenControllerMock');
 const TokenMock = artifacts.require('NXMTokenMock');

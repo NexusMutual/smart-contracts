@@ -5,7 +5,7 @@ const { hex } = require('../../unit/utils').helpers;
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../../unit/utils');
-const { setupContractState } = require('../../unit/Pool1/utils');
+const { setupContractState } = require('./utils');
 const { calculatePurchasedTokensWithFullIntegral } = require('../../unit/utils').tokenPrice;
 const setup = require('./setup');
 
@@ -16,8 +16,8 @@ const {
 
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
-const Pool1MockOldMCR = artifacts.require('Pool1MockOldMCR');
-const Pool1MockOldPool1 = artifacts.require('Pool1MockOldPool1');
+const P1MockOldMCR = artifacts.require('P1MockOldMCR');
+const P1MockOldPool1 = artifacts.require('P1MockOldPool1');
 
 async function compareBuyValues (
   { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
@@ -198,10 +198,10 @@ async function compareSellValues (
 
 async function setupBothImplementations () {
   this.current = await setup({ MCR, Pool1 });
-  this.old = await setup({ MCR: Pool1MockOldMCR, Pool1: Pool1MockOldPool1 });
+  this.old = await setup({ MCR: P1MockOldMCR, Pool1: P1MockOldPool1 });
 }
 
-describe('compareTokenCurveImplementations', function () {
+describe.only('compareTokenCurveImplementations', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');

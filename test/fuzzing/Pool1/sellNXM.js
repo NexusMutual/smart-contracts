@@ -72,7 +72,7 @@ async function setupAll () {
   this.contracts = await setup({ MCR, Pool1 });
 }
 
-describe.only('sellNXM', function () {
+describe('sellNXM', function () {
 
   before(setupAll);
 

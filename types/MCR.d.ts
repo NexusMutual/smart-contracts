@@ -5,8 +5,8 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface McrContract extends Truffle.Contract<McrInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<McrInstance>;
+export interface MCRContract extends Truffle.Contract<MCRInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<MCRInstance>;
 }
 
 export interface MCREvent {
@@ -31,7 +31,7 @@ export interface MCREvent {
 
 type AllEvents = MCREvent;
 
-export interface McrInstance extends Truffle.ContractInstance {
+export interface MCRInstance extends Truffle.ContractInstance {
   _calVtpAndMCRtp(
     poolBalance: number | BN | string,
     txDetails?: Truffle.TransactionDetails

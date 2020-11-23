@@ -5,8 +5,8 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface Ierc1132Contract extends Truffle.Contract<Ierc1132Instance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<Ierc1132Instance>;
+export interface IERC1132Contract extends Truffle.Contract<IERC1132Instance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<IERC1132Instance>;
 }
 
 export interface Locked {
@@ -37,7 +37,7 @@ export interface Unlocked {
 
 type AllEvents = Locked | Unlocked;
 
-export interface Ierc1132Instance extends Truffle.ContractInstance {
+export interface IERC1132Instance extends Truffle.ContractInstance {
   extendLock: {
     (
       _reason: string,

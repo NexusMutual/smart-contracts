@@ -5,14 +5,14 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface DisposableNxMasterContract
-  extends Truffle.Contract<DisposableNxMasterInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<DisposableNxMasterInstance>;
+export interface DisposableNXMasterContract
+  extends Truffle.Contract<DisposableNXMasterInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<DisposableNXMasterInstance>;
 }
 
 type AllEvents = never;
 
-export interface DisposableNxMasterInstance extends Truffle.ContractInstance {
+export interface DisposableNXMasterInstance extends Truffle.ContractInstance {
   addEmergencyPause: {
     (
       _pause: boolean,

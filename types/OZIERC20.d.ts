@@ -5,8 +5,8 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface Ozierc20Contract extends Truffle.Contract<Ozierc20Instance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<Ozierc20Instance>;
+export interface OZIERC20Contract extends Truffle.Contract<OZIERC20Instance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<OZIERC20Instance>;
 }
 
 export interface Approval {
@@ -35,7 +35,7 @@ export interface Transfer {
 
 type AllEvents = Approval | Transfer;
 
-export interface Ozierc20Instance extends Truffle.ContractInstance {
+export interface OZIERC20Instance extends Truffle.ContractInstance {
   allowance(
     owner: string,
     spender: string,

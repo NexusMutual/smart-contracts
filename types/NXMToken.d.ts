@@ -5,12 +5,12 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface NxmTokenContract extends Truffle.Contract<NxmTokenInstance> {
+export interface NXMTokenContract extends Truffle.Contract<NXMTokenInstance> {
   "new"(
     _founderAddress: string,
     _initialSupply: number | BN | string,
     meta?: Truffle.TransactionDetails
-  ): Promise<NxmTokenInstance>;
+  ): Promise<NXMTokenInstance>;
 }
 
 export interface Approval {
@@ -55,7 +55,7 @@ export interface WhiteListed {
 
 type AllEvents = Approval | BlackListed | Transfer | WhiteListed;
 
-export interface NxmTokenInstance extends Truffle.ContractInstance {
+export interface NXMTokenInstance extends Truffle.ContractInstance {
   addToWhiteList: {
     (_member: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>

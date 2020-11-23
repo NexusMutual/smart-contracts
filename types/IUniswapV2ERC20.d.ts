@@ -5,9 +5,9 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface UniswapV2Erc20Contract
-  extends Truffle.Contract<UniswapV2Erc20Instance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<UniswapV2Erc20Instance>;
+export interface IUniswapV2ERC20Contract
+  extends Truffle.Contract<IUniswapV2ERC20Instance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<IUniswapV2ERC20Instance>;
 }
 
 export interface Approval {
@@ -36,14 +36,14 @@ export interface Transfer {
 
 type AllEvents = Approval | Transfer;
 
-export interface UniswapV2Erc20Instance extends Truffle.ContractInstance {
+export interface IUniswapV2ERC20Instance extends Truffle.ContractInstance {
   DOMAIN_SEPARATOR(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   PERMIT_TYPEHASH(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   allowance(
-    arg0: string,
-    arg1: string,
+    owner: string,
+    spender: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
@@ -70,13 +70,13 @@ export interface UniswapV2Erc20Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  balanceOf(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+  balanceOf(owner: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   name(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  nonces(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+  nonces(owner: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   permit: {
     (
@@ -181,8 +181,8 @@ export interface UniswapV2Erc20Instance extends Truffle.ContractInstance {
     PERMIT_TYPEHASH(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     allowance(
-      arg0: string,
-      arg1: string,
+      owner: string,
+      spender: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
@@ -210,7 +210,7 @@ export interface UniswapV2Erc20Instance extends Truffle.ContractInstance {
     };
 
     balanceOf(
-      arg0: string,
+      owner: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
@@ -218,7 +218,7 @@ export interface UniswapV2Erc20Instance extends Truffle.ContractInstance {
 
     name(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    nonces(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+    nonces(owner: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
     permit: {
       (

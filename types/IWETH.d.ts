@@ -5,13 +5,13 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface IwethContract extends Truffle.Contract<IwethInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<IwethInstance>;
+export interface IWETHContract extends Truffle.Contract<IWETHInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<IWETHInstance>;
 }
 
 type AllEvents = never;
 
-export interface IwethInstance extends Truffle.ContractInstance {
+export interface IWETHInstance extends Truffle.ContractInstance {
   deposit: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>

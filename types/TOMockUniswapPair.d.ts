@@ -5,14 +5,14 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface ToMockUniswapPairContract
-  extends Truffle.Contract<ToMockUniswapPairInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<ToMockUniswapPairInstance>;
+export interface TOMockUniswapPairContract
+  extends Truffle.Contract<TOMockUniswapPairInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<TOMockUniswapPairInstance>;
 }
 
 type AllEvents = never;
 
-export interface ToMockUniswapPairInstance extends Truffle.ContractInstance {
+export interface TOMockUniswapPairInstance extends Truffle.ContractInstance {
   blockTimestampLast(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   getReserves(txDetails?: Truffle.TransactionDetails): Promise<[BN, BN, BN]>;

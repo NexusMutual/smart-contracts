@@ -5,57 +5,42 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface Weth9Contract extends Truffle.Contract<Weth9Instance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<Weth9Instance>;
+export interface UniswapV2ERC20Contract
+  extends Truffle.Contract<UniswapV2ERC20Instance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<UniswapV2ERC20Instance>;
 }
 
 export interface Approval {
   name: "Approval";
   args: {
-    src: string;
-    guy: string;
-    wad: BN;
+    owner: string;
+    spender: string;
+    value: BN;
     0: string;
     1: string;
     2: BN;
-  };
-}
-
-export interface Deposit {
-  name: "Deposit";
-  args: {
-    dst: string;
-    wad: BN;
-    0: string;
-    1: BN;
   };
 }
 
 export interface Transfer {
   name: "Transfer";
   args: {
-    src: string;
-    dst: string;
-    wad: BN;
+    from: string;
+    to: string;
+    value: BN;
     0: string;
     1: string;
     2: BN;
   };
 }
 
-export interface Withdrawal {
-  name: "Withdrawal";
-  args: {
-    src: string;
-    wad: BN;
-    0: string;
-    1: BN;
-  };
-}
+type AllEvents = Approval | Transfer;
 
-type AllEvents = Approval | Deposit | Transfer | Withdrawal;
+export interface UniswapV2ERC20Instance extends Truffle.ContractInstance {
+  DOMAIN_SEPARATOR(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-export interface Weth9Instance extends Truffle.ContractInstance {
+  PERMIT_TYPEHASH(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   allowance(
     arg0: string,
     arg1: string,
@@ -64,23 +49,23 @@ export interface Weth9Instance extends Truffle.ContractInstance {
 
   approve: {
     (
-      guy: string,
-      wad: number | BN | string,
+      spender: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      guy: string,
-      wad: number | BN | string,
+      spender: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
     sendTransaction(
-      guy: string,
-      wad: number | BN | string,
+      spender: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      guy: string,
-      wad: number | BN | string,
+      spender: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -89,16 +74,52 @@ export interface Weth9Instance extends Truffle.ContractInstance {
 
   decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
-  deposit: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   name(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  nonces(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+  permit: {
+    (
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      owner: string,
+      spender: string,
+      value: number | BN | string,
+      deadline: number | BN | string,
+      v: number | BN | string,
+      r: string,
+      s: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   symbol(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
@@ -106,74 +127,59 @@ export interface Weth9Instance extends Truffle.ContractInstance {
 
   transfer: {
     (
-      dst: string,
-      wad: number | BN | string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      dst: string,
-      wad: number | BN | string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
     sendTransaction(
-      dst: string,
-      wad: number | BN | string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      dst: string,
-      wad: number | BN | string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
   transferFrom: {
     (
-      src: string,
-      dst: string,
-      wad: number | BN | string,
+      from: string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      src: string,
-      dst: string,
-      wad: number | BN | string,
+      from: string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
     sendTransaction(
-      src: string,
-      dst: string,
-      wad: number | BN | string,
+      from: string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      src: string,
-      dst: string,
-      wad: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  withdraw: {
-    (
-      wad: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      wad: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      wad: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      wad: number | BN | string,
+      from: string,
+      to: string,
+      value: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
   methods: {
+    DOMAIN_SEPARATOR(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    PERMIT_TYPEHASH(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     allowance(
       arg0: string,
       arg1: string,
@@ -182,23 +188,23 @@ export interface Weth9Instance extends Truffle.ContractInstance {
 
     approve: {
       (
-        guy: string,
-        wad: number | BN | string,
+        spender: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        guy: string,
-        wad: number | BN | string,
+        spender: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<boolean>;
       sendTransaction(
-        guy: string,
-        wad: number | BN | string,
+        spender: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        guy: string,
-        wad: number | BN | string,
+        spender: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -210,16 +216,52 @@ export interface Weth9Instance extends Truffle.ContractInstance {
 
     decimals(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
-    deposit: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-    };
-
     name(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    nonces(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+    permit: {
+      (
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        owner: string,
+        spender: string,
+        value: number | BN | string,
+        deadline: number | BN | string,
+        v: number | BN | string,
+        r: string,
+        s: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
 
     symbol(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
@@ -227,69 +269,50 @@ export interface Weth9Instance extends Truffle.ContractInstance {
 
     transfer: {
       (
-        dst: string,
-        wad: number | BN | string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        dst: string,
-        wad: number | BN | string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<boolean>;
       sendTransaction(
-        dst: string,
-        wad: number | BN | string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        dst: string,
-        wad: number | BN | string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
     transferFrom: {
       (
-        src: string,
-        dst: string,
-        wad: number | BN | string,
+        from: string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        src: string,
-        dst: string,
-        wad: number | BN | string,
+        from: string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<boolean>;
       sendTransaction(
-        src: string,
-        dst: string,
-        wad: number | BN | string,
+        from: string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        src: string,
-        dst: string,
-        wad: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    withdraw: {
-      (
-        wad: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        wad: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        wad: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        wad: number | BN | string,
+        from: string,
+        to: string,
+        value: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

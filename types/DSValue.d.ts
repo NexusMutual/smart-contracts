@@ -5,13 +5,13 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface DsValueContract extends Truffle.Contract<DsValueInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<DsValueInstance>;
+export interface DSValueContract extends Truffle.Contract<DSValueInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<DSValueInstance>;
 }
 
 type AllEvents = never;
 
-export interface DsValueInstance extends Truffle.ContractInstance {
+export interface DSValueInstance extends Truffle.ContractInstance {
   peek(txDetails?: Truffle.TransactionDetails): Promise<[string, boolean]>;
 
   read(txDetails?: Truffle.TransactionDetails): Promise<string>;

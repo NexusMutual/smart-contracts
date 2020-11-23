@@ -10,8 +10,8 @@ export interface PoolContract extends Truffle.Contract<PoolInstance> {
     _assets: string[],
     _minAmounts: (number | BN | string)[],
     _maxAmounts: (number | BN | string)[],
+    _maxSlippageRatios: (number | BN | string)[],
     _master: string,
-    _router: string,
     _twapOracle: string,
     _swapController: string,
     meta?: Truffle.TransactionDetails
@@ -37,38 +37,41 @@ type AllEvents = Swapped;
 export interface PoolInstance extends Truffle.ContractInstance {
   ETH(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  MAX_SLIPPAGE(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
-  MAX_TRADABLE_PAIR_LIQUIDITY(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
   addAsset: {
     (
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  assetData(
+    arg0: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<[BN, BN, BN, BN]>;
 
   assets(
     arg0: number | BN | string,
@@ -107,16 +110,9 @@ export interface PoolInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
-  lastSwapTime(
-    arg0: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
   master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  maxAmount(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
-  minAmount(arg0: string, txDetails?: Truffle.TransactionDetails): Promise<BN>;
+  minPoolEth(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   removeAsset: {
     (_asset: string, txDetails?: Truffle.TransactionDetails): Promise<
@@ -133,8 +129,6 @@ export interface PoolInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  router(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
   sendEther: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -144,29 +138,33 @@ export interface PoolInstance extends Truffle.ContractInstance {
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
 
-  setAssetMinMax: {
+  setAssetDetails: {
     (
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
       _asset: string,
       _min: number | BN | string,
       _max: number | BN | string,
+      _maxSlippageRatio: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -227,6 +225,8 @@ export interface PoolInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  swapsEnabled(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
+
   transferAsset: {
     (
       asset: string,
@@ -277,38 +277,41 @@ export interface PoolInstance extends Truffle.ContractInstance {
   methods: {
     ETH(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    MAX_SLIPPAGE(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
-    MAX_TRADABLE_PAIR_LIQUIDITY(
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
     addAsset: {
       (
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    assetData(
+      arg0: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<[BN, BN, BN, BN]>;
 
     assets(
       arg0: number | BN | string,
@@ -347,22 +350,9 @@ export interface PoolInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
-    lastSwapTime(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
     master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    maxAmount(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    minAmount(
-      arg0: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
+    minPoolEth(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
     removeAsset: {
       (_asset: string, txDetails?: Truffle.TransactionDetails): Promise<
@@ -382,8 +372,6 @@ export interface PoolInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    router(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
     sendEther: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -393,29 +381,33 @@ export interface PoolInstance extends Truffle.ContractInstance {
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
-    setAssetMinMax: {
+    setAssetDetails: {
       (
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
         _asset: string,
         _min: number | BN | string,
         _max: number | BN | string,
+        _maxSlippageRatio: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -475,6 +467,8 @@ export interface PoolInstance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    swapsEnabled(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
 
     transferAsset: {
       (

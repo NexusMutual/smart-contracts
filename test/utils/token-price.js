@@ -131,6 +131,10 @@ function percentageBN (x, percentage) {
   return x.muln(percentage).divn(100);
 }
 
+function toDecimal (x) {
+  return new Decimal(x.toString());
+}
+
 module.exports = {
   calculatePurchasedTokensWithFullIntegral,
   A,
@@ -142,4 +146,5 @@ module.exports = {
   calculateNXMForEthRelativeError,
   calculateEthForNXMRelativeError,
   percentageBN,
+  toDecimal
 };

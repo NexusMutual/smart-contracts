@@ -6,7 +6,7 @@ const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../../unit/utils');
 const { setupContractState } = require('./utils');
-const { calculatePurchasedTokensWithFullIntegral } = require('../../unit/utils').tokenPrice;
+const { calculatePurchasedTokensWithFullIntegral, toDecimal } = require('../../unit/utils').tokenPrice;
 const setup = require('./setup');
 
 const {
@@ -34,6 +34,21 @@ async function compareBuyValues (
   while (mcrRatio < maxPercentage * 100) {
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
     const preBuyBalanceMember1 = await current.token.balanceOf(member1);
+
+    const tokenSpotPriceEthCurrentSystem = await current.pool1.getTokenPrice(hex('ETH'));
+    const tokenSpotPriceEthOldSystem = await old.mcr.calculateTokenPrice(hex('ETH'));
+    assert.equal(tokenSpotPriceEthCurrentSystem.toString(), tokenSpotPriceEthOldSystem.toString());
+
+    const tokenSpotPriceDaiCurrentSystem = await current.pool1.getTokenPrice(hex('DAI'));
+    const tokenSpotPriceDaiOldSystem = await old.mcr.calculateTokenPrice(hex('DAI'));
+    const relativeErrorDaiSpotPrice = toDecimal(tokenSpotPriceDaiOldSystem)
+      .sub(toDecimal(tokenSpotPriceDaiCurrentSystem))
+      .abs().div(toDecimal(tokenSpotPriceDaiOldSystem));
+    assert(
+      relativeErrorDaiSpotPrice.lt(Decimal(0.000001)),
+      `old token DAI spot price ${tokenSpotPriceDaiOldSystem.toString()} differs too much from ${tokenSpotPriceDaiCurrentSystem.toString()}`,
+    );
+
     const tx = await current.pool1.buyNXM('0', {
       from: member1,
       value: buyValue,
@@ -201,7 +216,7 @@ async function setupBothImplementations () {
   this.old = await setup({ MCR: P1MockOldMCR, Pool1: P1MockOldPool1 });
 }
 
-describe('compareTokenCurveImplementations', function () {
+describe.only('compareTokenCurveImplementations', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');

@@ -20,7 +20,10 @@ async function setupContractState (
 
   await poolData.setAverageRate(hex('ETH'), ethRate);
   await poolData.setAverageRate(hex('DAI'), daiRate);
-  await chainlinkAggregators['DAI'].setLatestAnswer(daiRate);
+
+  const ethToDaiRate = daiRate.mul(new BN(1e16.toString())); // adjusted to 18 decimals
+  const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
+  await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
 
   const date = new Date().getTime();
   await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);

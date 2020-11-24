@@ -17,7 +17,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint112 maxAmount;
     uint32 lastSwapTime;
     // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
-    uint64 maxSlippageRatio;
+    uint maxSlippageRatio;
   }
 
   /* storage */
@@ -50,7 +50,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     address[] memory _assets,
     uint112[] memory _minAmounts,
     uint112[] memory _maxAmounts,
-    uint64[] memory _maxSlippageRatios,
+    uint[] memory _maxSlippageRatios,
     address _master,
     address _twapOracle,
     address _swapController
@@ -94,21 +94,22 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint balance,
     uint112 min,
     uint112 max,
-    uint32 lastAssetSwapTime
+    uint32 lastAssetSwapTime,
+    uint maxSlippageRatio
   ) {
 
     IERC20 token = IERC20(_asset);
     balance = token.balanceOf(address(this));
     AssetData memory data = assetData[_asset];
 
-    return (balance, data.minAmount, data.maxAmount, data.lastSwapTime);
+    return (balance, data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
   }
 
   function addAsset(
     address _asset,
     uint112 _min,
     uint112 _max,
-    uint64 _maxSlippageRatio
+    uint _maxSlippageRatio
   ) external onlyGovernance {
 
     require(_asset != address(0), "Pool: asset is zero address");
@@ -150,7 +151,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     address _asset,
     uint112 _min,
     uint112 _max,
-    uint64 _maxSlippageRatio
+    uint _maxSlippageRatio
   ) external onlyGovernance {
 
     require(_min <= _max, "Pool: min > max");

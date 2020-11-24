@@ -99,7 +99,7 @@ export interface PoolInstance extends Truffle.ContractInstance {
   getAssetDetails(
     _asset: string,
     txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN, BN, BN]>;
+  ): Promise<[BN, BN, BN, BN, BN]>;
 
   getAssets(txDetails?: Truffle.TransactionDetails): Promise<string[]>;
 
@@ -339,7 +339,7 @@ export interface PoolInstance extends Truffle.ContractInstance {
     getAssetDetails(
       _asset: string,
       txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN, BN, BN]>;
+    ): Promise<[BN, BN, BN, BN, BN]>;
 
     getAssets(txDetails?: Truffle.TransactionDetails): Promise<string[]>;
 

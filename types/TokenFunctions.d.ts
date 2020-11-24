@@ -25,20 +25,6 @@ export interface BurnCATokens {
 type AllEvents = BurnCATokens;
 
 export interface TokenFunctionsInstance extends Truffle.ContractInstance {
-  _deprecated_getStakerUnlockableTokensOnSmartContract(
-    _stakerAddress: string,
-    _stakedContractAddress: string,
-    _stakedContractIndex: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  _deprecated_unlockableBeforeBurningAndCanBurn(
-    stakerAdd: string,
-    stakedAdd: string,
-    stakerIndex: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN]>;
-
   burnCAToken: {
     (
       claimid: number | BN | string,
@@ -185,53 +171,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  deprecated_getStakerAllLockedTokens(
-    _stakerAddress: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  deprecated_getStakerAllUnlockableStakedTokens(
-    _stakerAddress: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  deprecated_getStakerLockedTokensOnSmartContract(
-    _stakerAddress: string,
-    _stakedContractAddress: string,
-    _stakedContractIndex: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  deprecated_getStakerUnlockableTokensOnSmartContract(
-    stakerAddress: string,
-    stakedContractAddress: string,
-    stakerIndex: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  deprecated_getTotalStakedTokensOnSmartContract(
-    _stakedContractAddress: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  deprecated_unlockStakerUnlockableTokens: {
-    (_stakerAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(
-      _stakerAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _stakerAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _stakerAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   extendCNEPOff: {
     (
       _of: string,
@@ -261,11 +200,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
 
   getLockedCNAgainstCover(
     _coverId: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  getTokenPrice(
-    curr: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
@@ -365,20 +299,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
   };
 
   methods: {
-    _deprecated_getStakerUnlockableTokensOnSmartContract(
-      _stakerAddress: string,
-      _stakedContractAddress: string,
-      _stakedContractIndex: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    _deprecated_unlockableBeforeBurningAndCanBurn(
-      stakerAdd: string,
-      stakedAdd: string,
-      stakerIndex: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN]>;
-
     burnCAToken: {
       (
         claimid: number | BN | string,
@@ -525,53 +445,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    deprecated_getStakerAllLockedTokens(
-      _stakerAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    deprecated_getStakerAllUnlockableStakedTokens(
-      _stakerAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    deprecated_getStakerLockedTokensOnSmartContract(
-      _stakerAddress: string,
-      _stakedContractAddress: string,
-      _stakedContractIndex: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    deprecated_getStakerUnlockableTokensOnSmartContract(
-      stakerAddress: string,
-      stakedContractAddress: string,
-      stakerIndex: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    deprecated_getTotalStakedTokensOnSmartContract(
-      _stakedContractAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    deprecated_unlockStakerUnlockableTokens: {
-      (_stakerAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        _stakerAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _stakerAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _stakerAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
     extendCNEPOff: {
       (
         _of: string,
@@ -601,11 +474,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
 
     getLockedCNAgainstCover(
       _coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    getTokenPrice(
-      curr: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 

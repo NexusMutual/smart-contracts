@@ -18,7 +18,6 @@ import { IERC20Contract } from "./IERC20";
 import { IUniswapV2Router01Contract } from "./IUniswapV2Router01";
 import { IUniswapV2Router02Contract } from "./IUniswapV2Router02";
 import { IWETHContract } from "./IWETH";
-import { UniswapV2Router01Contract } from "./UniswapV2Router01";
 import { UniswapV2Router02Contract } from "./UniswapV2Router02";
 import { INXMMasterContract } from "./INXMMaster";
 import { INXMTokenContract } from "./INXMToken";
@@ -50,6 +49,12 @@ import { MasterMockContract } from "./MasterMock";
 import { MemberRolesMockContract } from "./MemberRolesMock";
 import { NXMDSValueMockContract } from "./NXMDSValueMock";
 import { NXMTokenMockContract } from "./NXMTokenMock";
+import { P1MockChainlinkAggregatorContract } from "./P1MockChainlinkAggregator";
+import { P1MockMemberContract } from "./P1MockMember";
+import { Pool1InterfaceContract } from "./Pool1Interface";
+import { P1MockOldMCRContract } from "./P1MockOldMCR";
+import { P1MockOldPool1Contract } from "./P1MockOldPool1";
+import { P1MockPoolDataContract } from "./P1MockPoolData";
 import { TokenControllerMockContract } from "./TokenControllerMock";
 import { TOMockUniswapPairContract } from "./TOMockUniswapPair";
 import { MCRContract } from "./MCR";
@@ -87,6 +92,8 @@ import { NXMTokenContract } from "./NXMToken";
 import { TokenControllerContract } from "./TokenController";
 import { TokenDataContract } from "./TokenData";
 import { TokenFunctionsContract } from "./TokenFunctions";
+import { AggregatorContract } from "./Aggregator";
+import { PriceFeedOracleContract } from "./PriceFeedOracle";
 
 declare global {
   namespace Truffle {
@@ -107,7 +114,6 @@ declare global {
       require(name: "IUniswapV2Router01"): IUniswapV2Router01Contract;
       require(name: "IUniswapV2Router02"): IUniswapV2Router02Contract;
       require(name: "IWETH"): IWETHContract;
-      require(name: "UniswapV2Router01"): UniswapV2Router01Contract;
       require(name: "UniswapV2Router02"): UniswapV2Router02Contract;
       require(name: "INXMMaster"): INXMMasterContract;
       require(name: "INXMToken"): INXMTokenContract;
@@ -143,6 +149,14 @@ declare global {
       require(name: "MemberRolesMock"): MemberRolesMockContract;
       require(name: "NXMDSValueMock"): NXMDSValueMockContract;
       require(name: "NXMTokenMock"): NXMTokenMockContract;
+      require(
+        name: "P1MockChainlinkAggregator"
+      ): P1MockChainlinkAggregatorContract;
+      require(name: "P1MockMember"): P1MockMemberContract;
+      require(name: "Pool1Interface"): Pool1InterfaceContract;
+      require(name: "P1MockOldMCR"): P1MockOldMCRContract;
+      require(name: "P1MockOldPool1"): P1MockOldPool1Contract;
+      require(name: "P1MockPoolData"): P1MockPoolDataContract;
       require(name: "TokenControllerMock"): TokenControllerMockContract;
       require(name: "TOMockUniswapPair"): TOMockUniswapPairContract;
       require(name: "MCR"): MCRContract;
@@ -182,6 +196,8 @@ declare global {
       require(name: "TokenController"): TokenControllerContract;
       require(name: "TokenData"): TokenDataContract;
       require(name: "TokenFunctions"): TokenFunctionsContract;
+      require(name: "Aggregator"): AggregatorContract;
+      require(name: "PriceFeedOracle"): PriceFeedOracleContract;
     }
   }
 }
@@ -229,10 +245,6 @@ export {
   IUniswapV2Router02Instance,
 } from "./IUniswapV2Router02";
 export { IWETHContract, IWETHInstance } from "./IWETH";
-export {
-  UniswapV2Router01Contract,
-  UniswapV2Router01Instance,
-} from "./UniswapV2Router01";
 export {
   UniswapV2Router02Contract,
   UniswapV2Router02Instance,
@@ -310,6 +322,24 @@ export {
 } from "./NXMDSValueMock";
 export { NXMTokenMockContract, NXMTokenMockInstance } from "./NXMTokenMock";
 export {
+  P1MockChainlinkAggregatorContract,
+  P1MockChainlinkAggregatorInstance,
+} from "./P1MockChainlinkAggregator";
+export { P1MockMemberContract, P1MockMemberInstance } from "./P1MockMember";
+export {
+  Pool1InterfaceContract,
+  Pool1InterfaceInstance,
+} from "./Pool1Interface";
+export { P1MockOldMCRContract, P1MockOldMCRInstance } from "./P1MockOldMCR";
+export {
+  P1MockOldPool1Contract,
+  P1MockOldPool1Instance,
+} from "./P1MockOldPool1";
+export {
+  P1MockPoolDataContract,
+  P1MockPoolDataInstance,
+} from "./P1MockPoolData";
+export {
   TokenControllerMockContract,
   TokenControllerMockInstance,
 } from "./TokenControllerMock";
@@ -373,3 +403,8 @@ export {
   TokenFunctionsContract,
   TokenFunctionsInstance,
 } from "./TokenFunctions";
+export { AggregatorContract, AggregatorInstance } from "./Aggregator";
+export {
+  PriceFeedOracleContract,
+  PriceFeedOracleInstance,
+} from "./PriceFeedOracle";

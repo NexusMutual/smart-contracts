@@ -32,11 +32,6 @@ export interface MCREvent {
 type AllEvents = MCREvent;
 
 export interface MCRInstance extends Truffle.ContractInstance {
-  _calVtpAndMCRtp(
-    poolBalance: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN]>;
-
   addLastMCRData: {
     (
       date: number | BN | string,
@@ -97,22 +92,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
 
   calVtpAndMCRtp(txDetails?: Truffle.TransactionDetails): Promise<[BN, BN]>;
 
-  calculateStepTokenPrice(
-    curr: string,
-    mcrtp: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  calculateTokenPrice(
-    curr: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  calculateVtpAndMCRtp(
-    poolBalance: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, BN]>;
-
   changeDependentContractAddress: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -150,8 +129,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
 
   getAllSumAssurance(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
-  getMaxSellTokens(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
   getThresholdValues(
     vtp: number | BN | string,
     vF: number | BN | string,
@@ -165,9 +142,23 @@ export interface MCRInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<[string, BN]>;
 
+  mr(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  p1(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  pd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  proposalCategory(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  td(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   updateUintParameters: {
     (
@@ -195,11 +186,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
   variableMincap(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   methods: {
-    _calVtpAndMCRtp(
-      poolBalance: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN]>;
-
     addLastMCRData: {
       (
         date: number | BN | string,
@@ -260,22 +246,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
 
     calVtpAndMCRtp(txDetails?: Truffle.TransactionDetails): Promise<[BN, BN]>;
 
-    calculateStepTokenPrice(
-      curr: string,
-      mcrtp: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    calculateTokenPrice(
-      curr: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    calculateVtpAndMCRtp(
-      poolBalance: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, BN]>;
-
     changeDependentContractAddress: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -313,8 +283,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
 
     getAllSumAssurance(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
-    getMaxSellTokens(txDetails?: Truffle.TransactionDetails): Promise<BN>;
-
     getThresholdValues(
       vtp: number | BN | string,
       vF: number | BN | string,
@@ -328,9 +296,23 @@ export interface MCRInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<[string, BN]>;
 
+    mr(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    p1(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    pd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    proposalCategory(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    td(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     updateUintParameters: {
       (

@@ -25,11 +25,8 @@ task('typechain', async (_, { config }) => {
   await tsGenerator({ cwd }, new TypeChain({ cwd, rawConfig }));
 });
 
-const forkConfig = {};
-
-if (process.env.TEST_ENV_FORK) {
-  forkConfig.url = process.env.TEST_ENV_FORK;
-}
+const forkURL = process.env.TEST_ENV_FORK;
+const forkConfig = forkURL ? { url: forkURL } : {};
 
 module.exports = {
 
@@ -43,7 +40,7 @@ module.exports = {
     hardhat: {
       accounts: {
         count: 100,
-        accountsBalance: ether(100000),
+        accountsBalance: ether(10000000),
       },
       allowUnlimitedContractSize: true,
       blockGasLimit: 12e9,
@@ -57,11 +54,6 @@ module.exports = {
       { version: '0.5.16' }, // uniswap v2 core
       { version: '0.6.6' }, // uniswap v2 peripherals
     ],
-  },
-
-  typechain: {
-    outDir: 'types',
-    target: 'truffle-v5',
   },
 
 };

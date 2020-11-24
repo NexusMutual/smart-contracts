@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { artifacts, run, web3, accounts} = require('hardhat');
+const { artifacts, run, web3, accounts, network } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
 
 const { encode1 } = require('./external');
@@ -15,6 +15,7 @@ const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const Claims = artifacts.require('Claims');
 const MCR = artifacts.require('MCR');
+const OldMCR = artifacts.require('P1MockOldMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
 const upgradeProxyImplementationCategoryId = 5;
@@ -48,7 +49,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
-describe('payout address update', function () {
+describe.only('NXM sells and buys', function () {
   this.timeout(0);
 
   it('performs contract upgrades', async function () {
@@ -68,14 +69,16 @@ describe('payout address update', function () {
       nameToAddressMap[web3.utils.toAscii(contractsName[i])] = contractsAddress[i];
     }
 
-    const mr = await MemberRoles.at(nameToAddressMap['MR']);
-    const tk = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
-    const gv = await Governance.at(nameToAddressMap['GV']);
+    const memberRoles = await MemberRoles.at(nameToAddressMap['MR']);
+    const token = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
+    const governance = await Governance.at(nameToAddressMap['GV']);
+    const oldPool1 = await Pool1.at(nameToAddressMap['P1']);
+    const oldMCR = await OldMCR.at(nameToAddressMap['MC']);
 
     const [funder] = accounts;
 
     console.log('Fetch board members..');
-    const members = await mr.members('1');
+    const members = await memberRoles.members('1');
     const boardMembers = members.memberArray;
 
     console.log(boardMembers);
@@ -83,10 +86,19 @@ describe('payout address update', function () {
     for (const member of boardMembers) {
       console.log(`Topping up ${member}`);
       await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100') });
+      await network.provider.request({
+        method: 'hardhat_impersonateAccount',
+        params: [member]
+      });
     }
 
     const firstBoardMember = boardMembers[0];
 
+    const pool1EthBalanceBefore = await web3.eth.getBalance(oldPool1.address);
+    const pool1DaiBalanceBefore = await web3.eth.getBalance(oldPool1.address);
+
+    const tokenSpotPriceEthBefore = await oldMCR.calculateTokenPrice(hex('ETH'));
+    const tokenSpotPriceDaiBefore = await oldMCR.calculateTokenPrice(hex('DAI'));
     /*
      Required upgrades:
        contracts/modules/capital/MCR.sol
@@ -95,7 +107,6 @@ describe('payout address update', function () {
        contracts/modules/token/TokenFunctions.sol
        contracts/oracles/PriceFeedOracle.sol
     */
-
 
     console.log(`Deploying new TokenFunctions..`);
     const newTF = await TokenFunctions.new({ from: firstBoardMember });
@@ -122,7 +133,7 @@ describe('payout address update', function () {
     );
 
     await submitGovernanceProposal(
-      newContractAddressUpgradeCategoryId, upgradeMultipleContractsActionHash, boardMembers, gv, boardMembers[1],
+      newContractAddressUpgradeCategoryId, upgradeMultipleContractsActionHash, boardMembers, governance, boardMembers[1],
     );
 
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
@@ -137,11 +148,32 @@ describe('payout address update', function () {
 
     console.log(`Successfully upgraded.`);
 
+    const pool1 = await Pool1.at(await master.getLatestAddress(hex('P1')));
+
+    /* Pool balance checks */
+    const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool1.address);
+    const oldPool1DaiBalanceAfter = await web3.eth.getBalance(oldPool1.address);
+    assert.equal(oldPool1EthBalanceAfter.toString(), '0');
+    assert.equal(oldPool1DaiBalanceAfter.toString(), '0');
+
+    const pool1EthBalanceAfter = await web3.eth.getBalance(pool1.address);
+    const pool1DaiBalanceAfter = await web3.eth.getBalance(pool1.address);
+    assert.equal(pool1DaiBalanceBefore.toString(), pool1DaiBalanceAfter.toString());
+    assert.equal(pool1EthBalanceBefore.toString(), pool1EthBalanceAfter.toString());
+
+    /* Token spot price checks */
+
+    // const tokenSpotPriceEthAfter = await pool1.getTokenPrice(hex('ETH'));
+    // const tokenSpotPriceDaiAfter = await pool1.getTokenPrice(hex('DAI'));
+    //
+    // assert.equal(tokenSpotPriceEthAfter.toString(), tokenSpotPriceEthBefore.toString());
+    // assert.equal(tokenSpotPriceDaiAfter.toString(), tokenSpotPriceDaiBefore.toString());
+
     this.firstBoardMember = firstBoardMember;
     this.master = master;
-    this.tk = tk;
-    this.tc = await TokenController.at(await master.getLatestAddress(hex('TC')));
-    this.ps = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
-
+    this.token = token;
+    this.tokenController = await TokenController.at(await master.getLatestAddress(hex('TC')));
+    this.pooledStaking = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
+    this.pool1 = pool1;
   });
 })

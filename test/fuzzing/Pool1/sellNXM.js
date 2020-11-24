@@ -5,10 +5,10 @@ const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../utils');
 const { setupContractState, assertSell } = require('./utils');
+const { calculatePurchasedTokensWithFullIntegral, calculateMCRRatio, percentageBN, sellSpread } = require('../../unit/utils').tokenPrice;
 const { hex } = require('../utils').helpers;
 const snapshot = require('../utils').snapshot;
 const setup = require('./setup');
-const { calculatePurchasedTokensWithFullIntegral } = require('../../unit/utils').tokenPrice;
 
 const {
   nonMembers: [fundSource],
@@ -17,56 +17,6 @@ const {
 
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
-
-async function assertSellValues (
-  { initialAssetValue, mcrEth, maxPercentage, daiRate, ethRate, poolBalanceStep, mcr, maxRelativeError,
-    pool1, token, buyValue, poolData, tokenData, tokenController, chainlinkAggregators, isLessThanExpectedEthOut },
-) {
-  let { totalAssetValue, mcrRatio, a, c, tokenExponent } = await setupContractState(
-    { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, mcr, pool1, token, buyValue, poolData, tokenData, chainlinkAggregators },
-  );
-
-  while (mcrRatio < maxPercentage * 100) {
-    console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
-    const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
-
-    const preBuyBalance = await token.balanceOf(memberOne);
-
-    let tokensReceived;
-    if (mcrRatio <= 400 * 100) {
-      await pool1.buyNXM(preEstimatedTokenBuyValue, {
-        from: memberOne,
-        value: buyValue,
-      });
-      const postBuyBalance = await token.balanceOf(memberOne);
-      tokensReceived = postBuyBalance.sub(preBuyBalance);
-    } else {
-      // cannot buy past upper MCR% treshold. Can only send ether to the pool.
-      await pool1.sendTransaction({
-        from: fundSource,
-        value: buyValue,
-      });
-
-      // mint ideal number of tokens
-      const { tokens: idealTokensReceived } = calculatePurchasedTokensWithFullIntegral(
-        totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
-      );
-      tokensReceived = new BN(idealTokensReceived.toFixed());
-      await token.mint(memberOne, tokensReceived);
-    }
-
-    await assertSell(
-      { member: memberOne, tokensToSell: tokensReceived, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut },
-    );
-
-    await pool1.sendTransaction({
-      from: fundSource,
-      value: poolBalanceStep,
-    });
-    totalAssetValue = await pool1.getPoolValueInEth();
-    mcrRatio = await pool1.getMCRRatio();
-  }
-}
 
 async function setupAll () {
   this.contracts = await setup({ MCR, Pool1 });
@@ -87,36 +37,57 @@ describe('sellNXM', function () {
     const upperBound = ether(1e8.toString());
     while (true) {
 
-      const initialAssetValue = mcrEth;
+      const initialAssetValue = percentageBN(mcrEth, 100);
       let buyValue = ether('0.1');
       const buyValueUpperBound = mcrEth.div(new BN(100)); // 1% of MCReth
       const poolBalanceStep = mcrEth.div(new BN(4));
       const maxRelativeError = Decimal(0.002);
 
       while (true) {
-        const snapshotId = await snapshot.takeSnapshot();
         console.log({
           buyValue: buyValue.toString(),
           mcrEth: mcrEth.toString(),
+          initialAssetValue: initialAssetValue.toString(),
         });
-        await assertSellValues({
-          initialAssetValue,
-          mcrEth,
-          maxPercentage,
-          buyValue,
-          poolBalanceStep,
-          mcr,
-          pool1,
-          token,
-          poolData,
-          daiRate,
-          ethRate,
-          tokenData,
-          tokenController,
-          maxRelativeError,
-          chainlinkAggregators,
+
+        let totalAssetValue = initialAssetValue;
+        let mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
+        console.log({
+          mcrRatio: mcrRatio.toString(),
         });
-        await snapshot.revertToSnapshot(snapshotId);
+        while (mcrRatio.lt(new BN(maxPercentage).muln(100))) {
+
+          console.log({
+            totalAssetValue: totalAssetValue.toString(),
+            mcrPercentage: mcrRatio.toString(),
+          });
+
+          let nxmOut;
+          if (mcrRatio.lt(new BN(maxPercentage).muln(400))) {
+            nxmOut = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+          } else {
+            const nxmOutDecimal = calculatePurchasedTokensWithFullIntegral(initialAssetValue, buyValue, mcrEth);
+            nxmOut = new BN(nxmOutDecimal.toString());
+          }
+
+          const totalAssetValueAtSellTime = totalAssetValue.add(buyValue);
+          const ethOutBN = await pool1.calculateEthForNXM(nxmOut, totalAssetValueAtSellTime, mcrEth);
+          const ethOut = Decimal(ethOutBN.toString());
+
+          const expectedEthOut = Decimal(buyValue.toString()).mul(Decimal(1).sub(sellSpread));
+
+          const relativeErrorForSell = expectedEthOut.sub(ethOut).abs().div(expectedEthOut);
+          console.log({ relativeError: relativeErrorForSell.toString() });
+
+          assert(
+            relativeErrorForSell.lt(maxRelativeError),
+            `Resulting eth value ${ethOut.toFixed()} is not close enough to expected ${expectedEthOut.toFixed()}
+              Relative error: ${relativeErrorForSell}`,
+          );
+
+          totalAssetValue = totalAssetValue.add(poolBalanceStep);
+          mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
+        }
 
         if (buyValue.eq(buyValueUpperBound)) {
           break;

@@ -22,7 +22,7 @@ async function setupAll () {
   this.contracts = await setup({ MCR, Pool1 });
 }
 
-describe.only('buyNXM', function () {
+describe('buyNXM', function () {
 
   before(setupAll);
 
@@ -52,19 +52,19 @@ describe.only('buyNXM', function () {
         let totalAssetValue = initialAssetValue;
         let mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
         console.log({
-          mcrRatio: mcrRatio.toString()
+          mcrRatio: mcrRatio.toString(),
         });
         while (mcrRatio.lt(new BN(maxPercentage).muln(100))) {
           console.log({
             mcrRatio: mcrRatio.toString(),
             mcrEth: mcrEth.toString(),
             totalAssetValue: totalAssetValue.toString(),
-            buyValue: totalAssetValue.toString()
+            buyValue: totalAssetValue.toString(),
           });
           const nxmOut = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
 
           const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
-            totalAssetValue, buyValue, mcrEth
+            totalAssetValue, buyValue, mcrEth,
           );
           const nxmOutDecimal = Decimal(nxmOut.toString());
           const relativeError = expectedIdealTokenValue.sub(nxmOutDecimal).abs().div(expectedIdealTokenValue);

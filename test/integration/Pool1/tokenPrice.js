@@ -1,18 +1,20 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { BN, toBN } = web3.utils;
-const { calculateEthForNXMRelativeError, calculateNXMForEthRelativeError, calculateMCRRatio } = require('../utils').tokenPrice;
 const Decimal = require('decimal.js');
+const { toBN } = web3.utils;
 
+const {
+  calculateEthForNXMRelativeError,
+  calculateNXMForEthRelativeError,
+  calculateMCRRatio,
+} = require('../utils').tokenPrice;
+
+const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
-const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
 
-const tokensLockedForVoting = ether('200');
-const validity = 360 * 24 * 60 * 60; // 360 days
-const UNLIMITED_ALLOWANCE = toBN('2').pow(toBN('256')).subn(1);
-const initialMemberFunds = ether('2500');
+const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -25,28 +27,11 @@ const coverTemplate = {
   contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
 };
 
-async function initMembers () {
+describe('Token price functions', function () {
 
-  const { mr, tk, tc } = this.contracts;
-  const members = [member1, member2, member3, coverHolder];
-
-  for (const member of members) {
-    await mr.payJoiningFee(member, { from: member, value: ether('0.002') });
-    await mr.kycVerdict(member, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
-    await tk.transfer(member, initialMemberFunds);
-  }
-
-  for (const member of members) {
-    await tc.lock(hex('CLA'), tokensLockedForVoting, validity, { from: member });
-  }
-}
-
-describe.only('Token price functions', function () {
-
-  this.timeout(0);
-  this.slow(5000);
-  beforeEach(initMembers);
+  beforeEach(async function () {
+    await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
+  });
 
   it('buyNXM reverts for non-member', async function () {
     const { p1: pool1 } = this.contracts;
@@ -80,13 +65,10 @@ describe.only('Token price functions', function () {
   it('sellNXM reverts for member if tokens are locked for member vote', async function () {
     const { cd: claimsData, cl: claims, qd: quotationData, p1: pool1, tk: token, master } = this.contracts;
     const cover = { ...coverTemplate };
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
 
     const buyValue = ether('1000');
-    await pool1.buyNXM('0', {
-      from: member1,
-      value: buyValue,
-    });
-
+    await pool1.buyNXM('0', { from: member1, value: buyValue });
     const boughtTokenAmount = await token.balanceOf(member1);
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -131,16 +113,13 @@ describe.only('Token price functions', function () {
 
     const member = member1;
     const preBuyBalance = await token.balanceOf(member);
-    const tx = await pool1.buyNXM(expectedTokensReceived, {
-      from: member,
-      value: buyValue,
-    });
+    await pool1.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
     assert.equal(tokensReceived.toString(), expectedTokensReceived.toString());
 
-    const maxRelativeError = Decimal(0.0006);
+    const maxRelativeError = new Decimal(0.0006);
     const { relativeError } = calculateNXMForEthRelativeError(totalAssetValue, buyValue, mcrEth, tokensReceived);
     assert(relativeError.lt(maxRelativeError), `Relative error too high ${relativeError.toString()} > ${maxRelativeError.toFixed()}`);
   });
@@ -170,9 +149,9 @@ describe.only('Token price functions', function () {
     assert(tokensTakenAway.toString(), nxmAmount.toString());
     assert(tokensBurned.toString(), nxmAmount.toString());
 
-    const ethOut = new BN(postSellEthBalance).sub(new BN(preSellEthBalance));
+    const ethOut = toBN(postSellEthBalance).sub(toBN(preSellEthBalance));
 
-    const maxRelativeError = Decimal(0.0002);
+    const maxRelativeError = new Decimal(0.0002);
     const { relativeError } = calculateEthForNXMRelativeError(ethIn, ethOut);
 
     assert(
@@ -224,7 +203,7 @@ describe.only('Token price functions', function () {
     const { p1: pool1, dai } = this.contracts;
     const { daiToEthRate } = this.rates;
 
-    const pool1Balance = new BN(await web3.eth.getBalance(pool1.address));
+    const pool1Balance = toBN(await web3.eth.getBalance(pool1.address));
     const daiBalance = await dai.balanceOf(pool1.address);
     const expectedDAiValueInEth = daiToEthRate.mul(daiBalance).div(ether('1'));
     const expectedTotalAssetValue = pool1Balance.add(expectedDAiValueInEth);

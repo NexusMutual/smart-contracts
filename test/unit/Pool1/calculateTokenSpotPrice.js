@@ -2,7 +2,7 @@ const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { getTokenSpotPrice } = require('../utils').tokenPrice;
-const BN = web3.utils.BN;
+const { BN } = web3.utils;
 
 describe('calculateTokenSpotPrice', function () {
 

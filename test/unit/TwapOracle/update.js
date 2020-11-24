@@ -2,7 +2,7 @@ const { artifacts, web3 } = require('hardhat');
 const { assert } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
 
-const { setNextBlockTime } = require('../utils').hardhat;
+const { setNextBlockTime } = require('../utils').evm;
 const { contracts } = require('./setup');
 const { toBN } = web3.utils;
 

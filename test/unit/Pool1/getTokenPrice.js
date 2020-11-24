@@ -3,12 +3,10 @@ const { assert } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
 const { getTokenSpotPrice, calculateMCRRatio } = require('../utils').tokenPrice;
 const { hex } = require('../utils').helpers;
-const BN = web3.utils.BN;
 const { accounts } = require('../utils');
 
-const {
-  nonMembers: [fundSource],
-} = accounts;
+const { BN } = web3.utils;
+const { nonMembers: [fundSource] } = accounts;
 
 describe('getTokenPrice', function () {
 
@@ -28,7 +26,7 @@ describe('getTokenPrice', function () {
   });
 
   it('calculates token price correctly in DAI', async function () {
-    const { pool1, poolData, chainlinkAggregators } = this;
+    const { pool1, poolData, chainlinkDAI } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
@@ -39,7 +37,7 @@ describe('getTokenPrice', function () {
     await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
     await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
 
-    await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
+    await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
     const expectedEthPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
     const expectedPrice = new BN(expectedEthPrice.toFixed()).mul(ether('1')).div(daiToEthRate);

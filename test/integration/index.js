@@ -1,22 +1,21 @@
-const snapshot = require('./utils').snapshot;
+const { takeSnapshot, revertToSnapshot, reset } = require('./utils').evm;
 const setup = require('./setup');
 
 describe('INTEGRATION TESTS', function () {
 
-  this.timeout(0);
-  this.slow(5000);
-
+  before(reset);
   before(setup);
 
   beforeEach(async function () {
-    this.snapshotId = await snapshot.takeSnapshot();
+    this.snapshotId = await takeSnapshot();
   });
 
   afterEach(async function () {
-    await snapshot.revertToSnapshot(this.snapshotId);
+    await revertToSnapshot(this.snapshotId);
   });
 
   require('./ClaimPayoutAddress');
   require('./PooledStaking');
   require('./Pool1');
+
 });

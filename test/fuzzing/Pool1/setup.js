@@ -1,15 +1,9 @@
 const { ether } = require('@openzeppelin/test-helpers');
 const { web3, artifacts } = require('hardhat');
 const { hex } = require('../../unit/utils').helpers;
-const { BN } = web3.utils;
 const { accounts } = require('../../unit/utils');
 
 const { Role } = require('../../unit/utils').constants;
-
-const {
-  nonMembers: [fundSource],
-  members: [member1, member2],
-} = accounts;
 
 const MasterMock = artifacts.require('MasterMock');
 const PoolData = artifacts.require('P1MockPoolData');
@@ -29,9 +23,8 @@ async function setup ({ MCR, Pool1 }) {
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
-  const chainlinkAggregators = {};
-  chainlinkAggregators['DAI'] = await P1MockChainlinkAggregator.new();
-  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
+  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
@@ -89,7 +82,7 @@ async function setup ({ MCR, Pool1 }) {
     poolData,
     tokenData,
     tokenController,
-    chainlinkAggregators,
+    chainlinkDAI,
   };
 }
 

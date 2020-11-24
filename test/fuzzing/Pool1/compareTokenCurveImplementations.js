@@ -6,7 +6,7 @@ const { BN } = web3.utils;
 const Decimal = require('decimal.js');
 const { accounts } = require('../../unit/utils');
 const { setupContractState } = require('./utils');
-const { calculatePurchasedTokensWithFullIntegral, toDecimal } = require('../../unit/utils').tokenPrice;
+const { calculatePurchasedTokensWithFullIntegral, toDecimal } = require('../utils').tokenPrice;
 const setup = require('./setup');
 
 const {
@@ -216,7 +216,7 @@ async function setupBothImplementations () {
   this.old = await setup({ MCR: P1MockOldMCR, Pool1: P1MockOldPool1 });
 }
 
-describe.only('compareTokenCurveImplementations', function () {
+describe('compareTokenCurveImplementations', function () {
 
   const daiRate = new BN('39459');
   const ethRate = new BN('100');

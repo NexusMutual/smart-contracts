@@ -82,10 +82,8 @@ async function setup () {
   await dai.transfer(exchange.address, EXCHANGE_TOKEN);
   await exchange.recieveEther({ value: EXCHANGE_ETHER });
 
-  const chainlinkAggregators = {};
-  chainlinkAggregators['DAI'] = await P1MockChainlinkAggregator.new();
-
-  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
+  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
   // regular contracts
   const cl = await Claims.new();
@@ -227,7 +225,7 @@ async function setup () {
   const ethToDaiRate = 20000;
 
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
-  await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
+  await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
   const poolValueInEth = await p1.getPoolValueInEth();
   const mcrEth = ether('50000');
@@ -249,7 +247,7 @@ async function setup () {
     true,
   );
 
-  const external = { dai, dsv, factory, exchange, chainlinkAggregators };
+  const external = { dai, dsv, factory, exchange, chainlinkDAI };
   const nonUpgradable = { cp, qd, td, cd, pd };
   const instances = { tk, qt, tf, cl, cr, p1, p2, mcr: mc };
   const proxies = { tc, gv, pc, mr, ps };

@@ -1,7 +1,7 @@
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { calculateMCRRatio } = require('../utils').tokenPrice;
-const BN = web3.utils.BN;
+const { BN } = web3.utils;
 
 describe('getMCRRatio', function () {
 

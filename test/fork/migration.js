@@ -20,7 +20,7 @@ const Quotation = artifacts.require('Quotation');
 const TokenController = artifacts.require('TokenController');
 const UpgradeabilityProxy = artifacts.require('UpgradeabilityProxy');
 
-const BN = web3.utils.BN;
+const { BN } = web3.utils;
 const directWeb3 = new Web3(process.env.TEST_ENV_FORK);
 
 const newContractAddressUpgradeCategoryId = 29;

@@ -58,7 +58,6 @@ const holders = [
 ];
 
 describe.only('NXM sells and buys', function () {
-  this.timeout(0);
 
   it('performs contract upgrades', async function () {
     const versionData = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());

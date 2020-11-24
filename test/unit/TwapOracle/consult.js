@@ -3,7 +3,7 @@ const { assert } = require('chai');
 const { ether, expectRevert } = require('@openzeppelin/test-helpers');
 
 const { contracts } = require('./setup');
-const { setNextBlockTime, mineNextBlock } = require('../utils').hardhat;
+const { setNextBlockTime, mineNextBlock } = require('../utils').evm;
 
 const { toBN } = web3.utils;
 const [owner] = accounts;

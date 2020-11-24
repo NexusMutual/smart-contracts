@@ -1,6 +1,6 @@
 const { accounts, artifacts, web3 } = require('hardhat');
 
-const { impersonateAccount } = require('../utils').hardhat;
+const { impersonateAccount } = require('../utils').evm;
 const { ether } = require('@openzeppelin/test-helpers');
 
 // actual uniswap addresses on all chains

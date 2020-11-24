@@ -1,19 +1,15 @@
-
 const { ether } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
-const { accounts } = require('../utils');
-const { setupContractState, assertSell } = require('./utils');
-const { calculatePurchasedTokensWithFullIntegral, calculateMCRRatio, percentageBN, sellSpread } = require('../../unit/utils').tokenPrice;
-const { hex } = require('../utils').helpers;
-const snapshot = require('../utils').snapshot;
 const setup = require('./setup');
 
 const {
-  nonMembers: [fundSource],
-  members: [memberOne],
-} = accounts;
+  calculatePurchasedTokensWithFullIntegral,
+  calculateMCRRatio,
+  percentageBN,
+  sellSpread,
+} = require('../utils').tokenPrice;
 
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
@@ -26,12 +22,10 @@ describe('sellNXM', function () {
 
   before(setupAll);
 
-  const daiRate = new BN('39459');
-  const ethRate = new BN('100');
   const maxPercentage = 400;
 
   it('burns tokens from member in exchange for 5% of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
-    const { pool1, poolData, token, tokenData, mcr, tokenController, chainlinkAggregators } = this.contracts;
+    const { pool1 } = this.contracts;
 
     let mcrEth = ether('8000');
     const upperBound = ether(1e8.toString());

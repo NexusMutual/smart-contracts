@@ -1,16 +1,17 @@
+const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
-const snapshot = require('../utils').snapshot;
 
-describe.only('Pool1 unit tests', function () {
+describe('Pool1 unit tests', function () {
 
+  before(reset);
   before(setup);
 
   beforeEach(async function () {
-    this.snapshotId = await snapshot.takeSnapshot();
+    this.snapshotId = await takeSnapshot();
   });
 
   afterEach(async function () {
-    await snapshot.revertToSnapshot(this.snapshotId);
+    await revertToSnapshot(this.snapshotId);
   });
 
   require('./calculateTokenSpotPrice');

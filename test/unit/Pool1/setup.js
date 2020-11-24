@@ -26,12 +26,12 @@ async function setup () {
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
-  const chainlinkAggregators = {};
-  chainlinkAggregators['DAI'] = await P1MockChainlinkAggregator.new();
   const ethToDaiRate = new BN((394.59 * 1e18).toString());
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
-  await chainlinkAggregators['DAI'].setLatestAnswer(daiToEthRate);
-  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkAggregators['DAI'].address], dai.address);
+
+  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  await chainlinkDAI.setLatestAnswer(daiToEthRate);
+  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
   const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
   const tokenData = await TokenData.new(accounts.notariseAddress);
@@ -89,7 +89,7 @@ async function setup () {
   this.tokenData = tokenData;
   this.tokenController = tokenController;
   this.dai = dai;
-  this.chainlinkAggregators = chainlinkAggregators;
+  this.chainlinkDAI = chainlinkDAI;
 }
 
 module.exports = setup;

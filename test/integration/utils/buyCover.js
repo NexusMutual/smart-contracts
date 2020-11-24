@@ -1,18 +1,20 @@
-const { getQuoteValues } = require('./getQuote');
+const { getSignedQuote } = require('./getQuote');
 
 function coverToCoverDetailsArray (cover) {
   return [cover.amount, cover.price, cover.priceNXM, cover.expireTime, cover.generationTime];
 }
 
 async function buyCover ({ cover, coverHolder, qt, p1 }) {
-  const vrsData = await getQuoteValues(
+
+  const vrsData = await getSignedQuote(
     coverToCoverDetailsArray(cover),
     cover.currency,
     cover.period,
     cover.contractAddress,
     qt.address,
   );
-  await p1.makeCoverBegin(
+
+  return p1.makeCoverBegin(
     cover.contractAddress,
     cover.currency,
     coverToCoverDetailsArray(cover),

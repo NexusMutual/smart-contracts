@@ -3,6 +3,7 @@ const { ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { BN, toBN } = web3.utils;
 
+const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 
@@ -13,31 +14,8 @@ const [
   coverHolder,
 ] = accounts;
 
+const stakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
 const tokensLockedForVoting = ether('200');
-const validity = 360 * 24 * 60 * 60; // 360 days
-const UNLIMITED_ALLOWANCE = toBN('2').pow(toBN('256')).subn(1);
-const initialMemberFunds = ether('2500');
-
-async function initMembers () {
-
-  const { mr, tk, tc } = this.contracts;
-
-  this.allStakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
-  const members = [member1, member2, member3, ...this.allStakers, coverHolder];
-
-  for (const member of members) {
-    await mr.payJoiningFee(member, { from: member, value: ether('0.002') });
-    await mr.kycVerdict(member, true);
-    await tk.approve(tc.address, UNLIMITED_ALLOWANCE, { from: member });
-    await tk.transfer(member, initialMemberFunds);
-  }
-
-  for (const member of members) {
-    await tc.lock(hex('CLA'), tokensLockedForVoting, validity, { from: member });
-  }
-
-  this.allMembers = members;
-}
 
 async function submitMemberVotes ({ cd, td, cl, voteValue, maxVotingMembers }) {
 
@@ -88,11 +66,15 @@ async function closeClaim ({ cl, cd, master, now, expectedClaimStatusNumber }) {
 
 describe('burns', function () {
 
-  before(initMembers);
+  beforeEach(async function () {
+    const members = [member1, member2, member3, ...stakers, coverHolder];
+    await enrollMember(this.contracts, members);
+    await enrollClaimAssessor(this.contracts, members, { lockTokens: tokensLockedForVoting });
+  });
 
   it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
 
-    const { ps, tk, td, qd, cl, mcr, tc, p1 } = this.contracts;
+    const { ps, tk, td, qd, cl, tc, p1 } = this.contracts;
 
     const currency = hex('ETH');
     const cover = {
@@ -178,7 +160,7 @@ describe('burns', function () {
     const stakeTokens = ether('20');
     const { ps, tk, td, qd, cl, p1, tc } = this.contracts;
 
-    for (const staker of this.allStakers) {
+    for (const staker of stakers) {
       await tk.approve(tc.address, stakeTokens, {
         from: staker,
       });
@@ -200,7 +182,7 @@ describe('burns', function () {
     const coverPrice = new BN(cover.priceNXM);
     const expectedRewardPerStaker = coverPrice
       .mul(new BN(stakerRewardPercentage))
-      .div(new BN(100)).div(new BN(this.allStakers.length));
+      .div(new BN(100)).div(new BN(stakers.length));
 
     assert.equal(rewardValue.toString(), expectedRewardPerStaker.toString());
 
@@ -223,7 +205,7 @@ describe('burns', function () {
     const stakedOnContract = await ps.contractStake(cover.contractAddress);
     let expectedBurnedNXMAmount = ether('0');
 
-    for (const staker of this.allStakers) {
+    for (const staker of stakers) {
       const stakerStake = await ps.stakerContractStake(staker, cover.contractAddress);
       const stakerBurn = stakerStake.mul(pushedBurnAmount).div(stakedOnContract);
       expectedBurnedNXMAmount = expectedBurnedNXMAmount.add(stakerBurn);

@@ -46,9 +46,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
-describe.only('rewards migration', function () {
-
-  this.timeout(0);
+describe('rewards migration', function () {
 
   it('performs contract upgrades', async function () {
 

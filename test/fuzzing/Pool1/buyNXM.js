@@ -1,19 +1,14 @@
-
-const { ether, expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { BN } = web3.utils;
 const Decimal = require('decimal.js');
-const { accounts } = require('../utils');
-const { calculatePurchasedTokensWithFullIntegral, calculateMCRRatio } = require('../../unit/utils').tokenPrice;
-const { hex } = require('../utils').helpers;
-const snapshot = require('../utils').snapshot;
 const setup = require('./setup');
 
 const {
-  nonMembers: [fundSource],
-  members: [member1],
-} = accounts;
+  calculatePurchasedTokensWithFullIntegral,
+  calculateMCRRatio,
+} = require('../utils').tokenPrice;
 
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
@@ -26,12 +21,10 @@ describe('buyNXM', function () {
 
   before(setupAll);
 
-  const daiRate = new BN('39459');
-  const ethRate = new BN('100');
   const maxPercentage = 400;
 
   it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
-    const { pool1, poolData, token, tokenData, mcr, chainlinkAggregators } = this.contracts;
+    const { pool1 } = this.contracts;
 
     let mcrEth = ether('8000');
     const upperBound = ether(1e8.toString());

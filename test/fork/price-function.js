@@ -1,6 +1,8 @@
 const fetch = require('node-fetch');
 const { artifacts, run, web3, accounts, network } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
+const Decimal = require('decimal.js');
+const { toDecimal, calculateRelativeError } = require('../utils').tokenPrice;
 
 const { encode1 } = require('./external');
 const { logEvents, hex } = require('../utils').helpers;
@@ -85,7 +87,7 @@ describe.only('NXM sells and buys', function () {
 
     for (const member of boardMembers) {
       console.log(`Topping up ${member}`);
-      await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100') });
+      await web3.eth.sendTransaction({ from: funder, to: member, value: ether('1000000') });
       await network.provider.request({
         method: 'hardhat_impersonateAccount',
         params: [member]
@@ -119,9 +121,9 @@ describe.only('NXM sells and buys', function () {
 
 
     console.log(`Deploying PriceFeedOracle..`);
-    const assets = [];
-    const aggregators = [];
     const daiAddress = '0x6b175474e89094c44da98b954eedeac495271d0f';
+    const assets = [daiAddress];
+    const aggregators = ['0x773616E4d11A78F511299002da57A0a94577F1f4'];
     const priceFeedOracle = await PriceFeedOracle.new(assets, aggregators, daiAddress);
 
     console.log(`Deploying new Pool..`);
@@ -163,11 +165,22 @@ describe.only('NXM sells and buys', function () {
 
     /* Token spot price checks */
 
-    // const tokenSpotPriceEthAfter = await pool1.getTokenPrice(hex('ETH'));
-    // const tokenSpotPriceDaiAfter = await pool1.getTokenPrice(hex('DAI'));
-    //
-    // assert.equal(tokenSpotPriceEthAfter.toString(), tokenSpotPriceEthBefore.toString());
-    // assert.equal(tokenSpotPriceDaiAfter.toString(), tokenSpotPriceDaiBefore.toString());
+    const tokenSpotPriceEthAfter = await pool1.getTokenPrice(hex('ETH'));
+    const tokenSpotPriceDaiAfter = await pool1.getTokenPrice(hex('DAI'));
+
+    const relativeErrorEthSpotPrice = calculateRelativeError(tokenSpotPriceEthAfter, tokenSpotPriceEthBefore);
+    assert(
+      relativeErrorEthSpotPrice.lt(Decimal(0.0005)),
+      `old token ETH spot price ${tokenSpotPriceEthBefore.toString()} differs too much from ${tokenSpotPriceEthAfter.toString()}
+      relative error; ${relativeErrorEthSpotPrice}`,
+    );
+
+    const relativeErrorDaiSpotPrice = calculateRelativeError(tokenSpotPriceDaiAfter, tokenSpotPriceDaiAfter);
+    assert(
+      relativeErrorDaiSpotPrice.lt(Decimal(0.0005)),
+      `old token DAI spot price ${tokenSpotPriceDaiBefore.toString()} differs too much from ${tokenSpotPriceDaiAfter.toString()}
+      relative error: ${relativeErrorDaiSpotPrice.toString()}`,
+    );
 
     this.firstBoardMember = firstBoardMember;
     this.master = master;
@@ -176,4 +189,16 @@ describe.only('NXM sells and buys', function () {
     this.pooledStaking = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
     this.pool1 = pool1;
   });
-})
+
+  it('performs buys and sells', async function () {
+
+  });
+
+  it('sells down to 100% MCR%', async function () {
+
+  });
+
+  it('buys up to 400% MCR%', async function () {
+
+  });
+});

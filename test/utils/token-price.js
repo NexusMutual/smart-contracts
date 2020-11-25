@@ -98,7 +98,7 @@ function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tok
     totalAssetValue, buyValue, mcrEth,
   );
   const tokensReceived = Decimal(tokenValue.toString());
-  const relativeError = expectedIdealTokenValue.sub(tokensReceived).abs().div(expectedIdealTokenValue);
+  const relativeError = calculateRelativeError(tokensReceived, expectedIdealTokenValue);
 
   return {
     relativeError, expectedIdealTokenValue,
@@ -114,11 +114,23 @@ function calculateNXMForEthRelativeError (totalAssetValue, buyValue, mcrEth, tok
 function calculateEthForNXMRelativeError (buyValue, ethOut) {
   const expectedEthOut = Decimal(buyValue.toString()).mul(Decimal(1).sub(sellSpread));
 
-  const relativeError = expectedEthOut.sub(Decimal(ethOut.toString())).abs().div(expectedEthOut);
+  const relativeError = calculateRelativeError(ethOut, expectedEthOut);
   return {
     relativeError,
     expectedEthOut,
   };
+}
+
+/**
+ *
+ * @param actual { number | string | BN | Decimal }
+ * @param expected { number | string | BN | Decimal }
+ * @returns {Decimal}
+ */
+function calculateRelativeError (actual, expected) {
+  const actualDecimal = toDecimal(actual);
+  const expectedDecimal = toDecimal(expected);
+  return expectedDecimal.sub(actualDecimal).abs().div(expectedDecimal);
 }
 
 /**
@@ -145,6 +157,7 @@ module.exports = {
   calculateMCRRatio,
   calculateNXMForEthRelativeError,
   calculateEthForNXMRelativeError,
+  calculateRelativeError,
   percentageBN,
   toDecimal
 };

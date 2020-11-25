@@ -14,6 +14,7 @@ const [
   coverHolder,
 ] = accounts;
 
+const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const stakers = [staker1, staker2, staker3, staker4, staker5, staker6, staker7, staker8, staker9, staker10];
 const tokensLockedForVoting = ether('200');
 
@@ -130,7 +131,7 @@ describe('burns', function () {
     const balanceAfter = await tk.balanceOf(ps.address);
 
     const totalBurn = balanceBefore.sub(balanceAfter);
-    const tokenPrice = await p1.getTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(ETH);
     const sumAssured = ether(cover.amount.toString());
     const sumAssuredInNxm = sumAssured.mul(ether('1')).div(new BN(tokenPrice));
     const expectedBurnedNXMAmount = staked.lt(sumAssuredInNxm) ? staked : sumAssuredInNxm;
@@ -197,7 +198,7 @@ describe('burns', function () {
     await ps.processPendingActions('100');
     const balanceAfter = await tk.balanceOf(ps.address);
 
-    const tokenPrice = await p1.getTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(ETH);
     const sumAssured = new BN(ether(cover.amount.toString()));
     const actualBurn = balanceBefore.sub(balanceAfter);
 
@@ -307,7 +308,7 @@ describe('burns', function () {
     await ps.processPendingActions('100');
     assert.isFalse(await ps.hasPendingActions());
 
-    const tokenPrice = await p1.getTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(ETH);
     const sumAssured = new BN(ether(cover.amount.toString()));
     const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
 
@@ -368,7 +369,7 @@ describe('burns', function () {
     const claimStatus = await cd.getClaimStatusNumber(claimId);
     assert.equal(claimStatus.statno.toString(), '14');
 
-    const tokenPrice = await p1.getTokenPrice(currency);
+    const tokenPrice = await p1.getTokenPrice(ETH);
     const sumAssured = new BN(ether(cover.amount.toString()));
     const expectedBurnedNXMAmount = sumAssured.mul(new BN(ether('1'))).div(new BN(tokenPrice));
 

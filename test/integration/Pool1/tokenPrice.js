@@ -39,7 +39,7 @@ describe('Token price functions', function () {
     const buyValue = ether('10');
     await expectRevert(
       pool1.buyNXM('0', { from: nonMember1, value: buyValue }),
-      'Not member',
+      'Caller is not a member',
     );
   });
 
@@ -48,7 +48,7 @@ describe('Token price functions', function () {
 
     await expectRevert(
       pool1.sellNXM('1', '0', { from: nonMember1 }),
-      'Not member',
+      'Caller is not a member',
     );
   });
 
@@ -164,9 +164,10 @@ describe('Token price functions', function () {
     const { p1: pool1, mcr, pd } = this.contracts;
     const { ethEthRate, ethToDaiRate } = this.rates;
 
+    const ETH = await pool1.ETH();
     const buyValue = ether('1000');
     const expectedNXMOutPreMCRPosting = await pool1.getNXMForEth(buyValue);
-    const spotTokenPricePreMCRPosting = await pool1.getTokenPrice(hex('ETH'));
+    const spotTokenPricePreMCRPosting = await pool1.getTokenPrice(ETH);
     const currentPoolValue = await pool1.getPoolValueInEth();
 
     // post a higher MCR raising the price
@@ -184,7 +185,7 @@ describe('Token price functions', function () {
       20200103,
     );
 
-    const spotTokenPricePostMCRPosting = await pool1.getTokenPrice(hex('ETH'));
+    const spotTokenPricePostMCRPosting = await pool1.getTokenPrice(ETH);
     const expectedNXMOutPostMCRPosting = await pool1.getNXMForEth(buyValue);
 
     assert(
@@ -214,6 +215,6 @@ describe('Token price functions', function () {
   it('getMCRRatio calculates MCR ratio correctly', async function () {
     const { p1: pool1 } = this.contracts;
     const mcrRatio = await pool1.getMCRRatio();
-    assert.equal(mcrRatio.toString(), '21333');
+    assert.equal(mcrRatio.toString(), '20000');
   });
 });

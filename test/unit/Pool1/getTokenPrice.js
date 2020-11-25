@@ -2,7 +2,6 @@ const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { ether } = require('@openzeppelin/test-helpers');
 const { getTokenSpotPrice, calculateMCRRatio } = require('../utils').tokenPrice;
-const { hex } = require('../utils').helpers;
 const { accounts } = require('../utils');
 
 const { BN } = web3.utils;
@@ -12,6 +11,7 @@ describe('getTokenPrice', function () {
 
   it('calculates token price correctly in ETH', async function () {
     const { pool1, poolData } = this;
+    const ETH = await pool1.ETH();
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
@@ -21,12 +21,12 @@ describe('getTokenPrice', function () {
     await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     const expectedPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
-    const price = await pool1.getTokenPrice(hex('ETH'));
+    const price = await pool1.getTokenPrice(ETH);
     assert.equal(price.toString(), expectedPrice.toFixed());
   });
 
   it('calculates token price correctly in DAI', async function () {
-    const { pool1, poolData, chainlinkDAI } = this;
+    const { pool1, poolData, chainlinkDAI, dai } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
@@ -41,7 +41,7 @@ describe('getTokenPrice', function () {
 
     const expectedEthPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
     const expectedPrice = new BN(expectedEthPrice.toFixed()).mul(ether('1')).div(daiToEthRate);
-    const price = await pool1.getTokenPrice(hex('DAI'));
+    const price = await pool1.getTokenPrice(dai.address);
     assert.equal(price.toString(), expectedPrice.toString());
   });
 });

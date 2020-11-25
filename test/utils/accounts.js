@@ -10,7 +10,6 @@ const governanceContracts = accounts.slice(25, 30);
 const notariseAddress = accounts[30];
 const generalPurpose = accounts.slice(35); // 75 general purpose addresses
 
-
 module.exports = {
   defaultSender,
   nonMembers,

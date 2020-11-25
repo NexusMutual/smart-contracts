@@ -5,24 +5,25 @@ const { Role } = require('../utils').constants;
 const accounts = require('../utils').accounts;
 const { hex } = require('../utils').helpers;
 
-const MasterMock = artifacts.require('MasterMock');
-const PoolData = artifacts.require('P1MockPoolData');
-const TokenData = artifacts.require('TokenData');
-const TokenController = artifacts.require('TokenControllerMock');
-const TokenMock = artifacts.require('NXMTokenMock');
-const Pool1 = artifacts.require('Pool1');
-const MCR = artifacts.require('MCR');
-const ERC20Mock = artifacts.require('ERC20Mock');
-const TokenFunctions = artifacts.require('TokenFunctions');
-const PriceFeedOracle = artifacts.require('PriceFeedOracle');
-const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 const { BN } = web3.utils;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 async function setup () {
 
-  const master = await MasterMock.new();
+  const MasterMock = artifacts.require('MasterMock');
+  const PoolData = artifacts.require('P1MockPoolData');
+  const TokenData = artifacts.require('TokenData');
+  const TokenController = artifacts.require('TokenControllerMock');
+  const TokenMock = artifacts.require('NXMTokenMock');
+  const Pool1 = artifacts.require('Pool1');
+  const MCR = artifacts.require('MCR');
+  const ERC20Mock = artifacts.require('ERC20Mock');
+  const TokenFunctions = artifacts.require('TokenFunctions');
+  const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+  const SwapAgent = artifacts.require('SwapAgent');
+  const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 
-  const daiFeedAddress = '0x0000000000000000000000000000000000000001';
+  const master = await MasterMock.new();
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
@@ -33,9 +34,22 @@ async function setup () {
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
-  const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
+  const swapAgent = await SwapAgent.new();
+  Pool1.link(swapAgent);
+
+  const poolData = await PoolData.new();
   const tokenData = await TokenData.new(accounts.notariseAddress);
-  const pool1 = await Pool1.new(priceFeedOracle.address);
+  const pool1 = await Pool1.new(
+    [dai.address], // assets
+    [0], // min
+    [0], // max
+    [ether('0.01')], // maxSlippage 1%
+    accounts.defaultSender, // master: it is changed a few lines below
+    priceFeedOracle.address,
+    ZERO_ADDRESS, // we do not test swaps here
+    ZERO_ADDRESS, // swap controller, not used here
+  );
+
   const token = await TokenMock.new();
   const mcr = await MCR.new();
   const tokenController = await TokenController.new();

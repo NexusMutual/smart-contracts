@@ -26,7 +26,7 @@ task('typechain', async (_, { config }) => {
 });
 
 const forkURL = process.env.TEST_ENV_FORK;
-const forkConfig = forkURL ? { url: forkURL } : {};
+const forkConfig = forkURL ? { forking: { url: forkURL } } : {};
 
 module.exports = {
 

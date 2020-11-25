@@ -16,6 +16,7 @@ const {
 
 const Pool1 = artifacts.require('Pool1');
 const MCR = artifacts.require('MCR');
+const SwapAgent = artifacts.require('SwapAgent');
 const P1MockOldMCR = artifacts.require('P1MockOldMCR');
 const P1MockOldPool1 = artifacts.require('P1MockOldPool1');
 
@@ -23,6 +24,10 @@ async function compareBuyValues (
   { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
     daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
 ) {
+
+  const ETH = await current.pool1.ETH();
+  const DAI = current.dai.address;
+
   await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old, fetchStoredState: false },
   );
@@ -35,11 +40,11 @@ async function compareBuyValues (
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
     const preBuyBalanceMember1 = await current.token.balanceOf(member1);
 
-    const tokenSpotPriceEthCurrentSystem = await current.pool1.getTokenPrice(hex('ETH'));
+    const tokenSpotPriceEthCurrentSystem = await current.pool1.getTokenPrice(ETH);
     const tokenSpotPriceEthOldSystem = await old.mcr.calculateTokenPrice(hex('ETH'));
     assert.equal(tokenSpotPriceEthCurrentSystem.toString(), tokenSpotPriceEthOldSystem.toString());
 
-    const tokenSpotPriceDaiCurrentSystem = await current.pool1.getTokenPrice(hex('DAI'));
+    const tokenSpotPriceDaiCurrentSystem = await current.pool1.getTokenPrice(DAI);
     const tokenSpotPriceDaiOldSystem = await old.mcr.calculateTokenPrice(hex('DAI'));
     const relativeErrorDaiSpotPrice = toDecimal(tokenSpotPriceDaiOldSystem)
       .sub(toDecimal(tokenSpotPriceDaiCurrentSystem))
@@ -95,7 +100,9 @@ async function compareBuyValues (
         value: extraStepValue,
       });
     }
-    ({ totalAssetValue, mcrPercentage: mcrRatio } = await current.mcr.calVtpAndMCRtp());
+
+    totalAssetValue = await current.pool1.getPoolValueInEth();
+    mcrRatio = await current.pool1.getMCRRatio();
   }
   console.log({
     highestRelativeError: highestRelativeError,
@@ -212,6 +219,8 @@ async function compareSellValues (
 }
 
 async function setupBothImplementations () {
+  const swapAgent = await SwapAgent.new();
+  Pool1.link(swapAgent);
   this.current = await setup({ MCR, Pool1 });
   this.old = await setup({ MCR: P1MockOldMCR, Pool1: P1MockOldPool1 });
 }

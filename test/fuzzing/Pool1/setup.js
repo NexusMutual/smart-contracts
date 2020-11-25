@@ -1,9 +1,10 @@
 const { ether } = require('@openzeppelin/test-helpers');
-const { web3, artifacts } = require('hardhat');
+const { artifacts } = require('hardhat');
 const { hex } = require('../../unit/utils').helpers;
 const { accounts } = require('../../unit/utils');
 
 const { Role } = require('../../unit/utils').constants;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const MasterMock = artifacts.require('MasterMock');
 const PoolData = artifacts.require('P1MockPoolData');
@@ -18,17 +19,25 @@ const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator')
 async function setup ({ MCR, Pool1 }) {
 
   const master = await MasterMock.new();
-
-  const daiFeedAddress = '0x0000000000000000000000000000000000000001';
   const mockP2Address = '0x0000000000000000000000000000000000000012';
   const dai = await ERC20Mock.new();
 
   const chainlinkDAI = await P1MockChainlinkAggregator.new();
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
-  const poolData = await PoolData.new(accounts.notariseAddress, daiFeedAddress, dai.address);
+  const poolData = await PoolData.new();
   const tokenData = await TokenData.new(accounts.notariseAddress);
-  const pool1 = await Pool1.new(priceFeedOracle.address);
+  const pool1 = await Pool1.new(
+    [dai.address],
+    [0], // min
+    [0], // max
+    [0], // max slippage
+    accounts.defaultSender, // master: it is changed a few lines below
+    priceFeedOracle.address,
+    ZERO_ADDRESS, // twap
+    ZERO_ADDRESS, // swap controller
+  );
+
   const token = await TokenMock.new();
   const mcr = await MCR.new();
   const tokenController = await TokenController.new();
@@ -83,6 +92,7 @@ async function setup ({ MCR, Pool1 }) {
     tokenData,
     tokenController,
     chainlinkDAI,
+    dai,
   };
 }
 

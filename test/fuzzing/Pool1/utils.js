@@ -17,7 +17,8 @@ async function setupContractState ({
   fetchStoredState = true,
 }) {
 
-  const { _a: a, _c: c } = await poolData.getTokenPriceDetails(hex('ETH'));
+  const a = new BN('5800000');
+  const c = new BN('1028' + '0'.repeat(13)); // 1028 * 1e13
   const tokenExponent = await tokenData.tokenExponent();
 
   const MCR_RATIO_DECIMALS = 4;
@@ -35,8 +36,7 @@ async function setupContractState ({
   const daiToEthRate = new BN(10).pow(new BN(36)).div(ethToDaiRate);
   await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
-  const date = new Date().getTime();
-  await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, date);
+  await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
 
   const stateValues = { a, c, tokenExponent };
 

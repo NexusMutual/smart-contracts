@@ -295,5 +295,12 @@ describe.only('NXM sells and buys', function () {
         tokenSpotPriceDai: tokenSpotPriceDai.div(ether('1')).toString(),
       });
     }
+
+    const mcrEth = await poolData.getLastMCREther();
+    const maxBuy = percentageBN(mcrEth, 4.95);
+    await expectRevert(
+      pool1.buyNXM('0', { from: holder, value: maxBuy }),
+      `Pool: Cannot purchase if MCR% > 400%`,
+    );
   });
 });

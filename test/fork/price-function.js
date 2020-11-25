@@ -54,7 +54,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
 
 const holders = [
   '0xd7cba5b9a0240770cfd9671961dae064136fa240',
-  '0xd1bda2c21d73ee31a0d3fdcd64b0d7c4bce6d021'
+  '0xd1bda2c21d73ee31a0d3fdcd64b0d7c4bce6d021',
 ];
 
 describe.only('NXM sells and buys', function () {
@@ -98,7 +98,7 @@ describe.only('NXM sells and buys', function () {
       await web3.eth.sendTransaction({ from: funder, to: member, value: ether('1000000') });
       await network.provider.request({
         method: 'hardhat_impersonateAccount',
-        params: [member]
+        params: [member],
       });
     }
 
@@ -126,7 +126,6 @@ describe.only('NXM sells and buys', function () {
 
     console.log(`Deploying new MCR..`);
     const newMCR = await MCR.new({ from: firstBoardMember });
-
 
     console.log(`Deploying PriceFeedOracle..`);
     const daiAddress = '0x6b175474e89094c44da98b954eedeac495271d0f';
@@ -209,14 +208,14 @@ describe.only('NXM sells and buys', function () {
     const balancePre = await token.balanceOf(holder);
     await pool1.buyNXM('0', {
       value: maxBuy,
-      from: holder
+      from: holder,
     });
     const balancePost = await token.balanceOf(holder);
     const nxmOut = balancePost.sub(balancePre);
 
     const balancePreSell = await web3.eth.getBalance(holder);
     const sellTx = await pool1.sellNXM(nxmOut, '0', {
-      from: holder
+      from: holder,
     });
 
     const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
@@ -228,7 +227,7 @@ describe.only('NXM sells and buys', function () {
     assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
     console.log({
       ethOut: toDecimal(ethOut).div(1e18).toString(),
-      ethIn: ethInDecimal.div(1e18).toString()
+      ethIn: ethInDecimal.div(1e18).toString(),
     });
     const { relativeError: sellSpreadRelativeError } = calculateEthForNXMRelativeError(ethInDecimal, ethOut);
     assert(
@@ -249,7 +248,7 @@ describe.only('NXM sells and buys', function () {
       const expectedEthOut = await pool1.getEthForNXM(tokensToSell);
       try {
         await pool1.sellNXM(tokensToSell, '0', {
-          from: holder
+          from: holder,
         });
       } catch (e) {
         assert(mcrRatio.lt(new BN(10050)), `MCR ratio not as low as expected. current value: ${mcrRatio.toString()}`);
@@ -260,7 +259,7 @@ describe.only('NXM sells and buys', function () {
       console.log({
         tokensToSell: tokensToSell.toString(),
         expectedEthOut: toDecimal(expectedEthOut).div(1e18).toString(),
-        mcrRatio: mcrRatio.toString()
+        mcrRatio: mcrRatio.toString(),
       });
     }
 
@@ -282,7 +281,7 @@ describe.only('NXM sells and buys', function () {
       const maxBuy = percentageBN(mcrEth, 4.95);
       await pool1.buyNXM('0', {
         value: maxBuy,
-        from: holder
+        from: holder,
       });
 
       mcrRatio = await pool1.getMCRRatio();
@@ -293,7 +292,7 @@ describe.only('NXM sells and buys', function () {
         maxBuy: maxBuy.div(ether('1')).toString(),
         totalBuyValue: totalBuyValue.div(ether('1')).toString(),
         mcrRatio: mcrRatio.toString(),
-        tokenSpotPriceDai: tokenSpotPriceDai.div(ether('1')).toString()
+        tokenSpotPriceDai: tokenSpotPriceDai.div(ether('1')).toString(),
       });
     }
   });

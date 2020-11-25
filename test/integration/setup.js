@@ -264,7 +264,7 @@ async function setup () {
   this.rates = {
     daiToEthRate,
     ethEthRate,
-    ethToDaiRate
+    ethToDaiRate,
   };
 }
 

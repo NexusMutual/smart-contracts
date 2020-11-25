@@ -1,6 +1,6 @@
 const fetch = require('node-fetch');
 const { artifacts, run, web3, accounts, network } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
+const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
 const { toDecimal, calculateRelativeError, percentageBN, calculateEthForNXMRelativeError } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
@@ -62,12 +62,10 @@ describe.only('NXM sells and buys', function () {
 
   it('performs contract upgrades', async function () {
     const versionData = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
-    console.log(versionData);
     const [{ address: masterAddress }] = versionData.mainnet.abis.filter(({ code }) => code === 'NXMASTER');
     const master = await NXMaster.at(masterAddress);
 
     const { contractsName, contractsAddress } = await master.getVersionData();
-    console.log(contractsName);
 
     const nameToAddressMap = {
       NXMTOKEN: await master.dAppToken(),
@@ -228,6 +226,10 @@ describe.only('NXM sells and buys', function () {
 
     const ethInDecimal = toDecimal(maxBuy);
     assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
+    console.log({
+      ethOut: toDecimal(ethOut).div(1e18).toString(),
+      ethIn: ethInDecimal.div(1e18).toString()
+    });
     const { relativeError: sellSpreadRelativeError } = calculateEthForNXMRelativeError(ethInDecimal, ethOut);
     assert(
       sellSpreadRelativeError.lt(Decimal(0.08)),
@@ -238,7 +240,34 @@ describe.only('NXM sells and buys', function () {
   it('sells down to 100% MCR%', async function () {
     const { poolData, pool1, token } = this;
 
-    mcrRatio = await pool1.getMCRRatio();
+    const tokensToSell = ether('10000');
+    const holder = holders[0];
+
+    let mcrRatio = await pool1.getMCRRatio();
+    while (mcrRatio.gt('100')) {
+
+      const expectedEthOut = await pool1.getEthForNXM(tokensToSell);
+      try {
+        await pool1.sellNXM(tokensToSell, '0', {
+          from: holder
+        });
+      } catch (e) {
+        assert(mcrRatio.lt(new BN(10050)), `MCR ratio not as low as expected. current value: ${mcrRatio.toString()}`);
+        break;
+      }
+
+      mcrRatio = await pool1.getMCRRatio();
+      console.log({
+        tokensToSell: tokensToSell.toString(),
+        expectedEthOut: toDecimal(expectedEthOut).div(1e18).toString(),
+        mcrRatio: mcrRatio.toString()
+      });
+    }
+
+    await expectRevert(
+      pool1.sellNXM(tokensToSell, '0', { from: holder }),
+      `MCR% cannot fall below 100%`,
+    );
   });
 
   it('buys up to 400% MCR%', async function () {
@@ -267,6 +296,5 @@ describe.only('NXM sells and buys', function () {
         tokenSpotPriceDai: tokenSpotPriceDai.div(ether('1')).toString()
       });
     }
-
   });
 });

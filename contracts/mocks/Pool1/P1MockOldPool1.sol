@@ -20,7 +20,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../modules/claims/Claims.sol";
 import "../../modules/cover/Quotation.sol";
 import "../../modules/capital/MCR.sol";
-import "../../modules/capital/Pool2.sol";
 import "../../modules/capital/PoolData.sol";
 import "./P1MockOldMCR.sol";
 
@@ -31,7 +30,6 @@ contract P1MockOldPool1 is Iupgradable {
   NXMToken internal tk;
   TokenController internal tc;
   TokenFunctions internal tf;
-  Pool2 internal p2;
   PoolData internal pd;
   P1MockOldMCR internal m1;
   Claims public c1;
@@ -59,7 +57,6 @@ contract P1MockOldPool1 is Iupgradable {
     tc = TokenController(ms.getLatestAddress("TC"));
     pd = PoolData(ms.getLatestAddress("PD"));
     q2 = Quotation(ms.getLatestAddress("QT"));
-    p2 = Pool2(ms.getLatestAddress("P2"));
     c1 = Claims(ms.getLatestAddress("CL"));
     td = TokenData(ms.getLatestAddress("TD"));
   }
@@ -96,24 +93,6 @@ contract P1MockOldPool1 is Iupgradable {
     tc.burnFrom(msg.sender, _amount);
     msg.sender.transfer(sellingPrice);
     success = true;
-  }
-
-  /**
-   * @dev gives the investment asset balance
-   * @return investment asset balance
-   */
-  function getInvestmentAssetBalance() public view returns (uint balance) {
-    IERC20 erc20;
-    uint currTokens;
-    for (uint i = 1; i < pd.getInvestmentCurrencyLen(); i++) {
-      bytes4 currency = pd.getInvestmentCurrencyByIndex(i);
-      erc20 = IERC20(pd.getInvestmentAssetAddress(currency));
-      currTokens = erc20.balanceOf(address(p2));
-      if (pd.getIAAvgRate(currency) > 0)
-        balance = balance.add((currTokens.mul(100)).div(pd.getIAAvgRate(currency)));
-    }
-
-    balance = balance.add(address(p2).balance);
   }
 
   /**

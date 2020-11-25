@@ -21,6 +21,7 @@ import "../capital/Pool1.sol";
 import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../governance/ProposalCategory.sol";
+import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "./PoolData.sol";
@@ -38,6 +39,7 @@ contract MCR is Iupgradable {
 
   uint private constant minCapFactor = uint(10) ** 21;
 
+  // TODO: Add a constructor to initialize the following parameters
   uint public variableMincap;
   uint public dynamicMincapThresholdx100 = 13000;
   uint public dynamicMincapIncrementx100 = 100;
@@ -81,28 +83,9 @@ contract MCR is Iupgradable {
     _addMCRData(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
   }
 
-  /**
-   * @dev Adds MCR Data for last failed attempt.
-   */
-  function addLastMCRData(uint64 date) external checkPause onlyInternal {
-    uint64 lastdate = uint64(pd.getLastMCRDate());
-    uint64 failedDate = uint64(date);
-    if (failedDate >= lastdate) {
-      uint mcrP;
-      uint mcrE;
-      uint vF;
-      (mcrP, mcrE, vF,) = pd.getLastMCR();
-      uint len = pd.getAllCurrenciesLen();
-      pd.pushMCRData(mcrP, mcrE, vF, date);
-      for (uint j = 0; j < len; j++) {
-        bytes4 currName = pd.getCurrenciesByIndex(j);
-        pd.updateCAAvgRate(currName, pd.getCAAvgRate(currName));
-      }
-
-      emit MCREvent(date, block.number, new bytes4[](0), new uint[](0), mcrE, mcrP, vF);
-      // Oraclize call for next MCR calculation
-      _callOracliseForMCR();
-    }
+  // proxying this call through mcr contract to get rid of pd from pool
+  function getLastMCREther() external view returns (uint) {
+    return pd.getLastMCREther();
   }
 
   /**
@@ -119,27 +102,21 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Gets total sum assured(in ETH).
+   * @dev Gets total sum assured (in ETH).
    * @return amount of sum assured
    */
-  function getAllSumAssurance() public view returns (uint amount) {
-    uint len = pd.getAllCurrenciesLen();
-    for (uint i = 0; i < len; i++) {
-      bytes4 currName = pd.getCurrenciesByIndex(i);
-      if (currName == "ETH") {
-        amount = amount.add(qd.getTotalSumAssured(currName));
-      } else {
-        if (pd.getCAAvgRate(currName) > 0)
-          amount = amount.add((qd.getTotalSumAssured(currName).mul(100)).div(pd.getCAAvgRate(currName)));
-      }
-    }
-  }
+  function getAllSumAssurance() public view returns (uint) {
 
-  // TODO: remove this upon merge with the Pool2 implementation
-  function calVtpAndMCRtp() public view returns (uint totalAssetValue, uint mcrPercentage) {
-    totalAssetValue = p1.getPoolValueInEth();
-    uint mcrEth = pd.getLastMCREther();
-    mcrPercentage = p1.calculateMCRRatio(totalAssetValue, mcrEth);
+    PriceFeedOracle priceFeed = p1.priceFeedOracle();
+    address daiAddress = priceFeed.daiAddress();
+
+    uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);
+    uint daiAmount = qd.getTotalSumAssured("DAI").mul(1e18);
+
+    uint daiRate = priceFeed.getAssetToEthRate(daiAddress);
+    uint daiAmountInEth = daiAmount.mul(daiRate).div(1e18);
+
+    return ethAmount.add(daiAmountInEth);
   }
 
   function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns (uint lowerThreshold, uint upperThreshold)
@@ -154,7 +131,7 @@ contract MCR is Iupgradable {
     }
 
     if (vtp > 0) {
-      lower = totalSA.mul(1e18).mul(pd.shockParameter()).div(100);
+      lower = totalSA.mul(pd.shockParameter()).div(100);
       if (lower < minCap.mul(11).div(10))
         lower = minCap.mul(11).div(10);
     }
@@ -205,13 +182,6 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Calls oraclize query to calculate MCR details after 24 hours.
-   */
-  function _callOracliseForMCR() internal {
-    p1.mcrOraclise(pd.mcrTime());
-  }
-
-  /**
    * @dev Adds MCR Data. Checks if MCR is within valid
    * thresholds in order to rule out any incorrect calculations
    */
@@ -229,14 +199,15 @@ contract MCR is Iupgradable {
     uint vtp = 0;
     uint lowerThreshold = 0;
     uint upperThreshold = 0;
+
     if (len > 1) {
       vtp = p1.getPoolValueInEth();
       (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
-
     }
-    if (mcrP > dynamicMincapThresholdx100)
-      variableMincap = (variableMincap.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
 
+    if (mcrP > dynamicMincapThresholdx100) {
+      variableMincap = (variableMincap.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
+    }
 
     // Explanation for above formula :-
     // actual formula -> variableMinCap =  variableMinCap + (variableMinCap+minCap)*dynamicMincapIncrement/100
@@ -245,22 +216,19 @@ contract MCR is Iupgradable {
     // here, dynamicMincapIncrement is in x100 format.
     // so b+(a+b)*cx100/10000 can be written as => (10000.b + b.cx100 + a.cx100)/10000.
     // It can further simplify to (b.(10000+cx100) + a.cx100)/10000.
-    if (len == 1 || (mcrP) >= lowerThreshold
-    && (mcrP) <= upperThreshold) {
-      // due to stack to deep error,we are reusing already declared variable
-      vtp = pd.getLastMCRDate();
+    if (len == 1 || (mcrP) >= lowerThreshold && (mcrP) <= upperThreshold) {
+
       pd.pushMCRData(mcrP, mcrE, vF, newMCRDate);
+
       for (uint i = 0; i < curr.length; i++) {
         pd.updateCAAvgRate(curr[i], _threeDayAvg[i]);
       }
+
       emit MCREvent(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
-      // Oraclize call for next MCR calculation
-      if (vtp < newMCRDate) {
-        _callOracliseForMCR();
-      }
-    } else {
-      p1.mcrOracliseFail(newMCRDate, pd.mcrFailTime());
+      return;
     }
+
+    revert("MCR: Failed");
   }
 
 }

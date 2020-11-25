@@ -1,10 +1,8 @@
+pragma solidity ^0.5.0;
+
 import "../../modules/capital/PoolData.sol";
 
-contract P1MockPoolData is PoolData {
-
-
-  constructor(address _notariseAdd, address _daiFeedAdd, address _daiAdd) PoolData(_notariseAdd, _daiFeedAdd, _daiAdd) public {
-  }
+contract P1MockPoolData {
 
   struct LastMCR {
     uint mcrPercentagex100;
@@ -12,12 +10,25 @@ contract P1MockPoolData is PoolData {
     uint vFull;
     uint64 date;
   }
+
   LastMCR lastMCR;
   mapping (bytes4 => uint) rates;
 
+  uint public constant c = 5800000;
+  uint public constant a = 1028;
 
-  function _getAvgRate(bytes4 curr, bool isIA) internal view returns (uint rate) {
+  function _getAvgRate(bytes4 curr) internal view returns (uint rate) {
     return rates[curr];
+  }
+
+  function getAllCurrenciesLen() external view returns (uint) {
+    return 1;
+  }
+
+  function getTokenPriceDetails(bytes4 curr) external view returns (uint _a, uint _c, uint rate) {
+    _a = a;
+    _c = c;
+    rate = _getAvgRate(curr);
   }
 
   function setAverageRate(bytes4 currency, uint rate) external {

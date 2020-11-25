@@ -18,7 +18,7 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "../capital/MCR.sol";
-import "../capital/PoolData.sol";
+import "../capital/Pool1.sol";
 import "../claims/ClaimsReward.sol";
 import "../governance/Governance.sol";
 import "../cover/QuotationData.sol";
@@ -37,7 +37,6 @@ contract TokenFunctions is Iupgradable {
   QuotationData internal qd;
   ClaimsReward internal cr;
   Governance internal gv;
-  PoolData internal pd;
   IPooledStaking pooledStaking;
   Pool1 p1;
 
@@ -63,12 +62,15 @@ contract TokenFunctions is Iupgradable {
   /**
   * @dev Burns tokens staked on smart contract covered by coverId. Called when a payout is succesfully executed.
   * @param coverId cover id
-  * @param coverCurrency cover currency
+  * @param asset cover currency
   * @param sumAssured amount of $curr to burn
   */
-  function burnStakedTokens(uint coverId, bytes4 coverCurrency, uint sumAssured) external onlyInternal {
+  function burnStakedTokens(uint coverId, address asset, uint sumAssured) external onlyInternal {
+
     (, address scAddress) = qd.getscAddressOfCover(coverId);
-    uint tokenPrice = p1.getTokenPrice(coverCurrency);
+    uint tokenPrice = p1.getTokenPrice(asset);
+
+    // FIXME: "18" needs to be replaced with the number of decimals of the target token if other than ETH or DAI
     uint burnNXMAmount = sumAssured.mul(1e18).div(tokenPrice);
     pooledStaking.pushBurn(scAddress, burnNXMAmount);
   }
@@ -113,7 +115,6 @@ contract TokenFunctions is Iupgradable {
     m1 = MCR(ms.getLatestAddress("MC"));
     gv = Governance(ms.getLatestAddress("GV"));
     mr = MemberRoles(ms.getLatestAddress("MR"));
-    pd = PoolData(ms.getLatestAddress("PD"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     p1 = Pool1(ms.getLatestAddress("P1"));
   }

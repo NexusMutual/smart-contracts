@@ -20,8 +20,6 @@ pragma solidity ^0.5.0;
 
 import "../../interfaces/IPooledStaking.sol";
 import "../capital/Pool1.sol";
-import "../capital/Pool2.sol";
-import "../capital/PoolData.sol";
 import "../cover/QuotationData.sol";
 import "../governance/Governance.sol";
 import "../token/TokenData.sol";
@@ -40,13 +38,21 @@ contract ClaimsReward is Iupgradable {
   Claims internal c1;
   ClaimsData internal cd;
   Pool1 internal p1;
-  Pool2 internal p2;
-  PoolData internal pd;
   Governance internal gv;
   IPooledStaking internal pooledStaking;
   MemberRoles internal memberRoles;
 
+  // assigned in constructor
+  address public DAI;
+
+  // constants
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
   uint private constant DECIMAL1E18 = uint(10) ** 18;
+
+  constructor (address masterAddress, address _daiAddress) public {
+    changeMasterAddress(masterAddress);
+    DAI = _daiAddress;
+  }
 
   function changeDependentContractAddress() public onlyInternal {
     c1 = Claims(ms.getLatestAddress("CL"));
@@ -56,8 +62,6 @@ contract ClaimsReward is Iupgradable {
     td = TokenData(ms.getLatestAddress("TD"));
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     p1 = Pool1(ms.getLatestAddress("P1"));
-    p2 = Pool2(ms.getLatestAddress("P2"));
-    pd = PoolData(ms.getLatestAddress("PD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
     gv = Governance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
@@ -67,11 +71,8 @@ contract ClaimsReward is Iupgradable {
   /// @dev Decides the next course of action for a given claim.
   function changeClaimStatus(uint claimid) public checkPause onlyInternal {
 
-    uint coverid;
-    (, coverid) = cd.getClaimCoverId(claimid);
-
-    uint status;
-    (, status) = cd.getClaimStatusNumber(claimid);
+    (, uint coverid) = cd.getClaimCoverId(claimid);
+    (, uint status) = cd.getClaimStatusNumber(claimid);
 
     // when current status is "Pending-Claim Assessor Vote"
     if (status == 0) {
@@ -80,20 +81,59 @@ contract ClaimsReward is Iupgradable {
       _changeClaimStatusMV(claimid, coverid, status);
     } else if (status == 12) {// when current status is "Claim Accepted Payout Pending"
 
-      uint sumAssured = qd.getCoverSumAssured(coverid).mul(DECIMAL1E18);
-      address payable coverHolder = qd.getCoverMemberAddress(coverid);
-      bytes4 coverCurrency = qd.getCurrencyOfCover(coverid);
+      bool payoutSucceeded = attemptClaimPayout(coverid);
 
-      address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
-      bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, payoutAddress, coverCurrency);
-
-      if (success) {
-        tf.burnStakedTokens(coverid, coverCurrency, sumAssured);
+      if (payoutSucceeded) {
         c1.setClaimStatus(claimid, 14);
       }
     }
 
     c1.changePendingClaimStart();
+  }
+
+  function getCurrencyAssetAddress(bytes4 currency) public view returns (address) {
+
+    if (currency == "ETH") {
+      return ETH;
+    }
+
+    if (currency == "DAI") {
+      return DAI;
+    }
+
+    revert("ClaimsReward: unknown asset");
+  }
+
+  function attemptClaimPayout(uint coverId) internal returns (bool success) {
+
+    uint sumAssured = qd.getCoverSumAssured(coverId);
+    uint sumAssuredWei = sumAssured.mul(1e18);
+
+    // get asset address
+    bytes4 coverCurrency = qd.getCurrencyOfCover(coverId);
+    address asset = getCurrencyAssetAddress(coverCurrency);
+
+    // get payout address
+    address payable coverHolder = qd.getCoverMemberAddress(coverId);
+    address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
+
+    // execute the payout
+    bool payoutSucceeded = p1.sendClaimPayout(asset, payoutAddress, sumAssuredWei);
+
+    if (payoutSucceeded) {
+
+      // burn staked tokens
+      tf.burnStakedTokens(coverId, asset, sumAssuredWei);
+
+      // adjust total sum assured
+      (, address coverContract) = qd.getscAddressOfCover(coverId);
+      qd.subFromTotalSumAssured(coverCurrency, sumAssured);
+      qd.subFromTotalSumAssuredSC(coverContract, coverCurrency, sumAssured);
+
+      return true;
+    }
+
+    return false;
   }
 
   /// @dev Amount of tokens to be rewarded to a user for a particular vote id.
@@ -250,9 +290,9 @@ contract ClaimsReward is Iupgradable {
   /// @dev Rewards/Punishes users who  participated in Claims assessment.
   //    Unlocking and burning of the tokens will also depend upon the status of claim.
   /// @param claimid Claim Id.
-  function _rewardAgainstClaim(uint claimid, uint coverid, uint sumAssured, uint status) internal {
+  function _rewardAgainstClaim(uint claimid, uint coverid, uint status) internal {
+
     uint premiumNXM = qd.getCoverPremiumNXM(coverid);
-    bytes4 curr = qd.getCurrencyOfCover(coverid);
     uint distributableTokens = premiumNXM.mul(cd.claimRewardPerc()).div(100); // 20% of premium
 
     uint percCA;
@@ -260,32 +300,30 @@ contract ClaimsReward is Iupgradable {
 
     (percCA, percMV) = cd.getRewardStatus(status);
     cd.setClaimRewardDetail(claimid, percCA, percMV, distributableTokens);
+
     if (percCA > 0 || percMV > 0) {
       tc.mint(address(this), distributableTokens);
     }
 
+    // denied
     if (status == 6 || status == 9 || status == 11) {
+
       cd.changeFinalVerdict(claimid, - 1);
       td.setDepositCN(coverid, false); // Unset flag
       tf.burnDepositCN(coverid); // burn Deposited CN
 
-      pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).sub(sumAssured));
-      p2.internalLiquiditySwap(curr);
-
+    // accepted
     } else if (status == 7 || status == 8 || status == 10) {
 
       cd.changeFinalVerdict(claimid, 1);
       td.setDepositCN(coverid, false); // Unset flag
       tf.unlockCN(coverid);
 
-      address payable coverHolder = qd.getCoverMemberAddress(coverid);
-      address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
-      bool success = p1.sendClaimPayout(coverid, claimid, sumAssured, payoutAddress, curr);
+      bool payoutSucceeded = attemptClaimPayout(coverid);
 
-      if (success) {
-        tf.burnStakedTokens(coverid, curr, sumAssured);
-        c1.setClaimStatus(claimid, 14);
-      }
+      // 12 = payout pending, 14 = payout succeeded
+      uint nextStatus = payoutSucceeded ? 14 : 12;
+      c1.setClaimStatus(claimid, nextStatus);
     }
   }
 
@@ -339,7 +377,7 @@ contract ClaimsReward is Iupgradable {
       c1.setClaimStatus(claimid, status);
 
       if (rewardOrPunish) {
-        _rewardAgainstClaim(claimid, coverid, sumAssured, status);
+        _rewardAgainstClaim(claimid, coverid, status);
       }
     }
   }
@@ -390,7 +428,7 @@ contract ClaimsReward is Iupgradable {
       c1.setClaimStatus(claimid, status);
       qd.changeCoverStatusNo(coverid, uint8(coverStatus));
       // Reward/Punish Claim Assessors and Members who participated in Claims assessment
-      _rewardAgainstClaim(claimid, coverid, sumAssured, status);
+      _rewardAgainstClaim(claimid, coverid, status);
     }
   }
 

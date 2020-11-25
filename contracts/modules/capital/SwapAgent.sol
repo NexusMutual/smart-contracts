@@ -19,10 +19,17 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../external/uniswap/IUniswapV2Router02.sol";
 import "../oracles/TwapOracle.sol";
-import "./Pool.sol";
 
 library SwapAgent {
   using SafeMath for uint;
+
+  struct AssetData {
+    uint112 minAmount;
+    uint112 maxAmount;
+    uint32 lastSwapTime;
+    // 18 decimals of precision. 0.01% -> 0.0001 -> 1e14
+    uint maxSlippageRatio;
+  }
 
   IUniswapV2Router02 constant public router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   uint constant public MAX_LIQUIDITY_RATIO = 3 * 1e15;
@@ -43,7 +50,7 @@ library SwapAgent {
 
   function swapETHForAsset(
     address _oracle,
-    Pool.AssetData storage assetData,
+    AssetData storage assetData,
     address toTokenAddress,
     uint amountIn,
     uint amountOutMin,
@@ -103,7 +110,7 @@ library SwapAgent {
 
   function swapAssetForETH(
     address _oracle,
-    Pool.AssetData storage assetData,
+    AssetData storage assetData,
     address fromTokenAddress,
     uint amountIn,
     uint amountOutMin

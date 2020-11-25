@@ -15,8 +15,7 @@
 
 pragma solidity ^0.5.0;
 
-
-import "../capital/Pool2.sol";
+import "../cover/Quotation.sol";
 import "../claims/Claims.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
@@ -192,20 +191,6 @@ contract NXMaster is Governed {
       return;
     }
 
-    if (res == "MCRF") {
-      require(callTime.add(pd.mcrFailTime()) < now, "MCR posting time not reached");
-      MCR m1 = MCR(getLatestAddress("MC"));
-      m1.addLastMCRData(uint64(id));
-      return;
-    }
-
-    if (res == "ULT") {
-      require(callTime.add(pd.liquidityTradeCallbackTime()) < now, "Liquidity trade time not reached");
-      Pool2 p2 = Pool2(getLatestAddress("P2"));
-      p2.externalLiquidityTrade();
-      return;
-    }
-
     if (res == "MCR" || res == "IARB") {
       return;
     }
@@ -230,11 +215,6 @@ contract NXMaster is Governed {
     } else if (code == "DAIFEED") {
       pd = PoolData(getLatestAddress("PD"));
       val = pd.daiFeedAddress();
-
-    } else if (code == "UNISWADD") {
-      Pool2 p2;
-      p2 = Pool2(getLatestAddress("P2"));
-      val = p2.uniswapFactoryAddress();
 
     } else if (code == "OWNER") {
 
@@ -303,11 +283,10 @@ contract NXMaster is Governed {
         Pool1 p1 = Pool1(allContractVersions["P1"]);
         p1.upgradeCapitalPool(newAddress);
 
-
       } else if (_contractsName[i] == "P2") {
-        Pool2 p2 = Pool2(allContractVersions["P2"]);
-        p2.upgradeInvestmentPool(newAddress);
-
+        // TODO: modify for pool upgrade
+//        Pool2 p2 = Pool2(allContractVersions["P2"]);
+//        p2.upgradeInvestmentPool(newAddress);
       }
 
       address payable oldAddress = allContractVersions[_contractsName[i]];
@@ -442,8 +421,11 @@ contract NXMaster is Governed {
   /// @dev Allow AB Members to Start Emergency Pause
   function startEmergencyPause() public onlyAuthorizedToGovern {
     addEmergencyPause(true, "AB"); // Start Emergency Pause
-    Pool1 p1 = Pool1(allContractVersions["P1"]);
-    p1.closeEmergencyPause(pauseTime); // oraclize callback of 4 weeks
+    //Pool1 p1 = Pool1(allContractVersions["P1"]);
+
+    // TODO
+    //p1.closeEmergencyPause(pauseTime); // oraclize callback of 4 weeks
+
     Claims c1 = Claims(allContractVersions["CL"]);
     c1.pauseAllPendingClaimsVoting(); // Pause Voting of all pending Claims
   }
@@ -469,11 +451,6 @@ contract NXMaster is Governed {
     } else if (code == "DAIFEED") {
       pd = PoolData(getLatestAddress("PD"));
       pd.changeDAIfeedAddress(val);
-
-    } else if (code == "UNISWADD") {
-      Pool2 p2;
-      p2 = Pool2(getLatestAddress("P2"));
-      p2.changeUniswapFactoryAddress(val);
 
     } else if (code == "OWNER") {
 

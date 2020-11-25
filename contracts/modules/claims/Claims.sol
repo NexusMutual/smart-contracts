@@ -16,7 +16,6 @@
 pragma solidity ^0.5.0;
 
 import "../capital/MCR.sol";
-import "../capital/Pool2.sol";
 import "../claims/ClaimsReward.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
@@ -35,7 +34,6 @@ contract Claims is Iupgradable {
   ClaimsData internal cd;
   TokenData internal td;
   PoolData internal pd;
-  Pool2 internal p2;
   QuotationData internal qd;
   MCR internal m1;
 
@@ -123,8 +121,11 @@ contract Claims is Iupgradable {
   function getCATokens(uint claimId, uint member) external view returns (uint tokens) {
     uint coverId;
     (, coverId) = cd.getClaimCoverId(claimId);
-    bytes4 curr = qd.getCurrencyOfCover(coverId);
-    uint tokenx1e18 = p1.getTokenPrice(curr);
+
+    bytes4 currency = qd.getCurrencyOfCover(coverId);
+    address asset = cr.getCurrencyAssetAddress(currency);
+    uint tokenx1e18 = p1.getTokenPrice(asset);
+
     uint accept;
     uint deny;
     if (member == 0) {
@@ -144,7 +145,6 @@ contract Claims is Iupgradable {
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     tc = TokenController(ms.getLatestAddress("TC"));
     p1 = Pool1(ms.getLatestAddress("P1"));
-    p2 = Pool2(ms.getLatestAddress("P2"));
     pd = PoolData(ms.getLatestAddress("PD"));
     cr = ClaimsReward(ms.getLatestAddress("CR"));
     cd = ClaimsData(ms.getLatestAddress("CD"));
@@ -299,7 +299,7 @@ contract Claims is Iupgradable {
       (, coverid) = cd.getClaimCoverId(claimID);
       address qadd = qd.getCoverMemberAddress(coverid);
       tf.extendCNEPOff(qadd, coverid, pendingTime.add(cd.claimDepositTime()));
-      p1.closeClaimsOraclise(claimID, uint64(pTime));
+      //p1.closeClaimsOraclise(claimID, uint64(pTime));
     }
     cd.setFirstClaimIndexToStartVotingAfterEP(i);
   }
@@ -345,8 +345,11 @@ contract Claims is Iupgradable {
     close = 0;
     uint coverId;
     (, coverId) = cd.getClaimCoverId(claimId);
-    bytes4 curr = qd.getCurrencyOfCover(coverId);
-    uint tokenx1e18 = p1.getTokenPrice(curr);
+
+    bytes4 currency = qd.getCurrencyOfCover(coverId);
+    address asset = cr.getCurrencyAssetAddress(currency);
+    uint tokenx1e18 = p1.getTokenPrice(asset);
+
     uint accept;
     uint deny;
     (, accept, deny) = cd.getClaimsTokenCA(claimId);
@@ -389,14 +392,14 @@ contract Claims is Iupgradable {
     cd.setClaimdateUpd(claimId, time);
 
     if (stat >= 2 && stat <= 5) {
-      p1.closeClaimsOraclise(claimId, cd.maxVotingTime());
+      //p1.closeClaimsOraclise(claimId, cd.maxVotingTime());
     }
 
     if (stat == 12 && (dateUpd.add(cd.payoutRetryTime()) <= now) && (state12Count < 60)) {
-      p1.closeClaimsOraclise(claimId, cd.payoutRetryTime());
+      //p1.closeClaimsOraclise(claimId, cd.payoutRetryTime());
     } else if (stat == 12 && (dateUpd.add(cd.payoutRetryTime()) > now) && (state12Count < 60)) {
-      uint64 timeLeft = uint64((dateUpd.add(cd.payoutRetryTime())).sub(now));
-      p1.closeClaimsOraclise(claimId, timeLeft);
+      //uint64 timeLeft = uint64((dateUpd.add(cd.payoutRetryTime())).sub(now));
+      //p1.closeClaimsOraclise(claimId, timeLeft);
     }
   }
 
@@ -413,7 +416,6 @@ contract Claims is Iupgradable {
     bytes4 curr = qd.getCurrencyOfCover(coverId);
     uint sumAssured = qd.getCoverSumAssured(coverId).mul(DECIMAL1E18);
     pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).add(sumAssured));
-    p2.internalLiquiditySwap(curr);
-    p1.closeClaimsOraclise(len, cd.maxVotingTime());
+    //p1.closeClaimsOraclise(len, cd.maxVotingTime());
   }
 }

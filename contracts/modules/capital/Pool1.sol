@@ -17,207 +17,380 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../claims/Claims.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "../../abstract/MasterAware.sol";
 import "../cover/Quotation.sol";
-import "./Pool2.sol";
-import "./PoolData.sol";
-import "../../oracles/PriceFeedOracle.sol";
+import "../oracles/PriceFeedOracle.sol";
+import "../token/NXMToken.sol";
+import "../token/TokenController.sol";
+import "./MCR.sol";
+import "./SwapAgent.sol";
 
-contract Pool1 is Iupgradable {
+contract Pool1 is MasterAware, ReentrancyGuard {
+  using Address for address;
   using SafeMath for uint;
+  using SafeERC20 for IERC20;
 
-  Quotation public q2;
-  NXMToken public tk;
-  TokenController public tc;
-  Pool2 public p2;
-  PoolData public pd;
-  Claims public c1;
+  /* storage */
+  address[] public assets;
+  mapping(address => SwapAgent.AssetData) public assetData;
+
+  // contracts
+  Quotation public quotation;
+  NXMToken public nxmToken;
+  TokenController public tokenController;
+  MCR public mcr;
+
+  // parameters
+  address public twapOracle;
+  address public swapController;
+  uint112 public minPoolEth;
+  bool public swapsEnabled = true;
   PriceFeedOracle public priceFeedOracle;
-  bool public locked;
+
+  /* constants */
+  address constant public ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
   uint public constant MCR_RATIO_DECIMALS = 4;
   uint public constant MAX_MCR_RATIO = 40000; // 400%
-
   uint public constant MAX_BUY_SELL_MCR_ETH_FRACTION = 500; // 5%. 4 decimal points
-  uint constant CONSTANT_C = 5800000;
-  uint constant CONSTANT_A = 1028 * 1e13;
-  uint constant TOKEN_EXPONENT = 4;
 
-  event Apiresult(address indexed sender, string msg, bytes32 myid);
+  uint internal constant CONSTANT_C = 5800000;
+  uint internal constant CONSTANT_A = 1028 * 1e13;
+  uint internal constant TOKEN_EXPONENT = 4;
+
+  /* events */
+  // FIXME: add asset, remove coverId
   event Payout(address indexed to, uint coverId, uint tokens);
+  event NXMSold (address indexed member, uint nxmIn, uint ethOut);
+  event NXMBought (address indexed member, uint ethIn, uint nxmOut);
+  event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
 
-  event NXMSold (
-    address member,
-    uint nxmIn,
-    uint ethOut
-  );
-
-  event NXMBought (
-    address member,
-    uint ethIn,
-    uint nxmOut
-  );
-
-
-  modifier noReentrancy() {
-    require(!locked, "Pool: Reentrant call.");
-    locked = true;
+  /* logic */
+  modifier onlySwapController {
+    require(msg.sender == swapController, "Pool: not swapController");
     _;
-    locked = false;
   }
 
-  constructor(address _priceOracle) public {
+  modifier whenSwapsEnabled {
+    require(swapsEnabled, "Pool: swaps not enabled");
+    _;
+  }
+
+  constructor (
+    address[] memory _assets,
+    uint112[] memory _minAmounts,
+    uint112[] memory _maxAmounts,
+    uint[] memory _maxSlippageRatios,
+    address _master,
+    address _priceOracle,
+    address _twapOracle,
+    address _swapController
+  ) public {
+
+    require(_assets.length == _minAmounts.length, "Pool: length mismatch");
+    require(_assets.length == _maxAmounts.length, "Pool: length mismatch");
+    require(_assets.length == _maxSlippageRatios.length, "Pool: length mismatch");
+
+    for (uint i = 0; i < _assets.length; i++) {
+
+      address asset = _assets[i];
+      require(asset != address(0), "Pool: asset is zero address");
+      require(_maxAmounts[i] >= _minAmounts[i], "Pool: max < min");
+      require(_maxSlippageRatios[i] <= 1 ether, "Pool: max < min");
+
+      assets.push(asset);
+      assetData[asset].minAmount = _minAmounts[i];
+      assetData[asset].maxAmount = _maxAmounts[i];
+      assetData[asset].maxSlippageRatio = _maxSlippageRatios[i];
+    }
+
+    master = INXMMaster(_master);
     priceFeedOracle = PriceFeedOracle(_priceOracle);
+    twapOracle = _twapOracle;
+    swapController = _swapController;
   }
 
-  function() external payable {} // solhint-disable-line
+  // fallback function
+  function() external payable {}
+
+  // for legacy Pool1 upgrade compatibility
+  function sendEther() external payable {}
 
   /**
-   * @dev Pays out the sum assured in case a claim is accepted
-   * @param coverid Cover Id.
-   * @param claimid Claim Id.
-   * @return succ true if payout is successful, false otherwise.
+   * @dev Calculates total value of all pool assets in ether
    */
-  function sendClaimPayout(
-    uint coverid,
-    uint claimid,
-    uint sumAssured,
-    address payable coverHolder,
-    bytes4 coverCurr
-  )
-  external
-  onlyInternal
-  noReentrancy
-  returns (bool succ)
-  {
+  function getPoolValueInEth() public view returns (uint) {
 
-    uint sa = sumAssured.div(1e18);
-    bool check;
-    IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
+    uint total = address(this).balance;
 
-    //Payout
-    if (coverCurr == "ETH" && address(this).balance >= sumAssured) {
-      // check = _transferCurrencyAsset(coverCurr, coverHolder, sumAssured);
-      coverHolder.transfer(sumAssured);
-      check = true;
-    } else if (coverCurr == "DAI" && erc20.balanceOf(address(this)) >= sumAssured) {
-      erc20.transfer(coverHolder, sumAssured);
-      check = true;
+    for (uint i = 0; i < assets.length; i++) {
+
+      address assetAddress = assets[i];
+      IERC20 token = IERC20(assetAddress);
+
+      uint rate = priceFeedOracle.getAssetToEthRate(assetAddress);
+      require(rate > 0, "Pool: zero rate");
+
+      uint assetBalance = token.balanceOf(address(this));
+      uint assetValue = assetBalance.mul(rate).div(1e18);
+
+      total = total.add(assetValue);
     }
 
-    if (check == true) {
-      q2.removeSAFromCSA(coverid, sa);
-      pd.changeCurrencyAssetVarMin(coverCurr,
-        pd.getCurrencyAssetVarMin(coverCurr).sub(sumAssured));
-      emit Payout(coverHolder, coverid, sumAssured);
-      succ = true;
-    } else {
-      c1.setClaimStatus(claimid, 12);
+    return total;
+  }
+
+  /* asset related functions */
+
+  function getAssets() external view returns (address[] memory) {
+    return assets;
+  }
+
+  function getAssetDetails(address _asset) external view returns (
+    uint balance,
+    uint112 min,
+    uint112 max,
+    uint32 lastAssetSwapTime,
+    uint maxSlippageRatio
+  ) {
+
+    IERC20 token = IERC20(_asset);
+    balance = token.balanceOf(address(this));
+    SwapAgent.AssetData memory data = assetData[_asset];
+
+    return (balance, data.minAmount, data.maxAmount, data.lastSwapTime, data.maxSlippageRatio);
+  }
+
+  function addAsset(
+    address _asset,
+    uint112 _min,
+    uint112 _max,
+    uint _maxSlippageRatio
+  ) external onlyGovernance {
+
+    require(_asset != address(0), "Pool: asset is zero address");
+    require(_max >= _min, "Pool: max < min");
+    require(_maxSlippageRatio <= 1 ether, "Pool: max slippage ratio > 1");
+
+    for (uint i = 0; i < assets.length; i++) {
+      require(_asset != assets[i], "Pool: asset exists");
     }
+
+    assets.push(_asset);
+    assetData[_asset] = SwapAgent.AssetData(_min, _max, 0, _maxSlippageRatio);
   }
 
-  function triggerExternalLiquidityTrade() external onlyInternal {
-    // deprecated
+  function removeAsset(address _asset) external onlyGovernance {
+
+    IERC20 token = IERC20(_asset);
+    uint tokenBalance = token.balanceOf(address(this));
+
+    require(tokenBalance == 0, "Pool: balance must be 0");
+
+    for (uint i = 0; i < assets.length; i++) {
+
+      if (_asset != assets[i]) {
+        continue;
+      }
+
+      delete assetData[_asset];
+      assets[i] = assets[assets.length - 1];
+      assets.pop();
+
+      return;
+    }
+
+    revert("Pool: asset not found");
   }
 
-  ///@dev Oraclize call to close emergency pause.
-  function closeEmergencyPause(uint) external onlyInternal {
-    _saveQueryId("EP", 0);
+  function setAssetDetails(
+    address _asset,
+    uint112 _min,
+    uint112 _max,
+    uint _maxSlippageRatio
+  ) external onlyGovernance {
+
+    require(_min <= _max, "Pool: min > max");
+    require(_maxSlippageRatio <= 1 ether, "Pool: max slippage ratio > 1");
+
+    for (uint i = 0; i < assets.length; i++) {
+
+      if (_asset != assets[i]) {
+        continue;
+      }
+
+      assetData[_asset].minAmount = _min;
+      assetData[_asset].maxAmount = _max;
+      assetData[_asset].maxSlippageRatio = _maxSlippageRatio;
+
+      return;
+    }
+
+    revert("Pool: asset not found");
   }
 
-  function closeClaimsOraclise(uint, uint) external onlyInternal {
-    // deprecated
+  /* swap functions */
+
+  function getSwapQuote(
+    uint tokenAmountIn,
+    IERC20 fromToken,
+    IERC20 toToken
+  ) public view returns (uint tokenAmountOut) {
+
+    return SwapAgent.getSwapQuote(
+      tokenAmountIn,
+      fromToken,
+      toToken
+    );
   }
 
-  function closeCoverOraclise(uint, uint64) external onlyInternal {
-    // deprecated
+  function swapETHForAsset(
+    address toTokenAddress,
+    uint amountIn,
+    uint amountOutMin
+  ) external whenNotPaused whenSwapsEnabled onlySwapController nonReentrant {
+
+    SwapAgent.AssetData storage assetDetails = assetData[toTokenAddress];
+
+    uint amountOut = SwapAgent.swapETHForAsset(
+      twapOracle,
+      assetDetails,
+      toTokenAddress,
+      amountIn,
+      amountOutMin,
+      minPoolEth
+    );
+
+    emit Swapped(ETH, toTokenAddress, amountIn, amountOut);
   }
 
-  function mcrOraclise(uint) external onlyInternal {
-    // deprecated
+  function swapAssetForETH(
+    address fromTokenAddress,
+    uint amountIn,
+    uint amountOutMin
+  ) external whenNotPaused whenSwapsEnabled onlySwapController nonReentrant {
+
+    uint amountOut = SwapAgent.swapAssetForETH(
+      twapOracle,
+      assetData[fromTokenAddress],
+      fromTokenAddress,
+      amountIn,
+      amountOutMin
+    );
+
+    emit Swapped(fromTokenAddress, ETH, amountIn, amountOut);
   }
 
-  function mcrOracliseFail(uint, uint) external onlyInternal {
-    // deprecated
-  }
-
-  function saveIADetailsOracalise(uint) external onlyInternal {
-    // deprecated
-  }
+  /* claim related functions */
 
   /**
-   * @dev Save the details of the current request for a future call
-   * @param _typeof type of the query
-   * @param id ID of the proposal, quote, cover etc. for which call is made
+   * @dev Execute the payout in case a claim is accepted
+   * @param asset token address or 0xEee...EEeE for ether
+   * @param payoutAddress send funds to this address
+   * @param sumAssured amount to send
    */
-  function _saveQueryId(bytes4 _typeof, uint id) internal {
+  function sendClaimPayout (
+    address asset,
+    address payable payoutAddress,
+    uint sumAssured
+  ) external onlyInternal nonReentrant returns (bool success) {
 
-    uint queryId = block.timestamp;
-    bytes32 myid = bytes32(queryId);
-
-    while (pd.getDateAddOfAPI(myid) != 0) {
-      myid = bytes32(++queryId);
+    if (asset == ETH) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool ok, /* data */) = payoutAddress.call.value(sumAssured)("");
+      return ok;
     }
 
-    pd.saveApiDetails(myid, _typeof, id);
-    pd.addInAllApiCall(myid);
+    return _safeTokenTransfer(asset, payoutAddress, sumAssured);
   }
 
   /**
-   * @dev Transfers all assest (i.e ETH balance, Currency Assest) from old Pool to new Pool
-   * @param newPoolAddress Address of the new Pool
+   * @dev safeTransfer implementation that does not revert
+   * @param tokenAddress ERC20 address
+   * @param to destination
+   * @param value amount to send
+   * @return success true if the transfer was successfull
    */
-  function upgradeCapitalPool(address payable newPoolAddress) external noReentrancy onlyInternal {
-    for (uint64 i = 1; i < pd.getAllCurrenciesLen(); i++) {
-      bytes4 caName = pd.getCurrenciesByIndex(i);
-      _upgradeCapitalPool(caName, newPoolAddress);
+  function _safeTokenTransfer (
+    address tokenAddress,
+    address to,
+    uint256 value
+  ) internal returns (bool) {
+
+    // token address is not a contract
+    if (!tokenAddress.isContract()) {
+      return false;
     }
-    if (address(this).balance > 0) {
-      Pool1 newP1 = Pool1(newPoolAddress);
-      newP1.sendEther.value(address(this).balance)();
+
+    IERC20 token = IERC20(tokenAddress);
+    bytes memory data = abi.encodeWithSelector(token.transfer.selector, to, value);
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool success, bytes memory returndata) = tokenAddress.call(data);
+
+    // low-level call failed/reverted
+    if (!success) {
+      return false;
     }
+
+    // tokens that don't have return data
+    if (returndata.length == 0) {
+      return true;
+    }
+
+    // tokens that have return data will return a bool
+    return abi.decode(returndata, (bool));
+  }
+
+  /* pool lifecycle functions */
+
+  function transferAsset(
+    address asset,
+    address payable destination,
+    uint amount
+  ) external onlyGovernance nonReentrant {
+
+    require(assetData[asset].maxAmount == 0, "Pool: max not zero");
+    require(destination != address(0), "Pool: dest zero");
+
+    IERC20 token = IERC20(asset);
+    uint balance = token.balanceOf(address(this));
+    uint transferableAmount = amount > balance ? balance : amount;
+
+    token.safeTransfer(destination, transferableAmount);
+  }
+
+  function upgradeCapitalPool(address payable newPoolAddress) external onlyMaster nonReentrant {
+
+    // transfer ether
+    uint ethBalance = address(this).balance;
+    (bool ok, /* data */) = newPoolAddress.call.value(ethBalance)("");
+    require(ok, "Pool: transfer failed");
+
+    // transfer assets
+    for (uint i = 0; i < assets.length; i++) {
+      IERC20 token = IERC20(assets[i]);
+      uint tokenBalance = token.balanceOf(address(this));
+      token.safeTransfer(newPoolAddress, tokenBalance);
+    }
+
   }
 
   /**
-   * @dev Iupgradable Interface to update dependent contract address
+   * @dev Update dependent contract address
+   * @dev Implements MasterAware interface function
    */
   function changeDependentContractAddress() public {
-    tk = NXMToken(ms.tokenAddress());
-    tc = TokenController(ms.getLatestAddress("TC"));
-    pd = PoolData(ms.getLatestAddress("PD"));
-    q2 = Quotation(ms.getLatestAddress("QT"));
-    p2 = Pool2(ms.getLatestAddress("P2"));
-    c1 = Claims(ms.getLatestAddress("CL"));
+    nxmToken = NXMToken(master.tokenAddress());
+    tokenController = TokenController(master.getLatestAddress("TC"));
+    quotation = Quotation(master.getLatestAddress("QT"));
+    mcr = MCR(master.getLatestAddress("MC"));
   }
 
-  function sendEther() public payable {
-
-  }
-
-  /**
-   * @dev transfers currency asset to an address
-   * @param curr is the currency of currency asset to transfer
-   * @param amount is amount of currency asset to transfer
-   * @return boolean to represent success or failure
-   */
-  function transferCurrencyAsset(
-    bytes4 curr,
-    uint amount
-  )
-  public
-  onlyInternal
-  noReentrancy
-  returns (bool)
-  {
-
-    return _transferCurrencyAsset(curr, amount);
-  }
-
-  /// @dev Handles callback of external oracle query.
-  function __callback(bytes32 myid, string memory result) public {
-    result; // silence compiler warning
-    ms.delegateCallBack(myid);
-  }
+  /* cover purchase functions */
 
   /// @dev Enables user to purchase cover with funding in ETH.
   /// @param smartCAdd Smart Contract Address
@@ -229,9 +402,12 @@ contract Pool1 is Iupgradable {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public isMember checkPause payable {
+  ) public payable onlyMember whenNotPaused {
+
+    require(coverCurr == "ETH", "Pool: Unexpected asset type");
     require(msg.value == coverDetails[1], "Pool: ETH amount does not match premium");
-    q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+
+    quotation.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
   }
 
   /**
@@ -245,20 +421,19 @@ contract Pool1 is Iupgradable {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public isMember checkPause {
-    IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
-    require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]), "Pool: Token amount does not match premium");
-    q2.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+  ) public onlyMember whenNotPaused {
+
+    require(coverCurr == "DAI", "Pool: Unexpected asset type");
+
+    // This is a legacy function
+    // DAI should be the first asset in the array
+    IERC20 token = IERC20(assets[0]);
+    token.safeTransferFrom(msg.sender, address(this), coverDetails[1]);
+
+    quotation.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
   }
 
-  /// @dev Sends a given amount of Ether to a given address.
-  /// @param amount amount (in wei) to send.
-  /// @param _add Receiver's address.
-  /// @return succ True if transfer is a success, otherwise False.
-  function transferEther(uint amount, address payable _add) public noReentrancy checkPause returns (bool succ) {
-    require(ms.checkIsAuthToGoverned(msg.sender), "Not authorized to Govern");
-    succ = _add.send(amount);
-  }
+  /* token sale functions */
 
   /**
    * @dev (DEPRECATED, use sellTokens function instead) Allows selling of NXM for ether.
@@ -267,9 +442,9 @@ contract Pool1 is Iupgradable {
    * @param  _amount Amount of NXM to sell
    * @return success returns true on successfull sale
    */
-  function sellNXMTokens(uint _amount) public isMember noReentrancy checkPause returns (bool success) {
+  function sellNXMTokens(uint _amount) public onlyMember nonReentrant whenNotPaused returns (bool success) {
     sellNXM(_amount, 0);
-    success = true;
+    return true;
   }
 
   /**
@@ -277,7 +452,7 @@ contract Pool1 is Iupgradable {
    * @param amount Amount of NXM to sell
    * @return weiToPay Amount of wei the seller will get
    */
-  function getWei(uint amount) external view returns(uint weiToPay) {
+  function getWei(uint amount) external view returns (uint weiToPay) {
     return getEthForNXM(amount);
   }
 
@@ -286,18 +461,18 @@ contract Pool1 is Iupgradable {
    * @param  minTokensOut Minimum amount of tokens to be bought. Revert if boughtTokens falls below this number.
    * @return boughtTokens number of bought tokens.
    */
-  function buyNXM(uint minTokensOut) public payable isMember checkPause {
+  function buyNXM(uint minTokensOut) public payable onlyMember whenNotPaused {
 
     uint ethIn = msg.value;
     require(ethIn > 0, "Pool: ethIn > 0");
 
     uint totalAssetValue = getPoolValueInEth().sub(ethIn);
-    uint mcrEth = pd.getLastMCREther();
+    uint mcrEth = mcr.getLastMCREther();
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     require(mcrRatio <= MAX_MCR_RATIO, "Pool: Cannot purchase if MCR% > 400%");
     uint tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
     require(tokensOut >= minTokensOut, "Pool: tokensOut is less than minTokensOut");
-    tc.mint(msg.sender, tokensOut);
+    tokenController.mint(msg.sender, tokensOut);
 
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
@@ -308,32 +483,34 @@ contract Pool1 is Iupgradable {
    * @param  minEthOut Minimum amount of ETH to be received. Revert if ethOut falls below this number.
    * @return ethOut amount of ETH received in exchange for the tokens.
    */
-  function sellNXM(uint tokenAmount, uint minEthOut) public isMember noReentrancy checkPause {
-    require(tk.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
-    require(tk.isLockedForMV(msg.sender) <= now, "Pool: NXM tokens are locked for voting");
+  function sellNXM(uint tokenAmount, uint minEthOut) public onlyMember nonReentrant whenNotPaused {
+
+    require(nxmToken.balanceOf(msg.sender) >= tokenAmount, "Pool: Not enough balance");
+    require(nxmToken.isLockedForMV(msg.sender) <= now, "Pool: NXM tokens are locked for voting");
 
     uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = pd.getLastMCREther();
+    uint mcrEth = mcr.getLastMCREther();
     uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(currentTotalAssetValue.sub(ethOut) >= mcrEth, "Pool: MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Pool: ethOut < minEthOut");
 
-    tc.burnFrom(msg.sender, tokenAmount);
+    tokenController.burnFrom(msg.sender, tokenAmount);
     (bool ok, /* data */) = msg.sender.call.value(ethOut)("");
     require(ok, "Pool: Sell transfer failed");
+
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 
   /**
- * @dev Get value in tokens for an ethAmount purchase.
- * @param ethAmount amount of ETH used for buying.
- * @return tokenValue tokens obtained by buying worth of ethAmount
- */
+   * @dev Get value in tokens for an ethAmount purchase.
+   * @param ethAmount amount of ETH used for buying.
+   * @return tokenValue tokens obtained by buying worth of ethAmount
+   */
   function getNXMForEth(
     uint ethAmount
   ) public view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = pd.getLastMCREther();
+    uint mcrEth = mcr.getLastMCREther();
     return calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
   }
 
@@ -342,6 +519,7 @@ contract Pool1 is Iupgradable {
     uint currentTotalAssetValue,
     uint mcrEth
   ) public pure returns (uint) {
+
     require(
       ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
       "Pool: Purchases worth higher than 5% of MCReth are not allowed"
@@ -357,7 +535,7 @@ contract Pool1 is Iupgradable {
         ΔT = ΔV / P(V)
         which assumes that for an infinitesimally small change in locked value V price is constant and we
         get an infinitesimally change in token supply ΔT.
-     This is not computable on-chain, below we use an approximation that works well assuming
+      This is not computable on-chain, below we use an approximation that works well assuming
        * MCR% stays within [100%, 400%]
        * ethAmount <= 5% * MCReth
 
@@ -375,10 +553,9 @@ contract Pool1 is Iupgradable {
     if (currentTotalAssetValue == 0 || mcrEth.div(currentTotalAssetValue) > 1e12) {
       /*
        If the currentTotalAssetValue = 0, adjustedTokenPrice approaches 0. Therefore we can assume the price is A.
-
-       If currentTotalAssetValue is significantly less than mcrEth, MCR% approaches 0, let the price be A (baseline price).
-        This avoids overflow in the calculateIntegralAtPoint computation.
-        This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
+       If currentTotalAssetValue is far smaller than mcrEth, MCR% approaches 0, let the price be A (baseline price).
+       This avoids overflow in the calculateIntegralAtPoint computation.
+       This approximation is safe from arbitrage since at MCR% < 100% no sells are possible.
       */
       uint tokenPrice = CONSTANT_A;
       return ethAmount.mul(1e18).div(tokenPrice);
@@ -402,20 +579,22 @@ contract Pool1 is Iupgradable {
     // ethAmount is multiplied by 1e18 to cancel out the multiplication factor of 1e18 of the adjustedTokenAmount
     uint adjustedTokenPrice = ethAmount.mul(1e18).div(adjustedTokenAmount);
     uint tokenPrice = adjustedTokenPrice.add(CONSTANT_A);
+
     return ethAmount.mul(1e18).div(tokenPrice);
   }
 
   /**
-  * @dev integral(V) =  MCReth ^ 3 * C / (3 * V ^ 3) * 1e18
-  * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
-  * NOTE: omits the minus sign of the correct integral to use a uint result type for simplicity
-  * WARNING: this low-level function should be called from a contract which checks that
-  * mcrEth / assetValue < 1e17 (no overflow) and assetValue != 0
-  */
+   * @dev integral(V) =  MCReth ^ 3 * C / (3 * V ^ 3) * 1e18
+   * computation result is multiplied by 1e18 to allow for a precision of 18 decimals.
+   * NOTE: omits the minus sign of the correct integral to use a uint result type for simplicity
+   * WARNING: this low-level function should be called from a contract which checks that
+   * mcrEth / assetValue < 1e17 (no overflow) and assetValue != 0
+   */
   function calculateIntegralAtPoint(
     uint assetValue,
     uint mcrEth
   ) internal pure returns (uint) {
+
     return CONSTANT_C
       .mul(1e18)
       .div(3)
@@ -426,16 +605,16 @@ contract Pool1 is Iupgradable {
 
   function getEthForNXM(uint nxmAmount) public view returns (uint ethAmount) {
     uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = pd.getLastMCREther();
+    uint mcrEth = mcr.getLastMCREther();
     return calculateEthForNXM(nxmAmount, currentTotalAssetValue, mcrEth);
   }
 
   /**
-  * @dev Computes token sell value for a tokenAmount in ETH with a sell spread of 2.5%.
-  * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of 2.5%.
-  * for values higher than that sell spread may exceed 2.5%
-  * (The higher amount being sold at any given time the higher the spread)
-  */
+   * @dev Computes token sell value for a tokenAmount in ETH with a sell spread of 2.5%.
+   * for values in ETH of the sale <= 1% * MCReth the sell spread is very close to the exact value of 2.5%.
+   * for values higher than that sell spread may exceed 2.5%
+   * (The higher amount being sold at any given time the higher the spread)
+   */
   function calculateEthForNXM(
     uint nxmAmount,
     uint currentTotalAssetValue,
@@ -460,6 +639,7 @@ contract Pool1 is Iupgradable {
       ethAmount <= mcrEth.mul(MAX_BUY_SELL_MCR_ETH_FRACTION).div(10 ** MCR_RATIO_DECIMALS),
       "Pool: Sales worth more than 5% of MCReth are not allowed"
     );
+
     return ethAmount;
   }
 
@@ -470,12 +650,11 @@ contract Pool1 is Iupgradable {
   /**
   * @dev Calculates token price in ETH 1 NXM token. TokenPrice = A + (MCReth / C) * MCR%^4
   */
-  function calculateTokenSpotPrice(
-    uint totalAssetValue,
-    uint mcrEth
-  ) public pure returns (uint tokenPrice) {
+  function calculateTokenSpotPrice(uint totalAssetValue, uint mcrEth) public pure returns (uint tokenPrice) {
+
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
     uint precisionDecimals = 10 ** TOKEN_EXPONENT.mul(MCR_RATIO_DECIMALS);
+
     return mcrEth
       .mul(mcrRatio ** TOKEN_EXPONENT)
       .div(CONSTANT_C)
@@ -484,100 +663,22 @@ contract Pool1 is Iupgradable {
   }
 
   /**
-   * @dev Calculates the Token Price of NXM in a given currency
-   * with provided token supply for dynamic token price calculation
-   * @param currency Currency name.
-  */
-  function getTokenPrice(bytes4 currency) public view returns (uint tokenPrice) {
+   * @dev Returns the NXM price in a given asset
+   * @param asset Asset name.
+   */
+  function getTokenPrice(address asset) public view returns (uint tokenPrice) {
+
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = pd.getLastMCREther();
+    uint mcrEth = mcr.getLastMCREther();
     uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
-    return priceFeedOracle.getCurrencyForEth(currency, tokenSpotPriceEth);
+
+    return priceFeedOracle.getAssetForEth(asset, tokenSpotPriceEth);
   }
 
-    /**
-   * @dev Calculates V(Tp), i.e, Pool Fund Value in Ether
-   * and MCR% used in the Token Price Calculation.
-   * @return vtp  Pool Fund Value in Ether used for the Token Price Model
-   * @return mcrtp MCR% used in the Token Price Model.
-   */
-  function getPoolValueInEth() public view returns (uint) {
-
-    uint value = address(this).balance;
-    IERC20 erc20;
-    uint assetTokens = 0;
-    uint i;
-    for (i = 1; i < pd.getAllCurrenciesLen(); i++) {
-      bytes4 currency = pd.getCurrenciesByIndex(i);
-      erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
-      assetTokens = erc20.balanceOf(address(this));
-      uint rate = priceFeedOracle.getCurrencyToEthRate(currency);
-      if (rate > 0) {
-        value = value.add(assetTokens.mul(rate).div(1e18));
-      }
-    }
-
-    return value.add(getInvestmentAssetBalance());
-  }
-
-  function getMCRRatio() public view returns (uint mcrRatio) {
+  function getMCRRatio() public view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = pd.getLastMCREther();
-    mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
-  }
-
-  /**
-   * @dev gives the investment asset balance
-   * @return investment asset balance
-   */
-  function getInvestmentAssetBalance() public view returns (uint balance) {
-    IERC20 erc20;
-    uint currTokens;
-    for (uint i = 1; i < pd.getInvestmentCurrencyLen(); i++) {
-      bytes4 currency = pd.getInvestmentCurrencyByIndex(i);
-      erc20 = IERC20(pd.getInvestmentAssetAddress(currency));
-      currTokens = erc20.balanceOf(address(p2));
-      if (pd.getIAAvgRate(currency) > 0)
-        balance = balance.add((currTokens.mul(100)).div(pd.getIAAvgRate(currency)));
-    }
-
-    balance = balance.add(address(p2).balance);
-  }
-
-  /**
-   * @dev transfers currency asset
-   * @param _curr is currency of asset to transfer
-   * @param _amount is the amount to be transferred
-   * @return boolean representing the success of transfer
-   */
-  function _transferCurrencyAsset(bytes4 _curr, uint _amount) internal returns (bool succ) {
-    if (_curr == "ETH") {
-      if (address(this).balance < _amount)
-        _amount = address(this).balance;
-      p2.sendEther.value(_amount)();
-      succ = true;
-    } else {
-      IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(_curr)); // solhint-disable-line
-      if (erc20.balanceOf(address(this)) < _amount)
-        _amount = erc20.balanceOf(address(this));
-      require(erc20.transfer(address(p2), _amount));
-      succ = true;
-
-    }
-  }
-
-  /**
-   * @dev Transfers ERC20 Currency asset from this Pool to another Pool on upgrade.
-   */
-  function _upgradeCapitalPool(
-    bytes4 _curr,
-    address _newPoolAddress
-  )
-  internal
-  {
-    IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(_curr));
-    if (erc20.balanceOf(address(this)) > 0)
-      require(erc20.transfer(_newPoolAddress, erc20.balanceOf(address(this))));
+    uint mcrEth = mcr.getLastMCREther();
+    return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
 }

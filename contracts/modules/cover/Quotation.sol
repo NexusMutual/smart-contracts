@@ -336,18 +336,22 @@ contract Quotation is Iupgradable {
   internal
   {
     uint cid = qd.getCoverLength();
-    qd.addCover(coverPeriod, coverDetails[0],
-      from, coverCurr, scAddress, coverDetails[1], coverDetails[2]);
-    // if cover period of quote is less than 60 days.
-    if (coverPeriod <= 60) {
-      p1.closeCoverOraclise(cid, uint64(uint(coverPeriod).mul(1 days)));
-    }
+
+    qd.addCover(
+      coverPeriod,
+      coverDetails[0],
+      from,
+      coverCurr,
+      scAddress,
+      coverDetails[1],
+      coverDetails[2]
+    );
+
     uint coverNoteAmount = (coverDetails[2].mul(qd.tokensRetained())).div(100);
     tc.mint(from, coverNoteAmount);
     tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
     qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
     qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
-
 
     tf.pushStakerRewards(scAddress, coverDetails[2]);
   }
@@ -374,7 +378,6 @@ contract Quotation is Iupgradable {
     qd.setTimestampRepeated(coverDetails[4]);
     require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
     _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
-
   }
 
   /**

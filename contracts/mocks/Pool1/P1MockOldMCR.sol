@@ -104,7 +104,7 @@ contract P1MockOldMCR is Iupgradable {
         vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
     }
 
-    vtp = vtp.add(poolBalance).add(p1.getInvestmentAssetBalance());
+    vtp = vtp.add(poolBalance);
     uint mcrFullperc;
     uint vFull;
     (mcrFullperc, , vFull,) = pd.getLastMCR();

@@ -45,52 +45,34 @@ contract PriceFeedOracle {
     }
 
     address aggregatorAddress = aggregators[asset];
+
     if (aggregatorAddress == address(0)) {
       revert("PriceFeedOracle: Oracle asset not found");
     }
-    Aggregator aggregator = Aggregator(aggregatorAddress);
-    int rate = aggregator.latestAnswer();
+
+    int rate = Aggregator(aggregatorAddress).latestAnswer();
     require(rate > 0, "PriceFeedOracle: Rate must be > 0");
+
     return uint(rate);
   }
 
   /**
-  * @dev DEPRECATED - use getAssetToEthRate instead.
-  * Returns the amount of ether in wei that are equivalent to 1 unit (10 ** decimals) of currency
-  * @param currency quoted currency. Supported values: ["DAI", "ETH"]
-  * @return price in ether
- */
-  function getCurrencyToEthRate(bytes4 currency) external view returns (uint) {
-
-    if (currency == "DAI") {
-      return getAssetToEthRate(daiAddress);
-    }
-
-    if (currency == "ETH") {
-      return getAssetToEthRate(ETH);
-    }
-
-    revert("PriceFeedOracle: Unknown currency");
-  }
-
-  /**
-  * @dev
-  * DEPRECATED - Returns the amount of currency that is equivalent to ethIn amount of ether.
-  * @param currency quoted  Supported values: ["DAI", "ETH"]
+  * @dev Returns the amount of currency that is equivalent to ethIn amount of ether.
+  * @param asset quoted  Supported values: ["DAI", "ETH"]
   * @param ethIn amount of ether to be converted to the currency
   * @return price in ether
   */
-  function getCurrencyForEth(bytes4 currency, uint ethIn) external view returns (uint) {
+  function getAssetForEth(address asset, uint ethIn) external view returns (uint) {
 
-    if (currency == "DAI") {
+    if (asset == daiAddress) {
       return ethIn.mul(1e18).div(getAssetToEthRate(daiAddress));
     }
 
-    if (currency == "ETH") {
+    if (asset == ETH) {
       return ethIn;
     }
 
-    revert("PriceFeedOracle: Unknown currency");
+    revert("PriceFeedOracle: Unknown asset");
   }
 
 }

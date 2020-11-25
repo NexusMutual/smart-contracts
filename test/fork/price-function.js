@@ -2,8 +2,8 @@ const fetch = require('node-fetch');
 const { artifacts, run, web3, accounts, network } = require('hardhat');
 const { ether, time } = require('@openzeppelin/test-helpers');
 const Decimal = require('decimal.js');
-const { toDecimal, calculateRelativeError } = require('../utils').tokenPrice;
-
+const { toDecimal, calculateRelativeError, percentageBN, calculateEthForNXMRelativeError } = require('../utils').tokenPrice;
+const { BN } = web3.utils;
 const { encode1 } = require('./external');
 const { logEvents, hex } = require('../utils').helpers;
 
@@ -12,6 +12,7 @@ const Pool1 = artifacts.require('Pool1');
 const NXMaster = artifacts.require('NXMaster');
 const NXMToken = artifacts.require('NXMToken');
 const Governance = artifacts.require('Governance');
+const PoolData = artifacts.require('PoolData');
 const PooledStaking = artifacts.require('PooledStaking');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctions');
@@ -51,6 +52,11 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
+const holders = [
+  '0xd7cba5b9a0240770cfd9671961dae064136fa240',
+  '0xd1bda2c21d73ee31a0d3fdcd64b0d7c4bce6d021'
+];
+
 describe.only('NXM sells and buys', function () {
   this.timeout(0);
 
@@ -74,6 +80,7 @@ describe.only('NXM sells and buys', function () {
     const memberRoles = await MemberRoles.at(nameToAddressMap['MR']);
     const token = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
     const governance = await Governance.at(nameToAddressMap['GV']);
+    const poolData = await PoolData.at(nameToAddressMap['PD']);
     const oldPool1 = await Pool1.at(nameToAddressMap['P1']);
     const oldMCR = await OldMCR.at(nameToAddressMap['MC']);
 
@@ -85,7 +92,10 @@ describe.only('NXM sells and buys', function () {
 
     console.log(boardMembers);
 
-    for (const member of boardMembers) {
+    const membersToTopUp = [];
+    membersToTopUp.push(...boardMembers);
+    membersToTopUp.push(...holders);
+    for (const member of membersToTopUp) {
       console.log(`Topping up ${member}`);
       await web3.eth.sendTransaction({ from: funder, to: member, value: ether('1000000') });
       await network.provider.request({
@@ -185,20 +195,78 @@ describe.only('NXM sells and buys', function () {
     this.firstBoardMember = firstBoardMember;
     this.master = master;
     this.token = token;
+    this.poolData = poolData;
     this.tokenController = await TokenController.at(await master.getLatestAddress(hex('TC')));
     this.pooledStaking = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
     this.pool1 = pool1;
   });
 
   it('performs buys and sells', async function () {
+    const { poolData, pool1, token } = this;
+    const holder = holders[0];
 
+    const mcrEth = await poolData.getLastMCREther();
+    const maxBuy = percentageBN(mcrEth, 4.95);
+
+    const balancePre = await token.balanceOf(holder);
+    await pool1.buyNXM('0', {
+      value: maxBuy,
+      from: holder
+    });
+    const balancePost = await token.balanceOf(holder);
+    const nxmOut = balancePost.sub(balancePre);
+
+    const balancePreSell = await web3.eth.getBalance(holder);
+    const sellTx = await pool1.sellNXM(nxmOut, '0', {
+      from: holder
+    });
+
+    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+    const balancePostSell = await web3.eth.getBalance(holder);
+    const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
+
+    const ethInDecimal = toDecimal(maxBuy);
+    assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
+    const { relativeError: sellSpreadRelativeError } = calculateEthForNXMRelativeError(ethInDecimal, ethOut);
+    assert(
+      sellSpreadRelativeError.lt(Decimal(0.08)),
+      `sell value too low ${ethOut.toFixed()}. sellSpreadRelativeError = ${sellSpreadRelativeError.toFixed()}`,
+    );
   });
 
   it('sells down to 100% MCR%', async function () {
+    const { poolData, pool1, token } = this;
 
+    mcrRatio = await pool1.getMCRRatio();
   });
 
   it('buys up to 400% MCR%', async function () {
+    const { pool1, poolData } = this;
+
+    const holder = holders[0];
+
+    let mcrRatio = await pool1.getMCRRatio();
+    let totalBuyValue = new BN('0');
+    while (mcrRatio.lt(new BN('40000'))) {
+      const mcrEth = await poolData.getLastMCREther();
+      const maxBuy = percentageBN(mcrEth, 4.95);
+      await pool1.buyNXM('0', {
+        value: maxBuy,
+        from: holder
+      });
+
+      mcrRatio = await pool1.getMCRRatio();
+      const tokenSpotPriceDai = await pool1.getTokenPrice(hex('DAI'));
+
+      totalBuyValue = totalBuyValue.add(maxBuy);
+      console.log({
+        maxBuy: maxBuy.div(ether('1')).toString(),
+        totalBuyValue: totalBuyValue.div(ether('1')).toString(),
+        mcrRatio: mcrRatio.toString(),
+        tokenSpotPriceDai: tokenSpotPriceDai.div(ether('1')).toString()
+      });
+    }
 
   });
 });

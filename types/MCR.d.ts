@@ -32,25 +32,6 @@ export interface MCREvent {
 type AllEvents = MCREvent;
 
 export interface MCRInstance extends Truffle.ContractInstance {
-  addLastMCRData: {
-    (
-      date: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      date: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      date: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      date: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   addMCRData: {
     (
       mcrP: number | BN | string,
@@ -90,8 +71,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  calVtpAndMCRtp(txDetails?: Truffle.TransactionDetails): Promise<[BN, BN]>;
-
   changeDependentContractAddress: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -128,6 +107,8 @@ export interface MCRInstance extends Truffle.ContractInstance {
   ): Promise<BN>;
 
   getAllSumAssurance(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+  getLastMCREther(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   getThresholdValues(
     vtp: number | BN | string,
@@ -186,25 +167,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
   variableMincap(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   methods: {
-    addLastMCRData: {
-      (
-        date: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        date: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        date: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        date: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
     addMCRData: {
       (
         mcrP: number | BN | string,
@@ -244,8 +206,6 @@ export interface MCRInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    calVtpAndMCRtp(txDetails?: Truffle.TransactionDetails): Promise<[BN, BN]>;
-
     changeDependentContractAddress: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -282,6 +242,8 @@ export interface MCRInstance extends Truffle.ContractInstance {
     ): Promise<BN>;
 
     getAllSumAssurance(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+    getLastMCREther(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
     getThresholdValues(
       vtp: number | BN | string,

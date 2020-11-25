@@ -27,19 +27,14 @@ export interface PriceFeedOracleInstance extends Truffle.ContractInstance {
 
   daiAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  getAssetToEthRate(
+  getAssetForEth(
     asset: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  getCurrencyForEth(
-    currency: string,
     ethIn: number | BN | string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
-  getCurrencyToEthRate(
-    currency: string,
+  getAssetToEthRate(
+    asset: string,
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
@@ -53,19 +48,14 @@ export interface PriceFeedOracleInstance extends Truffle.ContractInstance {
 
     daiAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    getAssetToEthRate(
+    getAssetForEth(
       asset: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    getCurrencyForEth(
-      currency: string,
       ethIn: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
 
-    getCurrencyToEthRate(
-      currency: string,
+    getAssetToEthRate(
+      asset: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
   };

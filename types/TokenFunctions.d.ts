@@ -74,25 +74,25 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
   burnStakedTokens: {
     (
       coverId: number | BN | string,
-      coverCurrency: string,
+      asset: string,
       sumAssured: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
       coverId: number | BN | string,
-      coverCurrency: string,
+      asset: string,
       sumAssured: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
       coverId: number | BN | string,
-      coverCurrency: string,
+      asset: string,
       sumAssured: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
       coverId: number | BN | string,
-      coverCurrency: string,
+      asset: string,
       sumAssured: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
@@ -348,25 +348,25 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     burnStakedTokens: {
       (
         coverId: number | BN | string,
-        coverCurrency: string,
+        asset: string,
         sumAssured: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
         coverId: number | BN | string,
-        coverCurrency: string,
+        asset: string,
         sumAssured: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
         coverId: number | BN | string,
-        coverCurrency: string,
+        asset: string,
         sumAssured: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
         coverId: number | BN | string,
-        coverCurrency: string,
+        asset: string,
         sumAssured: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;

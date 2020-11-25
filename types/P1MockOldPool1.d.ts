@@ -51,10 +51,6 @@ export interface P1MockOldPool1Instance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  getInvestmentAssetBalance(
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
   getToken(
     weiPaid: number | BN | string,
     txDetails?: Truffle.TransactionDetails
@@ -149,10 +145,6 @@ export interface P1MockOldPool1Instance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
-
-    getInvestmentAssetBalance(
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
 
     getToken(
       weiPaid: number | BN | string,

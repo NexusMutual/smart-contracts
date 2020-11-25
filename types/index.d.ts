@@ -47,7 +47,6 @@ import { ExchangeFactoryMockContract } from "./ExchangeFactoryMock";
 import { ExchangeMockContract } from "./ExchangeMock";
 import { MasterMockContract } from "./MasterMock";
 import { MemberRolesMockContract } from "./MemberRolesMock";
-import { NXMDSValueMockContract } from "./NXMDSValueMock";
 import { NXMTokenMockContract } from "./NXMTokenMock";
 import { P1MockChainlinkAggregatorContract } from "./P1MockChainlinkAggregator";
 import { P1MockMemberContract } from "./P1MockMember";
@@ -62,7 +61,7 @@ import { AggregatorContract } from "./Aggregator";
 import { NXMDSValueContract } from "./NXMDSValue";
 import { PoolContract } from "./Pool";
 import { Pool1Contract } from "./Pool1";
-import { Pool2Contract } from "./Pool2";
+import { Pool2OldContract } from "./Pool2Old";
 import { DSValueContract } from "./DSValue";
 import { PoolDataContract } from "./PoolData";
 import { SwapAgentContract } from "./SwapAgent";
@@ -83,7 +82,8 @@ import { GovernanceContract } from "./Governance";
 import { MemberRolesContract } from "./MemberRoles";
 import { NXMasterContract } from "./NXMaster";
 import { ProposalCategoryContract } from "./ProposalCategory";
-import { OracleAggregatorContract } from "./OracleAggregator";
+import { AggregatorContract } from "./Aggregator";
+import { PriceFeedOracleContract } from "./PriceFeedOracle";
 import { TwapOracleContract } from "./TwapOracle";
 import { PooledStakingContract } from "./PooledStaking";
 import { IERC1132Contract } from "./IERC1132";
@@ -92,8 +92,6 @@ import { NXMTokenContract } from "./NXMToken";
 import { TokenControllerContract } from "./TokenController";
 import { TokenDataContract } from "./TokenData";
 import { TokenFunctionsContract } from "./TokenFunctions";
-import { AggregatorContract } from "./Aggregator";
-import { PriceFeedOracleContract } from "./PriceFeedOracle";
 
 declare global {
   namespace Truffle {
@@ -147,7 +145,6 @@ declare global {
       require(name: "ExchangeMock"): ExchangeMockContract;
       require(name: "MasterMock"): MasterMockContract;
       require(name: "MemberRolesMock"): MemberRolesMockContract;
-      require(name: "NXMDSValueMock"): NXMDSValueMockContract;
       require(name: "NXMTokenMock"): NXMTokenMockContract;
       require(
         name: "P1MockChainlinkAggregator"
@@ -164,7 +161,7 @@ declare global {
       require(name: "NXMDSValue"): NXMDSValueContract;
       require(name: "Pool"): PoolContract;
       require(name: "Pool1"): Pool1Contract;
-      require(name: "Pool2"): Pool2Contract;
+      require(name: "Pool2Old"): Pool2OldContract;
       require(name: "DSValue"): DSValueContract;
       require(name: "PoolData"): PoolDataContract;
       require(name: "SwapAgent"): SwapAgentContract;
@@ -187,7 +184,8 @@ declare global {
       require(name: "MemberRoles"): MemberRolesContract;
       require(name: "NXMaster"): NXMasterContract;
       require(name: "ProposalCategory"): ProposalCategoryContract;
-      require(name: "OracleAggregator"): OracleAggregatorContract;
+      require(name: "Aggregator"): AggregatorContract;
+      require(name: "PriceFeedOracle"): PriceFeedOracleContract;
       require(name: "TwapOracle"): TwapOracleContract;
       require(name: "PooledStaking"): PooledStakingContract;
       require(name: "IERC1132"): IERC1132Contract;
@@ -196,8 +194,6 @@ declare global {
       require(name: "TokenController"): TokenControllerContract;
       require(name: "TokenData"): TokenDataContract;
       require(name: "TokenFunctions"): TokenFunctionsContract;
-      require(name: "Aggregator"): AggregatorContract;
-      require(name: "PriceFeedOracle"): PriceFeedOracleContract;
     }
   }
 }
@@ -316,10 +312,6 @@ export {
   MemberRolesMockContract,
   MemberRolesMockInstance,
 } from "./MemberRolesMock";
-export {
-  NXMDSValueMockContract,
-  NXMDSValueMockInstance,
-} from "./NXMDSValueMock";
 export { NXMTokenMockContract, NXMTokenMockInstance } from "./NXMTokenMock";
 export {
   P1MockChainlinkAggregatorContract,
@@ -352,7 +344,7 @@ export { AggregatorContract, AggregatorInstance } from "./Aggregator";
 export { NXMDSValueContract, NXMDSValueInstance } from "./NXMDSValue";
 export { PoolContract, PoolInstance } from "./Pool";
 export { Pool1Contract, Pool1Instance } from "./Pool1";
-export { Pool2Contract, Pool2Instance } from "./Pool2";
+export { Pool2OldContract, Pool2OldInstance } from "./Pool2Old";
 export { DSValueContract, DSValueInstance } from "./DSValue";
 export { PoolDataContract, PoolDataInstance } from "./PoolData";
 export { SwapAgentContract, SwapAgentInstance } from "./SwapAgent";
@@ -385,10 +377,11 @@ export {
   ProposalCategoryContract,
   ProposalCategoryInstance,
 } from "./ProposalCategory";
+export { AggregatorContract, AggregatorInstance } from "./Aggregator";
 export {
-  OracleAggregatorContract,
-  OracleAggregatorInstance,
-} from "./OracleAggregator";
+  PriceFeedOracleContract,
+  PriceFeedOracleInstance,
+} from "./PriceFeedOracle";
 export { TwapOracleContract, TwapOracleInstance } from "./TwapOracle";
 export { PooledStakingContract, PooledStakingInstance } from "./PooledStaking";
 export { IERC1132Contract, IERC1132Instance } from "./IERC1132";
@@ -403,8 +396,3 @@ export {
   TokenFunctionsContract,
   TokenFunctionsInstance,
 } from "./TokenFunctions";
-export { AggregatorContract, AggregatorInstance } from "./Aggregator";
-export {
-  PriceFeedOracleContract,
-  PriceFeedOracleInstance,
-} from "./PriceFeedOracle";

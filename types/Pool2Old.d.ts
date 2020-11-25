@@ -5,63 +5,40 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface ClaimsRewardContract
-  extends Truffle.Contract<ClaimsRewardInstance> {
+export interface Pool2OldContract extends Truffle.Contract<Pool2OldInstance> {
   "new"(
-    masterAddress: string,
-    _daiAddress: string,
+    _uniswapFactoryAdd: string,
     meta?: Truffle.TransactionDetails
-  ): Promise<ClaimsRewardInstance>;
+  ): Promise<Pool2OldInstance>;
 }
 
-type AllEvents = never;
-
-export interface ClaimsRewardInstance extends Truffle.ContractInstance {
-  DAI(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  ETH(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  _claimStakeCommission: {
-    (
-      _records: number | BN | string,
-      _user: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      _records: number | BN | string,
-      _user: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _records: number | BN | string,
-      _user: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _records: number | BN | string,
-      _user: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
+export interface Liquidity {
+  name: "Liquidity";
+  args: {
+    typeOf: string;
+    functionName: string;
+    0: string;
+    1: string;
   };
+}
 
-  changeClaimStatus: {
-    (
-      claimid: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      claimid: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      claimid: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      claimid: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
+export interface Rebalancing {
+  name: "Rebalancing";
+  args: {
+    iaCurr: string;
+    tokenAmount: BN;
+    0: string;
+    1: BN;
   };
+}
+
+type AllEvents = Liquidity | Rebalancing;
+
+export interface Pool2OldInstance extends Truffle.ContractInstance {
+  _getCurrencyAssetsBalance(
+    _curr: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
 
   changeDependentContractAddress: {
     (txDetails?: Truffle.TransactionDetails): Promise<
@@ -90,26 +67,26 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  claimAllPendingReward: {
+  changeUniswapFactoryAddress: {
     (
-      records: number | BN | string,
+      newFactoryAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      records: number | BN | string,
+      newFactoryAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      records: number | BN | string,
+      newFactoryAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      records: number | BN | string,
+      newFactoryAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
-  fixStuckStatuses: {
+  externalLiquidityTrade: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
     >;
@@ -118,102 +95,92 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
 
-  getAllPendingRewardOfUser(
-    _add: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  getCurrencyAssetAddress(
-    currency: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<string>;
-
-  getRewardAndClaimedStatus(
-    check: number | BN | string,
-    claimId: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, boolean]>;
-
-  getRewardToBeDistributedByUser(
-    _add: string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<BN>;
-
-  getRewardToBeGiven(
-    check: number | BN | string,
-    voteid: number | BN | string,
-    flag: number | BN | string,
-    txDetails?: Truffle.TransactionDetails
-  ): Promise<[BN, boolean, BN, BN]>;
+  internalLiquiditySwap: {
+    (curr: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(curr: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(
+      curr: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      curr: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
 
   ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  upgrade: {
-    (_newAdd: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
+  saveIADetails: {
+    (
+      curr: string[],
+      rate: (number | BN | string)[],
+      date: number | BN | string,
+      bit: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      _newAdd: string,
+      curr: string[],
+      rate: (number | BN | string)[],
+      date: number | BN | string,
+      bit: boolean,
       txDetails?: Truffle.TransactionDetails
     ): Promise<void>;
     sendTransaction(
-      _newAdd: string,
+      curr: string[],
+      rate: (number | BN | string)[],
+      date: number | BN | string,
+      bit: boolean,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      _newAdd: string,
+      curr: string[],
+      rate: (number | BN | string)[],
+      date: number | BN | string,
+      bit: boolean,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  sendEther: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
+
+  uniswapFactoryAddress(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<string>;
+
+  upgradeInvestmentPool: {
+    (newPoolAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(
+      newPoolAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      newPoolAddress: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      newPoolAddress: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
 
   methods: {
-    DAI(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    ETH(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    _claimStakeCommission: {
-      (
-        _records: number | BN | string,
-        _user: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        _records: number | BN | string,
-        _user: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _records: number | BN | string,
-        _user: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _records: number | BN | string,
-        _user: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    changeClaimStatus: {
-      (
-        claimid: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        claimid: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        claimid: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        claimid: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
+    _getCurrencyAssetsBalance(
+      _curr: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
 
     changeDependentContractAddress: {
       (txDetails?: Truffle.TransactionDetails): Promise<
@@ -242,26 +209,26 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
-    claimAllPendingReward: {
+    changeUniswapFactoryAddress: {
       (
-        records: number | BN | string,
+        newFactoryAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        records: number | BN | string,
+        newFactoryAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        records: number | BN | string,
+        newFactoryAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        records: number | BN | string,
+        newFactoryAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
 
-    fixStuckStatuses: {
+    externalLiquidityTrade: {
       (txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
       >;
@@ -270,52 +237,83 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
-    getAllPendingRewardOfUser(
-      _add: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    getCurrencyAssetAddress(
-      currency: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-
-    getRewardAndClaimedStatus(
-      check: number | BN | string,
-      claimId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, boolean]>;
-
-    getRewardToBeDistributedByUser(
-      _add: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<BN>;
-
-    getRewardToBeGiven(
-      check: number | BN | string,
-      voteid: number | BN | string,
-      flag: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<[BN, boolean, BN, BN]>;
+    internalLiquiditySwap: {
+      (curr: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(curr: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(
+        curr: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        curr: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
 
     ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    upgrade: {
-      (_newAdd: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
+    saveIADetails: {
+      (
+        curr: string[],
+        rate: (number | BN | string)[],
+        date: number | BN | string,
+        bit: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        _newAdd: string,
+        curr: string[],
+        rate: (number | BN | string)[],
+        date: number | BN | string,
+        bit: boolean,
         txDetails?: Truffle.TransactionDetails
       ): Promise<void>;
       sendTransaction(
-        _newAdd: string,
+        curr: string[],
+        rate: (number | BN | string)[],
+        date: number | BN | string,
+        bit: boolean,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        _newAdd: string,
+        curr: string[],
+        rate: (number | BN | string)[],
+        date: number | BN | string,
+        bit: boolean,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    sendEther: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    };
+
+    uniswapFactoryAddress(
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+
+    upgradeInvestmentPool: {
+      (newPoolAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(
+        newPoolAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        newPoolAddress: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        newPoolAddress: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

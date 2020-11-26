@@ -674,4 +674,32 @@ contract Pool1 is MasterAware, ReentrancyGuard {
     uint mcrEth = mcr.getLastMCREther();
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
+
+  function updateUintParameters(bytes8 code, uint112 value) external onlyGovernance {
+    if (code == "MIN_ETH") {
+      minPoolEth = value;
+      return;
+    }
+
+    revert("Pool: unknown parameter");
+  }
+
+  function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
+    if (code == "TWAP") {
+      twapOracle = value;
+      return;
+    }
+
+    if (code == "SWAP") {
+      swapController = value;
+      return;
+    }
+
+    if (code == "PRC_FEED") {
+      priceFeedOracle = value;
+      return;
+    }
+
+    revert("Pool: unknown parameter");
+  }
 }

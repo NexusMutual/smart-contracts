@@ -369,11 +369,6 @@ contract NXMaster is Governed {
   /// @dev Allow AB Members to Start Emergency Pause
   function startEmergencyPause() public onlyAuthorizedToGovern {
     addEmergencyPause(true, "AB"); // Start Emergency Pause
-    //Pool1 p1 = Pool1(allContractVersions["P1"]);
-
-    // TODO
-    //p1.closeEmergencyPause(pauseTime); // oraclize callback of 4 weeks
-
     Claims c1 = Claims(allContractVersions["CL"]);
     c1.pauseAllPendingClaimsVoting(); // Pause Voting of all pending Claims
   }

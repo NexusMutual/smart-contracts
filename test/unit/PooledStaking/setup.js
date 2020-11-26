@@ -2,7 +2,7 @@ const { artifacts } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { Role, ParamType } = require('../utils').constants;
+const { Role, StakingUintParamType } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const accounts = require('../utils').accounts;
 
@@ -65,10 +65,10 @@ async function setup () {
 
   // revert initialized values for unit tests
   const firstGovernanceAddress = accounts.governanceContracts[0];
-  await staking.updateUintParameters(ParamType.MIN_STAKE, 0, { from: firstGovernanceAddress });
-  await staking.updateUintParameters(ParamType.MIN_UNSTAKE, 0, { from: firstGovernanceAddress });
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, 0, { from: firstGovernanceAddress });
-  await staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, 0, { from: firstGovernanceAddress });
+  await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, 0, { from: firstGovernanceAddress });
+  await staking.updateUintParameters(StakingUintParamType.MIN_UNSTAKE, 0, { from: firstGovernanceAddress });
+  await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, 0, { from: firstGovernanceAddress });
+  await staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, 0, { from: firstGovernanceAddress });
 
   this.master = master;
   this.token = token;

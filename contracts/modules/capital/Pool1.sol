@@ -47,7 +47,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
   // parameters
   address public twapOracle;
   address public swapController;
-  uint112 public minPoolEth;
+  uint public minPoolEth;
   PriceFeedOracle public priceFeedOracle;
 
   /* constants */
@@ -675,7 +675,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 
-  function updateUintParameters(bytes8 code, uint112 value) external onlyGovernance {
+  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
     if (code == "MIN_ETH") {
       minPoolEth = value;
       return;
@@ -696,7 +696,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
     }
 
     if (code == "PRC_FEED") {
-      priceFeedOracle = value;
+      priceFeedOracle = PriceFeedOracle(value);
       return;
     }
 

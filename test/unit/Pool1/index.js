@@ -23,5 +23,5 @@ describe('Pool1 unit tests', function () {
   require('./sellNXM');
   require('./getMCRRatio');
   require('./getters');
-
+  require('./updateParameters');
 });

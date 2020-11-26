@@ -150,54 +150,6 @@ contract NXMaster is Governed {
     cr.changeClaimStatus(_claimId);
   }
 
-  /**
-   * @dev  Handles the oraclize query callback.
-   * @param myid ID of oraclize query to be processed
-   */
-  function delegateCallBack(bytes32 myid) external noReentrancy {
-    PoolData pd = PoolData(getLatestAddress("PD"));
-    uint callTime = pd.getDateUpdOfAPI(myid);
-    uint dateAdd = pd.getDateAddOfAPI(myid);
-    require(callTime == dateAdd, "Callback already received");
-
-    bytes4 res = pd.getApiIdTypeOf(myid);
-    pd.updateDateUpdOfAPI(myid);
-
-    if (isPause()) {
-
-      bytes4 by;
-      (,, by) = getLastEmergencyPause();
-
-      require(res == "EP", "Only callback of type EP is allowed during emergency pause");
-      require(callTime.add(pauseTime) < now, "Callback was called too soon");
-      require(by == "AB", "Emergency paused was not started by Advisory Board");
-
-      addEmergencyPause(false, "AUT");
-      return;
-    }
-
-    uint id = pd.getIdOfApiId(myid);
-
-    if (res == "COV") {
-      Quotation qt = Quotation(getLatestAddress("QT"));
-      qt.expireCover(id);
-      return;
-    }
-
-    if (res == "CLA") {
-      require(canCall(id), "Payout retry time not reached");
-      ClaimsReward cr = ClaimsReward(getLatestAddress("CR"));
-      cr.changeClaimStatus(id);
-      return;
-    }
-
-    if (res == "MCR" || res == "IARB") {
-      return;
-    }
-
-    revert("Invalid callback");
-  }
-
   function getOwnerParameters(bytes8 code) external view returns (bytes8 codeVal, address val) {
     codeVal = code;
     QuotationData qd;

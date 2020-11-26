@@ -38,11 +38,9 @@ contract NXMaster is Governed {
   mapping(bytes2 => bool) public isUpgradable;
 
   address public tokenAddress;
-
   bool internal reentrancyLock;
-
-
   bool public masterInitialized;
+
   address public owner;
   uint public pauseTime;
   bool constructorCheck;
@@ -52,47 +50,6 @@ contract NXMaster is Governed {
     reentrancyLock = true;
     _;
     reentrancyLock = false;
-  }
-
-  /// @dev to initiate master data
-  /// @param _tokenAdd NXM token address.
-  function initiateMaster(address _tokenAdd) external {
-
-    OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(address(uint160(address(this))));
-    require(msg.sender == proxy.proxyOwner(), "Sender is not proxy owner.");
-    require(!constructorCheck, "Constructor already ran.");
-    constructorCheck = true;
-    tokenAddress = _tokenAdd;
-    owner = msg.sender;
-    masterAddress = address(this);
-    contractsActive[address(this)] = true;
-    pauseTime = 28 days; // 4 weeks
-    allContractNames.push("QD");
-    allContractNames.push("TD");
-    allContractNames.push("CD");
-    allContractNames.push("PD");
-    allContractNames.push("QT");
-    allContractNames.push("TF");
-    allContractNames.push("TC");
-    allContractNames.push("CL");
-    allContractNames.push("CR");
-    allContractNames.push("P1");
-    allContractNames.push("P2");
-    allContractNames.push("MC");
-    allContractNames.push("GV");
-    allContractNames.push("PC");
-    allContractNames.push("MR");
-    isUpgradable["QT"] = true;
-    isUpgradable["TF"] = true;
-    isUpgradable["CL"] = true;
-    isUpgradable["CR"] = true;
-    isUpgradable["P1"] = true;
-    isUpgradable["P2"] = true;
-    isUpgradable["MC"] = true;
-    isProxy["TC"] = true;
-    isProxy["GV"] = true;
-    isProxy["PC"] = true;
-    isProxy["MR"] = true;
   }
 
   function upgradeMultipleImplementations(
@@ -211,9 +168,11 @@ contract NXMaster is Governed {
     require(_contractsName.length == _contractsAddress.length, "Array length should be equal.");
 
     for (uint i = 0; i < _contractsName.length; i++) {
+
       address payable newAddress = _contractsAddress[i];
       require(newAddress != address(0), "NULL address is not allowed.");
       require(isUpgradable[_contractsName[i]], "Contract should be upgradable.");
+
       if (_contractsName[i] == "QT") {
         Quotation qt = Quotation(allContractVersions["QT"]);
         qt.transferAssetsToNewContract(newAddress);
@@ -230,9 +189,8 @@ contract NXMaster is Governed {
         p1.upgradeCapitalPool(newAddress);
 
       } else if (_contractsName[i] == "P2") {
-        // TODO: modify for pool upgrade
-//        Pool2 p2 = Pool2(allContractVersions["P2"]);
-//        p2.upgradeInvestmentPool(newAddress);
+        Pool2 pool2 = Pool2(allContractVersions["P2"]);
+        pool2.upgradeInvestmentPool(newAddress);
       }
 
       address payable oldAddress = allContractVersions[_contractsName[i]];

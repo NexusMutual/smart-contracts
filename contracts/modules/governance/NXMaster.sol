@@ -164,10 +164,6 @@ contract NXMaster is Governed {
       pd = PoolData(getLatestAddress("PD"));
       val = pd.notariseMCR();
 
-    } else if (code == "DAIFEED") {
-      pd = PoolData(getLatestAddress("PD"));
-      val = pd.daiFeedAddress();
-
     } else if (code == "OWNER") {
 
       val = owner;
@@ -399,10 +395,6 @@ contract NXMaster is Governed {
 
       pd = PoolData(getLatestAddress("PD"));
       pd.changeNotariseAddress(val);
-
-    } else if (code == "DAIFEED") {
-      pd = PoolData(getLatestAddress("PD"));
-      pd.changeDAIfeedAddress(val);
 
     } else if (code == "OWNER") {
 

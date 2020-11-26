@@ -53,13 +53,6 @@ contract TokenFunctions is Iupgradable {
   }
 
   /**
-  * @dev Deprecated in favor of burnStakedTokens
-  */
-  function burnStakerLockedToken(uint, bytes4, uint) external {
-    // noop
-  }
-
-  /**
   * @dev Burns tokens staked on smart contract covered by coverId. Called when a payout is succesfully executed.
   * @param coverId cover id
   * @param asset cover currency

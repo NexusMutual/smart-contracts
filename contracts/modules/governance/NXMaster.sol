@@ -184,9 +184,7 @@ contract NXMaster is Governed {
   /// @dev Add Emergency pause
   /// @param _pause to set Emergency Pause ON/OFF
   /// @param _by to set who Start/Stop EP
-  function addEmergencyPause(bool _pause, bytes4 _by) public {
-    require(_by == "AB" || _by == "AUT", "Invalid call.");
-    require(msg.sender == getLatestAddress("P1") || msg.sender == getLatestAddress("GV"), "Callable by P1 and GV only.");
+  function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
     emergencyPaused.push(EmergencyPause(_pause, now, _by));
     if (_pause == false) {
       Claims c1 = Claims(allContractVersions["CL"]);

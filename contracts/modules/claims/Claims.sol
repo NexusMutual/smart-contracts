@@ -16,6 +16,7 @@
 pragma solidity ^0.5.0;
 
 import "../capital/MCR.sol";
+import "../capital/PoolData.sol";
 import "../claims/ClaimsReward.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";

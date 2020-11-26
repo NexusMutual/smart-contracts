@@ -27,8 +27,8 @@ async function setup () {
 
   /* load artifacts */
 
-  /** @var {PoolContract} Pool */
-  const Pool = artifacts.require('Pool');
+  /** @var {Pool1Contract} Pool */
+  const Pool = artifacts.require('Pool1');
   const SwapAgent = artifacts.require('SwapAgent');
   const MasterMock = artifacts.require('MasterMock');
 
@@ -102,6 +102,7 @@ async function setup () {
     [0, 0], // max
     [ether('0.01'), ether('0.01')], // max slippage ratio [1%, 1%]
     master.address,
+    ZERO_ADDRESS, // price feed oracle not used
     oracle.address,
     owner, // swap controller
   );
@@ -115,9 +116,11 @@ async function setup () {
 
 /**
  * @typedef {object} SwapAgentContracts
+ * @property {MasterMockInstance} master
+ * @property {Pool1Instance} pool
  * @property {UniswapV2FactoryInstance} factory
+ * @property {UniswapV2Router02Instance} router
  * @property {TwapOracleInstance} oracle
- * @property {UniswapV2Router01Instance} router
  * @property {ERC20MockInstance} tokenA
  * @property {ERC20MockInstance} tokenB
  * @property {WETH9Instance} weth

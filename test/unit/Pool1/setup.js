@@ -51,7 +51,7 @@ async function setup () {
   );
 
   const token = await TokenMock.new();
-  const mcr = await MCR.new();
+  const mcr = await MCR.new(ZERO_ADDRESS);
   const tokenController = await TokenController.new();
   const tokenFunctions = await TokenFunctions.new();
   await token.mint(accounts.defaultSender, ether('10000'));
@@ -67,6 +67,7 @@ async function setup () {
   await master.setLatestAddress(hex('TF'), tokenFunctions.address);
 
   const contractsToUpdate = [mcr, pool1, tokenController, tokenFunctions];
+
   for (const contract of contractsToUpdate) {
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();

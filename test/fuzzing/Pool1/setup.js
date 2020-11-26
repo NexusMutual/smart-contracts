@@ -39,7 +39,7 @@ async function setup ({ MCR, Pool1 }) {
   );
 
   const token = await TokenMock.new();
-  const mcr = await MCR.new();
+  const mcr = await MCR.new(ZERO_ADDRESS);
   const tokenController = await TokenController.new();
   const tokenFunctions = await TokenFunctions.new();
   await token.mint(accounts.defaultSender, ether('10000'));

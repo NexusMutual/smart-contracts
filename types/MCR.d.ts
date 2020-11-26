@@ -6,7 +6,10 @@ import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
 export interface MCRContract extends Truffle.Contract<MCRInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<MCRInstance>;
+  "new"(
+    masterAddress: string,
+    meta?: Truffle.TransactionDetails
+  ): Promise<MCRInstance>;
 }
 
 export interface MCREvent {

@@ -114,21 +114,6 @@ export interface NXMasterInstance extends Truffle.ContractInstance {
 
   dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  delegateCallBack: {
-    (myid: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(myid: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(
-      myid: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      myid: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   emergencyPaused(
     arg0: number | BN | string,
     txDetails?: Truffle.TransactionDetails
@@ -413,21 +398,6 @@ export interface NXMasterInstance extends Truffle.ContractInstance {
     dAppLocker(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    delegateCallBack: {
-      (myid: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(myid: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(
-        myid: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        myid: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
 
     emergencyPaused(
       arg0: number | BN | string,

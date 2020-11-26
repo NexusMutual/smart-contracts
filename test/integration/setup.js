@@ -146,7 +146,7 @@ async function setup () {
   const cd = await ClaimsData.new();
   const cr = await ClaimsReward.new(master.address, dai.address);
 
-  const mc = await MCR.new();
+  const mc = await MCR.new(ZERO_ADDRESS);
   const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
   const p1 = await Pool1.new(
     [dai.address], // assets

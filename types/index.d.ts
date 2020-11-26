@@ -43,8 +43,6 @@ import { DisposablePooledStakingContract } from "./DisposablePooledStaking";
 import { DisposableProposalCategoryContract } from "./DisposableProposalCategory";
 import { DisposableTokenControllerContract } from "./DisposableTokenController";
 import { ERC20MockContract } from "./ERC20Mock";
-import { ExchangeFactoryMockContract } from "./ExchangeFactoryMock";
-import { ExchangeMockContract } from "./ExchangeMock";
 import { MasterMockContract } from "./MasterMock";
 import { MemberRolesMockContract } from "./MemberRolesMock";
 import { NXMTokenMockContract } from "./NXMTokenMock";
@@ -59,9 +57,7 @@ import { TOMockUniswapPairContract } from "./TOMockUniswapPair";
 import { MCRContract } from "./MCR";
 import { AggregatorContract } from "./Aggregator";
 import { NXMDSValueContract } from "./NXMDSValue";
-import { PoolContract } from "./Pool";
 import { Pool1Contract } from "./Pool1";
-import { Pool2OldContract } from "./Pool2Old";
 import { DSValueContract } from "./DSValue";
 import { PoolDataContract } from "./PoolData";
 import { SwapAgentContract } from "./SwapAgent";
@@ -141,8 +137,6 @@ declare global {
         name: "DisposableTokenController"
       ): DisposableTokenControllerContract;
       require(name: "ERC20Mock"): ERC20MockContract;
-      require(name: "ExchangeFactoryMock"): ExchangeFactoryMockContract;
-      require(name: "ExchangeMock"): ExchangeMockContract;
       require(name: "MasterMock"): MasterMockContract;
       require(name: "MemberRolesMock"): MemberRolesMockContract;
       require(name: "NXMTokenMock"): NXMTokenMockContract;
@@ -159,9 +153,7 @@ declare global {
       require(name: "MCR"): MCRContract;
       require(name: "Aggregator"): AggregatorContract;
       require(name: "NXMDSValue"): NXMDSValueContract;
-      require(name: "Pool"): PoolContract;
       require(name: "Pool1"): Pool1Contract;
-      require(name: "Pool2Old"): Pool2OldContract;
       require(name: "DSValue"): DSValueContract;
       require(name: "PoolData"): PoolDataContract;
       require(name: "SwapAgent"): SwapAgentContract;
@@ -302,11 +294,6 @@ export {
   DisposableTokenControllerInstance,
 } from "./DisposableTokenController";
 export { ERC20MockContract, ERC20MockInstance } from "./ERC20Mock";
-export {
-  ExchangeFactoryMockContract,
-  ExchangeFactoryMockInstance,
-} from "./ExchangeFactoryMock";
-export { ExchangeMockContract, ExchangeMockInstance } from "./ExchangeMock";
 export { MasterMockContract, MasterMockInstance } from "./MasterMock";
 export {
   MemberRolesMockContract,
@@ -342,9 +329,7 @@ export {
 export { MCRContract, MCRInstance } from "./MCR";
 export { AggregatorContract, AggregatorInstance } from "./Aggregator";
 export { NXMDSValueContract, NXMDSValueInstance } from "./NXMDSValue";
-export { PoolContract, PoolInstance } from "./Pool";
 export { Pool1Contract, Pool1Instance } from "./Pool1";
-export { Pool2OldContract, Pool2OldInstance } from "./Pool2Old";
 export { DSValueContract, DSValueInstance } from "./DSValue";
 export { PoolDataContract, PoolDataInstance } from "./PoolData";
 export { SwapAgentContract, SwapAgentInstance } from "./SwapAgent";

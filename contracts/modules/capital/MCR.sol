@@ -39,7 +39,6 @@ contract MCR is Iupgradable {
 
   uint private constant minCapFactor = uint(10) ** 21;
 
-  // TODO: Add a constructor to initialize the following parameters
   uint public variableMincap;
   uint public dynamicMincapThresholdx100 = 13000;
   uint public dynamicMincapIncrementx100 = 100;
@@ -53,6 +52,25 @@ contract MCR is Iupgradable {
     uint mcrPercx100,
     uint vFull
   );
+
+  constructor (address masterAddress) public {
+
+    changeMasterAddress(masterAddress);
+
+    // we'll pass the zero address on the first deploy
+    // due to missing previous MCR contract
+    if (masterAddress == address(0)) {
+      return;
+    }
+
+    address mcrAddress = ms.getLatestAddress("MC");
+    MCR previousMCR = MCR(mcrAddress);
+
+    // fetch MCR parameters from previous contract
+    variableMincap = previousMCR.variableMincap();
+    dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
+    dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
+  }
 
   /**
    * @dev Adds new MCR data.
@@ -196,12 +214,11 @@ contract MCR is Iupgradable {
   )
   internal
   {
-    uint vtp = 0;
     uint lowerThreshold = 0;
     uint upperThreshold = 0;
 
     if (len > 1) {
-      vtp = p1.getPoolValueInEth();
+      uint vtp = p1.getPoolValueInEth();
       (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
     }
 

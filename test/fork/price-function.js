@@ -128,7 +128,7 @@ describe.only('NXM sells and buys', function () {
     const newCL = await Claims.new({ from: firstBoardMember });
 
     console.log(`Deploying new MCR..`);
-    const newMCR = await MCR.new({ from: firstBoardMember });
+    const newMCR = await MCR.new(masterAddress, { from: firstBoardMember });
 
     console.log(`Deploying PriceFeedOracle..`);
     const daiAddress = '0x6b175474e89094c44da98b954eedeac495271d0f';

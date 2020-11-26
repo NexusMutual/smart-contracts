@@ -21,6 +21,10 @@ const MCR = artifacts.require('MCR');
 const OldMCR = artifacts.require('P1MockOldMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 
+const SwapAgent = artifacts.require('SwapAgent');
+const TwapOracle = artifacts.require('TwapOracle');
+const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
 const upgradeProxyImplementationCategoryId = 5;
 const newContractAddressUpgradeCategoryId = 29;
 const addNewInternalContractCategoryId = 34;
@@ -132,8 +136,24 @@ describe.only('NXM sells and buys', function () {
     const aggregators = ['0x773616E4d11A78F511299002da57A0a94577F1f4'];
     const priceFeedOracle = await PriceFeedOracle.new(assets, aggregators, daiAddress);
 
-    console.log(`Deploying new Pool..`);
-    const newP1 = await Pool1.new(priceFeedOracle.address, { from: firstBoardMember });
+    const uniswapFactoryAddress = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
+    const twapOracle = await TwapOracle.new(uniswapFactoryAddress);
+    const swapAgent = await SwapAgent.new();
+
+    Pool1.link(swapAgent);
+
+    console.log('Deploying new Pool..');
+    const newP1 = await Pool1.new(
+      [daiAddress],
+      [0],
+      [ether('10000000')],
+      [ether('0.01')],
+      masterAddress,
+      priceFeedOracle.address,
+      twapOracle.address,
+      firstBoardMember,
+      { from: firstBoardMember },
+    );
 
     const upgradeMultipleContractsActionHash = encode1(
       ['bytes2[]', 'address[]'],
@@ -171,8 +191,8 @@ describe.only('NXM sells and buys', function () {
 
     /* Token spot price checks */
 
-    const tokenSpotPriceEthAfter = await pool1.getTokenPrice(hex('ETH'));
-    const tokenSpotPriceDaiAfter = await pool1.getTokenPrice(hex('DAI'));
+    const tokenSpotPriceEthAfter = await pool1.getTokenPrice(ETH);
+    const tokenSpotPriceDaiAfter = await pool1.getTokenPrice(daiAddress);
 
     const relativeErrorEthSpotPrice = calculateRelativeError(tokenSpotPriceEthAfter, tokenSpotPriceEthBefore);
     assert(
@@ -269,7 +289,7 @@ describe.only('NXM sells and buys', function () {
   });
 
   it('buys up to 400% MCR%', async function () {
-    const { pool1, poolData } = this;
+    const { pool1, poolData, priceFeedOracle } = this;
 
     const holder = holders[0];
 
@@ -284,7 +304,8 @@ describe.only('NXM sells and buys', function () {
       });
 
       mcrRatio = await pool1.getMCRRatio();
-      const tokenSpotPriceDai = await pool1.getTokenPrice(hex('DAI'));
+      const daiAddress = await priceFeedOracle.daiAddress();
+      const tokenSpotPriceDai = await pool1.getTokenPrice(daiAddress);
 
       totalBuyValue = totalBuyValue.add(maxBuy);
       console.log({

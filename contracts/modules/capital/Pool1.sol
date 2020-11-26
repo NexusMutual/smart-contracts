@@ -48,7 +48,6 @@ contract Pool1 is MasterAware, ReentrancyGuard {
   address public twapOracle;
   address public swapController;
   uint112 public minPoolEth;
-  bool public swapsEnabled = true;
   PriceFeedOracle public priceFeedOracle;
 
   /* constants */
@@ -72,11 +71,6 @@ contract Pool1 is MasterAware, ReentrancyGuard {
   /* logic */
   modifier onlySwapController {
     require(msg.sender == swapController, "Pool: not swapController");
-    _;
-  }
-
-  modifier whenSwapsEnabled {
-    require(swapsEnabled, "Pool: swaps not enabled");
     _;
   }
 
@@ -252,7 +246,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
     address toTokenAddress,
     uint amountIn,
     uint amountOutMin
-  ) external whenNotPaused whenSwapsEnabled onlySwapController nonReentrant {
+  ) external whenNotPaused onlySwapController nonReentrant {
 
     SwapAgent.AssetData storage assetDetails = assetData[toTokenAddress];
 
@@ -272,7 +266,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
     address fromTokenAddress,
     uint amountIn,
     uint amountOutMin
-  ) external whenNotPaused whenSwapsEnabled onlySwapController nonReentrant {
+  ) external whenNotPaused onlySwapController nonReentrant {
 
     uint amountOut = SwapAgent.swapAssetForETH(
       twapOracle,
@@ -680,5 +674,4 @@ contract Pool1 is MasterAware, ReentrancyGuard {
     uint mcrEth = mcr.getLastMCREther();
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
-
 }

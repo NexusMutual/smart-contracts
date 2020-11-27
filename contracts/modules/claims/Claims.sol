@@ -16,7 +16,6 @@
 pragma solidity ^0.5.0;
 
 import "../capital/MCR.sol";
-import "../capital/PoolData.sol";
 import "../claims/ClaimsReward.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
@@ -34,7 +33,6 @@ contract Claims is Iupgradable {
   Pool1 internal p1;
   ClaimsData internal cd;
   TokenData internal td;
-  PoolData internal pd;
   QuotationData internal qd;
   MCR internal m1;
 
@@ -146,7 +144,6 @@ contract Claims is Iupgradable {
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     tc = TokenController(ms.getLatestAddress("TC"));
     p1 = Pool1(ms.getLatestAddress("P1"));
-    pd = PoolData(ms.getLatestAddress("PD"));
     cr = ClaimsReward(ms.getLatestAddress("CR"));
     cd = ClaimsData(ms.getLatestAddress("CD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
@@ -416,7 +413,7 @@ contract Claims is Iupgradable {
     qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
     bytes4 curr = qd.getCurrencyOfCover(coverId);
     uint sumAssured = qd.getCoverSumAssured(coverId).mul(DECIMAL1E18);
-    pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).add(sumAssured));
-    //p1.closeClaimsOraclise(len, cd.maxVotingTime());
+    // pd.changeCurrencyAssetVarMin(curr, pd.getCurrencyAssetVarMin(curr).add(sumAssured));
+    // p1.closeClaimsOraclise(len, cd.maxVotingTime());
   }
 }

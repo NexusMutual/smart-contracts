@@ -18,7 +18,6 @@ pragma solidity ^0.5.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../capital/MCR.sol";
 import "../capital/Pool1.sol";
-import "../capital/PoolData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
@@ -32,7 +31,6 @@ contract Quotation is Iupgradable {
   TokenController internal tc;
   TokenData internal td;
   Pool1 internal p1;
-  PoolData internal pd;
   QuotationData internal qd;
   MCR internal m1;
   MemberRoles internal mr;
@@ -57,7 +55,6 @@ contract Quotation is Iupgradable {
     td = TokenData(ms.getLatestAddress("TD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
     p1 = Pool1(ms.getLatestAddress("P1"));
-    pd = PoolData(ms.getLatestAddress("PD"));
     mr = MemberRoles(ms.getLatestAddress("MR"));
   }
 

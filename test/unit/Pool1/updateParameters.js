@@ -1,5 +1,4 @@
 const { assert } = require('chai');
-const { web3 } = require('hardhat');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 
 const accounts = require('../utils').accounts;
@@ -79,7 +78,5 @@ describe('updateAddressParameters', function () {
       assert.strictEqual(actual.toString(), generalPurpose);
     }
   });
-
-  // TODO: Add test for PriceOracleFeed paran
 
 });

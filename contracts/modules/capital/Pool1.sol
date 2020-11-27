@@ -676,6 +676,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
   }
 
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
+
     if (code == "MIN_ETH") {
       minPoolEth = value;
       return;
@@ -685,6 +686,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
   }
 
   function updateAddressParameters(bytes8 code, address value) external onlyGovernance {
+
     if (code == "TWAP") {
       twapOracle = value;
       return;

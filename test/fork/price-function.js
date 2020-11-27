@@ -20,6 +20,7 @@ const Claims = artifacts.require('Claims');
 const MCR = artifacts.require('MCR');
 const OldMCR = artifacts.require('P1MockOldMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+const ERC20 = artifacts.require('ERC20');
 
 const SwapAgent = artifacts.require('SwapAgent');
 const TwapOracle = artifacts.require('TwapOracle');
@@ -61,6 +62,8 @@ const holders = [
   '0xd1bda2c21d73ee31a0d3fdcd64b0d7c4bce6d021',
 ];
 
+const daiAddress = '0x6b175474e89094c44da98b954eedeac495271d0f';
+
 describe.only('NXM sells and buys', function () {
 
   it('performs contract upgrades', async function () {
@@ -84,6 +87,8 @@ describe.only('NXM sells and buys', function () {
     const poolData = await PoolData.at(nameToAddressMap['PD']);
     const oldPool1 = await Pool1.at(nameToAddressMap['P1']);
     const oldMCR = await OldMCR.at(nameToAddressMap['MC']);
+    const oldPool2Address = nameToAddressMap['P2'];
+    const dai = await ERC20.at(daiAddress);
 
     const [funder] = accounts;
 
@@ -108,7 +113,9 @@ describe.only('NXM sells and buys', function () {
     const firstBoardMember = boardMembers[0];
 
     const pool1EthBalanceBefore = await web3.eth.getBalance(oldPool1.address);
-    const pool1DaiBalanceBefore = await web3.eth.getBalance(oldPool1.address);
+    const pool1DaiBalanceBefore = await dai.balanceOf(dai.address);
+
+    const { totalAssetValue: totalPoolValueBefore } = await oldMCR.calVtpAndMCRtp();
 
     const tokenSpotPriceEthBefore = await oldMCR.calculateTokenPrice(hex('ETH'));
     const tokenSpotPriceDaiBefore = await oldMCR.calculateTokenPrice(hex('DAI'));
@@ -131,7 +138,6 @@ describe.only('NXM sells and buys', function () {
     const newMCR = await MCR.new(masterAddress, { from: firstBoardMember });
 
     console.log(`Deploying PriceFeedOracle..`);
-    const daiAddress = '0x6b175474e89094c44da98b954eedeac495271d0f';
     const assets = [daiAddress];
     const aggregators = ['0x773616E4d11A78F511299002da57A0a94577F1f4'];
     const priceFeedOracle = await PriceFeedOracle.new(assets, aggregators, daiAddress);
@@ -180,7 +186,7 @@ describe.only('NXM sells and buys', function () {
 
     /* Pool balance checks */
     const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool1.address);
-    const oldPool1DaiBalanceAfter = await web3.eth.getBalance(oldPool1.address);
+    const oldPool1DaiBalanceAfter = await dai.balanceOf(oldPool1.address);
     assert.equal(oldPool1EthBalanceAfter.toString(), '0');
     assert.equal(oldPool1DaiBalanceAfter.toString(), '0');
 
@@ -194,6 +200,26 @@ describe.only('NXM sells and buys', function () {
     const tokenSpotPriceEthAfter = await pool1.getTokenPrice(ETH);
     const tokenSpotPriceDaiAfter = await pool1.getTokenPrice(daiAddress);
 
+    const { _a, _c, rate } = await poolData.getTokenPriceDetails(hex('DAI'));
+
+    const priceFeedRate = await priceFeedOracle.getAssetToEthRate(daiAddress);
+
+    const poolValue = await pool1.getPoolValueInEth();
+
+    console.log({
+      getCAAvgRate: rate.toString(),
+      priceFeedRate: priceFeedRate.toString(),
+      poolValue: poolValue.toString(),
+      totalPoolValueBefore: totalPoolValueBefore.toString(),
+      pool1EthBalanceAfter: pool1EthBalanceAfter.toString(),
+      pool1DaiBalanceAfter: pool1DaiBalanceAfter.toString()
+    });
+    console.log({
+      tokenSpotPriceDaiBefore: tokenSpotPriceDaiBefore.toString(),
+      tokenSpotPriceDaiAfter: tokenSpotPriceDaiAfter.toString()
+    });
+    assert.equal(poolValue.toString(), poolValue.toString());
+
     const relativeErrorEthSpotPrice = calculateRelativeError(tokenSpotPriceEthAfter, tokenSpotPriceEthBefore);
     assert(
       relativeErrorEthSpotPrice.lt(Decimal(0.0005)),
@@ -201,7 +227,7 @@ describe.only('NXM sells and buys', function () {
       relative error; ${relativeErrorEthSpotPrice}`,
     );
 
-    const relativeErrorDaiSpotPrice = calculateRelativeError(tokenSpotPriceDaiAfter, tokenSpotPriceDaiAfter);
+    const relativeErrorDaiSpotPrice = calculateRelativeError(tokenSpotPriceDaiAfter, tokenSpotPriceDaiBefore);
     assert(
       relativeErrorDaiSpotPrice.lt(Decimal(0.0005)),
       `old token DAI spot price ${tokenSpotPriceDaiBefore.toString()} differs too much from ${tokenSpotPriceDaiAfter.toString()}

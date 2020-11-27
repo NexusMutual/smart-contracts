@@ -5,7 +5,7 @@ const Decimal = require('decimal.js');
 const { toDecimal, calculateRelativeError, percentageBN, calculateEthForNXMRelativeError } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
 const { encode1 } = require('./external');
-const { logEvents, hex } = require('../utils').helpers;
+const { logEvents, hex, tenderlyFactory } = require('../utils').helpers;
 
 const MemberRoles = artifacts.require('MemberRoles');
 const Pool1 = artifacts.require('Pool1');
@@ -17,7 +17,10 @@ const PooledStaking = artifacts.require('PooledStaking');
 const TokenController = artifacts.require('TokenController');
 const TokenFunctions = artifacts.require('TokenFunctions');
 const Claims = artifacts.require('Claims');
+const ClaimsReward = artifacts.require('ClaimsReward');
+const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
+const Pool2 = artifacts.require('Pool2');
 const OldMCR = artifacts.require('P1MockOldMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ERC20 = artifacts.require('ERC20');
@@ -29,6 +32,8 @@ const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const upgradeProxyImplementationCategoryId = 5;
 const newContractAddressUpgradeCategoryId = 29;
 const addNewInternalContractCategoryId = 34;
+
+const tenderly = tenderlyFactory(web3, network);
 
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, submitter) {
 
@@ -51,7 +56,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
 
   console.log(`Closing proposal`);
   await time.increase(604800);
-  logEvents(await gv.closeProposal(proposalId, { from: submitter }));
+  logEvents(await tenderly(gv.closeProposal(proposalId, { from: submitter })));
 
   const proposal = await gv.proposal(proposalId);
   assert.equal(proposal[2].toNumber(), 3);
@@ -137,6 +142,15 @@ describe.only('NXM sells and buys', function () {
     console.log(`Deploying new MCR..`);
     const newMCR = await MCR.new(masterAddress, { from: firstBoardMember });
 
+    console.log(`Deploying new ClaimsReward..`);
+    const newClaimsReward = await ClaimsReward.new(masterAddress, daiAddress, { from: firstBoardMember });
+
+    console.log(`Deploying new Quotation..`);
+    const newQuotation = await Quotation.new({ from: firstBoardMember });
+
+    console.log(`Deploying new Pool2..`);
+    const newPool2 = await Pool2.new(masterAddress, { from: firstBoardMember });
+
     console.log(`Deploying PriceFeedOracle..`);
     const assets = [daiAddress];
     const aggregators = ['0x773616E4d11A78F511299002da57A0a94577F1f4'];
@@ -149,7 +163,7 @@ describe.only('NXM sells and buys', function () {
     Pool1.link(swapAgent);
 
     console.log('Deploying new Pool..');
-    const newP1 = await Pool1.new(
+    const newPool1 = await Pool1.new(
       [daiAddress],
       [0],
       [ether('10000000')],
@@ -163,7 +177,10 @@ describe.only('NXM sells and buys', function () {
 
     const upgradeMultipleContractsActionHash = encode1(
       ['bytes2[]', 'address[]'],
-      [[hex('TF'), hex('CL'), hex('MCR'), hex('P1')], [newTF.address, newCL.address, newMCR.address, newP1.address]],
+      [
+        [hex('P2'), hex('TF'), hex('CL'), hex('MCR'), hex('P1'), hex('QT')],
+        [newPool2.address, newTF.address, newCL.address, newMCR.address, newPool1.address, newQuotation.address]
+      ],
     );
 
     await submitGovernanceProposal(
@@ -174,13 +191,19 @@ describe.only('NXM sells and buys', function () {
     const storedCLAddress = await master.getLatestAddress(hex('CL'));
     const storedMCRAddress = await master.getLatestAddress(hex('MCR'));
     const storedP1Address = await master.getLatestAddress(hex('P1'));
+    const storedP2Address = await master.getLatestAddress(hex('P2'));
 
     assert.equal(storedTFAddress, newTF.address);
     assert.equal(storedCLAddress, newCL.address);
     assert.equal(storedMCRAddress, newMCR.address);
-    assert.equal(storedP1Address, newP1.address);
+    assert.equal(storedP1Address, newPool1.address);
+    assert.equal(storedP2Address, newPool2.address);
 
     console.log(`Successfully upgraded.`);
+
+    console.log(`Moving funds from obsolete Pool2 to Pool1..`);
+    await newPool2.transferAssets([daiAddress]);
+    console.log('Transferred assets.');
 
     const pool1 = await Pool1.at(await master.getLatestAddress(hex('P1')));
 

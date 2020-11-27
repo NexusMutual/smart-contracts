@@ -113,7 +113,7 @@ describe.only('NXM sells and buys', function () {
     const firstBoardMember = boardMembers[0];
 
     const pool1EthBalanceBefore = await web3.eth.getBalance(oldPool1.address);
-    const pool1DaiBalanceBefore = await dai.balanceOf(dai.address);
+    const pool1DaiBalanceBefore = await dai.balanceOf(oldPool1.address);
 
     const { totalAssetValue: totalPoolValueBefore } = await oldMCR.calVtpAndMCRtp();
 
@@ -191,7 +191,7 @@ describe.only('NXM sells and buys', function () {
     assert.equal(oldPool1DaiBalanceAfter.toString(), '0');
 
     const pool1EthBalanceAfter = await web3.eth.getBalance(pool1.address);
-    const pool1DaiBalanceAfter = await web3.eth.getBalance(pool1.address);
+    const pool1DaiBalanceAfter = await dai.balanceOf(pool1.address);
     assert.equal(pool1DaiBalanceBefore.toString(), pool1DaiBalanceAfter.toString());
     assert.equal(pool1EthBalanceBefore.toString(), pool1EthBalanceAfter.toString());
 

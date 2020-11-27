@@ -15,6 +15,8 @@
 
 pragma solidity ^0.5.0;
 
+import "../capital/Pool1.sol";
+import "../capital/Pool2.sol";
 import "../cover/Quotation.sol";
 import "../claims/Claims.sol";
 import "./external/Governed.sol";

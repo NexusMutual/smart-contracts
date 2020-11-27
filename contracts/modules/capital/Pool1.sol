@@ -62,8 +62,7 @@ contract Pool1 is MasterAware, ReentrancyGuard {
   uint internal constant TOKEN_EXPONENT = 4;
 
   /* events */
-  // FIXME: add asset, remove coverId
-  event Payout(address indexed to, uint coverId, uint tokens);
+  event Payout(address indexed to, address indexed asset, uint amount);
   event NXMSold (address indexed member, uint nxmIn, uint ethOut);
   event NXMBought (address indexed member, uint ethIn, uint nxmOut);
   event Swapped(address indexed fromAsset, address indexed toAsset, uint amountIn, uint amountOut);
@@ -285,21 +284,28 @@ contract Pool1 is MasterAware, ReentrancyGuard {
    * @dev Execute the payout in case a claim is accepted
    * @param asset token address or 0xEee...EEeE for ether
    * @param payoutAddress send funds to this address
-   * @param sumAssured amount to send
+   * @param amount amount to send
    */
   function sendClaimPayout (
     address asset,
     address payable payoutAddress,
-    uint sumAssured
+    uint amount
   ) external onlyInternal nonReentrant returns (bool success) {
+
+    bool ok;
 
     if (asset == ETH) {
       // solhint-disable-next-line avoid-low-level-calls
-      (bool ok, /* data */) = payoutAddress.call.value(sumAssured)("");
-      return ok;
+      (ok, /* data */) = payoutAddress.call.value(amount)("");
+    } else {
+      ok =  _safeTokenTransfer(asset, payoutAddress, amount);
     }
 
-    return _safeTokenTransfer(asset, payoutAddress, sumAssured);
+    if (ok) {
+      emit Payout(payoutAddress, asset, amount);
+    }
+
+    return ok;
   }
 
   /**

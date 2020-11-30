@@ -21,6 +21,7 @@ import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenFunctions.sol";
 import "./ClaimsData.sol";
+import "../capital/PoolData.sol";
 
 contract Claims is Iupgradable {
   using SafeMath for uint;
@@ -390,7 +391,7 @@ contract Claims is Iupgradable {
    * @dev Submits a claim for a given cover note.
    * Set deposits flag against cover.
    */
-  function _addClaim(uint coverId, uint time, address add) internal {
+  function _addClaim(uint coverId, uint time, address add) public onlyInternal {
     tf.depositCN(coverId);
     uint len = cd.actualClaimLength();
     cd.addClaim(len, coverId, add, now);

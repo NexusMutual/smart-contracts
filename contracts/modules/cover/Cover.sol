@@ -22,30 +22,147 @@ import "../capital/PoolData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
+import "../token/TokenData.sol";
 import "../capital/PoolData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
 
 contract Cover is MasterAware, Iupgradable {
+  using SafeMath for uint;
+
   // contracts
   Quotation public quotation;
   NXMToken public nxmToken;
   TokenController public tokenController;
+  QuotationData public quotationData;
+  ClaimsData public claimsData;
+  Claims public claims;
   MCR public mcr;
+  Pool1 public pool;
+
+  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
+
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  address public DAI;
+
+  constructor (address masterAddress, address _daiAddress) public {
+    changeMasterAddress(masterAddress);
+    DAI = _daiAddress;
+  }
+
+  function changeDependentContractAddress() public {
+    quotation = Quotation(ms.getLatestAddress("QT"));
+    nxmToken = NXMToken(ms.getLatestAddress("QT"));
+    tokenController = TokenController(ms.tokenAddress());
+    quotationData = QuotationData(ms.getLatestAddress("QD"));
+    claimsData = ClaimsData(ms.getLatestAddress("CD"));
+    claims = Claims(ms.getLatestAddress("CL"));
+    mcr = MCR(ms.getLatestAddress("MC"));
+    pool = Pool1(ms.getLatestAddress("P1"));
+  }
 
   function buyCover (
     address contractAddress,
-    bytes4 coverCurr,
-    uint[] memory coverDetails,
+    address coverAsset,
+    uint coverAmount,
     uint16 coverPeriod,
+    CoverType coverType,
+    bytes calldata data
+  ) external payable onlyMember whenNotPaused returns (uint) {
+
+    // only 1 cover type supported at this time
+    require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Unsupported cover type");
+    require(coverAmount % 1e18 == 0, "Only whole unit coverAmount supported");
+
+    {
+      (bool ok, /* data */) = address(pool).call.value(msg.value)("");
+      require(ok, "Cover: Transfer to Pool failed");
+    }
+
+    {
+      (
+      uint[] memory coverDetails,
+      uint8 _v,
+      bytes32 _r,
+      bytes32 _s ) = getCoverDetails(coverAmount, data);
+
+      require(msg.value == coverDetails[1], "Cover: ETH amount does not match premium");
+      quotation.verifyCoverDetails(
+        msg.sender,
+        contractAddress,
+        getCurrencyFromAssetAddress(coverAsset),
+        coverDetails,
+        coverPeriod, _v, _r, _s);
+    }
+
+    return quotationData.getCoverLength().sub(1);
+  }
+
+  function getCoverDetails(uint coverAmount, bytes memory data) internal pure returns (uint[] memory, uint8, bytes32, bytes32) {
+    (
+    uint coverPrice,
+    uint coverPriceNXM,
+    uint generatedAt,
+    uint expiresAt,
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public payable onlyMember whenNotPaused {
+    ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
+    uint[] memory coverDetails = new uint[](5);
+    coverDetails[0] = coverAmount.div(1e18); // convert from wei to units
+    coverDetails[1] = coverPrice;
+    coverDetails[2] = coverPriceNXM;
+    coverDetails[3] = expiresAt;
+    coverDetails[4] = generatedAt;
+    return (coverDetails, _v, _r, _s);
+  }
 
-    require(coverCurr == "ETH", "Pool: Unexpected asset type");
-    require(msg.value == coverDetails[1], "Pool: ETH amount does not match premium");
+  function submitClaim(uint coverId, bytes calldata data) external returns (uint) {
+    address qadd = quotationData.getCoverMemberAddress(coverId);
+    require(qadd == msg.sender);
+    uint8 cStatus;
+    (, cStatus,,,) = quotationData.getCoverDetailsByCoverID2(coverId);
+    require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
+    require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
+    if (ms.isPause() == false) {
+      claims._addClaim(coverId, now, qadd);
+    } else {
+      claimsData.setClaimAtEmergencyPause(coverId, now, false);
+      quotationData.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));
+    }
 
-    quotation.verifyCoverDetails(msg.sender, contractAddress, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+    uint claimId = claimsData.actualClaimLength() - 1;
+    return claimId;
+  }
+
+  function payoutIsCompleted(uint claimId) external view returns (bool) {
+    uint256 status;
+    (, status, , , ) = claims.getClaimbyIndex(claimId);
+    return status == 14;
+  }
+
+  function getCover(
+    uint coverId
+  ) external view returns (
+    uint cid,
+    uint8 status,
+    uint sumAssured,
+    uint16 coverPeriod,
+    uint validUntil
+  ) {
+    return quotationData.getCoverDetailsByCoverID2(coverId);
+  }
+
+  function getCurrencyFromAssetAddress(address asset) public view returns (bytes4) {
+
+    if (asset == ETH) {
+      return "ETH";
+    }
+
+    if (asset == DAI) {
+      return "DAI";
+    }
+
+    revert("Cover: unknown asset");
   }
 }

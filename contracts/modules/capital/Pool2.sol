@@ -8,37 +8,34 @@ import "../../abstract/MasterAware.sol";
  */
 contract Pool2 is MasterAware {
 
-  constructor (address masterAddress) public {
+  IERC20 public dai;
+
+  constructor (address masterAddress, address _dai) public {
     changeMasterAddress(masterAddress);
+    dai = IERC20(_dai);
+  }
+
+  function sendEther() external payable {
+    // noop
   }
 
   function upgradeInvestmentPool(address) external {
     // noop
   }
 
+  // triggered after all contracts upgrade
   function changeDependentContractAddress() external {
-    // noop
-  }
-
-  /**
-   * @dev Send assets to Pool1
-   */
-  function transferAssets(address[] calldata assets) external {
 
     address poolAddress = master.getLatestAddress("P1");
-
-    for (uint i = 0; i < assets.length; i++) {
-      IERC20 token = IERC20(assets[i]);
-      uint balance = token.balanceOf(address(this));
-      token.transfer(poolAddress, balance);
-    }
-
+    uint balance = dai.balanceOf(address(this));
     uint etherBalance = address(this).balance;
 
-    if (address(this).balance > 0) {
-      (bool ok, /* data */) = poolAddress.call.value(etherBalance)("");
-      ok; // just ok
-    }
+    // transfer dai
+    require(dai.transfer(poolAddress, balance), "P2: failed to send DAI to P1");
+
+    // transfer ether
+    (bool ok, /* data */) = poolAddress.call.value(etherBalance)("");
+    require(ok, "P2: failed to send ETH to P1");
   }
 
 }

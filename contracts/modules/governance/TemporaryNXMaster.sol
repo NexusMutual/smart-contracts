@@ -16,12 +16,17 @@
 pragma solidity ^0.5.0;
 
 
-import "../capital/Pool2.sol";
+import "../capital/LegacyPool1.sol";
+import "../capital/LegacyPool2.sol";
+import "../capital/LegacyMCR.sol";
+import "../capital/PoolData.sol";
 import "../claims/Claims.sol";
+import "../cover/Quotation.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
+import "./Rescuer.sol";
 
-contract NXMaster is Governed {
+contract TemporaryNXMaster is Governed {
   using SafeMath for uint;
 
   struct EmergencyPause {
@@ -55,45 +60,54 @@ contract NXMaster is Governed {
     reentrancyLock = false;
   }
 
-  /// @dev to initiate master data
-  /// @param _tokenAdd NXM token address.
-  function initiateMaster(address _tokenAdd) external {
+  // rescues leftover SAI from Pool1 and wNXM accidentally sent to TokenController
+  function rescueTokens () external {
 
-    OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(address(uint160(address(this))));
-    require(msg.sender == proxy.proxyOwner(), "Sender is not proxy owner.");
-    require(!constructorCheck, "Constructor already ran.");
-    constructorCheck = true;
-    tokenAddress = _tokenAdd;
-    owner = msg.sender;
-    masterAddress = address(this);
-    contractsActive[address(this)] = true;
-    pauseTime = 28 days; // 4 weeks
-    allContractNames.push("QD");
-    allContractNames.push("TD");
-    allContractNames.push("CD");
-    allContractNames.push("PD");
-    allContractNames.push("QT");
-    allContractNames.push("TF");
-    allContractNames.push("TC");
-    allContractNames.push("CL");
-    allContractNames.push("CR");
-    allContractNames.push("P1");
-    allContractNames.push("P2");
-    allContractNames.push("MC");
-    allContractNames.push("GV");
-    allContractNames.push("PC");
-    allContractNames.push("MR");
-    isUpgradable["QT"] = true;
-    isUpgradable["TF"] = true;
-    isUpgradable["CL"] = true;
-    isUpgradable["CR"] = true;
-    isUpgradable["P1"] = true;
-    isUpgradable["P2"] = true;
-    isUpgradable["MC"] = true;
-    isProxy["TC"] = true;
-    isProxy["GV"] = true;
-    isProxy["PC"] = true;
-    isProxy["MR"] = true;
+    // will reuse constructorCheck variable that's no longer needed and will
+    // erase its slot after this call so it can be removed at next deploy
+    require(constructorCheck, 'Rescue already called');
+    constructorCheck = false;
+
+    // deploy a rescuer instance
+    LegacyPool1 p1 = LegacyPool1(allContractVersions["P1"]);
+    Rescuer rescuer = new Rescuer();
+    address payable rescuerAddress = address(uint160(address(rescuer)));
+
+    /* step 1: rescue SAI */
+
+    // backup PD and P2 addresses
+    address payable actualPD = allContractVersions["PD"];
+    address payable actualP2 = allContractVersions["P2"];
+
+    // set PD and P2 to be the rescuer contract
+    allContractVersions["PD"] = rescuerAddress;
+    allContractVersions["P2"] = rescuerAddress;
+    p1.changeDependentContractAddress();
+
+    // transfer SAI from LegacyPool1 to "Pool2" (rescuer)
+    p1.transferCurrencyAsset("SAI", uint(-1));
+    rescuer.transfer(rescuer.SAI());
+
+    // restore contract addresses to actual ones
+    allContractVersions["PD"] = actualPD;
+    allContractVersions["P2"] = actualP2;
+    p1.changeDependentContractAddress();
+
+    /* step 2: rescue wNXM */
+
+    address payable tcProxyAddress = allContractVersions["TC"];
+    OwnedUpgradeabilityProxy tcProxy = OwnedUpgradeabilityProxy(tcProxyAddress);
+
+    // backup actual TC implementation
+    address tcImplementation = tcProxy.implementation();
+
+    // change implementation and transfer wNXM
+    tcProxy.upgradeTo(rescuerAddress);
+    Rescuer tcRescuer = Rescuer(tcProxyAddress);
+    tcRescuer.transfer(tcRescuer.WNXM());
+
+    // restore TC implementation
+    tcProxy.upgradeTo(address(uint160(address(tcImplementation))));
   }
 
   function upgradeMultipleImplementations(
@@ -194,14 +208,14 @@ contract NXMaster is Governed {
 
     if (res == "MCRF") {
       require(callTime.add(pd.mcrFailTime()) < now, "MCR posting time not reached");
-      MCR m1 = MCR(getLatestAddress("MC"));
+      LegacyMCR m1 = LegacyMCR(getLatestAddress("MC"));
       m1.addLastMCRData(uint64(id));
       return;
     }
 
     if (res == "ULT") {
       require(callTime.add(pd.liquidityTradeCallbackTime()) < now, "Liquidity trade time not reached");
-      Pool2 p2 = Pool2(getLatestAddress("P2"));
+      LegacyPool2 p2 = LegacyPool2(getLatestAddress("P2"));
       p2.externalLiquidityTrade();
       return;
     }
@@ -232,8 +246,8 @@ contract NXMaster is Governed {
       val = pd.daiFeedAddress();
 
     } else if (code == "UNISWADD") {
-      Pool2 p2;
-      p2 = Pool2(getLatestAddress("P2"));
+      LegacyPool2 p2;
+      p2 = LegacyPool2(getLatestAddress("P2"));
       val = p2.uniswapFactoryAddress();
 
     } else if (code == "OWNER") {
@@ -300,12 +314,12 @@ contract NXMaster is Governed {
         cr.upgrade(newAddress);
 
       } else if (_contractsName[i] == "P1") {
-        Pool1 p1 = Pool1(allContractVersions["P1"]);
+        LegacyPool1 p1 = LegacyPool1(allContractVersions["P1"]);
         p1.upgradeCapitalPool(newAddress);
 
 
       } else if (_contractsName[i] == "P2") {
-        Pool2 p2 = Pool2(allContractVersions["P2"]);
+        LegacyPool2 p2 = LegacyPool2(allContractVersions["P2"]);
         p2.upgradeInvestmentPool(newAddress);
 
       }
@@ -442,7 +456,7 @@ contract NXMaster is Governed {
   /// @dev Allow AB Members to Start Emergency Pause
   function startEmergencyPause() public onlyAuthorizedToGovern {
     addEmergencyPause(true, "AB"); // Start Emergency Pause
-    Pool1 p1 = Pool1(allContractVersions["P1"]);
+    LegacyPool1 p1 = LegacyPool1(allContractVersions["P1"]);
     p1.closeEmergencyPause(pauseTime); // oraclize callback of 4 weeks
     Claims c1 = Claims(allContractVersions["CL"]);
     c1.pauseAllPendingClaimsVoting(); // Pause Voting of all pending Claims
@@ -471,8 +485,7 @@ contract NXMaster is Governed {
       pd.changeDAIfeedAddress(val);
 
     } else if (code == "UNISWADD") {
-      Pool2 p2;
-      p2 = Pool2(getLatestAddress("P2"));
+      LegacyPool2 p2 = LegacyPool2(getLatestAddress("P2"));
       p2.changeUniswapFactoryAddress(val);
 
     } else if (code == "OWNER") {

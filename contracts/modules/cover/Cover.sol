@@ -75,23 +75,22 @@ contract Cover is MasterAware, Iupgradable {
     require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Unsupported cover type");
     require(coverAmount % 1e18 == 0, "Only whole unit coverAmount supported");
 
-    {
-      (
-      uint[] memory coverDetails,
-      uint8 _v,
-      bytes32 _r,
-      bytes32 _s ) = getCoverDetails(coverAmount, data);
 
-      require(msg.value == coverDetails[1], "Cover: ETH amount does not match premium");
-      quotation.verifyCoverDetails(
-        msg.sender,
-        contractAddress,
-        getCurrencyFromAssetAddress(coverAsset),
-        coverDetails,
-        coverPeriod, _v, _r, _s);
-      
-      sendCoverPremiumToPool(coverAsset, coverDetails[1]);
-    }
+    (
+    uint[] memory coverDetails,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s ) = getCoverDetails(coverAmount, data);
+
+    require(msg.value == coverDetails[1], "Cover: ETH amount does not match premium");
+    quotation.verifyCoverDetails(
+      msg.sender,
+      contractAddress,
+      getCurrencyFromAssetAddress(coverAsset),
+      coverDetails,
+      coverPeriod, _v, _r, _s);
+
+    sendCoverPremiumToPool(coverAsset, coverDetails[1]);
 
 
     return quotationData.getCoverLength().sub(1);

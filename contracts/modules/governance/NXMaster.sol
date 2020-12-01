@@ -15,8 +15,7 @@
 
 pragma solidity ^0.5.0;
 
-import "../capital/Pool1.sol";
-import "../capital/Pool2.sol";
+import "../capital/Pool.sol";
 import "../cover/Quotation.sol";
 import "../claims/Claims.sol";
 import "./external/Governed.sol";
@@ -42,10 +41,8 @@ contract NXMaster is Governed {
   address public tokenAddress;
   bool internal reentrancyLock;
   bool public masterInitialized;
-
   address public owner;
   uint public pauseTime;
-  bool constructorCheck;
 
   modifier noReentrancy() {
     require(!reentrancyLock, "Reentrant call.");
@@ -154,7 +151,6 @@ contract NXMaster is Governed {
 
   ///@dev update time in seconds for which emergency pause is applied.
   function updatePauseTime(uint _time) public {
-
     require(isInternal(msg.sender), "Not internal call.");
     pauseTime = _time;
   }
@@ -187,12 +183,8 @@ contract NXMaster is Governed {
         cr.upgrade(newAddress);
 
       } else if (_contractsName[i] == "P1") {
-        Pool1 p1 = Pool1(allContractVersions["P1"]);
+        Pool p1 = Pool(allContractVersions["P1"]);
         p1.upgradeCapitalPool(newAddress);
-
-      } else if (_contractsName[i] == "P2") {
-        Pool2 pool2 = Pool2(allContractVersions["P2"]);
-        pool2.upgradeInvestmentPool(newAddress);
       }
 
       address payable oldAddress = allContractVersions[_contractsName[i]];
@@ -380,9 +372,7 @@ contract NXMaster is Governed {
 
   /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.
   function _changeAllAddress() internal {
-    uint i;
-    for (i = 0; i < allContractNames.length; i++) {
-
+    for (uint i = 0; i < allContractNames.length; i++) {
       contractsActive[allContractVersions[allContractNames[i]]] = true;
       Iupgradable up = Iupgradable(allContractVersions[allContractNames[i]]);
       up.changeDependentContractAddress();

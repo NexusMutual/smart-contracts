@@ -13,8 +13,7 @@ contract DisposableNXMaster is NXMaster {
     address payable[] calldata _contractAddresses
   ) external {
 
-    require(!constructorCheck, "Already initialized");
-    constructorCheck = true;
+    require(!masterInitialized, "Already initialized");
     masterInitialized = true;
 
     owner = _owner;

@@ -107,7 +107,7 @@ contract ProposalCategory is Governed, IProposalCategory, Iupgradable {
     categoryActionHashes[26] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
     categoryActionHashes[27] = abi.encodeWithSignature("updateAddressParameters(bytes8,address)");
     categoryActionHashes[28] = abi.encodeWithSignature("updateOwnerParameters(bytes8,address)");
-    categoryActionHashes[29] = abi.encodeWithSignature("upgradeContract(bytes2,address)");
+    categoryActionHashes[29] = abi.encodeWithSignature("upgradeMultipleContracts(bytes2[],address[])");
     categoryActionHashes[30] = abi.encodeWithSignature("changeCurrencyAssetAddress(bytes4,address)");
     categoryActionHashes[31] = abi.encodeWithSignature("changeCurrencyAssetBaseMin(bytes4,uint256)");
     categoryActionHashes[32] = abi.encodeWithSignature("changeInvestmentAssetAddressAndDecimal(bytes4,address,uint8)"); // solhint-disable-line

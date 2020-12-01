@@ -51,6 +51,7 @@ contract DisposableProposalCategory is ProposalCategory {
     addInitialCategory("Trading Trigger Check", "PD", 40, 15, 2, 60);
     addInitialCategory("Add new contract", "MS", 60, 15, 2, 60);
     addInitialCategory("Token Controller Parameters", "TC", 60, 15, 2, 60);
+    addInitialCategory("Upgrade Master", "MS", 60, 15, 2, 60);
 
     // 0: Uncategorized
     categoryActionHashes[1] = abi.encodeWithSignature("addRole(bytes32,string,address)");

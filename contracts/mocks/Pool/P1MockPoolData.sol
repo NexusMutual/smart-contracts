@@ -21,7 +21,7 @@ contract P1MockPoolData {
     return rates[curr];
   }
 
-  function getAllCurrenciesLen() external view returns (uint) {
+  function getAllCurrenciesLen() external pure returns (uint) {
     return 1;
   }
 

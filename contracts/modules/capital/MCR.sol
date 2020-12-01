@@ -17,7 +17,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../capital/Pool1.sol";
+import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../governance/ProposalCategory.sol";
@@ -29,7 +29,7 @@ import "./PoolData.sol";
 contract MCR is Iupgradable {
   using SafeMath for uint;
 
-  Pool1 public p1;
+  Pool public pool;
   PoolData public pd;
   NXMToken public tk;
   QuotationData public qd;
@@ -75,7 +75,7 @@ contract MCR is Iupgradable {
   /**
    * @dev Adds new MCR data.
    * @param mcrP  Minimum Capital Requirement in percentage.
-   * @param vF Pool1 fund value in Ether used in the last full daily calculation of the Capital model.
+   * @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
    * @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
    */
   function addMCRData(
@@ -111,7 +111,7 @@ contract MCR is Iupgradable {
    */
   function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
-    p1 = Pool1(ms.getLatestAddress("P1"));
+    pool = Pool(ms.getLatestAddress("P1"));
     pd = PoolData(ms.getLatestAddress("PD"));
     tk = NXMToken(ms.tokenAddress());
     mr = MemberRoles(ms.getLatestAddress("MR"));
@@ -125,7 +125,7 @@ contract MCR is Iupgradable {
    */
   function getAllSumAssurance() public view returns (uint) {
 
-    PriceFeedOracle priceFeed = p1.priceFeedOracle();
+    PriceFeedOracle priceFeed = pool.priceFeedOracle();
     address daiAddress = priceFeed.daiAddress();
 
     uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);
@@ -218,7 +218,7 @@ contract MCR is Iupgradable {
     uint upperThreshold = 0;
 
     if (len > 1) {
-      uint vtp = p1.getPoolValueInEth();
+      uint vtp = pool.getPoolValueInEth();
       (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
     }
 

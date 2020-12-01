@@ -29,6 +29,7 @@ import "./QuotationData.sol";
 
 contract Cover is MasterAware, Iupgradable {
   using SafeMath for uint;
+  using SafeERC20 for IERC20;
 
   // contracts
   Quotation public quotation;
@@ -75,11 +76,6 @@ contract Cover is MasterAware, Iupgradable {
     require(coverAmount % 1e18 == 0, "Only whole unit coverAmount supported");
 
     {
-      (bool ok, /* data */) = address(pool).call.value(msg.value)("");
-      require(ok, "Cover: Transfer to Pool failed");
-    }
-
-    {
       (
       uint[] memory coverDetails,
       uint8 _v,
@@ -93,9 +89,27 @@ contract Cover is MasterAware, Iupgradable {
         getCurrencyFromAssetAddress(coverAsset),
         coverDetails,
         coverPeriod, _v, _r, _s);
+      
+      sendCoverPremiumToPool(coverAsset, coverDetails[1]);
     }
 
+
     return quotationData.getCoverLength().sub(1);
+  }
+
+  function sendCoverPremiumToPool (
+    address asset,
+    uint premiumAmount
+  ) internal returns (bool success) {
+
+    if (asset == ETH) {
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
+      require(ok, "Cover: Transfer to Pool failed");
+    }
+
+    IERC20 token = IERC20(asset);
+    token.safeTransfer(address(pool), premiumAmount);
   }
 
   function getCoverDetails(uint coverAmount, bytes memory data) internal pure returns (uint[] memory, uint8, bytes32, bytes32) {

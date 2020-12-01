@@ -19,7 +19,7 @@
 pragma solidity ^0.5.0;
 
 import "../../interfaces/IPooledStaking.sol";
-import "../capital/Pool1.sol";
+import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
 import "../governance/Governance.sol";
 import "../token/TokenData.sol";
@@ -37,7 +37,7 @@ contract ClaimsReward is Iupgradable {
   QuotationData internal qd;
   Claims internal c1;
   ClaimsData internal cd;
-  Pool1 internal p1;
+  Pool internal pool;
   Governance internal gv;
   IPooledStaking internal pooledStaking;
   MemberRoles internal memberRoles;
@@ -61,11 +61,11 @@ contract ClaimsReward is Iupgradable {
     tc = TokenController(ms.getLatestAddress("TC"));
     td = TokenData(ms.getLatestAddress("TD"));
     tf = TokenFunctions(ms.getLatestAddress("TF"));
-    p1 = Pool1(ms.getLatestAddress("P1"));
     qd = QuotationData(ms.getLatestAddress("QD"));
     gv = Governance(ms.getLatestAddress("GV"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
     memberRoles = MemberRoles(ms.getLatestAddress("MR"));
+    pool = Pool(ms.getLatestAddress("P1"));
   }
 
   /// @dev Decides the next course of action for a given claim.
@@ -118,12 +118,17 @@ contract ClaimsReward is Iupgradable {
     address payable payoutAddress = memberRoles.getClaimPayoutAddress(coverHolder);
 
     // execute the payout
-    bool payoutSucceeded = p1.sendClaimPayout(asset, payoutAddress, sumAssuredWei);
+    bool payoutSucceeded = pool.sendClaimPayout(asset, payoutAddress, sumAssuredWei);
 
     if (payoutSucceeded) {
 
       // burn staked tokens
-      tf.burnStakedTokens(coverId, asset, sumAssuredWei);
+      (, address scAddress) = qd.getscAddressOfCover(coverId);
+      uint tokenPrice = pool.getTokenPrice(asset);
+
+      // note: for new assets "18" needs to be replaced with target asset decimals
+      uint burnNXMAmount = sumAssuredWei.mul(1e18).div(tokenPrice);
+      pooledStaking.pushBurn(scAddress, burnNXMAmount);
 
       // adjust total sum assured
       (, address coverContract) = qd.getscAddressOfCover(coverId);

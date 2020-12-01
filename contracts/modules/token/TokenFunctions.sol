@@ -17,10 +17,6 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../interfaces/IPooledStaking.sol";
-import "../capital/MCR.sol";
-import "../capital/Pool1.sol";
-import "../claims/ClaimsReward.sol";
-import "../governance/Governance.sol";
 import "../cover/QuotationData.sol";
 import "./NXMToken.sol";
 import "./TokenController.sol";
@@ -29,16 +25,11 @@ import "./TokenData.sol";
 contract TokenFunctions is Iupgradable {
   using SafeMath for uint;
 
-  MCR internal m1;
-  MemberRoles internal mr;
   NXMToken public tk;
-  TokenController internal tc;
-  TokenData internal td;
-  QuotationData internal qd;
-  ClaimsReward internal cr;
-  Governance internal gv;
-  IPooledStaking pooledStaking;
-  Pool1 p1;
+  TokenController public tc;
+  TokenData public td;
+  QuotationData public qd;
+  IPooledStaking public pooledStaking;
 
   event BurnCATokens(uint claimId, address addr, uint amount);
 
@@ -50,22 +41,6 @@ contract TokenFunctions is Iupgradable {
   function pushStakerRewards(address _contractAddress, uint _coverPriceNXM) external onlyInternal {
     uint rewardValue = _coverPriceNXM.mul(td.stakerCommissionPer()).div(100);
     pooledStaking.accumulateReward(_contractAddress, rewardValue);
-  }
-
-  /**
-  * @dev Burns tokens staked on smart contract covered by coverId. Called when a payout is succesfully executed.
-  * @param coverId cover id
-  * @param asset cover currency
-  * @param sumAssured amount of $curr to burn
-  */
-  function burnStakedTokens(uint coverId, address asset, uint sumAssured) external onlyInternal {
-
-    (, address scAddress) = qd.getscAddressOfCover(coverId);
-    uint tokenPrice = p1.getTokenPrice(asset);
-
-    // FIXME: "18" needs to be replaced with the number of decimals of the target token if other than ETH or DAI
-    uint burnNXMAmount = sumAssured.mul(1e18).div(tokenPrice);
-    pooledStaking.pushBurn(scAddress, burnNXMAmount);
   }
 
   /**
@@ -103,13 +78,8 @@ contract TokenFunctions is Iupgradable {
     tk = NXMToken(ms.tokenAddress());
     td = TokenData(ms.getLatestAddress("TD"));
     tc = TokenController(ms.getLatestAddress("TC"));
-    cr = ClaimsReward(ms.getLatestAddress("CR"));
     qd = QuotationData(ms.getLatestAddress("QD"));
-    m1 = MCR(ms.getLatestAddress("MC"));
-    gv = Governance(ms.getLatestAddress("GV"));
-    mr = MemberRoles(ms.getLatestAddress("MR"));
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
-    p1 = Pool1(ms.getLatestAddress("P1"));
   }
 
   /**

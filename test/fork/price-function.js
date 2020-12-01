@@ -101,7 +101,7 @@ describe.only('NXM sells and buys', function () {
     this.voters = voters;
   });
 
-  it('upgrade master and rescue sai', async function () {
+  it.skip('upgrade master and rescue sai', async function () {
 
     const { master, governance, voters, getAddressByCode } = this;
 

@@ -8,7 +8,7 @@ const { nonMembers: [fundSource] } = require('../utils').accounts;
 
 describe('getPoolValueInEth', function () {
   it('gets total value of ETH and DAI assets in the pool', async function () {
-    const { pool1, poolData, chainlinkDAI, dai } = this;
+    const { pool, poolData, chainlinkDAI, dai } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
@@ -18,13 +18,13 @@ describe('getPoolValueInEth', function () {
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
     await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
-    await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
+    await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     const daiAmount = ether('10000');
-    await dai.mint(pool1.address, daiAmount);
+    await dai.mint(pool.address, daiAmount);
 
     const expectedPoolValue = initialAssetValue.add(daiAmount.mul(daiToEthRate).div(ether('1')));
-    const poolValue = await pool1.getPoolValueInEth();
+    const poolValue = await pool.getPoolValueInEth();
     assert.equal(poolValue.toString(), expectedPoolValue.toString());
   });
 });

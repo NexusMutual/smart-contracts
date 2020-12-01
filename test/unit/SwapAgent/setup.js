@@ -27,8 +27,8 @@ async function setup () {
 
   /* load artifacts */
 
-  /** @var {Pool1Contract} Pool */
-  const Pool = artifacts.require('Pool1');
+  /** @var { PoolContract} Pool */
+  const Pool = artifacts.require('Pool');
   const SwapAgent = artifacts.require('SwapAgent');
   const MasterMock = artifacts.require('MasterMock');
 
@@ -117,7 +117,7 @@ async function setup () {
 /**
  * @typedef {object} SwapAgentContracts
  * @property {MasterMockInstance} master
- * @property {Pool1Instance} pool
+ * @property { PoolInstance} pool
  * @property {UniswapV2FactoryInstance} factory
  * @property {UniswapV2Router02Instance} router
  * @property {TwapOracleInstance} oracle

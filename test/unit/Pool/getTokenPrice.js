@@ -10,23 +10,23 @@ const { nonMembers: [fundSource] } = accounts;
 describe('getTokenPrice', function () {
 
   it('calculates token price correctly in ETH', async function () {
-    const { pool1, poolData } = this;
-    const ETH = await pool1.ETH();
+    const { pool, poolData } = this;
+    const ETH = await pool.ETH();
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
     await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
-    await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
+    await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     const expectedPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
-    const price = await pool1.getTokenPrice(ETH);
+    const price = await pool.getTokenPrice(ETH);
     assert.equal(price.toString(), expectedPrice.toFixed());
   });
 
   it('calculates token price correctly in DAI', async function () {
-    const { pool1, poolData, chainlinkDAI, dai } = this;
+    const { pool, poolData, chainlinkDAI, dai } = this;
 
     const initialAssetValue = new BN('210959924071154460525457');
     const mcrEth = new BN('162424730681679380000000');
@@ -35,13 +35,13 @@ describe('getTokenPrice', function () {
 
     const mcrRatio = calculateMCRRatio(initialAssetValue, mcrEth);
     await poolData.setLastMCR(mcrRatio, mcrEth, initialAssetValue, Date.now());
-    await pool1.sendTransaction({ from: fundSource, value: initialAssetValue });
+    await pool.sendTransaction({ from: fundSource, value: initialAssetValue });
 
     await chainlinkDAI.setLatestAnswer(daiToEthRate);
 
     const expectedEthPrice = getTokenSpotPrice(initialAssetValue, mcrEth);
     const expectedPrice = new BN(expectedEthPrice.toFixed()).mul(ether('1')).div(daiToEthRate);
-    const price = await pool1.getTokenPrice(dai.address);
+    const price = await pool.getTokenPrice(dai.address);
     assert.equal(price.toString(), expectedPrice.toString());
   });
 });

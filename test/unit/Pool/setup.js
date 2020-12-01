@@ -15,7 +15,7 @@ async function setup () {
   const TokenData = artifacts.require('TokenData');
   const TokenController = artifacts.require('TokenControllerMock');
   const TokenMock = artifacts.require('NXMTokenMock');
-  const Pool1 = artifacts.require('Pool1');
+  const  Pool = artifacts.require('Pool');
   const MCR = artifacts.require('MCR');
   const ERC20Mock = artifacts.require('ERC20Mock');
   const TokenFunctions = artifacts.require('TokenFunctions');
@@ -35,11 +35,11 @@ async function setup () {
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
   const swapAgent = await SwapAgent.new();
-  Pool1.link(swapAgent);
+   Pool.link(swapAgent);
 
   const poolData = await PoolData.new();
   const tokenData = await TokenData.new(accounts.notariseAddress);
-  const pool1 = await Pool1.new(
+  const pool = await  Pool.new(
     [dai.address], // assets
     [0], // min
     [0], // max
@@ -58,7 +58,7 @@ async function setup () {
 
   // set contract addresses
   await master.setTokenAddress(token.address);
-  await master.setLatestAddress(hex('P1'), pool1.address);
+  await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('PD'), poolData.address);
   await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
@@ -66,7 +66,7 @@ async function setup () {
   await master.setLatestAddress(hex('P2'), mockP2Address);
   await master.setLatestAddress(hex('TF'), tokenFunctions.address);
 
-  const contractsToUpdate = [mcr, pool1, tokenController, tokenFunctions];
+  const contractsToUpdate = [mcr, pool, tokenController, tokenFunctions];
 
   for (const contract of contractsToUpdate) {
     await contract.changeMasterAddress(master.address);
@@ -74,7 +74,7 @@ async function setup () {
   }
 
   // required to be able to mint
-  await master.enrollInternal(pool1.address);
+  await master.enrollInternal(pool.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
@@ -98,7 +98,7 @@ async function setup () {
 
   this.master = master;
   this.token = token;
-  this.pool1 = pool1;
+  this.pool = pool;
   this.mcr = mcr;
   this.poolData = poolData;
   this.tokenData = tokenData;

@@ -57,7 +57,7 @@ contract DisposableProposalCategory is ProposalCategory {
     categoryActionHashes[2] = abi.encodeWithSignature("updateRole(address,uint256,bool)");
     categoryActionHashes[3] = abi.encodeWithSignature("newCategory(string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)");
     categoryActionHashes[4] = abi.encodeWithSignature("editCategory(uint256,string,uint256,uint256,uint256,uint256[],uint256,string,address,bytes2,uint256[],string)");
-    categoryActionHashes[5] = abi.encodeWithSignature("upgradeContractImplementation(bytes2,address)");
+    categoryActionHashes[5] = abi.encodeWithSignature("upgradeMultipleImplementations(bytes2[],address[])");
     categoryActionHashes[6] = abi.encodeWithSignature("startEmergencyPause()");
     categoryActionHashes[7] = abi.encodeWithSignature("addEmergencyPause(bool,bytes4)");
     categoryActionHashes[8] = abi.encodeWithSignature("burnCAToken(uint256,uint256,address)");
@@ -81,7 +81,7 @@ contract DisposableProposalCategory is ProposalCategory {
     categoryActionHashes[26] = abi.encodeWithSignature("updateUintParameters(bytes8,uint256)");
     categoryActionHashes[27] = abi.encodeWithSignature("updateAddressParameters(bytes8,address)");
     categoryActionHashes[28] = abi.encodeWithSignature("updateOwnerParameters(bytes8,address)");
-    categoryActionHashes[29] = abi.encodeWithSignature("upgradeContract(bytes2,address)");
+    categoryActionHashes[29] = abi.encodeWithSignature("upgradeMultipleContracts(bytes2[],address[])");
     categoryActionHashes[30] = abi.encodeWithSignature("changeCurrencyAssetAddress(bytes4,address)");
     categoryActionHashes[31] = abi.encodeWithSignature("changeCurrencyAssetBaseMin(bytes4,uint256)");
     categoryActionHashes[32] = abi.encodeWithSignature("changeInvestmentAssetAddressAndDecimal(bytes4,address,uint8)");

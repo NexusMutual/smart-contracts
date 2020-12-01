@@ -29,7 +29,7 @@ import "../token/TokenController.sol";
 import "./MCR.sol";
 import "./SwapAgent.sol";
 
-contract Pool1 is MasterAware, ReentrancyGuard {
+contract Pool is MasterAware, ReentrancyGuard {
   using Address for address;
   using SafeMath for uint;
   using SafeERC20 for IERC20;

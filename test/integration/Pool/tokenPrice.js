@@ -34,41 +34,41 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM reverts for non-member', async function () {
-    const { p1: pool1 } = this.contracts;
+    const { p1: pool } = this.contracts;
 
     const buyValue = ether('10');
     await expectRevert(
-      pool1.buyNXM('0', { from: nonMember1, value: buyValue }),
+      pool.buyNXM('0', { from: nonMember1, value: buyValue }),
       'Caller is not a member',
     );
   });
 
   it('sellNXM reverts for non-member', async function () {
-    const { p1: pool1 } = this.contracts;
+    const { p1: pool } = this.contracts;
 
     await expectRevert(
-      pool1.sellNXM('1', '0', { from: nonMember1 }),
+      pool.sellNXM('1', '0', { from: nonMember1 }),
       'Caller is not a member',
     );
   });
 
   it('sellNXM reverts if member does not have enough NXM balance', async function () {
-    const { p1: pool1, tk: token } = this.contracts;
+    const { p1: pool, tk: token } = this.contracts;
     const memberBalance = await token.balanceOf(member1);
 
     await expectRevert(
-      pool1.sellNXM(memberBalance.addn(1), '0', { from: member1 }),
+      pool.sellNXM(memberBalance.addn(1), '0', { from: member1 }),
       'Pool: Not enough balance',
     );
   });
 
   it('sellNXM reverts for member if tokens are locked for member vote', async function () {
-    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool1, tk: token, master } = this.contracts;
+    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, master } = this.contracts;
     const cover = { ...coverTemplate };
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
 
     const buyValue = ether('1000');
-    await pool1.buyNXM('0', { from: member1, value: buyValue });
+    await pool.buyNXM('0', { from: member1, value: buyValue });
     const boughtTokenAmount = await token.balanceOf(member1);
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -96,7 +96,7 @@ describe('Token price functions', function () {
 
     await claims.submitMemberVote(claimId, '1', { from: member1 });
     await expectRevert(
-      pool1.sellNXM(boughtTokenAmount, '0', { from: member1 }),
+      pool.sellNXM(boughtTokenAmount, '0', { from: member1 }),
       'Pool: NXM tokens are locked for voting',
     );
     await time.increase(maxVotingTime.addn(1));
@@ -104,16 +104,16 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM mints tokens for member in exchange of ETH', async function () {
-    const { tk: token, p1: pool1, pd: poolData } = this.contracts;
+    const { tk: token, p1: pool, pd: poolData } = this.contracts;
 
     const buyValue = ether('1000');
-    const expectedTokensReceived = await pool1.getNXMForEth(buyValue);
-    const totalAssetValue = await pool1.getPoolValueInEth();
+    const expectedTokensReceived = await pool.getNXMForEth(buyValue);
+    const totalAssetValue = await pool.getPoolValueInEth();
     const mcrEth = await poolData.getLastMCREther();
 
     const member = member1;
     const preBuyBalance = await token.balanceOf(member);
-    await pool1.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
+    await pool.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
@@ -125,19 +125,19 @@ describe('Token price functions', function () {
   });
 
   it('sellNXM burns tokens for member and returns ETH', async function () {
-    const { tk: token, p1: pool1 } = this.contracts;
+    const { tk: token, p1: pool } = this.contracts;
     const ethIn = ether('500');
-    const nxmAmount = await pool1.getNXMForEth(ethIn);
+    const nxmAmount = await pool.getNXMForEth(ethIn);
 
     // buy tokens first
-    await pool1.buyNXM(nxmAmount, { from: member1, value: ethIn });
+    await pool.buyNXM(nxmAmount, { from: member1, value: ethIn });
 
     // sell them back
     const preNXMSellBalance = await token.balanceOf(member1);
     const preSellTokenSupply = await token.totalSupply();
     const preSellEthBalance = await web3.eth.getBalance(member1);
 
-    await pool1.sellNXM(nxmAmount, '0', { from: member1, gasPrice: 0 });
+    await pool.sellNXM(nxmAmount, '0', { from: member1, gasPrice: 0 });
 
     const postSellEthBalance = await web3.eth.getBalance(member1);
     const postSellNXMBalance = await token.balanceOf(member1);
@@ -161,14 +161,14 @@ describe('Token price functions', function () {
   });
 
   it('buyNXM token price reflects the latest MCR posting (higher MCReth -> lower price)', async function () {
-    const { p1: pool1, mcr, pd } = this.contracts;
+    const { p1: pool, mcr, pd } = this.contracts;
     const { ethEthRate, ethToDaiRate } = this.rates;
 
-    const ETH = await pool1.ETH();
+    const ETH = await pool.ETH();
     const buyValue = ether('1000');
-    const expectedNXMOutPreMCRPosting = await pool1.getNXMForEth(buyValue);
-    const spotTokenPricePreMCRPosting = await pool1.getTokenPrice(ETH);
-    const currentPoolValue = await pool1.getPoolValueInEth();
+    const expectedNXMOutPreMCRPosting = await pool.getNXMForEth(buyValue);
+    const spotTokenPricePreMCRPosting = await pool.getTokenPrice(ETH);
+    const currentPoolValue = await pool.getPoolValueInEth();
 
     // post a higher MCR raising the price
     const lastMCREther = await pd.getLastMCREther();
@@ -185,8 +185,8 @@ describe('Token price functions', function () {
       20200103,
     );
 
-    const spotTokenPricePostMCRPosting = await pool1.getTokenPrice(ETH);
-    const expectedNXMOutPostMCRPosting = await pool1.getNXMForEth(buyValue);
+    const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
+    const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
 
     assert(
       spotTokenPricePostMCRPosting.lt(spotTokenPricePreMCRPosting),
@@ -201,20 +201,20 @@ describe('Token price functions', function () {
   });
 
   it('getPoolValueInEth calculates pool value correctly', async function () {
-    const { p1: pool1, dai } = this.contracts;
+    const { p1: pool, dai } = this.contracts;
     const { daiToEthRate } = this.rates;
 
-    const pool1Balance = toBN(await web3.eth.getBalance(pool1.address));
-    const daiBalance = await dai.balanceOf(pool1.address);
+    const poolBalance = toBN(await web3.eth.getBalance(pool.address));
+    const daiBalance = await dai.balanceOf(pool.address);
     const expectedDAiValueInEth = daiToEthRate.mul(daiBalance).div(ether('1'));
-    const expectedTotalAssetValue = pool1Balance.add(expectedDAiValueInEth);
-    const totalAssetValue = await pool1.getPoolValueInEth();
+    const expectedTotalAssetValue = poolBalance.add(expectedDAiValueInEth);
+    const totalAssetValue = await pool.getPoolValueInEth();
     assert(totalAssetValue.toString(), expectedTotalAssetValue.toString());
   });
 
   it('getMCRRatio calculates MCR ratio correctly', async function () {
-    const { p1: pool1 } = this.contracts;
-    const mcrRatio = await pool1.getMCRRatio();
+    const { p1: pool } = this.contracts;
+    const mcrRatio = await pool.getMCRRatio();
     assert.equal(mcrRatio.toString(), '20000');
   });
 });

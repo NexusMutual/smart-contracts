@@ -25,7 +25,7 @@ async function setup () {
   const MCR = artifacts.require('MCR');
   const TokenData = artifacts.require('TokenData');
   const TokenFunctions = artifacts.require('TokenFunctions');
-  const Pool1 = artifacts.require('Pool1');
+  const Pool = artifacts.require('Pool');
   const PoolData = artifacts.require('PoolData');
   const Quotation = artifacts.require('Quotation');
   const QuotationData = artifacts.require('QuotationData');
@@ -139,7 +139,7 @@ async function setup () {
   const swapAgent = await SwapAgent.new();
 
   // link pool to swap agent library
-  Pool1.link(swapAgent);
+  Pool.link(swapAgent);
 
   // regular contracts
   const cl = await Claims.new();
@@ -148,7 +148,7 @@ async function setup () {
 
   const mc = await MCR.new(ZERO_ADDRESS);
   const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
-  const p1 = await Pool1.new(
+  const p1 = await Pool.new(
     [dai.address], // assets
     [0], // min amounts
     [ether('100')], // max amounts

@@ -10,14 +10,14 @@ const {
   calculateMCRRatio,
 } = require('../utils').tokenPrice;
 
-const Pool1 = artifacts.require('Pool1');
+const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
 const SwapAgent = artifacts.require('SwapAgent');
 
 async function setupAll () {
   const swapAgent = await SwapAgent.new();
-  Pool1.link(swapAgent);
-  this.contracts = await setup({ MCR, Pool1 });
+  Pool.link(swapAgent);
+  this.contracts = await setup({ MCR, Pool });
 }
 
 describe('buyNXM', function () {
@@ -27,7 +27,7 @@ describe('buyNXM', function () {
   const maxPercentage = 400;
 
   it('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
-    const { pool1 } = this.contracts;
+    const { pool } = this.contracts;
 
     let mcrEth = ether('8000');
     const upperBound = ether(1e8.toString());
@@ -57,7 +57,7 @@ describe('buyNXM', function () {
             totalAssetValue: totalAssetValue.toString(),
             buyValue: totalAssetValue.toString(),
           });
-          const nxmOut = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+          const nxmOut = await pool.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
 
           const { tokens: expectedIdealTokenValue } = calculatePurchasedTokensWithFullIntegral(
             totalAssetValue, buyValue, mcrEth,

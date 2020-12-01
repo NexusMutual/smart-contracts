@@ -11,14 +11,14 @@ const {
   sellSpread,
 } = require('../utils').tokenPrice;
 
-const Pool1 = artifacts.require('Pool1');
+const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
 const SwapAgent = artifacts.require('SwapAgent');
 
 async function setupAll () {
   const swapAgent = await SwapAgent.new();
-  Pool1.link(swapAgent);
-  this.contracts = await setup({ MCR, Pool1 });
+  Pool.link(swapAgent);
+  this.contracts = await setup({ MCR, Pool });
 }
 
 describe('sellNXM', function () {
@@ -28,7 +28,7 @@ describe('sellNXM', function () {
   const maxPercentage = 400;
 
   it('burns tokens from member in exchange for 5% of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
-    const { pool1 } = this.contracts;
+    const { pool } = this.contracts;
 
     let mcrEth = ether('8000');
     const upperBound = ether(1e8.toString());
@@ -61,14 +61,14 @@ describe('sellNXM', function () {
 
           let nxmOut;
           if (mcrRatio.lt(new BN(maxPercentage).muln(400))) {
-            nxmOut = await pool1.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
+            nxmOut = await pool.calculateNXMForEth(buyValue, totalAssetValue, mcrEth);
           } else {
             const nxmOutDecimal = calculatePurchasedTokensWithFullIntegral(initialAssetValue, buyValue, mcrEth);
             nxmOut = new BN(nxmOutDecimal.toString());
           }
 
           const totalAssetValueAtSellTime = totalAssetValue.add(buyValue);
-          const ethOutBN = await pool1.calculateEthForNXM(nxmOut, totalAssetValueAtSellTime, mcrEth);
+          const ethOutBN = await pool.calculateEthForNXM(nxmOut, totalAssetValueAtSellTime, mcrEth);
           const ethOut = Decimal(ethOutBN.toString());
 
           const expectedEthOut = Decimal(buyValue.toString()).mul(Decimal(1).sub(sellSpread));

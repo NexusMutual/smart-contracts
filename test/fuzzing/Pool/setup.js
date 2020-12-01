@@ -16,7 +16,7 @@ const TokenFunctions = artifacts.require('TokenFunctions');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
 
-async function setup ({ MCR, Pool1 }) {
+async function setup ({ MCR, Pool }) {
 
   const master = await MasterMock.new();
   const mockP2Address = '0x0000000000000000000000000000000000000012';
@@ -27,7 +27,7 @@ async function setup ({ MCR, Pool1 }) {
 
   const poolData = await PoolData.new();
   const tokenData = await TokenData.new(accounts.notariseAddress);
-  const pool1 = await Pool1.new(
+  const pool = await Pool.new(
     [dai.address],
     [0], // min
     [0], // max
@@ -46,7 +46,7 @@ async function setup ({ MCR, Pool1 }) {
 
   // set contract addresses
   await master.setTokenAddress(token.address);
-  await master.setLatestAddress(hex('P1'), pool1.address);
+  await master.setLatestAddress(hex('P1'), pool.address);
   await master.setLatestAddress(hex('PD'), poolData.address);
   await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
@@ -54,14 +54,14 @@ async function setup ({ MCR, Pool1 }) {
   await master.setLatestAddress(hex('P2'), mockP2Address);
   await master.setLatestAddress(hex('TF'), tokenFunctions.address);
 
-  const contractsToUpdate = [pool1, tokenController, tokenFunctions, mcr];
+  const contractsToUpdate = [pool, tokenController, tokenFunctions, mcr];
   for (const contract of contractsToUpdate) {
     await contract.changeMasterAddress(master.address);
     await contract.changeDependentContractAddress();
   }
 
   // required to be able to mint
-  await master.enrollInternal(pool1.address);
+  await master.enrollInternal(pool.address);
 
   for (const member of accounts.members) {
     await master.enrollMember(member, Role.Member);
@@ -86,7 +86,7 @@ async function setup ({ MCR, Pool1 }) {
   return {
     master,
     token,
-    pool1,
+    pool,
     mcr,
     poolData,
     tokenData,

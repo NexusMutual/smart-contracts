@@ -1,4 +1,4 @@
-describe('Pool1 comparison fuzzing tests', function () {
+describe('Pool comparison fuzzing tests', function () {
 
   require('./buyNXM');
   require('./sellNXM');

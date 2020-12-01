@@ -10,7 +10,7 @@ async function setupContractState ({
   mcrEth,
   daiRate,
   ethRate,
-  pool1,
+  pool,
   poolData,
   tokenData,
   chainlinkDAI,
@@ -24,7 +24,7 @@ async function setupContractState ({
   const MCR_RATIO_DECIMALS = 4;
   const mcrRatio = initialAssetValue.mul(new BN(10 ** MCR_RATIO_DECIMALS)).div(mcrEth);
 
-  await pool1.sendTransaction({
+  await pool.sendTransaction({
     from: fundSource,
     value: initialAssetValue,
   });
@@ -41,8 +41,8 @@ async function setupContractState ({
   const stateValues = { a, c, tokenExponent };
 
   if (fetchStoredState) {
-    const totalAssetValue = await pool1.getPoolValueInEth();
-    const storedMCRRatio = await pool1.getMCRRatio();
+    const totalAssetValue = await pool.getPoolValueInEth();
+    const storedMCRRatio = await pool.getMCRRatio();
     stateValues.totalAssetValue = totalAssetValue;
     stateValues.mcrRatio = storedMCRRatio;
   }
@@ -50,12 +50,12 @@ async function setupContractState ({
   return stateValues;
 }
 
-async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool1, token }) {
-  const preEstimatedTokenBuyValue = await pool1.getNXMForEth(buyValue);
+async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tokenExponent, maxRelativeError, pool, token }) {
+  const preEstimatedTokenBuyValue = await pool.getNXMForEth(buyValue);
 
   const preBuyBalance = await token.balanceOf(member);
 
-  await pool1.buyNXM(preEstimatedTokenBuyValue, {
+  await pool.buyNXM(preEstimatedTokenBuyValue, {
     from: member,
     value: buyValue,
   });
@@ -87,9 +87,9 @@ async function assertBuy ({ member, totalAssetValue, mcrEth, buyValue, c, a, tok
 }
 
 async function assertSell (
-  { member, tokensToSell, buyValue, maxRelativeError, pool1, tokenController, token, isLessThanExpectedEthOut },
+  { member, tokensToSell, buyValue, maxRelativeError, pool, tokenController, token, isLessThanExpectedEthOut },
 ) {
-  const precomputedEthValue = await pool1.getEthForNXM(tokensToSell);
+  const precomputedEthValue = await pool.getEthForNXM(tokensToSell);
   console.log({
     precomputedEthValue: precomputedEthValue.toString(),
     tokensReceived: tokensToSell.toString(),
@@ -100,7 +100,7 @@ async function assertSell (
   });
   const balancePreSell = await web3.eth.getBalance(member);
   const nxmBalancePreSell = await token.balanceOf(member);
-  const sellTx = await pool1.sellNXM(tokensToSell, precomputedEthValue, {
+  const sellTx = await pool.sellNXM(tokensToSell, precomputedEthValue, {
     from: member,
   });
   const nxmBalancePostSell = await token.balanceOf(member);

@@ -14,7 +14,7 @@ const {
   members: [member1, member2],
 } = accounts;
 
-const Pool1 = artifacts.require('Pool1');
+const Pool = artifacts.require('Pool');
 const MCR = artifacts.require('MCR');
 const SwapAgent = artifacts.require('SwapAgent');
 const P1MockOldMCR = artifacts.require('P1MockOldMCR');
@@ -25,7 +25,7 @@ async function compareBuyValues (
     daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
 ) {
 
-  const ETH = await current.pool1.ETH();
+  const ETH = await current.pool.ETH();
   const DAI = current.dai.address;
 
   await setupContractState(
@@ -40,11 +40,11 @@ async function compareBuyValues (
     console.log({ totalAssetValue: totalAssetValue.toString(), mcrPercentage: mcrRatio.toString() });
     const preBuyBalanceMember1 = await current.token.balanceOf(member1);
 
-    const tokenSpotPriceEthCurrentSystem = await current.pool1.getTokenPrice(ETH);
+    const tokenSpotPriceEthCurrentSystem = await current.pool.getTokenPrice(ETH);
     const tokenSpotPriceEthOldSystem = await old.mcr.calculateTokenPrice(hex('ETH'));
     assert.equal(tokenSpotPriceEthCurrentSystem.toString(), tokenSpotPriceEthOldSystem.toString());
 
-    const tokenSpotPriceDaiCurrentSystem = await current.pool1.getTokenPrice(DAI);
+    const tokenSpotPriceDaiCurrentSystem = await current.pool.getTokenPrice(DAI);
     const tokenSpotPriceDaiOldSystem = await old.mcr.calculateTokenPrice(hex('DAI'));
     const relativeErrorDaiSpotPrice = toDecimal(tokenSpotPriceDaiOldSystem)
       .sub(toDecimal(tokenSpotPriceDaiCurrentSystem))
@@ -54,7 +54,7 @@ async function compareBuyValues (
       `old token DAI spot price ${tokenSpotPriceDaiOldSystem.toString()} differs too much from ${tokenSpotPriceDaiCurrentSystem.toString()}`,
     );
 
-    const tx = await current.pool1.buyNXM('0', {
+    const tx = await current.pool.buyNXM('0', {
       from: member1,
       value: buyValue,
     });
@@ -62,7 +62,7 @@ async function compareBuyValues (
     const tokensReceivedMember1 = postBuyBalanceMember1.sub(preBuyBalanceMember1);
 
     const preBuyBalanceMember2 = await old.token.balanceOf(member2);
-    await old.pool1.buyToken({
+    await old.pool.buyToken({
       from: member2,
       value: buyValue,
     });
@@ -90,19 +90,19 @@ async function compareBuyValues (
 
     if (buyValue.lt(poolBalanceStep)) {
       const extraStepValue = poolBalanceStep.sub(buyValue);
-      await current.pool1.sendTransaction({
+      await current.pool.sendTransaction({
         from: fundSource,
         value: extraStepValue,
       });
 
-      await old.pool1.sendTransaction({
+      await old.pool.sendTransaction({
         from: fundSource,
         value: extraStepValue,
       });
     }
 
-    totalAssetValue = await current.pool1.getPoolValueInEth();
-    mcrRatio = await current.pool1.getMCRRatio();
+    totalAssetValue = await current.pool.getPoolValueInEth();
+    mcrRatio = await current.pool.getMCRRatio();
   }
   console.log({
     highestRelativeError: highestRelativeError,
@@ -129,11 +129,11 @@ async function compareSellValues (
     const { tokens: idealTokensReceived } = calculatePurchasedTokensWithFullIntegral(
       totalAssetValue, buyValue, mcrEth, c, a.mul(new BN(1e13.toString())), tokenExponent,
     );
-    await current.pool1.sendTransaction({
+    await current.pool.sendTransaction({
       from: fundSource,
       value: buyValue,
     });
-    await old.pool1.sendTransaction({
+    await old.pool.sendTransaction({
       from: fundSource,
       value: buyValue,
     });
@@ -143,7 +143,7 @@ async function compareSellValues (
     await old.token.mint(member2, tokensReceived);
 
     const date = new Date().getTime();
-    const vFull = new BN(await web3.eth.getBalance(old.pool1.address));
+    const vFull = new BN(await web3.eth.getBalance(old.pool.address));
     const mcrPercentage = vFull.mul(new BN(1e4)).div(mcrEth);
     await old.poolData.setLastMCR(mcrPercentage, mcrEth, vFull, date);
 
@@ -175,10 +175,10 @@ async function compareSellValues (
       return sellEthReceived;
     }
 
-    const sellEthReceived = await sell(current, member1, () => current.pool1.sellNXM(tokensToSell, '0', {
+    const sellEthReceived = await sell(current, member1, () => current.pool.sellNXM(tokensToSell, '0', {
       from: member1,
     }));
-    const expectedSellEthReceived = await sell(old, member2, () => old.pool1.sellNXMTokens(tokensToSell, {
+    const expectedSellEthReceived = await sell(old, member2, () => old.pool.sellNXMTokens(tokensToSell, {
       from: member2,
     }));
 
@@ -200,13 +200,13 @@ async function compareSellValues (
 
     if (buyValue.lt(poolBalanceStep)) {
       const extraStepValueForCurrent = poolBalanceStep.sub(buyValue).add(new BN(sellEthReceived.toFixed()));
-      await current.pool1.sendTransaction({
+      await current.pool.sendTransaction({
         from: fundSource,
         value: extraStepValueForCurrent,
       });
 
       const extraStepValueForOld = poolBalanceStep.sub(buyValue).add(new BN(expectedSellEthReceived.toFixed()));
-      await old.pool1.sendTransaction({
+      await old.pool.sendTransaction({
         from: fundSource,
         value: extraStepValueForOld,
       });
@@ -220,9 +220,9 @@ async function compareSellValues (
 
 async function setupBothImplementations () {
   const swapAgent = await SwapAgent.new();
-  Pool1.link(swapAgent);
-  this.current = await setup({ MCR, Pool1 });
-  this.old = await setup({ MCR: P1MockOldMCR, Pool1: P1MockOldPool1 });
+  Pool.link(swapAgent);
+  this.current = await setup({ MCR, Pool });
+  this.old = await setup({ MCR: P1MockOldMCR, Pool: P1MockOldPool1 });
 }
 
 describe('compareTokenCurveImplementations', function () {

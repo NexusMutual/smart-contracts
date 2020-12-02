@@ -27,7 +27,7 @@ import "../capital/PoolData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
 
-contract Cover is MasterAware, Iupgradable {
+contract Cover is MasterAware {
   using SafeMath for uint;
   using SafeERC20 for IERC20;
 
@@ -52,14 +52,14 @@ contract Cover is MasterAware, Iupgradable {
   }
 
   function changeDependentContractAddress() public {
-    quotation = Quotation(ms.getLatestAddress("QT"));
-    nxmToken = NXMToken(ms.getLatestAddress("QT"));
-    tokenController = TokenController(ms.tokenAddress());
-    quotationData = QuotationData(ms.getLatestAddress("QD"));
-    claimsData = ClaimsData(ms.getLatestAddress("CD"));
-    claims = Claims(ms.getLatestAddress("CL"));
-    mcr = MCR(ms.getLatestAddress("MC"));
-    pool = Pool1(ms.getLatestAddress("P1"));
+    quotation = Quotation(master.getLatestAddress("QT"));
+    nxmToken = NXMToken(master.getLatestAddress("QT"));
+    tokenController = TokenController(master.tokenAddress());
+    quotationData = QuotationData(master.getLatestAddress("QD"));
+    claimsData = ClaimsData(master.getLatestAddress("CD"));
+    claims = Claims(master.getLatestAddress("CL"));
+    mcr = MCR(master.getLatestAddress("MC"));
+    pool = Pool1(master.getLatestAddress("P1"));
   }
 
   function buyCover (
@@ -75,14 +75,12 @@ contract Cover is MasterAware, Iupgradable {
     require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Unsupported cover type");
     require(coverAmount % 1e18 == 0, "Only whole unit coverAmount supported");
 
-
     (
     uint[] memory coverDetails,
     uint8 _v,
     bytes32 _r,
     bytes32 _s ) = getCoverDetails(coverAmount, data);
 
-    require(msg.value == coverDetails[1], "Cover: ETH amount does not match premium");
     quotation.verifyCoverDetails(
       msg.sender,
       contractAddress,
@@ -92,42 +90,7 @@ contract Cover is MasterAware, Iupgradable {
 
     sendCoverPremiumToPool(coverAsset, coverDetails[1]);
 
-
     return quotationData.getCoverLength().sub(1);
-  }
-
-  function sendCoverPremiumToPool (
-    address asset,
-    uint premiumAmount
-  ) internal returns (bool success) {
-
-    if (asset == ETH) {
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
-      require(ok, "Cover: Transfer to Pool failed");
-    }
-
-    IERC20 token = IERC20(asset);
-    token.safeTransfer(address(pool), premiumAmount);
-  }
-
-  function getCoverDetails(uint coverAmount, bytes memory data) internal pure returns (uint[] memory, uint8, bytes32, bytes32) {
-    (
-    uint coverPrice,
-    uint coverPriceNXM,
-    uint generatedAt,
-    uint expiresAt,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-    ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
-    uint[] memory coverDetails = new uint[](5);
-    coverDetails[0] = coverAmount.div(1e18); // convert from wei to units
-    coverDetails[1] = coverPrice;
-    coverDetails[2] = coverPriceNXM;
-    coverDetails[3] = expiresAt;
-    coverDetails[4] = generatedAt;
-    return (coverDetails, _v, _r, _s);
   }
 
   function submitClaim(uint coverId, bytes calldata data) external returns (uint) {
@@ -137,7 +100,7 @@ contract Cover is MasterAware, Iupgradable {
     (, cStatus,,,) = quotationData.getCoverDetailsByCoverID2(coverId);
     require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
     require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
-    if (ms.isPause() == false) {
+    if (master.isPause() == false) {
       claims._addClaim(coverId, now, qadd);
     } else {
       claimsData.setClaimAtEmergencyPause(coverId, now, false);
@@ -161,9 +124,44 @@ contract Cover is MasterAware, Iupgradable {
     uint8 status,
     uint sumAssured,
     uint16 coverPeriod,
-    uint validUntil
+    uint expiresAt
   ) {
     return quotationData.getCoverDetailsByCoverID2(coverId);
+  }
+
+  function sendCoverPremiumToPool (
+    address asset,
+    uint premiumAmount
+  ) internal returns (bool success) {
+
+    if (asset == ETH) {
+      require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");
+      // solhint-disable-next-line avoid-low-level-calls
+      (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
+      require(ok, "Cover: Transfer to Pool failed");
+    }
+
+    IERC20 token = IERC20(asset);
+    token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
+  }
+
+  function getCoverDetails(uint coverAmount, bytes memory data) internal pure returns (uint[] memory, uint8, bytes32, bytes32) {
+    (
+    uint coverPrice,
+    uint coverPriceNXM,
+    uint generatedAt,
+    uint expiresAt,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+    ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
+    uint[] memory coverDetails = new uint[](5);
+    coverDetails[0] = coverAmount.div(1e18); // convert from wei to units
+    coverDetails[1] = coverPrice;
+    coverDetails[2] = coverPriceNXM;
+    coverDetails[3] = expiresAt;
+    coverDetails[4] = generatedAt;
+    return (coverDetails, _v, _r, _s);
   }
 
   function getCurrencyFromAssetAddress(address asset) public view returns (bytes4) {

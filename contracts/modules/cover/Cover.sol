@@ -37,14 +37,17 @@ contract Cover is MasterAware {
   TokenController public tokenController;
   QuotationData public quotationData;
   ClaimsData public claimsData;
+  ClaimsReward public claimsReward;
   Claims public claims;
   MCR public mcr;
   Pool1 public pool;
 
-  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
-
-  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+  // assigned in constructor
   address public DAI;
+  // constants
+  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+  enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
 
   constructor (address masterAddress, address _daiAddress) public {
     changeMasterAddress(masterAddress);
@@ -60,6 +63,7 @@ contract Cover is MasterAware {
     claims = Claims(master.getLatestAddress("CL"));
     mcr = MCR(master.getLatestAddress("MC"));
     pool = Pool1(master.getLatestAddress("P1"));
+    claimsReward = ClaimsReward(master.getLatestAddress("P1"));
   }
 
   function buyCover (
@@ -117,16 +121,23 @@ contract Cover is MasterAware {
     return status == 14;
   }
 
-  function getCover(
-    uint coverId
-  ) external view returns (
-    uint cid,
+  function getCover(uint tokenId)
+  external
+  view
+  returns (
     uint8 status,
     uint sumAssured,
     uint16 coverPeriod,
-    uint expiresAt
-  ) {
-    return quotationData.getCoverDetailsByCoverID2(coverId);
+    uint validUntil,
+    address contractAddress,
+    address coverAsset,
+    uint premiumNXM
+  )
+  {
+    bytes4 currency;
+    (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(tokenId);
+    (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(tokenId);
+    coverAsset = claimsReward.getCurrencyAssetAddress(currency);
   }
 
   function sendCoverPremiumToPool (
@@ -175,5 +186,18 @@ contract Cover is MasterAware {
     }
 
     revert("Cover: unknown asset");
+  }
+
+  function getCurrencyAssetAddress(bytes4 currency) public view returns (address) {
+
+    if (currency == "ETH") {
+      return ETH;
+    }
+
+    if (currency == "DAI") {
+      return DAI;
+    }
+
+    revert("ClaimsReward: unknown asset");
   }
 }

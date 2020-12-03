@@ -16,6 +16,7 @@ const {
 
 const { BN, toBN } = web3.utils;
 
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
 const MemberRoles = artifacts.require('MemberRoles');
 const Pool = artifacts.require('Pool');
 const NXMaster = artifacts.require('NXMaster');
@@ -35,8 +36,6 @@ const ERC20 = artifacts.require('ERC20');
 const SwapAgent = artifacts.require('SwapAgent');
 const TwapOracle = artifacts.require('TwapOracle');
 
-const holder = '0xd7cba5b9a0240770cfd9671961dae064136fa240';
-
 const Address = {
   ETH: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
   DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
@@ -44,6 +43,7 @@ const Address = {
   WNXM: '0x0d438F3b5175Bebc262bF23753C1E53d03432bDE',
   DAIFEED: '0x773616E4d11A78F511299002da57A0a94577F1f4',
   UNIFACTORY: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+  NXMHOLDER: '0xd7cba5b9a0240770cfd9671961dae064136fa240',
 };
 
 let isHardhat;
@@ -72,14 +72,14 @@ describe.only('NXM sells and buys', function () {
     const { mainnet: { abis } } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
     const getAddressByCode = getAddressByCodeFactory(abis);
 
-    const master = await NXMaster.at(getAddressByCode('NXMASTER'));
+    const masterAddress = getAddressByCode('NXMASTER');
     const token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
     const memberRoles = await MemberRoles.at(getAddressByCode('MR'));
     const governance = await Governance.at(getAddressByCode('GV'));
     const poolData = await PoolData.at(getAddressByCode('PD'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
 
-    this.master = master;
+    this.masterAddress = masterAddress;
     this.token = token;
     this.memberRoles = memberRoles;
     this.governance = governance;
@@ -93,7 +93,7 @@ describe.only('NXM sells and buys', function () {
     const { memberArray: boardMembers } = await this.memberRoles.members('1', { gas: 1e6 });
     const voters = boardMembers.slice(0, 3);
 
-    for (const member of [...voters, holder]) {
+    for (const member of [...voters, Address.NXMHOLDER]) {
       await fund(member);
       await unlock(member);
     }
@@ -101,9 +101,10 @@ describe.only('NXM sells and buys', function () {
     this.voters = voters;
   });
 
-  it.skip('upgrade master and rescue sai', async function () {
+  it('upgrade master and rescue sai', async function () {
 
-    const { master, governance, voters, getAddressByCode } = this;
+    const { masterAddress, governance, voters, getAddressByCode } = this;
+    const masterProxy = await OwnedUpgradeabilityProxy.at(masterAddress);
 
     const parameters = [
       ['string', 'Upgrade master'], // name
@@ -111,7 +112,7 @@ describe.only('NXM sells and buys', function () {
       ['uint256', 60], // majority vote percentage
       ['uint256', 15], // quorum percentage
       ['uint256[]', [Role.AdvisoryBoard]], // allowed to create proposal
-      ['uint256', 3], // closing time
+      ['uint256', 3 * 24 * 3600], // closing time 3 days
       ['string', ''], // action hash - probably ipfs hash
       ['address', '0x0000000000000000000000000000000000000000'], // contract address: used only if next is "EX"
       ['bytes2', hex('MS')], // contract name
@@ -125,10 +126,10 @@ describe.only('NXM sells and buys', function () {
       parameters.map(p => p[1]),
     );
 
-    // add new category
+    // add new category for master upgrade
     await submitGovernanceProposal(ProposalCategory.addCategory, addCategory, voters, governance);
 
-    const dst = '0x0000000000000000000000000000000000000001';
+    const dst = '0x0000000000000000000000000000000000001337';
     const sai = await ERC20.at(Address.SAI);
     const wnxm = await ERC20.at(Address.WNXM);
     const p1 = getAddressByCode('P1');
@@ -137,15 +138,29 @@ describe.only('NXM sells and buys', function () {
     const saiStuck = await sai.balanceOf(p1);
     const wnxmStuck = await wnxm.balanceOf(tc);
 
-    { // upgrade master to TemporaryNXMaster to rescue sai
-      const masterImplementation = await TemporaryNXMaster.new();
-      const upgradeMaster = web3.eth.abi.encodeParameters(['address'], [masterImplementation.address]);
-      await submitGovernanceProposal(ProposalCategory.upgradeMaster, upgradeMaster, voters, governance);
-      // TODO: assert master upgrade took place
-    }
+    // upgrade master to TemporaryNXMaster to rescue sai
+    const masterImplementation = await TemporaryNXMaster.new();
+    const upgradeMaster = web3.eth.abi.encodeParameters(['address'], [masterImplementation.address]);
+    await submitGovernanceProposal(ProposalCategory.upgradeMaster, upgradeMaster, voters, governance);
+
+    const actualMasterImplementation = await masterProxy.implementation();
+    assert.strictEqual(actualMasterImplementation, masterImplementation.address);
+
+    const temporaryMaster = await TemporaryNXMaster.at(masterAddress);
+    const tcProxyAddress = await temporaryMaster.getLatestAddress(hex('TC'));
+    const tcProxy = await OwnedUpgradeabilityProxy.at(tcProxyAddress);
+    const preRescueTCImpl = await tcProxy.implementation();
+
+    // perform the rescue operation
+    await temporaryMaster.rescueTokens();
+
+    // make sure TC implementation was succesfully restored
+    const postRescueTCImpl = await tcProxy.implementation();
+    assert.strictEqual(postRescueTCImpl, preRescueTCImpl);
 
     const saiLeft = await sai.balanceOf(p1);
     const saiSent = await sai.balanceOf(dst);
+
     assert.strictEqual(saiLeft.toString(), '0', 'SAI still in P1!');
     assert.strictEqual(saiStuck.toString(), saiSent.toString(), 'SAI not in DST!');
 
@@ -154,13 +169,7 @@ describe.only('NXM sells and buys', function () {
     assert.strictEqual(wnxmLeft.toString(), '0', 'wNXM still in TC!');
     assert.strictEqual(wnxmStuck.toString(), wnxmSent.toString(), 'wNXM not in DST!');
 
-    // upgrade master
-    const masterImplementation = await NXMaster.new();
-    const upgradeMaster = web3.eth.abi.encodeParameters(['address'], [masterImplementation.address]);
-    await submitGovernanceProposal(ProposalCategory.upgradeMaster, upgradeMaster, voters, governance);
-    // TODO: assert master upgrade took place
-
-    this.master = await NXMaster.at(masterImplementation.address);
+    this.master = temporaryMaster;
   });
 
   it('performs contract upgrades', async function () {
@@ -190,14 +199,11 @@ describe.only('NXM sells and buys', function () {
     const newQuotation = await Quotation.new();
     const newPool2 = await Pool2.new(master.address, Address.DAI);
 
-    const aggregators = ['0x773616E4d11A78F511299002da57A0a94577F1f4'];
-    const priceFeedOracle = await PriceFeedOracle.new([Address.DAI], aggregators, Address.DAI);
-
-    const uniswapFactoryAddress = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
-    const twapOracle = await TwapOracle.new(uniswapFactoryAddress);
+    const priceFeedOracle = await PriceFeedOracle.new([Address.DAI], [Address.DAIFEED], Address.DAI);
+    const twapOracle = await TwapOracle.new(Address.UNIFACTORY);
     Pool.link(await SwapAgent.new());
 
-    const newPool = await Pool.new(
+    const pool = await Pool.new(
       [Address.DAI],
       [0],
       [ether('10000000')],
@@ -208,17 +214,17 @@ describe.only('NXM sells and buys', function () {
       voters[0],
     );
 
-    const actionHash = web3.eth.abi.encodeParameters(
+    const actionData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['TF', 'CL', 'MC', 'QT', 'CR', 'P2', 'P1'].map(hex),
-        [newTF, newCL, newMCR, newQuotation, newClaimsReward, newPool2, newPool].map(c => c.address),
+        ['TF', 'CL', 'MC', 'QT', 'CR', 'P1', 'P2'].map(hex),
+        [newTF, newCL, newMCR, newQuotation, newClaimsReward, pool, newPool2].map(c => c.address),
       ],
     );
 
     await submitGovernanceProposal(
       ProposalCategory.upgradeNonProxy,
-      actionHash,
+      actionData,
       voters,
       governance,
     );
@@ -226,35 +232,40 @@ describe.only('NXM sells and buys', function () {
     const storedTFAddress = await master.getLatestAddress(hex('TF'));
     const storedCLAddress = await master.getLatestAddress(hex('CL'));
     const storedMCRAddress = await master.getLatestAddress(hex('MC'));
+    const storedCRAddress = await master.getLatestAddress(hex('CR'));
+    const storedQTAddress = await master.getLatestAddress(hex('QT'));
     const storedP1Address = await master.getLatestAddress(hex('P1'));
     const storedP2Address = await master.getLatestAddress(hex('P2'));
 
     assert.equal(storedTFAddress, newTF.address);
     assert.equal(storedCLAddress, newCL.address);
+    assert.equal(storedCRAddress, newClaimsReward.address);
+    assert.equal(storedQTAddress, newQuotation.address);
     assert.equal(storedMCRAddress, newMCR.address);
-    assert.equal(storedP1Address, newPool.address);
+    assert.equal(storedP1Address, pool.address);
     assert.equal(storedP2Address, newPool2.address);
 
     console.log('Successfully upgraded');
 
-    const pool = await Pool.at(await master.getLatestAddress(hex('P1')));
+    /* Check old pools' balances */
+    const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool1Address);
+    const oldPool1DaiBalanceAfter = await dai.balanceOf(oldPool1Address);
+    assert.equal(oldPool1EthBalanceAfter.toString(), '0');
+    assert.equal(oldPool1DaiBalanceAfter.toString(), '0');
 
-    /* Check pool balances */
-    await Promise.all([oldPool1Address, oldPool2Address].map(async pool => {
-      const oldPoolEthBalanceAfter = await web3.eth.getBalance(pool);
-      const oldPoolDaiBalanceAfter = await dai.balanceOf(pool);
-      assert.equal(oldPoolEthBalanceAfter.toString(), '0');
-      assert.equal(oldPoolDaiBalanceAfter.toString(), '0');
-    }));
+    const oldPool2EthBalanceAfter = await web3.eth.getBalance(oldPool2Address);
+    const oldPool2DaiBalanceAfter = await dai.balanceOf(oldPool2Address);
+    assert.equal(oldPool2EthBalanceAfter.toString(), '0');
+    assert.equal(oldPool2DaiBalanceAfter.toString(), '0');
 
-    const p1EthAfter = await web3.eth.getBalance(pool.address);
-    const p1DaiAfter = await dai.balanceOf(pool.address);
+    const poolEthAfter = await web3.eth.getBalance(pool.address);
+    const poolDaiAfter = await dai.balanceOf(pool.address);
 
     const expectedEth = toBN(p1EthBefore).add(toBN(p2EthBefore));
     const expectedDai = p1DaiBefore.add(p2DaiBefore);
 
-    assert.equal(p1EthAfter, expectedEth.toString());
-    assert.equal(p1DaiAfter.toString(), expectedDai.toString());
+    assert.equal(poolEthAfter, expectedEth.toString());
+    assert.equal(poolDaiAfter.toString(), expectedDai.toString());
 
     /* Token spot price checks */
     const tokenSpotPriceEthAfter = await pool.getTokenPrice(Address.ETH);
@@ -272,8 +283,8 @@ describe.only('NXM sells and buys', function () {
       poolValueAfter: poolValueAfter.toString(),
       poolEthBalanceBefore: expectedEth.toString(),
       poolDaiBalanceBefore: expectedDai.toString(),
-      poolEthBalanceAfter: p1EthAfter.toString(),
-      poolDaiBalanceAfter: p1DaiAfter.toString(),
+      poolEthBalanceAfter: poolEthAfter.toString(),
+      poolDaiBalanceAfter: poolDaiAfter.toString(),
     });
 
     console.log({
@@ -284,8 +295,8 @@ describe.only('NXM sells and buys', function () {
     });
 
     const poolValueDiff = poolValueBefore.sub(poolValueAfter).abs();
-    const maxDiff = ether('1').divn('1000'); // 1e15 wei == 0.001
-    assert(poolValueDiff.lt(maxDiff), `Expected pool value < 1e15, got: ${poolValueDiff.toString()}`);
+    const maxDiff = ether('0.1');
+    assert(poolValueDiff.lt(maxDiff), `Expected pool value < 0.1 ETH, got: ${poolValueDiff.toString()}`);
 
     const relativeErrorEthSpotPrice = calculateRelativeError(tokenSpotPriceEthAfter, tokenSpotPriceEthBefore);
     assert(
@@ -305,6 +316,23 @@ describe.only('NXM sells and buys', function () {
     this.pool = pool;
   });
 
+  it('upgrade temporary master ', async function () {
+
+    const { governance, voters, masterAddress } = this;
+    const masterProxy = await OwnedUpgradeabilityProxy.at(masterAddress);
+
+    // upgrade to new master
+    const masterImplementation = await NXMaster.new();
+
+    // vote and upgrade
+    const upgradeMaster = web3.eth.abi.encodeParameters(['address'], [masterImplementation.address]);
+    await submitGovernanceProposal(ProposalCategory.upgradeMaster, upgradeMaster, voters, governance);
+
+    // check implementation
+    const actualMasterImplementation = await masterProxy.implementation();
+    assert.strictEqual(actualMasterImplementation, masterImplementation.address);
+  });
+
   it('performs buys and sells', async function () {
 
     const { poolData, pool, token } = this;
@@ -312,17 +340,17 @@ describe.only('NXM sells and buys', function () {
     const mcrEth = await poolData.getLastMCREther();
     const maxBuy = percentageBN(mcrEth, 4.95);
 
-    const balancePre = await token.balanceOf(holder);
-    await pool.buyNXM('0', { value: maxBuy, from: holder });
-    const balancePost = await token.balanceOf(holder);
+    const balancePre = await token.balanceOf(Address.NXMHOLDER);
+    await pool.buyNXM('0', { value: maxBuy, from: Address.NXMHOLDER });
+    const balancePost = await token.balanceOf(Address.NXMHOLDER);
     const nxmOut = balancePost.sub(balancePre);
 
-    const balancePreSell = await web3.eth.getBalance(holder);
-    const sellTx = await pool.sellNXM(nxmOut, '0', { from: holder });
+    const balancePreSell = await web3.eth.getBalance(Address.NXMHOLDER);
+    const sellTx = await pool.sellNXM(nxmOut, '0', { from: Address.NXMHOLDER });
 
     const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
     const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
-    const balancePostSell = await web3.eth.getBalance(holder);
+    const balancePostSell = await web3.eth.getBalance(Address.NXMHOLDER);
     const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
     const ethInDecimal = toDecimal(maxBuy);
 
@@ -354,7 +382,7 @@ describe.only('NXM sells and buys', function () {
 
       try {
         await pool.sellNXM(tokensToSell, '0', {
-          from: holder,
+          from: Address.NXMHOLDER,
         });
       } catch (e) {
         assert(mcrRatio.lt(new BN(10050)), `MCR ratio not as low as expected. current value: ${mcrRatio.toString()}`);
@@ -370,7 +398,7 @@ describe.only('NXM sells and buys', function () {
     }
 
     await expectRevert(
-      pool.sellNXM(tokensToSell, '0', { from: holder }),
+      pool.sellNXM(tokensToSell, '0', { from: Address.NXMHOLDER }),
       'MCR% cannot fall below 100%',
     );
   });
@@ -387,7 +415,7 @@ describe.only('NXM sells and buys', function () {
       const mcrEth = await poolData.getLastMCREther();
       const maxBuy = percentageBN(mcrEth, 4.95);
 
-      await pool.buyNXM('0', { value: maxBuy, from: holder });
+      await pool.buyNXM('0', { value: maxBuy, from: Address.NXMHOLDER });
 
       mcrRatio = await pool.getMCRRatio();
       const daiAddress = await priceFeedOracle.daiAddress();
@@ -406,7 +434,7 @@ describe.only('NXM sells and buys', function () {
     const maxBuy = percentageBN(mcrEth, 4.95);
 
     await expectRevert(
-      pool.buyNXM('0', { from: holder, value: maxBuy }),
+      pool.buyNXM('0', { from: Address.NXMHOLDER, value: maxBuy }),
       'Pool: Cannot purchase if MCR% > 400%',
     );
   });

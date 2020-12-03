@@ -6,7 +6,7 @@ contract Rescuer {
 
   address public constant SAI = 0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359;
   address public constant WNXM = 0x0d438F3b5175Bebc262bF23753C1E53d03432bDE;
-  address public constant DEST = 0x0000000000000000000000000000000000000001;
+  address public constant DEST = 0x0000000000000000000000000000000000001337;
 
   // used to mock pooldata contract
   function getCurrencyAssetAddress(bytes4 curr) external pure returns (address) {

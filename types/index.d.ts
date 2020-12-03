@@ -54,10 +54,12 @@ import { P1MockOldPool1Contract } from "./P1MockOldPool1";
 import { P1MockPoolDataContract } from "./P1MockPoolData";
 import { TokenControllerMockContract } from "./TokenControllerMock";
 import { TOMockUniswapPairContract } from "./TOMockUniswapPair";
+import { LegacyMCRContract } from "./LegacyMCR";
+import { LegacyPool1Contract } from "./LegacyPool1";
+import { LegacyPool2Contract } from "./LegacyPool2";
 import { MCRContract } from "./MCR";
-import { AggregatorContract } from "./Aggregator";
-import { NXMDSValueContract } from "./NXMDSValue";
-import { Pool1Contract } from "./Pool1";
+import { PoolContract } from "./Pool";
+import { Pool2Contract } from "./Pool2";
 import { DSValueContract } from "./DSValue";
 import { PoolDataContract } from "./PoolData";
 import { SwapAgentContract } from "./SwapAgent";
@@ -78,6 +80,8 @@ import { GovernanceContract } from "./Governance";
 import { MemberRolesContract } from "./MemberRoles";
 import { NXMasterContract } from "./NXMaster";
 import { ProposalCategoryContract } from "./ProposalCategory";
+import { RescuerContract } from "./Rescuer";
+import { TemporaryNXMasterContract } from "./TemporaryNXMaster";
 import { AggregatorContract } from "./Aggregator";
 import { PriceFeedOracleContract } from "./PriceFeedOracle";
 import { TwapOracleContract } from "./TwapOracle";
@@ -150,10 +154,12 @@ declare global {
       require(name: "P1MockPoolData"): P1MockPoolDataContract;
       require(name: "TokenControllerMock"): TokenControllerMockContract;
       require(name: "TOMockUniswapPair"): TOMockUniswapPairContract;
+      require(name: "LegacyMCR"): LegacyMCRContract;
+      require(name: "LegacyPool1"): LegacyPool1Contract;
+      require(name: "LegacyPool2"): LegacyPool2Contract;
       require(name: "MCR"): MCRContract;
-      require(name: "Aggregator"): AggregatorContract;
-      require(name: "NXMDSValue"): NXMDSValueContract;
-      require(name: "Pool1"): Pool1Contract;
+      require(name: "Pool"): PoolContract;
+      require(name: "Pool2"): Pool2Contract;
       require(name: "DSValue"): DSValueContract;
       require(name: "PoolData"): PoolDataContract;
       require(name: "SwapAgent"): SwapAgentContract;
@@ -176,6 +182,8 @@ declare global {
       require(name: "MemberRoles"): MemberRolesContract;
       require(name: "NXMaster"): NXMasterContract;
       require(name: "ProposalCategory"): ProposalCategoryContract;
+      require(name: "Rescuer"): RescuerContract;
+      require(name: "TemporaryNXMaster"): TemporaryNXMasterContract;
       require(name: "Aggregator"): AggregatorContract;
       require(name: "PriceFeedOracle"): PriceFeedOracleContract;
       require(name: "TwapOracle"): TwapOracleContract;
@@ -326,10 +334,12 @@ export {
   TOMockUniswapPairContract,
   TOMockUniswapPairInstance,
 } from "./TOMockUniswapPair";
+export { LegacyMCRContract, LegacyMCRInstance } from "./LegacyMCR";
+export { LegacyPool1Contract, LegacyPool1Instance } from "./LegacyPool1";
+export { LegacyPool2Contract, LegacyPool2Instance } from "./LegacyPool2";
 export { MCRContract, MCRInstance } from "./MCR";
-export { AggregatorContract, AggregatorInstance } from "./Aggregator";
-export { NXMDSValueContract, NXMDSValueInstance } from "./NXMDSValue";
-export { Pool1Contract, Pool1Instance } from "./Pool1";
+export { PoolContract, PoolInstance } from "./Pool";
+export { Pool2Contract, Pool2Instance } from "./Pool2";
 export { DSValueContract, DSValueInstance } from "./DSValue";
 export { PoolDataContract, PoolDataInstance } from "./PoolData";
 export { SwapAgentContract, SwapAgentInstance } from "./SwapAgent";
@@ -362,6 +372,11 @@ export {
   ProposalCategoryContract,
   ProposalCategoryInstance,
 } from "./ProposalCategory";
+export { RescuerContract, RescuerInstance } from "./Rescuer";
+export {
+  TemporaryNXMasterContract,
+  TemporaryNXMasterInstance,
+} from "./TemporaryNXMaster";
 export { AggregatorContract, AggregatorInstance } from "./Aggregator";
 export {
   PriceFeedOracleContract,

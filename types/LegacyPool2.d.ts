@@ -3,38 +3,16 @@
 /* eslint-disable */
 
 import BN from "bn.js";
-import {EventData, PastEventOptions} from "web3-eth-contract";
+import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface Pool2OldContract extends Truffle.Contract<Pool2OldInstance> {
-  "new"(
-    _uniswapFactoryAdd: string,
-    meta?: Truffle.TransactionDetails
-  ): Promise<Pool2OldInstance>;
+export interface LegacyPool2Contract
+  extends Truffle.Contract<LegacyPool2Instance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<LegacyPool2Instance>;
 }
 
-export interface Liquidity {
-  name: "Liquidity";
-  args: {
-    typeOf: string;
-    functionName: string;
-    0: string;
-    1: string;
-  };
-}
+type AllEvents = never;
 
-export interface Rebalancing {
-  name: "Rebalancing";
-  args: {
-    iaCurr: string;
-    tokenAmount: BN;
-    0: string;
-    1: BN;
-  };
-}
-
-type AllEvents = Liquidity | Rebalancing;
-
-export interface Pool2OldInstance extends Truffle.ContractInstance {
+export interface LegacyPool2Instance extends Truffle.ContractInstance {
   _getCurrencyAssetsBalance(
     _curr: string,
     txDetails?: Truffle.TransactionDetails
@@ -47,24 +25,6 @@ export interface Pool2OldInstance extends Truffle.ContractInstance {
     call(txDetails?: Truffle.TransactionDetails): Promise<void>;
     sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
-  changeMasterAddress: {
-    (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(
-      _masterAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _masterAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _masterAddress: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
   };
 
   changeUniswapFactoryAddress: {
@@ -109,10 +69,6 @@ export interface Pool2OldInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
-
-  ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-  nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   saveIADetails: {
     (
@@ -191,24 +147,6 @@ export interface Pool2OldInstance extends Truffle.ContractInstance {
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
-    changeMasterAddress: {
-      (_masterAddress: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
     changeUniswapFactoryAddress: {
       (
         newFactoryAddress: string,
@@ -251,10 +189,6 @@ export interface Pool2OldInstance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
-
-    ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
-
-    nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     saveIADetails: {
       (

@@ -71,60 +71,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  burnStakedTokens: {
-    (
-      coverId: number | BN | string,
-      asset: string,
-      sumAssured: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      coverId: number | BN | string,
-      asset: string,
-      sumAssured: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      coverId: number | BN | string,
-      asset: string,
-      sumAssured: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      coverId: number | BN | string,
-      asset: string,
-      sumAssured: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
-  burnStakerLockedToken: {
-    (
-      arg0: number | BN | string,
-      arg1: string,
-      arg2: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      arg0: number | BN | string,
-      arg1: string,
-      arg2: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      arg0: number | BN | string,
-      arg1: string,
-      arg2: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      arg0: number | BN | string,
-      arg1: string,
-      arg2: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   changeDependentContractAddress: {
     (txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -254,6 +200,8 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
+  pooledStaking(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   pushStakerRewards: {
     (
       _contractAddress: string,
@@ -276,6 +224,12 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  td(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
@@ -341,60 +295,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
       ): Promise<string>;
       estimateGas(
         coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    burnStakedTokens: {
-      (
-        coverId: number | BN | string,
-        asset: string,
-        sumAssured: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        coverId: number | BN | string,
-        asset: string,
-        sumAssured: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        coverId: number | BN | string,
-        asset: string,
-        sumAssured: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        coverId: number | BN | string,
-        asset: string,
-        sumAssured: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    burnStakerLockedToken: {
-      (
-        arg0: number | BN | string,
-        arg1: string,
-        arg2: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        arg0: number | BN | string,
-        arg1: string,
-        arg2: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        arg0: number | BN | string,
-        arg1: string,
-        arg2: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        arg0: number | BN | string,
-        arg1: string,
-        arg2: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
@@ -528,6 +428,8 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
 
     nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
+    pooledStaking(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     pushStakerRewards: {
       (
         _contractAddress: string,
@@ -550,6 +452,12 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    td(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     tk(txDetails?: Truffle.TransactionDetails): Promise<string>;
 

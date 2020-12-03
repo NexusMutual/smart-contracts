@@ -2,8 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import BN from "bn.js";
-import { EventData, PastEventOptions } from "web3-eth-contract";
+import {EventData, PastEventOptions} from "web3-eth-contract";
 
 export interface NXMDSValueContract
   extends Truffle.Contract<NXMDSValueInstance> {

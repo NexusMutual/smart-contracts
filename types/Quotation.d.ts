@@ -90,49 +90,6 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
-  initiateMembershipAndCover: {
-    (
-      smartCAdd: string,
-      coverCurr: string,
-      coverDetails: (number | BN | string)[],
-      coverPeriod: number | BN | string,
-      _v: number | BN | string,
-      _r: string,
-      _s: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      smartCAdd: string,
-      coverCurr: string,
-      coverDetails: (number | BN | string)[],
-      coverPeriod: number | BN | string,
-      _v: number | BN | string,
-      _r: string,
-      _s: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      smartCAdd: string,
-      coverCurr: string,
-      coverDetails: (number | BN | string)[],
-      coverPeriod: number | BN | string,
-      _v: number | BN | string,
-      _r: string,
-      _s: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      smartCAdd: string,
-      coverCurr: string,
-      coverDetails: (number | BN | string)[],
-      coverPeriod: number | BN | string,
-      _v: number | BN | string,
-      _r: string,
-      _s: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   isValidSignature(
     hash: string,
     v: number | BN | string,
@@ -380,49 +337,6 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       userAdd: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
-
-    initiateMembershipAndCover: {
-      (
-        smartCAdd: string,
-        coverCurr: string,
-        coverDetails: (number | BN | string)[],
-        coverPeriod: number | BN | string,
-        _v: number | BN | string,
-        _r: string,
-        _s: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        smartCAdd: string,
-        coverCurr: string,
-        coverDetails: (number | BN | string)[],
-        coverPeriod: number | BN | string,
-        _v: number | BN | string,
-        _r: string,
-        _s: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        smartCAdd: string,
-        coverCurr: string,
-        coverDetails: (number | BN | string)[],
-        coverPeriod: number | BN | string,
-        _v: number | BN | string,
-        _r: string,
-        _s: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        smartCAdd: string,
-        coverCurr: string,
-        coverDetails: (number | BN | string)[],
-        coverPeriod: number | BN | string,
-        _v: number | BN | string,
-        _r: string,
-        _s: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
 
     isValidSignature(
       hash: string,

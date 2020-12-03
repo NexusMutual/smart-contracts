@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import BN from "bn.js";
-import { EventData, PastEventOptions } from "web3-eth-contract";
+import {EventData, PastEventOptions} from "web3-eth-contract";
 
 export interface Pool1Contract extends Truffle.Contract<Pool1Instance> {
   "new"(

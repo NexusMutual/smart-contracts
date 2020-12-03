@@ -188,24 +188,6 @@ export interface DisposableNXMasterInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  initiateMaster: {
-    (_tokenAdd: string, txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(
-      _tokenAdd: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<void>;
-    sendTransaction(
-      _tokenAdd: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      _tokenAdd: string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   isAuthorizedToGovern(
     _toCheck: string,
     txDetails?: Truffle.TransactionDetails
@@ -534,24 +516,6 @@ export interface DisposableNXMasterInstance extends Truffle.ContractInstance {
         _contractNames: string[],
         _contractTypes: (number | BN | string)[],
         _contractAddresses: string[],
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    initiateMaster: {
-      (_tokenAdd: string, txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(
-        _tokenAdd: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<void>;
-      sendTransaction(
-        _tokenAdd: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        _tokenAdd: string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

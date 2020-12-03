@@ -5,13 +5,14 @@
 import BN from "bn.js";
 import { EventData, PastEventOptions } from "web3-eth-contract";
 
-export interface NXMasterContract extends Truffle.Contract<NXMasterInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<NXMasterInstance>;
+export interface TemporaryNXMasterContract
+  extends Truffle.Contract<TemporaryNXMasterInstance> {
+  "new"(meta?: Truffle.TransactionDetails): Promise<TemporaryNXMasterInstance>;
 }
 
 type AllEvents = never;
 
-export interface NXMasterInstance extends Truffle.ContractInstance {
+export interface TemporaryNXMasterInstance extends Truffle.ContractInstance {
   addEmergencyPause: {
     (
       _pause: boolean,
@@ -114,6 +115,21 @@ export interface NXMasterInstance extends Truffle.ContractInstance {
 
   dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
+  delegateCallBack: {
+    (myid: string, txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(myid: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(
+      myid: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      myid: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   emergencyPaused(
     arg0: number | BN | string,
     txDetails?: Truffle.TransactionDetails
@@ -178,6 +194,15 @@ export interface NXMasterInstance extends Truffle.ContractInstance {
   owner(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   pauseTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+  rescueTokens: {
+    (txDetails?: Truffle.TransactionDetails): Promise<
+      Truffle.TransactionResponse<AllEvents>
+    >;
+    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+  };
 
   startEmergencyPause: {
     (txDetails?: Truffle.TransactionDetails): Promise<
@@ -381,6 +406,21 @@ export interface NXMasterInstance extends Truffle.ContractInstance {
 
     dAppToken(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
+    delegateCallBack: {
+      (myid: string, txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(myid: string, txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(
+        myid: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        myid: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
     emergencyPaused(
       arg0: number | BN | string,
       txDetails?: Truffle.TransactionDetails
@@ -447,6 +487,15 @@ export interface NXMasterInstance extends Truffle.ContractInstance {
     owner(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     pauseTime(txDetails?: Truffle.TransactionDetails): Promise<BN>;
+
+    rescueTokens: {
+      (txDetails?: Truffle.TransactionDetails): Promise<
+        Truffle.TransactionResponse<AllEvents>
+      >;
+      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
+      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
+      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
+    };
 
     startEmergencyPause: {
       (txDetails?: Truffle.TransactionDetails): Promise<

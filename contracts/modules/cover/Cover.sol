@@ -56,8 +56,8 @@ contract Cover is MasterAware {
 
   function changeDependentContractAddress() public {
     quotation = Quotation(master.getLatestAddress("QT"));
-    nxmToken = NXMToken(master.getLatestAddress("QT"));
-    tokenController = TokenController(master.tokenAddress());
+    nxmToken = NXMToken(master.tokenAddress());
+    tokenController = TokenController(master.getLatestAddress("TC"));
     quotationData = QuotationData(master.getLatestAddress("QD"));
     claimsData = ClaimsData(master.getLatestAddress("CD"));
     claims = Claims(master.getLatestAddress("CL"));
@@ -131,12 +131,14 @@ contract Cover is MasterAware {
     uint validUntil,
     address contractAddress,
     address coverAsset,
-    uint premiumNXM
+    uint premiumNXM,
+    uint payout
   )
   {
     bytes4 currency;
     (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(tokenId);
     (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(tokenId);
+    payout = sumAssured;
     coverAsset = claimsReward.getCurrencyAssetAddress(currency);
   }
 

@@ -14,6 +14,10 @@ describe('Pool unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  // parameters
+  require('./updateParameters');
+
+  // token price
   require('./calculateTokenSpotPrice');
   require('./getTokenPrice');
   require('./calculateNXMForEth');
@@ -23,5 +27,8 @@ describe('Pool unit tests', function () {
   require('./sellNXM');
   require('./getMCRRatio');
   require('./getters');
-  require('./updateParameters');
+
+  // pool management
+  require('./addAsset');
+
 });

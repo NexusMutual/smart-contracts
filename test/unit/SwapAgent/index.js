@@ -14,6 +14,6 @@ describe('SwapAgent unit tests', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
-  require('./addAsset');
+  require('./swaps');
 
 });

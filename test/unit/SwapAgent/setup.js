@@ -99,13 +99,20 @@ async function setup () {
   const pool = await Pool.new(
     [tokenA.address, tokenB.address], // assets
     [0, 0], // min
-    [0, 0], // max
-    [ether('0.01'), ether('0.01')], // max slippage ratio [1%, 1%]
+    [ether('1000'), ether('1000')], // max
+    [ether('0.05'), ether('0.05')], // max slippage ratio [1%, 1%]
     master.address,
     ZERO_ADDRESS, // price feed oracle not used
     oracle.address,
     owner, // swap controller
   );
+
+  // add ether to pool
+  await web3.eth.sendTransaction({
+    from: accounts[0],
+    to: pool.address,
+    value: ether('10000'),
+  });
 
   const main = { master, pool, factory, router, oracle };
   const tokens = { weth, tokenA, tokenB };
@@ -117,7 +124,7 @@ async function setup () {
 /**
  * @typedef {object} SwapAgentContracts
  * @property {MasterMockInstance} master
- * @property { PoolInstance} pool
+ * @property {PoolInstance} pool
  * @property {UniswapV2FactoryInstance} factory
  * @property {UniswapV2Router02Instance} router
  * @property {TwapOracleInstance} oracle

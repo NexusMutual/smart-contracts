@@ -35,6 +35,8 @@ const windowSize = 28800;
 
 describe('swaps', function () {
 
+  /* eth to asset */
+
   it('should perform a swap', async function () {
 
     const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
@@ -75,6 +77,12 @@ describe('swaps', function () {
 
     assert.strictEqual(etherSent.toString(), etherIn.toString());
     assert(tokensReceived.gte(minTokenOut));
+  });
+
+  /* asset to eth */
+
+  it('should perform a swap', async function () {
+    // noop
   });
 
 });

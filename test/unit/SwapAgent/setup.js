@@ -21,7 +21,7 @@ const uniswapContract = (contractName, repo = 'core') => {
 
 async function setup () {
 
-  const [owner] = accounts;
+  const [owner, governance] = accounts;
   const uniswapDeployer = '0x9c33eacc2f50e39940d3afaf2c7b8246b681a374';
   const uniswapOwner = '0xc0a4272bb5df52134178df25d77561cfb17ce407';
 
@@ -92,6 +92,7 @@ async function setup () {
 
   /* deploy our contracts */
 
+  /** @var {MasterMockInstance} master */
   const master = await MasterMock.new();
   const swapAgent = await SwapAgent.new();
   await Pool.link(swapAgent);
@@ -107,9 +108,11 @@ async function setup () {
     owner, // swap controller
   );
 
+  await master.enrollGovernance(governance);
+
   // add ether to pool
   await web3.eth.sendTransaction({
-    from: accounts[0],
+    from: owner,
     to: pool.address,
     value: ether('10000'),
   });

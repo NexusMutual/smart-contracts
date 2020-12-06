@@ -17,7 +17,7 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../capital/MCR.sol";
-import "../capital/Pool1.sol";
+import "../capital/Pool.sol";
 import "../capital/PoolData.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
@@ -40,7 +40,7 @@ contract Cover is MasterAware {
   ClaimsReward public claimsReward;
   Claims public claims;
   MCR public mcr;
-  Pool1 public pool;
+  Pool public pool;
 
   // assigned in constructor
   address public DAI;
@@ -62,7 +62,7 @@ contract Cover is MasterAware {
     claimsData = ClaimsData(master.getLatestAddress("CD"));
     claims = Claims(master.getLatestAddress("CL"));
     mcr = MCR(master.getLatestAddress("MC"));
-    pool = Pool1(master.getLatestAddress("P1"));
+    pool = Pool(master.getLatestAddress("P1"));
     claimsReward = ClaimsReward(master.getLatestAddress("P1"));
   }
 

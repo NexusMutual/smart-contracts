@@ -49,7 +49,7 @@ contract Cover is MasterAware {
 
   enum CoverType { SIGNED_QUOTE_CONTRACT_COVER }
 
-  constructor (address masterAddress, address _daiAddress) public {
+  function initialize (address masterAddress, address _daiAddress) public {
     changeMasterAddress(masterAddress);
     DAI = _daiAddress;
   }

@@ -14,7 +14,7 @@ const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 
-const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
+const [, member1, member2, member3, coverHolder, nonMember1, payoutAddress] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -26,6 +26,8 @@ const coverTemplate = {
   period: 60,
   contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
 };
+
+const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 describe('Token price functions', function () {
 
@@ -101,6 +103,63 @@ describe('Token price functions', function () {
     );
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);
+  });
+
+  it.only('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured', async function () {
+    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
+
+    const coverUnitAmount = 28;
+    const coverAmount = ether(coverUnitAmount.toString());
+    const cover = { ...coverTemplate, amount: coverUnitAmount };
+
+    const lockTokens = ether('1000');
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
+
+    const tokenPrice = await p1.getTokenPrice(ETH);
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)));
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).muln(2).gt(coverAmount.muln(10)));
+
+    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
+    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+
+    const minVotingTime = await cd.minVotingTime();
+    await time.increase(minVotingTime.addn(1));
+    /*
+      tokenPrice * lockTokens / 1e18 < coverAmount * 10
+      Therefore 1 AB vote is not sufficient.
+     */
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+
+    const voteStatusBeforeMaxVotingTime = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusBeforeMaxVotingTime.toString(), '0', 'voting should not be closing');
+
+    /*
+      2 * tokenPrice * lockTokens / 1e18 < coverAmount * 10
+      Therefore 2 AB votes are sufficient.
+    */
+    await cl.submitCAVote(claimId, '1', { from: member2 });
+
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusAfter.toString(), '-1', 'voting should be closed');
+
+    await master.closeClaim(claimId); // trigger changeClaimStatus
+
+    const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(
+      claimStatusCA.toNumber(), 14,
+      'claim status should be 4 (ca consensus not reached, pending mv)',
+    );
+
+    const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
+    const expectedPayout = ether(cover.amount.toString());
+    const actualPayout = balanceAfter.sub(balanceBefore);
+
+    assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
   it('buyNXM mints tokens for member in exchange of ETH', async function () {

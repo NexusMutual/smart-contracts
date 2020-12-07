@@ -11,6 +11,5 @@ describe('Pool1 unit tests', function () {
   // afterEach(async function () {
   //   await revertToSnapshot(this.snapshotId);
   // });
-  require('./decodingPlayground.js');
 
 });

@@ -145,7 +145,7 @@ contract Cover is MasterAware {
   function sendCoverPremiumToPool (
     address asset,
     uint premiumAmount
-  ) internal returns (bool success) {
+  ) internal {
 
     if (asset == ETH) {
       require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");

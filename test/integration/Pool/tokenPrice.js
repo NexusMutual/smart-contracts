@@ -14,7 +14,7 @@ const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 
-const [, member1, member2, member3, coverHolder, nonMember1, payoutAddress] = accounts;
+const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -29,7 +29,7 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe('Token price functions', function () {
+describe.only('Token price functions', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -267,7 +267,7 @@ describe('Token price functions', function () {
     );
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured', async function () {
+  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for CA vote and accept claim', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -288,16 +288,14 @@ describe('Token price functions', function () {
 
     /*
       tokenPrice * lockTokens / 1e18 > coverAmount * 5
-      Therefore 1 AB vote is sufficient to close the vote if maxVotingTime passed.
+      Therefore 1 AB vote is sufficient to accept and payout a claim if maxVotingTime passed.
      */
     await cl.submitCAVote(claimId, '1', { from: member1 });
-
     const maxVotingTime = await cd.maxVotingTime();
     await time.increase(maxVotingTime.addn(1));
 
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
     assert.equal(voteStatusAfter.toString(), '1', 'voting should be closing');
-
     await master.closeClaim(claimId); // trigger changeClaimStatus
 
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);

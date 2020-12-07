@@ -64,104 +64,6 @@ describe('Token price functions', function () {
     );
   });
 
-  it('sellNXM reverts for member if tokens are locked for member vote', async function () {
-    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, master } = this.contracts;
-    const cover = { ...coverTemplate };
-    await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
-
-    const buyValue = ether('1000');
-    await pool.buyNXM('0', { from: member1, value: buyValue });
-    const boughtTokenAmount = await token.balanceOf(member1);
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
-    const [coverId] = await quotationData.getAllCoversOfUser(coverHolder);
-    await claims.submitClaim(coverId, { from: coverHolder });
-    const claimId = (await claimsData.actualClaimLength()).subn(1);
-
-    // create a consensus not reached situation, 66% accept vs 33% deny
-    await claims.submitCAVote(claimId, '1', { from: member1 });
-    await claims.submitCAVote(claimId, '-1', { from: member2 });
-    await claims.submitCAVote(claimId, '1', { from: member3 });
-
-    const maxVotingTime = await claimsData.maxVotingTime();
-    await time.increase(maxVotingTime.addn(1));
-
-    await master.closeClaim(claimId); // trigger changeClaimStatus
-    const voteStatusAfter = await claims.checkVoteClosing(claimId);
-    assert(voteStatusAfter.eqn(0), 'voting should not be closed');
-
-    const { statno: claimStatusCA } = await claimsData.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 4,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
-
-    await claims.submitMemberVote(claimId, '1', { from: member1 });
-    await expectRevert(
-      pool.sellNXM(boughtTokenAmount, '0', { from: member1 }),
-      'Pool: NXM tokens are locked for voting',
-    );
-    await time.increase(maxVotingTime.addn(1));
-    await master.closeClaim(claimId);
-  });
-
-  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured', async function () {
-    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
-
-    const coverUnitAmount = 28;
-    const coverAmount = ether(coverUnitAmount.toString());
-    const cover = { ...coverTemplate, amount: coverUnitAmount };
-
-    const lockTokens = ether('1000');
-    await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
-
-    const tokenPrice = await p1.getTokenPrice(ETH);
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)));
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).muln(2).gt(coverAmount.muln(10)));
-
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
-    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
-    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
-    await cl.submitClaim(coverId, { from: coverHolder });
-    const claimId = (await cd.actualClaimLength()).subn(1);
-
-    const minVotingTime = await cd.minVotingTime();
-    await time.increase(minVotingTime.addn(1));
-    /*
-      tokenPrice * lockTokens / 1e18 < coverAmount * 10
-      Therefore 1 AB vote is not sufficient.
-     */
-    await cl.submitCAVote(claimId, '1', { from: member1 });
-
-    const voteStatusBeforeMaxVotingTime = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusBeforeMaxVotingTime.toString(), '0', 'voting should not be closing');
-
-    /*
-      2 * tokenPrice * lockTokens / 1e18 < coverAmount * 10
-      Therefore 2 AB votes are sufficient.
-    */
-    await cl.submitCAVote(claimId, '1', { from: member2 });
-
-    const voteStatusAfter = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusAfter.toString(), '-1', 'voting should be closed');
-
-    await master.closeClaim(claimId); // trigger changeClaimStatus
-
-    const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(
-      claimStatusCA.toNumber(), 14,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
-    );
-
-    const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
-    const expectedPayout = ether(cover.amount.toString());
-    const actualPayout = balanceAfter.sub(balanceBefore);
-
-    assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
-  });
-
   it('buyNXM mints tokens for member in exchange of ETH', async function () {
     const { tk: token, p1: pool, pd: poolData } = this.contracts;
 
@@ -275,5 +177,133 @@ describe('Token price functions', function () {
     const { p1: pool } = this.contracts;
     const mcrRatio = await pool.getMCRRatio();
     assert.equal(mcrRatio.toString(), '20000');
+  });
+
+  it('sellNXM reverts for member if tokens are locked for member vote', async function () {
+    const { cd: claimsData, cl: claims, qd: quotationData, p1: pool, tk: token, master } = this.contracts;
+    const cover = { ...coverTemplate };
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
+
+    const buyValue = ether('1000');
+    await pool.buyNXM('0', { from: member1, value: buyValue });
+    const boughtTokenAmount = await token.balanceOf(member1);
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await quotationData.getAllCoversOfUser(coverHolder);
+    await claims.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await claimsData.actualClaimLength()).subn(1);
+
+    // create a consensus not reached situation, 66% accept vs 33% deny
+    await claims.submitCAVote(claimId, '1', { from: member1 });
+    await claims.submitCAVote(claimId, '-1', { from: member2 });
+    await claims.submitCAVote(claimId, '1', { from: member3 });
+
+    const maxVotingTime = await claimsData.maxVotingTime();
+    await time.increase(maxVotingTime.addn(1));
+
+    await master.closeClaim(claimId); // trigger changeClaimStatus
+    const voteStatusAfter = await claims.checkVoteClosing(claimId);
+    assert(voteStatusAfter.eqn(0), 'voting should not be closed');
+
+    const { statno: claimStatusCA } = await claimsData.getClaimStatusNumber(claimId);
+    assert.strictEqual(
+      claimStatusCA.toNumber(), 4,
+      'claim status should be 4 (ca consensus not reached, pending mv)',
+    );
+
+    await claims.submitMemberVote(claimId, '1', { from: member1 });
+    await expectRevert(
+      pool.sellNXM(boughtTokenAmount, '0', { from: member1 }),
+      'Pool: NXM tokens are locked for voting',
+    );
+    await time.increase(maxVotingTime.addn(1));
+    await master.closeClaim(claimId);
+  });
+
+  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured', async function () {
+    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
+
+    const coverUnitAmount = 28;
+    const coverAmount = ether(coverUnitAmount.toString());
+    const cover = { ...coverTemplate, amount: coverUnitAmount };
+
+    const lockTokens = ether('1000');
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
+
+    const tokenPrice = await p1.getTokenPrice(ETH);
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)));
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).muln(2).gt(coverAmount.muln(10)));
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+
+    const minVotingTime = await cd.minVotingTime();
+    await time.increase(minVotingTime.addn(1));
+    /*
+      tokenPrice * lockTokens / 1e18 < coverAmount * 10
+      Therefore 1 AB vote is not sufficient.
+     */
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+
+    const voteStatusBeforeMaxVotingTime = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusBeforeMaxVotingTime.toString(), '0', 'voting should not be closing');
+
+    /*
+      2 * tokenPrice * lockTokens / 1e18 < coverAmount * 10
+      Therefore 2 AB votes are sufficient.
+    */
+    await cl.submitCAVote(claimId, '1', { from: member2 });
+
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusAfter.toString(), '-1', 'voting should be closed');
+
+    await master.closeClaim(claimId); // trigger changeClaimStatus
+    const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(
+      claimStatusCA.toNumber(), 14,
+      'claim status should be 4 (ca consensus not reached, pending mv)',
+    );
+  });
+
+  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured', async function () {
+    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
+
+    const coverUnitAmount = 28;
+    const coverAmount = ether(coverUnitAmount.toString());
+    const cover = { ...coverTemplate, amount: coverUnitAmount };
+
+    const lockTokens = ether('1000');
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
+
+    const tokenPrice = await p1.getTokenPrice(ETH);
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).gt(coverAmount.muln(5)));
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)));
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+
+    /*
+      tokenPrice * lockTokens / 1e18 > coverAmount * 5
+      Therefore 1 AB vote is sufficient to close the vote if maxVotingTime passed.
+     */
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+
+    const maxVotingTime = await cd.maxVotingTime();
+    await time.increase(maxVotingTime.addn(1));
+
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusAfter.toString(), '1', 'voting should be closing');
+
+    await master.closeClaim(claimId); // trigger changeClaimStatus
+
+    const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(
+      claimStatusCA.toNumber(), 14,
+      'claim status should be 4 (ca consensus not reached, pending mv)',
+    );
   });
 });

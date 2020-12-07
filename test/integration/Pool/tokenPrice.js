@@ -105,7 +105,7 @@ describe('Token price functions', function () {
     await master.closeClaim(claimId);
   });
 
-  it.only('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured', async function () {
+  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;

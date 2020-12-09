@@ -63,7 +63,7 @@ contract Cover is MasterAware {
     claims = Claims(master.getLatestAddress("CL"));
     mcr = MCR(master.getLatestAddress("MC"));
     pool = Pool(master.getLatestAddress("P1"));
-    claimsReward = ClaimsReward(master.getLatestAddress("P1"));
+    claimsReward = ClaimsReward(master.getLatestAddress("CR"));
   }
 
   function buyCover (
@@ -138,6 +138,7 @@ contract Cover is MasterAware {
     bytes4 currency;
     (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(tokenId);
     (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(tokenId);
+    
     payout = sumAssured;
     coverAsset = claimsReward.getCurrencyAssetAddress(currency);
   }

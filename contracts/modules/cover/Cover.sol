@@ -66,6 +66,25 @@ contract Cover is MasterAware {
     claimsReward = ClaimsReward(master.getLatestAddress("CR"));
   }
 
+  function getCoverPrice (
+    address contractAddress,
+    address coverAsset,
+    uint coverAmount,
+    uint16 coverPeriod,
+    CoverType coverType,
+    bytes calldata data
+  ) external view returns (uint coverPrice) {
+    (
+    coverPrice,
+    /* coverPriceNXM */,
+    /* generatedAt */,
+    /* expiresAt */,
+    /* _v */,
+    /* _r */,
+    /* _s */
+    ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
+  }
+
   function buyCover (
     address contractAddress,
     address coverAsset,
@@ -138,7 +157,7 @@ contract Cover is MasterAware {
     bytes4 currency;
     (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(tokenId);
     (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(tokenId);
-    
+
     payout = sumAssured;
     coverAsset = claimsReward.getCurrencyAssetAddress(currency);
   }
@@ -202,5 +221,8 @@ contract Cover is MasterAware {
     }
 
     revert("ClaimsReward: unknown asset");
+  }
+
+  function () payable external {
   }
 }

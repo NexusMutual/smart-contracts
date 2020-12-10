@@ -422,15 +422,13 @@ contract Pool is MasterAware, ReentrancyGuard {
     bytes32 _r,
     bytes32 _s
   ) public onlyMember whenNotPaused {
-
-    require(coverCurr == "DAI", "Pool: Unexpected asset type");
-
-    // This is a legacy function
-    // DAI should be the first asset in the array
-    IERC20 token = IERC20(assets[0]);
-    token.safeTransferFrom(msg.sender, address(this), coverDetails[1]);
-
+    require(coverCurr != "ETH", "Pool: Unexpected asset type");
     quotation.verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+  }
+
+  function transferAssetFrom (address asset, address from, uint amount) public onlyInternal whenNotPaused {
+    IERC20 token = IERC20(asset);
+    token.safeTransferFrom(from, address(this), amount);
   }
 
   /* token sale functions */

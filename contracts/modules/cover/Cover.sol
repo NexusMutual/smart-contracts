@@ -124,7 +124,7 @@ contract Cover is MasterAware {
     require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
     require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
     if (master.isPause() == false) {
-      claims._addClaim(coverId, now, qadd);
+      claims.addClaim(coverId, now, qadd);
     } else {
       claimsData.setClaimAtEmergencyPause(coverId, now, false);
       quotationData.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));

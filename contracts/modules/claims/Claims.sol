@@ -391,11 +391,15 @@ contract Claims is Iupgradable {
    * @dev Submits a claim for a given cover note.
    * Set deposits flag against cover.
    */
-  function _addClaim(uint coverId, uint time, address add) public onlyInternal {
+  function _addClaim(uint coverId, uint time, address add) internal {
     tf.depositCN(coverId);
     uint len = cd.actualClaimLength();
     cd.addClaim(len, coverId, add, now);
     cd.callClaimEvent(coverId, add, len, time);
     qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
+  }
+
+  function addClaim(uint coverId, uint time, address add) public onlyInternal {
+    _addClaim(coverId, time, add);
   }
 }

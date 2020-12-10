@@ -90,7 +90,7 @@ describe.only('NXM sells and buys', function () {
 
   it('fetches board members and funds accounts', async function () {
 
-    const { memberArray: boardMembers } = await this.memberRoles.members('1', { gas: 1e6 });
+    const { memberArray: boardMembers } = await this.memberRoles.members('1');
     const voters = boardMembers.slice(0, 3);
 
     for (const member of [...voters, Address.NXMHOLDER]) {

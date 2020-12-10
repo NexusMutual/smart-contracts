@@ -40,7 +40,7 @@ const nextWindowStartTime = async () => {
   return (currentWindow + 1) * windowSize;
 };
 
-describe.only('swaps', function () {
+describe('swaps', function () {
 
   /* eth to asset */
 

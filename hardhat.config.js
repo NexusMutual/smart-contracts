@@ -1,3 +1,4 @@
+require('dotenv').config();
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 
@@ -25,8 +26,41 @@ task('typechain', async (_, { config }) => {
   await tsGenerator({ cwd }, new TypeChain({ cwd, rawConfig }));
 });
 
-const forkURL = process.env.TEST_ENV_FORK;
-const forkConfig = forkURL ? { forking: { url: forkURL } } : {};
+const {
+  KOVAN_ACCOUNT_KEY,
+  KOVAN_PROVIDER_URL,
+  MAINNET_ACCOUNT_KEY,
+  MAINNET_PROVIDER_URL,
+  TEST_ENV_FORK: forkURL,
+} = process.env;
+
+const networks = {
+  hardhat: {
+    accounts: {
+      count: 100,
+      accountsBalance: ether(10000000),
+    },
+    allowUnlimitedContractSize: true,
+    blockGasLimit: 12e6,
+    gas: 12e6,
+  },
+  localhost: {
+    blockGasLimit: 12e6,
+    gas: 12e6,
+  },
+};
+
+if (forkURL) {
+  networks.hardhat.forking = { url: forkURL };
+}
+
+if (MAINNET_PROVIDER_URL) {
+  networks.mainnet = { accounts: [MAINNET_ACCOUNT_KEY], url: MAINNET_PROVIDER_URL };
+}
+
+if (KOVAN_PROVIDER_URL) {
+  networks.kovan = { accounts: [KOVAN_ACCOUNT_KEY], url: KOVAN_PROVIDER_URL };
+}
 
 module.exports = {
 
@@ -36,17 +70,7 @@ module.exports = {
     recursive: false,
   },
 
-  networks: {
-    hardhat: {
-      accounts: {
-        count: 100,
-        accountsBalance: ether(10000000),
-      },
-      allowUnlimitedContractSize: true,
-      blockGasLimit: 12e9,
-      ...forkConfig,
-    },
-  },
+  networks,
 
   solidity: {
     compilers: [

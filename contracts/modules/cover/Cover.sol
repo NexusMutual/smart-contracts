@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./interfaces/IERC20Detailed.sol";
 import "../capital/MCR.sol";
 import "../capital/Pool.sol";
 import "../capital/PoolData.sol";
@@ -103,7 +103,7 @@ contract Cover is MasterAware {
     uint[] memory coverDetails,
     uint8 _v,
     bytes32 _r,
-    bytes32 _s ) = getCoverDetails(coverAmount, data);
+    bytes32 _s ) = getCoverDetails(coverAmount, data, coverAsset);
 
     for (uint i = 0; i < 5; i++) {
       console.log("coverDetails[i]", coverDetails[i]);
@@ -166,8 +166,10 @@ contract Cover is MasterAware {
     (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(tokenId);
     (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(tokenId);
 
-    payout = sumAssured;
     coverAsset = claimsReward.getCurrencyAssetAddress(currency);
+    sumAssured = sumAssured.mul(10 ** IERC20(coverAsset).decimals());
+    payout = sumAssured;
+
   }
 
   function sendCoverPremiumToPool (
@@ -190,7 +192,7 @@ contract Cover is MasterAware {
     token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
   }
 
-  function getCoverDetails(uint coverAmount, bytes memory data) internal pure returns (uint[] memory, uint8, bytes32, bytes32) {
+  function getCoverDetails(uint coverAmount, bytes memory data, address asset) internal pure returns (uint[] memory, uint8, bytes32, bytes32) {
     (
     uint coverPrice,
     uint coverPriceNXM,
@@ -201,7 +203,8 @@ contract Cover is MasterAware {
     bytes32 _s
     ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
     uint[] memory coverDetails = new uint[](5);
-    coverDetails[0] = coverAmount.div(1e18); // convert from wei to units
+    // convert from wei to units
+    coverDetails[0] = coverAmount.div(10 ** (IERC20(asset).decimals()));
     coverDetails[1] = coverPrice;
     coverDetails[2] = coverPriceNXM;
     coverDetails[3] = expiresAt;

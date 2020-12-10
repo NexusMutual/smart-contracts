@@ -26,6 +26,7 @@ import "../token/TokenData.sol";
 import "../capital/PoolData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
+import "hardhat/console.sol";
 
 contract Cover is MasterAware {
   using SafeMath for uint;
@@ -104,6 +105,13 @@ contract Cover is MasterAware {
     bytes32 _r,
     bytes32 _s ) = getCoverDetails(coverAmount, data);
 
+    for (uint i = 0; i < 5; i++) {
+      console.log("coverDetails[i]", coverDetails[i]);
+    }
+    console.log("v", _v);
+//    console.log("r", string(_r));
+//    console.log("s", string(_s));
+
     quotation.verifyCoverDetails(
       msg.sender,
       contractAddress,
@@ -167,11 +175,15 @@ contract Cover is MasterAware {
     uint premiumAmount
   ) internal {
 
+    console.log("msg.value", msg.value);
+    console.log("premiumAmount", premiumAmount);
     if (asset == ETH) {
       require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");
       // solhint-disable-next-line avoid-low-level-calls
       (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
       require(ok, "Cover: Transfer to Pool failed");
+
+      return;
     }
 
     IERC20 token = IERC20(asset);
@@ -182,8 +194,8 @@ contract Cover is MasterAware {
     (
     uint coverPrice,
     uint coverPriceNXM,
-    uint generatedAt,
     uint expiresAt,
+    uint generatedAt,
     uint8 _v,
     bytes32 _r,
     bytes32 _s

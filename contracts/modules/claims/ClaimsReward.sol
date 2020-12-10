@@ -107,6 +107,7 @@ contract ClaimsReward is Iupgradable {
   function attemptClaimPayout(uint coverId) internal returns (bool success) {
 
     uint sumAssured = qd.getCoverSumAssured(coverId);
+    // TODO: when adding new cover currencies, fetch the correct decimals for this multiplication
     uint sumAssuredWei = sumAssured.mul(1e18);
 
     // get asset address

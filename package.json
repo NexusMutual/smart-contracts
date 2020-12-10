@@ -43,7 +43,7 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "ethlint": "^1.2.5",
-    "hardhat": "^2.0.3",
+    "hardhat": "^2.0.5",
     "mocha": "^7.1.2",
     "nodemon": "^2.0.2",
     "truffle-flattener": "github:shark0der/truffle-flattener",

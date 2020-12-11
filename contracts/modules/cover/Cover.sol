@@ -253,7 +253,7 @@ contract Cover is MasterAware {
       return DAI;
     }
 
-    revert("ClaimsReward: unknown asset");
+    revert("Cover: unknown asset");
   }
 
   function () payable external {

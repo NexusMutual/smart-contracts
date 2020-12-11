@@ -12,4 +12,8 @@ contract ERC20Mock is ERC20 {
     _mint(account, amount);
   }
 
+  function decimals() external view returns (uint8) {
+    return 18;
+  }
+
 }

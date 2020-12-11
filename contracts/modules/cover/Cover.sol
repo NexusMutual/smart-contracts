@@ -43,6 +43,25 @@ contract Cover is MasterAware {
   MCR public mcr;
   Pool public pool;
 
+
+  event CoverBought(
+    uint coverId,
+    address indexed buyer,
+    address indexed contractAddress,
+    address coverAsset,
+    uint coverAmount,
+    uint16 coverPeriod,
+    CoverType indexed coverType,
+    bytes data
+  );
+
+  event ClaimSubmitted(
+    uint claimId,
+    uint coverId,
+    address submitter,
+    bytes data
+  );
+
   // assigned in constructor
   address public DAI;
   // constants
@@ -99,46 +118,43 @@ contract Cover is MasterAware {
     require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Unsupported cover type");
     require(coverAmount % 1e18 == 0, "Only whole unit coverAmount supported");
 
-    (
-    uint[] memory coverDetails,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s ) = getCoverDetails(coverAmount, data, coverAsset);
+    {
+      (
+      uint[] memory coverDetails,
+      uint8 _v,
+      bytes32 _r,
+      bytes32 _s ) = getCoverDetails(coverAmount, data, coverAsset);
+      quotation.verifyCoverDetails(
+        msg.sender,
+        contractAddress,
+        getCurrencyFromAssetAddress(coverAsset),
+        coverDetails,
+        coverPeriod, _v, _r, _s);
 
-    for (uint i = 0; i < 5; i++) {
-      console.log("coverDetails[i]", coverDetails[i]);
+      sendCoverPremiumToPool(coverAsset, coverDetails[1]);
     }
-    console.log("v", _v);
-//    console.log("r", string(_r));
-//    console.log("s", string(_s));
 
-    quotation.verifyCoverDetails(
-      msg.sender,
-      contractAddress,
-      getCurrencyFromAssetAddress(coverAsset),
-      coverDetails,
-      coverPeriod, _v, _r, _s);
-
-    sendCoverPremiumToPool(coverAsset, coverDetails[1]);
-
-    return quotationData.getCoverLength().sub(1);
+    uint coverId = quotationData.getCoverLength().sub(1);
+    emit CoverBought(coverId, msg.sender, contractAddress, coverAsset, coverAmount, coverPeriod, coverType, data);
+    return coverId;
   }
 
   function submitClaim(uint coverId, bytes calldata data) external returns (uint) {
-    address qadd = quotationData.getCoverMemberAddress(coverId);
-    require(qadd == msg.sender);
-    uint8 cStatus;
-    (, cStatus,,,) = quotationData.getCoverDetailsByCoverID2(coverId);
-    require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
-    require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
+    address coverOwner = quotationData.getCoverMemberAddress(coverId);
+    require(coverOwner == msg.sender, "Cover: caller is not cover owner");
+    (, uint8 status,,,) = quotationData.getCoverDetailsByCoverID2(coverId);
+    require(status != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Cover: Claim already submitted");
+    require(status != uint8(QuotationData.CoverStatus.CoverExpired), "Cover: Cover already expired");
+
     if (master.isPause() == false) {
-      claims.addClaim(coverId, now, qadd);
+      claims.addClaim(coverId, now, coverOwner);
     } else {
       claimsData.setClaimAtEmergencyPause(coverId, now, false);
       quotationData.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));
     }
 
     uint claimId = claimsData.actualClaimLength() - 1;
+    emit ClaimSubmitted(claimId, coverId, msg.sender, data);
     return claimId;
   }
 
@@ -176,9 +192,6 @@ contract Cover is MasterAware {
     address asset,
     uint premiumAmount
   ) internal {
-
-    console.log("msg.value", msg.value);
-    console.log("premiumAmount", premiumAmount);
     if (asset == ETH) {
       require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");
       // solhint-disable-next-line avoid-low-level-calls

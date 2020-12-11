@@ -179,11 +179,6 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   function removeAsset(address _asset) external onlyGovernance {
 
-    IERC20 token = IERC20(_asset);
-    uint tokenBalance = token.balanceOf(address(this));
-
-    require(tokenBalance == 0, "Pool: balance must be 0");
-
     for (uint i = 0; i < assets.length; i++) {
 
       if (_asset != assets[i]) {

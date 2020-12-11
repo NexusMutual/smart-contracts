@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.0;
 
-import "./interfaces/IERC20Detailed.sol";
+import "../../interfaces/IERC20Detailed.sol";
 import "../capital/MCR.sol";
 import "../capital/Pool.sol";
 import "../capital/PoolData.sol";
@@ -167,7 +167,7 @@ contract Cover is MasterAware {
     (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(tokenId);
 
     coverAsset = claimsReward.getCurrencyAssetAddress(currency);
-    sumAssured = sumAssured.mul(10 ** IERC20(coverAsset).decimals());
+    sumAssured = sumAssured.mul(10 ** assetDecimals(coverAsset));
     payout = sumAssured;
 
   }
@@ -192,24 +192,29 @@ contract Cover is MasterAware {
     token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
   }
 
-  function getCoverDetails(uint coverAmount, bytes memory data, address asset) internal pure returns (uint[] memory, uint8, bytes32, bytes32) {
+  function getCoverDetails(uint coverAmount, bytes memory data, address asset)
+    internal view returns (uint[] memory coverDetails, uint8, bytes32, bytes32) {
     (
     uint coverPrice,
     uint coverPriceNXM,
     uint expiresAt,
     uint generatedAt,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
+    uint8 v,
+    bytes32 r,
+    bytes32 s
     ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
-    uint[] memory coverDetails = new uint[](5);
+    coverDetails = new uint[](5);
     // convert from wei to units
-    coverDetails[0] = coverAmount.div(10 ** (IERC20(asset).decimals()));
+    coverDetails[0] = coverAmount.div(10 ** assetDecimals(asset));
     coverDetails[1] = coverPrice;
     coverDetails[2] = coverPriceNXM;
     coverDetails[3] = expiresAt;
     coverDetails[4] = generatedAt;
-    return (coverDetails, _v, _r, _s);
+    return (coverDetails, v, r, s);
+  }
+
+  function assetDecimals(address asset) public view returns (uint) {
+    return asset == ETH ? 18 : IERC20Detailed(asset).decimals();
   }
 
   function getCurrencyFromAssetAddress(address asset) public view returns (bytes4) {

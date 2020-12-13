@@ -42,7 +42,7 @@ contract Cover is MasterAware {
   Claims public claims;
   MCR public mcr;
   Pool public pool;
-
+  MemberRoles public memberRoles;
 
   event CoverBought(
     uint coverId,
@@ -84,6 +84,7 @@ contract Cover is MasterAware {
     mcr = MCR(master.getLatestAddress("MC"));
     pool = Pool(master.getLatestAddress("P1"));
     claimsReward = ClaimsReward(master.getLatestAddress("CR"));
+    memberRoles = MemberRoles(master.getLatestAddress("MR"));
   }
 
   function getCoverPrice (
@@ -185,7 +186,11 @@ contract Cover is MasterAware {
     coverAsset = claimsReward.getCurrencyAssetAddress(currency);
     sumAssured = sumAssured.mul(10 ** assetDecimals(coverAsset));
     payout = sumAssured;
+  }
 
+  function switchMembership(address newAddress) external {
+    memberRoles.switchMembershipForMember(msg.sender, newAddress);
+    nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 
   function sendCoverPremiumToPool (

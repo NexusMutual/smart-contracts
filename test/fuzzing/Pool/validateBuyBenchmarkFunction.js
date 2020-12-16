@@ -16,37 +16,36 @@ const SwapAgent = artifacts.require('SwapAgent');
 
 /**
  *
- * @param Vt0
- * @param deltaETH
- * @param MCReth
- * @param stepSize
+ * @param initialAssetValueWei
+ * @param deltaEthWei
+ * @param mcrEthWei
+ * @param stepSizeWei
  * @returns {*}
  */
-function calculateBuyTokensWithSmallRectangles (Vt0, deltaETH, MCReth, stepSize) {
+function calculateBuyTokensWithSmallRectangles (initialAssetValueWei, deltaEthWei, mcrEthWei, stepSizeWei) {
 
-  Vt0 = toDecimal(Vt0).div(1e18);
-  deltaETH = toDecimal(deltaETH).div(1e18);
-  MCReth = toDecimal(MCReth).div(1e18);
-  stepSize = stepSize ? toDecimal(stepSize).div(1e18) : Decimal(0.01);
-  const Vt1 = Vt0.add(deltaETH);
-  let previousV;
-  let currentV = Vt0;
+  const initialAssetValue = toDecimal(initialAssetValueWei).div(1e18);
+  let deltaEth = toDecimal(deltaEthWei).div(1e18);
+  const mcrEth = toDecimal(mcrEthWei).div(1e18);
+  const stepSize = stepSizeWei ? toDecimal(stepSizeWei).div(1e18) : Decimal(0.01);
+  let previousAssetValue;
+  let currentAssetValue = initialAssetValue;
   let previousPrice;
   let totalTokens = Decimal(0);
 
   let iterations = 0;
-  while (deltaETH.gt('0')) {
-    const MCRPerc = currentV.div(MCReth);
-    const currentPrice = getPriceDecimal(MCRPerc, MCReth);
-    if (previousPrice && previousV) {
+  while (deltaEth.gt('0')) {
+    const mcrPercentage = currentAssetValue.div(mcrEth);
+    const currentPrice = getPriceDecimal(mcrPercentage, mcrEth);
+    if (previousPrice && previousAssetValue) {
       const averagePrice = currentPrice.add(previousPrice).div(2);
-      const deltaTokens = currentV.sub(previousV).div(averagePrice);
+      const deltaTokens = currentAssetValue.sub(previousAssetValue).div(averagePrice);
       totalTokens = totalTokens.add(deltaTokens);
     }
-    previousV = currentV;
+    previousAssetValue = currentAssetValue;
     previousPrice = currentPrice;
-    currentV = currentV.add(stepSize);
-    deltaETH = deltaETH.sub(stepSize);
+    currentAssetValue = currentAssetValue.add(stepSize);
+    deltaEth = deltaEth.sub(stepSize);
     iterations++;
   }
 

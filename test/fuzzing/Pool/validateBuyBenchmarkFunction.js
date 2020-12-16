@@ -16,6 +16,10 @@ const SwapAgent = artifacts.require('SwapAgent');
 
 /**
  *
+ * Calculate the amount of tokens to be minted in exchange for deltaEthWei by
+ * using the re-computed token spot price every stepSizeWei worth of ETH.
+ * The stepSizeWei lower is, the more accurate the computation becomes.
+ *
  * @param initialAssetValueWei
  * @param deltaEthWei
  * @param mcrEthWei
@@ -52,31 +56,43 @@ function calculateBuyTokensWithSmallRectangles (initialAssetValueWei, deltaEthWe
   return totalTokens;
 }
 
-function getPriceDecimal (MCRPerc, MCReth) {
+function getPriceDecimal (mcrPercentage, mcrEth) {
   const A = 0.01028;
   const C = 5800000;
   const tokenExponent = 4;
-  return Decimal(A).add(Decimal(MCReth).div(C).mul(Decimal(MCRPerc).pow(tokenExponent)));
+  return toDecimal(A).add(toDecimal(mcrEth).div(C).mul(toDecimal(mcrPercentage).pow(tokenExponent)));
 }
 
+/**
+ *  The purpose of this test is to evaluate the benchmarking function calculatePurchasedTokensWithFullIntegral
+ *  used throughout the tests for measuring the accuracy of the NXM buy calculations. The benchmarking
+ *  function is used because it executes quicker than other evaluations and it was automatically generated
+ *  by the https://www.wolframalpha.com/ engine.
+ *
+ *  The rectangles method is used to approximate the value of tokens to be minted by making stepSize leaps
+ *  in the ETH value being exchanged for NXM and recalculating the token spot price at each point and
+ *  calculating the NXM to be minted in exchange for that stepSize chunk of ETH. Thus it makes for a valid standard
+ *  for the benchmarking function if the stepSize has a low value (picked ethIn / 5000 as the stepSize)
+ *
+ */
 describe('calculatePurchasedTokensWithFullIntegral', function () {
 
   const maxPercentage = 400;
 
-  it.only('mints bought tokens to member in exchange of 5% ETH of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
+  it('calculates minted tokens roughly equal to the small ETH rectangles method of mcrEth for mcrEth varying from mcrEth=8k to mcrEth=100 million', async function () {
 
     let mcrEth = ether('8000');
     const upperBound = ether(1e8.toString());
     while (true) {
 
       const initialAssetValue = mcrEth.mul(new BN(3)).div(new BN(4)); // 75% MCR%
-      let buyValue = ether('0.01');
-      const buyValueUpperBound = mcrEth.div(new BN(20));
+      let ethIn = ether('0.01');
+      const ethInUpperBound = mcrEth.div(new BN(20));
       const poolBalanceStep = mcrEth.div(new BN(4));
       const maxRelativeError = Decimal(0.0003);
       while (true) {
         console.log({
-          buyValue: buyValue.toString(),
+          ethIn: ethIn.toString(),
           mcrEth: mcrEth.toString(),
           initialAssetValue: initialAssetValue.toString(),
         });
@@ -91,17 +107,21 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
             mcrRatio: mcrRatio.toString(),
             mcrEth: mcrEth.toString(),
             totalAssetValue: totalAssetValue.toString(),
-            buyValue: totalAssetValue.toString(),
+            ethIn: ethIn.toString(),
           });
 
-          const stepSize = buyValue.divn(5000);
+          /*
+            stepSize is dynamically calculated as a function of the ethIn. The lower it is the better in terms
+            of approximation accuracy.
+           */
+          const stepSize = ethIn.divn(5000);
           const expectedNXMOut = calculateBuyTokensWithSmallRectangles(
             initialAssetValue,
-            buyValue,
+            ethIn,
             mcrEth,
             stepSize
           ).mul(1e18);
-          const { tokens: nxmOut } = calculatePurchasedTokensWithFullIntegral(initialAssetValue, buyValue, mcrEth);
+          const { tokens: nxmOut } = calculatePurchasedTokensWithFullIntegral(initialAssetValue, ethIn, mcrEth);
 
           const nxmOutDecimal = Decimal(nxmOut.toString());
           const relativeError = expectedNXMOut.sub(nxmOutDecimal).abs().div(expectedNXMOut);
@@ -111,7 +131,7 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
             `Resulting token value ${nxmOutDecimal.toFixed()} is not close enough to expected ${expectedNXMOut.toFixed()}
              Relative error: ${relativeError}.
              Params: initialAssetValue = ${initialAssetValue.toString()}
-             buyValue = ${buyValue.toString()}
+             ethIn = ${ethIn.toString()}
              mcrEth = ${mcrEth.toString()}
              stepSize = ${stepSize.toString()}
              `,
@@ -120,10 +140,10 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
           totalAssetValue = totalAssetValue.add(poolBalanceStep);
           mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
         }
-        if (buyValue.eq(buyValueUpperBound)) {
+        if (ethIn.eq(ethInUpperBound)) {
           break;
         }
-        buyValue = BN.min(buyValue.mul(new BN(2)), buyValueUpperBound);
+        ethIn = BN.min(ethIn.mul(new BN(2)), ethInUpperBound);
       }
 
       if (mcrEth.eq(upperBound)) {

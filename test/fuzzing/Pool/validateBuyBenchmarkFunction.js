@@ -74,7 +74,7 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
       let buyValue = ether('0.01');
       const buyValueUpperBound = mcrEth.div(new BN(20));
       const poolBalanceStep = mcrEth.div(new BN(4));
-      const maxRelativeError = Decimal(0.0005);
+      const maxRelativeError = Decimal(0.0020);
       while (true) {
         console.log({
           buyValue: buyValue.toString(),
@@ -102,7 +102,7 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
             mcrEth,
             stepSize
           ).mul(1e18);
-          const nxmOut = calculatePurchasedTokensWithFullIntegral(initialAssetValue, buyValue, mcrEth);
+          const { tokens: nxmOut } = calculatePurchasedTokensWithFullIntegral(initialAssetValue, buyValue, mcrEth);
 
           const nxmOutDecimal = Decimal(nxmOut.toString());
           const relativeError = expectedNXMOut.sub(nxmOutDecimal).abs().div(expectedNXMOut);

@@ -70,11 +70,11 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
     const upperBound = ether(1e8.toString());
     while (true) {
 
-      const initialAssetValue = mcrEth.mul(new BN(3)).div(new BN(4));
+      const initialAssetValue = mcrEth.mul(new BN(3)).div(new BN(4)); // 75% MCR%
       let buyValue = ether('0.01');
       const buyValueUpperBound = mcrEth.div(new BN(20));
       const poolBalanceStep = mcrEth.div(new BN(4));
-      const maxRelativeError = Decimal(0.0020);
+      const maxRelativeError = Decimal(0.0003);
       while (true) {
         console.log({
           buyValue: buyValue.toString(),
@@ -95,7 +95,7 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
             buyValue: totalAssetValue.toString(),
           });
 
-          const stepSize = buyValue.divn(1000);
+          const stepSize = buyValue.divn(5000);
           const expectedNXMOut = calculateBuyTokensWithSmallRectangles(
             initialAssetValue,
             buyValue,
@@ -110,7 +110,12 @@ describe('calculatePurchasedTokensWithFullIntegral', function () {
           assert(
             relativeError.lt(maxRelativeError),
             `Resulting token value ${nxmOutDecimal.toFixed()} is not close enough to expected ${expectedNXMOut.toFixed()}
-       Relative error: ${relativeError}`,
+             Relative error: ${relativeError}.
+             Params: initialAssetValue = ${initialAssetValue.toString()}
+             buyValue = ${buyValue.toString()}
+             mcrEth = ${mcrEth.toString()}
+             stepSize = ${stepSize.toString()}
+             `,
           );
 
           totalAssetValue = totalAssetValue.add(poolBalanceStep);

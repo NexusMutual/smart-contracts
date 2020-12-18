@@ -3,38 +3,67 @@ const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
-const { buyCover, coverToCoverDetailsArray } = require('../utils/buyCover');
+const { coverToCoverDetailsArray } = require('../utils/buyCover');
 const { getSignedQuote } = require('../utils/getQuote');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
 const [, member1, nonMember1] = accounts;
 
+async function buyCover ({ cover, coverHolder, qt, p1, dai }) {
+
+  const vrsData = await getSignedQuote(
+    coverToCoverDetailsArray(cover),
+    cover.currency,
+    cover.period,
+    cover.contractAddress,
+    qt.address,
+  );
+
+  const coverPriceWei = toBN(cover.price);
+  await dai.approve(p1.address, coverPriceWei, { from: coverHolder });
+
+  return p1.makeCoverUsingCA(
+    cover.contractAddress,
+    cover.currency,
+    coverToCoverDetailsArray(cover),
+    cover.period,
+    vrsData[0],
+    vrsData[1],
+    vrsData[2],
+    { from: coverHolder },
+  );
+}
+
 const coverTemplate = {
-  amount: 1, // 1 eth
-  price: '30000000000000000', // 0.03 eth
+  amount: 1000, // 1000 dai
+  price: 1e19.toString(), // 10 dai
   priceNXM: '10000000000000000000', // 10 nxm
   expireTime: '8000000000',
   generationTime: '1600000000000',
-  currency: hex('ETH'),
+  currency: hex('DAI'),
   period: 60,
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe('makeCoverBegin', function () {
+describe('makeCoverUsingCA', function () {
 
   beforeEach(async function () {
+    const { dai } = this.contracts;
     await enrollMember(this.contracts, [member1]);
+    for (const daiHolder of [member1, nonMember1]) {
+      await dai.mint(daiHolder, ether('10000000'));
+    }
   });
 
-  it('buys cover for member, ETH is added to pool, NXM is locked and cover fields stored', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData } = this.contracts;
+  it('buys DAI cover for member, DAI is added to pool, NXM is locked and cover fields stored', async function () {
+    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
-    const poolBalanceBefore = toBN(await web3.eth.getBalance(pool.address));
+    const poolDAIBalanceBefore = await dai.balanceOf(pool.address);
     const nxmSupplyBefore = await token.totalSupply();
     const memberNXMBalanceBefore = await token.balanceOf(member);
     await buyCover({ ...this.contracts, cover, coverHolder: member });
@@ -60,10 +89,10 @@ describe('makeCoverBegin', function () {
     const memberCoverNoteLockedNXM = await tokenFunctions.getUserLockedCNTokens(member, 1);
     assert.equal(memberCoverNoteLockedNXM.toString(), expectedCoverNoteLockedNXM.toString());
 
-    const poolBalanceAfter = toBN(await web3.eth.getBalance(pool.address));
-    assert.equal(poolBalanceAfter.toString(), poolBalanceBefore.add(toBN(cover.price)).toString());
+    const poolBalanceAfter = await dai.balanceOf(pool.address);
+    assert.equal(poolBalanceAfter.toString(), poolDAIBalanceBefore.add(toBN(cover.price)).toString());
 
-    const totalSumAssured = await qd.getTotalSumAssured(hex('ETH'));
+    const totalSumAssured = await qd.getTotalSumAssured(hex('DAI'));
     const expectedTotalSumAsssured = toBN(cover.amount);
     assert.equal(totalSumAssured.toString(), expectedTotalSumAsssured.toString());
 
@@ -77,11 +106,11 @@ describe('makeCoverBegin', function () {
   });
 
   it('buys multiple covers in a row for member', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData } = this.contracts;
+    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
-    const poolBalanceBefore = toBN(await web3.eth.getBalance(pool.address));
+    const poolBalanceBefore = await dai.balanceOf(pool.address);
     const nxmSupplyBefore = await token.totalSupply();
     const memberNXMBalanceBefore = await token.balanceOf(member);
 
@@ -95,19 +124,27 @@ describe('makeCoverBegin', function () {
     const coverCount = await qd.getCoverLength();
     assert.equal(coverCount.toString(), (coversToBuy + 1).toString());
 
-    const totalSumAssured = await qd.getTotalSumAssured(hex('ETH'));
+    const totalSumAssured = await qd.getTotalSumAssured(hex('DAI'));
     const expectedTotalSumAsssured = toBN(cover.amount).muln(coversToBuy);
     assert.equal(totalSumAssured.toString(), expectedTotalSumAsssured.toString());
 
-    const poolBalanceAfter = toBN(await web3.eth.getBalance(pool.address));
+    const poolBalanceAfter = await dai.balanceOf(pool.address);
     assert.equal(poolBalanceAfter.toString(), poolBalanceBefore.add(toBN(cover.price).muln(coversToBuy)).toString());
   });
 
-  it('reverts when currency is not ETH', async function () {
-    const cover = { ...coverTemplate, currency: hex('DAI') };
+  it('reverts when currency is ETH', async function () {
+    const cover = { ...coverTemplate, currency: hex('ETH') };
     await expectRevert(
       buyCover({ ...this.contracts, cover, coverHolder: member1 }),
       'Pool: Unexpected asset type',
+    );
+  });
+
+  it('reverts when currency is not a supported asset', async function () {
+    const cover = { ...coverTemplate, currency: hex('BTC') };
+    await expectRevert(
+      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
+      'ClaimsReward: unknown asset',
     );
   });
 
@@ -119,8 +156,8 @@ describe('makeCoverBegin', function () {
     );
   });
 
-  it('reverts if msg.value does not match cover premium', async function () {
-    const { qt, p1 } = this.contracts;
+  it('reverts if dai approved amount does not match premium', async function () {
+    const { qt, p1: pool, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
@@ -132,7 +169,10 @@ describe('makeCoverBegin', function () {
       qt.address,
     );
 
-    await expectRevert(p1.makeCoverBegin(
+    const coverPriceWei = toBN(cover.price);
+    await dai.approve(pool.address, coverPriceWei.subn(1), { from: member });
+
+    await expectRevert.unspecified(pool.makeCoverUsingCA(
       cover.contractAddress,
       cover.currency,
       coverToCoverDetailsArray(cover),
@@ -140,9 +180,8 @@ describe('makeCoverBegin', function () {
       vrsData[0],
       vrsData[1],
       vrsData[2],
-      { from: member, value: toBN(cover.price).subn(1) },
-    ),
-    'Pool: ETH amount does not match premium',
+      { from: member },
+    )
     );
   });
 
@@ -177,7 +216,7 @@ describe('makeCoverBegin', function () {
   });
 
   it('reverts if signed quote does not match quote parameters', async function () {
-    const { qt, p1 } = this.contracts;
+    const { qt, p1: pool, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
@@ -190,7 +229,10 @@ describe('makeCoverBegin', function () {
       qt.address,
     );
 
-    await expectRevert.unspecified(p1.makeCoverBegin(
+    const coverPriceWei = ether(cover.price);
+    await dai.approve(pool.address, coverPriceWei, { from: member });
+
+    await expectRevert.unspecified(pool.makeCoverUsingCA(
       cover.contractAddress,
       cover.currency,
       coverToCoverDetailsArray(cover),
@@ -198,8 +240,8 @@ describe('makeCoverBegin', function () {
       vrsData[0],
       vrsData[1],
       vrsData[2],
-      { from: member, value: cover.price },
-    ),
+      { from: member },
+      ),
     );
   });
 });

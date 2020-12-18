@@ -17,5 +17,5 @@ describe('INTEGRATION TESTS', function () {
   require('./ClaimPayoutAddress');
   require('./PooledStaking');
   require('./Pool');
-
+  require('./Quotation');
 });

@@ -26,4 +26,4 @@ async function buyCover ({ cover, coverHolder, qt, p1 }) {
   );
 }
 
-module.exports = { buyCover };
+module.exports = { buyCover, coverToCoverDetailsArray };

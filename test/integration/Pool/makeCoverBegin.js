@@ -8,7 +8,7 @@ const { getSignedQuote } = require('../utils/getQuote');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
-const [, member1, member2, member3, member4, coverHolder, nonMember1, payoutAddress] = accounts;
+const [, member1, nonMember1] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -26,7 +26,7 @@ const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 describe.only('makeCoverBegin', function () {
 
   beforeEach(async function () {
-    await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
+    await enrollMember(this.contracts, [member1]);
   });
 
   it('buys cover for member, ETH is added to pool, NXM is locked and cover fields stored', async function () {
@@ -122,6 +122,7 @@ describe.only('makeCoverBegin', function () {
   it('reverts if msg.value does not match cover premium', async function () {
     const { qt, p1 } = this.contracts;
     const cover = { ...coverTemplate };
+    const member = member1;
 
     const vrsData = await getSignedQuote(
       coverToCoverDetailsArray(cover),
@@ -139,7 +140,7 @@ describe.only('makeCoverBegin', function () {
       vrsData[0],
       vrsData[1],
       vrsData[2],
-      { from: coverHolder, value: toBN(cover.price).subn(1) },
+      { from: member, value: toBN(cover.price).subn(1) },
     ),
     'Pool: ETH amount does not match premium',
     );
@@ -178,6 +179,7 @@ describe.only('makeCoverBegin', function () {
   it('reverts if signed quote does not match quote parameters', async function () {
     const { qt, p1 } = this.contracts;
     const cover = { ...coverTemplate };
+    const member = member1;
 
     // sign a different amount than the one requested.
     const vrsData = await getSignedQuote(
@@ -196,7 +198,7 @@ describe.only('makeCoverBegin', function () {
       vrsData[0],
       vrsData[1],
       vrsData[2],
-      { from: coverHolder, value: toBN(cover.price).subn(1) },
+      { from: member, value: toBN(cover.price).subn(1) },
     ),
     );
   });

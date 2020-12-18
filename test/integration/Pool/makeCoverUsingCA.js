@@ -20,8 +20,8 @@ async function buyCover ({ cover, coverHolder, qt, p1, dai }) {
     qt.address,
   );
 
-  const coverPriceWei = toBN(cover.price);
-  await dai.approve(p1.address, coverPriceWei, { from: coverHolder });
+  const coverPrice = toBN(cover.price);
+  await dai.approve(p1.address, coverPrice, { from: coverHolder });
 
   return p1.makeCoverUsingCA(
     cover.contractAddress,
@@ -156,7 +156,7 @@ describe('makeCoverUsingCA', function () {
     );
   });
 
-  it('reverts if dai approved amount does not match premium', async function () {
+  it('reverts if DAI approved amount does not match premium', async function () {
     const { qt, p1: pool, dai } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;

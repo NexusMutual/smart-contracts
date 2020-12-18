@@ -35,7 +35,7 @@ describe('Token price functions', function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
 
     await enrollMember(this.contracts, [member4], {
-      initialTokens: ether('1000')
+      initialTokens: ether('1000'),
     });
   });
 

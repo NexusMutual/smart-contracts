@@ -14,7 +14,7 @@ const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
 
-const [, member1, member2, member3, member4, coverHolder, nonMember1, payoutAddress] = accounts;
+const [, member1, member2, member3, member4, member5, coverHolder, nonMember1, payoutAddress] = accounts;
 
 const coverTemplate = {
   amount: 1, // 1 eth
@@ -36,6 +36,10 @@ describe('Token price functions', function () {
 
     await enrollMember(this.contracts, [member4], {
       initialTokens: ether('1000'),
+    });
+
+    await enrollMember(this.contracts, [member5], {
+      initialTokens: ether('500'),
     });
   });
 
@@ -309,6 +313,43 @@ describe('Token price functions', function () {
     );
   });
 
+  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for CA vote', async function () {
+    const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
+
+    const coverUnitAmount = 28;
+    const coverAmount = ether(coverUnitAmount.toString());
+    const cover = { ...coverTemplate, amount: coverUnitAmount };
+
+    const lockTokens = ether('500');
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
+
+    const tokenPrice = await p1.getTokenPrice(ETH);
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)));
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+
+    /*
+      tokenPrice * lockTokens / 1e18 < coverAmount * 5
+      Therefore 1 AB vote is insufficient to accept and payout a claim if maxVotingTime passed.
+     */
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+    const maxVotingTime = await cd.maxVotingTime();
+    await time.increase(maxVotingTime.addn(1));
+
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusAfter.toString(), '1', 'voting should be closing');
+    await master.closeClaim(claimId); // trigger changeClaimStatus
+
+    const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(
+      claimStatusCA.toNumber(), 2,
+      'claim status should be 4 (ca consensus not reached, pending mv)',
+    );
+  });
+
   it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for MV vote', async function () {
 
     const { cd, cl, qd, mr, master, p1, tk } = this.contracts;
@@ -346,16 +387,67 @@ describe('Token price functions', function () {
       'claim status should be 4 (ca consensus not reached, pending mv)',
     );
     /*
-      1 member vote from member 4 ( balance 1000 NXM) is sufficient to exceend sumAssured * 5
+      1 member vote from member 4 ( balance 1000 NXM) is sufficient to exceed sumAssured * 5
      */
-    await cl.submitMemberVote(claimId, '1', { from: member4 });
+    await cl.submitMemberVote(claimId, '-1', { from: member4 });
+    // await cl.submitMemberVote(claimId, '1', { from: member5 });
+    await time.increase(maxVotingTime.addn(1));
+    await master.closeClaim(claimId);
+
+    const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(
+      claimStatusMV.toNumber(), 9,
+      'claim status should be 9 (ca consensus not reached, mv rejected)',
+    );
+  });
+
+  it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for MV vote', async function () {
+
+    const { cd, cl, qd, mr, master, p1, tk } = this.contracts;
+    const coverUnitAmount = 28;
+    const coverAmount = ether(coverUnitAmount.toString());
+    const cover = { ...coverTemplate, amount: coverUnitAmount };
+
+    const lockTokens = ether('500');
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3, member4, member5], { lockTokens });
+
+    const tokenPrice = await p1.getTokenPrice(ETH);
+    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)));
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+
+    // create a consensus not reached situation, 66% accept vs 33% deny
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+    await cl.submitCAVote(claimId, '-1', { from: member2 });
+    await cl.submitCAVote(claimId, '1', { from: member3 });
+
+    const maxVotingTime = await cd.maxVotingTime();
+    await time.increase(maxVotingTime.addn(1));
+
+    await master.closeClaim(claimId); // trigger changeClaimStatus
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert(voteStatusAfter.eqn(0), 'voting should not be closed');
+
+    const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(
+      claimStatusCA.toNumber(), 4,
+      'claim status should be 4 (ca consensus not reached, pending mv)',
+    );
+    /*
+      1 member vote from member 4 ( balance 500 NXM) is insufficient to exceed sumAssured * 5
+     */
+    // await cl.submitMemberVote(claimId, '1', { from: member4 });
+    await cl.submitMemberVote(claimId, '-1', { from: member5 });
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);
 
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
       claimStatusMV.toNumber(), 14,
-      'claim status should be 14 (ca consensus not reached, pending mv)',
+      'claim status should be 14 (ca consensus not reached, mv rejected with insufficient tokens)',
     );
   });
 });

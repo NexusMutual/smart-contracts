@@ -43,10 +43,7 @@ const coverTemplate = {
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-
-// TODO: finish
-describe.only('makeCoverUsingNXMTokens', function () {
+describe('makeCoverUsingNXMTokens', function () {
 
   beforeEach(async function () {
     const { dai } = this.contracts;

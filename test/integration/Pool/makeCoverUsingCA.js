@@ -181,7 +181,7 @@ describe('makeCoverUsingCA', function () {
       vrsData[1],
       vrsData[2],
       { from: member },
-    )
+    ),
     );
   });
 
@@ -241,7 +241,7 @@ describe('makeCoverUsingCA', function () {
       vrsData[1],
       vrsData[2],
       { from: member },
-      ),
+    ),
     );
   });
 });

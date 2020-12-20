@@ -46,7 +46,7 @@ const coverTemplate = {
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 // TODO: finish
-describe.skip('makeCoverUsingNXMTokens', function () {
+describe.only('makeCoverUsingNXMTokens', function () {
 
   beforeEach(async function () {
     const { dai } = this.contracts;
@@ -99,7 +99,7 @@ describe.skip('makeCoverUsingNXMTokens', function () {
     const memberNXMBalanceAfter = await token.balanceOf(member);
     assert.equal(
       memberNXMBalanceAfter.toString(),
-      memberNXMBalanceBefore.sub(toBN(cover.priceNXM)).toString()
+      memberNXMBalanceBefore.sub(toBN(cover.priceNXM)).toString(),
     );
 
     const expectedTotalNXMSupply = nxmSupplyBefore.add(expectedCoverNoteLockedNXM).sub(toBN(cover.priceNXM));
@@ -132,7 +132,7 @@ describe.skip('makeCoverUsingNXMTokens', function () {
     const memberNXMBalanceAfter = await token.balanceOf(member);
     assert.equal(
       memberNXMBalanceAfter.toString(),
-      memberNXMBalanceBefore.sub(toBN(cover.priceNXM).muln(coversToBuy)).toString()
+      memberNXMBalanceBefore.sub(toBN(cover.priceNXM).muln(coversToBuy)).toString(),
     );
 
     const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10).muln(coversToBuy);
@@ -151,14 +151,13 @@ describe.skip('makeCoverUsingNXMTokens', function () {
 
   it('reverts for non-member', async function () {
     const cover = { ...coverTemplate };
-    await expectRevert(
+    await expectRevert.unspecified(
       buyCover({ ...this.contracts, cover, coverHolder: nonMember1 }),
-      'Caller is not a member',
     );
   });
 
-  it('reverts if dai approved amount does not match premium', async function () {
-    const { qt, p1: pool, dai } = this.contracts;
+  it('reverts if approved NXM is less than premium + tokens to be locked', async function () {
+    const { qt, p1: pool, dai, tk: token } = this.contracts;
     const cover = { ...coverTemplate };
     const member = member1;
 
@@ -170,8 +169,9 @@ describe.skip('makeCoverUsingNXMTokens', function () {
       qt.address,
     );
 
-    const coverPriceWei = toBN(cover.price);
-    await dai.approve(pool.address, coverPriceWei.subn(1), { from: member });
+    const coverPriceWei = toBN(cover.priceNXM);
+    const coverPriceWithLockedAmount = coverPriceWei.add(coverPriceWei.divn(10));
+    await token.approve(pool.address, coverPriceWithLockedAmount.subn(1), { from: member });
 
     await expectRevert.unspecified(pool.makeCoverUsingCA(
       cover.contractAddress,
@@ -182,7 +182,7 @@ describe.skip('makeCoverUsingNXMTokens', function () {
       vrsData[1],
       vrsData[2],
       { from: member },
-      )
+    ),
     );
   });
 
@@ -239,7 +239,7 @@ describe.skip('makeCoverUsingNXMTokens', function () {
       vrsData[1],
       vrsData[2],
       { from: member },
-      ),
+    ),
     );
   });
 });

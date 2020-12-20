@@ -338,8 +338,8 @@ contract Quotation is Iupgradable {
     require(!qd.timestampRepeated(coverDetails[4]));
     qd.setTimestampRepeated(coverDetails[4]);
 
+    address asset = cr.getCurrencyAssetAddress(coverCurr);
     if (coverCurr != "ETH" && !isNXM) {
-      address asset = cr.getCurrencyAssetAddress(coverCurr);
       pool.transferAssetFrom(asset, from, coverDetails[1]);
     }
 

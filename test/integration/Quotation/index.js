@@ -1,4 +1,4 @@
-describe('Pool integration tests', function () {
+describe('Quotation integration tests', function () {
 
   require('./makeCoverUsingNXMTokens');
 });

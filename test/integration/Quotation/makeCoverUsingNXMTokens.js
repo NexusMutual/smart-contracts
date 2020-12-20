@@ -10,7 +10,7 @@ const { hex } = require('../utils').helpers;
 
 const [, member1, nonMember1] = accounts;
 
-async function buyCover ({ cover, coverHolder, qt, dai, tk, tc }) {
+async function buyCover ({ cover, coverHolder, qt }) {
 
   const vrsData = await getSignedQuote(
     coverToCoverDetailsArray(cover),

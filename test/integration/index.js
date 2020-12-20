@@ -18,4 +18,5 @@ describe('INTEGRATION TESTS', function () {
   require('./PooledStaking');
   require('./Pool');
   require('./Quotation');
+  require('./MCR');
 });

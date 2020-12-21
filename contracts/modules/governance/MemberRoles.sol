@@ -258,7 +258,7 @@ contract MemberRoles is Governed, Iupgradable {
   }
 
   /**
-   * @dev Called by existed member if wish to Withdraw membership.
+   * @dev withdraws membership for msg.sender if currently a member.
    */
   function withdrawMembership() public {
 
@@ -280,12 +280,12 @@ contract MemberRoles is Governed, Iupgradable {
   }
 
   /**
-   * @dev Called by existed member if wish to switch membership to other address.
+   * @dev switches membership for msg.sender if currently a member to the specified address.
    * @param _add address of user to forward membership.
    */
-  function switchMembership(address _add) external {
-    switchMembershipForMember(msg.sender, _add);
-    tk.transferFrom(msg.sender, _add, tk.balanceOf(msg.sender));
+  function switchMembership(address newAddress) external {
+    switchMembershipForMember(msg.sender, newAddress);
+    tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
   }
 
   /**

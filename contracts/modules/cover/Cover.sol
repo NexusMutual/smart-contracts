@@ -132,7 +132,18 @@ contract Cover is MasterAware {
         coverDetails,
         coverPeriod, _v, _r, _s);
 
-      sendCoverPremiumToPool(coverAsset, coverDetails[1]);
+      {
+        uint premiumAmount = coverDetails[1];
+        if (coverAsset == ETH) {
+          require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");
+          // solhint-disable-next-line avoid-low-level-calls
+          (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
+          require(ok, "Cover: Transfer to Pool failed");
+        } else {
+          IERC20 token = IERC20(coverAsset);
+          token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
+        }
+      }
     }
 
     uint coverId = quotationData.getCoverLength().sub(1);
@@ -191,23 +202,6 @@ contract Cover is MasterAware {
   function switchMembership(address newAddress) external {
     memberRoles.switchMembershipForMember(msg.sender, newAddress);
     nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
-  }
-
-  function sendCoverPremiumToPool (
-    address asset,
-    uint premiumAmount
-  ) internal {
-    if (asset == ETH) {
-      require(msg.value == premiumAmount, "Cover: ETH amount does not match premium");
-      // solhint-disable-next-line avoid-low-level-calls
-      (bool ok, /* data */) = address(pool).call.value(premiumAmount)("");
-      require(ok, "Cover: Transfer to Pool failed");
-
-      return;
-    }
-
-    IERC20 token = IERC20(asset);
-    token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
   }
 
   function getCoverDetails(uint coverAmount, bytes memory data, address asset)

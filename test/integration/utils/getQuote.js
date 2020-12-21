@@ -4,7 +4,6 @@ const { toBN } = require('hardhat').web3.utils;
 
 async function getQuoteSignature (...args) {
 
-  console.log(args);
   const order = {
     amount: args[0][0],
     curr: args[1],
@@ -16,7 +15,6 @@ async function getQuoteSignature (...args) {
     generationTime: args[0][4],
     quotationContract: args[4],
   };
-  console.log(order);
 
   const orderParts = [
     { value: toBN(order.amount), type: 'uint' },

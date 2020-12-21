@@ -435,7 +435,7 @@ contract Pool is MasterAware, ReentrancyGuard {
    * @param  _amount Amount of NXM to sell
    * @return success returns true on successfull sale
    */
-  function sellNXMTokens(uint _amount) public onlyMember nonReentrant whenNotPaused returns (bool success) {
+  function sellNXMTokens(uint _amount) public onlyMember whenNotPaused returns (bool success) {
     sellNXM(_amount, 0);
     return true;
   }

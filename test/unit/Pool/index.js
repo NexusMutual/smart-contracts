@@ -25,6 +25,7 @@ describe('Pool unit tests', function () {
   require('./getPoolValueInEth');
   require('./buyNXM');
   require('./sellNXM');
+  require('./sellNXMTokens');
   require('./getMCRRatio');
   require('./getters');
 

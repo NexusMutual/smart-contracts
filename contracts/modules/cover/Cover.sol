@@ -38,9 +38,7 @@ contract Cover is MasterAware {
   TokenController public tokenController;
   QuotationData public quotationData;
   ClaimsData public claimsData;
-  ClaimsReward public claimsReward;
   Claims public claims;
-  MCR public mcr;
   Pool public pool;
   MemberRoles public memberRoles;
 
@@ -81,9 +79,8 @@ contract Cover is MasterAware {
     quotationData = QuotationData(master.getLatestAddress("QD"));
     claimsData = ClaimsData(master.getLatestAddress("CD"));
     claims = Claims(master.getLatestAddress("CL"));
-    mcr = MCR(master.getLatestAddress("MC"));
+    MCR(master.getLatestAddress("MC"));
     pool = Pool(master.getLatestAddress("P1"));
-    claimsReward = ClaimsReward(master.getLatestAddress("CR"));
     memberRoles = MemberRoles(master.getLatestAddress("MR"));
   }
 
@@ -124,13 +121,15 @@ contract Cover is MasterAware {
       uint[] memory coverDetails,
       uint8 _v,
       bytes32 _r,
-      bytes32 _s ) = getCoverDetails(coverAmount, data, coverAsset);
+      bytes32 _s
+      ) = convertToLegacyQuote(coverAmount, data, coverAsset);
       quotation.verifyCoverDetails(
         msg.sender,
         contractAddress,
         getCurrencyFromAssetAddress(coverAsset),
         coverDetails,
-        coverPeriod, _v, _r, _s);
+        coverPeriod, _v, _r, _s
+      );
 
       {
         uint premiumAmount = coverDetails[1];
@@ -176,7 +175,7 @@ contract Cover is MasterAware {
     return status == 14;
   }
 
-  function getCover(uint tokenId)
+  function getCover(uint coverId)
   external
   view
   returns (
@@ -191,10 +190,10 @@ contract Cover is MasterAware {
   )
   {
     bytes4 currency;
-    (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(tokenId);
-    (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(tokenId);
+    (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(coverId);
+    (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(coverId);
 
-    coverAsset = claimsReward.getCurrencyAssetAddress(currency);
+    coverAsset = getCurrencyAssetAddress(currency);
     sumAssured = sumAssured.mul(10 ** assetDecimals(coverAsset));
     payout = sumAssured;
   }
@@ -204,7 +203,7 @@ contract Cover is MasterAware {
     nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 
-  function getCoverDetails(uint coverAmount, bytes memory data, address asset)
+  function convertToLegacyQuote(uint coverAmount, bytes memory data, address asset)
     internal view returns (uint[] memory coverDetails, uint8, bytes32, bytes32) {
     (
     uint coverPrice,

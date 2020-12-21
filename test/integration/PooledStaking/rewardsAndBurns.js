@@ -73,7 +73,7 @@ describe('burns', function () {
     await enrollClaimAssessor(this.contracts, members, { lockTokens: tokensLockedForVoting });
   });
 
-  it.only('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
+  it('claim is accepted for contract whose staker that staked on multiple contracts', async function () {
 
     const { ps, tk, td, qd, cl, tc, p1 } = this.contracts;
 

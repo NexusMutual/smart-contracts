@@ -151,18 +151,7 @@ contract Cover is MasterAware {
   }
 
   function submitClaim(uint coverId, bytes calldata data) external returns (uint) {
-    address coverOwner = quotationData.getCoverMemberAddress(coverId);
-    require(coverOwner == msg.sender, "Cover: caller is not cover owner");
-    (, uint8 status,,,) = quotationData.getCoverDetailsByCoverID2(coverId);
-    require(status != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Cover: Claim already submitted");
-    require(status != uint8(QuotationData.CoverStatus.CoverExpired), "Cover: Cover already expired");
-
-    if (master.isPause() == false) {
-      claims.addClaim(coverId, now, coverOwner);
-    } else {
-      claimsData.setClaimAtEmergencyPause(coverId, now, false);
-      quotationData.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));
-    }
+    claims.submitClaimForMember(coverId, msg.sender);
 
     uint claimId = claimsData.actualClaimLength() - 1;
     emit ClaimSubmitted(claimId, coverId, msg.sender, data);

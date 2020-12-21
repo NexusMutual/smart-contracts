@@ -174,14 +174,19 @@ contract Claims is Iupgradable {
    * @param coverId Cover Id.
    */
   function submitClaim(uint coverId) public {
-    address qadd = qd.getCoverMemberAddress(coverId);
-    require(qadd == msg.sender);
-    uint8 cStatus;
-    (, cStatus,,,) = qd.getCoverDetailsByCoverID2(coverId);
-    require(cStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
-    require(cStatus != uint8(QuotationData.CoverStatus.CoverExpired), "Cover already expired");
+    submitClaimForMember(coverId, msg.sender);
+  }
+
+  function submitClaimForMember(uint coverId, address member) public onlyInternal {
+
+    address coverOwner = qd.getCoverMemberAddress(coverId);
+    require(coverOwner == member, "Claims: caller is not cover owner");
+    (, uint8 status,,,) = qd.getCoverDetailsByCoverID2(coverId);
+    require(status != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claims: Claim already submitted");
+    require(status != uint8(QuotationData.CoverStatus.CoverExpired), "Claims: Cover already expired");
+
     if (ms.isPause() == false) {
-      _addClaim(coverId, now, qadd);
+      _addClaim(coverId, now, coverOwner);
     } else {
       cd.setClaimAtEmergencyPause(coverId, now, false);
       qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.Requested));
@@ -397,9 +402,5 @@ contract Claims is Iupgradable {
     cd.addClaim(len, coverId, add, now);
     cd.callClaimEvent(coverId, add, len, time);
     qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
-  }
-
-  function addClaim(uint coverId, uint time, address add) public onlyInternal {
-    _addClaim(coverId, time, add);
   }
 }

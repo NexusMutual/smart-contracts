@@ -22,7 +22,7 @@ export interface CoverDetailsEvent {
     sumAssured: BN;
     expiry: BN;
     premium: BN;
-    premiumNXM: BN;
+    premiumInNXM: BN;
     curr: string;
     0: BN;
     1: string;

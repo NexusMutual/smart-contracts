@@ -47,7 +47,7 @@ contract Cover is MasterAware {
     address indexed buyer,
     address indexed contractAddress,
     address coverAsset,
-    uint coverAmount,
+    uint sumAssured,
     uint16 coverPeriod,
     CoverType indexed coverType,
     bytes data
@@ -87,7 +87,7 @@ contract Cover is MasterAware {
   function getCoverPrice (
     address contractAddress,
     address coverAsset,
-    uint coverAmount,
+    uint sumAssured,
     uint16 coverPeriod,
     CoverType coverType,
     bytes calldata data
@@ -106,7 +106,7 @@ contract Cover is MasterAware {
   function buyCover (
     address contractAddress,
     address coverAsset,
-    uint coverAmount,
+    uint sumAssured,
     uint16 coverPeriod,
     CoverType coverType,
     bytes calldata data
@@ -114,7 +114,7 @@ contract Cover is MasterAware {
 
     // only 1 cover type supported at this time
     require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Unsupported cover type");
-    require(coverAmount % 1e18 == 0, "Only whole unit coverAmount supported");
+    require(sumAssured % 1e18 == 0, "Only whole unit sumAssured supported");
 
     {
       (
@@ -122,7 +122,7 @@ contract Cover is MasterAware {
       uint8 _v,
       bytes32 _r,
       bytes32 _s
-      ) = convertToLegacyQuote(coverAmount, data, coverAsset);
+      ) = convertToLegacyQuote(sumAssured, data, coverAsset);
       quotation.verifyCoverDetails(
         msg.sender,
         contractAddress,
@@ -146,7 +146,7 @@ contract Cover is MasterAware {
     }
 
     uint coverId = quotationData.getCoverLength().sub(1);
-    emit CoverBought(coverId, msg.sender, contractAddress, coverAsset, coverAmount, coverPeriod, coverType, data);
+    emit CoverBought(coverId, msg.sender, contractAddress, coverAsset, sumAssured, coverPeriod, coverType, data);
     return coverId;
   }
 
@@ -185,17 +185,18 @@ contract Cover is MasterAware {
     uint validUntil,
     address contractAddress,
     address coverAsset,
-    uint premiumNXM,
-    uint payout
+    uint premiumInNXM,
+    uint amountPaid,
+    address memberAddress
   )
   {
     bytes4 currency;
-    (/*cid*/, /*memberAddress*/, contractAddress, currency, /*sumAssured*/, premiumNXM) = quotationData.getCoverDetailsByCoverID1(coverId);
+    (/*cid*/, memberAddress, contractAddress, currency, /*sumAssured*/, premiumInNXM) = quotationData.getCoverDetailsByCoverID1(coverId);
     (/*cid*/, status, sumAssured, coverPeriod, validUntil) = quotationData.getCoverDetailsByCoverID2(coverId);
 
     coverAsset = getCurrencyAssetAddress(currency);
     sumAssured = sumAssured.mul(10 ** assetDecimals(coverAsset));
-    payout = sumAssured;
+    amountPaid = sumAssured;
   }
 
   function switchMembership(address newAddress) external {
@@ -203,7 +204,7 @@ contract Cover is MasterAware {
     nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 
-  function convertToLegacyQuote(uint coverAmount, bytes memory data, address asset)
+  function convertToLegacyQuote(uint sumAssured, bytes memory data, address asset)
     internal view returns (uint[] memory coverDetails, uint8, bytes32, bytes32) {
     (
     uint coverPrice,
@@ -216,7 +217,7 @@ contract Cover is MasterAware {
     ) = abi.decode(data, (uint, uint, uint, uint, uint8, bytes32, bytes32));
     coverDetails = new uint[](5);
     // convert from wei to units
-    coverDetails[0] = coverAmount.div(10 ** assetDecimals(asset));
+    coverDetails[0] = sumAssured.div(10 ** assetDecimals(asset));
     coverDetails[1] = coverPrice;
     coverDetails[2] = coverPriceNXM;
     coverDetails[3] = expiresAt;

@@ -17,13 +17,11 @@ describe('addMCRData', function () {
     const { ethEthRate, ethToDaiRate } = this.rates;
     const currentPoolValue = await pool.getPoolValueInEth();
 
-    // post a higher MCR raising the price
     const lastMCREther = await pd.getLastMCREther();
     const newMCREth = lastMCREther.muln(110).divn(100);
     const newMCRRatio = calculateMCRRatio(currentPoolValue, newMCREth);
     const postedDate = 20200103;
 
-    // add new mcr
     await mcr.addMCRData(
       newMCRRatio,
       newMCREth,
@@ -46,7 +44,6 @@ describe('addMCRData', function () {
     const { ethEthRate, ethToDaiRate } = this.rates;
     const currentPoolValue = await pool.getPoolValueInEth();
 
-    // post a higher MCR raising the price
     const lastMCREther = await pd.getLastMCREther();
     const newMCREth = lastMCREther.muln(90).divn(100);
     const newMCRRatio = calculateMCRRatio(currentPoolValue, newMCREth);
@@ -69,12 +66,10 @@ describe('addMCRData', function () {
     const { ethEthRate, ethToDaiRate } = this.rates;
     const currentPoolValue = await pool.getPoolValueInEth();
 
-    // post a higher MCR raising the price
     const lastMCREther = await pd.getLastMCREther();
     const newMCREth = lastMCREther.muln(115).divn(100);
     const newMCRRatio = calculateMCRRatio(currentPoolValue, newMCREth);
 
-    // add new mcr
     await expectRevert(mcr.addMCRData(
       newMCRRatio,
       newMCREth,
@@ -92,12 +87,10 @@ describe('addMCRData', function () {
     const { ethEthRate, ethToDaiRate } = this.rates;
     const currentPoolValue = await pool.getPoolValueInEth();
 
-    // post a higher MCR raising the price
     const lastMCREther = await pd.getLastMCREther();
     const newMCREth = lastMCREther.muln(80).divn(100);
     const newMCRRatio = calculateMCRRatio(currentPoolValue, newMCREth);
-
-    // add new mcr
+    
     await expectRevert(mcr.addMCRData(
       newMCRRatio,
       newMCREth,
@@ -115,12 +108,10 @@ describe('addMCRData', function () {
     const { ethEthRate, ethToDaiRate } = this.rates;
     const currentPoolValue = await pool.getPoolValueInEth();
 
-    // post a higher MCR raising the price
     const lastMCREther = await pd.getLastMCREther();
     const newMCREth = lastMCREther.muln(110).divn(100);
     const newMCRRatio = calculateMCRRatio(currentPoolValue, newMCREth);
 
-    // add new mcr
     await expectRevert.unspecified(mcr.addMCRData(
       newMCRRatio,
       newMCREth,

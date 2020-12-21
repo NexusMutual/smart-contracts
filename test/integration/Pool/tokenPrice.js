@@ -8,6 +8,7 @@ const {
   calculateEthForNXMRelativeError,
   calculateNXMForEthRelativeError,
   calculateMCRRatio,
+  getTokenSpotPrice
 } = require('../utils').tokenPrice;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
@@ -29,7 +30,7 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe('Token price functions', function () {
+describe.only('Token price functions', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -40,6 +41,22 @@ describe('Token price functions', function () {
 
     await enrollMember(this.contracts, [member5], {
       initialTokens: ether('500'),
+    });
+  });
+
+  it.only('getTokenPrice returns spot price for all assets', async function () {
+    const { p1: pool, dai, pd: poolData } = this.contracts;
+
+    const ethTokenPrice = await pool.getTokenPrice(ETH);
+    const daiTokenPrice = await pool.getTokenPrice(dai.address);
+
+    const totalAssetValue = await pool.getPoolValueInEth();
+    const mcrEth = await poolData.getLastMCREther();
+    const expectedEthTokenPrice = getTokenSpotPrice(totalAssetValue, mcrEth);
+    console.log({
+      expectedEthTokenPrice: expectedEthTokenPrice.toString(),
+      ethTokenPrice: ethTokenPrice.toString(),
+      daiTokenPrice: daiTokenPrice.toString()
     });
   });
 

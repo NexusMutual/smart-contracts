@@ -114,7 +114,7 @@ contract Cover is MasterAware {
 
     // only 1 cover type supported at this time
     require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Unsupported cover type");
-    require(sumAssured % 1e18 == 0, "Only whole unit sumAssured supported");
+    require(sumAssured % 10 ** assetDecimals(coverAsset) == 0, "Only whole unit sumAssured supported");
 
     {
       (
@@ -252,7 +252,7 @@ contract Cover is MasterAware {
       return DAI;
     }
 
-    revert("Cover: unknown asset");
+    revert("Cover: unknown currency");
   }
 
   function () payable external {

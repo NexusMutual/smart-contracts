@@ -19,4 +19,5 @@ describe('INTEGRATION TESTS', function () {
   require('./Pool');
   require('./Quotation');
   require('./MCR');
+  require('./MemberRoles');
 });

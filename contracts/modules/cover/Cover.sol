@@ -157,14 +157,23 @@ contract Cover is MasterAware {
     return claimId;
   }
 
-  function payoutIsCompleted(uint claimId) external view returns (bool) {
-    uint256 status;
-    (, status, , , ) = claims.getClaimbyIndex(claimId);
-    return status == 14;
+  function getPayoutOutcome(uint coverId, uint claimId)
+    external
+    view
+    returns (bool completed, uint amountPaid, address coverAsset)
+  {
+    uint sumAssured;
+    (
+    /* status */, sumAssured, /* coverPeriod */, /* validUntil */, /* contractAddress */,
+    coverAsset, /* premiumNXM */, /* memberAddress */
+    ) = getCover(coverId);
+    (, uint256 status, , , ) = claims.getClaimbyIndex(claimId);
+    completed = status == 14;
+    amountPaid = completed ? sumAssured : 0;
   }
 
   function getCover(uint coverId)
-  external
+  public
   view
   returns (
     uint8 status,
@@ -174,7 +183,6 @@ contract Cover is MasterAware {
     address contractAddress,
     address coverAsset,
     uint premiumInNXM,
-    uint amountPaid,
     address memberAddress
   )
   {
@@ -184,7 +192,6 @@ contract Cover is MasterAware {
 
     coverAsset = getCurrencyAssetAddress(currency);
     sumAssured = sumAssured.mul(10 ** assetDecimals(coverAsset));
-    amountPaid = sumAssured;
   }
 
   function switchMembership(address newAddress) external {

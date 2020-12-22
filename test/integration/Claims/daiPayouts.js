@@ -9,50 +9,37 @@ const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 
 const [, member1, member2, member3, coverHolder, payoutAddress] = accounts;
 
-const coverTemplate = {
-  amount: 1, // 1 eth
-  price: '3000000000000000', // 0.003 eth
-  priceNXM: '1000000000000000000', // 1 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  period: 60,
-  contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
-};
-
 const daiCoverTemplate = {
-  amount: 1, // 1 eth
-  price: '3000000000000000', // 0.003 eth
-  priceNXM: '1000000000000000000', // 1 nxm
+  amount: 1000, // 1000 dai
+  price: 1e19.toString(), // 10 dai
+  priceNXM: '10000000000000000000', // 10 nxm
   expireTime: '8000000000',
   generationTime: '1600000000000',
-  currency: hex('ETH'),
+  currency: hex('DAI'),
   period: 60,
-  contractAddress: '0xc0ffeec0ffeec0ffeec0ffeec0ffeec0ffee0000',
+  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
 describe.only('DAI cover claim payouts', function () {
 
   beforeEach(async function () {
+    const { dai } = this.contracts;
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
     await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
+
+    for (const daiHolder of [coverHolder]) {
+      await dai.mint(daiHolder, ether('10000000'));
+    }
   });
 
   it('[A1, status: 0, 7, 14] CA accept, closed with closeClaim()', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
-    const cover = { ...coverTemplate };
+    const { cd, cl, qd, mr, master, dai } = this.contracts;
+    const cover = { ...daiCoverTemplate };
 
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
 
-    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
-    assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder),
-      payoutAddress,
-      'should have set the claim payout address',
-    );
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    const balanceBefore = toBN(await dai.balanceOf(coverHolder));
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverId, { from: coverHolder });
     const claimId = (await cd.actualClaimLength()).subn(1);
@@ -71,7 +58,7 @@ describe.only('DAI cover claim payouts', function () {
     const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(claimStatus.toNumber(), 14, 'claim status should be 14 (accepted, payout done)');
 
-    const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
+    const balanceAfter = toBN(await dai.balanceOf(coverHolder));
     const expectedPayout = ether(cover.amount.toString());
     const actualPayout = balanceAfter.sub(balanceBefore);
 
@@ -80,19 +67,12 @@ describe.only('DAI cover claim payouts', function () {
 
   it('[A1, status: 0, 7, 14] CA accept, closed on the last vote', async function () {
 
-    const { cd, cl, qd, mr } = this.contracts;
-    const cover = { ...coverTemplate };
+    const { cd, cl, qd, mr, dai } = this.contracts;
+    const cover = { ...daiCoverTemplate };
 
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
 
-    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
-    assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder),
-      payoutAddress,
-      'should have set the claim payout address',
-    );
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    const balanceBefore = toBN(await dai.balanceOf(coverHolder));
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverId, { from: coverHolder });
     const claimId = (await cd.actualClaimLength()).subn(1);
@@ -107,7 +87,7 @@ describe.only('DAI cover claim payouts', function () {
     const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(claimStatus.toNumber(), 14, 'claim status should be 14 (accepted, payout done)');
 
-    const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
+    const balanceAfter = toBN(await dai.balanceOf(coverHolder));
     const expectedPayout = ether(cover.amount.toString());
     const actualPayout = balanceAfter.sub(balanceBefore);
 
@@ -116,18 +96,12 @@ describe.only('DAI cover claim payouts', function () {
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, closed with closeClaim()', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
-    const cover = { ...coverTemplate };
+    const { cd, cl, qd, mr, master, dai } = this.contracts;
+    const cover = { ...daiCoverTemplate };
 
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
 
-    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
-    assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder), payoutAddress,
-      'should have set the claim payout address',
-    );
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    const balanceBefore = toBN(await dai.balanceOf(coverHolder));
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverId, { from: coverHolder });
     const claimId = (await cd.actualClaimLength()).subn(1);
@@ -160,7 +134,7 @@ describe.only('DAI cover claim payouts', function () {
       'claim status should be 14 (ca consensus not reached, pending mv)',
     );
 
-    const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
+    const balanceAfter = toBN(await dai.balanceOf(coverHolder));
     const expectedPayout = ether(cover.amount.toString());
     const actualPayout = balanceAfter.sub(balanceBefore);
 
@@ -169,18 +143,12 @@ describe.only('DAI cover claim payouts', function () {
 
   it('[A2, status: 0, 4, 8, 14] CA no consensus, MV accept, on the last vote', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
-    const cover = { ...coverTemplate };
+    const { cd, cl, qd, mr, master, dai } = this.contracts;
+    const cover = { ...daiCoverTemplate };
 
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
 
-    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
-    assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder), payoutAddress,
-      'should have set the claim payout address',
-    );
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
+    const balanceBefore = toBN(await dai.balanceOf(coverHolder));
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverId, { from: coverHolder });
     const claimId = (await cd.actualClaimLength()).subn(1);
@@ -213,7 +181,7 @@ describe.only('DAI cover claim payouts', function () {
       'claim status should be 14 (ca consensus not reached, pending mv)',
     );
 
-    const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
+    const balanceAfter = toBN(await dai.balanceOf(coverHolder));
     const expectedPayout = ether(cover.amount.toString());
     const actualPayout = balanceAfter.sub(balanceBefore);
 
@@ -222,18 +190,12 @@ describe.only('DAI cover claim payouts', function () {
 
   it('[A3, status: 0, 4, 10, 14] CA no consensus (accept), MV min not reached, use CA result', async function () {
 
-    const { cd, cl, qd, mr, master } = this.contracts;
-    const cover = { ...coverTemplate };
+    const { cd, cl, qd, mr, master, dai } = this.contracts;
+    const cover = { ...daiCoverTemplate };
 
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
+    const balanceBefore = toBN(await dai.balanceOf(coverHolder));
 
-    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
-    assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder), payoutAddress,
-      'should have set the claim payout address',
-    );
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
     await cl.submitClaim(coverId, { from: coverHolder });
     const claimId = (await cd.actualClaimLength()).subn(1);
@@ -265,7 +227,7 @@ describe.only('DAI cover claim payouts', function () {
       'claim status should be 14 (payout done)',
     );
 
-    const balanceAfter = toBN(await web3.eth.getBalance(payoutAddress));
+    const balanceAfter = toBN(await dai.balanceOf(coverHolder));
     const expectedPayout = ether(cover.amount.toString());
     const actualPayout = balanceAfter.sub(balanceBefore);
 

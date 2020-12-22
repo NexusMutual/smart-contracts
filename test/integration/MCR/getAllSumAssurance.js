@@ -56,7 +56,7 @@ describe('getAllSumAssurance', function () {
     const cover = { ...ethCoverTemplate };
     const member = member1;
 
-    await buyCover({ ...this.contracts, cover, coverHolder: member});
+    await buyCover({ ...this.contracts, cover, coverHolder: member });
     const totalAssurance = await mcr.getAllSumAssurance();
     assert.equal(totalAssurance.toString(), ether(cover.amount.toString()).toString());
   });

@@ -280,7 +280,7 @@ contract MemberRoles is Governed, Iupgradable {
   }
 
   /**
-   * @dev switches membership for msg.sender if currently a member to the specified address.
+   * @dev switches membership for msg.sender to the specified address.
    * @param newAddress address of user to forward membership.
    */
   function switchMembership(address newAddress) external {
@@ -289,7 +289,7 @@ contract MemberRoles is Governed, Iupgradable {
   }
 
   /**
-   * @dev Called by existed member if wish to switch membership to other address.
+   * @dev switches membership for member to the specified address.
    * @param newAddress address of user to forward membership.
    */
   function switchMembershipForMember(address member, address newAddress) public onlyInternal {

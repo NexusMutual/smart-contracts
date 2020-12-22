@@ -26,7 +26,6 @@ import "../token/TokenData.sol";
 import "../capital/PoolData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
-import "hardhat/console.sol";
 
 contract Cover is MasterAware {
   using SafeMath for uint;
@@ -242,8 +241,5 @@ contract Cover is MasterAware {
     }
 
     revert("Cover: unknown currency");
-  }
-
-  function () payable external {
   }
 }

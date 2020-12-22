@@ -27,7 +27,7 @@ const ROLES = {
 
 const TOTAL_ROLES = 4;
 
-describe.only('membership', function () {
+describe('membership', function () {
 
   describe('enrollment', function () {
     it('enrolls members by paying joining fee confirming KYC', async function () {
@@ -150,7 +150,7 @@ describe.only('membership', function () {
       await expectRevert.unspecified(memberRoles.switchMembership(nonMember1, { from: member }));
     });
 
-    it.only('reverts when switching membership to an address that\'s already a member', async function () {
+    it('reverts when switching membership to an address that\'s already a member', async function () {
       const { mr: memberRoles } = this.contracts;
 
       await enrollMember(this.contracts, [member1, member2]);

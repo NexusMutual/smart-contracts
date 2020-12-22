@@ -90,7 +90,7 @@ describe('addMCRData', function () {
     const lastMCREther = await pd.getLastMCREther();
     const newMCREth = lastMCREther.muln(80).divn(100);
     const newMCRRatio = calculateMCRRatio(currentPoolValue, newMCREth);
-    
+
     await expectRevert(mcr.addMCRData(
       newMCRRatio,
       newMCREth,

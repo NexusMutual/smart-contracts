@@ -8,7 +8,7 @@ const {
   calculateEthForNXMRelativeError,
   calculateNXMForEthRelativeError,
   calculateMCRRatio,
-  getTokenSpotPrice
+  getTokenSpotPrice,
 } = require('../utils').tokenPrice;
 
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
@@ -30,7 +30,7 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe.only('Token price functions', function () {
+describe('Token price functions', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -44,20 +44,29 @@ describe.only('Token price functions', function () {
     });
   });
 
-  it.only('getTokenPrice returns spot price for all assets', async function () {
+  it('getTokenPrice returns spot price for all assets', async function () {
     const { p1: pool, dai, pd: poolData } = this.contracts;
+    const { ethToDaiRate } = this.rates;
 
     const ethTokenPrice = await pool.getTokenPrice(ETH);
     const daiTokenPrice = await pool.getTokenPrice(dai.address);
 
     const totalAssetValue = await pool.getPoolValueInEth();
     const mcrEth = await poolData.getLastMCREther();
-    const expectedEthTokenPrice = getTokenSpotPrice(totalAssetValue, mcrEth);
-    console.log({
-      expectedEthTokenPrice: expectedEthTokenPrice.toString(),
-      ethTokenPrice: ethTokenPrice.toString(),
-      daiTokenPrice: daiTokenPrice.toString()
-    });
+    const expectedEthTokenPrice = toBN(getTokenSpotPrice(totalAssetValue, mcrEth).toString());
+
+    const ethPriceDiff = ethTokenPrice.sub(expectedEthTokenPrice).abs();
+    assert(
+      ethPriceDiff.lte(toBN(1)),
+      `token price ${ethTokenPrice.toString()} not close enough to ${expectedEthTokenPrice.toString()}`,
+    );
+
+    const expectedDaiPrice = toBN(ethToDaiRate / 100).mul(expectedEthTokenPrice);
+    const daiPriceDiff = daiTokenPrice.sub(expectedDaiPrice);
+    assert(
+      daiPriceDiff.lte(toBN(10000)), // negligible amount of wei
+      `DAI token price ${daiTokenPrice.toString()} not close enough to ${expectedDaiPrice.toString()}`,
+    );
   });
 
   it('buyNXM reverts for non-member', async function () {

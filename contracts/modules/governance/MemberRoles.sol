@@ -281,7 +281,7 @@ contract MemberRoles is Governed, Iupgradable {
 
   /**
    * @dev switches membership for msg.sender if currently a member to the specified address.
-   * @param _add address of user to forward membership.
+   * @param newAddress address of user to forward membership.
    */
   function switchMembership(address newAddress) external {
     switchMembershipForMember(msg.sender, newAddress);
@@ -290,19 +290,19 @@ contract MemberRoles is Governed, Iupgradable {
 
   /**
    * @dev Called by existed member if wish to switch membership to other address.
-   * @param _add address of user to forward membership.
+   * @param newAddress address of user to forward membership.
    */
-  function switchMembershipForMember(address member, address _add) public onlyInternal {
+  function switchMembershipForMember(address member, address newAddress) public onlyInternal {
 
-    require(!ms.isPause() && ms.isMember(member) && !ms.isMember(_add));
+    require(!ms.isPause() && ms.isMember(member) && !ms.isMember(newAddress));
     require(dAppToken.totalLockedBalance(member, now) == 0); // solhint-disable-line
     require(!tf.isLockedForMemberVote(member)); // No locked tokens for Member/Governance voting
     require(cr.getAllPendingRewardOfUser(member) == 0); // No pending reward to be claimed(claim assesment).
     require(dAppToken.tokensUnlockable(member, "CLA") == 0, "Member should have no CLA unlockable tokens");
 
     gv.removeDelegation(member);
-    dAppToken.addToWhitelist(_add);
-    _updateRole(_add, uint(Role.Member), true);
+    dAppToken.addToWhitelist(newAddress);
+    _updateRole(newAddress, uint(Role.Member), true);
     _updateRole(member, uint(Role.Member), false);
     dAppToken.removeFromWhitelist(member);
 
@@ -310,21 +310,21 @@ contract MemberRoles is Governed, Iupgradable {
 
     if (previousPayoutAddress != address(0)) {
 
-      address payable storedAddress = previousPayoutAddress == _add ? address(0) : previousPayoutAddress;
+      address payable storedAddress = previousPayoutAddress == newAddress ? address(0) : previousPayoutAddress;
 
       claimPayoutAddress[member] = address(0);
-      claimPayoutAddress[_add] = storedAddress;
+      claimPayoutAddress[newAddress] = storedAddress;
 
       // emit event for old address reset
       emit ClaimPayoutAddressSet(member, address(0));
 
       if (storedAddress != address(0)) {
         // emit event for setting the payout address on the new member address if it's non zero
-        emit ClaimPayoutAddressSet(_add, storedAddress);
+        emit ClaimPayoutAddressSet(newAddress, storedAddress);
       }
     }
 
-    emit switchedMembership(member, _add, now);
+    emit switchedMembership(member, newAddress, now);
   }
 
   function getClaimPayoutAddress(address payable _member) external view returns (address payable) {

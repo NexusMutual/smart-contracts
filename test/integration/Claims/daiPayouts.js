@@ -20,7 +20,7 @@ const daiCoverTemplate = {
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
 
-describe.only('DAI cover claim payouts', function () {
+describe('DAI cover claim payouts', function () {
 
   beforeEach(async function () {
     const { dai } = this.contracts;

@@ -3,37 +3,14 @@ const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
-const { coverToCoverDetailsArray } = require('../utils/buyCover');
+const { coverToCoverDetailsArray, buyCoverWithDai } = require('../utils/buyCover');
 const { getSignedQuote } = require('../utils/getQuote');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
 const [, member1, nonMember1] = accounts;
 
-async function buyCover ({ cover, coverHolder, qt, p1, dai }) {
-
-  const vrsData = await getSignedQuote(
-    coverToCoverDetailsArray(cover),
-    cover.currency,
-    cover.period,
-    cover.contractAddress,
-    qt.address,
-  );
-
-  const coverPrice = toBN(cover.price);
-  await dai.approve(p1.address, coverPrice, { from: coverHolder });
-
-  return p1.makeCoverUsingCA(
-    cover.contractAddress,
-    cover.currency,
-    coverToCoverDetailsArray(cover),
-    cover.period,
-    vrsData[0],
-    vrsData[1],
-    vrsData[2],
-    { from: coverHolder },
-  );
-}
+const buyCover = buyCoverWithDai;
 
 const coverTemplate = {
   amount: 1000, // 1000 dai

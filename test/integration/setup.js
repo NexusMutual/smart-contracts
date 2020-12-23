@@ -294,10 +294,18 @@ async function setup () {
   const external = { chainlinkDAI, dai, factory, router, weth };
   const nonUpgradable = { cp, qd, td, cd, pd };
   const instances = { tk, qt, tf, cl, cr, p1, mcr: mc };
-  const proxies = { tc, gv, pc, mr, ps };
+
+  // we upgraded them, get non-disposable instances because
+  const proxies = {
+    master: await NXMaster.at(master.address),
+    tc: await TokenController.at(tc.address),
+    gv: await Governance.at(gv.address),
+    pc: await ProposalCategory.at(pc.address),
+    mr: await MemberRoles.at(mr.address),
+    ps: await PooledStaking.at(ps.address),
+  };
 
   this.contracts = {
-    master,
     ...external,
     ...nonUpgradable,
     ...instances,

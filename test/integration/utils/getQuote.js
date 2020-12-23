@@ -2,7 +2,7 @@ const ethABI = require('ethereumjs-abi');
 const util = require('ethereumjs-util');
 const { toBN } = require('hardhat').web3.utils;
 
-async function getSignedQuote (...args) {
+async function getQuoteSignature (...args) {
 
   const order = {
     amount: args[0][0],
@@ -44,4 +44,4 @@ async function getSignedQuote (...args) {
   ];
 }
 
-module.exports = { getSignedQuote };
+module.exports = { getQuoteSignature };

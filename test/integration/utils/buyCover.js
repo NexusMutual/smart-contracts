@@ -1,4 +1,4 @@
-const { getSignedQuote } = require('./getQuote');
+const { getQuoteSignature } = require('./getQuote');
 const { web3 } = require('hardhat');
 const { toBN } = web3.utils;
 
@@ -8,7 +8,7 @@ function coverToCoverDetailsArray (cover) {
 
 async function buyCover ({ cover, coverHolder, qt, p1 }) {
 
-  const vrsData = await getSignedQuote(
+  const signature = await getQuoteSignature(
     coverToCoverDetailsArray(cover),
     cover.currency,
     cover.period,
@@ -21,9 +21,9 @@ async function buyCover ({ cover, coverHolder, qt, p1 }) {
     cover.currency,
     coverToCoverDetailsArray(cover),
     cover.period,
-    vrsData[0],
-    vrsData[1],
-    vrsData[2],
+    signature[0],
+    signature[1],
+    signature[2],
     { from: coverHolder, value: cover.price },
   );
 }

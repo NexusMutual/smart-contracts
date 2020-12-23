@@ -110,9 +110,13 @@ contract DisposableGovernance is IGovernance, Iupgradable {
   bool internal actionParamsInitialised;
   uint internal actionWaitingTime;
 
-  /* function required for Iupgradable and IGovernance implementation */
+  function changeDependentContractAddress() public {
+    tokenInstance = TokenController(ms.dAppLocker());
+    memberRole = MemberRoles(ms.getLatestAddress("MR"));
+    proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
+  }
 
-  function changeDependentContractAddress() public {}
+  /* function required for Iupgradable and IGovernance implementation */
 
   function createProposal(string calldata, string calldata, string calldata, uint) external {}
 

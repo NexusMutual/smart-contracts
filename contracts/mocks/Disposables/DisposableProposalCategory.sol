@@ -21,8 +21,8 @@ contract DisposableProposalCategory is ProposalCategory {
     addInitialCategory("Add new category", "PC", 60, 15, 1, 0);
     addInitialCategory("Edit category", "PC", 60, 15, 1, 0);
     addInitialCategory("Upgrade a contract Implementation", "MS", 50, 15, 2, 80);
-    addInitialCategory("Implement Emergency Pause", "MS", 0, 15, 1, 0);
-    addInitialCategory("Extend or Switch Off Emergency Pause", "MS", 50, 15, 2, 0);
+    addInitialCategory("Start Emergency Pause", "MS", 0, 15, 1, 0);
+    addInitialCategory("Extend or Switch Off Emergency Pause", "MS", 0, 15, 1, 0);
     addInitialCategory("Burn Claims Assessor Bond", "TF", 80, 15, 1, 0);
     addInitialCategory("Pause Claim Assessor Voting for 3 days", "CD", 60, 15, 1, 0);
     addInitialCategory("Changes to Capital Model", "EX", 50, 15, 2, 60);

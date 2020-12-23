@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
 const { coverToCoverDetailsArray, buyCover, buyCoverWithDai } = require('../utils/buyCover');
-const { getSignedQuote } = require('../utils/getQuote');
+const { getQuoteSignature } = require('../utils/getQuote');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 

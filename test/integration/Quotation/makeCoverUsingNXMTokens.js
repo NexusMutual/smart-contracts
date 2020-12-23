@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
 const { coverToCoverDetailsArray } = require('../utils/buyCover');
-const { getSignedQuote } = require('../utils/getQuote');
+const { getQuoteSignature } = require('../utils/getQuote');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
@@ -12,7 +12,7 @@ const [, member1, nonMember1] = accounts;
 
 async function buyCover ({ cover, coverHolder, qt }) {
 
-  const vrsData = await getSignedQuote(
+  const vrsData = await getQuoteSignature(
     coverToCoverDetailsArray(cover),
     cover.currency,
     cover.period,
@@ -158,7 +158,7 @@ describe('makeCoverUsingNXMTokens', function () {
     const cover = { ...coverTemplate };
     const member = member1;
 
-    const vrsData = await getSignedQuote(
+    const vrsData = await getQuoteSignature(
       coverToCoverDetailsArray(cover),
       cover.currency,
       cover.period,
@@ -219,7 +219,7 @@ describe('makeCoverUsingNXMTokens', function () {
     const member = member1;
 
     // sign a different amount than the one requested.
-    const vrsData = await getSignedQuote(
+    const vrsData = await getQuoteSignature(
       coverToCoverDetailsArray({ ...cover, amount: cover.amount + 1 }),
       cover.currency,
       cover.period,

@@ -30,7 +30,7 @@ async function buyCover ({ cover, coverHolder, qt, p1 }) {
 
 async function buyCoverWithDai ({ cover, coverHolder, qt, p1, dai }) {
 
-  const vrsData = await getSignedQuote(
+  const vrsData = await getQuoteSignature(
     coverToCoverDetailsArray(cover),
     cover.currency,
     cover.period,

@@ -1,11 +1,10 @@
 const { accounts, web3 } = require('hardhat');
-const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const Decimal = require('decimal.js');
 const { toBN } = web3.utils;
 const { buyCover, coverToCoverDetailsArray } = require('../utils/buyCover');
-const { getSignedQuote } = require('../utils/getQuote');
-const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+const { getQuoteSignature } = require('../utils/getQuote');
+const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 
 const [, member1, nonMember1] = accounts;
@@ -20,8 +19,6 @@ const coverTemplate = {
   period: 60,
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
 };
-
-const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 describe('makeCoverBegin', function () {
 
@@ -124,7 +121,7 @@ describe('makeCoverBegin', function () {
     const cover = { ...coverTemplate };
     const member = member1;
 
-    const vrsData = await getSignedQuote(
+    const signature = await getQuoteSignature(
       coverToCoverDetailsArray(cover),
       cover.currency,
       cover.period,
@@ -137,9 +134,9 @@ describe('makeCoverBegin', function () {
       cover.currency,
       coverToCoverDetailsArray(cover),
       cover.period,
-      vrsData[0],
-      vrsData[1],
-      vrsData[2],
+      signature[0],
+      signature[1],
+      signature[2],
       { from: member, value: toBN(cover.price).subn(1) },
     ),
     'Pool: ETH amount does not match premium',
@@ -182,7 +179,7 @@ describe('makeCoverBegin', function () {
     const member = member1;
 
     // sign a different amount than the one requested.
-    const vrsData = await getSignedQuote(
+    const signature = await getQuoteSignature(
       coverToCoverDetailsArray({ ...cover, amount: cover.amount + 1 }),
       cover.currency,
       cover.period,
@@ -195,9 +192,9 @@ describe('makeCoverBegin', function () {
       cover.currency,
       coverToCoverDetailsArray(cover),
       cover.period,
-      vrsData[0],
-      vrsData[1],
-      vrsData[2],
+      signature[0],
+      signature[1],
+      signature[2],
       { from: member, value: cover.price },
     ),
     );

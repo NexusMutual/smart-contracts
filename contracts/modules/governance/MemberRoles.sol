@@ -284,15 +284,19 @@ contract MemberRoles is Governed, Iupgradable {
    * @param newAddress address of user to forward membership.
    */
   function switchMembership(address newAddress) external {
-    switchMembershipForMember(msg.sender, newAddress);
+    _switchMembership(msg.sender, newAddress);
     tk.transferFrom(msg.sender, newAddress, tk.balanceOf(msg.sender));
+  }
+
+  function switchMembershipForMember(address member, address newAddress) public onlyInternal {
+    _switchMembership(member, newAddress);
   }
 
   /**
    * @dev switches membership for member to the specified address.
    * @param newAddress address of user to forward membership.
    */
-  function switchMembershipForMember(address member, address newAddress) public onlyInternal {
+  function _switchMembership(address member, address newAddress) internal {
 
     require(!ms.isPause() && ms.isMember(member) && !ms.isMember(newAddress));
     require(dAppToken.totalLockedBalance(member, now) == 0); // solhint-disable-line

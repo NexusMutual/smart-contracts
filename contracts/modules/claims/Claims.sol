@@ -174,10 +174,14 @@ contract Claims is Iupgradable {
    * @param coverId Cover Id.
    */
   function submitClaim(uint coverId) public {
-    submitClaimForMember(coverId, msg.sender);
+    _submitClaim(coverId, msg.sender);
   }
 
   function submitClaimForMember(uint coverId, address member) public onlyInternal {
+    _submitClaim(coverId, member);
+  }
+
+  function _submitClaim(uint coverId, address member) internal {
 
     address coverOwner = qd.getCoverMemberAddress(coverId);
     require(coverOwner == member, "Claims: caller is not cover owner");

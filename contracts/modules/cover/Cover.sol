@@ -112,8 +112,8 @@ contract Cover is MasterAware {
   ) external payable onlyMember whenNotPaused returns (uint) {
 
     // only 1 cover type supported at this time
-    require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Unsupported cover type");
-    require(sumAssured % 10 ** assetDecimals(coverAsset) == 0, "Only whole unit sumAssured supported");
+    require(coverType == CoverType.SIGNED_QUOTE_CONTRACT_COVER, "Cover: Unsupported cover type");
+    require(sumAssured % 10 ** assetDecimals(coverAsset) == 0, "Cover: Only whole unit sumAssured supported");
 
     {
       (
@@ -122,13 +122,6 @@ contract Cover is MasterAware {
       bytes32 _r,
       bytes32 _s
       ) = convertToLegacyQuote(sumAssured, data, coverAsset);
-      quotation.verifyCoverDetails(
-        msg.sender,
-        contractAddress,
-        getCurrencyFromAssetAddress(coverAsset),
-        coverDetails,
-        coverPeriod, _v, _r, _s
-      );
 
       {
         uint premiumAmount = coverDetails[1];
@@ -142,6 +135,14 @@ contract Cover is MasterAware {
           token.safeTransferFrom(msg.sender, address(pool), premiumAmount);
         }
       }
+
+      quotation.createCover(
+        msg.sender,
+        contractAddress,
+        getCurrencyFromAssetAddress(coverAsset),
+        coverDetails,
+        coverPeriod, _v, _r, _s
+      );
     }
 
     uint coverId = quotationData.getCoverLength().sub(1);

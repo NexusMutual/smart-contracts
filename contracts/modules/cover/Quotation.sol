@@ -348,6 +348,24 @@ contract Quotation is Iupgradable {
     _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
   }
 
+  function createCover(
+    address payable from,
+    address scAddress,
+    bytes4 coverCurr,
+    uint[] memory coverDetails,
+    uint16 coverPeriod,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+  ) public onlyInternal {
+    require(coverDetails[3] > now, "Quotation: quote is expired");
+    require(!qd.timestampRepeated(coverDetails[4]), "Quotation: quote already used");
+    qd.setTimestampRepeated(coverDetails[4]);
+
+    require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s), "Quotation: signature mismatch");
+    _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
+  }
+
   /**
    * @dev Updates the Sum Assured Amount of all the quotation.
    * @param _cid Cover id

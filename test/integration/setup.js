@@ -236,7 +236,7 @@ async function setup () {
 
   await cover.initialize(
     master.address,
-    dai.address
+    dai.address,
   );
 
   await pd.changeMasterAddress(master.address);
@@ -314,7 +314,7 @@ async function setup () {
     pc: await ProposalCategory.at(pc.address),
     mr: await MemberRoles.at(mr.address),
     ps: await PooledStaking.at(ps.address),
-    cover
+    cover,
   };
 
   this.contracts = {

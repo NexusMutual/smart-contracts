@@ -159,5 +159,5 @@ module.exports = {
   calculateEthForNXMRelativeError,
   calculateRelativeError,
   percentageBN,
-  toDecimal
+  toDecimal,
 };

@@ -38,7 +38,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
     await gv.submitVote(proposalId, 1, { from: members[i] });
   }
 
-  console.log(`Closing proposal`);
+  console.log('Closing proposal');
   await time.increase(604800);
   logEvents(await gv.closeProposal(proposalId, { from: submitter }));
 
@@ -64,9 +64,9 @@ describe.skip('migration', function () {
       nameToAddressMap[web3.utils.toAscii(contractsName[i])] = contractsAddress[i];
     }
 
-    const mr = await MemberRoles.at(nameToAddressMap['MR']);
-    const tk = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
-    const gv = await Governance.at(nameToAddressMap['GV']);
+    const mr = await MemberRoles.at(nameToAddressMap.MR);
+    const tk = await NXMToken.at(nameToAddressMap.NXMTOKEN);
+    const gv = await Governance.at(nameToAddressMap.GV);
 
     const owners = await mr.members('3');
     const firstBoardMember = owners.memberArray[0];
@@ -84,7 +84,7 @@ describe.skip('migration', function () {
       await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100') });
     }
 
-    console.log(`Deploying new contracts`);
+    console.log('Deploying new contracts');
     const newTC = await TokenController.new();
     const newPS = await PooledStaking.new();
 
@@ -108,7 +108,7 @@ describe.skip('migration', function () {
     const storedNewPSAddress = await psProxy.implementation();
     assert.equal(storedNewPSAddress, newPS.address);
 
-    console.log(`Successfully deployed new contracts`);
+    console.log('Successfully deployed new contracts');
 
     this.firstBoardMember = firstBoardMember;
     this.master = master;

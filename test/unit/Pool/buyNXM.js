@@ -21,7 +21,7 @@ describe('buyNXM', function () {
 
     await expectRevert(
       pool.buyNXM('1', { from: member, value: buyValue }),
-      `Pool: ethIn > 0`,
+      'Pool: ethIn > 0',
     );
   });
 
@@ -38,7 +38,7 @@ describe('buyNXM', function () {
 
     await expectRevert(
       pool.buyNXM('1', { from: member, value: buyValue }),
-      `Purchases worth higher than 5% of MCReth are not allowed`,
+      'Purchases worth higher than 5% of MCReth are not allowed',
     );
   });
 
@@ -56,7 +56,7 @@ describe('buyNXM', function () {
     const preEstimatedTokenBuyValue = await pool.getNXMForEth(buyValue);
     await expectRevert(
       pool.buyNXM(preEstimatedTokenBuyValue.add(new BN(1)), { from: member, value: buyValue }),
-      `tokensOut is less than minTokensOut`,
+      'tokensOut is less than minTokensOut',
     );
   });
 
@@ -73,7 +73,7 @@ describe('buyNXM', function () {
 
     await expectRevert(
       pool.buyNXM('1', { from: member, value: buyValue }),
-      `Cannot purchase if MCR% > 400%`,
+      'Cannot purchase if MCR% > 400%',
     );
   });
 

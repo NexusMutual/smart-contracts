@@ -6,90 +6,18 @@ const { coverToCoverDetailsArray } = require('../utils/buyCover');
 const { getQuoteSignature } = require('../utils/getQuote');
 const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
-const { Assets: { ETH } } = require('../utils').constants;
+const { buyCover, ethCoverTemplate, daiCoverTemplate } = require('./utils');
 
 const [, member1, nonMember1] = accounts;
 
-const ethCoverTemplate = {
-  amount: ether('1'), // 1 eth
-  price: '30000000000000000', // 0.03 eth
-  priceNXM: '10000000000000000000', // 10 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('ETH'),
-  asset: ETH,
-  period: 60,
-  type: 0,
-  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
-};
-
-const daiCoverTemplate = {
-  amount: ether('1000'), // 1000 dai
-  price: 1e19.toString(), // 10 dai
-  priceNXM: '10000000000000000000', // 10 nxm
-  expireTime: '8000000000',
-  generationTime: '1600000000000',
-  currency: hex('DAI'),
-  period: 60,
-  contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',
-  type: 0,
-};
-
-async function buyCover ({ coverData, cover, coverHolder, qt, assetToken }) {
-
-  const price = toBN(coverData.price);
-  // encoded data and signature uses unit price.
-  const unitAmount = toBN(coverData.amount).div(ether('1')).toString();
-  const [v, r, s] = await getQuoteSignature(
-    coverToCoverDetailsArray({ ...coverData, amount: unitAmount }),
-    coverData.currency,
-    coverData.period,
-    coverData.contractAddress,
-    qt.address,
-  );
-  const data = web3.eth.abi.encodeParameters(
-    ['uint', 'uint', 'uint', 'uint', 'uint8', 'bytes32', 'bytes32'],
-    [price, coverData.priceNXM, coverData.expireTime, coverData.generationTime, v, r, s],
-  );
-
-  let tx;
-  if (coverData.asset === ETH) {
-    tx = await cover.buyCover(
-      coverData.contractAddress,
-      coverData.asset,
-      coverData.amount,
-      coverData.period,
-      coverData.type,
-      data, {
-        from: coverHolder,
-        value: price,
-      });
-  } else {
-    await assetToken.approve(cover.address, price, {
-      from: coverHolder,
-    });
-    tx = await cover.buyCover(
-      coverData.contractAddress,
-      coverData.asset,
-      coverData.amount,
-      coverData.period,
-      coverData.type,
-      data, {
-        from: coverHolder,
-      });
-  }
-
-  return tx;
-}
-
-describe('buyCover', function () {
+describe.only('buyCover', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
   });
 
   it('buys cover for member, ETH is added to pool, NXM is locked and cover fields stored', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData } = this.contracts;
+    const { qd, p1: pool, tk: token, tf: tokenFunctions } = this.contracts;
     const cover = { ...ethCoverTemplate };
     const member = member1;
 
@@ -168,13 +96,11 @@ describe('buyCover', function () {
   });
 
   it('buys multiple covers in a row for member', async function () {
-    const { qd, p1: pool, tk: token, tf: tokenFunctions, qd: quotationData } = this.contracts;
+    const { qd, p1: pool } = this.contracts;
     const cover = { ...ethCoverTemplate };
     const member = member1;
 
     const poolBalanceBefore = toBN(await web3.eth.getBalance(pool.address));
-    const nxmSupplyBefore = await token.totalSupply();
-    const memberNXMBalanceBefore = await token.balanceOf(member);
 
     const coversToBuy = 3;
     let generationTime = parseInt(cover.generationTime);
@@ -226,8 +152,8 @@ describe('buyCover', function () {
       signature[1],
       signature[2],
       { from: member, value: toBN(cover.price).subn(1) },
-      ),
-      'Pool: ETH amount does not match premium',
+    ),
+    'Pool: ETH amount does not match premium',
     );
   });
 
@@ -290,7 +216,7 @@ describe('buyCover', function () {
       data, {
         from: member,
         value: coverData.price,
-      })
+      }),
     );
   });
 });

@@ -561,7 +561,7 @@ describe('depositAndStake', function () {
     contracts = [secondContract, thirdContract, fourthContract, fifthContract, sixthContract];
     await expectRevert(
       staking.depositAndStake(ether('0'), contracts, amounts, { from: memberOne }),
-      `Staking on fewer contracts is not allowed`,
+      'Staking on fewer contracts is not allowed',
     );
 
     amounts = [ether('0'), ether('20'), ether('10'), ether('7'), ether('10'), ether('12')];

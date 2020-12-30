@@ -21,8 +21,10 @@ const P1MockOldMCR = artifacts.require('P1MockOldMCR');
 const P1MockOldPool1 = artifacts.require('P1MockOldPool1');
 
 async function compareBuyValues (
-  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
-    daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
+  {
+    initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
+    daiRate, ethRate, old, current, isLessThanExpectedTokensOut,
+  },
 ) {
 
   const ETH = await current.pool.ETH();
@@ -110,8 +112,10 @@ async function compareBuyValues (
 }
 
 async function compareSellValues (
-  { initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
-    daiRate, ethRate, old, current, isLessThanExpectedTokensOut },
+  {
+    initialAssetValue, mcrEth, maxPercentage, poolBalanceStep, buyValue, maxRelativeError,
+    daiRate, ethRate, old, current, isLessThanExpectedTokensOut,
+  },
 ) {
   await setupContractState(
     { fundSource, initialAssetValue, mcrEth, daiRate, ethRate, buyValue, ...old, fetchStoredState: false },

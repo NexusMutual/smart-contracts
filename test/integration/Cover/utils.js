@@ -1,4 +1,5 @@
-const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+const { ether, time } = require('@openzeppelin/test-helpers');
+const { web3 } = require('hardhat');
 const { toBN } = web3.utils;
 const { hex } = require('../utils').helpers;
 const { Assets: { ETH } } = require('../utils').constants;
@@ -30,9 +31,8 @@ const daiCoverTemplate = {
   type: 0,
 };
 
-async function buyCover ({ coverData, cover, coverHolder, qt, assetToken }) {
+async function getBuyCoverDataParameter ({ qt, coverData }) {
 
-  const price = toBN(coverData.price);
   // encoded data and signature uses unit price.
   const unitAmount = toBN(coverData.amount).div(ether('1')).toString();
   const [v, r, s] = await getQuoteSignature(
@@ -42,14 +42,20 @@ async function buyCover ({ coverData, cover, coverHolder, qt, assetToken }) {
     coverData.contractAddress,
     qt.address,
   );
-  const data = web3.eth.abi.encodeParameters(
+  return web3.eth.abi.encodeParameters(
     ['uint', 'uint', 'uint', 'uint', 'uint8', 'bytes32', 'bytes32'],
-    [price, coverData.priceNXM, coverData.expireTime, coverData.generationTime, v, r, s],
+    [coverData.price, coverData.priceNXM, coverData.expireTime, coverData.generationTime, v, r, s],
   );
+}
 
-  let tx;
+async function buyCover ({ coverData, cover, coverHolder, qt, dai }) {
+
+  const price = toBN(coverData.price);
+  // encoded data and signature uses unit price.
+  const data = await getBuyCoverDataParameter({ qt, coverData });
+
   if (coverData.asset === ETH) {
-    tx = await cover.buyCover(
+    return cover.buyCover(
       coverData.contractAddress,
       coverData.asset,
       coverData.amount,
@@ -59,11 +65,11 @@ async function buyCover ({ coverData, cover, coverHolder, qt, assetToken }) {
         from: coverHolder,
         value: price,
       });
-  } else {
-    await assetToken.approve(cover.address, price, {
+  } else if (coverData.asset === dai.address) {
+    await dai.approve(cover.address, price, {
       from: coverHolder,
     });
-    tx = await cover.buyCover(
+    return cover.buyCover(
       coverData.contractAddress,
       coverData.asset,
       coverData.amount,
@@ -74,11 +80,27 @@ async function buyCover ({ coverData, cover, coverHolder, qt, assetToken }) {
       });
   }
 
-  return tx;
+  throw new Error(`Unknown asset ${coverData.asset}`);
+}
+
+async function voteOnClaim ({ claimId, verdict, cl, cd, master, voter }) {
+  await cl.submitCAVote(claimId, verdict, { from: voter });
+
+  const minVotingTime = await cd.minVotingTime();
+  await time.increase(minVotingTime.addn(1));
+
+  const voteStatusBefore = await cl.checkVoteClosing(claimId);
+  assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
+
+  await master.closeClaim(claimId);
+  const voteStatusAfter = await cl.checkVoteClosing(claimId);
+  assert(voteStatusAfter.eqn(-1), 'voting should be closed');
 }
 
 module.exports = {
   ethCoverTemplate,
   daiCoverTemplate,
   buyCover,
+  getBuyCoverDataParameter,
+  voteOnClaim,
 };

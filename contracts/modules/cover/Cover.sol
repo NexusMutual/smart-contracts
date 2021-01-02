@@ -55,7 +55,7 @@ contract Cover is MasterAware {
   event ClaimSubmitted(
     uint claimId,
     uint coverId,
-    address submitter,
+    address indexed submitter,
     bytes data
   );
 

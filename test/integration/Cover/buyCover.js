@@ -1,16 +1,16 @@
 const { accounts, web3 } = require('hardhat');
-const { expectRevert, ether, time } = require('@openzeppelin/test-helpers');
+const { expectRevert, ether, time, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const { toBN } = web3.utils;
 const { coverToCoverDetailsArray } = require('../utils/buyCover');
 const { getQuoteSignature } = require('../utils/getQuote');
 const { enrollMember } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
-const { buyCover, ethCoverTemplate, daiCoverTemplate } = require('./utils');
+const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter } = require('./utils');
 
 const [, member1, nonMember1] = accounts;
 
-describe.only('buyCover', function () {
+describe('buyCover', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1]);
@@ -18,39 +18,51 @@ describe.only('buyCover', function () {
 
   it('buys cover for member, ETH is added to pool, NXM is locked and cover fields stored', async function () {
     const { qd, p1: pool, tk: token, tf: tokenFunctions } = this.contracts;
-    const cover = { ...ethCoverTemplate };
+    const coverData = { ...ethCoverTemplate };
     const member = member1;
 
     const poolBalanceBefore = toBN(await web3.eth.getBalance(pool.address));
     const nxmSupplyBefore = await token.totalSupply();
     const memberNXMBalanceBefore = await token.balanceOf(member);
-    await buyCover({ ...this.contracts, coverData: cover, coverHolder: member });
+    const buyCoverTx = await buyCover({ ...this.contracts, coverData, coverHolder: member });
+
+    const coverId = 1;
+    const data = await getBuyCoverDataParameter({ ...this.contracts, coverData });
+    await expectEvent(buyCoverTx, 'CoverBought', {
+      coverId: coverId.toString(),
+      buyer: member,
+      contractAddress: coverData.contractAddress,
+      coverAsset: coverData.asset,
+      sumAssured: coverData.amount.toString(),
+      coverPeriod: coverData.period.toString(),
+      coverType: coverData.type.toString(),
+      data,
+    });
 
     const coverCount = await qd.getCoverLength();
     assert.equal(coverCount.toString(), '2');
 
-    const coverId = 1;
     const coverFieldsPart1 = await qd.getCoverDetailsByCoverID1(coverId);
     const coverFieldsPart2 = await qd.getCoverDetailsByCoverID2(coverId);
     const storedCover = { ...coverFieldsPart1, ...coverFieldsPart2 };
 
-    const sumAssuredUnit = cover.amount.div(toBN(1e18.toString()));
+    const sumAssuredUnit = coverData.amount.div(toBN(1e18.toString()));
 
     assert.equal(storedCover._memberAddress, member);
-    assert.equal(storedCover._scAddress, cover.contractAddress);
-    assert.equal(storedCover._currencyCode, web3.utils.padRight(cover.currency, 8));
+    assert.equal(storedCover._scAddress, coverData.contractAddress);
+    assert.equal(storedCover._currencyCode, web3.utils.padRight(coverData.currency, 8));
     assert.equal(storedCover._sumAssured.toString(), sumAssuredUnit.toString());
-    assert.equal(storedCover.premiumNXM.toString(), cover.priceNXM);
-    assert.equal(storedCover.coverPeriod.toString(), cover.period);
+    assert.equal(storedCover.premiumNXM.toString(), coverData.priceNXM);
+    assert.equal(storedCover.coverPeriod.toString(), coverData.period);
     //  TODO: assert validUntil to be uint expiryDate = now.add(uint(_coverPeriod).mul(1 days));
     // assert.equal(storedCover.validUntil.toString(), cover.expireTime);
 
-    const expectedCoverNoteLockedNXM = toBN(cover.priceNXM).divn(10);
+    const expectedCoverNoteLockedNXM = toBN(coverData.priceNXM).divn(10);
     const memberCoverNoteLockedNXM = await tokenFunctions.getUserLockedCNTokens(member, 1);
     assert.equal(memberCoverNoteLockedNXM.toString(), expectedCoverNoteLockedNXM.toString());
 
     const poolBalanceAfter = toBN(await web3.eth.getBalance(pool.address));
-    assert.equal(poolBalanceAfter.toString(), poolBalanceBefore.add(toBN(cover.price)).toString());
+    assert.equal(poolBalanceAfter.toString(), poolBalanceBefore.add(toBN(coverData.price)).toString());
 
     const totalSumAssured = await qd.getTotalSumAssured(hex('ETH'));
     const expectedTotalSumAsssured = sumAssuredUnit;
@@ -72,7 +84,7 @@ describe.only('buyCover', function () {
 
     await dai.mint(member, ether('25000'));
     const poolDaiBalanceBefore = await dai.balanceOf(pool.address);
-    await buyCover({ ...this.contracts, coverData: cover, coverHolder: member, assetToken: dai });
+    await buyCover({ ...this.contracts, coverData: cover, coverHolder: member });
 
     const coverCount = await qd.getCoverLength();
     assert.equal(coverCount.toString(), '2');

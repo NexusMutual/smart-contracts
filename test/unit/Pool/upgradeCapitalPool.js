@@ -4,9 +4,8 @@ const { web3 } = require('hardhat');
 const { assert } = require('chai');
 const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
 const { BN } = web3.utils;
-const accounts = require('../utils').accounts;
 
-const { members: [member], governanceContracts: [governance] } = require('../utils').accounts;
+const { defaultSender, members: [member], governanceContracts: [governance] } = require('../utils').accounts;
 
 const Pool = artifacts.require('Pool');
 const SwapAgent = artifacts.require('SwapAgent');
@@ -14,7 +13,7 @@ const ERC20Mock = artifacts.require('ERC20Mock');
 
 describe('upgradeCapitalPool', function () {
 
-  it.only('moves pool funds to new pool', async function () {
+  it('moves pool funds to new pool', async function () {
     const { pool, master, dai } = this;
 
     const ethAmount = ether('10000');
@@ -38,7 +37,7 @@ describe('upgradeCapitalPool', function () {
       tokens.map(a => 0), // min
       tokens.map(a => 0), // max
       tokens.map(a => ether('0.01')), // maxSlippage 1%
-      accounts.defaultSender, // master: it is changed a few lines below
+      defaultSender, // master: it is changed a few lines below
       ZERO_ADDRESS,
       ZERO_ADDRESS, // we do not test swaps here
       ZERO_ADDRESS, // swap controller, not used here

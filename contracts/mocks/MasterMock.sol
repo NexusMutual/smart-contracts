@@ -67,8 +67,8 @@ contract MasterMock {
     paused = false;
   }
 
-  function upgradeCapitalPool(address currentPoolAddress, address payable newPoolAddress) external {
-    Pool1(currentPoolAddress).upgradeCapitalPool(newPoolAddress);
+  function upgradeCapitalPool(address payable currentPoolAddress, address payable newPoolAddress) external {
+    Pool(currentPoolAddress).upgradeCapitalPool(newPoolAddress);
   }
 
   /* mocked implementations */

@@ -15,7 +15,7 @@ async function setup () {
   const TokenData = artifacts.require('TokenData');
   const TokenController = artifacts.require('TokenControllerMock');
   const TokenMock = artifacts.require('NXMTokenMock');
-  const  Pool = artifacts.require('Pool');
+  const Pool = artifacts.require('Pool');
   const MCR = artifacts.require('MCR');
   const ERC20Mock = artifacts.require('ERC20Mock');
   const TokenFunctions = artifacts.require('TokenFunctions');
@@ -35,11 +35,11 @@ async function setup () {
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
   const swapAgent = await SwapAgent.new();
-   Pool.link(swapAgent);
+  Pool.link(swapAgent);
 
   const poolData = await PoolData.new();
   const tokenData = await TokenData.new(accounts.notariseAddress);
-  const pool = await  Pool.new(
+  const pool = await Pool.new(
     [dai.address], // assets
     [0], // min
     [0], // max

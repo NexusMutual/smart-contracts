@@ -31,5 +31,5 @@ describe('Pool unit tests', function () {
 
   // pool management
   require('./addAsset');
-
+  require('./upgradeCapitalPool');
 });

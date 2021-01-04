@@ -190,9 +190,11 @@ describe.only('NXM sells and buys', function () {
     const tokenSpotPriceEthBefore = await oldMCR.calculateTokenPrice(hex('ETH'));
     const tokenSpotPriceDaiBefore = await oldMCR.calculateTokenPrice(hex('DAI'));
 
+    /* MCR data */
     const previousVariableMincap = await oldMCR.variableMincap();
     const previousDynamicMincapThresholdx100 = await oldMCR.dynamicMincapThresholdx100();
     const previousDynamicMincapIncrementx100 = await oldMCR.dynamicMincapIncrementx100();
+    const previousAllSumAssurance = await oldMCR.getAllSumAssurance();
 
     console.log('Deploying contracts');
 
@@ -256,10 +258,13 @@ describe.only('NXM sells and buys', function () {
     const variableMincap = await newMCR.variableMincap();
     const dynamicMincapThresholdx100 = await newMCR.dynamicMincapThresholdx100();
     const dynamicMincapIncrementx100 = await newMCR.dynamicMincapIncrementx100();
+    const allSumAssurance = await newMCR.getAllSumAssurance();
 
     assert.equal(variableMincap.toString(), previousVariableMincap.toString());
     assert.equal(dynamicMincapThresholdx100.toString(), previousDynamicMincapThresholdx100.toString());
     assert.equal(dynamicMincapIncrementx100.toString(), previousDynamicMincapIncrementx100.toString());
+    // new getTotalSumAssurance returns wei instead of units
+    assert.equal(allSumAssurance.div(toBN(1e18.toString())).toString(), previousAllSumAssurance.toString());
 
     /* Check old pools' balances */
     const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool1Address);

@@ -190,6 +190,10 @@ describe.only('NXM sells and buys', function () {
     const tokenSpotPriceEthBefore = await oldMCR.calculateTokenPrice(hex('ETH'));
     const tokenSpotPriceDaiBefore = await oldMCR.calculateTokenPrice(hex('DAI'));
 
+    const previousVariableMincap = await oldMCR.variableMincap();
+    const previousDynamicMincapThresholdx100 = await oldMCR.dynamicMincapThresholdx100();
+    const previousDynamicMincapIncrementx100 = await oldMCR.dynamicMincapIncrementx100();
+
     console.log('Deploying contracts');
 
     const newTF = await TokenFunctions.new();
@@ -246,6 +250,16 @@ describe.only('NXM sells and buys', function () {
     assert.equal(storedP2Address, newPool2.address);
 
     console.log('Successfully upgraded');
+
+    /* MCR parameters */
+
+    const variableMincap = await newMCR.variableMincap();
+    const dynamicMincapThresholdx100 = await newMCR.dynamicMincapThresholdx100();
+    const dynamicMincapIncrementx100 = await newMCR.dynamicMincapIncrementx100();
+
+    assert.equal(variableMincap.toString(), previousVariableMincap.toString());
+    assert.equal(dynamicMincapThresholdx100.toString(), previousDynamicMincapThresholdx100.toString());
+    assert.equal(dynamicMincapIncrementx100.toString(), previousDynamicMincapIncrementx100.toString());
 
     /* Check old pools' balances */
     const oldPool1EthBalanceAfter = await web3.eth.getBalance(oldPool1Address);

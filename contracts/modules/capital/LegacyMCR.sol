@@ -14,4 +14,8 @@ interface LegacyMCR {
   function getMaxSellTokens() external view returns (uint maxTokens);
   function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val);
   function updateUintParameters(bytes8 code, uint val) external;
+
+  function variableMincap() external view returns (uint);
+  function dynamicMincapThresholdx100() external view returns (uint);
+  function dynamicMincapIncrementx100() external view returns (uint);
 }

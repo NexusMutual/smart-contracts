@@ -18,6 +18,7 @@
 pragma solidity ^0.5.0;
 
 import "../abstract/INXMMaster.sol";
+import "../modules/capital/Pool.sol";
 
 contract MasterMock {
 
@@ -64,6 +65,10 @@ contract MasterMock {
 
   function unpause() public {
     paused = false;
+  }
+
+  function upgradeCapitalPool(address currentPoolAddress, address payable newPoolAddress) external {
+    Pool1(currentPoolAddress).upgradeCapitalPool(newPoolAddress);
   }
 
   /* mocked implementations */

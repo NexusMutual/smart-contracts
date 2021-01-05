@@ -457,4 +457,34 @@ describe.only('NXM sells and buys', function () {
       'Pool: Cannot purchase if MCR% > 400%',
     );
   });
+
+  it('peforms hypothetical future Pool upgrade', async function () {
+
+    const pool = await Pool.new(
+      [Address.DAI],
+      [0],
+      [ether('10000000')],
+      [ether('0.01')],
+      master.address,
+      priceFeedOracle.address,
+      twapOracle.address,
+      voters[0],
+    );
+
+    const actionData = web3.eth.abi.encodeParameters(
+      ['bytes2[]', 'address[]'],
+      [
+        ['TF', 'CL', 'MC', 'QT', 'CR', 'P1', 'P2'].map(hex),
+        [newTF, newCL, newMCR, newQuotation, newClaimsReward, pool, newPool2].map(c => c.address),
+      ],
+    );
+
+    await submitGovernanceProposal(
+      ProposalCategory.upgradeNonProxy,
+      actionData,
+      voters,
+      governance,
+    );
+
+  });
 });

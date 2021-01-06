@@ -1,4 +1,4 @@
-const { artifacts, accounts, web3 } = require('hardhat');
+const { artifacts, accounts, web3, network } = require('hardhat');
 const { ether, expectRevert, time } = require('@openzeppelin/test-helpers');
 const fetch = require('node-fetch');
 const { assert } = require('chai');
@@ -46,6 +46,21 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
+let isHardhat;
+const hardhatRequest = async (...params) => {
+
+  if (isHardhat === undefined) {
+    const nodeInfo = await web3.eth.getNodeInfo();
+    isHardhat = !!nodeInfo.match(/Hardhat/);
+  }
+
+  if (isHardhat) {
+    return network.provider.request(...params);
+  }
+};
+
+const unlock = async member => hardhatRequest({ method: 'hardhat_impersonateAccount', params: [member] });
+
 describe.only('lock time migration', function () {
 
   this.timeout(0);
@@ -84,7 +99,8 @@ describe.only('lock time migration', function () {
 
     for (const member of boardMembers) {
       console.log(`Topping up ${member}`);
-      await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100') });
+      await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100000') });
+      await unlock(member);
     }
 
     console.log(`Deploying new contracts`);

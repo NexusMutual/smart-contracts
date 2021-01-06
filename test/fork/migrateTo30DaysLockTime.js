@@ -139,6 +139,25 @@ describe.only('lock time migration', function () {
     await ps.read;
   }
 
+  it(`users can't unstake until migration is not finished`, async function () {
+    const { ps, firstBoardMember } = this;
+
+    const firstContract = await ps.stakerContractAtIndex(firstBoardMember, 0);
+    const minUnstake = await ps.MIN_UNSTAKE();
+    console.log({
+      message: 'Attempting unstake..',
+      firstContract,
+      firstBoardMember,
+      minUnstake: minUnstake.toString(),
+    });
+    expectRevert(
+      ps.requestUnstake([firstContract], [minUnstake], '0', {
+        from: firstBoardMember,
+      }),
+      'PooledStaking: Migration in progress',
+    );
+  });
+
   it('migrates pending unstakes to new lock time', async function () {
     const { ps } = this;
     // TODO
@@ -168,13 +187,47 @@ describe.only('lock time migration', function () {
 
     await expectRevert(
       ps.migratePendingUnstakesToNewLockTime(1),
-      'PooledStaking: Migration finished or unitialized',
+      'PooledStaking: Migration finished or uninitialized',
     );
 
     console.log({
       totalGasUsed,
       callCount,
     });
+  });
+
+  it(`users can unstake after migration is finished and get 30 day lock time`, async function () {
+    const { ps, firstBoardMember } = this;
+
+    const firstContract = await ps.stakerContractAtIndex(firstBoardMember, 0);
+    const minUnstake = await ps.MIN_UNSTAKE();
+    console.log({
+      message: 'Attempting unstake..',
+      firstContract,
+      firstBoardMember,
+      minUnstake: minUnstake.toString(),
+    });
+
+    const lastUnstakeRequestId = await ps.lastUnstakeRequestId();
+    console.log({
+      lastUnstakeRequestId: lastUnstakeRequestId.toString(),
+    });
+    const tx = await ps.requestUnstake([firstContract], [minUnstake], lastUnstakeRequestId, {
+      from: firstBoardMember,
+    });
+
+    const block = await web3.eth.getBlock(tx.receipt.blockNumber);
+    const expectedUnstakeAt = block.timestamp + 30 * day;
+
+    console.log('Unstake request succesful');
+    const lastUnstakeRequestIdPostUnstake = await ps.lastUnstakeRequestId();
+    const unstake = await ps.unstakeRequests(lastUnstakeRequestIdPostUnstake);
+
+    assert.equal(unstake.amount.toString(), minUnstake.toString());
+    assert.equal(unstake.unstakeAt.toString(), expectedUnstakeAt.toString());
+    assert.equal(unstake.contractAddress, firstContract);
+    assert.equal(unstake.stakerAddress, firstBoardMember);
+    assert.equal(unstake.next, '0');
   });
 
   it('processes pending actions to clear out all ready unstakes', async function () {

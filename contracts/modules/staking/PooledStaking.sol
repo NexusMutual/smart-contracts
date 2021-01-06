@@ -411,7 +411,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     assembly {
       migrationStage := sload(stagePosition)
     }
-    require(migrationStage == 2, "Migration in progress");
+    require(migrationStage == 2, "PooledStaking: Migration in progress");
 
     require(
       _contracts.length == _amounts.length,
@@ -1046,7 +1046,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     assembly {
       migrationStage := sload(stageLocation)
     }
-    require(migrationStage == 1, "PooledStaking: Migration finished or unitialized");
+    require(migrationStage == 1, "PooledStaking: Migration finished or uninitialized");
 
     uint LOCK_TIME_MIGRATION_FIRST_ID;
     bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;

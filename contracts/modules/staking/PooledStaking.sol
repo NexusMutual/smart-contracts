@@ -138,8 +138,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
   // contract address => ContractRewards
   mapping(address => ContractReward) public accumulatedRewards;
 
-  uint public REWARD_ROUND_DURATION;
-  uint public REWARD_ROUNDS_START;
+  uint public REWARD_ROUND_DURATION = 7 days;
+  uint public REWARD_ROUNDS_START = 1600074000;
 
   /* Modifiers */
 
@@ -1015,6 +1015,14 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
     UNSTAKE_LOCK_TIME = 30 days;
 
+    if (lastUnstakeRequestId == 0) {
+      // nothing to migrate, mark it as finished
+      assembly {
+        sstore(stagePosition, 2)
+      }
+      return;
+    }
+
     bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
     uint firstIdValue = unstakeRequests[0].next;
     assembly {
@@ -1029,10 +1037,10 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function migratePendingUnstakesToNewLockTime(uint maxIterations) external returns (bool finished, uint iterationsLeft) {
 
-    bytes32 stageLocation = LOCK_TIME_MIGRATION_STAGE_POSITION;
+    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
     uint migrationStage = 0;
     assembly {
-      migrationStage := sload(stageLocation)
+      migrationStage := sload(stagePosition)
     }
     require(migrationStage == 1, "PooledStaking: Migration finished or uninitialized");
 
@@ -1073,7 +1081,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
         // clear pointer
         sstore(firstIdLocation, 0)
         // mark it as finished
-        sstore(stageLocation, 2)
+        sstore(stagePosition, 2)
       }
     }
 

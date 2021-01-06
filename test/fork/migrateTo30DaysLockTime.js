@@ -218,10 +218,6 @@ describe.only('lock time migration', function () {
     const toBeUnstaked = [];
     for (const unstake of unstakesBefore) {
       const newUnstakeTime = unstake.unstakeAt.toNumber() - 60 * day;
-      console.log({
-        unstakeTime: newUnstakeTime,
-        now,
-      });
       if (newUnstakeTime < now) {
         toBeUnstaked.push(unstake);
       }

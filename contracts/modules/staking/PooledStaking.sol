@@ -1002,7 +1002,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   bytes32 private constant LOCK_TIME_MIGRATION_STAGE_POSITION = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_STAGE");
   bytes32 private constant LOCK_TIME_MIGRATION_FIRST_ID_POSITION = keccak256("nexusmutual.pooledstaking._LOCK_TIME_MIGRATION_FIRST_ID_POINTER");
-  bytes32 private constant LOCK_TIME_MIGRATION_LAST_ID_POSITION = keccak256("nexusmutual.pooledstaking._LOCK_TIME_MIGRATION_LAST_ID_POINTER");
 
   function initializeLockTimeMigration() public {
     bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
@@ -1014,19 +1013,12 @@ contract PooledStaking is MasterAware, IPooledStaking {
       return;
     }
 
-    uint newLockTime = 30 days;
-    UNSTAKE_LOCK_TIME = newLockTime;
+    UNSTAKE_LOCK_TIME = 30 days;
 
     bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
     uint firstIdValue = unstakeRequests[0].next;
     assembly {
       sstore(firstIdLocation, firstIdValue)
-    }
-
-    bytes32 lastIdLocation = LOCK_TIME_MIGRATION_LAST_ID_POSITION;
-    uint lastIdValue = lastUnstakeRequestId;
-    assembly {
-      sstore(lastIdLocation, lastIdValue)
     }
 
     assembly {
@@ -1044,21 +1036,16 @@ contract PooledStaking is MasterAware, IPooledStaking {
     }
     require(migrationStage == 1, "PooledStaking: Migration finished or uninitialized");
 
-    uint LOCK_TIME_MIGRATION_FIRST_ID;
+    uint firstId;
     bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
     assembly {
-      LOCK_TIME_MIGRATION_FIRST_ID := sload(firstIdLocation)
+      firstId := sload(firstIdLocation)
     }
 
-    uint LOCK_TIME_MIGRATION_LAST_ID;
-    bytes32 lastIdLocation = LOCK_TIME_MIGRATION_LAST_ID_POSITION;
-    assembly {
-      LOCK_TIME_MIGRATION_LAST_ID := sload(lastIdLocation)
-    }
+    // lastUnstakeRequestId remains fixed during migration since requestUnstake is disabled
+    require(firstId <= lastUnstakeRequestId, "PooledStaking: Exceeded last migration id");
 
-    require(LOCK_TIME_MIGRATION_FIRST_ID <= LOCK_TIME_MIGRATION_LAST_ID, "PooledStaking: Exceeded last migration id");
-
-    uint next = LOCK_TIME_MIGRATION_FIRST_ID;
+    uint next = firstId;
 
     iterationsLeft = maxIterations;
     while (!finished && iterationsLeft > 0) {
@@ -1068,7 +1055,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
       unstakeRequest.unstakeAt = unstakeRequest.unstakeAt - 60 days;
       next = unstakeRequest.next;
 
-      if (next == 0 || next > LOCK_TIME_MIGRATION_LAST_ID) {
+      // lastUnstakeRequestId remains fixed during migration since requestUnstake is disabled
+      if (next == 0 || next > lastUnstakeRequestId) {
         finished = true;
       }
     }
@@ -1082,15 +1070,14 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
     if (finished) {
       assembly {
-        // clear pointers
+        // clear pointer
         sstore(firstIdLocation, 0)
-        sstore(lastIdLocation, 0)
         // mark it as finished
         sstore(stageLocation, 2)
       }
     }
 
-    emit LockTimeMigrationCompleted(finished, LOCK_TIME_MIGRATION_FIRST_ID, next, iterationsLeft);
+    emit LockTimeMigrationCompleted(finished, firstId, next, iterationsLeft);
     return (finished, iterationsLeft);
   }
 }

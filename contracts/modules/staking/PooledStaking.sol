@@ -26,6 +26,7 @@ import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
+import "hardhat/console.sol";
 
 contract PooledStaking is MasterAware, IPooledStaking {
   using SafeMath for uint;
@@ -404,6 +405,13 @@ contract PooledStaking is MasterAware, IPooledStaking {
     uint[] calldata _amounts,
     uint _insertAfter // unstake request id after which the new unstake request will be inserted
   ) external whenNotPausedAndInitialized onlyMember {
+
+    bytes32 stagePosition = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
+    uint migrationFinished = 0;
+    assembly {
+      migrationFinished := sload(stagePosition)
+    }
+    require(migrationFinished != 1, "Migration in progress");
 
     require(
       _contracts.length == _amounts.length,
@@ -974,18 +982,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     initialized = true;
   }
 
-  function initializeRewardRoundsStart() public {
-    require(REWARD_ROUNDS_START == 0, "REWARD_ROUNDS_START already initialized");
-    REWARD_ROUNDS_START = 1600074000;
-    REWARD_ROUND_DURATION = 7 days;
-
-    bytes32 location = MIGRATION_LAST_ID_POSITION;
-    uint lastRewardIdValue = lastRewardId;
-    assembly {
-      sstore(location, lastRewardIdValue)
-    }
-  }
-
   function changeDependentContractAddress() public {
 
     token = NXMToken(master.tokenAddress());
@@ -995,61 +991,109 @@ contract PooledStaking is MasterAware, IPooledStaking {
       initialize();
     }
 
-    if (REWARD_ROUNDS_START == 0) {
-      initializeRewardRoundsStart();
-    }
+    initializeLockTimeMigration();
   }
 
-  event RewardsMigrationCompleted(
+  event LockTimeMigrationCompleted(
     bool finished,
-    uint firstReward,
+    uint firstUnstake,
     uint iterationsLeft
   );
 
-  bytes32 private constant MIGRATION_LAST_ID_POSITION = keccak256("nexusmutual.pooledstaking.MIGRATION_LAST_ID_POINTER");
+  bytes32 private constant LOCK_TIME_MIGRATION_STAGE_POSITION = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_STAGE");
+  bytes32 private constant LOCK_TIME_MIGRATION_FIRST_ID_POSITION = keccak256("nexusmutual.pooledstaking._LOCK_TIME_MIGRATION_FIRST_ID_POINTER");
+  bytes32 private constant LOCK_TIME_MIGRATION_LAST_ID_POSITION = keccak256("nexusmutual.pooledstaking._LOCK_TIME_MIGRATION_LAST_ID_POINTER");
 
-  function migrateRewardsToAccumulatedRewards(uint maxIterations) external returns (bool finished, uint iterationsLeft)  {
-    require(firstReward != 0, "Nothing to migrate");
-
-    uint ACCUMULATED_REWARDS_MIGRATION_LAST_ID;
-    bytes32 location = MIGRATION_LAST_ID_POSITION;
+  function initializeLockTimeMigration() public {
+    bytes32 stagePosition = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
+    uint initialized = 0;
     assembly {
-      ACCUMULATED_REWARDS_MIGRATION_LAST_ID := sload(location)
+      initialized := sload(stagePosition)
+    }
+    console.log("initialized", initialized);
+    if (initialized != 0) {
+      return;
     }
 
-    require(firstReward <= ACCUMULATED_REWARDS_MIGRATION_LAST_ID, "Exceeded last migration id");
+    uint newLockTime = 30 days;
+    UNSTAKE_LOCK_TIME = newLockTime;
+
+    bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
+    uint firstIdValue = unstakeRequests[0].next;
+    assembly {
+      sstore(firstIdLocation, firstIdValue)
+    }
+
+    bytes32 lastIdLocation = LOCK_TIME_MIGRATION_LAST_ID_POSITION;
+    uint lastIdValue = lastUnstakeRequestId;
+    assembly {
+      sstore(lastIdLocation, lastIdValue)
+    }
+    console.log("firstIdValue", firstIdValue);
+    console.log("lastIdValue", lastIdValue);
+
+    assembly {
+      // mark as initialized
+      sstore(stagePosition, 1)
+    }
+  }
+
+  function migratePendingUnstakesToNewLockTime(uint maxIterations) external returns (bool finished, uint iterationsLeft) {
+
+    uint LOCK_TIME_MIGRATION_FIRST_ID;
+    bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
+    assembly {
+      LOCK_TIME_MIGRATION_FIRST_ID := sload(firstIdLocation)
+    }
+
+    uint LOCK_TIME_MIGRATION_LAST_ID;
+    bytes32 lastIdLocation = LOCK_TIME_MIGRATION_LAST_ID_POSITION;
+    assembly {
+      LOCK_TIME_MIGRATION_LAST_ID := sload(lastIdLocation)
+    }
+
+    console.log("LOCK_TIME_MIGRATION_FIRST_ID", LOCK_TIME_MIGRATION_FIRST_ID);
+    console.log("LOCK_TIME_MIGRATION_LAST_ID", LOCK_TIME_MIGRATION_LAST_ID);
+
+    require(LOCK_TIME_MIGRATION_FIRST_ID <= LOCK_TIME_MIGRATION_LAST_ID, "PooledStaking: Exceeded last migration id");
+
+    uint next = LOCK_TIME_MIGRATION_FIRST_ID;
 
     iterationsLeft = maxIterations;
-
-    while (!finished && iterationsLeft > 0) {
+    while (!finished && maxIterations > 0) {
 
       iterationsLeft--;
+      UnstakeRequest storage unstakeRequest = unstakeRequests[next];
+      unstakeRequest.unstakeAt = unstakeRequest.unstakeAt - 60 days;
+//      console.log("next", next);
+//      console.log("unstakeAt", unstakeRequest.unstakeAt);
+//      console.log("------");
+      next = unstakeRequest.next;
 
-      Reward storage reward = rewards[firstReward];
-      ContractReward storage accumulatedReward = accumulatedRewards[reward.contractAddress];
-      accumulatedReward.amount = accumulatedReward.amount.add(reward.amount);
-      emit RewardAdded(reward.contractAddress, reward.amount);
-
-      delete rewards[firstReward];
-      firstReward++;
-
-      if (firstReward > ACCUMULATED_REWARDS_MIGRATION_LAST_ID) {
+      if (next == 0 || next > LOCK_TIME_MIGRATION_LAST_ID) {
         finished = true;
       }
+    }
 
-      if (firstReward > lastRewardId) {
-        firstReward = 0;
-        finished = true;
+    if (!finished) {
+      // move the starting position to ensure lock time is not adjusted twice
+      assembly {
+        sstore(firstIdLocation, next)
       }
     }
 
     if (finished) {
+      bytes32 stageLocation = LOCK_TIME_MIGRATION_STAGE_POSITION;
       assembly {
-        sstore(location, 0)
+        // clear pointers
+        sstore(firstIdLocation, 0)
+        sstore(lastIdLocation, 0)
+        // mark it as finished
+        sstore(stageLocation, 2)
       }
     }
 
-    emit RewardsMigrationCompleted(finished, firstReward, iterationsLeft);
+    emit LockTimeMigrationCompleted(finished, firstReward, iterationsLeft);
     return (finished, iterationsLeft);
   }
 }

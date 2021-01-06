@@ -152,7 +152,7 @@ describe.only('lock time migration', function () {
     this.ps = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
   });
 
-  async function readCurrentUnstakes ({ ps }) {
+  async function readCurrentUnstakes ({ ps, maxBatches }) {
     const start = await ps.unstakeRequestAtIndex(0);
     const startIndex = start.next;
 
@@ -172,6 +172,10 @@ describe.only('lock time migration', function () {
     const allUnstakeRequests = [];
     let i = 0;
     for (const batch of batches) {
+      if (maxBatches && i >= maxBatches) {
+        console.log(`Reached maxBatches=${maxBatches}`);
+        break;
+      }
       console.log({
         batch: i++,
       });
@@ -185,6 +189,7 @@ describe.only('lock time migration', function () {
 
   async function assertUnstakes (unstakesBefore, unstakesAfter) {
     assert.equal(unstakesBefore.length, unstakesAfter.length);
+
     for (let i = 0; i < unstakesBefore.length; i++) {
 
       const before = unstakesBefore[i];
@@ -199,6 +204,30 @@ describe.only('lock time migration', function () {
       assert.equal(before.contractAddress, after.contractAddress);
       assert.equal(before.stakerAddress, after.stakerAddress);
     }
+  }
+
+  async function calculateUnstakeOutcome (unstakesBefore) {
+    const now = Math.floor(new Date().getTime() / 1000);
+    const toBeUnstaked = [];
+    for (const unstake of unstakesBefore) {
+      const newUnstakeTime = unstake.unstakeAt.toNumber() - 60 * day;
+      console.log({
+        unstakeTime: newUnstakeTime,
+        now,
+      });
+      if (newUnstakeTime < now) {
+        toBeUnstaked.push(unstake);
+      }
+    }
+    let totalUnstaked = new BN('0');
+    for (const futureUnstake of toBeUnstaked) {
+      totalUnstaked = futureUnstake.amount.add(totalUnstaked);
+    }
+
+    return {
+      totalUnstaked,
+      toBeUnstaked,
+    };
   }
 
   it(`users can't unstake until migration is not finished`, async function () {
@@ -231,8 +260,16 @@ describe.only('lock time migration', function () {
 
     const MAX_ITERATIONS = 1000;
 
+    const maxBatches = undefined;
     console.log('Reading unstakes before migration..');
-    const unstakesBeforeMigration = await readCurrentUnstakes({ ps });
+    const unstakesBeforeMigration = await readCurrentUnstakes({ ps, maxBatches });
+
+    const { totalUnstaked, toBeUnstaked } = await calculateUnstakeOutcome(unstakesBeforeMigration);
+    console.log({
+      totalExpectedUnstaked: totalUnstaked.toString(),
+      totalExpectedUnstakedUnits: totalUnstaked.div(new BN(1e18.toString())).toString(),
+      unstakeRequestsToProcess: toBeUnstaked.length,
+    });
 
     let finished = false;
     let totalGasUsed = 0;
@@ -250,7 +287,7 @@ describe.only('lock time migration', function () {
     }
 
     console.log('Reading unstakes after migration..');
-    const unstakesAfterMigration = await readCurrentUnstakes({ ps });
+    const unstakesAfterMigration = await readCurrentUnstakes({ ps, maxBatches });
 
     await expectRevert(
       ps.migratePendingUnstakesToNewLockTime(1),

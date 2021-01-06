@@ -21,6 +21,23 @@ const addNewInternalContractCategoryId = 34;
 
 const day = 24 * 60 * 60;
 
+function batch (a, batchSize) {
+  const batches = [];
+  let currentBatch = [];
+  for (let i = 0; i < a.length; i++) {
+    if (currentBatch.length === batchSize) {
+      batches.push(currentBatch);
+      currentBatch = [a[i]];
+    } else {
+      currentBatch.push(a[i]);
+    }
+  }
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+  return batches;
+}
+
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, submitter) {
 
   const proposalTitle = 'proposal';
@@ -136,7 +153,52 @@ describe.only('lock time migration', function () {
   });
 
   async function readCurrentUnstakes ({ ps }) {
-    await ps.read;
+    const start = await ps.unstakeRequestAtIndex(0);
+    const startIndex = start.next;
+
+    const lastUnstakeRequestId = await ps.lastUnstakeRequestId();
+    const allUnstakeIds = [];
+    for (let i = startIndex; i <= lastUnstakeRequestId.toNumber(); i++) {
+      allUnstakeIds.push(i);
+    }
+
+    const batchSize = 50;
+    const batches = batch(allUnstakeIds, batchSize);
+    console.log({
+      batcheslen: batches.length,
+      batchSize,
+      totalLen: allUnstakeIds.length,
+    });
+    const allUnstakeRequests = [];
+    let i = 0;
+    for (const batch of batches) {
+      console.log({
+        batch: i++,
+      });
+      const unstakesBatch = await Promise.all(batch.map(i => ps.unstakeRequestAtIndex(i)));
+      allUnstakeRequests.push(...unstakesBatch);
+    }
+
+    console.log(`Found ${allUnstakeRequests.length} unstake requests`);
+    return allUnstakeRequests;
+  }
+
+  async function assertUnstakes (unstakesBefore, unstakesAfter) {
+    assert.equal(unstakesBefore.length, unstakesAfter.length);
+    for (let i = 0; i < unstakesBefore.length; i++) {
+
+      const before = unstakesBefore[i];
+      const after = unstakesAfter[i];
+      assert.equal(before.amount.toString(), before.amount.toString());
+      const expectedUnstakeAt = before.unstakeAt.toNumber() - 60 * day;
+      // console.log({
+      //   before: before.unstakeAt.toNumber(),
+      //   after: after.unstakeAt.toNumber(),
+      // });
+      assert.equal(after.unstakeAt.toString(), expectedUnstakeAt.toString());
+      assert.equal(before.contractAddress, after.contractAddress);
+      assert.equal(before.stakerAddress, after.stakerAddress);
+    }
   }
 
   it(`users can't unstake until migration is not finished`, async function () {
@@ -160,7 +222,6 @@ describe.only('lock time migration', function () {
 
   it('migrates pending unstakes to new lock time', async function () {
     const { ps } = this;
-    // TODO
 
     console.log('rerruning migration re-initialization. (no-op)');
     await ps.initializeLockTimeMigration();
@@ -169,6 +230,9 @@ describe.only('lock time migration', function () {
     assert.equal(newLockTime.toString(), (30 * day).toString());
 
     const MAX_ITERATIONS = 1000;
+
+    console.log('Reading unstakes before migration..');
+    const unstakesBeforeMigration = await readCurrentUnstakes({ ps });
 
     let finished = false;
     let totalGasUsed = 0;
@@ -185,10 +249,17 @@ describe.only('lock time migration', function () {
       callCount++;
     }
 
+    console.log('Reading unstakes after migration..');
+    const unstakesAfterMigration = await readCurrentUnstakes({ ps });
+
     await expectRevert(
       ps.migratePendingUnstakesToNewLockTime(1),
       'PooledStaking: Migration finished or uninitialized',
     );
+
+    console.log('Asserting unstakes changed correctly..');
+
+    assertUnstakes(unstakesBeforeMigration, unstakesAfterMigration);
 
     console.log({
       totalGasUsed,

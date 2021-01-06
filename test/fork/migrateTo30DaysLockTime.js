@@ -150,6 +150,13 @@ describe.only('lock time migration', function () {
     this.tk = tk;
     this.tf = await TokenFunctions.at(await master.getLatestAddress(hex('TF')));
     this.ps = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
+
+    const psNXMBalance = await tk.balanceOf(this.ps.address);
+    const nxmSupply = await tk.totalSupply();
+    this.balances = {
+      psNXMBalance,
+      nxmSupply,
+    };
   });
 
   async function readCurrentUnstakes ({ ps, maxBatches }) {
@@ -304,6 +311,15 @@ describe.only('lock time migration', function () {
     });
   });
 
+  it('nxm balances stay the same after migration', async function () {
+    const { tk, balances } = this;
+    const psNXMBalance = await tk.balanceOf(this.ps.address);
+    const nxmSupply = await tk.totalSupply();
+
+    assert.equal(psNXMBalance.toString(), balances.psNXMBalance.toString());
+    assert.equal(nxmSupply.toString(), balances.nxmSupply.toString());
+  });
+
   it(`users can unstake after migration is finished and get 30 day lock time`, async function () {
     const { ps, firstBoardMember } = this;
 
@@ -369,5 +385,14 @@ describe.only('lock time migration', function () {
       processPendingActionsTotalGasUsed,
       totalCalls,
     });
+  });
+
+  it('nxm balances stay the same after processPendingActions', async function () {
+    const { tk, balances } = this;
+    const psNXMBalance = await tk.balanceOf(this.ps.address);
+    const nxmSupply = await tk.totalSupply();
+
+    assert.equal(psNXMBalance.toString(), balances.psNXMBalance.toString());
+    assert.equal(nxmSupply.toString(), balances.nxmSupply.toString());
   });
 });

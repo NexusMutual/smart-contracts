@@ -135,6 +135,10 @@ describe.only('lock time migration', function () {
     this.ps = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
   });
 
+  async function readCurrentUnstakes ({ ps }) {
+    await ps.read;
+  }
+
   it('migrates pending unstakes to new lock time', async function () {
     const { ps } = this;
     // TODO
@@ -164,7 +168,7 @@ describe.only('lock time migration', function () {
 
     await expectRevert(
       ps.migratePendingUnstakesToNewLockTime(1),
-      'PooledStaking: Migration finished',
+      'PooledStaking: Migration finished or unitialized',
     );
 
     console.log({

@@ -61,7 +61,7 @@
     "test-integration": "hardhat test test/integration/index.js",
     "test-unit": "hardhat test test/unit/index.js",
     "deploy": "hardhat compile && node scripts/deploy.js",
-    "fork-test": "echo not tested; exit 1; TEST_ENV_FORK=https://parity.nexusmutual.io mocha --exit test/fork",
+    "test-fork": "TEST_ENV_FORK=https://parity.nexusmutual.io/ hardhat test test/fork/index.js",
     "typechain": "hardhat typechain"
   }
 }

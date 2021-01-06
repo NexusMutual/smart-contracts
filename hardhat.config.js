@@ -20,6 +20,12 @@ const {
   MAINNET_PROVIDER_URL,
 } = process.env;
 
+const forkURL = process.env.TEST_ENV_FORK;
+console.log({
+  forkURL,
+});
+const forkConfig = forkURL ? { forking: { url: forkURL } } : {};
+
 const networks = {
   hardhat: {
     accounts: {
@@ -28,6 +34,7 @@ const networks = {
     },
     allowUnlimitedContractSize: true,
     blockGasLimit: 12e9,
+    ...forkConfig,
   },
 };
 

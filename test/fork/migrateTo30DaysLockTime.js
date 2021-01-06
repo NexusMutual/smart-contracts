@@ -52,7 +52,7 @@ describe.only('lock time migration', function () {
 
   it('performs contract upgrades', async function () {
 
-    const { data: versionData } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
+    const versionData = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());
     const [{ address: masterAddress }] = versionData.mainnet.abis.filter(({ code }) => code === 'NXMASTER');
 
     const master = await NXMaster.at(masterAddress);

@@ -356,14 +356,10 @@ describe.only('lock time migration', function () {
       const processTx = await ps.processPendingActions('100');
       const gasUsed = processTx.receipt.gasUsed;
       processPendingActionsTotalGasUsed += gasUsed;
-      // firstReward = await ps.firstReward();
-      // lastRewardId = await ps.lastRewardId();
       console.log({
         i,
         gasUsed,
         processPendingActionsTotalGasUsed,
-        // firstReward: firstReward.toString(),
-        // lastRewardId: lastRewardId.toString(),
       });
       totalCalls++;
       i++;

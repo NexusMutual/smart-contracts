@@ -1046,7 +1046,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     assembly {
       migrationStage := sload(stageLocation)
     }
-    require(migrationStage < 2, "PooledStaking: Migration finished");
+    require(migrationStage == 1, "PooledStaking: Migration finished");
 
     uint LOCK_TIME_MIGRATION_FIRST_ID;
     bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;

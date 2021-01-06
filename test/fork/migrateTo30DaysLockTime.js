@@ -46,7 +46,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
-describe.only('rewards migration', function () {
+describe.only('lock time migration', function () {
 
   this.timeout(0);
 

@@ -19,6 +19,8 @@ const upgradeProxyImplementationCategoryId = 5;
 const newContractAddressUpgradeCategoryId = 29;
 const addNewInternalContractCategoryId = 34;
 
+const day = 24 * 60 * 60;
+
 async function submitGovernanceProposal (categoryId, actionHash, members, gv, submitter) {
 
   const proposalTitle = 'proposal';
@@ -134,7 +136,77 @@ describe.only('lock time migration', function () {
   });
 
   it('migrates pending unstakes to new lock time', async function () {
+    const { ps } = this;
     // TODO
 
+    console.log('rerruning migration re-initialization. (no-op)');
+    await ps.initializeLockTimeMigration();
+
+    const newLockTime = await ps.UNSTAKE_LOCK_TIME();
+    assert.equal(newLockTime.toString(), (30 * day).toString());
+
+    const MAX_ITERATIONS = 1000;
+
+    let finished = false;
+    let totalGasUsed = 0;
+    let callCount = 0;
+    while (!finished) {
+      const tx = await ps.migratePendingUnstakesToNewLockTime(MAX_ITERATIONS);
+      console.log('tx.receipt.gasUsed', tx.receipt.gasUsed);
+      totalGasUsed += tx.receipt.gasUsed;
+      const [lockTimeMigrationCompleted] = tx.logs.filter(log => log.event === 'LockTimeMigrationCompleted');
+      finished = lockTimeMigrationCompleted.args.finished;
+      console.log('startUnstakeIndex', lockTimeMigrationCompleted.args.startUnstakeIndex.toString());
+      console.log('endUnstakeIndex', lockTimeMigrationCompleted.args.endUnstakeIndex.toString());
+      console.log(`Processing migration finished: ${finished}`);
+      callCount++;
+    }
+
+    await expectRevert(
+      ps.migratePendingUnstakesToNewLockTime(1),
+      'PooledStaking: Migration finished',
+    );
+
+    console.log({
+      totalGasUsed,
+      callCount,
+    });
+  });
+
+  it('processes pending actions to clear out all ready unstakes', async function () {
+    const { ps } = this;
+
+    let processPendingActionsTotalGasUsed = 0;
+    let totalCalls = 0;
+    let i = 0;
+    while (true) {
+      console.log(`ps.processPendingActions('100');`);
+
+      const hasActions = await ps.hasPendingActions();
+      if (!hasActions) {
+        console.log(`Done processing.`);
+        break;
+      }
+
+      const processTx = await ps.processPendingActions('100');
+      const gasUsed = processTx.receipt.gasUsed;
+      processPendingActionsTotalGasUsed += gasUsed;
+      // firstReward = await ps.firstReward();
+      // lastRewardId = await ps.lastRewardId();
+      console.log({
+        i,
+        gasUsed,
+        processPendingActionsTotalGasUsed,
+        // firstReward: firstReward.toString(),
+        // lastRewardId: lastRewardId.toString(),
+      });
+      totalCalls++;
+      i++;
+    }
+
+    console.log({
+      processPendingActionsTotalGasUsed,
+      totalCalls,
+    });
   });
 });

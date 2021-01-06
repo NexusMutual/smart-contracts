@@ -406,12 +406,12 @@ contract PooledStaking is MasterAware, IPooledStaking {
     uint _insertAfter // unstake request id after which the new unstake request will be inserted
   ) external whenNotPausedAndInitialized onlyMember {
 
-    bytes32 stagePosition = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
-    uint migrationFinished = 0;
+    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
+    uint migrationStage = 0;
     assembly {
-      migrationFinished := sload(stagePosition)
+      migrationStage := sload(stagePosition)
     }
-    require(migrationFinished != 1, "Migration in progress");
+    require(migrationStage == 2, "Migration in progress");
 
     require(
       _contracts.length == _amounts.length,
@@ -996,7 +996,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   event LockTimeMigrationCompleted(
     bool finished,
-    uint firstUnstake,
+    uint startUnstakeIndex,
+    uint endUnstakeIndex,
     uint iterationsLeft
   );
 
@@ -1005,7 +1006,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
   bytes32 private constant LOCK_TIME_MIGRATION_LAST_ID_POSITION = keccak256("nexusmutual.pooledstaking._LOCK_TIME_MIGRATION_LAST_ID_POINTER");
 
   function initializeLockTimeMigration() public {
-    bytes32 stagePosition = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
+    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
     uint initialized = 0;
     assembly {
       initialized := sload(stagePosition)
@@ -1040,6 +1041,13 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function migratePendingUnstakesToNewLockTime(uint maxIterations) external returns (bool finished, uint iterationsLeft) {
 
+    bytes32 stageLocation = LOCK_TIME_MIGRATION_STAGE_POSITION;
+    uint migrationStage = 0;
+    assembly {
+      migrationStage := sload(stageLocation)
+    }
+    require(migrationStage < 2, "PooledStaking: Migration finished");
+
     uint LOCK_TIME_MIGRATION_FIRST_ID;
     bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
     assembly {
@@ -1060,7 +1068,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
     uint next = LOCK_TIME_MIGRATION_FIRST_ID;
 
     iterationsLeft = maxIterations;
-    while (!finished && maxIterations > 0) {
+    while (!finished && iterationsLeft > 0) {
 
       iterationsLeft--;
       UnstakeRequest storage unstakeRequest = unstakeRequests[next];
@@ -1083,7 +1091,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     }
 
     if (finished) {
-      bytes32 stageLocation = LOCK_TIME_MIGRATION_STAGE_POSITION;
       assembly {
         // clear pointers
         sstore(firstIdLocation, 0)
@@ -1093,7 +1100,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
       }
     }
 
-    emit LockTimeMigrationCompleted(finished, firstReward, iterationsLeft);
+    emit LockTimeMigrationCompleted(finished, LOCK_TIME_MIGRATION_FIRST_ID, next, iterationsLeft);
     return (finished, iterationsLeft);
   }
 }

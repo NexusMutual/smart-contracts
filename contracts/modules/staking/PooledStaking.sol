@@ -26,7 +26,6 @@ import "../token/NXMToken.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
 import "../token/TokenFunctions.sol";
-import "hardhat/console.sol";
 
 contract PooledStaking is MasterAware, IPooledStaking {
   using SafeMath for uint;
@@ -1011,7 +1010,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     assembly {
       initialized := sload(stagePosition)
     }
-    console.log("initialized", initialized);
     if (initialized != 0) {
       return;
     }
@@ -1030,8 +1028,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     assembly {
       sstore(lastIdLocation, lastIdValue)
     }
-    console.log("firstIdValue", firstIdValue);
-    console.log("lastIdValue", lastIdValue);
 
     assembly {
       // mark as initialized
@@ -1060,9 +1056,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
       LOCK_TIME_MIGRATION_LAST_ID := sload(lastIdLocation)
     }
 
-    console.log("LOCK_TIME_MIGRATION_FIRST_ID", LOCK_TIME_MIGRATION_FIRST_ID);
-    console.log("LOCK_TIME_MIGRATION_LAST_ID", LOCK_TIME_MIGRATION_LAST_ID);
-
     require(LOCK_TIME_MIGRATION_FIRST_ID <= LOCK_TIME_MIGRATION_LAST_ID, "PooledStaking: Exceeded last migration id");
 
     uint next = LOCK_TIME_MIGRATION_FIRST_ID;
@@ -1073,9 +1066,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
       iterationsLeft--;
       UnstakeRequest storage unstakeRequest = unstakeRequests[next];
       unstakeRequest.unstakeAt = unstakeRequest.unstakeAt - 60 days;
-//      console.log("next", next);
-//      console.log("unstakeAt", unstakeRequest.unstakeAt);
-//      console.log("------");
       next = unstakeRequest.next;
 
       if (next == 0 || next > LOCK_TIME_MIGRATION_LAST_ID) {

@@ -354,6 +354,18 @@ describe.only('NXM sells and buys', function () {
     assert.strictEqual(actualMasterImplementation, masterImplementation.address);
   });
 
+  it('reverts on buy higher than 5% mcrEth', async function () {
+    const { poolData, pool, token } = this;
+
+    const mcrEth = await poolData.getLastMCREther();
+    const ethIn = percentageBN(mcrEth, 5.10);
+
+    await expectRevert(
+      pool.buyNXM('0', { value: ethIn, from: Address.NXMHOLDER }),
+      'Pool: Purchases worth higher than 5% of MCReth are not allowed'
+    );
+  });
+
   it('performs max buy (5% mcrEth) and sells the NXM back (high sell spread expected)', async function () {
 
     const { poolData, pool, token } = this;
@@ -542,5 +554,12 @@ describe.only('NXM sells and buys', function () {
 
     assert.equal(newPoolEthAfter, poolEthBefore);
     assert.equal(newPoolDaiAfter.toString(), poolDaiBefore.toString());
+
+    console.log({
+      poolEthBefore: poolEthBefore.toString(),
+      poolDaiBefore: poolDaiBefore.toString(),
+      newPoolEthAfter: newPoolEthAfter.toString(),
+      newPoolDaiAfter: newPoolDaiAfter.toString(),
+    });
   });
 });

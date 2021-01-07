@@ -834,6 +834,13 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function _processFirstUnstakeRequest() internal {
 
+    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
+    uint migrationStage = 0;
+    assembly {
+      migrationStage := sload(stagePosition)
+    }
+    require(migrationStage == 2, "PooledStaking: Migration in progress");
+
     uint firstRequest = unstakeRequests[0].next;
     UnstakeRequest storage unstakeRequest = unstakeRequests[firstRequest];
     address stakerAddress = unstakeRequest.stakerAddress;

@@ -103,6 +103,7 @@ describe.only('lock time migration', function () {
     const mr = await MemberRoles.at(nameToAddressMap['MR']);
     const tk = await NXMToken.at(nameToAddressMap['NXMTOKEN']);
     const gv = await Governance.at(nameToAddressMap['GV']);
+    const ps = await PooledStaking.at(nameToAddressMap['PS']);
 
     const owners = await mr.members('3');
     const firstBoardMember = owners.memberArray[0];
@@ -121,6 +122,9 @@ describe.only('lock time migration', function () {
       await web3.eth.sendTransaction({ from: funder, to: member, value: ether('100000') });
       await unlock(member);
     }
+
+    const REWARD_ROUND_DURATION = await ps.REWARD_ROUND_DURATION();
+    const REWARD_ROUNDS_START = await ps.REWARD_ROUNDS_START();
 
     console.log(`Deploying new contracts`);
     const newPS = await PooledStaking.new();
@@ -142,6 +146,14 @@ describe.only('lock time migration', function () {
     const storedNewPSAddress = await psProxy.implementation();
     assert.equal(storedNewPSAddress, newPSAddress);
 
+    const latestPS = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
+
+    const NEW_REWARD_ROUND_DURATION = await latestPS.REWARD_ROUND_DURATION();
+    const NEW_REWARD_ROUNDS_START = await latestPS.REWARD_ROUNDS_START();
+
+    assert.equal(NEW_REWARD_ROUND_DURATION.toString(), REWARD_ROUND_DURATION.toString());
+    assert.equal(NEW_REWARD_ROUNDS_START.toString(), REWARD_ROUNDS_START.toString());
+
     console.log(`Successfully deployed new contracts`);
 
     this.firstBoardMember = firstBoardMember;
@@ -149,7 +161,7 @@ describe.only('lock time migration', function () {
     this.master = master;
     this.tk = tk;
     this.tf = await TokenFunctions.at(await master.getLatestAddress(hex('TF')));
-    this.ps = await PooledStaking.at(await master.getLatestAddress(hex('PS')));
+    this.ps = latestPS;
 
     const psNXMBalance = await tk.balanceOf(this.ps.address);
     const nxmSupply = await tk.totalSupply();

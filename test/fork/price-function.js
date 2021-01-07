@@ -354,7 +354,7 @@ describe.only('NXM sells and buys', function () {
     assert.strictEqual(actualMasterImplementation, masterImplementation.address);
   });
 
-  it('performs buys and sells', async function () {
+  it('performs max buy (5% mcrEth) and sells the NXM back (high sell spread expected)', async function () {
 
     const { poolData, pool, token } = this;
 
@@ -382,10 +382,46 @@ describe.only('NXM sells and buys', function () {
       ethIn: ethInDecimal.div(1e18).toString(),
     });
 
+    assert(ethInDecimal.gt(toDecimal(ethOut)), 'Amount out (sell) is higher than amount in (buy)');
     const { relativeError: sellSpreadRelativeError } = calculateEthForNXMRelativeError(ethInDecimal, ethOut);
-
     assert(
       sellSpreadRelativeError.lt(Decimal(0.08)),
+      `sell value too low ${ethOut.toFixed()}. sellSpreadRelativeError = ${sellSpreadRelativeError.toFixed()}`,
+    );
+  });
+
+  it('performs 1% mcrEth buy and sells the NXM back (~2.5% sell spread expected)', async function () {
+
+    const { poolData, pool, token } = this;
+
+    const mcrEth = await poolData.getLastMCREther();
+    const maxBuy = percentageBN(mcrEth, 1);
+
+    const balancePre = await token.balanceOf(Address.NXMHOLDER);
+    await pool.buyNXM('0', { value: maxBuy, from: Address.NXMHOLDER });
+    const balancePost = await token.balanceOf(Address.NXMHOLDER);
+    const nxmOut = balancePost.sub(balancePre);
+
+    const balancePreSell = await web3.eth.getBalance(Address.NXMHOLDER);
+    const sellTx = await pool.sellNXM(nxmOut, '0', { from: Address.NXMHOLDER });
+
+    const { gasPrice } = await web3.eth.getTransaction(sellTx.receipt.transactionHash);
+    const ethSpentOnGas = Decimal(sellTx.receipt.gasUsed).mul(Decimal(gasPrice));
+    const balancePostSell = await web3.eth.getBalance(Address.NXMHOLDER);
+    const ethOut = toDecimal(balancePostSell).sub(toDecimal(balancePreSell)).add(ethSpentOnGas);
+    const ethInDecimal = toDecimal(maxBuy);
+
+    assert(ethOut.lt(ethInDecimal), 'ethOut > ethIn');
+
+    console.log({
+      ethOut: toDecimal(ethOut).div(1e18).toString(),
+      ethIn: ethInDecimal.div(1e18).toString(),
+    });
+
+    assert(ethInDecimal.gt(toDecimal(ethOut)), 'Amount out (sell) is higher than amount in (buy)');
+    const { relativeError: sellSpreadRelativeError } = calculateEthForNXMRelativeError(ethInDecimal, ethOut);
+    assert(
+      sellSpreadRelativeError.lt(Decimal(0.0003)),
       `sell value too low ${ethOut.toFixed()}. sellSpreadRelativeError = ${sellSpreadRelativeError.toFixed()}`,
     );
   });

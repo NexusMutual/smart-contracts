@@ -333,6 +333,8 @@ describe.only('NXM sells and buys', function () {
 
     this.priceFeedOracle = priceFeedOracle;
     this.pool = pool;
+    this.twapOracle = twapOracle;
+    this.dai = dai;
   });
 
   it('upgrade temporary master ', async function () {
@@ -458,9 +460,11 @@ describe.only('NXM sells and buys', function () {
     );
   });
 
-  it('peforms hypothetical future Pool upgrade', async function () {
+  it('performs hypothetical future Pool upgrade', async function () {
 
-    const pool = await Pool.new(
+    const { pool, priceFeedOracle, voters, governance, master, twapOracle, dai } = this;
+
+    const newPool = await Pool.new(
       [Address.DAI],
       [0],
       [ether('10000000')],
@@ -474,10 +478,13 @@ describe.only('NXM sells and buys', function () {
     const actionData = web3.eth.abi.encodeParameters(
       ['bytes2[]', 'address[]'],
       [
-        ['TF', 'CL', 'MC', 'QT', 'CR', 'P1', 'P2'].map(hex),
-        [newTF, newCL, newMCR, newQuotation, newClaimsReward, pool, newPool2].map(c => c.address),
+        ['P1'].map(hex),
+        [newPool].map(c => c.address),
       ],
     );
+
+    const poolEthBefore = await web3.eth.getBalance(pool.address);
+    const poolDaiBefore = await dai.balanceOf(pool.address);
 
     await submitGovernanceProposal(
       ProposalCategory.upgradeNonProxy,
@@ -486,5 +493,18 @@ describe.only('NXM sells and buys', function () {
       governance,
     );
 
+    const storedP1Address = await master.getLatestAddress(hex('P1'));
+    assert.equal(storedP1Address, newPool.address);
+
+    const poolEthAfter = await web3.eth.getBalance(pool.address);
+    const poolDaiAfter = await dai.balanceOf(pool.address);
+    assert.equal(poolEthAfter, '0');
+    assert.equal(poolDaiAfter.toString(), '0');
+
+    const newPoolEthAfter = await web3.eth.getBalance(newPool.address);
+    const newPoolDaiAfter = await dai.balanceOf(newPool.address);
+
+    assert.equal(newPoolEthAfter, poolEthBefore);
+    assert.equal(newPoolDaiAfter.toString(), poolDaiBefore.toString());
   });
 });

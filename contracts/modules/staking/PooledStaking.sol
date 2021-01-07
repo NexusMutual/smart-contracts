@@ -1011,6 +1011,12 @@ contract PooledStaking is MasterAware, IPooledStaking {
   bytes32 private constant LOCK_TIME_MIGRATION_FIRST_ID_POSITION = keccak256("nexusmutual.pooledstaking._LOCK_TIME_MIGRATION_FIRST_ID_POINTER");
 
   function initializeLockTimeMigration() public {
+    /*
+     Migration stages:
+     0 - not initialized
+     1 - in progress
+     2 - finished ( requestUnstake and _processFirstUnstakeRequest unblocked )
+    */
     bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
     uint initialized = 0;
     assembly {

@@ -138,8 +138,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
   // contract address => ContractRewards
   mapping(address => ContractReward) public accumulatedRewards;
 
-  uint public REWARD_ROUND_DURATION = 7 days;
-  uint public REWARD_ROUNDS_START = 1600074000;
+  uint public REWARD_ROUND_DURATION;
+  uint public REWARD_ROUNDS_START;
 
   /* Modifiers */
 

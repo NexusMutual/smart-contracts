@@ -213,8 +213,20 @@ describe.only('lock time migration', function () {
     return allUnstakeRequests;
   }
 
-  async function assertUnstakes (unstakesBefore, unstakesAfter) {
+  async function assertUnstakes (allUnstakesBefore, unstakesAfter, now) {
+
+    const diff = allUnstakesBefore.length - unstakesAfter.length;
+    const processedUnstakes = allUnstakesBefore.slice(0, diff);
+    const unstakesBefore = allUnstakesBefore.slice(diff);
+
     assert.equal(unstakesBefore.length, unstakesAfter.length);
+    assert.equal(processedUnstakes.length, diff);
+
+    for (let i = 0; i < processedUnstakes.length; i++) {
+      const before = processedUnstakes[i];
+      const expectedUnstakeAt = before.unstakeAt.toNumber() - 60 * day;
+      assert(expectedUnstakeAt <= now);
+    }
 
     for (let i = 0; i < unstakesBefore.length; i++) {
 
@@ -253,12 +265,9 @@ describe.only('lock time migration', function () {
   }
 
   it('migrates pending unstakes to new lock time', async function () {
+
     const { ps } = this;
-
-    console.log('rerruning migration re-initialization. (no-op)');
-    await ps.initializeLockTimeMigration();
-
-    const MAX_ITERATIONS = 1000;
+    const MAX_ITERATIONS = 200;
 
     const maxBatches = undefined;
     console.log('Reading unstakes before migration..');
@@ -274,8 +283,9 @@ describe.only('lock time migration', function () {
     let finished = false;
     let totalGasUsed = 0;
     let callCount = 0;
+
     while (!finished) {
-      const tx = await ps.migratePendingUnstakesToNewLockTime(MAX_ITERATIONS);
+      const tx = await ps.migratePendingUnstakesToNewLockTime(MAX_ITERATIONS, { gas: 12e6 });
       console.log('tx.receipt.gasUsed', tx.receipt.gasUsed);
       totalGasUsed += tx.receipt.gasUsed;
       const [lockTimeMigrationCompleted] = tx.logs.filter(log => log.event === 'LockTimeMigrationCompleted');
@@ -286,20 +296,21 @@ describe.only('lock time migration', function () {
       callCount++;
     }
 
+    const { timestamp: now } = await web3.eth.getBlock('latest');
+
     console.log('Reading unstakes after migration..');
     const unstakesAfterMigration = await readCurrentUnstakes({ ps, maxBatches });
 
     await expectRevert(
       ps.migratePendingUnstakesToNewLockTime(1),
-      'PooledStaking: Migration finished or uninitialized',
+      'PooledStaking: Migration finished',
     );
 
     console.log('Asserting unstakes changed correctly..');
+    assertUnstakes(unstakesBeforeMigration, unstakesAfterMigration, now);
 
-    const UNSTAKE_LOCK_TIME = await ps.UNSTAKE_LOCK_TIME();
-    assert.equal(UNSTAKE_LOCK_TIME.toString(), (30 * day).toString());
-
-    assertUnstakes(unstakesBeforeMigration, unstakesAfterMigration);
+    const newLockTime = await ps.UNSTAKE_LOCK_TIME();
+    assert.equal(newLockTime.toString(), (30 * day).toString());
 
     console.log({
       totalGasUsed,
@@ -348,56 +359,5 @@ describe.only('lock time migration', function () {
     assert.equal(unstake.contractAddress, firstContract);
     assert.equal(unstake.stakerAddress, firstBoardMember);
     assert.equal(unstake.next, '0');
-  });
-
-  it('processes pending actions to clear out all ready unstakes', async function () {
-    const { ps } = this;
-
-    let processPendingActionsTotalGasUsed = 0;
-    let totalCalls = 0;
-    let i = 0;
-    while (true) {
-      console.log(`ps.processPendingActions('100');`);
-
-      const hasActions = await ps.hasPendingActions();
-      if (!hasActions) {
-        console.log(`Done processing.`);
-        break;
-      }
-
-      const processTx = await ps.processPendingActions('100');
-      const gasUsed = processTx.receipt.gasUsed;
-      processPendingActionsTotalGasUsed += gasUsed;
-      console.log({
-        i,
-        gasUsed,
-        processPendingActionsTotalGasUsed,
-      });
-      totalCalls++;
-      i++;
-    }
-
-    console.log({
-      processPendingActionsTotalGasUsed,
-      totalCalls,
-    });
-
-    const start = await ps.unstakeRequestAtIndex(0);
-    const startIndex = start.next;
-
-    const lastUnstakeRequestId = await ps.lastUnstakeRequestId();
-    console.log({
-      startIndex: startIndex.toString(),
-      lastUnstakeRequestId: lastUnstakeRequestId.toString(),
-    });
-  });
-
-  it('nxm balances stay the same after processPendingActions', async function () {
-    const { tk, balances } = this;
-    const psNXMBalance = await tk.balanceOf(this.ps.address);
-    const nxmSupply = await tk.totalSupply();
-
-    assert.equal(psNXMBalance.toString(), balances.psNXMBalance.toString());
-    assert.equal(nxmSupply.toString(), balances.nxmSupply.toString());
   });
 });

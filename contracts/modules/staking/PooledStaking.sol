@@ -827,13 +827,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
 
   function _processFirstUnstakeRequest() internal {
 
-    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
-    uint migrationStage = 0;
-    assembly {
-      migrationStage := sload(stagePosition)
-    }
-    require(migrationStage == 2, "PooledStaking: Migration in progress");
-
     uint firstRequest = unstakeRequests[0].next;
     UnstakeRequest storage unstakeRequest = unstakeRequests[firstRequest];
     address stakerAddress = unstakeRequest.stakerAddress;
@@ -989,8 +982,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     if (!initialized) {
       initialize();
     }
-
-    initializeLockTimeMigration();
   }
 
   event LockTimeMigrationCompleted(
@@ -1000,96 +991,58 @@ contract PooledStaking is MasterAware, IPooledStaking {
     uint iterationsLeft
   );
 
-  bytes32 private constant LOCK_TIME_MIGRATION_STAGE_POSITION = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_STAGE");
-  bytes32 private constant LOCK_TIME_MIGRATION_FIRST_ID_POSITION = keccak256("nexusmutual.pooledstaking._LOCK_TIME_MIGRATION_FIRST_ID_POINTER");
+  function migratePendingUnstakesToNewLockTime(uint iterations) external {
 
-  function initializeLockTimeMigration() public {
-    /*
-     Migration stages:
-     0 - not initialized
-     1 - in progress
-     2 - finished ( requestUnstake and _processFirstUnstakeRequest unblocked )
-    */
-    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
-    uint initialized = 0;
-    assembly {
-      initialized := sload(stagePosition)
-    }
-    if (initialized != 0) {
-      return;
-    }
+    uint migrationStatus;
+    bytes32 migrationStatusSlot = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_STAGE");
+    assembly { migrationStatus := sload(migrationStatusSlot) }
+    require(migrationStatus == 0, 'PooledStaking: Migration finished');
 
-    if (lastUnstakeRequestId == 0) {
-      // nothing to migrate, mark it as finished
-      assembly {
-        sstore(stagePosition, 2)
-      }
-      return;
-    }
+    uint migrationRequestId;
+    bytes32 migrationRequestIdSlot = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_FIRST_ID_POINTER");
+    assembly { migrationRequestId := sload(migrationRequestIdSlot) }
 
-    bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
-    uint firstIdValue = unstakeRequests[0].next;
-    assembly {
-      sstore(firstIdLocation, firstIdValue)
-    }
+    bool finished = false;
+    uint next = migrationRequestId == 0 ? unstakeRequests[0].next : migrationRequestId;
+    uint firstId = next;
 
-    assembly {
-      // mark as initialized
-      sstore(stagePosition, 1)
-    }
-  }
+    while (iterations > 0) {
 
-  function migratePendingUnstakesToNewLockTime(uint maxIterations) external returns (bool finished, uint iterationsLeft) {
+      iterations--;
 
-    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
-    uint migrationStage = 0;
-    assembly {
-      migrationStage := sload(stagePosition)
-    }
-    require(migrationStage == 1, "PooledStaking: Migration finished or uninitialized");
-
-    uint firstId;
-    bytes32 firstIdLocation = LOCK_TIME_MIGRATION_FIRST_ID_POSITION;
-    assembly {
-      firstId := sload(firstIdLocation)
-    }
-
-    uint lastId = lastUnstakeRequestId;
-    uint next = firstId;
-    iterationsLeft = maxIterations;
-    while (!finished && iterationsLeft > 0) {
-
-      iterationsLeft--;
       UnstakeRequest storage unstakeRequest = unstakeRequests[next];
-      unstakeRequest.unstakeAt = unstakeRequest.unstakeAt - 60 days;
-      next = unstakeRequest.next;
+      uint newUnstakeTime = unstakeRequest.unstakeAt - 60 days;
 
-      // lastUnstakeRequestId remains fixed during migration since requestUnstake is disabled
-      if (next == 0 || next > lastId) {
-        finished = true;
+      if (next > 0 && newUnstakeTime <= now) {
+        _processFirstUnstakeRequest();
+        next = unstakeRequests[0].next;
+        continue;
       }
-    }
 
-    if (!finished) {
-      // move the starting position to ensure lock time is not adjusted twice
-      assembly {
-        sstore(firstIdLocation, next)
+      if (next > 0) {
+        unstakeRequest.unstakeAt = newUnstakeTime;
+        next = unstakeRequest.next;
+        continue;
       }
+
+      finished = true;
+      break;
     }
 
     if (finished) {
-      assembly {
-        // clear pointer
-        sstore(firstIdLocation, 0)
-        // mark it as finished
-        sstore(stagePosition, 2)
-      }
 
-      // set lock time for all future unstake requests at 30 days
+      // finished migration
       UNSTAKE_LOCK_TIME = 30 days;
+      assembly { sstore(migrationStatusSlot, 1) }
+      assembly { sstore(migrationRequestIdSlot, 0) }
+
+    } else {
+
+      // store progress
+      assembly { sstore(migrationRequestIdSlot, next) }
+
     }
 
-    emit LockTimeMigrationCompleted(finished, firstId, next, iterationsLeft);
-    return (finished, iterationsLeft);
+    emit LockTimeMigrationCompleted(finished, firstId, next, iterations);
   }
 }

@@ -405,13 +405,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     uint _insertAfter // unstake request id after which the new unstake request will be inserted
   ) external whenNotPausedAndInitialized onlyMember {
 
-    bytes32 stagePosition = LOCK_TIME_MIGRATION_STAGE_POSITION;
-    uint migrationStage = 0;
-    assembly {
-      migrationStage := sload(stagePosition)
-    }
-    require(migrationStage == 2, "PooledStaking: Migration in progress");
-
     require(
       _contracts.length == _amounts.length,
       "Contracts and amounts arrays should have the same length"
@@ -1026,8 +1019,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
       return;
     }
 
-    UNSTAKE_LOCK_TIME = 30 days;
-
     if (lastUnstakeRequestId == 0) {
       // nothing to migrate, mark it as finished
       assembly {
@@ -1093,6 +1084,9 @@ contract PooledStaking is MasterAware, IPooledStaking {
         // mark it as finished
         sstore(stagePosition, 2)
       }
+
+      // set lock time for all future unstake requests at 30 days
+      UNSTAKE_LOCK_TIME = 30 days;
     }
 
     emit LockTimeMigrationCompleted(finished, firstId, next, iterationsLeft);

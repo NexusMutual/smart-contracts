@@ -153,6 +153,9 @@ describe.only('lock time migration', function () {
 
     assert.equal(NEW_REWARD_ROUND_DURATION.toString(), REWARD_ROUND_DURATION.toString());
     assert.equal(NEW_REWARD_ROUNDS_START.toString(), REWARD_ROUNDS_START.toString());
+    const UNSTAKE_LOCK_TIME = await ps.UNSTAKE_LOCK_TIME();
+    // this value is still 90 until migration is finished
+    assert.equal(UNSTAKE_LOCK_TIME.toString(), (90 * day).toString());
 
     console.log(`Successfully deployed new contracts`);
 
@@ -176,6 +179,10 @@ describe.only('lock time migration', function () {
     const startIndex = start.next;
 
     const lastUnstakeRequestId = await ps.lastUnstakeRequestId();
+    console.log({
+      startIndex: startIndex.toString(),
+      lastUnstakeRequestId: lastUnstakeRequestId.toString(),
+    });
     const allUnstakeIds = [];
     for (let i = startIndex; i <= lastUnstakeRequestId.toNumber(); i++) {
       allUnstakeIds.push(i);
@@ -245,33 +252,11 @@ describe.only('lock time migration', function () {
     };
   }
 
-  it(`users can't unstake until migration is not finished`, async function () {
-    const { ps, firstBoardMember } = this;
-
-    const firstContract = await ps.stakerContractAtIndex(firstBoardMember, 0);
-    const minUnstake = await ps.MIN_UNSTAKE();
-    console.log({
-      message: 'Attempting unstake..',
-      firstContract,
-      firstBoardMember,
-      minUnstake: minUnstake.toString(),
-    });
-    expectRevert(
-      ps.requestUnstake([firstContract], [minUnstake], '0', {
-        from: firstBoardMember,
-      }),
-      'PooledStaking: Migration in progress',
-    );
-  });
-
   it('migrates pending unstakes to new lock time', async function () {
     const { ps } = this;
 
     console.log('rerruning migration re-initialization. (no-op)');
     await ps.initializeLockTimeMigration();
-
-    const newLockTime = await ps.UNSTAKE_LOCK_TIME();
-    assert.equal(newLockTime.toString(), (30 * day).toString());
 
     const MAX_ITERATIONS = 1000;
 
@@ -310,6 +295,9 @@ describe.only('lock time migration', function () {
     );
 
     console.log('Asserting unstakes changed correctly..');
+
+    const UNSTAKE_LOCK_TIME = await ps.UNSTAKE_LOCK_TIME();
+    assert.equal(UNSTAKE_LOCK_TIME.toString(), (30 * day).toString());
 
     assertUnstakes(unstakesBeforeMigration, unstakesAfterMigration);
 
@@ -392,6 +380,15 @@ describe.only('lock time migration', function () {
     console.log({
       processPendingActionsTotalGasUsed,
       totalCalls,
+    });
+
+    const start = await ps.unstakeRequestAtIndex(0);
+    const startIndex = start.next;
+
+    const lastUnstakeRequestId = await ps.lastUnstakeRequestId();
+    console.log({
+      startIndex: startIndex.toString(),
+      lastUnstakeRequestId: lastUnstakeRequestId.toString(),
     });
   });
 

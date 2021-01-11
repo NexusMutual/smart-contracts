@@ -1063,11 +1063,8 @@ contract PooledStaking is MasterAware, IPooledStaking {
       firstId := sload(firstIdLocation)
     }
 
-    // lastUnstakeRequestId remains fixed during migration since requestUnstake is disabled
-    require(firstId <= lastUnstakeRequestId, "PooledStaking: Exceeded last migration id");
-
+    uint lastId = lastUnstakeRequestId;
     uint next = firstId;
-
     iterationsLeft = maxIterations;
     while (!finished && iterationsLeft > 0) {
 
@@ -1077,7 +1074,7 @@ contract PooledStaking is MasterAware, IPooledStaking {
       next = unstakeRequest.next;
 
       // lastUnstakeRequestId remains fixed during migration since requestUnstake is disabled
-      if (next == 0 || next > lastUnstakeRequestId) {
+      if (next == 0 || next > lastId) {
         finished = true;
       }
     }

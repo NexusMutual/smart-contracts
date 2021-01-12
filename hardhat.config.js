@@ -20,14 +20,18 @@ const {
   MAINNET_PROVIDER_URL,
 } = process.env;
 
+const forkURL = process.env.TEST_ENV_FORK;
+const forkConfig = forkURL ? { forking: { url: forkURL } } : {};
+
 const networks = {
   hardhat: {
     accounts: {
       count: 100,
-      accountsBalance: toWei('100000'),
+      accountsBalance: toWei('1000000000'),
     },
     allowUnlimitedContractSize: true,
     blockGasLimit: 12e9,
+    ...forkConfig,
   },
 };
 

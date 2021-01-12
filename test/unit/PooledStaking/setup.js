@@ -1,5 +1,6 @@
 const { artifacts } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
+const { ether, time } = require('@openzeppelin/test-helpers');
+const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { assert } = require('chai');
 
 const { Role, ParamType } = require('../utils').constants;
@@ -8,7 +9,7 @@ const accounts = require('../utils').accounts;
 
 const MasterMock = artifacts.require('MasterMock');
 const MemberRolesMock = artifacts.require('MemberRolesMock');
-const PooledStaking = artifacts.require('PooledStaking');
+const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
 const TokenMock = artifacts.require('NXMTokenMock');
 const TokenControllerMock = artifacts.require('TokenControllerMock');
 
@@ -16,7 +17,10 @@ async function setup () {
 
   const master = await MasterMock.new();
   const memberRoles = await MemberRolesMock.new();
-  const staking = await PooledStaking.new();
+
+  await time.increase('10000000');
+  const staking = await DisposablePooledStaking.new();
+
   const token = await TokenMock.new();
   const tokenController = await TokenControllerMock.new();
 
@@ -64,11 +68,13 @@ async function setup () {
   assert(await staking.initialized(), 'Pooled staking contract should have been initialized');
 
   // revert initialized values for unit tests
-  const firstGovernanceAddress = accounts.governanceContracts[0];
-  await staking.updateUintParameters(ParamType.MIN_STAKE, 0, { from: firstGovernanceAddress });
-  await staking.updateUintParameters(ParamType.MIN_UNSTAKE, 0, { from: firstGovernanceAddress });
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, 0, { from: firstGovernanceAddress });
-  await staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, 0, { from: firstGovernanceAddress });
+  await staking.initialize(
+    tokenController.address,
+    '0', // MIN_STAKE
+    '0', // MIN_UNSTAKE
+    '0', // MAX_EXPOSURE
+    '0', // UNSTAKE_LOCK_TIME
+  );
 
   this.master = master;
   this.token = token;

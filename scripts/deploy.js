@@ -6,6 +6,7 @@ const Web3 = require('web3');
 const Verifier = require('../lib/verifier');
 const { getenv, init } = require('../lib/env');
 const { hex } = require('../lib/helpers');
+const fs = require('fs');
 const { toBN } = Web3.utils;
 
 const INITIAL_SUPPLY = ether('1500000');
@@ -13,7 +14,7 @@ const etherscanApiKey = getenv('ETHERSCAN_API_KEY');
 
 const contractType = code => {
 
-  const upgradable = ['CL', 'CR', 'MC', 'P1', 'P2', 'QT', 'TF'];
+  const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
   const proxies = ['GV', 'MR', 'PC', 'PS', 'TC'];
 
   if (upgradable.includes(code)) {
@@ -57,10 +58,15 @@ async function run () {
     await proxy.transferProxyOwnership(newOwner);
   };
 
+  const Pool = loader.fromArtifact('Pool');
+  await Pool.detectNetwork();
+
   // deploy external contracts
   console.log('Deploying DAI mocks');
   const dai = await loader.fromArtifact('OwnedERC20').new();
-  console.log(`Deployed custom DAI token at ${dai.address}`);
+  console.log({
+    daiAddress: dai.address
+  });
 
   verifier.add('OwnedERC20', dai.address);
 
@@ -76,7 +82,7 @@ async function run () {
   });
 
   // non-proxy contracts and libraries
-  console.log('Deploying TwapOracle,SwapAgent, PriceFeedOracle..');
+  console.log('Deploying TwapOracle, SwapAgent, PriceFeedOracle');
   const twapOracle = await loader.fromArtifact('TwapOracle').new(uniswapV2Factory.address);
   const swapAgent = await loader.fromArtifact('SwapAgent').new();
   const priceFeedOracle = await loader.fromArtifact('PriceFeedOracle').new(
@@ -85,14 +91,8 @@ async function run () {
     dai.address
   );
 
-  console.log('Deploying claims contracts');
-  const cl = await loader.fromArtifact('Claims').new();
-  const cd = await loader.fromArtifact('ClaimsData').new();
-  const cr = await loader.fromArtifact('ClaimsReward').new();
-
-  verifier.add('Claims', cl.address);
-  verifier.add('ClaimsData', cd.address);
-  verifier.add('ClaimsReward', cr.address);
+  // link pool to swap agent library
+  Pool.link(swapAgent);
 
   console.log('Deploying token contracts');
   const tk = await loader.fromArtifact('NXMToken').new(owner, INITIAL_SUPPLY);
@@ -133,6 +133,15 @@ async function run () {
     { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
   ];
 
+  console.log('Deploying claims contracts');
+  const cl = await loader.fromArtifact('Claims').new();
+  const cd = await loader.fromArtifact('ClaimsData').new();
+  const cr = await loader.fromArtifact('ClaimsReward').new(master.address, dai.address);
+
+  verifier.add('Claims', cl.address);
+  verifier.add('ClaimsData', cd.address);
+  verifier.add('ClaimsReward', cr.address);
+
   for (const addresses of proxiesAndImplementations) {
     const { contract, proxy, implementation } = addresses;
     verifier.add('OwnedUpgradeabilityProxy', proxy.address, ['address'], [implementation.address]);
@@ -140,22 +149,22 @@ async function run () {
   }
 
   console.log('Deploying capital contracts');
-  const mc = await loader.fromArtifact('MCR').new();
+  const mc = await loader.fromArtifact('MCR').new(ZERO_ADDRESS);
 
   const poolParameters = [
     [dai.address], // assets
     [0], // min amounts
-    [ether('10000000')], // max amounts
+    [ether('100000000')], // max amounts
     [ether('0.01')], // max slippage 1%
     master.address,
     priceFeedOracle.address,
     twapOracle.address,
     owner
   ];
-  const p1 = await loader.fromArtifact('Pool').new(...poolParameters);
+  const p1 = await Pool.new(...poolParameters);
   const pd = await loader.fromArtifact('PoolData').new(owner, ZERO_ADDRESS, dai.address);
 
-  verifier.add('MCR', mc.address);
+  verifier.add('MCR', mc.address, [ZERO_ADDRESS]);
   verifier.add('Pool', p1.address, poolParameters);
   verifier.add('PoolData', pd.address, ['address', 'address', 'address'], [owner, ZERO_ADDRESS, dai.address]);
 
@@ -259,13 +268,13 @@ async function run () {
 
   console.log('Contract addresses to be verified:', verifier.dump());
 
-  console.log('Performing verifications');
-  await verifier.submit();
+  const deployData = JSON.stringify(verifier.dump());
+  fs.writeFileSync('deploy-data.json', deployData, 'utf8');
 
-  console.log('Posting MCR and IA details');
-
+  console.log('Minting DAI to pool');
   await dai.mint(p1.address, ether('6500000'));
 
+  console.log('Posting MCR');
   await mc.addMCRData(
     13000,
     ether('20000'),
@@ -275,7 +284,8 @@ async function run () {
     20200801,
   );
 
-  await p2.saveIADetails([hex('ETH'), hex('DAI')], [100, 25000], 20200801, true);
+  console.log('Performing verifications');
+  await verifier.submit();
 
   console.log('Done!');
 }

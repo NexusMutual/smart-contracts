@@ -61,7 +61,7 @@ if (MAINNET_PROVIDER_URL) {
 if (KOVAN_PROVIDER_URL) {
   networks.kovan = { accounts: [KOVAN_ACCOUNT_KEY], url: KOVAN_PROVIDER_URL };
 }
-a
+
 const settingsTemplate = process.env.ENABLE_OPTIMIZER ? {
   settings: {
     optimizer: {

@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const { ether } = require('@openzeppelin/test-helpers');
+const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const Web3 = require('web3');
 const Verifier = require('../lib/verifier');
 const { getenv, init } = require('../lib/env');
@@ -25,6 +26,11 @@ const contractType = code => {
 
   return 0;
 };
+
+const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
+const UNISWAP_ROUTER = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
+const CHAINLINK_DAI_ETH_AGGREGATOR = '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541';
 
 async function run () {
 
@@ -53,12 +59,31 @@ async function run () {
 
   // deploy external contracts
   console.log('Deploying DAI mocks');
-  const daiToken = await loader.fromArtifact('ERC20Mock').new();
-  const daiPriceOracle = await loader.fromArtifact('NXMDSValueMock').new(owner);
-  const uniswapExchangeAddress = '0x0000000000000000000000000000000000000000';
+  const dai = await loader.fromArtifact('OwnedERC20').new();
+  console.log(`Deployed custom DAI token at ${dai.address}`);
 
-  verifier.add('ERC20Mock', daiToken.address);
-  verifier.add('NXMDSValueMock', daiPriceOracle.address, ['address'], [owner]);
+  verifier.add('OwnedERC20', dai.address);
+
+  console.log('Deploying uniswap pair..');
+
+  const uniswapV2Router = await loader.fromArtifact('IUniswapV2Router02').at(UNISWAP_ROUTER);
+  const uniswapV2Factory = await loader.fromArtifact('IUniswapV2Factory').at(UNISWAP_FACTORY);
+
+  const wethDaiPoolPairCreation = await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
+  const pairCreatedEvent = wethDaiPoolPairCreation.logs.filter(e => e.event === 'PairCreated')[0];
+  console.log({
+    wethDaiPair: pairCreatedEvent.args.pair
+  });
+
+  // non-proxy contracts and libraries
+  console.log('Deploying TwapOracle,SwapAgent, PriceFeedOracle..');
+  const twapOracle = await loader.fromArtifact('TwapOracle').new(uniswapV2Factory.address);
+  const swapAgent = await loader.fromArtifact('SwapAgent').new();
+  const priceFeedOracle = await loader.fromArtifact('PriceFeedOracle').new(
+    [dai.address],
+    [CHAINLINK_DAI_ETH_AGGREGATOR],
+    dai.address
+  );
 
   console.log('Deploying claims contracts');
   const cl = await loader.fromArtifact('Claims').new();
@@ -68,17 +93,6 @@ async function run () {
   verifier.add('Claims', cl.address);
   verifier.add('ClaimsData', cd.address);
   verifier.add('ClaimsReward', cr.address);
-
-  console.log('Deploying capital contracts');
-  const mc = await loader.fromArtifact('MCR').new();
-  const p1 = await loader.fromArtifact('Pool1').new();
-  const p2 = await loader.fromArtifact('Pool2').new(uniswapExchangeAddress);
-  const pd = await loader.fromArtifact('PoolData').new(owner, daiPriceOracle.address, daiToken.address);
-
-  verifier.add('MCR', mc.address);
-  verifier.add('Pool1', p1.address);
-  verifier.add('Pool2', p2.address, ['address'], [uniswapExchangeAddress]);
-  verifier.add('PoolData', pd.address, ['address', 'address', 'address'], [owner, daiPriceOracle.address, daiToken.address]);
 
   console.log('Deploying token contracts');
   const tk = await loader.fromArtifact('NXMToken').new(owner, INITIAL_SUPPLY);
@@ -125,8 +139,28 @@ async function run () {
     verifier.add(contract, implementation.address);
   }
 
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'P2', 'MC', 'GV', 'PC', 'MR', 'PS'];
-  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, p2, mc, { address: owner }, pc, mr, ps].map(c => c.address);
+  console.log('Deploying capital contracts');
+  const mc = await loader.fromArtifact('MCR').new();
+
+  const poolParameters = [
+    [dai.address], // assets
+    [0], // min amounts
+    [ether('10000000')], // max amounts
+    [ether('0.01')], // max slippage 1%
+    master.address,
+    priceFeedOracle.address,
+    twapOracle.address,
+    owner
+  ];
+  const p1 = await loader.fromArtifact('Pool').new(...poolParameters);
+  const pd = await loader.fromArtifact('PoolData').new(owner, ZERO_ADDRESS, dai.address);
+
+  verifier.add('MCR', mc.address);
+  verifier.add('Pool', p1.address, poolParameters);
+  verifier.add('PoolData', pd.address, ['address', 'address', 'address'], [owner, ZERO_ADDRESS, dai.address]);
+
+  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS'];
+  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps].map(c => c.address);
 
   console.log('Running initializations');
   await master.initialize(
@@ -230,7 +264,7 @@ async function run () {
 
   console.log('Posting MCR and IA details');
 
-  await daiToken.mint(p1.address, ether('6500000'));
+  await dai.mint(p1.address, ether('6500000'));
 
   await mc.addMCRData(
     13000,

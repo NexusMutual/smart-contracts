@@ -61,6 +61,15 @@ if (MAINNET_PROVIDER_URL) {
 if (KOVAN_PROVIDER_URL) {
   networks.kovan = { accounts: [KOVAN_ACCOUNT_KEY], url: KOVAN_PROVIDER_URL };
 }
+a
+const settingsTemplate = process.env.ENABLE_OPTIMIZER ? {
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200
+    }
+  }
+} : {};
 
 module.exports = {
 
@@ -77,7 +86,8 @@ module.exports = {
       { version: '0.5.17' }, // nexus mutual
       { version: '0.5.16' }, // uniswap v2 core
       { version: '0.6.6' }, // uniswap v2 peripherals
-    ],
-  },
-
+    ].map(compiler => {
+      return { ...compiler, ...settingsTemplate };
+    }),
+  }
 };

@@ -209,11 +209,13 @@ async function run () {
     twapOracle.address,
     owner
   ];
+  const poolArgTypes = ['address[]', 'uint256[]', 'uint256[]', 'uint256[]', 'address', 'address', 'address', 'address'];
+
   const p1 = await Pool.new(...poolParameters);
   const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
 
-  verifier.add('MCR', mc.address, [ZERO_ADDRESS]);
-  verifier.add('Pool', p1.address, poolParameters);
+  verifier.add('MCR', mc.address, ['address'], [ZERO_ADDRESS]);
+  verifier.add('Pool', p1.address, poolArgTypes, poolParameters);
   verifier.add('PoolData', pd.address, ['address', 'address', 'address'], [owner, ZERO_ADDRESS, dai.address]);
 
   const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS'];

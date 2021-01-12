@@ -1,13 +1,54 @@
 require('dotenv').config();
 
+const { artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const Web3 = require('web3');
 const Verifier = require('../lib/verifier');
-const { getenv, init } = require('../lib/env');
+const { getenv } = require('../lib/env');
 const { hex } = require('../lib/helpers');
 const fs = require('fs');
 const { toBN } = Web3.utils;
+
+// external
+const OwnedERC20 = artifacts.require('OwnedERC20');
+const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
+const WETH9 = artifacts.require('WETH9');
+const UniswapV2Factory = artifacts.require('UniswapV2Factory');
+const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
+
+// nexusmutual
+const NXMToken = artifacts.require('NXMToken');
+const Claims = artifacts.require('Claims');
+const ClaimsData = artifacts.require('ClaimsData');
+const ClaimsReward = artifacts.require('ClaimsReward');
+const MCR = artifacts.require('MCR');
+const TokenData = artifacts.require('TokenData');
+const TokenFunctions = artifacts.require('TokenFunctions');
+const Pool = artifacts.require('Pool');
+const PoolData = artifacts.require('PoolData');
+const Quotation = artifacts.require('Quotation');
+const QuotationData = artifacts.require('QuotationData');
+const ClaimProofs = artifacts.require('ClaimProofs');
+const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+const SwapAgent = artifacts.require('SwapAgent');
+const TwapOracle = artifacts.require('TwapOracle');
+
+// temporary contracts used for initialization
+const DisposableNXMaster = artifacts.require('DisposableNXMaster');
+const DisposableMemberRoles = artifacts.require('DisposableMemberRoles');
+const DisposableTokenController = artifacts.require('DisposableTokenController');
+const DisposableProposalCategory = artifacts.require('DisposableProposalCategory');
+const DisposableGovernance = artifacts.require('DisposableGovernance');
+const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
+
+// target contracts
+const NXMaster = artifacts.require('NXMaster');
+const MemberRoles = artifacts.require('MemberRoles');
+const TokenController = artifacts.require('TokenController');
+const ProposalCategory = artifacts.require('ProposalCategory');
+const Governance = artifacts.require('Governance');
+const PooledStaking = artifacts.require('PooledStaking');
 
 const INITIAL_SUPPLY = ether('1500000');
 const etherscanApiKey = getenv('ETHERSCAN_API_KEY');
@@ -41,37 +82,34 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
 const CHAINLINK_DAI_ETH_AGGREGATOR = CHAINLINK_DAI_ETH_AGGREGATORS[process.env.NETWORK];
 
 async function run () {
+  const network = getenv('NETWORK').toUpperCase();
+  const owner = getenv(`${network}_ACCOUNT`);
 
-  const { account: owner, loader, network, provider } = await init();
-  const web3 = new Web3(provider);
+  console.log(`Using ${network} network`);
   const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
 
-  const deployProxy = async (contract, txParams) => {
-    const implementation = await loader.fromArtifact(contract).new(txParams);
-    const proxy = await loader.fromArtifact('OwnedUpgradeabilityProxy').new(implementation.address);
-    const instance = await loader.fromArtifact(contract).at(proxy.address);
-    return { implementation, instance, proxy };
+  const deployProxy = async contract => {
+    const implementation = await contract.new();
+    const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
+    const instance = await contract.at(proxy.address);
+    return { instance, implementation, proxy };
   };
 
-  const upgradeProxy = async (proxyAddress, contractName, txParams) => {
-    const implementation = await loader.fromArtifact(contractName).new(txParams);
-    const proxy = await loader.fromArtifact('OwnedUpgradeabilityProxy').at(proxyAddress);
+  const upgradeProxy = async (proxyAddress, contract) => {
+    const implementation = await contract.new();
+    const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
     await proxy.upgradeTo(implementation.address);
-    return { implementation, proxy };
+    return { implementation };
   };
 
   const transferProxyOwnership = async (proxyAddress, newOwner) => {
-    const proxy = await loader.fromArtifact('OwnedUpgradeabilityProxy').at(proxyAddress);
+    const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  const Pool = loader.fromArtifact('Pool');
-  // load network id
-  await Pool.detectNetwork();
-
   // deploy external contracts
   console.log('Deploying DAI mocks');
-  const dai = await loader.fromArtifact('OwnedERC20').new();
+  const dai = await OwnedERC20.new();
   console.log({
     daiAddress: dai.address
   });
@@ -80,8 +118,8 @@ async function run () {
 
   console.log('Deploying uniswap pair..');
 
-  const uniswapV2Router = await loader.fromArtifact('IUniswapV2Router02').at(UNISWAP_ROUTER);
-  const uniswapV2Factory = await loader.fromArtifact('IUniswapV2Factory').at(UNISWAP_FACTORY);
+  const uniswapV2Router = await UniswapV2Router02.at(UNISWAP_ROUTER);
+  const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
 
   const wethDaiPoolPairCreation = await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
   const pairCreatedEvent = wethDaiPoolPairCreation.logs.filter(e => e.event === 'PairCreated')[0];
@@ -89,11 +127,13 @@ async function run () {
     wethDaiPair: pairCreatedEvent.args.pair
   });
 
+
+
   // non-proxy contracts and libraries
   console.log('Deploying TwapOracle, SwapAgent, PriceFeedOracle');
-  const twapOracle = await loader.fromArtifact('TwapOracle').new(uniswapV2Factory.address);
-  const swapAgent = await loader.fromArtifact('SwapAgent').new();
-  const priceFeedOracle = await loader.fromArtifact('PriceFeedOracle').new(
+  const twapOracle = await TwapOracle.new(uniswapV2Factory.address);
+  const swapAgent = await SwapAgent.new();
+  const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address],
     [CHAINLINK_DAI_ETH_AGGREGATOR],
     dai.address
@@ -103,34 +143,34 @@ async function run () {
   Pool.link(swapAgent);
 
   console.log('Deploying token contracts');
-  const tk = await loader.fromArtifact('NXMToken').new(owner, INITIAL_SUPPLY);
-  const td = await loader.fromArtifact('TokenData').new(owner);
-  const tf = await loader.fromArtifact('TokenFunctions').new();
+  const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
+  const td = await TokenData.new(owner);
+  const tf = await TokenFunctions.new();
 
   verifier.add('NXMToken', tk.address, ['address', 'uint256'], [owner, INITIAL_SUPPLY]);
   verifier.add('TokenData', td.address, ['address'], [owner]);
   verifier.add('TokenFunctions', tf.address);
 
   console.log('Deploying quotation contracts');
-  const qt = await loader.fromArtifact('Quotation').new();
-  const qd = await loader.fromArtifact('QuotationData').new(owner, owner);
+  const qt = await Quotation.new();
+  const qd = await QuotationData.new(owner, owner);
 
   verifier.add('Quotation', qt.address);
   verifier.add('QuotationData', qd.address, ['address', 'address'], [owner, owner]);
 
   // Non-upgradable contracts
   console.log('Deploying non-upgradable contracts');
-  const cp = await loader.fromArtifact('ClaimProofs').new();
+  const cp = await ClaimProofs.new();
   verifier.add('ClaimProofs', cp.address);
 
   // proxy contracts
   console.log('Deploying proxy contracts');
-  const { instance: master, implementation: masterImpl } = await deployProxy('DisposableNXMaster');
-  const { instance: mr, implementation: mrImpl } = await deployProxy('DisposableMemberRoles');
-  const { instance: tc, implementation: tcImpl } = await deployProxy('DisposableTokenController');
-  const { instance: ps, implementation: psImpl } = await deployProxy('DisposablePooledStaking');
-  const { instance: pc, implementation: pcImpl } = await deployProxy('DisposableProposalCategory');
-  const { instance: gv, implementation: gvImpl } = await deployProxy('DisposableGovernance', { gas: 12e6 });
+  const { instance: master, implementation: masterImpl } = await deployProxy(DisposableNXMaster);
+  const { instance: mr, implementation: mrImpl } = await deployProxy(DisposableMemberRoles);
+  const { instance: tc, implementation: tcImpl } = await deployProxy(DisposableTokenController);
+  const { instance: ps, implementation: psImpl } = await deployProxy(DisposablePooledStaking);
+  const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
+  const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, { gas: 12e6 });
 
   const proxiesAndImplementations = [
     { proxy: master, implementation: masterImpl, contract: 'DisposableNXMaster' },
@@ -142,9 +182,9 @@ async function run () {
   ];
 
   console.log('Deploying claims contracts');
-  const cl = await loader.fromArtifact('Claims').new();
-  const cd = await loader.fromArtifact('ClaimsData').new();
-  const cr = await loader.fromArtifact('ClaimsReward').new(master.address, dai.address);
+  const cl = await Claims.new();
+  const cd = await ClaimsData.new();
+  const cr = await ClaimsReward.new(master.address, dai.address);
 
   verifier.add('Claims', cl.address);
   verifier.add('ClaimsData', cd.address);
@@ -157,7 +197,7 @@ async function run () {
   }
 
   console.log('Deploying capital contracts');
-  const mc = await loader.fromArtifact('MCR').new(ZERO_ADDRESS);
+  const mc = await MCR.new(ZERO_ADDRESS);
 
   const poolParameters = [
     [dai.address], // assets
@@ -170,7 +210,7 @@ async function run () {
     owner
   ];
   const p1 = await Pool.new(...poolParameters);
-  const pd = await loader.fromArtifact('PoolData').new(owner, ZERO_ADDRESS, dai.address);
+  const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
 
   verifier.add('MCR', mc.address, [ZERO_ADDRESS]);
   verifier.add('Pool', p1.address, poolParameters);
@@ -252,12 +292,12 @@ async function run () {
   await master.changeAllAddress();
 
   console.log('Upgrading to non-disposable contracts');
-  const { implementation: newMasterImpl } = await upgradeProxy(master.address, 'NXMaster');
-  const { implementation: newMrImpl } = await upgradeProxy(mr.address, 'MemberRoles');
-  const { implementation: newTcImpl } = await upgradeProxy(tc.address, 'TokenController');
-  const { implementation: newPsImpl } = await upgradeProxy(ps.address, 'PooledStaking');
-  const { implementation: newPcImpl } = await upgradeProxy(pc.address, 'ProposalCategory');
-  const { implementation: newGvImpl } = await upgradeProxy(gv.address, 'Governance', { gas: 10e6 });
+  const { implementation: newMasterImpl } = await upgradeProxy(master.address, NXMaster);
+  const { implementation: newMrImpl } = await upgradeProxy(mr.address, MemberRoles);
+  const { implementation: newTcImpl } = await upgradeProxy(tc.address, TokenController);
+  const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
+  const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
+  const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance, { gas: 10e6 });
 
   verifier.add('NXMaster', newMasterImpl.address);
   verifier.add('MemberRoles', newMrImpl.address);

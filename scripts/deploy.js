@@ -31,7 +31,14 @@ const contractType = code => {
 const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const UNISWAP_ROUTER = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
 const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
-const CHAINLINK_DAI_ETH_AGGREGATOR = '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541';
+
+// source: https://docs.chain.link/docs/price-feeds-migration-august-2020
+const CHAINLINK_DAI_ETH_AGGREGATORS = {
+  mainnet: '0x773616E4d11A78F511299002da57A0a94577F1f4',
+  rinkeby: '0x2bA49Aaa16E6afD2a993473cfB70Fa8559B523cF',
+  kovan: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
+};
+const CHAINLINK_DAI_ETH_AGGREGATOR = CHAINLINK_DAI_ETH_AGGREGATORS[process.env.NETWORK];
 
 async function run () {
 
@@ -59,6 +66,7 @@ async function run () {
   };
 
   const Pool = loader.fromArtifact('Pool');
+  // load network id
   await Pool.detectNetwork();
 
   // deploy external contracts

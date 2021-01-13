@@ -69,9 +69,14 @@ module.exports = {
   solidity: {
     compilers: [
       { version: '0.5.17' }, // nexus mutual
-      { version: '0.5.7' }, // nexus mutual Governance.sol
       { version: '0.5.16' }, // uniswap v2 core
       { version: '0.6.6' }, // uniswap v2 peripherals
     ].map(compiler => ({ ...compiler, settings: compilerSettings })),
+    overrides: {
+      'contracts/modules/governance/Governance.sol': {
+        version: '0.5.7',
+        settings: compilerSettings,
+      },
+    },
   },
 };

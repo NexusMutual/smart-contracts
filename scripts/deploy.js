@@ -13,9 +13,7 @@ const { toBN } = Web3.utils;
 // external
 const OwnedERC20 = artifacts.require('OwnedERC20');
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
-const WETH9 = artifacts.require('WETH9');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
-const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
 
 // nexusmutual
 const NXMToken = artifacts.require('NXMToken');
@@ -70,7 +68,6 @@ const contractType = code => {
 };
 
 const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
-const UNISWAP_ROUTER = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
 const WETH_ADDRESS = '0xd0a1e359811322d97991e03f863a0c30c2cf029c';
 
 // source: https://docs.chain.link/docs/price-feeds-migration-august-2020
@@ -117,11 +114,7 @@ async function run () {
 
   console.log('Deploying uniswap pair..');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
-  const wethDaiPoolPairCreation = await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
-  const pairCreatedEvent = wethDaiPoolPairCreation.logs.filter(e => e.event === 'PairCreated')[0];
-  console.log({
-    wethDaiPair: pairCreatedEvent.args.pair,
-  });
+  await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
 
   // non-proxy contracts and libraries
   console.log('Deploying TwapOracle, SwapAgent, PriceFeedOracle');

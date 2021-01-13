@@ -26,14 +26,6 @@ task('typechain', async (_, { config }) => {
   await tsGenerator({ cwd }, new TypeChain({ cwd, rawConfig }));
 });
 
-const {
-  KOVAN_MNEMONIC,
-  KOVAN_PROVIDER_URL,
-  MAINNET_ACCOUNT_KEY,
-  MAINNET_PROVIDER_URL,
-  TEST_ENV_FORK: forkURL,
-} = process.env;
-
 const networks = {
   hardhat: {
     accounts: {
@@ -50,26 +42,19 @@ const networks = {
   },
 };
 
-if (forkURL) {
-  networks.hardhat.forking = { url: forkURL };
+if (process.env.TEST_ENV_FORK) {
+  networks.hardhat.forking = { url: process.env.TEST_ENV_FORK };
 }
 
-if (MAINNET_PROVIDER_URL) {
-  networks.mainnet = { accounts: [MAINNET_ACCOUNT_KEY], url: MAINNET_PROVIDER_URL };
+for (const network of ['MAINNET', 'KOVAN']) {
+  const url = process.env[`${network}_PROVIDER_URL`];
+  const accounts = process.env[`${network}_ACCOUNT_KEY`];
+  networks[network.toLowerCase()] = { accounts, url };
 }
 
-if (KOVAN_PROVIDER_URL) {
-  networks.kovan = { accounts: [KOVAN_MNEMONIC], url: KOVAN_PROVIDER_URL };
-}
-
-const settingsTemplate = process.env.OPTIMIZER_RUNS ? {
-  settings: {
-    optimizer: {
-      enabled: true,
-      runs: parseInt(process.env.OPTIMIZER_RUNS),
-    },
-  },
-} : {};
+const compilerSettings = process.env.ENABLE_OPTIMIZER
+  ? { optimizer: { enabled: true, runs: 200 } }
+  : {};
 
 module.exports = {
 
@@ -87,8 +72,6 @@ module.exports = {
       { version: '0.5.7' }, // nexus mutual Governance.sol
       { version: '0.5.16' }, // uniswap v2 core
       { version: '0.6.6' }, // uniswap v2 peripherals
-    ].map(compiler => {
-      return { ...compiler, ...settingsTemplate };
-    }),
+    ].map(compiler => ({ ...compiler, settings: compilerSettings })),
   },
 };

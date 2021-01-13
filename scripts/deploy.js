@@ -120,7 +120,7 @@ async function run () {
   const wethDaiPoolPairCreation = await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
   const pairCreatedEvent = wethDaiPoolPairCreation.logs.filter(e => e.event === 'PairCreated')[0];
   console.log({
-    wethDaiPair: pairCreatedEvent.args.pair
+    wethDaiPair: pairCreatedEvent.args.pair,
   });
 
   // non-proxy contracts and libraries
@@ -130,7 +130,7 @@ async function run () {
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address],
     [CHAINLINK_DAI_ETH_AGGREGATOR],
-    dai.address
+    dai.address,
   );
 
   // link pool to swap agent library
@@ -201,7 +201,7 @@ async function run () {
     master.address,
     priceFeedOracle.address,
     twapOracle.address,
-    owner
+    owner,
   ];
   const poolArgTypes = ['address[]', 'uint256[]', 'uint256[]', 'uint256[]', 'address', 'address', 'address', 'address'];
 

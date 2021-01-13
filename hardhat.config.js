@@ -66,9 +66,9 @@ const settingsTemplate = process.env.OPTIMIZER_RUNS ? {
   settings: {
     optimizer: {
       enabled: true,
-      runs: parseInt(process.env.OPTIMIZER_RUNS)
-    }
-  }
+      runs: parseInt(process.env.OPTIMIZER_RUNS),
+    },
+  },
 } : {};
 
 module.exports = {
@@ -90,5 +90,5 @@ module.exports = {
     ].map(compiler => {
       return { ...compiler, ...settingsTemplate };
     }),
-  }
+  },
 };

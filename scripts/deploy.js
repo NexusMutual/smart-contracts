@@ -325,6 +325,12 @@ async function run () {
   );
 
   console.log('Performing verifications');
+
+  /*
+   TODO: currently does not work with truffle flattener even if info is extracted from build-info
+        because of format incompatibility. need to port deploy to use https://www.npmjs.com/package/hardhat-deploy
+        to get verify functionality included
+   */
   await verifier.submit();
 
   console.log('Done!');

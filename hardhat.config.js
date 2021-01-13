@@ -48,7 +48,7 @@ if (process.env.TEST_ENV_FORK) {
 
 for (const network of ['MAINNET', 'KOVAN']) {
   const url = process.env[`${network}_PROVIDER_URL`];
-  const accounts = process.env[`${network}_ACCOUNT_KEY`];
+  const accounts = [process.env[`${network}_ACCOUNT_KEY`]];
   networks[network.toLowerCase()] = { accounts, url };
 }
 

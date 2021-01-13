@@ -88,15 +88,17 @@ async function run () {
   console.log(`Using ${network} network`);
   const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
 
-  const deployProxy = async contract => {
-    const implementation = await contract.new();
+  const deployProxy = async (contract, txParams) => {
+    console.log(`Deploying proxy ${contract.contractName}`);
+    const implementation = await contract.new(txParams);
     const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
     const instance = await contract.at(proxy.address);
     return { instance, implementation, proxy };
   };
 
-  const upgradeProxy = async (proxyAddress, contract) => {
-    const implementation = await contract.new();
+  const upgradeProxy = async (proxyAddress, contract, txParams) => {
+    console.log(`Upgrading proxy ${contract.contractName}`);
+    const implementation = await contract.new(txParams);
     const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
     await proxy.upgradeTo(implementation.address);
     return { implementation };
@@ -108,26 +110,18 @@ async function run () {
   };
 
   // deploy external contracts
-  console.log('Deploying DAI mocks');
+  console.log('Deploying DAI');
   const dai = await OwnedERC20.new();
-  console.log({
-    daiAddress: dai.address
-  });
 
   verifier.add('OwnedERC20', dai.address);
 
   console.log('Deploying uniswap pair..');
-
-  const uniswapV2Router = await UniswapV2Router02.at(UNISWAP_ROUTER);
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
-
   const wethDaiPoolPairCreation = await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
   const pairCreatedEvent = wethDaiPoolPairCreation.logs.filter(e => e.event === 'PairCreated')[0];
   console.log({
     wethDaiPair: pairCreatedEvent.args.pair
   });
-
-
 
   // non-proxy contracts and libraries
   console.log('Deploying TwapOracle, SwapAgent, PriceFeedOracle');
@@ -268,6 +262,7 @@ async function run () {
 
   console.log('Setting parameters');
 
+  console.log('Setting PoolData parameters');
   await pd.changeMasterAddress(master.address);
   await pd.changeCurrencyAssetBaseMin(hex('DAI'), '0');
   await pd.changeCurrencyAssetBaseMin(hex('ETH'), '0');
@@ -276,12 +271,14 @@ async function run () {
   await pd.updateUintParameters(hex('MCRSHOCK'), 50); // mcr shock parameter
   await pd.updateUintParameters(hex('MCRCAPL'), 20); // capacity limit per contract 20%
 
+  console.log('Setting ClaimsData parameters');
   await cd.changeMasterAddress(master.address);
   await cd.updateUintParameters(hex('CAMAXVT'), 1); // max voting time 1h
   await cd.updateUintParameters(hex('CAMINVT'), 1); // min voting time 1h
   await cd.updateUintParameters(hex('CADEPT'), 1); // claim deposit time 1 day
   await cd.updateUintParameters(hex('CAPAUSET'), 1); // claim assessment pause time 1 day
 
+  console.log('Setting TokenData parameters');
   await td.changeMasterAddress(master.address);
   await td.updateUintParameters(hex('RACOMM'), 50); // staker commission percentage 50%
   await td.updateUintParameters(hex('CABOOKT'), 1); // "book time" 1h
@@ -299,7 +296,7 @@ async function run () {
   const { implementation: newTcImpl } = await upgradeProxy(tc.address, TokenController);
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
-  const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance, { gas: 10e6 });
+  const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance, { gas: 12e6 });
 
   verifier.add('NXMaster', newMasterImpl.address);
   verifier.add('MemberRoles', newMrImpl.address);

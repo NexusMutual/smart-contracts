@@ -62,11 +62,11 @@ if (KOVAN_PROVIDER_URL) {
   networks.kovan = { accounts: [KOVAN_MNEMONIC], url: KOVAN_PROVIDER_URL };
 }
 
-const settingsTemplate = process.env.ENABLE_OPTIMIZER ? {
+const settingsTemplate = process.env.OPTIMIZER_RUNS ? {
   settings: {
     optimizer: {
       enabled: true,
-      runs: 200
+      runs: parseInt(process.env.OPTIMIZER_RUNS)
     }
   }
 } : {};
@@ -84,6 +84,7 @@ module.exports = {
   solidity: {
     compilers: [
       { version: '0.5.17' }, // nexus mutual
+      { version: '0.5.7' }, // nexus mutual Governance.sol
       { version: '0.5.16' }, // uniswap v2 core
       { version: '0.6.6' }, // uniswap v2 peripherals
     ].map(compiler => {

@@ -1,7 +1,7 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { hex } = require('../utils').helpers;
-const { mineNextBlock, setNextBlockTime } = require('../utils').evm;
+const { setNextBlockTime } = require('../utils').evm;
 const { assert } = require('chai');
 
 const [owner, governance, nobody] = accounts;
@@ -30,7 +30,6 @@ const addLiquidity = async (router, weth, token, ethAmount, tokenAmount) => {
   );
 };
 
-const periodsPerWindow = 8;
 const periodSize = 1800;
 const windowSize = 14400;
 
@@ -356,8 +355,51 @@ describe('swaps', function () {
 
   /* asset to eth */
 
-  it('should perform a swap', async function () {
-    // noop
+  it('should swap asset for eth and emit a Swapped event with correct values', async function () {
+
+    const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
+    const windowStart = await nextWindowStartTime();
+    const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+    await pool.setAssetDetails(tokenA.address,
+      ether('100'), // asset minimum
+      ether('1000'), // asset maximum
+      ether('0.01'), // max slippage
+      { from: governance },
+    );
+
+    await tokenA.mint(pool.address, ether('1000'));
+
+    // add liquidity and update twap oracle
+    await addLiquidity(router, weth, tokenA, ether('10000'), ether('2000000'));
+    await setNextBlockTime(windowStart);
+    await oracle.update([wethAPair.address]);
+
+    // should be able to swap only during the last period within the window
+    await setNextBlockTime(windowStart + periodSize * 7);
+
+    const etherBefore = toBN(await web3.eth.getBalance(pool.address));
+    const tokensBefore = await tokenA.balanceOf(pool.address);
+
+    // amounts in/out of the trade
+    const tokenIn = ether('200');
+    const minEtherOut = ether('0.99');
+    const swapTx = await pool.swapAssetForETH(tokenA.address, tokenIn, minEtherOut);
+
+    const etherAfter = toBN(await web3.eth.getBalance(pool.address));
+    const tokensAfter = await tokenA.balanceOf(pool.address);
+    const tokensSent = tokensBefore.sub(tokensAfter);
+    const etherReceived = etherAfter.sub(etherBefore);
+
+    assert.strictEqual(tokensSent.toString(), tokenIn.toString());
+    assert(etherReceived.gte(minEtherOut));
+
+    expectEvent(swapTx, 'Swapped', {
+      fromAsset: tokenA.address,
+      toAsset: ETH,
+      amountIn: tokenIn,
+      amountOut: etherReceived,
+    });
   });
 
 });

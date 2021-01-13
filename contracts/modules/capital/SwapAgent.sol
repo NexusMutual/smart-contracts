@@ -142,7 +142,7 @@ library SwapAgent {
       uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
-      require(amountOutMin > minOutOnMaxSlippage, "SwapAgent: max slippage exceeded");
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: max slippage exceeded");
       require(balanceBefore > assetData.maxAmount, "SwapAgent: balanceBefore <= max");
       require(balanceBefore.sub(amountIn) >= assetData.minAmount, "SwapAgent: balanceAfter < min");
     }

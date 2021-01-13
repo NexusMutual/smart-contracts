@@ -18,7 +18,13 @@ getDirectoriesAndFiles('../artifacts', function (err, dirsAndFiles) {
         const file = JSON.parse(fs.readFileSync(node, 'utf8'));
         const chunks = node.split('/');
         const name = chunks[chunks.length - 2];
-        console.log(`${name}: ${file.bytecode.length / 2}`);
+        const size = file.bytecode.length / 2;
+        if (size > 24000) {
+          console.error(`${name}: ${size}`);
+        } else {
+          console.log(`${name}: ${size}`);
+        }
+
       }
     }
   }

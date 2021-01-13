@@ -258,6 +258,13 @@ describe('swaps', function () {
     );
   });
 
+  // TODO: Due to the fact that we only have an estimate of the asset amount reveived before a swap happens,
+  //       It is possible to end up with a little bit more or less assets than the specified min and max.
+  //       this can happen only when min and max values are close enough and the traded amount exceeds their diff.
+  //       To be discussed: revert when a better than expected trade is executed but resulting amount is not
+  //       within the min/max bounds vs keep the current implementation where the min/max bounds are checked using
+  //       the provided minOutAmount.
+
   it.skip('should revert swapETHForAsset call when asset balance >= assetData.minAmount', async function () {
 
     const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();

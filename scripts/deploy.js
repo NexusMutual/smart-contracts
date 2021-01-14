@@ -108,14 +108,8 @@ async function run () {
 
   // deploy external contracts
   console.log('Deploying DAI');
-  // const dai = await ClaimProofs.at('0xFe5C5F20672d461e9476b17E06660a8a43713852');
-  const dai = await ClaimProofs.new();
-
-  verifier.add('ClaimProofs', dai.address);
-
-  await verifier.submit();
-  console.log('done');
-  return;
+  const dai = await OwnedERC20.new();
+  verifier.add('OwnedERC20', dai.address);
 
   console.log('Deploying uniswap pair..');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);

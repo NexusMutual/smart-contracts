@@ -108,9 +108,14 @@ async function run () {
 
   // deploy external contracts
   console.log('Deploying DAI');
-  const dai = await OwnedERC20.new();
+  // const dai = await ClaimProofs.at('0xFe5C5F20672d461e9476b17E06660a8a43713852');
+  const dai = await ClaimProofs.new();
 
-  verifier.add('OwnedERC20', dai.address);
+  verifier.add('ClaimProofs', dai.address);
+
+  await verifier.submit();
+  console.log('done');
+  return;
 
   console.log('Deploying uniswap pair..');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
@@ -309,7 +314,7 @@ async function run () {
   console.log('Contract addresses to be verified:', verifier.dump());
 
   const deployData = JSON.stringify(verifier.dump());
-  fs.writeFileSync('deploy-data.json', deployData, 'utf8');
+  fs.writeFileSync(`${network.toLowerCase()}-deploy-data.json`, deployData, 'utf8');
 
   console.log('Minting DAI to pool');
   await dai.mint(p1.address, ether('6500000'));

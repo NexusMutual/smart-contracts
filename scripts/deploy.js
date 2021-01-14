@@ -31,6 +31,7 @@ const ClaimProofs = artifacts.require('ClaimProofs');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const SwapAgent = artifacts.require('SwapAgent');
 const TwapOracle = artifacts.require('TwapOracle');
+const Cover = artifacts.require('Cover');
 
 // temporary contracts used for initialization
 const DisposableNXMaster = artifacts.require('DisposableNXMaster');
@@ -54,7 +55,7 @@ const etherscanApiKey = getenv('ETHERSCAN_API_KEY');
 const contractType = code => {
 
   const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC'];
+  const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CO'];
 
   if (upgradable.includes(code)) {
     return 2;
@@ -157,6 +158,7 @@ async function run () {
   const { instance: ps, implementation: psImpl } = await deployProxy(DisposablePooledStaking);
   const { instance: pc, implementation: pcImpl } = await deployProxy(DisposableProposalCategory);
   const { instance: gv, implementation: gvImpl } = await deployProxy(DisposableGovernance, { gas: 12e6 });
+  const { instance: co, implementation: coImpl } = await deployProxy(Cover);
 
   const proxiesAndImplementations = [
     { proxy: master, implementation: masterImpl, contract: 'DisposableNXMaster' },
@@ -165,6 +167,7 @@ async function run () {
     { proxy: ps, implementation: psImpl, contract: 'DisposablePooledStaking' },
     { proxy: pc, implementation: pcImpl, contract: 'DisposableProposalCategory' },
     { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
+    { proxy: co, implementation: coImpl, contract: 'Cover' },
   ];
 
   console.log('Deploying claims contracts');
@@ -204,8 +207,8 @@ async function run () {
   verifier.add('Pool', p1.address, poolArgTypes, poolParameters);
   verifier.add('PoolData', pd.address, ['address', 'address', 'address'], [owner, ZERO_ADDRESS, dai.address]);
 
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS'];
-  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps].map(c => c.address);
+  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'CO'];
+  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, co].map(c => c.address);
 
   console.log('Running initializations');
   await master.initialize(
@@ -250,6 +253,11 @@ async function run () {
     toBN(40),
     toBN(75),
     toBN(300), // 5 minutes
+  );
+
+  await co.initialize(
+    master.address,
+    dai.address
   );
 
   console.log('Setting parameters');

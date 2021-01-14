@@ -59,7 +59,7 @@ contract Cover is MasterAware {
     bytes data
   );
 
-  // assigned in constructor
+  // assigned in initialize
   address public DAI;
   // constants
   address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;

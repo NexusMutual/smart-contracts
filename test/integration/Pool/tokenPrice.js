@@ -297,7 +297,7 @@ describe('Token price functions', function () {
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
       claimStatusCA.toNumber(), 14,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
+      'claim status should be 14 (payout done)',
     );
   });
 
@@ -335,11 +335,11 @@ describe('Token price functions', function () {
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
       claimStatusCA.toNumber(), 14,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
+      'claim status should be 14 (payout done)',
     );
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for CA vote', async function () {
+  it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for CA vote', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -372,7 +372,7 @@ describe('Token price functions', function () {
     const { statno: claimStatusCA } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
       claimStatusCA.toNumber(), 2,
-      'claim status should be 4 (ca consensus not reached, pending mv)',
+      'claim status should be 2 (CA Vote Threshold not Reached Accept, Pending Member Vote)',
     );
   });
 
@@ -473,7 +473,7 @@ describe('Token price functions', function () {
     const { statno: claimStatusMV } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(
       claimStatusMV.toNumber(), 14,
-      'claim status should be 14 (ca consensus not reached, mv rejected with insufficient tokens)',
+      'claim status should be 14 (payout done)',
     );
   });
 });

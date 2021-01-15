@@ -30,7 +30,7 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe.only('Token price functions', function () {
+describe('Token price functions', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -254,7 +254,7 @@ describe.only('Token price functions', function () {
     await master.closeClaim(claimId);
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured and close vote', async function () {
+  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured and close vote immediately', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -301,7 +301,7 @@ describe.only('Token price functions', function () {
     );
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured and value < 10 * sumAssured for CA vote', async function () {
+  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured and value < 10 * sumAssured for CA vote and allow closing after maxVotingTime', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -345,7 +345,7 @@ describe.only('Token price functions', function () {
     );
   });
 
-  it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for CA vote', async function () {
+  it('computes token price correctly to decide sum of locked tokens value < 5 * sumAssured for CA vote and go to member vote', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;

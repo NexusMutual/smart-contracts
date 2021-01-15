@@ -1,11 +1,9 @@
-const { ether, expectRevert, expectEvent, } = require('@openzeppelin/test-helpers');
+const { ether } = require('@openzeppelin/test-helpers');
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const { web3 } = require('hardhat');
 const { assert } = require('chai');
-const { calculateMCRRatio, percentageBN } = require('../utils').tokenPrice;
-const { BN } = web3.utils;
 
-const { defaultSender, members: [member], governanceContracts: [governance] } = require('../utils').accounts;
+const { defaultSender, governanceContracts: [governance] } = require('../utils').accounts;
 
 const Pool = artifacts.require('Pool');
 const SwapAgent = artifacts.require('SwapAgent');
@@ -37,7 +35,7 @@ describe('upgradeCapitalPool', function () {
       tokens.map(a => 0), // min
       tokens.map(a => 0), // max
       tokens.map(a => ether('0.01')), // maxSlippage 1%
-      defaultSender, // master: it is changed a few lines below
+      defaultSender,
       ZERO_ADDRESS,
       ZERO_ADDRESS, // we do not test swaps here
       ZERO_ADDRESS, // swap controller, not used here

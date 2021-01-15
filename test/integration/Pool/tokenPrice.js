@@ -30,7 +30,7 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe('Token price functions', function () {
+describe.only('Token price functions', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -277,7 +277,7 @@ describe('Token price functions', function () {
     await time.increase(minVotingTime.addn(1));
     /*
       tokenPrice * lockTokens / 1e18 < coverAmount * 10
-      Therefore 1 AB vote is not sufficient.
+      Therefore 1 CA vote is not sufficient.
      */
     await cl.submitCAVote(claimId, '1', { from: member1 });
 
@@ -286,7 +286,7 @@ describe('Token price functions', function () {
 
     /*
       2 * tokenPrice * lockTokens / 1e18 < coverAmount * 10
-      Therefore 2 AB votes are sufficient.
+      Therefore 2 CA votes are sufficient.
     */
     await cl.submitCAVote(claimId, '1', { from: member2 });
 
@@ -322,7 +322,7 @@ describe('Token price functions', function () {
 
     /*
       tokenPrice * lockTokens / 1e18 > coverAmount * 5
-      Therefore 1 AB vote is sufficient to accept and payout a claim if maxVotingTime passed.
+      Therefore 1 CA vote is sufficient to accept and payout a claim if maxVotingTime passed.
      */
     await cl.submitCAVote(claimId, '1', { from: member1 });
     const maxVotingTime = await cd.maxVotingTime();
@@ -359,7 +359,7 @@ describe('Token price functions', function () {
 
     /*
       tokenPrice * lockTokens / 1e18 < coverAmount * 5
-      Therefore 1 AB vote is insufficient to accept and payout a claim if maxVotingTime passed.
+      Therefore 1 CA vote is insufficient to accept and payout a claim if maxVotingTime passed.
      */
     await cl.submitCAVote(claimId, '1', { from: member1 });
     const maxVotingTime = await cd.maxVotingTime();
@@ -384,7 +384,7 @@ describe('Token price functions', function () {
     const cover = { ...coverTemplate, amount: coverUnitAmount };
 
     const lockTokens = ether('1000');
-    await enrollClaimAssessor(this.contracts, [member1, member2, member3, member4], { lockTokens });
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
 
     const tokenPrice = await p1.getTokenPrice(ETH);
     assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).gt(coverAmount.muln(5)));
@@ -414,9 +414,9 @@ describe('Token price functions', function () {
     );
     /*
       1 member vote from member 4 ( balance 1000 NXM) is sufficient to exceed sumAssured * 5
+      and reject the claim
      */
     await cl.submitMemberVote(claimId, '-1', { from: member4 });
-    // await cl.submitMemberVote(claimId, '1', { from: member5 });
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);
 
@@ -435,7 +435,7 @@ describe('Token price functions', function () {
     const cover = { ...coverTemplate, amount: coverUnitAmount };
 
     const lockTokens = ether('500');
-    await enrollClaimAssessor(this.contracts, [member1, member2, member3, member4, member5], { lockTokens });
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
 
     const tokenPrice = await p1.getTokenPrice(ETH);
     assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)));
@@ -464,8 +464,8 @@ describe('Token price functions', function () {
     );
     /*
       1 member vote from member 4 ( balance 500 NXM) is insufficient to exceed sumAssured * 5
+      and will not be able to reject the claim
      */
-    // await cl.submitMemberVote(claimId, '1', { from: member4 });
     await cl.submitMemberVote(claimId, '-1', { from: member5 });
     await time.increase(maxVotingTime.addn(1));
     await master.closeClaim(claimId);

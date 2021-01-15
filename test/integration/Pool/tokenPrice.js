@@ -254,7 +254,7 @@ describe.only('Token price functions', function () {
     await master.closeClaim(claimId);
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured', async function () {
+  it('computes token price correctly to decide sum of locked tokens value > 10 * sumAssured and close vote', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -301,7 +301,7 @@ describe.only('Token price functions', function () {
     );
   });
 
-  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured for CA vote', async function () {
+  it('computes token price correctly to decide sum of locked tokens value > 5 * sumAssured and value < 10 * sumAssured for CA vote', async function () {
     const { cd, cl, qd, mr, master, p1, dai } = this.contracts;
 
     const coverUnitAmount = 28;
@@ -312,8 +312,14 @@ describe.only('Token price functions', function () {
     await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
 
     const tokenPrice = await p1.getTokenPrice(ETH);
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).gt(coverAmount.muln(5)));
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)));
+    assert(
+      tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).gt(coverAmount.muln(5)),
+      'CA lockedTokens < 5 * sumAssured'
+    );
+    assert(
+      tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)),
+      'CA lockedTokens < 10 * sumAssured'
+    );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
@@ -350,7 +356,10 @@ describe.only('Token price functions', function () {
     await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
 
     const tokenPrice = await p1.getTokenPrice(ETH);
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)));
+    assert(
+      tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)),
+      'CA lockedTokens > 5 * sumAssured'
+    );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
@@ -387,8 +396,11 @@ describe.only('Token price functions', function () {
     await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
 
     const tokenPrice = await p1.getTokenPrice(ETH);
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).gt(coverAmount.muln(5)));
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)));
+    const memberBalance = await tk.balanceOf(member4);
+    assert(
+      tokenPrice.mul(memberBalance).div(toBN(1e18.toString())).gt(coverAmount.muln(5)),
+      'Balance of member < 5 * sumAssured'
+    );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);
@@ -434,11 +446,15 @@ describe.only('Token price functions', function () {
     const coverAmount = ether(coverUnitAmount.toString());
     const cover = { ...coverTemplate, amount: coverUnitAmount };
 
-    const lockTokens = ether('500');
+    const lockTokens = ether('1000');
     await enrollClaimAssessor(this.contracts, [member1, member2, member3], { lockTokens });
 
     const tokenPrice = await p1.getTokenPrice(ETH);
-    assert(tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)));
+    const memberBalance = await tk.balanceOf(member5);
+    assert(
+      tokenPrice.mul(memberBalance).div(toBN(1e18.toString())).lt(coverAmount.muln(5)),
+      'Balance of member > 5 * sumAssured'
+    );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
     const [coverId] = await qd.getAllCoversOfUser(coverHolder);

@@ -85,6 +85,8 @@ contract ClaimsReward is Iupgradable {
 
       if (payoutSucceeded) {
         c1.setClaimStatus(claimid, 14);
+      } else {
+        c1.setClaimStatus(claimid, 12);
       }
     }
 

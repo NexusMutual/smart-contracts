@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 NexusMutual.io
+/* Copyright (C) 2021 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -118,6 +118,7 @@ library SwapAgent {
 
     TwapOracle oracle = TwapOracle(_oracle);
     IERC20 fromToken = IERC20(fromTokenAddress);
+    uint tokenBalanceBefore = fromToken.balanceOf(address(this));
     uint balanceBefore = address(this).balance;
     address WETH = router.WETH();
 
@@ -142,9 +143,9 @@ library SwapAgent {
       uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
-      require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: max slippage exceeded");
-      require(balanceBefore > assetData.maxAmount, "SwapAgent: balanceBefore <= max");
-      require(balanceBefore.sub(amountIn) >= assetData.minAmount, "SwapAgent: balanceAfter < min");
+      require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
+      require(tokenBalanceBefore > assetData.maxAmount, "SwapAgent: tokenBalanceBefore <= max");
+      require(tokenBalanceBefore.sub(amountIn) >= assetData.minAmount, "SwapAgent: tokenbalanceAfter < min");
     }
 
     address[] memory path = new address[](2);

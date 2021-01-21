@@ -280,7 +280,7 @@ describe('send claim payout to the payout address', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
-  it('[A1, status: 0, 7, 13] CA accept, closed with closeClaim(), claim payout fails with status 12', async function () {
+  it.only('[A1, status: 0, 7, 13] CA accept, closed with closeClaim(), claim payout fails with status 12', async function () {
 
     const { cd, cl, qd, mr, master, dai } = this.contracts;
     const cover = { ...coverTemplate };
@@ -311,7 +311,7 @@ describe('send claim payout to the payout address', function () {
 
     await master.closeClaim(claimId);
     const voteStatusAfter = await cl.checkVoteClosing(claimId);
-    // assert.equal(voteStatusAfter.eqn(-1), 'voting should be closed');
+    assert.equal(voteStatusAfter.toString(), '0', 'voting should be closed');
 
     const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
     assert.strictEqual(claimStatus.toNumber(), 12, 'claim status should be 12 (Claim Accepted Payout Pending)');

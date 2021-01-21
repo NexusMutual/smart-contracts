@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 NexusMutual.io
+/* Copyright (C) 2020 NexusMutual.io
 
   This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -57,17 +57,18 @@ library SwapAgent {
     uint minLeftETH
   ) external returns (uint) {
 
-    TwapOracle oracle = TwapOracle(_oracle);
-    IERC20 toToken = IERC20(toTokenAddress);
-    uint balanceBefore = toToken.balanceOf(address(this));
+    uint balanceBefore = IERC20(toTokenAddress).balanceOf(address(this));
     address WETH = router.WETH();
 
-    uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
-    require(timeSinceLastTrade > oracle.periodSize(), "SwapAgent: too fast");
+    {
+      // scope for swap frequency check
+      uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
+      require(timeSinceLastTrade > TwapOracle(_oracle).periodSize(), "SwapAgent: too fast");
+    }
 
     {
       // scope for liquidity check
-      address pairAddress = oracle.pairFor(WETH, toTokenAddress);
+      address pairAddress = TwapOracle(_oracle).pairFor(WETH, toTokenAddress);
       IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
       (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
 
@@ -86,13 +87,16 @@ library SwapAgent {
 
     {
       // scope for token checks
-      uint avgAmountOut = oracle.consult(WETH, amountIn, toTokenAddress);
+      uint avgAmountOut = TwapOracle(_oracle).consult(WETH, amountIn, toTokenAddress);
       uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
+      // gas optimisation: reads both values using a single SLOAD
+      (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
+
       require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
-      require(balanceBefore < assetData.minAmount, "SwapAgent: balanceBefore >= min");
-      require(balanceBefore.add(amountOutMin) <= assetData.maxAmount, "SwapAgent: balanceAfter > max");
+      require(balanceBefore < minAssetAmount, "SwapAgent: balanceBefore >= min");
+      require(balanceBefore.add(amountOutMin) <= maxAssetAmount, "SwapAgent: balanceAfter > max");
     }
 
     address[] memory path = new address[](2);
@@ -102,7 +106,7 @@ library SwapAgent {
 
     assetData.lastSwapTime = uint32(block.timestamp);
 
-    uint balanceAfter = toToken.balanceOf(address(this));
+    uint balanceAfter = IERC20(toTokenAddress).balanceOf(address(this));
     uint amountOut = balanceAfter.sub(balanceBefore);
 
     return amountOut;
@@ -116,18 +120,19 @@ library SwapAgent {
     uint amountOutMin
   ) external returns (uint) {
 
-    TwapOracle oracle = TwapOracle(_oracle);
-    IERC20 fromToken = IERC20(fromTokenAddress);
-    uint tokenBalanceBefore = fromToken.balanceOf(address(this));
+    uint tokenBalanceBefore = IERC20(fromTokenAddress).balanceOf(address(this));
     uint balanceBefore = address(this).balance;
     address WETH = router.WETH();
 
-    uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
-    require(timeSinceLastTrade > oracle.periodSize(), "SwapAgent: too fast");
+    {
+      // scope for swap frequency check
+      uint timeSinceLastTrade = block.timestamp.sub(uint(assetData.lastSwapTime));
+      require(timeSinceLastTrade > TwapOracle(_oracle).periodSize(), "SwapAgent: too fast");
+    }
 
     {
       // scope for liquidity check
-      address pairAddress = oracle.pairFor(fromTokenAddress, WETH);
+      address pairAddress = TwapOracle(_oracle).pairFor(fromTokenAddress, WETH);
       IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
       (uint112 reserve0, uint112 reserve1, /* time */) = pair.getReserves();
 
@@ -139,19 +144,22 @@ library SwapAgent {
 
     {
       // scope for token checks
-      uint avgAmountOut = oracle.consult(fromTokenAddress, amountIn, WETH);
+      uint avgAmountOut = TwapOracle(_oracle).consult(fromTokenAddress, amountIn, WETH);
       uint maxSlippageAmount = avgAmountOut.mul(assetData.maxSlippageRatio).div(1e18);
       uint minOutOnMaxSlippage = avgAmountOut.sub(maxSlippageAmount);
 
+      // gas optimisation: reads both values using a single SLOAD
+      (uint minAssetAmount, uint maxAssetAmount) = (assetData.minAmount, assetData.maxAmount);
+
       require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
-      require(tokenBalanceBefore > assetData.maxAmount, "SwapAgent: tokenBalanceBefore <= max");
-      require(tokenBalanceBefore.sub(amountIn) >= assetData.minAmount, "SwapAgent: tokenbalanceAfter < min");
+      require(tokenBalanceBefore > maxAssetAmount, "SwapAgent: tokenBalanceBefore <= max");
+      require(tokenBalanceBefore.sub(amountIn) >= minAssetAmount, "SwapAgent: tokenbalanceAfter < min");
     }
 
     address[] memory path = new address[](2);
-    path[0] = address(fromToken);
+    path[0] = fromTokenAddress;
     path[1] = router.WETH();
-    fromToken.approve(address(router), amountIn);
+    IERC20(fromTokenAddress).approve(address(router), amountIn);
     router.swapExactTokensForETH(amountIn, amountOutMin, path, address(this), block.timestamp);
 
     assetData.lastSwapTime = uint32(block.timestamp);

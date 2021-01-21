@@ -40,7 +40,7 @@ const nextWindowStartTime = async () => {
   return (currentWindow + 1) * windowSize;
 };
 
-describe.only('swapAssetForETH', function () {
+describe('swapAssetForETH', function () {
 
   it('should revert when swapAssetForETH is called while the system is paused', async function () {
 

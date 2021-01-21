@@ -280,7 +280,7 @@ describe('send claim payout to the payout address', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
-  it.only('[A1, status: 0, 7, 13] CA accept, closed with closeClaim(), claim payout fails with status 12', async function () {
+  it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
 
     const { cd, cl, qd, mr, master, dai } = this.contracts;
     const cover = { ...coverTemplate };
@@ -320,8 +320,6 @@ describe('send claim payout to the payout address', function () {
     for (let i = 0; i <= 60; i++) {
       await time.increase(payoutRetryTime.addn(1));
       await master.closeClaim(claimId);
-      const claimState12Count = await cd.getClaimState12Count(claimId);
-      assert.equal(claimState12Count.toString(), (i + 1).toString());
     }
 
     const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);

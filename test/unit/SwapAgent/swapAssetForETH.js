@@ -1,6 +1,5 @@
 const { accounts, web3 } = require('hardhat');
 const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
-const { hex } = require('../utils').helpers;
 const { setNextBlockTime } = require('../utils').evm;
 const { assert } = require('chai');
 

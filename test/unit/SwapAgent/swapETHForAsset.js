@@ -9,6 +9,7 @@ const contracts = require('./setup').contracts;
 
 const { toBN } = web3.utils;
 const bnToNumber = bn => parseInt(bn.toString(), 10);
+const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 const addLiquidity = async (router, weth, token, ethAmount, tokenAmount) => {
 
@@ -39,9 +40,7 @@ const nextWindowStartTime = async () => {
   return (currentWindow + 1) * windowSize;
 };
 
-describe('swaps', function () {
-
-  /* eth to asset */
+describe.only('swapETHForAsset', function () {
 
   it('should revert when swapETHForAsset is called while the system is paused', async function () {
 
@@ -69,7 +68,8 @@ describe('swaps', function () {
     const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(tokenA.address,
+    await pool.setAssetDetails(
+      tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -106,7 +106,8 @@ describe('swaps', function () {
     const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
     const windowStart = await nextWindowStartTime();
 
-    await pool.setAssetDetails(tokenA.address,
+    await pool.setAssetDetails(
+      tokenA.address,
       ether('100'), // asset minimum
       ether('100000'), // asset maximum
       ether('0.01'), // max slippage
@@ -153,7 +154,8 @@ describe('swaps', function () {
     const minEther = toBN(currentEther).sub(maxPoolTradableEther);
 
     await pool.updateUintParameters(hex('MIN_ETH'), minEther, { from: governance });
-    await pool.setAssetDetails(tokenA.address,
+    await pool.setAssetDetails(
+      tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -188,7 +190,8 @@ describe('swaps', function () {
     const windowStart = await nextWindowStartTime();
     const maxSlippageRatio = ether('0.01');
 
-    await pool.setAssetDetails(tokenA.address,
+    await pool.setAssetDetails(
+      tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -226,7 +229,7 @@ describe('swaps', function () {
     await pool.swapETHForAsset(tokenA.address, ethIn, minOutOnMaxSlippage);
   });
 
-  it('should revert swapETHForAsset call when asset balance >= assetData.minAmount', async function () {
+  it('should revert swapETHForAsset call when asset balanceBefore >= assetData.minAmount', async function () {
 
     const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
     const windowStart = await nextWindowStartTime();
@@ -235,7 +238,8 @@ describe('swaps', function () {
     await tokenA.mint(assetMinAmount);
     await tokenA.transfer(pool.address, assetMinAmount);
 
-    await pool.setAssetDetails(tokenA.address,
+    await pool.setAssetDetails(
+      tokenA.address,
       assetMinAmount, // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -258,70 +262,13 @@ describe('swaps', function () {
     );
   });
 
-  // TODO: Due to the fact that we only have an estimate of the asset amount reveived before a swap happens,
-  //       It is possible to end up with a little bit more or less assets than the specified min and max.
-  //       this can happen only when min and max values are close enough and the traded amount exceeds their diff.
-  //       To be discussed: revert when a better than expected trade is executed but resulting amount is not
-  //       within the min/max bounds vs keep the current implementation where the min/max bounds are checked using
-  //       the provided minOutAmount.
-
-  it.skip('should revert swapETHForAsset call when asset balance >= assetData.minAmount', async function () {
-
-    const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
-    const windowStart = await nextWindowStartTime();
-
-    const initialAssetAmount = ether('90');
-    const assetMinAmount = ether('95');
-    const assetMaxAmount = ether('100');
-
-    await tokenA.mint(initialAssetAmount);
-    await tokenA.transfer(pool.address, initialAssetAmount);
-
-    await pool.setAssetDetails(tokenA.address,
-      assetMinAmount, // asset minimum
-      assetMaxAmount, // asset maximum
-      ether('0.01'), // max slippage
-      { from: governance },
-    );
-
-    // add liquidity and update twap oracle
-    await addLiquidity(router, weth, tokenA, ether('10000'), ether('2000000'));
-    await setNextBlockTime(windowStart);
-    await oracle.update([wethAPair.address]);
-
-    // missing amount until max: 10 tokens
-    const maxNeededTokens = assetMaxAmount.sub(initialAssetAmount);
-    // missing amount + 1 wei: 10.000…0001 tokens
-    const maxNeededTokensPlus1Wei = maxNeededTokens.addn(1);
-
-    const [ethInForMax] = await router.getAmountsIn(maxNeededTokens, [weth.address, tokenA.address]);
-    const [ethInForOverMax] = await router.getAmountsIn(maxNeededTokensPlus1Wei, [weth.address, tokenA.address]);
-
-    await setNextBlockTime(windowStart + periodSize * 7);
-
-    await expectRevert(
-      pool.swapETHForAsset(tokenA.address, ethInForOverMax, maxNeededTokensPlus1Wei),
-      'SwapAgent: balanceAfter > max',
-    );
-
-    // should work with max
-    await pool.swapETHForAsset(tokenA.address, ethInForMax, maxNeededTokens);
-
-    const tokenBalance = await tokenA.balanceOf(pool.address);
-    assert(
-      tokenBalance.lte(assetMaxAmount),
-      `Pool balance exceeds assetMaxAmount: ${tokenBalance.toString()}`,
-    );
-    console.log({ tokenBalance: tokenBalance.toString() });
-  });
-
   it('should swap eth for asset and emit a Swapped event with correct values', async function () {
 
     const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
     const windowStart = await nextWindowStartTime();
-    const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-    await pool.setAssetDetails(tokenA.address,
+    await pool.setAssetDetails(
+      tokenA.address,
       ether('100'), // asset minimum
       ether('1000'), // asset maximum
       ether('0.01'), // max slippage
@@ -357,55 +304,6 @@ describe('swaps', function () {
       toAsset: tokenA.address,
       amountIn: etherIn,
       amountOut: tokensReceived,
-    });
-  });
-
-  /* asset to eth */
-
-  it('should swap asset for eth and emit a Swapped event with correct values', async function () {
-
-    const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
-    const windowStart = await nextWindowStartTime();
-    const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-
-    await pool.setAssetDetails(tokenA.address,
-      ether('100'), // asset minimum
-      ether('1000'), // asset maximum
-      ether('0.01'), // max slippage
-      { from: governance },
-    );
-
-    await tokenA.mint(pool.address, ether('1000'));
-
-    // add liquidity and update twap oracle
-    await addLiquidity(router, weth, tokenA, ether('10000'), ether('2000000'));
-    await setNextBlockTime(windowStart);
-    await oracle.update([wethAPair.address]);
-
-    // should be able to swap only during the last period within the window
-    await setNextBlockTime(windowStart + periodSize * 7);
-
-    const etherBefore = toBN(await web3.eth.getBalance(pool.address));
-    const tokensBefore = await tokenA.balanceOf(pool.address);
-
-    // amounts in/out of the trade
-    const tokenIn = ether('200');
-    const minEtherOut = ether('0.99');
-    const swapTx = await pool.swapAssetForETH(tokenA.address, tokenIn, minEtherOut);
-
-    const etherAfter = toBN(await web3.eth.getBalance(pool.address));
-    const tokensAfter = await tokenA.balanceOf(pool.address);
-    const tokensSent = tokensBefore.sub(tokensAfter);
-    const etherReceived = etherAfter.sub(etherBefore);
-
-    assert.strictEqual(tokensSent.toString(), tokenIn.toString());
-    assert(etherReceived.gte(minEtherOut));
-
-    expectEvent(swapTx, 'Swapped', {
-      fromAsset: tokenA.address,
-      toAsset: ETH,
-      amountIn: tokenIn,
-      amountOut: etherReceived,
     });
   });
 

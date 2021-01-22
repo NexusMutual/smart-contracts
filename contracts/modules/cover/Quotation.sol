@@ -337,6 +337,7 @@ contract Quotation is Iupgradable {
     require(coverDetails[3] > now);
     require(!qd.timestampRepeated(coverDetails[4]));
     qd.setTimestampRepeated(coverDetails[4]);
+    require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
 
     address asset = cr.getCurrencyAssetAddress(coverCurr);
     if (coverCurr != "ETH" && !isNXM) {

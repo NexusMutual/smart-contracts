@@ -130,6 +130,22 @@ describe('makeCoverUsingCA', function () {
     );
   });
 
+  it('reverts if cover period < 30', async function () {
+    const cover = { ...coverTemplate, period: 29 };
+    await expectRevert(
+      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
+      'Quotation: Cover period out of bounds',
+    );
+  });
+
+  it('reverts if cover period > 365', async function () {
+    const cover = { ...coverTemplate, period: 366 };
+    await expectRevert(
+      buyCover({ ...this.contracts, cover, coverHolder: member1 }),
+      'Quotation: Cover period out of bounds',
+    );
+  });
+
   it('reverts if DAI approved amount does not match premium', async function () {
     const { qt, p1: pool, dai } = this.contracts;
     const cover = { ...coverTemplate };

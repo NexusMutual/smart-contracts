@@ -153,7 +153,7 @@ library SwapAgent {
 
       require(amountOutMin >= minOutOnMaxSlippage, "SwapAgent: amountOutMin < minOutOnMaxSlippage");
       require(tokenBalanceBefore > maxAssetAmount, "SwapAgent: tokenBalanceBefore <= max");
-      require(tokenBalanceBefore.sub(amountIn) >= minAssetAmount, "SwapAgent: tokenbalanceAfter < min");
+      require(tokenBalanceBefore.sub(amountIn) >= minAssetAmount, "SwapAgent: tokenBalanceAfter < min");
     }
 
     address[] memory path = new address[](2);

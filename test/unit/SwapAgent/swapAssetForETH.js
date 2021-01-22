@@ -193,7 +193,7 @@ describe('swapAssetForETH', function () {
     await pool.swapAssetForETH(tokenA.address, tokenIn, minOutOnMaxSlippage);
   });
 
-  it('should revert swapAssetForETH call when asset balanceBefore <= assetData.maxAmount', async function () {
+  it('should revert when asset balanceBefore <= maxAmount', async function () {
 
     const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
     const windowStart = await nextWindowStartTime();
@@ -228,6 +228,37 @@ describe('swapAssetForETH', function () {
 
     // should work with minOut
     await pool.swapAssetForETH(tokenA.address, tokenIn, estimateEthOut);
+  });
+
+  it('should revert when asset tokenBalanceAfter < minAmount', async function () {
+
+    const { oracle, pool, router, tokenA, weth, wethAPair } = contracts();
+    const windowStart = await nextWindowStartTime();
+
+    await pool.setAssetDetails(
+      tokenA.address,
+      ether('100'), // asset minimum
+      ether('200'), // asset maximum
+      ether('0.01'), // max slippage
+      { from: governance },
+    );
+
+    await tokenA.mint(pool.address, ether('300'));
+
+    // add liquidity and update twap oracle
+    await addLiquidity(router, weth, tokenA, ether('10000'), ether('2000000'));
+    await setNextBlockTime(windowStart);
+    await oracle.update([wethAPair.address]);
+
+    const tokenIn = ether('250'); // 300 - 250 = 50, under the minimum
+    const [, estimateEthOut] = await router.getAmountsOut(tokenIn, [tokenA.address, weth.address]);
+
+    await setNextBlockTime(windowStart + periodSize * 7);
+
+    await expectRevert(
+      pool.swapAssetForETH(tokenA.address, tokenIn, estimateEthOut),
+      'SwapAgent: tokenBalanceAfter < min',
+    );
   });
 
   it('should swap asset for eth and emit a Swapped event with correct values', async function () {

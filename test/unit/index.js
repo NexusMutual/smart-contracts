@@ -5,5 +5,5 @@ describe('UNIT TESTS', function () {
   require('./Pool');
   require('./SwapAgent');
   require('./TwapOracle');
-
+  require('./MCR');
 });

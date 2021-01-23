@@ -508,6 +508,23 @@ describe.only('NXM sells and buys', function () {
     );
   });
 
+  it('performs another hypothetical future master upgrade', async function () {
+    const { governance, voters, masterAddress } = this;
+
+    const masterProxy = await OwnedUpgradeabilityProxy.at(masterAddress);
+
+    // upgrade to new master
+    const masterImplementation = await NXMaster.new();
+
+    // vote and upgrade
+    const upgradeMaster = web3.eth.abi.encodeParameters(['address'], [masterImplementation.address]);
+    await submitGovernanceProposal(ProposalCategory.upgradeMaster, upgradeMaster, voters, governance);
+
+    // check implementation
+    const actualMasterImplementation = await masterProxy.implementation();
+    assert.strictEqual(actualMasterImplementation, masterImplementation.address);
+  });
+
   it('performs hypothetical future Pool upgrade', async function () {
 
     const { pool, priceFeedOracle, voters, governance, master, twapOracle, dai } = this;

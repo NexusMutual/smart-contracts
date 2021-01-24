@@ -234,4 +234,42 @@ describe('DAI cover claim payouts', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
+  it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
+
+    const { cd, cl, qd, master, dai, p1: pool } = this.contracts;
+
+    const cover = { ...daiCoverTemplate };
+    await buyCoverWithDai({ ...this.contracts, cover, coverHolder });
+
+    // blacklist coverHolder so it cannot receive the payout and fail the transfer
+    await dai.blacklist(coverHolder);
+
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+
+    const minVotingTime = await cd.minVotingTime();
+    await time.increase(minVotingTime.addn(1));
+
+    const voteStatusBefore = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
+
+    await master.closeClaim(claimId);
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusAfter.toString(), '0', 'voting should be closed');
+
+    const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(claimStatus.toNumber(), 12, 'claim status should be 12 (Claim Accepted Payout Pending)');
+
+    const payoutRetryTime = await cd.payoutRetryTime();
+    for (let i = 0; i <= 60; i++) {
+      await time.increase(payoutRetryTime.addn(1));
+      await master.closeClaim(claimId);
+    }
+
+    const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
+  });
+
 });

@@ -227,6 +227,11 @@ describe.only('NXM sells and buys', function () {
     console.log('Deploy price feed oracle');
     const priceFeedOracle = await PriceFeedOracle.new([Address.DAI], [Address.DAIFEED], Address.DAI);
 
+    if (process.env.HH_BUG_WORKAROUND) {
+      await web3.eth.sendTransaction({ from: accounts[0], to: accounts[0], value: '0' });
+      await web3.eth.sendTransaction({ from: accounts[0], to: accounts[0], value: '0' });
+    }
+
     console.log('Deploy twap oracle');
     const twapOracle = await TwapOracle.new(Address.UNIFACTORY);
 

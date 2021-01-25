@@ -13,7 +13,7 @@ const ERC20Mock = artifacts.require('ERC20Mock');
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe.only('sendClaimPayout', function () {
+describe('sendClaimPayout', function () {
 
   it('transfers ERC20 payout to destination', async function () {
     const { pool, dai } = this;

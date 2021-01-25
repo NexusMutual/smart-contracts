@@ -30,6 +30,7 @@ const ClaimsReward = artifacts.require('ClaimsReward');
 const Quotation = artifacts.require('Quotation');
 const MCR = artifacts.require('MCR');
 const Pool2 = artifacts.require('Pool2');
+const LegacyPool1 = artifacts.require('LegacyPool1');
 const LegacyMCR = artifacts.require('LegacyMCR');
 const PriceFeedOracle = artifacts.require('PriceFeedOracle');
 const ERC20 = artifacts.require('ERC20');
@@ -76,6 +77,7 @@ describe.only('NXM sells and buys', function () {
     const token = await NXMToken.at(getAddressByCode('NXMTOKEN'));
     const memberRoles = await MemberRoles.at(getAddressByCode('MR'));
     const governance = await Governance.at(getAddressByCode('GV'));
+    const pool1 = await LegacyPool1.at(getAddressByCode('P1'));
     const poolData = await PoolData.at(getAddressByCode('PD'));
     const oldMCR = await LegacyMCR.at(getAddressByCode('MC'));
 
@@ -83,6 +85,7 @@ describe.only('NXM sells and buys', function () {
     this.token = token;
     this.memberRoles = memberRoles;
     this.governance = governance;
+    this.pool1 = pool1;
     this.poolData = poolData;
     this.oldMCR = oldMCR;
     this.getAddressByCode = getAddressByCode;
@@ -103,7 +106,7 @@ describe.only('NXM sells and buys', function () {
 
   it('upgrade master and rescue sai', async function () {
 
-    const { masterAddress, governance, voters, getAddressByCode } = this;
+    const { masterAddress, governance, pool1, voters, getAddressByCode } = this;
     const masterProxy = await OwnedUpgradeabilityProxy.at(masterAddress);
 
     const parameters = [
@@ -134,6 +137,8 @@ describe.only('NXM sells and buys', function () {
     const wnxm = await ERC20.at(Address.WNXM);
     const p1 = getAddressByCode('P1');
     const tc = getAddressByCode('TC');
+    const pd = getAddressByCode('PD');
+    const p2 = getAddressByCode('P2');
 
     const saiStuck = await sai.balanceOf(p1);
     const wnxmStuck = await wnxm.balanceOf(tc);
@@ -153,6 +158,10 @@ describe.only('NXM sells and buys', function () {
 
     // perform the rescue operation
     await temporaryMaster.rescueTokens();
+    await expectRevert(
+      temporaryMaster.rescueTokens(),
+      'Rescue already called',
+    );
 
     // make sure TC implementation was succesfully restored
     const postRescueTCImpl = await tcProxy.implementation();
@@ -168,6 +177,16 @@ describe.only('NXM sells and buys', function () {
     const wnxmSent = await wnxm.balanceOf(dst);
     assert.strictEqual(wnxmLeft.toString(), '0', 'wNXM still in TC!');
     assert.strictEqual(wnxmStuck.toString(), wnxmSent.toString(), 'wNXM not in DST!');
+
+    const actualPoolP2 = await web3.eth.getStorageAt(pool1.address, 11);
+    const actualPoolPD = await web3.eth.getStorageAt(pool1.address, 12);
+    assert.strictEqual('0x' + actualPoolP2.slice(-40), p2, 'pool1.p2 != actual p2');
+    assert.strictEqual('0x' + actualPoolPD.slice(-40), pd, 'pool1.p2 != actual p2');
+
+    const actualMasterP2 = await temporaryMaster.getLatestAddress(hex('P2'));
+    const actualMasterPD = await temporaryMaster.getLatestAddress(hex('PD'));
+    assert.strictEqual(actualMasterP2.toLowerCase(), p2, 'master.p2 != actual p2');
+    assert.strictEqual(actualMasterPD.toLowerCase(), pd, 'master.p2 != actual p2');
 
     this.master = temporaryMaster;
   });
@@ -205,10 +224,16 @@ describe.only('NXM sells and buys', function () {
     const newQuotation = await Quotation.new();
     const newPool2 = await Pool2.new(master.address, Address.DAI);
 
+    console.log('Deploy price feed oracle');
     const priceFeedOracle = await PriceFeedOracle.new([Address.DAI], [Address.DAIFEED], Address.DAI);
+
+    console.log('Deploy twap oracle');
     const twapOracle = await TwapOracle.new(Address.UNIFACTORY);
+
+    console.log('Link pool to swap agent');
     Pool.link(await SwapAgent.new());
 
+    console.log('Deploy pool');
     const pool = await Pool.new(
       [Address.DAI],
       [0],

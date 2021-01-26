@@ -1,6 +1,7 @@
 require('dotenv').config();
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
+require('@nomiclabs/hardhat-etherscan');
 
 const { task } = require('hardhat/config');
 const ether = n => `${n}${'0'.repeat(18)}`;
@@ -65,6 +66,10 @@ module.exports = {
   },
 
   networks,
+
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
 
   solidity: {
     compilers: [

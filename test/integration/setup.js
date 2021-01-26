@@ -10,7 +10,7 @@ const { BN } = web3.utils;
 async function setup () {
 
   // external
-  const ERC20Mock = artifacts.require('ERC20Mock');
+  const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
   const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
   const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
   const WETH9 = artifacts.require('WETH9');
@@ -120,7 +120,7 @@ async function setup () {
   // deploy external contracts
   const { router, factory, weth } = await deployUniswap();
 
-  const dai = await ERC20Mock.new();
+  const dai = await ERC20BlacklistableMock.new();
   await dai.mint(ether('10000000'));
   const chainlinkDAI = await P1MockChainlinkAggregator.new();
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);

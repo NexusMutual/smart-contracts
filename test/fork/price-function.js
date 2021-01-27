@@ -132,7 +132,7 @@ describe.only('NXM sells and buys', function () {
     // add new category for master upgrade
     await submitGovernanceProposal(ProposalCategory.addCategory, addCategory, voters, governance);
 
-    const dst = '0x0000000000000000000000000000000000001337';
+    const dst = '0xFC64382c9Ce89bA1C21692A68000366a35fF0336';
     const sai = await ERC20.at(Address.SAI);
     const wnxm = await ERC20.at(Address.WNXM);
     const p1 = getAddressByCode('P1');
@@ -142,6 +142,7 @@ describe.only('NXM sells and buys', function () {
 
     const saiStuck = await sai.balanceOf(p1);
     const wnxmStuck = await wnxm.balanceOf(tc);
+    const wnxmAlreadyAtDst = await wnxm.balanceOf(dst);
 
     // upgrade master to TemporaryNXMaster to rescue sai
     const masterImplementation = await TemporaryNXMaster.new();
@@ -174,7 +175,7 @@ describe.only('NXM sells and buys', function () {
     assert.strictEqual(saiStuck.toString(), saiSent.toString(), 'SAI not in DST!');
 
     const wnxmLeft = await wnxm.balanceOf(tc);
-    const wnxmSent = await wnxm.balanceOf(dst);
+    const wnxmSent = (await wnxm.balanceOf(dst)).sub(wnxmAlreadyAtDst);
     assert.strictEqual(wnxmLeft.toString(), '0', 'wNXM still in TC!');
     assert.strictEqual(wnxmStuck.toString(), wnxmSent.toString(), 'wNXM not in DST!');
 

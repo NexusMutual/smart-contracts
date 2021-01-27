@@ -27,7 +27,9 @@
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "bn.js": "^5.1.2",
-    "dotenv": "^8.2.0"
+    "dotenv": "^8.2.0",
+    "ethereumjs-util": "^7.0.7",
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.0",
@@ -62,7 +64,7 @@
     "test-integration": "hardhat test test/integration/index.js",
     "test-unit": "hardhat test test/unit/index.js",
     "test-fuzzing": "hardhat test test/fuzzing/index.js",
-    "deploy-kovan": "hardhat run --network kovan scripts/deploy.js",
+    "deploy": "hardhat run scripts/deploy.js",
     "test-fork": "TEST_ENV_FORK=https://parity.nexusmutual.io/ hardhat test test/fork/index.js",
     "typechain": "hardhat typechain"
   }

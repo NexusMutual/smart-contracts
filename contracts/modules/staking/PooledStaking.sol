@@ -974,18 +974,6 @@ contract PooledStaking is MasterAware, IPooledStaking {
     initialized = true;
   }
 
-  function initializeRewardRoundsStart() public {
-    require(REWARD_ROUNDS_START == 0, "REWARD_ROUNDS_START already initialized");
-    REWARD_ROUNDS_START = 1600074000;
-    REWARD_ROUND_DURATION = 7 days;
-
-    bytes32 location = MIGRATION_LAST_ID_POSITION;
-    uint lastRewardIdValue = lastRewardId;
-    assembly {
-      sstore(location, lastRewardIdValue)
-    }
-  }
-
   function changeDependentContractAddress() public {
 
     token = NXMToken(master.tokenAddress());
@@ -994,62 +982,67 @@ contract PooledStaking is MasterAware, IPooledStaking {
     if (!initialized) {
       initialize();
     }
-
-    if (REWARD_ROUNDS_START == 0) {
-      initializeRewardRoundsStart();
-    }
   }
 
-  event RewardsMigrationCompleted(
+  event LockTimeMigrationCompleted(
     bool finished,
-    uint firstReward,
+    uint startUnstakeIndex,
+    uint endUnstakeIndex,
     uint iterationsLeft
   );
 
-  bytes32 private constant MIGRATION_LAST_ID_POSITION = keccak256("nexusmutual.pooledstaking.MIGRATION_LAST_ID_POINTER");
+  function migratePendingUnstakesToNewLockTime(uint iterations) external {
 
-  function migrateRewardsToAccumulatedRewards(uint maxIterations) external returns (bool finished, uint iterationsLeft)  {
-    require(firstReward != 0, "Nothing to migrate");
+    uint migrationStatus;
+    bytes32 migrationStatusSlot = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_STAGE");
+    assembly { migrationStatus := sload(migrationStatusSlot) }
+    require(migrationStatus == 0, 'PooledStaking: Migration finished');
 
-    uint ACCUMULATED_REWARDS_MIGRATION_LAST_ID;
-    bytes32 location = MIGRATION_LAST_ID_POSITION;
-    assembly {
-      ACCUMULATED_REWARDS_MIGRATION_LAST_ID := sload(location)
-    }
+    uint migrationRequestId;
+    bytes32 migrationRequestIdSlot = keccak256("nexusmutual.pooledstaking.LOCK_TIME_MIGRATION_FIRST_ID_POINTER");
+    assembly { migrationRequestId := sload(migrationRequestIdSlot) }
 
-    require(firstReward <= ACCUMULATED_REWARDS_MIGRATION_LAST_ID, "Exceeded last migration id");
+    bool finished = false;
+    uint next = migrationRequestId == 0 ? unstakeRequests[0].next : migrationRequestId;
+    uint firstId = next;
 
-    iterationsLeft = maxIterations;
+    while (iterations > 0) {
 
-    while (!finished && iterationsLeft > 0) {
+      iterations--;
 
-      iterationsLeft--;
+      UnstakeRequest storage unstakeRequest = unstakeRequests[next];
+      uint newUnstakeTime = unstakeRequest.unstakeAt - 60 days;
 
-      Reward storage reward = rewards[firstReward];
-      ContractReward storage accumulatedReward = accumulatedRewards[reward.contractAddress];
-      accumulatedReward.amount = accumulatedReward.amount.add(reward.amount);
-      emit RewardAdded(reward.contractAddress, reward.amount);
-
-      delete rewards[firstReward];
-      firstReward++;
-
-      if (firstReward > ACCUMULATED_REWARDS_MIGRATION_LAST_ID) {
-        finished = true;
+      if (next > 0 && newUnstakeTime <= now) {
+        _processFirstUnstakeRequest();
+        next = unstakeRequests[0].next;
+        continue;
       }
 
-      if (firstReward > lastRewardId) {
-        firstReward = 0;
-        finished = true;
+      if (next > 0) {
+        unstakeRequest.unstakeAt = newUnstakeTime;
+        next = unstakeRequest.next;
+        continue;
       }
+
+      finished = true;
+      break;
     }
 
     if (finished) {
-      assembly {
-        sstore(location, 0)
-      }
+
+      // finished migration
+      UNSTAKE_LOCK_TIME = 30 days;
+      assembly { sstore(migrationStatusSlot, 1) }
+      assembly { sstore(migrationRequestIdSlot, 0) }
+
+    } else {
+
+      // store progress
+      assembly { sstore(migrationRequestIdSlot, next) }
+
     }
 
-    emit RewardsMigrationCompleted(finished, firstReward, iterationsLeft);
-    return (finished, iterationsLeft);
+    emit LockTimeMigrationCompleted(finished, firstId, next, iterations);
   }
 }

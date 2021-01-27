@@ -265,7 +265,7 @@ async function run () {
 
   console.log('Setting ClaimsData parameters');
   await cd.changeMasterAddress(master.address);
-  await cd.updateUintParameters(hex('CAMAXVT'), 1); // max voting time 1h
+  await cd.updateUintParameters(hex('CAMAXVT'), 2); // max voting time 2h
   await cd.updateUintParameters(hex('CAMINVT'), 1); // min voting time 1h
   await cd.updateUintParameters(hex('CADEPT'), 1); // claim deposit time 1 day
   await cd.updateUintParameters(hex('CAPAUSET'), 1); // claim assessment pause time 1 day

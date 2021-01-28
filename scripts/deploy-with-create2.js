@@ -1,8 +1,14 @@
-const { artifacts, run } = require('hardhat');
+const { artifacts, run, web3 } = require('hardhat');
 const path = require('path');
 const { toChecksumAddress, keccak256 } = require('ethereumjs-util');
 
 const { getNetwork, waitForInput } = require('../lib/helpers');
+
+const isMemoryOK = () => {
+  const usage = process.memoryUsage();
+  const limit = 4e+9; // 4GB
+  return usage.rss < limit;
+};
 
 const usage = exitcode => {
   const app = path.basename(process.argv[1]);
@@ -17,6 +23,7 @@ const findCreate2Salt = () => function * (creatorAddress, bytecode, searchString
   const creator = creatorAddress.slice(-40);
   const bytecodeBuffer = Buffer.from(bytecode.slice(2), 'hex');
   const bytecodeHash = keccak256(bytecodeBuffer).toString('hex').replace(/^0x/, '');
+  const prefix = process.env.CS ? searchString : searchString.toLowerCase();
 
   let message;
 
@@ -27,12 +34,22 @@ const findCreate2Salt = () => function * (creatorAddress, bytecode, searchString
       process.stdout.write(message);
     }
 
+    if (salt % 100000 === 0 && !isMemoryOK()) {
+      message = `Memory limit hit! Next salt: ${salt}`;
+      process.stdout.write(`\n${message}\n`);
+      process.exit(5);
+    }
+
     const saltHex = salt.toString(16).padStart(64, '0');
     const input = Buffer.from(`ff${creator}${saltHex}${bytecodeHash}`, 'hex');
     const create2Hash = keccak256(input);
     const address = create2Hash.slice(32 - 20).toString('hex');
 
-    if (address.startsWith(searchString)) {
+    const checksummed = process.env.CS
+      ? toChecksumAddress(`0x${address}`).slice(2)
+      : address.toLowerCase();
+
+    if (checksummed.startsWith(prefix)) {
       message && process.stdout.write(`\r${' '.repeat(message.length)}\r`);
       yield { address: toChecksumAddress(`0x${address}`), salt };
     }
@@ -50,14 +67,6 @@ const find = saltGenerator => {
 };
 
 async function main () {
-
-  console.log(`
-    Heads up! I have a memory leak and will eat a lot of RAM!
-    Keep an eye on the available memory and kill me when needed.
-    You'll be able to resume from the last found salt by passing it as a cli argument.
-  `);
-
-  await waitForInput('Press enter to continue...');
 
   const command = process.argv[2];
   const searchString = (process.argv[3] || '').replace(/^0x/, '');
@@ -81,8 +90,13 @@ async function main () {
   const targetContract = process.env.TARGET_CONTRACT;
 
   if (typeof targetContract !== 'string') {
-    console.log(`TARGET_CONTRACT env var is required`);
+    console.log('TARGET_CONTRACT env var is required');
     usage(3);
+  }
+
+  if (!process.env.ENABLE_OPTIMIZER) {
+    console.log('In order to deploy you need to enable optimizer using ENABLE_OPTIMIZER=1');
+    process.exit(4);
   }
 
   // make sure the contracts are compiled and we're not deploying an outdated artifact
@@ -90,8 +104,8 @@ async function main () {
 
   startSalt /= 1; // cast to Number
 
-  const network = (await getNetwork()).toUpperCase();
-  const factoryAddress = process.env[`${network}_FACTORY_ADDRESS`];
+  const network = await getNetwork();
+  const factoryAddress = process.env[`${network.toUpperCase()}_FACTORY_ADDRESS`];
   const saltGenerator = findCreate2Salt();
 
   if (!factoryAddress) {
@@ -106,7 +120,30 @@ async function main () {
   const Target = artifacts.require(targetContract);
   console.log(`Target contract: ${targetContract}`);
 
-  const { _json: { bytecode } } = Target;
+  let constructor = '';
+
+  if (typeof process.env.C_ARGS !== 'undefined') {
+
+    const constructorArgs = JSON.parse(process.env.C_ARGS || 'null');
+    const constructorArgTypes = JSON.parse(process.env.C_ARG_TYPES || 'null');
+    constructor = web3.eth.abi.encodeParameters(constructorArgTypes, constructorArgs).slice(2);
+
+    console.log(`Constructor arguments:         ${process.env.C_ARGS}`);
+    console.log(`Constructor arguments types:   ${process.env.C_ARG_TYPES}`);
+    console.log(`Encoded constructor arguments: ${constructor}`);
+  }
+
+  const { _json: { bytecode: rawBytecode } } = Target;
+  let contractBytecode = rawBytecode;
+
+  if (process.env.LINK) {
+    let [search, replace] = process.env.LINK.split(':');
+    replace = replace.replace(/^0x/, '');
+    console.log(`Linking ${search} -> ${replace}`);
+    contractBytecode = contractBytecode.split(search).join(replace);
+  }
+
+  const bytecode = `${contractBytecode}${constructor}`;
   const getSalt = saltGenerator(deployer.address, bytecode, searchString, startSalt);
 
   if (command === 'find') {
@@ -115,25 +152,29 @@ async function main () {
 
   const { address, salt } = getSalt.next().value;
 
-  const nonce = process.env.NONCE;
-  const gas = process.env.GAS_LIMIT;
+  const nonce = parseInt(process.env.NONCE, 10) || undefined;
+  const gas = parseInt(process.env.GAS_LIMIT, 10) || undefined;
+  const gasPrice = parseInt(process.env.GAS_PRICE, 10) || undefined;
 
   nonce && console.log(`Using nonce: ${nonce}`);
   gas && console.log(`Gas: ${gas}`);
+  gasPrice && console.log(`Gas price: ${gasPrice}`);
 
   console.log(`Using salt: ${salt}`);
   console.log(`Computed address: ${address}`);
 
-  if (network === 'MAINNET') {
+  if (network === 'mainnet') {
     console.log('Are you sure you want to deploy to MAINNET?');
     await waitForInput('Press enter to continue...');
   }
 
   console.log('Sending tx...');
-  const { tx } = await deployer.deploy(bytecode, salt, { gas, nonce });
+  const { tx } = await deployer.deploy(bytecode, salt, { gas, nonce, gasPrice: gasPrice * 1e9 });
+  const receipt = await web3.eth.getTransactionReceipt(tx);
 
-  const subdomain = network === 'MAINNET' ? '' : `${network.toLowerCase()}.`;
+  const subdomain = network === 'mainnet' ? '' : network;
   console.log(`TX: https://${subdomain}etherscan.io/tx/${tx}`);
+  console.log(`Gas used: ${receipt.gasUsed}`);
 }
 
 main()

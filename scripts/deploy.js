@@ -1,14 +1,11 @@
-require('dotenv').config();
+const { artifacts, run, web3 } = require('hardhat');
+const { ether, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpers');
 
-const { artifacts, web3 } = require('hardhat');
-const { ether } = require('@openzeppelin/test-helpers');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
-const Web3 = require('web3');
 const Verifier = require('../lib/verifier');
-const { getenv } = require('../lib/env');
-const { hex } = require('../lib/helpers');
+const { getEnv, getNetwork, hex } = require('../lib/helpers');
 const fs = require('fs');
-const { toBN } = Web3.utils;
+
+const { toBN } = web3.utils;
 
 // external
 const OwnedERC20 = artifacts.require('OwnedERC20');
@@ -49,7 +46,7 @@ const Governance = artifacts.require('Governance');
 const PooledStaking = artifacts.require('PooledStaking');
 
 const INITIAL_SUPPLY = ether('1500000');
-const etherscanApiKey = getenv('ETHERSCAN_API_KEY');
+const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
 
 const contractType = code => {
 
@@ -76,16 +73,19 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
   rinkeby: '0x2bA49Aaa16E6afD2a993473cfB70Fa8559B523cF',
   kovan: '0x22B58f1EbEDfCA50feF632bD73368b2FdA96D541',
 };
-const CHAINLINK_DAI_ETH_AGGREGATOR = CHAINLINK_DAI_ETH_AGGREGATORS[process.env.NETWORK];
 
-async function run () {
-  const network = getenv('NETWORK').toUpperCase();
-  const owner = getenv(`${network}_ACCOUNT`);
+async function main () {
 
+  // make sure the contracts are compiled and we're not deploying an outdated artifact
+  await run('compile');
+
+  const [owner] = await web3.eth.getAccounts();
+  const network = await getNetwork();
   console.log(`Using ${network} network`);
+
   const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
 
-  const deployProxy = async (contract, txParams) => {
+  const deployProxy = async (contract, txParams = {}) => {
     console.log(`Deploying proxy ${contract.contractName}`);
     const implementation = await contract.new(txParams);
     const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
@@ -106,6 +106,8 @@ async function run () {
     await proxy.transferProxyOwnership(newOwner);
   };
 
+  await deployProxy(DisposableNXMaster, { gas: 6e6 });
+
   // deploy external contracts
   console.log('Deploying DAI');
   const dai = await OwnedERC20.new();
@@ -119,9 +121,10 @@ async function run () {
   console.log('Deploying TwapOracle, SwapAgent, PriceFeedOracle');
   const twapOracle = await TwapOracle.new(uniswapV2Factory.address);
   const swapAgent = await SwapAgent.new();
+
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address],
-    [CHAINLINK_DAI_ETH_AGGREGATOR],
+    [CHAINLINK_DAI_ETH_AGGREGATORS[network]],
     dai.address,
   );
 
@@ -297,7 +300,7 @@ async function run () {
   verifier.add('ProposalCategory', newPcImpl.address);
   verifier.add('Governance', newGvImpl.address);
 
-  console.log("Transfering contracts' ownership");
+  console.log('Transfering contracts\' ownership');
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
@@ -308,7 +311,7 @@ async function run () {
   console.log('Contract addresses to be verified:', verifier.dump());
 
   const deployData = JSON.stringify(verifier.dump());
-  fs.writeFileSync(`${network.toLowerCase()}-deploy-data.json`, deployData, 'utf8');
+  fs.writeFileSync(`${network}-deploy-data.json`, deployData, 'utf8');
 
   console.log('Minting DAI to pool');
   await dai.mint(p1.address, ether('6500000'));
@@ -324,17 +327,12 @@ async function run () {
   );
 
   console.log('Performing verifications');
-  
   await verifier.submit();
 
   console.log('Done!');
 }
 
-run()
-  .then(() => {
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('An unexpected error encountered:', error);
-    process.exit(1);
-  });
+main().catch(error => {
+  console.error('An unexpected error encountered:', error);
+  process.exit(1);
+});

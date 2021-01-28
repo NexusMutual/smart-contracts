@@ -7,7 +7,7 @@ const { getNetwork } = require('../lib/helpers');
 
 const usage = exitcode => {
   const app = path.basename(process.argv[1]);
-  console.log(`Usage:`);
+  console.log('Usage:');
   console.log(`    ${app} <target_contract> <depoyedAt>`);
   process.exit(exitcode);
 };
@@ -18,7 +18,7 @@ async function main () {
   const deployedAt = process.argv[3];
 
   if (!targetContract || !deployedAt) {
-    console.log(`Missing required argument`);
+    console.log('Missing required argument');
     usage(1);
   }
 
@@ -31,7 +31,14 @@ async function main () {
   const network = await getNetwork();
   const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
 
-  verifier.add(targetContract, deployedAt);
+  const [, , , , argTypes, args] = process.argv;
+
+  verifier.add(
+    targetContract,
+    deployedAt,
+    JSON.parse(argTypes),
+    JSON.parse(args),
+  );
   console.log('Contract addresses to be verified:', verifier.dump());
 
   await verifier.submit();

@@ -2,7 +2,7 @@ const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-h
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
-const { ParamType } = require('../utils').constants;
+const { StakingUintParamType } = require('../utils').constants;
 
 const {
   nonMembers: [nonMember],
@@ -20,13 +20,13 @@ const sixthContract = '0x0000000000000000000000000000000000000006';
 
 async function fundAndApprove (token, tokenController, staking, amount, member) {
   const maxExposure = '2';
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
 }
 
 async function setUnstakeLockTime (staking, lockTime) {
-  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 const expectContractState = async (staking, contract, expectedStake, expectedStakers) => {
@@ -128,7 +128,7 @@ describe('depositAndStake', function () {
     const minStake = ether('20');
     const amount = ether('1');
 
-    await staking.updateUintParameters(ParamType.MIN_STAKE, minStake, { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, minStake, { from: governanceContract });
     await fundAndApprove(token, tokenController, staking, amount, memberOne);
 
     await expectRevert(
@@ -573,7 +573,7 @@ describe('depositAndStake', function () {
 
     const { staking, token, tokenController } = this;
 
-    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, ether('1'), { from: governanceContract });
     await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2
 
     // stake 10 on 2 contracts
@@ -615,7 +615,7 @@ describe('depositAndStake', function () {
 
     const { staking, token, tokenController } = this;
 
-    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, ether('1'), { from: governanceContract });
     await fundAndApprove(token, tokenController, staking, ether('50'), memberOne); // MAX_EXPOSURE = 2
 
     // stake 10 on 2 contracts
@@ -655,7 +655,7 @@ describe('depositAndStake', function () {
 
     const { staking, token, tokenController } = this;
 
-    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, ether('1'), { from: governanceContract });
     await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2;
 
     // stake 10 on 2 contracts
@@ -676,7 +676,7 @@ describe('depositAndStake', function () {
 
     const { staking, token, tokenController } = this;
 
-    await staking.updateUintParameters(ParamType.MIN_STAKE, ether('1'), { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, ether('1'), { from: governanceContract });
     await fundAndApprove(token, tokenController, staking, ether('100'), memberOne); // MAX_EXPOSURE = 2;
 
     await token.setLock(memberOne, true);

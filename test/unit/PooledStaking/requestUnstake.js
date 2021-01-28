@@ -2,7 +2,7 @@ const { expectEvent, expectRevert, ether, time } = require('@openzeppelin/test-h
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
-const { ParamType } = require('../utils').constants;
+const { StakingUintParamType } = require('../utils').constants;
 const { filterArgsKeys } = require('../utils').helpers;
 
 const {
@@ -18,9 +18,9 @@ async function fundApproveStake (token, tokenController, staking, amount, contra
   const maxExposure = '10';
   const minAllocation = ether('2');
 
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
-  await staking.updateUintParameters(ParamType.MIN_UNSTAKE, ether('2'), { from: governanceContract });
-  await staking.updateUintParameters(ParamType.MIN_STAKE, minAllocation, { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MIN_UNSTAKE, ether('2'), { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MIN_STAKE, minAllocation, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
@@ -29,11 +29,11 @@ async function fundApproveStake (token, tokenController, staking, amount, contra
 }
 
 async function setUnstakeLockTime (staking, lockTime) {
-  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 async function setMinUnstake (staking, amount) {
-  return staking.updateUintParameters(ParamType.MIN_UNSTAKE, amount, { from: governanceContract });
+  return staking.updateUintParameters(StakingUintParamType.MIN_UNSTAKE, amount, { from: governanceContract });
 }
 
 describe('requestUnstake', function () {

@@ -48,8 +48,6 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
 
 describe.skip('migration', function () {
 
-  this.timeout(0);
-
   it('performs contract upgrades', async function () {
 
     const { data: versionData } = await fetch('https://api.nexusmutual.io/version-data/data.json').then(r => r.json());

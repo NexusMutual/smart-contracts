@@ -46,9 +46,7 @@ async function submitGovernanceProposal (categoryId, actionHash, members, gv, su
   assert.equal(proposal[2].toNumber(), 3);
 }
 
-describe.only('rewards migration', function () {
-
-  this.timeout(0);
+describe('rewards migration', function () {
 
   it('performs contract upgrades', async function () {
 
@@ -151,7 +149,7 @@ describe.only('rewards migration', function () {
       console.log({
         contractAddress,
         stakerCount,
-        expectedAccumulatedReward: expectedAccumulatedReward.toString() / 1e18
+        expectedAccumulatedReward: expectedAccumulatedReward.toString() / 1e18,
       });
 
       assert.strictEqual(
@@ -168,7 +166,7 @@ describe.only('rewards migration', function () {
 
     return {
       expectedAggregated,
-      totalRewardsMigrated
+      totalRewardsMigrated,
     };
 
   }
@@ -208,7 +206,6 @@ describe.only('rewards migration', function () {
       existingRewards.push(reward);
     }
     console.log(`Detected ${existingRewards.length}`);
-
 
     let maxGasUsagePerCall = 0;
     let totalGasUsage = 0;
@@ -262,18 +259,17 @@ describe.only('rewards migration', function () {
     console.log(`Moving on to the next round..`);
     await time.increase(oneWeek);
 
-
     console.log(`Pushing rewards for ${JSON.stringify(contracts)}`);
     const pushTx = await ps.pushRewards(contracts);
     console.log({
-      gasUsedByPushRewards: pushTx.receipt.gasUsed
+      gasUsedByPushRewards: pushTx.receipt.gasUsed,
     });
 
     firstReward = await ps.firstReward();
     lastRewardId = await ps.lastRewardId();
     console.log({
       firstReward: firstReward.toString(),
-      lastRewardId: lastRewardId.toString()
+      lastRewardId: lastRewardId.toString(),
     });
 
     await expectRevert(
@@ -305,7 +301,7 @@ describe.only('rewards migration', function () {
         gasUsed,
         processPendingActionsTotalGasUsed,
         firstReward: firstReward.toString(),
-        lastRewardId: lastRewardId.toString()
+        lastRewardId: lastRewardId.toString(),
       });
       totalCalls++;
       i++;
@@ -317,12 +313,12 @@ describe.only('rewards migration', function () {
     console.log({
       balancePostMigration: balancePostMigration.toString() / 1e18,
       balancePreMigration: balancePreMigration.toString() / 1e18,
-      diff: diff.toString() / 1e18
+      diff: diff.toString() / 1e18,
     });
 
     console.log({
       totalCalls,
-      processPendingActionsTotalGasUsed
+      processPendingActionsTotalGasUsed,
     });
 
     assert.strictEqual(diff.toString(), totalRewardsMigrated.toString());

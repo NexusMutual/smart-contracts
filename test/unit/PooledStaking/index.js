@@ -1,19 +1,17 @@
+const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
-const snapshot = require('../utils').snapshot;
 
 describe('PooledStaking unit tests', function () {
 
-  this.timeout(0);
-  this.slow(2000);
-
+  before(reset);
   before(setup);
 
   beforeEach(async function () {
-    this.snapshotId = await snapshot.takeSnapshot();
+    this.snapshotId = await takeSnapshot();
   });
 
   afterEach(async function () {
-    await snapshot.revertToSnapshot(this.snapshotId);
+    await revertToSnapshot(this.snapshotId);
   });
 
   require('./updateUintParameters');
@@ -28,4 +26,5 @@ describe('PooledStaking unit tests', function () {
   require('./processFirstReward');
   require('./getters');
   require('./accumulateReward');
+
 });

@@ -5,6 +5,9 @@ const { toBN } = web3.utils;
 
 const { buyCover } = require('../utils/buyCover');
 const { hex } = require('../utils').helpers;
+const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
+
+const EtherRejecter = artifacts.require('EtherRejecter');
 
 const [, member1, member2, member3, coverHolder, payoutAddress] = accounts;
 
@@ -37,6 +40,11 @@ const coverTemplate = {
 // 14  final      Claim Accepted Payout Done
 
 describe('send claim payout to the payout address', function () {
+
+  beforeEach(async function () {
+    await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
+  });
 
   it('[A1, status: 0, 7, 14] CA accept, closed with closeClaim()', async function () {
 
@@ -272,4 +280,49 @@ describe('send claim payout to the payout address', function () {
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
 
+  it('[A1, status: 0, 7, 12, 13] CA accept, closed with closeClaim(), claim payout fails with status 12 and goes to status 13 after 60 retries', async function () {
+
+    const { cd, cl, qd, mr, master, dai } = this.contracts;
+    const cover = { ...coverTemplate };
+
+    const rejecter = await EtherRejecter.new();
+
+    const payoutAddress = rejecter.address;
+    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
+
+    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
+    assert.strictEqual(
+      await mr.getClaimPayoutAddress(coverHolder),
+      payoutAddress,
+      'should have set the claim payout address',
+    );
+
+    await buyCover({ ...this.contracts, cover, coverHolder });
+    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
+    await cl.submitClaim(coverId, { from: coverHolder });
+    const claimId = (await cd.actualClaimLength()).subn(1);
+    await cl.submitCAVote(claimId, '1', { from: member1 });
+
+    const minVotingTime = await cd.minVotingTime();
+    await time.increase(minVotingTime.addn(1));
+
+    const voteStatusBefore = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
+
+    await master.closeClaim(claimId);
+    const voteStatusAfter = await cl.checkVoteClosing(claimId);
+    assert.equal(voteStatusAfter.toString(), '0', 'voting should not be closed');
+
+    const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(claimStatus.toNumber(), 12, 'claim status should be 12 (Claim Accepted Payout Pending)');
+
+    const payoutRetryTime = await cd.payoutRetryTime();
+    for (let i = 0; i <= 60; i++) {
+      await time.increase(payoutRetryTime.addn(1));
+      await master.closeClaim(claimId);
+    }
+
+    const { statno: finalClaimStatus } = await cd.getClaimStatusNumber(claimId);
+    assert.strictEqual(finalClaimStatus.toNumber(), 13, 'claim status should be 13 (Claim Accepted No Payout)');
+  });
 });

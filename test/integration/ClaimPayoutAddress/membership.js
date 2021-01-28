@@ -1,8 +1,9 @@
 const { accounts } = require('hardhat');
 const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
+const { enrollMember } = require('../utils/enroll');
 
-const [member1, payoutAddress, switchable1, switchable2] = accounts.slice(4); // skip first four accounts
+const [/* owner */, member1, payoutAddress, switchable1, switchable2] = accounts;
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 
 const notEmitted = (receipt, event, args, message) => {
@@ -11,6 +12,10 @@ const notEmitted = (receipt, event, args, message) => {
 };
 
 describe('set claim payout address', function () {
+
+  beforeEach(async function () {
+    await enrollMember(this.contracts, [member1]);
+  });
 
   it('should be able to set the claim payout address', async function () {
 

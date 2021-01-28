@@ -29,6 +29,10 @@ contract TokenControllerMock is ITokenController, MasterAware {
     token.mint(_member, _amount);
   }
 
+  function burnFrom(address _of, uint amount) public onlyInternal returns (bool) {
+    return token.burnFrom(_of, amount);
+  }
+
   function addToWhitelist(address _member) public onlyInternal {
     // noop
     _member;

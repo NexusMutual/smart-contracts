@@ -2,7 +2,7 @@ const { ether, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const { accounts, constants } = require('../utils');
-const { ParamType } = constants;
+const { StakingUintParamType } = constants;
 
 const {
   members: [memberOne],
@@ -17,14 +17,14 @@ const fourthContract = '0x0000000000000000000000000000000000000004';
 
 async function fundAndApprove (token, tokenController, staking, amount, member) {
   const maxExposure = '2';
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
 }
 
 async function setLockTime (staking, lockTime) {
-  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('getters', function () {

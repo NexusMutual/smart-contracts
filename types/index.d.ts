@@ -3,17 +3,30 @@
 /* eslint-disable */
 
 import { ContextContract } from "./Context";
-import { Erc20Contract } from "./Erc20";
-import { Ierc20Contract } from "./Ierc20";
-import { InxmMasterContract } from "./InxmMaster";
-import { InxmTokenContract } from "./InxmToken";
+import { ERC20Contract } from "./ERC20";
+import { IERC20Contract } from "./IERC20";
+import { ReentrancyGuardContract } from "./ReentrancyGuard";
+import { IERC20Contract } from "./IERC20";
+import { IUniswapV2CalleeContract } from "./IUniswapV2Callee";
+import { IUniswapV2ERC20Contract } from "./IUniswapV2ERC20";
+import { IUniswapV2FactoryContract } from "./IUniswapV2Factory";
+import { IUniswapV2PairContract } from "./IUniswapV2Pair";
+import { UniswapV2ERC20Contract } from "./UniswapV2ERC20";
+import { UniswapV2FactoryContract } from "./UniswapV2Factory";
+import { UniswapV2PairContract } from "./UniswapV2Pair";
+import { IERC20Contract } from "./IERC20";
+import { IUniswapV2Router01Contract } from "./IUniswapV2Router01";
+import { IUniswapV2Router02Contract } from "./IUniswapV2Router02";
+import { IWETHContract } from "./IWETH";
+import { UniswapV2Router02Contract } from "./UniswapV2Router02";
+import { INXMMasterContract } from "./INXMMaster";
+import { INXMTokenContract } from "./INXMToken";
 import { IupgradableContract } from "./Iupgradable";
 import { MasterAwareContract } from "./MasterAware";
 import { DeployerContract } from "./Deployer";
-import { OraclizeAddrResolverIContract } from "./OraclizeAddrResolverI";
-import { OraclizeIContract } from "./OraclizeI";
-import { SolcCheckerContract } from "./SolcChecker";
-import { UsingOraclizeContract } from "./UsingOraclize";
+import { IUniswapV2Router01Contract } from "./IUniswapV2Router01";
+import { IUniswapV2Router02Contract } from "./IUniswapV2Router02";
+import { WETH9Contract } from "./WETH9";
 import { ExchangeContract } from "./Exchange";
 import { FactoryContract } from "./Factory";
 import { IClaimsRewardContract } from "./IClaimsReward";
@@ -25,26 +38,31 @@ import { ITokenDataContract } from "./ITokenData";
 import { ITokenFunctionsContract } from "./ITokenFunctions";
 import { DisposableGovernanceContract } from "./DisposableGovernance";
 import { DisposableMemberRolesContract } from "./DisposableMemberRoles";
-import { DisposableNxMasterContract } from "./DisposableNxMaster";
+import { DisposableNXMasterContract } from "./DisposableNXMaster";
 import { DisposablePooledStakingContract } from "./DisposablePooledStaking";
 import { DisposableProposalCategoryContract } from "./DisposableProposalCategory";
 import { DisposableTokenControllerContract } from "./DisposableTokenController";
-import { Erc20MockContract } from "./Erc20Mock";
-import { ExchangeFactoryMockContract } from "./ExchangeFactoryMock";
-import { ExchangeMockContract } from "./ExchangeMock";
+import { ERC20MockContract } from "./ERC20Mock";
 import { MasterMockContract } from "./MasterMock";
 import { MemberRolesMockContract } from "./MemberRolesMock";
-import { NxmdsValueMockContract } from "./NxmdsValueMock";
-import { NxmTokenMockContract } from "./NxmTokenMock";
-import { Pool1MockContract } from "./Pool1Mock";
+import { NXMTokenMockContract } from "./NXMTokenMock";
+import { P1MockChainlinkAggregatorContract } from "./P1MockChainlinkAggregator";
+import { P1MockMemberContract } from "./P1MockMember";
+import { Pool1InterfaceContract } from "./Pool1Interface";
+import { P1MockOldMCRContract } from "./P1MockOldMCR";
+import { P1MockOldPool1Contract } from "./P1MockOldPool1";
+import { P1MockPoolDataContract } from "./P1MockPoolData";
 import { TokenControllerMockContract } from "./TokenControllerMock";
-import { McrContract } from "./Mcr";
-import { AggregatorContract } from "./Aggregator";
-import { NxmdsValueContract } from "./NxmdsValue";
-import { Pool1Contract } from "./Pool1";
+import { TOMockUniswapPairContract } from "./TOMockUniswapPair";
+import { LegacyMCRContract } from "./LegacyMCR";
+import { LegacyPool1Contract } from "./LegacyPool1";
+import { LegacyPool2Contract } from "./LegacyPool2";
+import { MCRContract } from "./MCR";
+import { PoolContract } from "./Pool";
 import { Pool2Contract } from "./Pool2";
-import { DsValueContract } from "./DsValue";
+import { DSValueContract } from "./DSValue";
 import { PoolDataContract } from "./PoolData";
+import { SwapAgentContract } from "./SwapAgent";
 import { ClaimProofsContract } from "./ClaimProofs";
 import { ClaimsContract } from "./Claims";
 import { ClaimsDataContract } from "./ClaimsData";
@@ -60,12 +78,17 @@ import { ProxyContract } from "./Proxy";
 import { UpgradeabilityProxyContract } from "./UpgradeabilityProxy";
 import { GovernanceContract } from "./Governance";
 import { MemberRolesContract } from "./MemberRoles";
-import { NxMasterContract } from "./NxMaster";
+import { NXMasterContract } from "./NXMaster";
 import { ProposalCategoryContract } from "./ProposalCategory";
+import { RescuerContract } from "./Rescuer";
+import { TemporaryNXMasterContract } from "./TemporaryNXMaster";
+import { AggregatorContract } from "./Aggregator";
+import { PriceFeedOracleContract } from "./PriceFeedOracle";
+import { TwapOracleContract } from "./TwapOracle";
 import { PooledStakingContract } from "./PooledStaking";
-import { Ierc1132Contract } from "./Ierc1132";
-import { Ozierc20Contract } from "./Ozierc20";
-import { NxmTokenContract } from "./NxmToken";
+import { IERC1132Contract } from "./IERC1132";
+import { OZIERC20Contract } from "./OZIERC20";
+import { NXMTokenContract } from "./NXMToken";
 import { TokenControllerContract } from "./TokenController";
 import { TokenDataContract } from "./TokenData";
 import { TokenFunctionsContract } from "./TokenFunctions";
@@ -74,17 +97,30 @@ declare global {
   namespace Truffle {
     interface Artifacts {
       require(name: "Context"): ContextContract;
-      require(name: "ERC20"): Erc20Contract;
-      require(name: "IERC20"): Ierc20Contract;
-      require(name: "INXMMaster"): InxmMasterContract;
-      require(name: "INXMToken"): InxmTokenContract;
+      require(name: "ERC20"): ERC20Contract;
+      require(name: "IERC20"): IERC20Contract;
+      require(name: "ReentrancyGuard"): ReentrancyGuardContract;
+      require(name: "IERC20"): IERC20Contract;
+      require(name: "IUniswapV2Callee"): IUniswapV2CalleeContract;
+      require(name: "IUniswapV2ERC20"): IUniswapV2ERC20Contract;
+      require(name: "IUniswapV2Factory"): IUniswapV2FactoryContract;
+      require(name: "IUniswapV2Pair"): IUniswapV2PairContract;
+      require(name: "UniswapV2ERC20"): UniswapV2ERC20Contract;
+      require(name: "UniswapV2Factory"): UniswapV2FactoryContract;
+      require(name: "UniswapV2Pair"): UniswapV2PairContract;
+      require(name: "IERC20"): IERC20Contract;
+      require(name: "IUniswapV2Router01"): IUniswapV2Router01Contract;
+      require(name: "IUniswapV2Router02"): IUniswapV2Router02Contract;
+      require(name: "IWETH"): IWETHContract;
+      require(name: "UniswapV2Router02"): UniswapV2Router02Contract;
+      require(name: "INXMMaster"): INXMMasterContract;
+      require(name: "INXMToken"): INXMTokenContract;
       require(name: "Iupgradable"): IupgradableContract;
       require(name: "MasterAware"): MasterAwareContract;
       require(name: "Deployer"): DeployerContract;
-      require(name: "OraclizeAddrResolverI"): OraclizeAddrResolverIContract;
-      require(name: "OraclizeI"): OraclizeIContract;
-      require(name: "solcChecker"): SolcCheckerContract;
-      require(name: "usingOraclize"): UsingOraclizeContract;
+      require(name: "IUniswapV2Router01"): IUniswapV2Router01Contract;
+      require(name: "IUniswapV2Router02"): IUniswapV2Router02Contract;
+      require(name: "WETH9"): WETH9Contract;
       require(name: "Exchange"): ExchangeContract;
       require(name: "Factory"): FactoryContract;
       require(name: "IClaimsReward"): IClaimsRewardContract;
@@ -96,7 +132,7 @@ declare global {
       require(name: "ITokenFunctions"): ITokenFunctionsContract;
       require(name: "DisposableGovernance"): DisposableGovernanceContract;
       require(name: "DisposableMemberRoles"): DisposableMemberRolesContract;
-      require(name: "DisposableNXMaster"): DisposableNxMasterContract;
+      require(name: "DisposableNXMaster"): DisposableNXMasterContract;
       require(name: "DisposablePooledStaking"): DisposablePooledStakingContract;
       require(
         name: "DisposableProposalCategory"
@@ -104,22 +140,29 @@ declare global {
       require(
         name: "DisposableTokenController"
       ): DisposableTokenControllerContract;
-      require(name: "ERC20Mock"): Erc20MockContract;
-      require(name: "ExchangeFactoryMock"): ExchangeFactoryMockContract;
-      require(name: "ExchangeMock"): ExchangeMockContract;
+      require(name: "ERC20Mock"): ERC20MockContract;
       require(name: "MasterMock"): MasterMockContract;
       require(name: "MemberRolesMock"): MemberRolesMockContract;
-      require(name: "NXMDSValueMock"): NxmdsValueMockContract;
-      require(name: "NXMTokenMock"): NxmTokenMockContract;
-      require(name: "Pool1Mock"): Pool1MockContract;
+      require(name: "NXMTokenMock"): NXMTokenMockContract;
+      require(
+        name: "P1MockChainlinkAggregator"
+      ): P1MockChainlinkAggregatorContract;
+      require(name: "P1MockMember"): P1MockMemberContract;
+      require(name: "Pool1Interface"): Pool1InterfaceContract;
+      require(name: "P1MockOldMCR"): P1MockOldMCRContract;
+      require(name: "P1MockOldPool1"): P1MockOldPool1Contract;
+      require(name: "P1MockPoolData"): P1MockPoolDataContract;
       require(name: "TokenControllerMock"): TokenControllerMockContract;
-      require(name: "MCR"): McrContract;
-      require(name: "Aggregator"): AggregatorContract;
-      require(name: "NXMDSValue"): NxmdsValueContract;
-      require(name: "Pool1"): Pool1Contract;
+      require(name: "TOMockUniswapPair"): TOMockUniswapPairContract;
+      require(name: "LegacyMCR"): LegacyMCRContract;
+      require(name: "LegacyPool1"): LegacyPool1Contract;
+      require(name: "LegacyPool2"): LegacyPool2Contract;
+      require(name: "MCR"): MCRContract;
+      require(name: "Pool"): PoolContract;
       require(name: "Pool2"): Pool2Contract;
-      require(name: "DSValue"): DsValueContract;
+      require(name: "DSValue"): DSValueContract;
       require(name: "PoolData"): PoolDataContract;
+      require(name: "SwapAgent"): SwapAgentContract;
       require(name: "ClaimProofs"): ClaimProofsContract;
       require(name: "Claims"): ClaimsContract;
       require(name: "ClaimsData"): ClaimsDataContract;
@@ -137,12 +180,17 @@ declare global {
       require(name: "UpgradeabilityProxy"): UpgradeabilityProxyContract;
       require(name: "Governance"): GovernanceContract;
       require(name: "MemberRoles"): MemberRolesContract;
-      require(name: "NXMaster"): NxMasterContract;
+      require(name: "NXMaster"): NXMasterContract;
       require(name: "ProposalCategory"): ProposalCategoryContract;
+      require(name: "Rescuer"): RescuerContract;
+      require(name: "TemporaryNXMaster"): TemporaryNXMasterContract;
+      require(name: "Aggregator"): AggregatorContract;
+      require(name: "PriceFeedOracle"): PriceFeedOracleContract;
+      require(name: "TwapOracle"): TwapOracleContract;
       require(name: "PooledStaking"): PooledStakingContract;
-      require(name: "IERC1132"): Ierc1132Contract;
-      require(name: "OZIERC20"): Ozierc20Contract;
-      require(name: "NXMToken"): NxmTokenContract;
+      require(name: "IERC1132"): IERC1132Contract;
+      require(name: "OZIERC20"): OZIERC20Contract;
+      require(name: "NXMToken"): NXMTokenContract;
       require(name: "TokenController"): TokenControllerContract;
       require(name: "TokenData"): TokenDataContract;
       require(name: "TokenFunctions"): TokenFunctionsContract;
@@ -151,20 +199,66 @@ declare global {
 }
 
 export { ContextContract, ContextInstance } from "./Context";
-export { Erc20Contract, Erc20Instance } from "./Erc20";
-export { Ierc20Contract, Ierc20Instance } from "./Ierc20";
-export { InxmMasterContract, InxmMasterInstance } from "./InxmMaster";
-export { InxmTokenContract, InxmTokenInstance } from "./InxmToken";
+export { ERC20Contract, ERC20Instance } from "./ERC20";
+export { IERC20Contract, IERC20Instance } from "./IERC20";
+export {
+  ReentrancyGuardContract,
+  ReentrancyGuardInstance,
+} from "./ReentrancyGuard";
+export { IERC20Contract, IERC20Instance } from "./IERC20";
+export {
+  IUniswapV2CalleeContract,
+  IUniswapV2CalleeInstance,
+} from "./IUniswapV2Callee";
+export {
+  IUniswapV2ERC20Contract,
+  IUniswapV2ERC20Instance,
+} from "./IUniswapV2ERC20";
+export {
+  IUniswapV2FactoryContract,
+  IUniswapV2FactoryInstance,
+} from "./IUniswapV2Factory";
+export {
+  IUniswapV2PairContract,
+  IUniswapV2PairInstance,
+} from "./IUniswapV2Pair";
+export {
+  UniswapV2ERC20Contract,
+  UniswapV2ERC20Instance,
+} from "./UniswapV2ERC20";
+export {
+  UniswapV2FactoryContract,
+  UniswapV2FactoryInstance,
+} from "./UniswapV2Factory";
+export { UniswapV2PairContract, UniswapV2PairInstance } from "./UniswapV2Pair";
+export { IERC20Contract, IERC20Instance } from "./IERC20";
+export {
+  IUniswapV2Router01Contract,
+  IUniswapV2Router01Instance,
+} from "./IUniswapV2Router01";
+export {
+  IUniswapV2Router02Contract,
+  IUniswapV2Router02Instance,
+} from "./IUniswapV2Router02";
+export { IWETHContract, IWETHInstance } from "./IWETH";
+export {
+  UniswapV2Router02Contract,
+  UniswapV2Router02Instance,
+} from "./UniswapV2Router02";
+export { INXMMasterContract, INXMMasterInstance } from "./INXMMaster";
+export { INXMTokenContract, INXMTokenInstance } from "./INXMToken";
 export { IupgradableContract, IupgradableInstance } from "./Iupgradable";
 export { MasterAwareContract, MasterAwareInstance } from "./MasterAware";
 export { DeployerContract, DeployerInstance } from "./Deployer";
 export {
-  OraclizeAddrResolverIContract,
-  OraclizeAddrResolverIInstance,
-} from "./OraclizeAddrResolverI";
-export { OraclizeIContract, OraclizeIInstance } from "./OraclizeI";
-export { SolcCheckerContract, SolcCheckerInstance } from "./SolcChecker";
-export { UsingOraclizeContract, UsingOraclizeInstance } from "./UsingOraclize";
+  IUniswapV2Router01Contract,
+  IUniswapV2Router01Instance,
+} from "./IUniswapV2Router01";
+export {
+  IUniswapV2Router02Contract,
+  IUniswapV2Router02Instance,
+} from "./IUniswapV2Router02";
+export { WETH9Contract, WETH9Instance } from "./WETH9";
 export { ExchangeContract, ExchangeInstance } from "./Exchange";
 export { FactoryContract, FactoryInstance } from "./Factory";
 export { IClaimsRewardContract, IClaimsRewardInstance } from "./IClaimsReward";
@@ -192,9 +286,9 @@ export {
   DisposableMemberRolesInstance,
 } from "./DisposableMemberRoles";
 export {
-  DisposableNxMasterContract,
-  DisposableNxMasterInstance,
-} from "./DisposableNxMaster";
+  DisposableNXMasterContract,
+  DisposableNXMasterInstance,
+} from "./DisposableNXMaster";
 export {
   DisposablePooledStakingContract,
   DisposablePooledStakingInstance,
@@ -207,34 +301,48 @@ export {
   DisposableTokenControllerContract,
   DisposableTokenControllerInstance,
 } from "./DisposableTokenController";
-export { Erc20MockContract, Erc20MockInstance } from "./Erc20Mock";
-export {
-  ExchangeFactoryMockContract,
-  ExchangeFactoryMockInstance,
-} from "./ExchangeFactoryMock";
-export { ExchangeMockContract, ExchangeMockInstance } from "./ExchangeMock";
+export { ERC20MockContract, ERC20MockInstance } from "./ERC20Mock";
 export { MasterMockContract, MasterMockInstance } from "./MasterMock";
 export {
   MemberRolesMockContract,
   MemberRolesMockInstance,
 } from "./MemberRolesMock";
+export { NXMTokenMockContract, NXMTokenMockInstance } from "./NXMTokenMock";
 export {
-  NxmdsValueMockContract,
-  NxmdsValueMockInstance,
-} from "./NxmdsValueMock";
-export { NxmTokenMockContract, NxmTokenMockInstance } from "./NxmTokenMock";
-export { Pool1MockContract, Pool1MockInstance } from "./Pool1Mock";
+  P1MockChainlinkAggregatorContract,
+  P1MockChainlinkAggregatorInstance,
+} from "./P1MockChainlinkAggregator";
+export { P1MockMemberContract, P1MockMemberInstance } from "./P1MockMember";
+export {
+  Pool1InterfaceContract,
+  Pool1InterfaceInstance,
+} from "./Pool1Interface";
+export { P1MockOldMCRContract, P1MockOldMCRInstance } from "./P1MockOldMCR";
+export {
+  P1MockOldPool1Contract,
+  P1MockOldPool1Instance,
+} from "./P1MockOldPool1";
+export {
+  P1MockPoolDataContract,
+  P1MockPoolDataInstance,
+} from "./P1MockPoolData";
 export {
   TokenControllerMockContract,
   TokenControllerMockInstance,
 } from "./TokenControllerMock";
-export { McrContract, McrInstance } from "./Mcr";
-export { AggregatorContract, AggregatorInstance } from "./Aggregator";
-export { NxmdsValueContract, NxmdsValueInstance } from "./NxmdsValue";
-export { Pool1Contract, Pool1Instance } from "./Pool1";
+export {
+  TOMockUniswapPairContract,
+  TOMockUniswapPairInstance,
+} from "./TOMockUniswapPair";
+export { LegacyMCRContract, LegacyMCRInstance } from "./LegacyMCR";
+export { LegacyPool1Contract, LegacyPool1Instance } from "./LegacyPool1";
+export { LegacyPool2Contract, LegacyPool2Instance } from "./LegacyPool2";
+export { MCRContract, MCRInstance } from "./MCR";
+export { PoolContract, PoolInstance } from "./Pool";
 export { Pool2Contract, Pool2Instance } from "./Pool2";
-export { DsValueContract, DsValueInstance } from "./DsValue";
+export { DSValueContract, DSValueInstance } from "./DSValue";
 export { PoolDataContract, PoolDataInstance } from "./PoolData";
+export { SwapAgentContract, SwapAgentInstance } from "./SwapAgent";
 export { ClaimProofsContract, ClaimProofsInstance } from "./ClaimProofs";
 export { ClaimsContract, ClaimsInstance } from "./Claims";
 export { ClaimsDataContract, ClaimsDataInstance } from "./ClaimsData";
@@ -259,15 +367,26 @@ export {
 } from "./UpgradeabilityProxy";
 export { GovernanceContract, GovernanceInstance } from "./Governance";
 export { MemberRolesContract, MemberRolesInstance } from "./MemberRoles";
-export { NxMasterContract, NxMasterInstance } from "./NxMaster";
+export { NXMasterContract, NXMasterInstance } from "./NXMaster";
 export {
   ProposalCategoryContract,
   ProposalCategoryInstance,
 } from "./ProposalCategory";
+export { RescuerContract, RescuerInstance } from "./Rescuer";
+export {
+  TemporaryNXMasterContract,
+  TemporaryNXMasterInstance,
+} from "./TemporaryNXMaster";
+export { AggregatorContract, AggregatorInstance } from "./Aggregator";
+export {
+  PriceFeedOracleContract,
+  PriceFeedOracleInstance,
+} from "./PriceFeedOracle";
+export { TwapOracleContract, TwapOracleInstance } from "./TwapOracle";
 export { PooledStakingContract, PooledStakingInstance } from "./PooledStaking";
-export { Ierc1132Contract, Ierc1132Instance } from "./Ierc1132";
-export { Ozierc20Contract, Ozierc20Instance } from "./Ozierc20";
-export { NxmTokenContract, NxmTokenInstance } from "./NxmToken";
+export { IERC1132Contract, IERC1132Instance } from "./IERC1132";
+export { OZIERC20Contract, OZIERC20Instance } from "./OZIERC20";
+export { NXMTokenContract, NXMTokenInstance } from "./NXMToken";
 export {
   TokenControllerContract,
   TokenControllerInstance,

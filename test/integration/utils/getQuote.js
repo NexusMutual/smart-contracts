@@ -1,10 +1,8 @@
-const BN = require('bn.js');
 const ethABI = require('ethereumjs-abi');
 const util = require('ethereumjs-util');
+const { toBN } = require('hardhat').web3.utils;
 
-const bigNumberToBN = value => new BN(value.toString(), 10);
-
-async function getQuoteValues (...args) {
+async function getQuoteSignature (...args) {
 
   const order = {
     amount: args[0][0],
@@ -19,14 +17,14 @@ async function getQuoteValues (...args) {
   };
 
   const orderParts = [
-    { value: bigNumberToBN(order.amount), type: 'uint' },
+    { value: toBN(order.amount), type: 'uint' },
     { value: order.curr, type: 'bytes4' },
-    { value: bigNumberToBN(order.CP), type: 'uint16' },
+    { value: toBN(order.CP), type: 'uint16' },
     { value: order.smartCA, type: 'address' },
-    { value: bigNumberToBN(order.Price), type: 'uint' },
-    { value: bigNumberToBN(order.price_nxm), type: 'uint' },
-    { value: bigNumberToBN(order.expire), type: 'uint' },
-    { value: bigNumberToBN(order.generationTime), type: 'uint' },
+    { value: toBN(order.Price), type: 'uint' },
+    { value: toBN(order.price_nxm), type: 'uint' },
+    { value: toBN(order.expire), type: 'uint' },
+    { value: toBN(order.generationTime), type: 'uint' },
     { value: order.quotationContract, type: 'address' },
   ];
 
@@ -46,4 +44,4 @@ async function getQuoteValues (...args) {
   ];
 }
 
-module.exports = { getQuoteValues };
+module.exports = { getQuoteSignature };

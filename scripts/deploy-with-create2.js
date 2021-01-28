@@ -6,7 +6,7 @@ const { getNetwork, waitForInput } = require('../lib/helpers');
 
 const usage = exitcode => {
   const app = path.basename(process.argv[1]);
-  console.log(`Usage:`);
+  console.log('Usage:');
   console.log(`    ${app} find hexPrefix [startSalt]`);
   console.log(`    ${app} deploy salt`);
   process.exit(exitcode);

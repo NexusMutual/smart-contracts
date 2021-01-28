@@ -7,12 +7,20 @@ import { EventData, PastEventOptions } from "web3-eth-contract";
 
 export interface ClaimsRewardContract
   extends Truffle.Contract<ClaimsRewardInstance> {
-  "new"(meta?: Truffle.TransactionDetails): Promise<ClaimsRewardInstance>;
+  "new"(
+    masterAddress: string,
+    _daiAddress: string,
+    meta?: Truffle.TransactionDetails
+  ): Promise<ClaimsRewardInstance>;
 }
 
 type AllEvents = never;
 
 export interface ClaimsRewardInstance extends Truffle.ContractInstance {
+  DAI(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  ETH(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   _claimStakeCommission: {
     (
       _records: number | BN | string,
@@ -106,6 +114,11 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<BN>;
 
+  getCurrencyAssetAddress(
+    currency: string,
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<string>;
+
   getRewardAndClaimedStatus(
     check: number | BN | string,
     claimId: number | BN | string,
@@ -147,6 +160,10 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
   };
 
   methods: {
+    DAI(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    ETH(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     _claimStakeCommission: {
       (
         _records: number | BN | string,
@@ -239,6 +256,11 @@ export interface ClaimsRewardInstance extends Truffle.ContractInstance {
       _add: string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<BN>;
+
+    getCurrencyAssetAddress(
+      currency: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
 
     getRewardAndClaimedStatus(
       check: number | BN | string,

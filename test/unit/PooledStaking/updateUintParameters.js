@@ -2,7 +2,7 @@ const { assert } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 
 const accounts = require('../utils').accounts;
-const { ParamType } = require('../utils').constants;
+const { StakingUintParamType } = require('../utils').constants;
 
 const {
   nonMembers: [nonMember],
@@ -17,7 +17,7 @@ describe('updateUintParameters', function () {
   it('should revert when called by non governance addresses', async function () {
 
     const { staking } = this;
-    const param = ParamType.MIN_STAKE;
+    const param = StakingUintParamType.MIN_STAKE;
     const nonGov = [nonMember, member, advisoryBoardMember, internalContract];
 
     for (const address of nonGov) {
@@ -31,7 +31,7 @@ describe('updateUintParameters', function () {
 
   it('should correctly update the parameters', async function () {
     const { staking } = this;
-    const params = Object.keys(ParamType);
+    const params = Object.keys(StakingUintParamType);
 
     // chosen by fair dice roll
     // guaranteed to be random
@@ -41,7 +41,7 @@ describe('updateUintParameters', function () {
       const before = await staking[paramName]();
       assert.notStrictEqual(before.toString(), value);
 
-      const param = ParamType[paramName];
+      const param = StakingUintParamType[paramName];
       await staking.updateUintParameters(param, value, { from: governanceContract });
 
       const actual = await staking[paramName]();

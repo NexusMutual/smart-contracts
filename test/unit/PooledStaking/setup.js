@@ -1,9 +1,8 @@
 const { artifacts } = require('hardhat');
-const { ether, time } = require('@openzeppelin/test-helpers');
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
+const { ether } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
-const { Role, ParamType } = require('../utils').constants;
+const { Role } = require('../utils').constants;
 const { hex } = require('../utils').helpers;
 const accounts = require('../utils').accounts;
 
@@ -17,10 +16,7 @@ async function setup () {
 
   const master = await MasterMock.new();
   const memberRoles = await MemberRolesMock.new();
-
-  await time.increase('10000000');
   const staking = await DisposablePooledStaking.new();
-
   const token = await TokenMock.new();
   const tokenController = await TokenControllerMock.new();
 

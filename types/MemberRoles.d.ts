@@ -10,6 +10,16 @@ export interface MemberRolesContract
   "new"(meta?: Truffle.TransactionDetails): Promise<MemberRolesInstance>;
 }
 
+export interface ClaimPayoutAddressSet {
+  name: "ClaimPayoutAddressSet";
+  args: {
+    member: string;
+    payoutAddress: string;
+    0: string;
+    1: string;
+  };
+}
+
 export interface MemberRole {
   name: "MemberRole";
   args: {
@@ -34,7 +44,7 @@ export interface switchedMembership {
   };
 }
 
-type AllEvents = MemberRole | switchedMembership;
+type AllEvents = ClaimPayoutAddressSet | MemberRole | switchedMembership;
 
 export interface MemberRolesInstance extends Truffle.ContractInstance {
   addInitialABMembers: {

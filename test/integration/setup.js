@@ -209,7 +209,13 @@ async function setup () {
     [owner], // advisory board members
   );
 
-  await pc.initialize(mr.address, { gas: 10e6 });
+  await pc.initialize(mr.address);
+
+  const { proposalCategories } = require('../utils/index');
+
+  for (const category of proposalCategories) {
+    await pc.addInitialCategory(...category, { gas: 10e6 });
+  }
 
   await gv.initialize(
     3 * 24 * 3600, // tokenHoldingTime

@@ -3,7 +3,7 @@ const { ether, constants: { ZERO_ADDRESS } } = require('@openzeppelin/test-helpe
 
 const Verifier = require('../lib/verifier');
 const { getEnv, getNetwork, hex } = require('../lib/helpers');
-const fs = require('fs');
+const proposalCategories = require('../lib/proposal-categories');
 
 const { toBN } = web3.utils;
 
@@ -106,14 +106,12 @@ async function main () {
     await proxy.transferProxyOwnership(newOwner);
   };
 
-  await deployProxy(DisposableNXMaster, { gas: 6e6 });
-
   // deploy external contracts
   console.log('Deploying DAI');
   const dai = await OwnedERC20.new();
-  verifier.add('OwnedERC20', dai.address);
+  verifier.add(dai);
 
-  console.log('Deploying uniswap pair..');
+  console.log('Deploying uniswap pair');
   const uniswapV2Factory = await UniswapV2Factory.at(UNISWAP_FACTORY);
   await uniswapV2Factory.createPair(WETH_ADDRESS, dai.address);
 
@@ -122,35 +120,43 @@ async function main () {
   const twapOracle = await TwapOracle.new(uniswapV2Factory.address);
   const swapAgent = await SwapAgent.new();
 
+  verifier.add(twapOracle, { constructorArgs: [uniswapV2Factory.address] });
+  // skipping swap agent - library verification not currently implemented
+
   const priceFeedOracle = await PriceFeedOracle.new(
     [dai.address],
     [CHAINLINK_DAI_ETH_AGGREGATORS[network]],
     dai.address,
   );
 
-  // link pool to swap agent library
-  Pool.link(swapAgent);
+  verifier.add(priceFeedOracle, {
+    constructorArgs: [
+      [dai.address],
+      [CHAINLINK_DAI_ETH_AGGREGATORS[network]],
+      dai.address,
+    ],
+  });
 
   console.log('Deploying token contracts');
   const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
   const td = await TokenData.new(owner);
   const tf = await TokenFunctions.new();
 
-  verifier.add('NXMToken', tk.address, ['address', 'uint256'], [owner, INITIAL_SUPPLY]);
-  verifier.add('TokenData', td.address, ['address'], [owner]);
-  verifier.add('TokenFunctions', tf.address);
+  verifier.add(tk, { constructorArgs: [owner, INITIAL_SUPPLY] });
+  verifier.add(td, { constructorArgs: [owner] });
+  verifier.add(tf);
 
   console.log('Deploying quotation contracts');
   const qt = await Quotation.new();
   const qd = await QuotationData.new(owner, owner);
 
-  verifier.add('Quotation', qt.address);
-  verifier.add('QuotationData', qd.address, ['address', 'address'], [owner, owner]);
+  verifier.add(qt);
+  verifier.add(qd, { constructorArgs: [owner, owner] });
 
   // Non-upgradable contracts
   console.log('Deploying non-upgradable contracts');
   const cp = await ClaimProofs.new();
-  verifier.add('ClaimProofs', cp.address);
+  verifier.add(cp);
 
   // proxy contracts
   console.log('Deploying proxy contracts');
@@ -170,20 +176,23 @@ async function main () {
     { proxy: gv, implementation: gvImpl, contract: 'DisposableGovernance' },
   ];
 
+  for (const addresses of proxiesAndImplementations) {
+    const { contract, proxy, implementation } = addresses;
+    verifier.add(
+      await OwnedUpgradeabilityProxy.at(proxy.address),
+      { alias: contract, constructorArgs: [implementation.address] },
+    );
+    verifier.add(implementation);
+  }
+
   console.log('Deploying claims contracts');
   const cl = await Claims.new();
   const cd = await ClaimsData.new();
   const cr = await ClaimsReward.new(master.address, dai.address);
 
-  verifier.add('Claims', cl.address);
-  verifier.add('ClaimsData', cd.address);
-  verifier.add('ClaimsReward', cr.address);
-
-  for (const addresses of proxiesAndImplementations) {
-    const { contract, proxy, implementation } = addresses;
-    verifier.add('OwnedUpgradeabilityProxy', proxy.address, ['address'], [implementation.address]);
-    verifier.add(contract, implementation.address);
-  }
+  verifier.add(cl);
+  verifier.add(cd);
+  verifier.add(cr, { constructorArgs: [master.address, dai.address] });
 
   console.log('Deploying capital contracts');
   const mc = await MCR.new(ZERO_ADDRESS);
@@ -198,14 +207,14 @@ async function main () {
     twapOracle.address,
     owner,
   ];
-  const poolArgTypes = ['address[]', 'uint256[]', 'uint256[]', 'uint256[]', 'address', 'address', 'address', 'address'];
 
+  Pool.link(swapAgent);
   const p1 = await Pool.new(...poolParameters);
   const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
 
-  verifier.add('MCR', mc.address, ['address'], [ZERO_ADDRESS]);
-  verifier.add('Pool', p1.address, poolArgTypes, poolParameters);
-  verifier.add('PoolData', pd.address, ['address', 'address', 'address'], [owner, ZERO_ADDRESS, dai.address]);
+  verifier.add(mc, { constructorArgs: [ZERO_ADDRESS] });
+  verifier.add(p1, { constructorArgs: poolParameters });
+  verifier.add(pd, { constructorArgs: [owner, ZERO_ADDRESS, dai.address] });
 
   const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS'];
   const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps].map(c => c.address);
@@ -236,15 +245,11 @@ async function main () {
     [owner], // advisory board members
   );
 
-  await pc.initialize(mr.address, { gas: 10e6 });
+  await pc.initialize(mr.address);
 
-  await ps.initialize(
-    tc.address,
-    ether('2'), // min stake
-    ether('2'), // min unstake
-    10, // max exposure
-    600, // unstake lock time
-  );
+  for (const category of proposalCategories) {
+    await pc.addInitialCategory(...category);
+  }
 
   await gv.initialize(
     toBN(600), // 10 minutes
@@ -253,6 +258,14 @@ async function main () {
     toBN(40),
     toBN(75),
     toBN(300), // 5 minutes
+  );
+
+  await ps.initialize(
+    tc.address,
+    ether('2'), // min stake
+    ether('2'), // min unstake
+    10, // max exposure
+    600, // unstake lock time
   );
 
   console.log('Setting parameters');
@@ -282,23 +295,20 @@ async function main () {
 
   await master.switchGovernanceAddress(gv.address);
 
-  // trigger changeDependentContractAddress() on all contracts
-  await master.changeAllAddress();
-
   console.log('Upgrading to non-disposable contracts');
   const { implementation: newMasterImpl } = await upgradeProxy(master.address, NXMaster);
   const { implementation: newMrImpl } = await upgradeProxy(mr.address, MemberRoles);
   const { implementation: newTcImpl } = await upgradeProxy(tc.address, TokenController);
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
-  const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance, { gas: 12e6 });
+  const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance);
 
-  verifier.add('NXMaster', newMasterImpl.address);
-  verifier.add('MemberRoles', newMrImpl.address);
-  verifier.add('TokenController', newTcImpl.address);
-  verifier.add('PooledStaking', newPsImpl.address);
-  verifier.add('ProposalCategory', newPcImpl.address);
-  verifier.add('Governance', newGvImpl.address);
+  verifier.add(newMasterImpl);
+  verifier.add(newMrImpl);
+  verifier.add(newTcImpl);
+  verifier.add(newPsImpl);
+  verifier.add(newPcImpl);
+  verifier.add(newGvImpl);
 
   console.log('Transfering contracts\' ownership');
   await transferProxyOwnership(mr.address, master.address);
@@ -308,10 +318,8 @@ async function main () {
   await transferProxyOwnership(gv.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
-  console.log('Contract addresses to be verified:', verifier.dump());
-
-  const deployData = JSON.stringify(verifier.dump());
-  fs.writeFileSync(`${network}-deploy-data.json`, deployData, 'utf8');
+  const deployDataFile = `${__dirname}/../build/${network}-deploy-data.json`;
+  verifier.dump(deployDataFile);
 
   console.log('Minting DAI to pool');
   await dai.mint(p1.address, ether('6500000'));
@@ -326,8 +334,8 @@ async function main () {
     20200801,
   );
 
-  console.log('Performing verifications');
-  await verifier.submit();
+  // console.log('Performing verifications');
+  // await verifier.submit();
 
   console.log('Done!');
 }

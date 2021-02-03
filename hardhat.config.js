@@ -2,6 +2,7 @@ require('dotenv').config();
 require('@nomiclabs/hardhat-web3');
 require('@nomiclabs/hardhat-truffle5');
 require('@nomiclabs/hardhat-etherscan');
+require('hardhat-contract-sizer');
 
 const { task } = require('hardhat/config');
 const ether = n => `${n}${'0'.repeat(18)}`;
@@ -67,6 +68,16 @@ const compilerSettings = process.env.ENABLE_OPTIMIZER
 
 module.exports = {
 
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: false,
+    disambiguatePaths: false,
+  },
+
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+
   mocha: {
     exit: true,
     bail: true,
@@ -74,10 +85,6 @@ module.exports = {
   },
 
   networks,
-
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
-  },
 
   solidity: {
     compilers: [

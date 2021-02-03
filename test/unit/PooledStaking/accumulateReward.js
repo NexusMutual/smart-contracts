@@ -1,8 +1,8 @@
-const { ether, expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
+const { ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const { accounts, constants } = require('../utils');
-const { ParamType } = constants;
+const { StakingUintParamType } = constants;
 
 const {
   members: [memberOne],
@@ -16,7 +16,7 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundApproveDepositStake (token, tokenController, staking, amount, contract, member) {
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });

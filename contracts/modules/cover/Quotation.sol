@@ -17,8 +17,8 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../capital/MCR.sol";
-import "../capital/Pool1.sol";
 import "../capital/PoolData.sol";
+import "../claims/ClaimsReward.sol";
 import "../governance/MemberRoles.sol";
 import "../token/TokenController.sol";
 import "../token/TokenData.sol";
@@ -28,14 +28,16 @@ import "./QuotationData.sol";
 contract Quotation is Iupgradable {
   using SafeMath for uint;
 
-  TokenFunctions internal tf;
-  TokenController internal tc;
-  TokenData internal td;
-  Pool1 internal p1;
-  PoolData internal pd;
-  QuotationData internal qd;
-  MCR internal m1;
-  MemberRoles internal mr;
+  TokenFunctions public tf;
+  TokenController public tc;
+  TokenData public td;
+  Pool public pool;
+  PoolData public pd;
+  QuotationData public qd;
+  MCR public m1;
+  MemberRoles public mr;
+  ClaimsReward public cr;
+
   bool internal locked;
 
   event RefundEvent(address indexed user, bool indexed status, uint holdedCoverID, bytes32 reason);
@@ -56,9 +58,10 @@ contract Quotation is Iupgradable {
     tc = TokenController(ms.getLatestAddress("TC"));
     td = TokenData(ms.getLatestAddress("TD"));
     qd = QuotationData(ms.getLatestAddress("QD"));
-    p1 = Pool1(ms.getLatestAddress("P1"));
     pd = PoolData(ms.getLatestAddress("PD"));
     mr = MemberRoles(ms.getLatestAddress("MR"));
+    cr = ClaimsReward(ms.getLatestAddress("CR"));
+    pool = Pool(ms.getLatestAddress("P1"));
   }
 
   function sendEther() public payable {
@@ -124,7 +127,7 @@ contract Quotation is Iupgradable {
   {
 
     tc.burnFrom(msg.sender, coverDetails[2]); // need burn allowance
-    _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s);
+    _verifyCoverDetails(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod, _v, _r, _s, true);
   }
 
   /**
@@ -153,7 +156,8 @@ contract Quotation is Iupgradable {
       coverPeriod,
       _v,
       _r,
-      _s
+      _s,
+      false
     );
   }
 
@@ -246,48 +250,6 @@ contract Quotation is Iupgradable {
   }
 
   /**
-   * @dev to initiate the membership and the cover
-   * @param smartCAdd is the smart contract address to make cover on
-   * @param coverCurr is the currency used to make cover
-   * @param coverDetails list of details related to cover like cover amount, expire time, coverCurrPrice and priceNXM
-   * @param coverPeriod is cover period for which cover is being bought
-   * @param _v argument from vrs hash
-   * @param _r argument from vrs hash
-   * @param _s argument from vrs hash
-   */
-  function initiateMembershipAndCover(
-    address smartCAdd,
-    bytes4 coverCurr,
-    uint[] memory coverDetails,
-    uint16 coverPeriod,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  )
-  public
-  payable
-  checkPause
-  {
-    require(coverDetails[3] > now);
-    require(!qd.timestampRepeated(coverDetails[4]));
-    qd.setTimestampRepeated(coverDetails[4]);
-    require(!ms.isMember(msg.sender));
-    require(qd.refundEligible(msg.sender) == false);
-    uint joinFee = td.joiningFee();
-    uint totalFee = joinFee;
-    if (coverCurr == "ETH") {
-      totalFee = joinFee.add(coverDetails[1]);
-    } else {
-      IERC20 erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr));
-      require(erc20.transferFrom(msg.sender, address(this), coverDetails[1]));
-    }
-    require(msg.value == totalFee);
-    require(verifySign(coverDetails, coverPeriod, coverCurr, smartCAdd, _v, _r, _s));
-    qd.addHoldCover(msg.sender, smartCAdd, coverCurr, coverDetails, coverPeriod);
-    qd.setRefundEligible(msg.sender, true);
-  }
-
-  /**
    * @dev to get the verdict of kyc process
    * @param status is the kyc status
    * @param _add is the address of member
@@ -336,24 +298,28 @@ contract Quotation is Iupgradable {
   internal
   {
     uint cid = qd.getCoverLength();
-    qd.addCover(coverPeriod, coverDetails[0],
-      from, coverCurr, scAddress, coverDetails[1], coverDetails[2]);
-    // if cover period of quote is less than 60 days.
-    if (coverPeriod <= 60) {
-      p1.closeCoverOraclise(cid, uint64(uint(coverPeriod).mul(1 days)));
-    }
+
+    qd.addCover(
+      coverPeriod,
+      coverDetails[0],
+      from,
+      coverCurr,
+      scAddress,
+      coverDetails[1],
+      coverDetails[2]
+    );
+
     uint coverNoteAmount = (coverDetails[2].mul(qd.tokensRetained())).div(100);
     tc.mint(from, coverNoteAmount);
     tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
     qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
     qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
 
-
     tf.pushStakerRewards(scAddress, coverDetails[2]);
   }
 
   /**
-   * @dev Makes a vover.
+   * @dev Makes a cover.
    * @param from address of funder.
    * @param scAddress Smart Contract Address
    */
@@ -365,16 +331,21 @@ contract Quotation is Iupgradable {
     uint16 coverPeriod,
     uint8 _v,
     bytes32 _r,
-    bytes32 _s
-  )
-  internal
-  {
+    bytes32 _s,
+    bool isNXM
+  ) internal {
     require(coverDetails[3] > now);
     require(!qd.timestampRepeated(coverDetails[4]));
     qd.setTimestampRepeated(coverDetails[4]);
+    require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
+
+    address asset = cr.getCurrencyAssetAddress(coverCurr);
+    if (coverCurr != "ETH" && !isNXM) {
+      pool.transferAssetFrom(asset, from, coverDetails[1]);
+    }
+
     require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s));
     _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);
-
   }
 
   /**
@@ -417,12 +388,12 @@ contract Quotation is Iupgradable {
       mr.payJoiningFee.value(joinFee)(userAdd);
       if (coverDetails[3] > now) {
         qd.setHoldedCoverIDStatus(holdedCoverID, uint(QuotationData.HCIDStatus.kycPass));
-        address poolAdd = ms.getLatestAddress("P1");
         if (coverCurr == "ETH") {
-          p1.sendEther.value(coverDetails[1])();
+          (bool ok,) = address(pool).call.value(coverDetails[1])("");
+          require(ok, "Quotation: ether transfer to pool failed");
         } else {
           erc20 = IERC20(pd.getCurrencyAssetAddress(coverCurr)); // solhint-disable-line
-          require(erc20.transfer(poolAdd, coverDetails[1]));
+          require(erc20.transfer(address(pool), coverDetails[1]));
         }
         emit RefundEvent(userAdd, status, holdedCoverID, "KYC Passed");
         _makeCover(userAdd, scAddress, coverCurr, coverDetails, coverPeriod);

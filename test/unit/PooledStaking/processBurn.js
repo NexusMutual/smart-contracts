@@ -2,7 +2,7 @@ const { ether, expectEvent } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
-const { ParamType, Role } = require('../utils').constants;
+const { StakingUintParamType, Role } = require('../utils').constants;
 
 const {
   members: [memberOne, memberTwo, memberThree],
@@ -15,14 +15,14 @@ const secondContract = '0x0000000000000000000000000000000000000002';
 const thirdContract = '0x0000000000000000000000000000000000000003';
 
 async function fundAndStake (token, tokenController, staking, amount, contract, member) {
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });
   await staking.depositAndStake(amount, [contract], [amount], { from: member });
 }
 
 async function setLockTime (staking, lockTime) {
-  return staking.updateUintParameters(ParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
+  return staking.updateUintParameters(StakingUintParamType.UNSTAKE_LOCK_TIME, lockTime, { from: governanceContract });
 }
 
 describe('processBurn', function () {
@@ -128,7 +128,7 @@ describe('processBurn', function () {
 
     const { token, tokenController, staking } = this;
 
-    await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
       [memberOne]: {
@@ -215,7 +215,7 @@ describe('processBurn', function () {
   it('should remove stakers when burning 0-deposit stakers', async function () {
 
     const { token, tokenController, staking } = this;
-    await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
       [memberOne]: { amount: '100', on: [firstContract, secondContract], amounts: ['100', '100'] },
@@ -318,7 +318,7 @@ describe('processBurn', function () {
   it('should not add duplicate stakers when staking on non-zero stake but zero deposit', async function () {
 
     const { token, tokenController, staking } = this;
-    await staking.updateUintParameters(ParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
+    await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, ether('2'), { from: governanceContract });
 
     const stakes = {
       [memberOne]: { amount: '100', on: [firstContract, secondContract], amounts: ['100', '100'] },

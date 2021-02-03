@@ -15,8 +15,8 @@
 
 pragma solidity ^0.5.0;
 
-
-import "../capital/Pool2.sol";
+import "../capital/Pool.sol";
+import "../cover/Quotation.sol";
 import "../claims/Claims.sol";
 import "./external/Governed.sol";
 import "./external/OwnedUpgradeabilityProxy.sol";
@@ -39,61 +39,16 @@ contract NXMaster is Governed {
   mapping(bytes2 => bool) public isUpgradable;
 
   address public tokenAddress;
-
   bool internal reentrancyLock;
-
-
   bool public masterInitialized;
   address public owner;
   uint public pauseTime;
-  bool constructorCheck;
 
   modifier noReentrancy() {
     require(!reentrancyLock, "Reentrant call.");
     reentrancyLock = true;
     _;
     reentrancyLock = false;
-  }
-
-  /// @dev to initiate master data
-  /// @param _tokenAdd NXM token address.
-  function initiateMaster(address _tokenAdd) external {
-
-    OwnedUpgradeabilityProxy proxy = OwnedUpgradeabilityProxy(address(uint160(address(this))));
-    require(msg.sender == proxy.proxyOwner(), "Sender is not proxy owner.");
-    require(!constructorCheck, "Constructor already ran.");
-    constructorCheck = true;
-    tokenAddress = _tokenAdd;
-    owner = msg.sender;
-    masterAddress = address(this);
-    contractsActive[address(this)] = true;
-    pauseTime = 28 days; // 4 weeks
-    allContractNames.push("QD");
-    allContractNames.push("TD");
-    allContractNames.push("CD");
-    allContractNames.push("PD");
-    allContractNames.push("QT");
-    allContractNames.push("TF");
-    allContractNames.push("TC");
-    allContractNames.push("CL");
-    allContractNames.push("CR");
-    allContractNames.push("P1");
-    allContractNames.push("P2");
-    allContractNames.push("MC");
-    allContractNames.push("GV");
-    allContractNames.push("PC");
-    allContractNames.push("MR");
-    isUpgradable["QT"] = true;
-    isUpgradable["TF"] = true;
-    isUpgradable["CL"] = true;
-    isUpgradable["CR"] = true;
-    isUpgradable["P1"] = true;
-    isUpgradable["P2"] = true;
-    isUpgradable["MC"] = true;
-    isProxy["TC"] = true;
-    isProxy["GV"] = true;
-    isProxy["PC"] = true;
-    isProxy["MR"] = true;
   }
 
   function upgradeMultipleImplementations(
@@ -151,68 +106,6 @@ contract NXMaster is Governed {
     cr.changeClaimStatus(_claimId);
   }
 
-  /**
-   * @dev  Handles the oraclize query callback.
-   * @param myid ID of oraclize query to be processed
-   */
-  function delegateCallBack(bytes32 myid) external noReentrancy {
-    PoolData pd = PoolData(getLatestAddress("PD"));
-    uint callTime = pd.getDateUpdOfAPI(myid);
-    uint dateAdd = pd.getDateAddOfAPI(myid);
-    require(callTime == dateAdd, "Callback already received");
-
-    bytes4 res = pd.getApiIdTypeOf(myid);
-    pd.updateDateUpdOfAPI(myid);
-
-    if (isPause()) {
-
-      bytes4 by;
-      (,, by) = getLastEmergencyPause();
-
-      require(res == "EP", "Only callback of type EP is allowed during emergency pause");
-      require(callTime.add(pauseTime) < now, "Callback was called too soon");
-      require(by == "AB", "Emergency paused was not started by Advisory Board");
-
-      addEmergencyPause(false, "AUT");
-      return;
-    }
-
-    uint id = pd.getIdOfApiId(myid);
-
-    if (res == "COV") {
-      Quotation qt = Quotation(getLatestAddress("QT"));
-      qt.expireCover(id);
-      return;
-    }
-
-    if (res == "CLA") {
-      require(canCall(id), "Payout retry time not reached");
-      ClaimsReward cr = ClaimsReward(getLatestAddress("CR"));
-      cr.changeClaimStatus(id);
-      return;
-    }
-
-    if (res == "MCRF") {
-      require(callTime.add(pd.mcrFailTime()) < now, "MCR posting time not reached");
-      MCR m1 = MCR(getLatestAddress("MC"));
-      m1.addLastMCRData(uint64(id));
-      return;
-    }
-
-    if (res == "ULT") {
-      require(callTime.add(pd.liquidityTradeCallbackTime()) < now, "Liquidity trade time not reached");
-      Pool2 p2 = Pool2(getLatestAddress("P2"));
-      p2.externalLiquidityTrade();
-      return;
-    }
-
-    if (res == "MCR" || res == "IARB") {
-      return;
-    }
-
-    revert("Invalid callback");
-  }
-
   function getOwnerParameters(bytes8 code) external view returns (bytes8 codeVal, address val) {
     codeVal = code;
     QuotationData qd;
@@ -226,15 +119,6 @@ contract NXMaster is Governed {
 
       pd = PoolData(getLatestAddress("PD"));
       val = pd.notariseMCR();
-
-    } else if (code == "DAIFEED") {
-      pd = PoolData(getLatestAddress("PD"));
-      val = pd.daiFeedAddress();
-
-    } else if (code == "UNISWADD") {
-      Pool2 p2;
-      p2 = Pool2(getLatestAddress("P2"));
-      val = p2.uniswapFactoryAddress();
 
     } else if (code == "OWNER") {
 
@@ -256,9 +140,7 @@ contract NXMaster is Governed {
   /// @dev Add Emergency pause
   /// @param _pause to set Emergency Pause ON/OFF
   /// @param _by to set who Start/Stop EP
-  function addEmergencyPause(bool _pause, bytes4 _by) public {
-    require(_by == "AB" || _by == "AUT", "Invalid call.");
-    require(msg.sender == getLatestAddress("P1") || msg.sender == getLatestAddress("GV"), "Callable by P1 and GV only.");
+  function addEmergencyPause(bool _pause, bytes4 _by) public onlyAuthorizedToGovern {
     emergencyPaused.push(EmergencyPause(_pause, now, _by));
     if (_pause == false) {
       Claims c1 = Claims(allContractVersions["CL"]);
@@ -269,7 +151,6 @@ contract NXMaster is Governed {
 
   ///@dev update time in seconds for which emergency pause is applied.
   function updatePauseTime(uint _time) public {
-
     require(isInternal(msg.sender), "Not internal call.");
     pauseTime = _time;
   }
@@ -285,9 +166,11 @@ contract NXMaster is Governed {
     require(_contractsName.length == _contractsAddress.length, "Array length should be equal.");
 
     for (uint i = 0; i < _contractsName.length; i++) {
+
       address payable newAddress = _contractsAddress[i];
       require(newAddress != address(0), "NULL address is not allowed.");
       require(isUpgradable[_contractsName[i]], "Contract should be upgradable.");
+
       if (_contractsName[i] == "QT") {
         Quotation qt = Quotation(allContractVersions["QT"]);
         qt.transferAssetsToNewContract(newAddress);
@@ -300,14 +183,8 @@ contract NXMaster is Governed {
         cr.upgrade(newAddress);
 
       } else if (_contractsName[i] == "P1") {
-        Pool1 p1 = Pool1(allContractVersions["P1"]);
+        Pool p1 = Pool(allContractVersions["P1"]);
         p1.upgradeCapitalPool(newAddress);
-
-
-      } else if (_contractsName[i] == "P2") {
-        Pool2 p2 = Pool2(allContractVersions["P2"]);
-        p2.upgradeInvestmentPool(newAddress);
-
       }
 
       address payable oldAddress = allContractVersions[_contractsName[i]];
@@ -442,8 +319,6 @@ contract NXMaster is Governed {
   /// @dev Allow AB Members to Start Emergency Pause
   function startEmergencyPause() public onlyAuthorizedToGovern {
     addEmergencyPause(true, "AB"); // Start Emergency Pause
-    Pool1 p1 = Pool1(allContractVersions["P1"]);
-    p1.closeEmergencyPause(pauseTime); // oraclize callback of 4 weeks
     Claims c1 = Claims(allContractVersions["CL"]);
     c1.pauseAllPendingClaimsVoting(); // Pause Voting of all pending Claims
   }
@@ -465,15 +340,6 @@ contract NXMaster is Governed {
 
       pd = PoolData(getLatestAddress("PD"));
       pd.changeNotariseAddress(val);
-
-    } else if (code == "DAIFEED") {
-      pd = PoolData(getLatestAddress("PD"));
-      pd.changeDAIfeedAddress(val);
-
-    } else if (code == "UNISWADD") {
-      Pool2 p2;
-      p2 = Pool2(getLatestAddress("P2"));
-      p2.changeUniswapFactoryAddress(val);
 
     } else if (code == "OWNER") {
 
@@ -506,9 +372,7 @@ contract NXMaster is Governed {
 
   /// @dev Sets the older versions of contract addresses as inactive and the latest one as active.
   function _changeAllAddress() internal {
-    uint i;
-    for (i = 0; i < allContractNames.length; i++) {
-
+    for (uint i = 0; i < allContractNames.length; i++) {
       contractsActive[allContractVersions[allContractNames[i]]] = true;
       Iupgradable up = Iupgradable(allContractVersions[allContractNames[i]]);
       up.changeDependentContractAddress();

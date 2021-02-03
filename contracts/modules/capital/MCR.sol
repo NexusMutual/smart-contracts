@@ -17,10 +17,11 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../capital/Pool1.sol";
+import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
 import "../governance/MemberRoles.sol";
 import "../governance/ProposalCategory.sol";
+import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "./PoolData.sol";
@@ -28,17 +29,14 @@ import "./PoolData.sol";
 contract MCR is Iupgradable {
   using SafeMath for uint;
 
-  Pool1 internal p1;
-  PoolData internal pd;
-  NXMToken internal tk;
-  QuotationData internal qd;
-  MemberRoles internal mr;
-  TokenData internal td;
-  ProposalCategory internal proposalCategory;
+  Pool public pool;
+  PoolData public pd;
+  NXMToken public tk;
+  QuotationData public qd;
+  MemberRoles public mr;
+  TokenData public td;
+  ProposalCategory public proposalCategory;
 
-  uint private constant DECIMAL1E18 = uint(10) ** 18;
-  uint private constant DECIMAL1E05 = uint(10) ** 5;
-  uint private constant DECIMAL1E19 = uint(10) ** 19;
   uint private constant minCapFactor = uint(10) ** 21;
 
   uint public variableMincap;
@@ -55,10 +53,29 @@ contract MCR is Iupgradable {
     uint vFull
   );
 
+  constructor (address masterAddress) public {
+
+    changeMasterAddress(masterAddress);
+
+    // we'll pass the zero address on the first deploy
+    // due to missing previous MCR contract
+    if (masterAddress == address(0)) {
+      return;
+    }
+
+    address mcrAddress = ms.getLatestAddress("MC");
+    MCR previousMCR = MCR(mcrAddress);
+
+    // fetch MCR parameters from previous contract
+    variableMincap = previousMCR.variableMincap();
+    dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
+    dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
+  }
+
   /**
    * @dev Adds new MCR data.
    * @param mcrP  Minimum Capital Requirement in percentage.
-   * @param vF Pool1 fund value in Ether used in the last full daily calculation of the Capital model.
+   * @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
    * @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
    */
   function addMCRData(
@@ -84,36 +101,17 @@ contract MCR is Iupgradable {
     _addMCRData(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
   }
 
-  /**
-   * @dev Adds MCR Data for last failed attempt.
-   */
-  function addLastMCRData(uint64 date) external checkPause onlyInternal {
-    uint64 lastdate = uint64(pd.getLastMCRDate());
-    uint64 failedDate = uint64(date);
-    if (failedDate >= lastdate) {
-      uint mcrP;
-      uint mcrE;
-      uint vF;
-      (mcrP, mcrE, vF,) = pd.getLastMCR();
-      uint len = pd.getAllCurrenciesLen();
-      pd.pushMCRData(mcrP, mcrE, vF, date);
-      for (uint j = 0; j < len; j++) {
-        bytes4 currName = pd.getCurrenciesByIndex(j);
-        pd.updateCAAvgRate(currName, pd.getCAAvgRate(currName));
-      }
-
-      emit MCREvent(date, block.number, new bytes4[](0), new uint[](0), mcrE, mcrP, vF);
-      // Oraclize call for next MCR calculation
-      _callOracliseForMCR();
-    }
+  // proxying this call through mcr contract to get rid of pd from pool
+  function getLastMCREther() external view returns (uint) {
+    return pd.getLastMCREther();
   }
 
   /**
    * @dev Iupgradable Interface to update dependent contract address
    */
-  function changeDependentContractAddress() public onlyInternal {
+  function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
-    p1 = Pool1(ms.getLatestAddress("P1"));
+    pool = Pool(ms.getLatestAddress("P1"));
     pd = PoolData(ms.getLatestAddress("PD"));
     tk = NXMToken(ms.tokenAddress());
     mr = MemberRoles(ms.getLatestAddress("MR"));
@@ -122,84 +120,21 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Gets total sum assured(in ETH).
+   * @dev Gets total sum assured (in ETH).
    * @return amount of sum assured
    */
-  function getAllSumAssurance() public view returns (uint amount) {
-    uint len = pd.getAllCurrenciesLen();
-    for (uint i = 0; i < len; i++) {
-      bytes4 currName = pd.getCurrenciesByIndex(i);
-      if (currName == "ETH") {
-        amount = amount.add(qd.getTotalSumAssured(currName));
-      } else {
-        if (pd.getCAAvgRate(currName) > 0)
-          amount = amount.add((qd.getTotalSumAssured(currName).mul(100)).div(pd.getCAAvgRate(currName)));
-      }
-    }
-  }
+  function getAllSumAssurance() public view returns (uint) {
 
-  /**
-   * @dev Calculates V(Tp) and MCR%(Tp), i.e, Pool Fund Value in Ether
-   * and MCR% used in the Token Price Calculation.
-   * @return vtp  Pool Fund Value in Ether used for the Token Price Model
-   * @return mcrtp MCR% used in the Token Price Model.
-   */
-  function _calVtpAndMCRtp(uint poolBalance) public view returns (uint vtp, uint mcrtp) {
-    vtp = 0;
-    IERC20 erc20;
-    uint currTokens = 0;
-    uint i;
-    for (i = 1; i < pd.getAllCurrenciesLen(); i++) {
-      bytes4 currency = pd.getCurrenciesByIndex(i);
-      erc20 = IERC20(pd.getCurrencyAssetAddress(currency));
-      currTokens = erc20.balanceOf(address(p1));
-      if (pd.getCAAvgRate(currency) > 0)
-        vtp = vtp.add((currTokens.mul(100)).div(pd.getCAAvgRate(currency)));
-    }
+    PriceFeedOracle priceFeed = pool.priceFeedOracle();
+    address daiAddress = priceFeed.daiAddress();
 
-    vtp = vtp.add(poolBalance).add(p1.getInvestmentAssetBalance());
-    uint mcrFullperc;
-    uint vFull;
-    (mcrFullperc, , vFull,) = pd.getLastMCR();
-    if (vFull > 0) {
-      mcrtp = (mcrFullperc.mul(vtp)).div(vFull);
-    }
-  }
+    uint ethAmount = qd.getTotalSumAssured("ETH").mul(1e18);
+    uint daiAmount = qd.getTotalSumAssured("DAI").mul(1e18);
 
-  /**
-   * @dev Calculates the Token Price of NXM in a given currency.
-   * @param curr Currency name.
+    uint daiRate = priceFeed.getAssetToEthRate(daiAddress);
+    uint daiAmountInEth = daiAmount.mul(daiRate).div(1e18);
 
-   */
-  function calculateStepTokenPrice(
-    bytes4 curr,
-    uint mcrtp
-  )
-  public
-  view
-  onlyInternal
-  returns (uint tokenPrice)
-  {
-    return _calculateTokenPrice(curr, mcrtp);
-  }
-
-  /**
-   * @dev Calculates the Token Price of NXM in a given currency
-   * with provided token supply for dynamic token price calculation
-   * @param curr Currency name.
-   */
-  function calculateTokenPrice(bytes4 curr) public view returns (uint tokenPrice) {
-    uint mcrtp;
-    (, mcrtp) = _calVtpAndMCRtp(address(p1).balance);
-    return _calculateTokenPrice(curr, mcrtp);
-  }
-
-  function calVtpAndMCRtp() public view returns (uint vtp, uint mcrtp) {
-    return _calVtpAndMCRtp(address(p1).balance);
-  }
-
-  function calculateVtpAndMCRtp(uint poolBalance) public view returns (uint vtp, uint mcrtp) {
-    return _calVtpAndMCRtp(poolBalance);
+    return ethAmount.add(daiAmountInEth);
   }
 
   function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns (uint lowerThreshold, uint upperThreshold)
@@ -214,7 +149,7 @@ contract MCR is Iupgradable {
     }
 
     if (vtp > 0) {
-      lower = totalSA.mul(DECIMAL1E18).mul(pd.shockParameter()).div(100);
+      lower = totalSA.mul(pd.shockParameter()).div(100);
       if (lower < minCap.mul(11).div(10))
         lower = minCap.mul(11).div(10);
     }
@@ -222,25 +157,6 @@ contract MCR is Iupgradable {
       // Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
       lowerThreshold = vtp.mul(100).mul(100).div(lower);
     }
-  }
-
-  /**
-   * @dev Gets max numbers of tokens that can be sold at the moment.
-   */
-  function getMaxSellTokens() public view returns (uint maxTokens) {
-    uint baseMin = pd.getCurrencyAssetBaseMin("ETH");
-    uint maxTokensAccPoolBal;
-    if (address(p1).balance > baseMin.mul(50).div(100)) {
-      maxTokensAccPoolBal = address(p1).balance.sub(
-        (baseMin.mul(50)).div(100));
-    }
-    maxTokensAccPoolBal = (maxTokensAccPoolBal.mul(DECIMAL1E18)).div(
-      (calculateTokenPrice("ETH").mul(975)).div(1000));
-    uint lastMCRPerc = pd.getLastMCRPerc();
-    if (lastMCRPerc > 10000)
-      maxTokens = (((uint(lastMCRPerc).sub(10000)).mul(2000)).mul(DECIMAL1E18)).div(10000);
-    if (maxTokens > maxTokensAccPoolBal)
-      maxTokens = maxTokensAccPoolBal;
   }
 
   /**
@@ -284,43 +200,6 @@ contract MCR is Iupgradable {
   }
 
   /**
-   * @dev Calls oraclize query to calculate MCR details after 24 hours.
-   */
-  function _callOracliseForMCR() internal {
-    p1.mcrOraclise(pd.mcrTime());
-  }
-
-  /**
-   * @dev Calculates the Token Price of NXM in a given currency
-   * with provided token supply for dynamic token price calculation
-   * @param _curr Currency name.
-   * @return tokenPrice Token price.
-   */
-  function _calculateTokenPrice(
-    bytes4 _curr,
-    uint mcrtp
-  )
-  internal
-  view
-  returns (uint tokenPrice)
-  {
-    uint getA;
-    uint getC;
-    uint getCAAvgRate;
-    uint tokenExponentValue = td.tokenExponent();
-    // uint max = (mcrtp.mul(mcrtp).mul(mcrtp).mul(mcrtp));
-    uint max = mcrtp ** tokenExponentValue;
-    uint dividingFactor = tokenExponentValue.mul(4);
-    (getA, getC, getCAAvgRate) = pd.getTokenPriceDetails(_curr);
-    uint mcrEth = pd.getLastMCREther();
-    getC = getC.mul(DECIMAL1E18);
-    tokenPrice = (mcrEth.mul(DECIMAL1E18).mul(max).div(getC)).div(10 ** dividingFactor);
-    tokenPrice = tokenPrice.add(getA.mul(DECIMAL1E18).div(DECIMAL1E05));
-    tokenPrice = tokenPrice.mul(getCAAvgRate * 10);
-    tokenPrice = (tokenPrice).div(10 ** 3);
-  }
-
-  /**
    * @dev Adds MCR Data. Checks if MCR is within valid
    * thresholds in order to rule out any incorrect calculations
    */
@@ -335,17 +214,17 @@ contract MCR is Iupgradable {
   )
   internal
   {
-    uint vtp = 0;
     uint lowerThreshold = 0;
     uint upperThreshold = 0;
+
     if (len > 1) {
-      (vtp,) = _calVtpAndMCRtp(address(p1).balance);
+      uint vtp = pool.getPoolValueInEth();
       (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
-
     }
-    if (mcrP > dynamicMincapThresholdx100)
-      variableMincap = (variableMincap.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
 
+    if (mcrP > dynamicMincapThresholdx100) {
+      variableMincap = (variableMincap.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
+    }
 
     // Explanation for above formula :-
     // actual formula -> variableMinCap =  variableMinCap + (variableMinCap+minCap)*dynamicMincapIncrement/100
@@ -354,22 +233,19 @@ contract MCR is Iupgradable {
     // here, dynamicMincapIncrement is in x100 format.
     // so b+(a+b)*cx100/10000 can be written as => (10000.b + b.cx100 + a.cx100)/10000.
     // It can further simplify to (b.(10000+cx100) + a.cx100)/10000.
-    if (len == 1 || (mcrP) >= lowerThreshold
-    && (mcrP) <= upperThreshold) {
-      // due to stack to deep error,we are reusing already declared variable
-      vtp = pd.getLastMCRDate();
+    if (len == 1 || (mcrP) >= lowerThreshold && (mcrP) <= upperThreshold) {
+
       pd.pushMCRData(mcrP, mcrE, vF, newMCRDate);
+
       for (uint i = 0; i < curr.length; i++) {
         pd.updateCAAvgRate(curr[i], _threeDayAvg[i]);
       }
+
       emit MCREvent(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
-      // Oraclize call for next MCR calculation
-      if (vtp < newMCRDate) {
-        _callOracliseForMCR();
-      }
-    } else {
-      p1.mcrOracliseFail(newMCRDate, pd.mcrFailTime());
+      return;
     }
+
+    revert("MCR: Failed");
   }
 
 }

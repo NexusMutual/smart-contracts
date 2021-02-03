@@ -1,10 +1,10 @@
-const { defaultSender } = require('@openzeppelin/test-environment');
 const { expectEvent } = require('@openzeppelin/test-helpers');
 const BN = require('bn.js');
 const { assert } = require('chai');
 const accounts = require('../utils').accounts;
 
 const {
+  defaultSender,
   nonMembers: [nonMember],
   members: [memberOne, memberTwo],
 } = accounts;

@@ -1,99 +1,129 @@
-const { contract, defaultSender } = require('@openzeppelin/test-environment');
+const { accounts, artifacts, web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
+
+const { impersonateAccount } = require('../utils').evm;
 const { hex } = require('../utils').helpers;
+const { calculateMCRRatio } = require('../utils').tokenPrice;
 
-// external
-const ERC20Mock = contract.fromArtifact('ERC20Mock');
-const DSValue = contract.fromArtifact('NXMDSValueMock');
-const ExchangeFactoryMock = contract.fromArtifact('ExchangeFactoryMock');
-const ExchangeMock = contract.fromArtifact('ExchangeMock');
-const OwnedUpgradeabilityProxy = contract.fromArtifact('OwnedUpgradeabilityProxy');
-
-// nexusmutual
-const NXMToken = contract.fromArtifact('NXMToken');
-const Claims = contract.fromArtifact('Claims');
-const ClaimsData = contract.fromArtifact('ClaimsData');
-const ClaimsReward = contract.fromArtifact('ClaimsReward');
-const MCR = contract.fromArtifact('MCR');
-const TokenData = contract.fromArtifact('TokenData');
-const TokenFunctions = contract.fromArtifact('TokenFunctions');
-const Pool1 = contract.fromArtifact('Pool1Mock');
-const Pool2 = contract.fromArtifact('Pool2');
-const PoolData = contract.fromArtifact('PoolData');
-const Quotation = contract.fromArtifact('Quotation');
-const QuotationData = contract.fromArtifact('QuotationData');
-const ClaimProofs = contract.fromArtifact('ClaimProofs');
-
-// temporary contracts used for initialization
-const DisposableNXMaster = contract.fromArtifact('DisposableNXMaster');
-const DisposableMemberRoles = contract.fromArtifact('DisposableMemberRoles');
-const DisposableTokenController = contract.fromArtifact('DisposableTokenController');
-const DisposableProposalCategory = contract.fromArtifact('DisposableProposalCategory');
-const DisposableGovernance = contract.fromArtifact('DisposableGovernance');
-const DisposablePooledStaking = contract.fromArtifact('DisposablePooledStaking');
-
-// target contracts
-const NXMaster = contract.fromArtifact('NXMaster');
-const MemberRoles = contract.fromArtifact('MemberRoles');
-const TokenController = contract.fromArtifact('TokenController');
-const ProposalCategory = contract.fromArtifact('ProposalCategory');
-const Governance = contract.fromArtifact('Governance');
-const PooledStaking = contract.fromArtifact('PooledStaking');
-
-const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
-const INITIAL_SUPPLY = ether('1500000');
-const EXCHANGE_TOKEN = ether('10000');
-const EXCHANGE_ETHER = ether('10');
-
-const deployProxy = async contract => {
-  const implementation = await contract.new();
-  const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
-  return contract.at(proxy.address);
-};
-
-const upgradeProxy = async (proxyAddress, contract) => {
-  const implementation = await contract.new();
-  const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
-  await proxy.upgradeTo(implementation.address);
-};
-
-const transferProxyOwnership = async (proxyAddress, newOwner) => {
-  const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
-  await proxy.transferProxyOwnership(newOwner);
-};
+const { BN } = web3.utils;
 
 async function setup () {
 
-  const owner = defaultSender;
+  // external
+  const ERC20BlacklistableMock = artifacts.require('ERC20BlacklistableMock');
+  const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy');
+  const P1MockChainlinkAggregator = artifacts.require('P1MockChainlinkAggregator');
+  const WETH9 = artifacts.require('WETH9');
+  const UniswapV2Factory = artifacts.require('UniswapV2Factory');
+  const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
+
+  // nexusmutual
+  const NXMToken = artifacts.require('NXMToken');
+  const Claims = artifacts.require('Claims');
+  const ClaimsData = artifacts.require('ClaimsData');
+  const ClaimsReward = artifacts.require('ClaimsReward');
+  const MCR = artifacts.require('MCR');
+  const TokenData = artifacts.require('TokenData');
+  const TokenFunctions = artifacts.require('TokenFunctions');
+  const Pool = artifacts.require('Pool');
+  const PoolData = artifacts.require('PoolData');
+  const Quotation = artifacts.require('Quotation');
+  const QuotationData = artifacts.require('QuotationData');
+  const ClaimProofs = artifacts.require('ClaimProofs');
+  const PriceFeedOracle = artifacts.require('PriceFeedOracle');
+  const SwapAgent = artifacts.require('SwapAgent');
+  const TwapOracle = artifacts.require('TwapOracle');
+
+  // temporary contracts used for initialization
+  const DisposableNXMaster = artifacts.require('DisposableNXMaster');
+  const DisposableMemberRoles = artifacts.require('DisposableMemberRoles');
+  const DisposableTokenController = artifacts.require('DisposableTokenController');
+  const DisposableProposalCategory = artifacts.require('DisposableProposalCategory');
+  const DisposableGovernance = artifacts.require('DisposableGovernance');
+  const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
+
+  // target contracts
+  const NXMaster = artifacts.require('NXMaster');
+  const MemberRoles = artifacts.require('MemberRoles');
+  const TokenController = artifacts.require('TokenController');
+  const ProposalCategory = artifacts.require('ProposalCategory');
+  const Governance = artifacts.require('Governance');
+  const PooledStaking = artifacts.require('PooledStaking');
+
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+  const QE = '0x51042c4d8936a7764d18370a6a0762b860bb8e07';
+  const INITIAL_SUPPLY = ether('1500000');
+
+  const deployProxy = async contract => {
+    const implementation = await contract.new();
+    const proxy = await OwnedUpgradeabilityProxy.new(implementation.address);
+    return contract.at(proxy.address);
+  };
+
+  const upgradeProxy = async (proxyAddress, contract) => {
+    const implementation = await contract.new();
+    const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
+    await proxy.upgradeTo(implementation.address);
+  };
+
+  const transferProxyOwnership = async (proxyAddress, newOwner) => {
+    const proxy = await OwnedUpgradeabilityProxy.at(proxyAddress);
+    await proxy.transferProxyOwnership(newOwner);
+  };
+
+  const uniswapTruffleContract = (contractName, repo = 'core') => {
+    const TruffleContract = require('@truffle/contract');
+    const jsonPath = `@uniswap/v2-${repo}/build/${contractName}.json`;
+    const contract = TruffleContract(require(jsonPath));
+    contract.setProvider(web3.currentProvider);
+    return contract;
+  };
+
+  const deployUniswap = async () => {
+
+    const UNISWAP_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
+    const UNISWAP_ROUTER = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+    const UNISWAP_DEPLOYER = '0x9c33eacc2f50e39940d3afaf2c7b8246b681a374';
+    const UNISWAP_OWNER = '0xc0a4272bb5df52134178df25d77561cfb17ce407';
+
+    const weth = await WETH9.new();
+
+    await impersonateAccount(UNISWAP_DEPLOYER);
+    await web3.eth.sendTransaction({ from: owner, to: UNISWAP_DEPLOYER, value: ether('1') });
+
+    // Deploying using truffle contract to have the correct addresses:
+    const TruffleUniswapV2Factory = uniswapTruffleContract('UniswapV2Factory');
+    const TruffleUniswapV2Router = uniswapTruffleContract('UniswapV2Router02', 'periphery');
+
+    // 1. deploy factory
+    const _factory = await TruffleUniswapV2Factory.new(UNISWAP_OWNER, { from: UNISWAP_DEPLOYER });
+
+    // 2. consume 2 nonces
+    await web3.eth.sendTransaction({ from: UNISWAP_DEPLOYER, to: ZERO_ADDRESS });
+    await web3.eth.sendTransaction({ from: UNISWAP_DEPLOYER, to: ZERO_ADDRESS });
+
+    // 3. deploy router
+    const _router = await TruffleUniswapV2Router.new(_factory.address, weth.address, { from: UNISWAP_DEPLOYER });
+
+    // check that we landed at the correct address
+    assert.strictEqual(_factory.address, UNISWAP_FACTORY);
+    assert.strictEqual(_router.address, UNISWAP_ROUTER);
+
+    const factory = await UniswapV2Factory.at(_factory.address);
+    const router = await UniswapV2Router02.at(_router.address);
+
+    return { router, factory, weth };
+  };
+
+  const [owner] = accounts;
 
   // deploy external contracts
-  const dai = await ERC20Mock.new();
-  const dsv = await DSValue.new(owner);
-  const factory = await ExchangeFactoryMock.new();
-  const exchange = await ExchangeMock.new(dai.address, factory.address);
+  const { router, factory, weth } = await deployUniswap();
 
-  // initialize external contracts
+  const dai = await ERC20BlacklistableMock.new();
   await dai.mint(ether('10000000'));
-  await factory.setFactory(dai.address, exchange.address);
-  await dai.transfer(exchange.address, EXCHANGE_TOKEN);
-  await exchange.recieveEther({ value: EXCHANGE_ETHER });
-
-  // regular contracts
-  const cl = await Claims.new();
-  const cd = await ClaimsData.new();
-  const cr = await ClaimsReward.new();
-
-  const mc = await MCR.new();
-  const p1 = await Pool1.new();
-  const p2 = await Pool2.new(factory.address);
-  const pd = await PoolData.new(owner, dsv.address, dai.address);
-
-  const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
-  const td = await TokenData.new(owner);
-  const tf = await TokenFunctions.new();
-
-  const qt = await Quotation.new();
-  const qd = await QuotationData.new(QE, owner);
+  const chainlinkDAI = await P1MockChainlinkAggregator.new();
+  const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
   // proxy contracts
   const master = await deployProxy(DisposableNXMaster);
@@ -103,12 +133,41 @@ async function setup () {
   const pc = await deployProxy(DisposableProposalCategory);
   const gv = await deployProxy(DisposableGovernance);
 
-  // non-upgradable contracts
+  // non-proxy contracts and libraries
   const cp = await ClaimProofs.new(master.address);
+  const twapOracle = await TwapOracle.new(factory.address);
+  const swapAgent = await SwapAgent.new();
+
+  // link pool to swap agent library
+  Pool.link(swapAgent);
+
+  // regular contracts
+  const cl = await Claims.new();
+  const cd = await ClaimsData.new();
+  const cr = await ClaimsReward.new(master.address, dai.address);
+
+  const mc = await MCR.new(ZERO_ADDRESS);
+  const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
+  const p1 = await Pool.new(
+    [dai.address], // assets
+    [0], // min amounts
+    [ether('100')], // max amounts
+    [ether('0.01')], // max slippage 1%
+    master.address,
+    priceFeedOracle.address,
+    twapOracle.address,
+    owner,
+  );
+
+  const tk = await NXMToken.new(owner, INITIAL_SUPPLY);
+  const td = await TokenData.new(owner);
+  const tf = await TokenFunctions.new();
+  const qt = await Quotation.new();
+  const qd = await QuotationData.new(QE, owner);
 
   const contractType = code => {
 
-    const upgradable = ['CL', 'CR', 'MC', 'P1', 'P2', 'QT', 'TF'];
+    const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
     const proxies = ['GV', 'MR', 'PC', 'PS', 'TC'];
 
     if (upgradable.includes(code)) {
@@ -122,8 +181,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'P2', 'MC', 'GV', 'PC', 'MR', 'PS'];
-  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, p2, mc, { address: owner }, pc, mr, ps].map(c => c.address);
+  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS'];
+  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps].map(c => c.address);
 
   await master.initialize(
     owner,
@@ -170,7 +229,7 @@ async function setup () {
   );
 
   await pd.changeMasterAddress(master.address);
-  await pd.updateUintParameters(hex('MCRMIN'), ether('7000')); // minimum capital in eth
+  await pd.updateUintParameters(hex('MCRMIN'), new BN('50')); // minimum capital in eth
   await pd.updateUintParameters(hex('MCRSHOCK'), 50); // mcr shock parameter
   await pd.updateUintParameters(hex('MCRCAPL'), 20); // capacityLimit 10: seemingly unused parameter
 
@@ -210,39 +269,53 @@ async function setup () {
   const POOL_DAI = ether('2000000');
 
   // fund pools
-  await p1.sendEther({ from: owner, value: POOL_ETHER.divn(2) });
-  await p2.sendEther({ from: owner, value: POOL_ETHER.divn(2) });
-  await dai.transfer(p2.address, POOL_DAI);
+  await p1.sendEther({ from: owner, value: POOL_ETHER });
+  await dai.transfer(p1.address, POOL_DAI);
 
-  // add mcr
+  const ethEthRate = 100;
+  const ethToDaiRate = 20000;
+
+  const daiToEthRate = new BN(10).pow(new BN(36)).div(ether((ethToDaiRate / 100).toString()));
+  await chainlinkDAI.setLatestAnswer(daiToEthRate);
+
+  const poolValueInEth = await p1.getPoolValueInEth();
+  const mcrEth = ether('50000');
+  const mcrRatio = calculateMCRRatio(poolValueInEth, mcrEth);
+
   await mc.addMCRData(
-    20000, // mcr% = 200.00%
-    ether('50000'), // mcr = 5000 eth
-    ether('100000'), // vFull = 90000 ETH + 2M DAI = 90000 ETH + 10000 ETH = 100000 ETH
+    mcrRatio,
+    mcrEth,
+    poolValueInEth, // vFull = 90000 ETH + 2M DAI = 90000 ETH + 10000 ETH = 100000 ETH
     [hex('ETH'), hex('DAI')],
-    [100, 20000], // rates: 1.00 eth/eth, 200.00 dai/eth
+    [ethEthRate, ethToDaiRate], // rates: 1.00 eth/eth, 200.00 dai/eth
     20190103,
   );
 
-  await p2.saveIADetails(
-    [hex('ETH'), hex('DAI')],
-    [100, 20000],
-    20190103,
-    true,
-  );
+  const external = { chainlinkDAI, dai, factory, router, weth };
+  const nonUpgradable = { cp, qd, td, cd, pd };
+  const instances = { tk, qt, tf, cl, cr, p1, mcr: mc };
 
-  const external = { dai, dsv, factory, exchange };
-  const nonUpgradable = { cp };
-  const instances = { tk, qd, td, cd, pd, qt, tf, cl, cr, p1, p2, mcr: mc };
-  const proxies = { tc, gv, pc, mr, ps };
+  // we upgraded them, get non-disposable instances because
+  const proxies = {
+    master: await NXMaster.at(master.address),
+    tc: await TokenController.at(tc.address),
+    gv: await Governance.at(gv.address),
+    pc: await ProposalCategory.at(pc.address),
+    mr: await MemberRoles.at(mr.address),
+    ps: await PooledStaking.at(ps.address),
+  };
 
-  Object.assign(this, {
-    master,
+  this.contracts = {
     ...external,
     ...nonUpgradable,
     ...instances,
     ...proxies,
-  });
+  };
+  this.rates = {
+    daiToEthRate,
+    ethEthRate,
+    ethToDaiRate,
+  };
 }
 
 module.exports = setup;

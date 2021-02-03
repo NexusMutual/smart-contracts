@@ -43,11 +43,16 @@ contract MemberRoles is Governed, Iupgradable {
 
   event switchedMembership(address indexed previousMember, address indexed newMember, uint timeStamp);
 
+  event ClaimPayoutAddressSet(address indexed member, address indexed payoutAddress);
+
   MemberRoleDetails[] internal memberRoleData;
   bool internal constructorCheck;
   uint public maxABCount;
   bool public launched;
   uint public launchedOn;
+
+  mapping (address => address payable) internal claimPayoutAddress;
+
   modifier checkRoleAuthority(uint _memberRoleId) {
     if (memberRoleData[_memberRoleId].authorized != address(0))
       require(msg.sender == memberRoleData[_memberRoleId].authorized);
@@ -124,6 +129,15 @@ contract MemberRoles is Governed, Iupgradable {
     tf = TokenFunctions(ms.getLatestAddress("TF"));
     tk = NXMToken(ms.tokenAddress());
     dAppToken = TokenController(ms.getLatestAddress("TC"));
+
+    // rescue future yNFT claim payouts as per gov proposal #113
+    address payable yNFT = 0x181Aea6936B407514ebFC0754A37704eB8d98F91;
+    address payable arNFT = 0x1337DEF1e9c7645352D93baf0b789D04562b4185;
+
+    if (claimPayoutAddress[yNFT] == address(0)) {
+      claimPayoutAddress[yNFT] = arNFT;
+      emit ClaimPayoutAddressSet(yNFT, arNFT);
+    }
   }
 
   /**
@@ -131,12 +145,14 @@ contract MemberRoles is Governed, Iupgradable {
    * @param _masterAddress is the new master address
    */
   function changeMasterAddress(address _masterAddress) public {
-    if (masterAddress != address(0))
+
+    if (masterAddress != address(0)) {
       require(masterAddress == msg.sender);
+    }
+
     masterAddress = _masterAddress;
     ms = INXMMaster(_masterAddress);
     nxMasterAddress = _masterAddress;
-
   }
 
   /**
@@ -245,35 +261,77 @@ contract MemberRoles is Governed, Iupgradable {
    * @dev Called by existed member if wish to Withdraw membership.
    */
   function withdrawMembership() public {
+
     require(!ms.isPause() && ms.isMember(msg.sender));
     require(dAppToken.totalLockedBalance(msg.sender, now) == 0); // solhint-disable-line
     require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
     require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
     require(dAppToken.tokensUnlockable(msg.sender, "CLA") == 0, "Member should have no CLA unlockable tokens");
+
     gv.removeDelegation(msg.sender);
     dAppToken.burnFrom(msg.sender, tk.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     dAppToken.removeFromWhitelist(msg.sender); // need clarification on whitelist
-  }
 
+    if (claimPayoutAddress[msg.sender] != address(0)) {
+      claimPayoutAddress[msg.sender] = address(0);
+      emit ClaimPayoutAddressSet(msg.sender, address(0));
+    }
+  }
 
   /**
    * @dev Called by existed member if wish to switch membership to other address.
    * @param _add address of user to forward membership.
    */
   function switchMembership(address _add) external {
+
     require(!ms.isPause() && ms.isMember(msg.sender) && !ms.isMember(_add));
     require(dAppToken.totalLockedBalance(msg.sender, now) == 0); // solhint-disable-line
     require(!tf.isLockedForMemberVote(msg.sender)); // No locked tokens for Member/Governance voting
     require(cr.getAllPendingRewardOfUser(msg.sender) == 0); // No pending reward to be claimed(claim assesment).
     require(dAppToken.tokensUnlockable(msg.sender, "CLA") == 0, "Member should have no CLA unlockable tokens");
+
     gv.removeDelegation(msg.sender);
     dAppToken.addToWhitelist(_add);
     _updateRole(_add, uint(Role.Member), true);
     tk.transferFrom(msg.sender, _add, tk.balanceOf(msg.sender));
     _updateRole(msg.sender, uint(Role.Member), false);
     dAppToken.removeFromWhitelist(msg.sender);
+
+    address payable previousPayoutAddress = claimPayoutAddress[msg.sender];
+
+    if (previousPayoutAddress != address(0)) {
+
+      address payable storedAddress = previousPayoutAddress == _add ? address(0) : previousPayoutAddress;
+
+      claimPayoutAddress[msg.sender] = address(0);
+      claimPayoutAddress[_add] = storedAddress;
+
+      // emit event for old address reset
+      emit ClaimPayoutAddressSet(msg.sender, address(0));
+
+      if (storedAddress != address(0)) {
+        // emit event for setting the payout address on the new member address if it's non zero
+        emit ClaimPayoutAddressSet(_add, storedAddress);
+      }
+    }
+
     emit switchedMembership(msg.sender, _add, now);
+  }
+
+  function getClaimPayoutAddress(address payable _member) external view returns (address payable) {
+    address payable payoutAddress = claimPayoutAddress[_member];
+    return payoutAddress != address(0) ? payoutAddress : _member;
+  }
+
+  function setClaimPayoutAddress(address payable _address) external {
+
+    require(!ms.isPause(), "system is paused");
+    require(ms.isMember(msg.sender), "sender is not a member");
+    require(_address != msg.sender, "should be different than the member address");
+
+    claimPayoutAddress[msg.sender] = _address;
+    emit ClaimPayoutAddressSet(msg.sender, _address);
   }
 
   /// @dev Return number of member roles

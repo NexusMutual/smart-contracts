@@ -2,7 +2,7 @@ const { ether, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 
 const accounts = require('../utils').accounts;
-const { ParamType } = require('../utils').constants;
+const { StakingUintParamType } = require('../utils').constants;
 
 const {
   nonMembers: [nonMember],
@@ -15,7 +15,7 @@ const firstContract = '0x0000000000000000000000000000000000000001';
 
 async function fundAndApprove (token, tokenController, staking, amount, member) {
   const maxExposure = '2';
-  await staking.updateUintParameters(ParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
+  await staking.updateUintParameters(StakingUintParamType.MAX_EXPOSURE, maxExposure, { from: governanceContract });
 
   await token.transfer(member, amount); // fund member account from default address
   await token.approve(tokenController.address, amount, { from: member });

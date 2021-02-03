@@ -47,11 +47,18 @@ if (process.env.TEST_ENV_FORK) {
   networks.hardhat.forking = { url: process.env.TEST_ENV_FORK };
 }
 
+const getenv = (network, key, fallback, parser = i => i) => {
+  const value = process.env[`${network}_${key}`];
+  return value ? parser(value) : fallback;
+};
+
 for (const network of ['MAINNET', 'KOVAN']) {
-  const url = process.env[`${network}_PROVIDER_URL`];
+  const url = getenv(network, 'PROVIDER_URL', false);
   if (!url) continue;
-  const accounts = [process.env[`${network}_ACCOUNT_KEY`]];
-  networks[network.toLowerCase()] = { accounts, url };
+  const accounts = getenv(network, 'ACCOUNT_KEY', undefined, v => v.split(/[^0-9a-fx]+/i));
+  const gasPrice = getenv(network, 'GAS_PRICE', undefined, v => parseInt(v, 10) * 1e9);
+  const gasLimit = getenv(network, 'GAS_LIMIT', undefined, v => parseInt(v, 10));
+  networks[network.toLowerCase()] = { accounts, gasPrice, gasLimit, url };
 }
 
 const compilerSettings = process.env.ENABLE_OPTIMIZER
@@ -74,15 +81,12 @@ module.exports = {
 
   solidity: {
     compilers: [
-      { version: '0.5.17' }, // nexus mutual
-      { version: '0.5.16' }, // uniswap v2 core
-      { version: '0.6.6' }, // uniswap v2 peripherals
-    ].map(compiler => ({ ...compiler, settings: compilerSettings })),
+      { settings: compilerSettings, version: '0.5.17' }, // nexus mutual
+      { settings: compilerSettings, version: '0.5.16' }, // uniswap v2 core
+      { settings: compilerSettings, version: '0.6.6' }, // uniswap v2 peripherals
+    ],
     overrides: {
-      'contracts/modules/governance/Governance.sol': {
-        version: '0.5.7',
-        settings: compilerSettings,
-      },
+      'contracts/modules/governance/Governance.sol': { settings: compilerSettings, version: '0.5.7' },
     },
   },
 };

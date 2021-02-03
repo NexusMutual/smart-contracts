@@ -102,6 +102,14 @@ export interface LegacyMCRInstance extends Truffle.ContractInstance {
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
 
+  dynamicMincapIncrementx100(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
+  dynamicMincapThresholdx100(
+    txDetails?: Truffle.TransactionDetails
+  ): Promise<BN>;
+
   getAllSumAssurance(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   getMaxSellTokens(txDetails?: Truffle.TransactionDetails): Promise<BN>;
@@ -141,6 +149,8 @@ export interface LegacyMCRInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
+
+  variableMincap(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
   methods: {
     _calVtpAndMCRtp(
@@ -233,6 +243,14 @@ export interface LegacyMCRInstance extends Truffle.ContractInstance {
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
 
+    dynamicMincapIncrementx100(
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
+
+    dynamicMincapThresholdx100(
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<BN>;
+
     getAllSumAssurance(txDetails?: Truffle.TransactionDetails): Promise<BN>;
 
     getMaxSellTokens(txDetails?: Truffle.TransactionDetails): Promise<BN>;
@@ -272,6 +290,8 @@ export interface LegacyMCRInstance extends Truffle.ContractInstance {
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };
+
+    variableMincap(txDetails?: Truffle.TransactionDetails): Promise<BN>;
   };
 
   getPastEvents(event: string): Promise<EventData[]>;

@@ -3,6 +3,7 @@
 /* eslint-disable */
 
 import { ContextContract } from "./Context";
+import { OwnableContract } from "./Ownable";
 import { ERC20Contract } from "./ERC20";
 import { IERC20Contract } from "./IERC20";
 import { ReentrancyGuardContract } from "./ReentrancyGuard";
@@ -24,6 +25,7 @@ import { INXMTokenContract } from "./INXMToken";
 import { IupgradableContract } from "./Iupgradable";
 import { MasterAwareContract } from "./MasterAware";
 import { DeployerContract } from "./Deployer";
+import { IUniswapV2FactoryContract } from "./IUniswapV2Factory";
 import { IUniswapV2Router01Contract } from "./IUniswapV2Router01";
 import { IUniswapV2Router02Contract } from "./IUniswapV2Router02";
 import { WETH9Contract } from "./WETH9";
@@ -36,16 +38,19 @@ import { IPooledStakingContract } from "./IPooledStaking";
 import { ITokenControllerContract } from "./ITokenController";
 import { ITokenDataContract } from "./ITokenData";
 import { ITokenFunctionsContract } from "./ITokenFunctions";
+import { EtherRejecterContract } from "./EtherRejecter";
 import { DisposableGovernanceContract } from "./DisposableGovernance";
 import { DisposableMemberRolesContract } from "./DisposableMemberRoles";
 import { DisposableNXMasterContract } from "./DisposableNXMaster";
 import { DisposablePooledStakingContract } from "./DisposablePooledStaking";
 import { DisposableProposalCategoryContract } from "./DisposableProposalCategory";
 import { DisposableTokenControllerContract } from "./DisposableTokenController";
+import { ERC20BlacklistableMockContract } from "./ERC20BlacklistableMock";
 import { ERC20MockContract } from "./ERC20Mock";
 import { MasterMockContract } from "./MasterMock";
 import { MemberRolesMockContract } from "./MemberRolesMock";
 import { NXMTokenMockContract } from "./NXMTokenMock";
+import { OwnedERC20Contract } from "./OwnedERC20";
 import { P1MockChainlinkAggregatorContract } from "./P1MockChainlinkAggregator";
 import { P1MockMemberContract } from "./P1MockMember";
 import { Pool1InterfaceContract } from "./Pool1Interface";
@@ -97,6 +102,7 @@ declare global {
   namespace Truffle {
     interface Artifacts {
       require(name: "Context"): ContextContract;
+      require(name: "Ownable"): OwnableContract;
       require(name: "ERC20"): ERC20Contract;
       require(name: "IERC20"): IERC20Contract;
       require(name: "ReentrancyGuard"): ReentrancyGuardContract;
@@ -118,6 +124,7 @@ declare global {
       require(name: "Iupgradable"): IupgradableContract;
       require(name: "MasterAware"): MasterAwareContract;
       require(name: "Deployer"): DeployerContract;
+      require(name: "IUniswapV2Factory"): IUniswapV2FactoryContract;
       require(name: "IUniswapV2Router01"): IUniswapV2Router01Contract;
       require(name: "IUniswapV2Router02"): IUniswapV2Router02Contract;
       require(name: "WETH9"): WETH9Contract;
@@ -130,6 +137,7 @@ declare global {
       require(name: "ITokenController"): ITokenControllerContract;
       require(name: "ITokenData"): ITokenDataContract;
       require(name: "ITokenFunctions"): ITokenFunctionsContract;
+      require(name: "EtherRejecter"): EtherRejecterContract;
       require(name: "DisposableGovernance"): DisposableGovernanceContract;
       require(name: "DisposableMemberRoles"): DisposableMemberRolesContract;
       require(name: "DisposableNXMaster"): DisposableNXMasterContract;
@@ -140,10 +148,12 @@ declare global {
       require(
         name: "DisposableTokenController"
       ): DisposableTokenControllerContract;
+      require(name: "ERC20BlacklistableMock"): ERC20BlacklistableMockContract;
       require(name: "ERC20Mock"): ERC20MockContract;
       require(name: "MasterMock"): MasterMockContract;
       require(name: "MemberRolesMock"): MemberRolesMockContract;
       require(name: "NXMTokenMock"): NXMTokenMockContract;
+      require(name: "OwnedERC20"): OwnedERC20Contract;
       require(
         name: "P1MockChainlinkAggregator"
       ): P1MockChainlinkAggregatorContract;
@@ -199,6 +209,7 @@ declare global {
 }
 
 export { ContextContract, ContextInstance } from "./Context";
+export { OwnableContract, OwnableInstance } from "./Ownable";
 export { ERC20Contract, ERC20Instance } from "./ERC20";
 export { IERC20Contract, IERC20Instance } from "./IERC20";
 export {
@@ -251,6 +262,10 @@ export { IupgradableContract, IupgradableInstance } from "./Iupgradable";
 export { MasterAwareContract, MasterAwareInstance } from "./MasterAware";
 export { DeployerContract, DeployerInstance } from "./Deployer";
 export {
+  IUniswapV2FactoryContract,
+  IUniswapV2FactoryInstance,
+} from "./IUniswapV2Factory";
+export {
   IUniswapV2Router01Contract,
   IUniswapV2Router01Instance,
 } from "./IUniswapV2Router01";
@@ -277,6 +292,7 @@ export {
   ITokenFunctionsContract,
   ITokenFunctionsInstance,
 } from "./ITokenFunctions";
+export { EtherRejecterContract, EtherRejecterInstance } from "./EtherRejecter";
 export {
   DisposableGovernanceContract,
   DisposableGovernanceInstance,
@@ -301,6 +317,10 @@ export {
   DisposableTokenControllerContract,
   DisposableTokenControllerInstance,
 } from "./DisposableTokenController";
+export {
+  ERC20BlacklistableMockContract,
+  ERC20BlacklistableMockInstance,
+} from "./ERC20BlacklistableMock";
 export { ERC20MockContract, ERC20MockInstance } from "./ERC20Mock";
 export { MasterMockContract, MasterMockInstance } from "./MasterMock";
 export {
@@ -308,6 +328,7 @@ export {
   MemberRolesMockInstance,
 } from "./MemberRolesMock";
 export { NXMTokenMockContract, NXMTokenMockInstance } from "./NXMTokenMock";
+export { OwnedERC20Contract, OwnedERC20Instance } from "./OwnedERC20";
 export {
   P1MockChainlinkAggregatorContract,
   P1MockChainlinkAggregatorInstance,

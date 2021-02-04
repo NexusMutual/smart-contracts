@@ -121,11 +121,7 @@ async function setup () {
   // deploy external contracts
   const { router, factory, weth } = await deployUniswap();
 
-<<<<<<< HEAD
   const dai = await ERC20BlacklistableMock.new();
-=======
-  const dai = await ERC20DetailedMock.new();
->>>>>>> fix assuredSum decimals check + update erc20detailed mock
   await dai.mint(ether('10000000'));
   const chainlinkDAI = await P1MockChainlinkAggregator.new();
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);

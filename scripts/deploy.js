@@ -334,8 +334,8 @@ async function main () {
     20200801,
   );
 
-  // console.log('Performing verifications');
-  // await verifier.submit();
+  console.log('Performing verifications');
+  await verifier.submit();
 
   console.log('Done!');
 }

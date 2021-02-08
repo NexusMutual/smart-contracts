@@ -4,6 +4,7 @@ const { ether } = require('@openzeppelin/test-helpers');
 const { impersonateAccount } = require('../utils').evm;
 const { hex } = require('../utils').helpers;
 const { calculateMCRRatio } = require('../utils').tokenPrice;
+const { proposalCategories } = require('../utils');
 
 const { BN } = web3.utils;
 
@@ -209,7 +210,11 @@ async function setup () {
     [owner], // advisory board members
   );
 
-  await pc.initialize(mr.address, { gas: 10e6 });
+  await pc.initialize(mr.address);
+
+  for (const category of proposalCategories) {
+    await pc.addInitialCategory(...category, { gas: 10e6 });
+  }
 
   await gv.initialize(
     3 * 24 * 3600, // tokenHoldingTime
@@ -247,9 +252,6 @@ async function setup () {
 
   await gv.changeMasterAddress(master.address);
   await master.switchGovernanceAddress(gv.address);
-
-  // trigger changeDependentContractAddress() on all contracts
-  await master.changeAllAddress();
 
   await upgradeProxy(mr.address, MemberRoles);
   await upgradeProxy(tc.address, TokenController);

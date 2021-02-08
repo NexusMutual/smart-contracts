@@ -540,6 +540,33 @@ export interface PoolInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  transferAssetFrom: {
+    (
+      asset: string,
+      from: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      asset: string,
+      from: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      asset: string,
+      from: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      asset: string,
+      from: string,
+      amount: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   twapOracle(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   updateAddressParameters: {
@@ -1073,6 +1100,33 @@ export interface PoolInstance extends Truffle.ContractInstance {
       estimateGas(
         asset: string,
         destination: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    transferAssetFrom: {
+      (
+        asset: string,
+        from: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        asset: string,
+        from: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        asset: string,
+        from: string,
+        amount: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        asset: string,
+        from: string,
         amount: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;

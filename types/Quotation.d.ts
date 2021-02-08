@@ -58,6 +58,8 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
+  cr(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   expireCover: {
     (
       _cid: number | BN | string,
@@ -121,6 +123,8 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  m1(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   makeCoverUsingNXMTokens: {
     (
       coverDetails: (number | BN | string)[],
@@ -164,9 +168,17 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
+  mr(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
   ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  pd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  pool(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   removeSAFromCSA: {
     (
@@ -199,6 +211,12 @@ export interface QuotationInstance extends Truffle.ContractInstance {
     sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
     estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
   };
+
+  tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  td(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+  tf(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
   transferAssetsToNewContract: {
     (newAdd: string, txDetails?: Truffle.TransactionDetails): Promise<
@@ -306,6 +324,8 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
 
+    cr(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     expireCover: {
       (
         _cid: number | BN | string,
@@ -369,6 +389,8 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
+    m1(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     makeCoverUsingNXMTokens: {
       (
         coverDetails: (number | BN | string)[],
@@ -412,9 +434,17 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       ): Promise<number>;
     };
 
+    mr(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
     ms(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     nxMasterAddress(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    pd(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    pool(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    qd(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     removeSAFromCSA: {
       (
@@ -447,6 +477,12 @@ export interface QuotationInstance extends Truffle.ContractInstance {
       sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
       estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
     };
+
+    tc(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    td(txDetails?: Truffle.TransactionDetails): Promise<string>;
+
+    tf(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
     transferAssetsToNewContract: {
       (newAdd: string, txDetails?: Truffle.TransactionDetails): Promise<

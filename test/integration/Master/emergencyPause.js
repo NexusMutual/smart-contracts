@@ -7,7 +7,7 @@ const { hex } = require('../utils').helpers;
 
 const [owner] = accounts;
 
-describe('emergency pause', function () {
+describe.skip('emergency pause', function () {
 
   it('should revert when not called by goverance', async function () {
 

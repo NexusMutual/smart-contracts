@@ -44,6 +44,20 @@ export interface Deposited {
   };
 }
 
+export interface LockTimeMigrationCompleted {
+  name: "LockTimeMigrationCompleted";
+  args: {
+    finished: boolean;
+    startUnstakeIndex: BN;
+    endUnstakeIndex: BN;
+    iterationsLeft: BN;
+    0: boolean;
+    1: BN;
+    2: BN;
+    3: BN;
+  };
+}
+
 export interface PendingActionsProcessed {
   name: "PendingActionsProcessed";
   args: {
@@ -89,18 +103,6 @@ export interface Rewarded {
     amount: BN;
     contractStake: BN;
     0: string;
-    1: BN;
-    2: BN;
-  };
-}
-
-export interface RewardsMigrationCompleted {
-  name: "RewardsMigrationCompleted";
-  args: {
-    finished: boolean;
-    firstReward: BN;
-    iterationsLeft: BN;
-    0: boolean;
     1: BN;
     2: BN;
   };
@@ -158,12 +160,12 @@ type AllEvents =
   | BurnRequested
   | Burned
   | Deposited
+  | LockTimeMigrationCompleted
   | PendingActionsProcessed
   | RewardAdded
   | RewardRequested
   | RewardWithdrawn
   | Rewarded
-  | RewardsMigrationCompleted
   | Staked
   | UnstakeRequested
   | Unstaked
@@ -333,15 +335,6 @@ export interface DisposablePooledStakingInstance
     txDetails?: Truffle.TransactionDetails
   ): Promise<boolean>;
 
-  initializeRewardRoundsStart: {
-    (txDetails?: Truffle.TransactionDetails): Promise<
-      Truffle.TransactionResponse<AllEvents>
-    >;
-    call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-    sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-    estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-  };
-
   initialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
 
   isContractStakeCalculated(
@@ -354,21 +347,21 @@ export interface DisposablePooledStakingInstance
 
   master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-  migrateRewardsToAccumulatedRewards: {
+  migratePendingUnstakesToNewLockTime: {
     (
-      maxIterations: number | BN | string,
+      iterations: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<Truffle.TransactionResponse<AllEvents>>;
     call(
-      maxIterations: number | BN | string,
+      iterations: number | BN | string,
       txDetails?: Truffle.TransactionDetails
-    ): Promise<[boolean, BN]>;
+    ): Promise<void>;
     sendTransaction(
-      maxIterations: number | BN | string,
+      iterations: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<string>;
     estimateGas(
-      maxIterations: number | BN | string,
+      iterations: number | BN | string,
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -772,15 +765,6 @@ export interface DisposablePooledStakingInstance
       txDetails?: Truffle.TransactionDetails
     ): Promise<boolean>;
 
-    initializeRewardRoundsStart: {
-      (txDetails?: Truffle.TransactionDetails): Promise<
-        Truffle.TransactionResponse<AllEvents>
-      >;
-      call(txDetails?: Truffle.TransactionDetails): Promise<void>;
-      sendTransaction(txDetails?: Truffle.TransactionDetails): Promise<string>;
-      estimateGas(txDetails?: Truffle.TransactionDetails): Promise<number>;
-    };
-
     initialized(txDetails?: Truffle.TransactionDetails): Promise<boolean>;
 
     isContractStakeCalculated(
@@ -793,21 +777,21 @@ export interface DisposablePooledStakingInstance
 
     master(txDetails?: Truffle.TransactionDetails): Promise<string>;
 
-    migrateRewardsToAccumulatedRewards: {
+    migratePendingUnstakesToNewLockTime: {
       (
-        maxIterations: number | BN | string,
+        iterations: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<Truffle.TransactionResponse<AllEvents>>;
       call(
-        maxIterations: number | BN | string,
+        iterations: number | BN | string,
         txDetails?: Truffle.TransactionDetails
-      ): Promise<[boolean, BN]>;
+      ): Promise<void>;
       sendTransaction(
-        maxIterations: number | BN | string,
+        iterations: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<string>;
       estimateGas(
-        maxIterations: number | BN | string,
+        iterations: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

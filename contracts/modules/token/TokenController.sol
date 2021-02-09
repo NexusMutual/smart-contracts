@@ -478,9 +478,9 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
-    if (locked[_of][_reason].amount == 0) {
-      _removeReason(_of, _reason);
-    }
+
+    // lock reason removal is skipped here: needs to be done from offchain
+
     token.burn(_amount);
     emit Burned(_of, _reason, _amount);
   }
@@ -501,21 +501,46 @@ contract TokenController is IERC1132, Iupgradable {
     }
 
     locked[_of][_reason].amount = locked[_of][_reason].amount.sub(_amount);
-    if (locked[_of][_reason].amount == 0) {
-      _removeReason(_of, _reason);
-    }
+
+    // lock reason removal is skipped here: needs to be done from offchain
+
     require(token.transfer(_of, _amount));
     emit Unlocked(_of, _reason, _amount);
   }
 
-  function _removeReason(address _of, bytes32 _reason) internal {
-    uint len = lockReason[_of].length;
-    for (uint i = 0; i < len; i++) {
-      if (lockReason[_of][i] == _reason) {
-        lockReason[_of][i] = lockReason[_of][len.sub(1)];
-        lockReason[_of].pop();
-        break;
+  function removeEmptyReason(address _of, bytes32 _reason, uint _index) external {
+    _removeEmptyReason(_of, _reason, _index);
+  }
+
+  function removeMultipleEmptyReasons(address[] _members, bytes32[] _reasons, uint[] _indexes) external {
+
+    require(_members.length == _reasons.length, "TokenController: members and reasons array lengths differ");
+    require(_reasons.length == _indexes.length, "TokenController: reasons and indexes array lengths differ");
+
+    for (uint i = 0; i < _members.length; i++) {
+      for (uint j = 0; j < i; j++) {
+        require(_members[i] != _members[j], "TokenController: members array should not contain duplicates");
       }
+      _removeEmptyReason(_members[i], _reasons[i], _indexes[i]);
     }
   }
+
+  function _removeEmptyReason(address _of, bytes32 _reason, uint _index) internal {
+
+    uint reasonCount = lockReason[_of].length;
+    require(reasonCount > 0, "TokenController: reason count is empty");
+
+    uint lastReasonIndex = reasonCount.sub(1);
+    require(index <= lastReasonIndex, "TokenController: index out of array bounds");
+
+    require(lockReason[_of][_index] == _reason, "TokenController: bad reason index");
+    require(locked[_of][_reason].amount == 0, "TokenController: reason amount is not zero");
+
+    if (lastReasonIndex != _index) {
+      lockReason[_of][_index] = lockReason[_of][lastReasonIndex];
+    }
+
+    lockReason[_of].pop();
+  }
+
 }

@@ -200,6 +200,14 @@ contract Cover is MasterAware {
     nxmToken.transferFrom(msg.sender, newAddress, nxmToken.balanceOf(msg.sender));
   }
 
+  function executeCoverAction(uint tokenId, uint8 action, bytes calldata data)
+  external
+  payable
+  returns (bytes memory, uint)
+  {
+    revert("Unsupported action");
+  }
+
   function convertToLegacyQuote(uint sumAssured, bytes memory data, address asset)
     internal view returns (uint[] memory coverDetails, uint8, bytes32, bytes32) {
     (

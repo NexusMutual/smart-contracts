@@ -361,6 +361,7 @@ contract Quotation is Iupgradable {
     require(coverDetails[3] > now, "Quotation: quote is expired");
     require(!qd.timestampRepeated(coverDetails[4]), "Quotation: quote already used");
     qd.setTimestampRepeated(coverDetails[4]);
+    require(coverPeriod >= 30 && coverPeriod <= 365, "Quotation: Cover period out of bounds");
 
     require(verifySign(coverDetails, coverPeriod, coverCurr, scAddress, _v, _r, _s), "Quotation: signature mismatch");
     _makeCover(from, scAddress, coverCurr, coverDetails, coverPeriod);

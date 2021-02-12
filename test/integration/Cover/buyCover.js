@@ -142,6 +142,22 @@ describe('buyCover', function () {
     );
   });
 
+  it('reverts if cover period < 30', async function () {
+    const cover = { ...ethCoverTemplate, period: 29 };
+    await expectRevert(
+      buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }),
+      'Quotation: Cover period out of bounds',
+    );
+  });
+
+  it('reverts if cover period > 365', async function () {
+    const cover = { ...ethCoverTemplate, period: 366 };
+    await expectRevert(
+      buyCover({ ...this.contracts, coverData: cover, coverHolder: member1 }),
+      'Quotation: Cover period out of bounds',
+    );
+  });
+
   it('reverts if msg.value does not match cover premium', async function () {
     const { qt, p1 } = this.contracts;
     const cover = { ...ethCoverTemplate };

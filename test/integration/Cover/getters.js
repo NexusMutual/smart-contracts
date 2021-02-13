@@ -38,7 +38,7 @@ describe('getters', function () {
     });
   });
 
-  describe('getPayoutOutcome', function () {
+  describe.only('getPayoutOutcome', function () {
 
     it('returns the payout outcome for a cover with a newly opened claim', async function () {
       const { cover } = this.contracts;
@@ -50,7 +50,7 @@ describe('getters', function () {
       await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const expectedClaimId = 1;
 
-      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedCoverId, expectedClaimId);
+      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
       assert.equal(completed, false);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);
@@ -66,7 +66,7 @@ describe('getters', function () {
       await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
       const expectedClaimId = 1;
 
-      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedCoverId, expectedClaimId);
+      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
       assert.equal(completed, false);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);
@@ -83,7 +83,7 @@ describe('getters', function () {
       const expectedClaimId = 1;
       await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member2 });
 
-      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedCoverId, expectedClaimId);
+      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
       assert.equal(completed, true);
       assert.equal(amountPaid.toString(), coverData.amount.toString());
       assert.equal(coverAsset, ETH);
@@ -100,7 +100,7 @@ describe('getters', function () {
       const expectedClaimId = 1;
       await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '-1', voter: member2 });
 
-      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedCoverId, expectedClaimId);
+      const { completed, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
       assert.equal(completed, false);
       assert.equal(amountPaid.toString(), '0');
       assert.equal(coverAsset, ETH);

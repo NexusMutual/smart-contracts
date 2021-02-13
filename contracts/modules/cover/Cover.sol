@@ -158,17 +158,18 @@ contract Cover is MasterAware {
     return claimId;
   }
 
-  function getPayoutOutcome(uint coverId, uint claimId)
+  function getPayoutOutcome(uint claimId)
     external
     view
     returns (bool completed, uint amountPaid, address coverAsset)
   {
     uint sumAssured;
+    (, uint256 status, , , uint coverId) = claims.getClaimbyIndex(claimId);
     (
     /* status */, sumAssured, /* coverPeriod */, /* validUntil */, /* contractAddress */,
     coverAsset, /* premiumNXM */, /* memberAddress */
     ) = getCover(coverId);
-    (, uint256 status, , , ) = claims.getClaimbyIndex(claimId);
+
     completed = status == 14;
     amountPaid = completed ? sumAssured : 0;
   }

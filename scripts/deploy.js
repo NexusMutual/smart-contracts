@@ -5,7 +5,7 @@ const { ether } = require('@openzeppelin/test-helpers');
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers').constants;
 const Web3 = require('web3');
 const Verifier = require('../lib/verifier');
-const { getenv } = require('../lib/env');
+const { getEnv } = require('../lib/helpers');
 const { hex } = require('../lib/helpers');
 const fs = require('fs');
 const { toBN } = Web3.utils;
@@ -42,7 +42,7 @@ const DisposableGovernance = artifacts.require('DisposableGovernance');
 const DisposablePooledStaking = artifacts.require('DisposablePooledStaking');
 
 // target contracts
-const NXMaster = artifacts.require('NXMaster');
+const TestnetNXMaster = artifacts.require('TestnetNXMaster');
 const MemberRoles = artifacts.require('MemberRoles');
 const TokenController = artifacts.require('TokenController');
 const ProposalCategory = artifacts.require('ProposalCategory');
@@ -50,7 +50,7 @@ const Governance = artifacts.require('Governance');
 const PooledStaking = artifacts.require('PooledStaking');
 
 const INITIAL_SUPPLY = ether('1500000');
-const etherscanApiKey = getenv('ETHERSCAN_API_KEY');
+const etherscanApiKey = getEnv('ETHERSCAN_API_KEY');
 
 const contractType = code => {
 
@@ -58,11 +58,11 @@ const contractType = code => {
   const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CO'];
 
   if (upgradable.includes(code)) {
-    return 2;
+    return 1;
   }
 
   if (proxies.includes(code)) {
-    return 1;
+    return 2;
   }
 
   return 0;
@@ -80,8 +80,8 @@ const CHAINLINK_DAI_ETH_AGGREGATORS = {
 const CHAINLINK_DAI_ETH_AGGREGATOR = CHAINLINK_DAI_ETH_AGGREGATORS[process.env.NETWORK];
 
 async function run () {
-  const network = getenv('NETWORK').toUpperCase();
-  const owner = getenv(`${network}_ACCOUNT`);
+  const network = getEnv('NETWORK').toUpperCase();
+  const owner = getEnv(`${network}_ACCOUNT`);
 
   console.log(`Using ${network} network`);
   const verifier = new Verifier(web3, etherscanApiKey, network.toLowerCase());
@@ -291,26 +291,27 @@ async function run () {
   await master.changeAllAddress();
 
   console.log('Upgrading to non-disposable contracts');
-  const { implementation: newMasterImpl } = await upgradeProxy(master.address, NXMaster);
+  const { implementation: newMasterImpl } = await upgradeProxy(master.address, TestnetNXMaster);
   const { implementation: newMrImpl } = await upgradeProxy(mr.address, MemberRoles);
   const { implementation: newTcImpl } = await upgradeProxy(tc.address, TokenController);
   const { implementation: newPsImpl } = await upgradeProxy(ps.address, PooledStaking);
   const { implementation: newPcImpl } = await upgradeProxy(pc.address, ProposalCategory);
   const { implementation: newGvImpl } = await upgradeProxy(gv.address, Governance, { gas: 12e6 });
 
-  verifier.add('NXMaster', newMasterImpl.address);
+  verifier.add('TestnetNXMaster', newMasterImpl.address);
   verifier.add('MemberRoles', newMrImpl.address);
   verifier.add('TokenController', newTcImpl.address);
   verifier.add('PooledStaking', newPsImpl.address);
   verifier.add('ProposalCategory', newPcImpl.address);
   verifier.add('Governance', newGvImpl.address);
 
-  console.log("Transfering contracts' ownership");
+  console.log("Transferring contracts' ownership");
   await transferProxyOwnership(mr.address, master.address);
   await transferProxyOwnership(tc.address, master.address);
   await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
+  await transferProxyOwnership(co.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
   console.log('Contract addresses to be verified:', verifier.dump());
@@ -332,8 +333,17 @@ async function run () {
   );
 
   console.log('Performing verifications');
-  
+
   await verifier.submit();
+
+
+  console.log('Set governanceOwner to allow for execution of onlyGovernance actions.');
+  const testnetMaster = await TestnetNXMaster.at(master.address);
+  await testnetMaster.initializeGovernanceOwner();
+  const governanceOwner = await testnetMaster.governanceOwner();
+  console.log({
+    governanceOwner
+  });
 
   console.log('Done!');
 }

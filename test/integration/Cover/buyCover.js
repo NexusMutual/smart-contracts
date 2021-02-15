@@ -159,31 +159,77 @@ describe('buyCover', function () {
   });
 
   it('reverts if msg.value does not match cover premium', async function () {
-    const { qt, p1 } = this.contracts;
-    const cover = { ...ethCoverTemplate };
-    const member = member1;
+    const { cover, qt } = this.contracts;
 
-    const signature = await getQuoteSignature(
-      coverToCoverDetailsArray(cover),
-      cover.currency,
-      cover.period,
-      cover.contractAddress,
-      qt.address,
-    );
+    const coverHolder = member1;
+    const coverData = { ...ethCoverTemplate, amount: ether('10') };
+    const price = toBN(coverData.price);
 
-    await expectRevert(p1.makeCoverBegin(
-      cover.contractAddress,
-      cover.currency,
-      coverToCoverDetailsArray(cover),
-      cover.period,
-      signature[0],
-      signature[1],
-      signature[2],
-      { from: member, value: toBN(cover.price).subn(1) },
-    ),
-    'Pool: ETH amount does not match premium',
+    const data = await getBuyCoverDataParameter({ qt, coverData });
+    await expectRevert(
+      cover.buyCover(
+        coverData.contractAddress,
+        coverData.asset,
+        coverData.amount,
+        coverData.period,
+        coverData.type,
+        data, {
+          from: coverHolder,
+          value: price.subn(1),
+        }),
+      'Cover: ETH amount does not match premium',
     );
   });
+
+  it('reverts if approved DAI amount is not sufficient for premium', async function () {
+    const { cover, qt, dai } = this.contracts;
+
+    const coverHolder = member1;
+    const coverData = { ...daiCoverTemplate };
+    const price = toBN(coverData.price);
+
+    await dai.approve(cover.address, price.subn(1), {
+      from: coverHolder,
+    });
+
+    const data = await getBuyCoverDataParameter({ qt, coverData });
+    await expectRevert(
+      cover.buyCover(
+        coverData.contractAddress,
+        dai.address,
+        coverData.amount,
+        coverData.period,
+        coverData.type,
+        data, {
+          from: coverHolder
+        }),
+      'VM Exception while processing transaction: revert SafeERC20: low-level call failed',
+    );
+  });
+
+  it('revers if ETH amount is not whole unit', async function () {
+    const { cover, qt } = this.contracts;
+
+    const coverHolder = member1;
+    const coverData = { ...ethCoverTemplate, amount: ether('10').addn(1) };
+    const price = toBN(coverData.price);
+
+    const data = await getBuyCoverDataParameter({ qt, coverData });
+    await expectRevert(
+      cover.buyCover(
+        coverData.contractAddress,
+        coverData.asset,
+        coverData.amount,
+        coverData.period,
+        coverData.type,
+        data, {
+          from: coverHolder,
+          value: price,
+        }),
+      'Cover: Only whole unit sumAssured supported',
+    );
+  });
+
 
   it('reverts if smart contract address is the 0 address', async function () {
     const cover = { ...ethCoverTemplate, contractAddress: '0x0000000000000000000000000000000000000000' };

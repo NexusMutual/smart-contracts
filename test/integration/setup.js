@@ -170,14 +170,14 @@ async function setup () {
   const contractType = code => {
 
     const upgradable = ['CL', 'CR', 'MC', 'P1', 'QT', 'TF'];
-    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC'];
+    const proxies = ['GV', 'MR', 'PC', 'PS', 'TC', 'CO'];
 
     if (upgradable.includes(code)) {
-      return 2;
+      return 1;
     }
 
     if (proxies.includes(code)) {
-      return 1;
+      return 2;
     }
 
     return 0;
@@ -270,6 +270,7 @@ async function setup () {
   await transferProxyOwnership(ps.address, master.address);
   await transferProxyOwnership(pc.address, master.address);
   await transferProxyOwnership(gv.address, master.address);
+  await transferProxyOwnership(cover.address, master.address);
   await transferProxyOwnership(master.address, gv.address);
 
   const POOL_ETHER = ether('90000');

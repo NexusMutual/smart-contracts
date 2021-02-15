@@ -38,7 +38,7 @@ describe('getters', function () {
     });
   });
 
-  describe.only('getPayoutOutcome', function () {
+  describe('getPayoutOutcome', function () {
 
     it('returns the payout outcome for a cover with a newly opened claim', async function () {
       const { cover } = this.contracts;

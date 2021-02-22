@@ -487,6 +487,33 @@ export interface DisposableTokenControllerInstance
     ): Promise<number>;
   };
 
+  removeEmptyReason: {
+    (
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _of: string,
+      _reason: string,
+      _index: number | BN | string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
   removeFromWhitelist: {
     (_member: string, txDetails?: Truffle.TransactionDetails): Promise<
       Truffle.TransactionResponse<AllEvents>
@@ -501,6 +528,33 @@ export interface DisposableTokenControllerInstance
     ): Promise<string>;
     estimateGas(
       _member: string,
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<number>;
+  };
+
+  removeMultipleEmptyReasons: {
+    (
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<Truffle.TransactionResponse<AllEvents>>;
+    call(
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<void>;
+    sendTransaction(
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
+      txDetails?: Truffle.TransactionDetails
+    ): Promise<string>;
+    estimateGas(
+      _members: string[],
+      _reasons: string[],
+      _indexes: (number | BN | string)[],
       txDetails?: Truffle.TransactionDetails
     ): Promise<number>;
   };
@@ -1011,6 +1065,33 @@ export interface DisposableTokenControllerInstance
       ): Promise<number>;
     };
 
+    removeEmptyReason: {
+      (
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _of: string,
+        _reason: string,
+        _index: number | BN | string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
     removeFromWhitelist: {
       (_member: string, txDetails?: Truffle.TransactionDetails): Promise<
         Truffle.TransactionResponse<AllEvents>
@@ -1025,6 +1106,33 @@ export interface DisposableTokenControllerInstance
       ): Promise<string>;
       estimateGas(
         _member: string,
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<number>;
+    };
+
+    removeMultipleEmptyReasons: {
+      (
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<Truffle.TransactionResponse<AllEvents>>;
+      call(
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<void>;
+      sendTransaction(
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
+        txDetails?: Truffle.TransactionDetails
+      ): Promise<string>;
+      estimateGas(
+        _members: string[],
+        _reasons: string[],
+        _indexes: (number | BN | string)[],
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

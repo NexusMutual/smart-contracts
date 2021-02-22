@@ -5,6 +5,7 @@
 import { ContextContract } from "./Context";
 import { OwnableContract } from "./Ownable";
 import { ERC20Contract } from "./ERC20";
+import { ERC20DetailedContract } from "./ERC20Detailed";
 import { IERC20Contract } from "./IERC20";
 import { ReentrancyGuardContract } from "./ReentrancyGuard";
 import { IERC20Contract } from "./IERC20";
@@ -104,6 +105,7 @@ declare global {
       require(name: "Context"): ContextContract;
       require(name: "Ownable"): OwnableContract;
       require(name: "ERC20"): ERC20Contract;
+      require(name: "ERC20Detailed"): ERC20DetailedContract;
       require(name: "IERC20"): IERC20Contract;
       require(name: "ReentrancyGuard"): ReentrancyGuardContract;
       require(name: "IERC20"): IERC20Contract;
@@ -211,6 +213,7 @@ declare global {
 export { ContextContract, ContextInstance } from "./Context";
 export { OwnableContract, OwnableInstance } from "./Ownable";
 export { ERC20Contract, ERC20Instance } from "./ERC20";
+export { ERC20DetailedContract, ERC20DetailedInstance } from "./ERC20Detailed";
 export { IERC20Contract, IERC20Instance } from "./IERC20";
 export {
   ReentrancyGuardContract,

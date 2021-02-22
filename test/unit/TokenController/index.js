@@ -15,5 +15,6 @@ describe('TokenController', function () {
   });
 
   require('./removeEmptyReason');
+  require('./removeMultipleEmptyReasons');
 
 });

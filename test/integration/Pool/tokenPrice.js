@@ -98,7 +98,7 @@ describe('Token price functions', function () {
     );
   });
 
-  it('buyNXM mints tokens for member in exchange of ETH', async function () {
+  it.only('buyNXM mints tokens for member in exchange of ETH', async function () {
     const { tk: token, p1: pool, pd: poolData } = this.contracts;
 
     const buyValue = ether('1000');
@@ -314,11 +314,11 @@ describe('Token price functions', function () {
     const tokenPrice = await p1.getTokenPrice(ETH);
     assert(
       tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).gt(coverAmount.muln(5)),
-      'CA lockedTokens < 5 * sumAssured'
+      'CA lockedTokens < 5 * sumAssured',
     );
     assert(
       tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(10)),
-      'CA lockedTokens < 10 * sumAssured'
+      'CA lockedTokens < 10 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -358,7 +358,7 @@ describe('Token price functions', function () {
     const tokenPrice = await p1.getTokenPrice(ETH);
     assert(
       tokenPrice.mul(lockTokens).div(toBN(1e18.toString())).lt(coverAmount.muln(5)),
-      'CA lockedTokens > 5 * sumAssured'
+      'CA lockedTokens > 5 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -399,7 +399,7 @@ describe('Token price functions', function () {
     const memberBalance = await tk.balanceOf(member4);
     assert(
       tokenPrice.mul(memberBalance).div(toBN(1e18.toString())).gt(coverAmount.muln(5)),
-      'Balance of member < 5 * sumAssured'
+      'Balance of member < 5 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });
@@ -453,7 +453,7 @@ describe('Token price functions', function () {
     const memberBalance = await tk.balanceOf(member5);
     assert(
       tokenPrice.mul(memberBalance).div(toBN(1e18.toString())).lt(coverAmount.muln(5)),
-      'Balance of member > 5 * sumAssured'
+      'Balance of member > 5 * sumAssured',
     );
 
     await buyCover({ ...this.contracts, cover, coverHolder });

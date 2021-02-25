@@ -23,7 +23,7 @@ async function setup () {
   const Claims = artifacts.require('Claims');
   const ClaimsData = artifacts.require('ClaimsData');
   const ClaimsReward = artifacts.require('ClaimsReward');
-  const MCR = artifacts.require('MCR');
+  const MCR = artifacts.require('DisposableMCR');
   const TokenData = artifacts.require('TokenData');
   const TokenFunctions = artifacts.require('TokenFunctions');
   const Pool = artifacts.require('Pool');
@@ -287,14 +287,24 @@ async function setup () {
   const poolValueInEth = await p1.getPoolValueInEth();
   const mcrEth = ether('50000');
   const mcrRatio = calculateMCRRatio(poolValueInEth, mcrEth);
+  const mcrFloor = mcrEth.sub(ether('10000'));
 
-  await mc.addMCRData(
-    mcrRatio,
+  const latestBlock = await web3.getBlock('latest');
+  const lastUpdateTime = latestBlock.timestamp;
+  const mcrFloorIncrementThreshold = 13000;
+  const maxMCRFloorIncrement = 100;
+  const maxMCRIncrement = 500;
+  const gearingFactor = 48000;
+
+  await mc.initialize(
+    master,
     mcrEth,
-    poolValueInEth, // vFull = 90000 ETH + 2M DAI = 90000 ETH + 10000 ETH = 100000 ETH
-    [hex('ETH'), hex('DAI')],
-    [ethEthRate, ethToDaiRate], // rates: 1.00 eth/eth, 200.00 dai/eth
-    20190103,
+    mcrFloor,
+    lastUpdateTime,
+    mcrFloorIncrementThreshold,
+    maxMCRFloorIncrement,
+    maxMCRIncrement,
+    gearingFactor,
   );
 
   const external = { chainlinkDAI, dai, factory, router, weth };

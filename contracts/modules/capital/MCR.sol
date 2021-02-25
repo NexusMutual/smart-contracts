@@ -30,14 +30,12 @@ contract MCR is Iupgradable {
   Pool public pool;
   QuotationData public qd;
 
-  uint private constant minCapFactor = uint(10) ** 21;
-
   uint public mcr;
   uint public mcrFloor;
   uint public lastUpdateTime = 0;
 
-  uint public dynamicMincapThresholdx100 = 13000;
-  uint public dynamicMincapIncrementx100 = 100;
+  uint public mcrFloorIncrementThreshold = 13000;
+  uint public maxMCRFloorIncrement = 100;
   uint public maxMCRIncrement = 500;
   uint public gearingFactor = 48000;
 
@@ -63,8 +61,8 @@ contract MCR is Iupgradable {
     // fetch MCR parameters from previous contract
     mcrFloor = previousMCR.mcrFloor();
     mcr = previousMCR.getLastMCREther();
-    dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
-    dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
+    mcrFloorIncrementThreshold = previousMCR.mcrFloorIncrementThreshold();
+    maxMCRFloorIncrement = previousMCR.maxMCRFloorIncrement();
 
     // set last updated time to now
     lastUpdateTime = now;
@@ -110,10 +108,10 @@ contract MCR is Iupgradable {
   function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
     codeVal = code;
     if (code == "DMCT") {
-      val = dynamicMincapThresholdx100;
+      val = mcrFloorIncrementThreshold;
 
     } else if (code == "DMCI") {
-      val = dynamicMincapIncrementx100;
+      val = maxMCRFloorIncrement;
     }
   }
 
@@ -125,11 +123,11 @@ contract MCR is Iupgradable {
   function updateUintParameters(bytes8 code, uint val) public {
     require(ms.checkIsAuthToGoverned(msg.sender));
     if (code == "DMCT") {
-      dynamicMincapThresholdx100 = val;
+      mcrFloorIncrementThreshold = val;
 
     } else if (code == "DMCI") {
 
-      dynamicMincapIncrementx100 = val;
+      maxMCRFloorIncrement = val;
 
     }
     else {
@@ -165,7 +163,7 @@ contract MCR is Iupgradable {
   }
 
   function getMCRFloor() public view returns (uint) {
-    uint percentageAdjustment = (now - lastUpdateTime) / 1 days * dynamicMincapIncrementx100;
+    uint percentageAdjustment = (now - lastUpdateTime) / 1 days * maxMCRFloorIncrement;
     return mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
   }
 

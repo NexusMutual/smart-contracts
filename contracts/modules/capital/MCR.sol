@@ -77,36 +77,7 @@ contract MCR is Iupgradable {
     dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
     dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
   }
-
-  /**
-   * @dev Adds new MCR data.
-   * @param mcrP  Minimum Capital Requirement in percentage.
-   * @param vF Pool fund value in Ether used in the last full daily calculation of the Capital model.
-   * @param onlyDate  Date(yyyymmdd) at which MCR details are getting added.
-   */
-  function addMCRData(
-    uint mcrP,
-    uint mcrE,
-    uint vF,
-    bytes4[] calldata curr,
-    uint[] calldata _threeDayAvg,
-    uint64 onlyDate
-  )
-  external
-  checkPause
-  {
-    require(proposalCategory.constructorCheck());
-    require(pd.isnotarise(msg.sender));
-    if (mr.launched() && pd.capReached() != 1) {
-
-      if (mcrP >= 10000)
-        pd.setCapReached(1);
-
-    }
-    uint len = pd.getMCRDataLength();
-    _addMCRData(len, onlyDate, curr, mcrE, mcrP, vF, _threeDayAvg);
-  }
-
+  
   // proxying this call through mcr contract to get rid of pd from pool
   function getLastMCREther() external view returns (uint) {
     return pd.getLastMCREther();
@@ -141,28 +112,6 @@ contract MCR is Iupgradable {
     uint daiAmountInEth = daiAmount.mul(daiRate).div(1e18);
 
     return ethAmount.add(daiAmountInEth);
-  }
-
-  function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns (uint lowerThreshold, uint upperThreshold)
-  {
-    minCap = (minCap.mul(minCapFactor)).add(mcrFloor);
-    uint lower = 0;
-    if (vtp >= vF) {
-      // Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
-      upperThreshold = vtp.mul(120).mul(100).div((minCap));
-    } else {
-      upperThreshold = vF.mul(120).mul(100).div((minCap));
-    }
-
-    if (vtp > 0) {
-      lower = totalSA.mul(pd.shockParameter()).div(100);
-      if (lower < minCap.mul(11).div(10))
-        lower = minCap.mul(11).div(10);
-    }
-    if (lower > 0) {
-      // Min Threshold = [Vtp / MAX(TotalActiveSA x ShockParameter, mcrMinCap x 1.1)] x 100
-      lowerThreshold = vtp.mul(100).mul(100).div(lower);
-    }
   }
 
   /**
@@ -237,54 +186,4 @@ contract MCR is Iupgradable {
   function max(uint x, uint y) pure internal returns (uint) {
     return x > y ? x : y;
   }
-
-  /**
-   * @dev Adds MCR Data. Checks if MCR is within valid
-   * thresholds in order to rule out any incorrect calculations
-   */
-  function _addMCRData(
-    uint len,
-    uint64 newMCRDate,
-    bytes4[] memory curr,
-    uint mcrE,
-    uint mcrP,
-    uint vF,
-    uint[] memory _threeDayAvg
-  )
-  internal
-  {
-    uint lowerThreshold = 0;
-    uint upperThreshold = 0;
-
-    if (len > 1) {
-      uint vtp = pool.getPoolValueInEth();
-      (lowerThreshold, upperThreshold) = getThresholdValues(vtp, vF, getAllSumAssurance(), pd.minCap());
-    }
-
-    if (mcrP > dynamicMincapThresholdx100) {
-      mcrFloor = (mcrFloor.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
-    }
-
-    // Explanation for above formula :-
-    // actual formula -> variableMinCap =  variableMinCap + (variableMinCap+minCap)*dynamicMincapIncrement/100
-    // Implemented formula is simplified form of actual formula.
-    // Let consider above formula as b = b + (a+b)*c/100
-    // here, dynamicMincapIncrement is in x100 format.
-    // so b+(a+b)*cx100/10000 can be written as => (10000.b + b.cx100 + a.cx100)/10000.
-    // It can further simplify to (b.(10000+cx100) + a.cx100)/10000.
-    if (len == 1 || (mcrP) >= lowerThreshold && (mcrP) <= upperThreshold) {
-
-      pd.pushMCRData(mcrP, mcrE, vF, newMCRDate);
-
-      for (uint i = 0; i < curr.length; i++) {
-        pd.updateCAAvgRate(curr[i], _threeDayAvg[i]);
-      }
-
-      emit MCREvent(newMCRDate, block.number, curr, _threeDayAvg, mcrE, mcrP, vF);
-      return;
-    }
-
-    revert("MCR: Failed");
-  }
-
 }

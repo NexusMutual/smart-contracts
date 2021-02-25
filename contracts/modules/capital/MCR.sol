@@ -39,9 +39,15 @@ contract MCR is Iupgradable {
 
   uint private constant minCapFactor = uint(10) ** 21;
 
-  uint public variableMincap;
+  uint public mcr;
+  uint public mcrFloor;
+  uint public lastUpdateTime = 0;
+
+
   uint public dynamicMincapThresholdx100 = 13000;
   uint public dynamicMincapIncrementx100 = 100;
+  uint public maxMCRIncrement = 500;
+  uint public gearingFactor = 48000;
 
   event MCREvent(
     uint indexed date,
@@ -67,7 +73,7 @@ contract MCR is Iupgradable {
     MCR previousMCR = MCR(mcrAddress);
 
     // fetch MCR parameters from previous contract
-    variableMincap = previousMCR.variableMincap();
+    mcrFloor = previousMCR.mcrFloor();
     dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
     dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
   }
@@ -139,7 +145,7 @@ contract MCR is Iupgradable {
 
   function getThresholdValues(uint vtp, uint vF, uint totalSA, uint minCap) public view returns (uint lowerThreshold, uint upperThreshold)
   {
-    minCap = (minCap.mul(minCapFactor)).add(variableMincap);
+    minCap = (minCap.mul(minCapFactor)).add(mcrFloor);
     uint lower = 0;
     if (vtp >= vF) {
       // Max Threshold = [MAX(Vtp, Vfull) x 120] / mcrMinCap
@@ -199,6 +205,39 @@ contract MCR is Iupgradable {
 
   }
 
+  function updateMCR(uint _mcr, uint _mcrFloor) external onlyInternal {
+    mcr = _mcr;
+    mcrFloor = _mcrFloor;
+    lastUpdateTime = now;
+  }
+
+  function getMCR() public view returns (uint) {
+    uint mcrFloor = getMCRFloor();
+    uint totalSumAssured = getAllSumAssurance();
+
+    uint mcrETHWithGear = totalSumAssured.mul(10000).div(gearingFactor);
+
+    uint desiredMCREth = max(mcrETHWithGear, mcrFloor);
+    uint percentageAdjustment = (now - lastUpdateTime) / 1 days * maxMCRIncrement;
+    percentageAdjustment = min(percentageAdjustment, 1);
+
+    uint mcr = min(mcr + mcr * percentageAdjustment / 100, desiredMCREth);
+    return mcr;
+  }
+
+  function getMCRFloor() public view returns (uint) {
+    uint percentageAdjustment = (now - lastUpdateTime) / 1 days * dynamicMincapIncrementx100;
+    return mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
+  }
+
+  function min(uint x, uint y) pure internal returns (uint) {
+    return x < y ? x : y;
+  }
+
+  function max(uint x, uint y) pure internal returns (uint) {
+    return x > y ? x : y;
+  }
+
   /**
    * @dev Adds MCR Data. Checks if MCR is within valid
    * thresholds in order to rule out any incorrect calculations
@@ -223,7 +262,7 @@ contract MCR is Iupgradable {
     }
 
     if (mcrP > dynamicMincapThresholdx100) {
-      variableMincap = (variableMincap.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
+      mcrFloor = (mcrFloor.mul(dynamicMincapIncrementx100.add(10000)).add(minCapFactor.mul(pd.minCap().mul(dynamicMincapIncrementx100)))).div(10000);
     }
 
     // Explanation for above formula :-

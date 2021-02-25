@@ -460,13 +460,15 @@ contract Pool is MasterAware, ReentrancyGuard {
     require(ethIn > 0, "Pool: ethIn > 0");
 
     uint totalAssetValue = getPoolValueInEth().sub(ethIn);
-    uint mcrEth = mcr.getLastMCREther();
+    (uint mcrEth, uint mcrFloor) = mcr.calculateMCR(totalAssetValue);
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
+
     require(mcrRatio <= MAX_MCR_RATIO, "Pool: Cannot purchase if MCR% > 400%");
     uint tokensOut = calculateNXMForEth(ethIn, totalAssetValue, mcrEth);
     require(tokensOut >= minTokensOut, "Pool: tokensOut is less than minTokensOut");
     tokenController.mint(msg.sender, tokensOut);
 
+    mcr.updateMCR(mcrEth, mcrFloor);
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
@@ -482,7 +484,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     require(nxmToken.isLockedForMV(msg.sender) <= now, "Pool: NXM tokens are locked for voting");
 
     uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getLastMCREther();
+    (uint mcrEth, uint mcrFloor) = mcr.calculateMCR(currentTotalAssetValue);
     uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(currentTotalAssetValue.sub(ethOut) >= mcrEth, "Pool: MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Pool: ethOut < minEthOut");
@@ -491,6 +493,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     (bool ok, /* data */) = msg.sender.call.value(ethOut)("");
     require(ok, "Pool: Sell transfer failed");
 
+    mcr.updateMCR(mcrEth, mcrFloor);
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 
@@ -503,7 +506,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     uint ethAmount
   ) public view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getLastMCREther();
+    uint mcrEth = mcr.getMCR();
     return calculateNXMForEth(ethAmount, totalAssetValue, mcrEth);
   }
 
@@ -598,7 +601,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   function getEthForNXM(uint nxmAmount) public view returns (uint ethAmount) {
     uint currentTotalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getLastMCREther();
+    uint mcrEth = mcr.getMCR();
     return calculateEthForNXM(nxmAmount, currentTotalAssetValue, mcrEth);
   }
 
@@ -662,7 +665,7 @@ contract Pool is MasterAware, ReentrancyGuard {
   function getTokenPrice(address asset) public view returns (uint tokenPrice) {
 
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getLastMCREther();
+    uint mcrEth = mcr.getMCR();
     uint tokenSpotPriceEth = calculateTokenSpotPrice(totalAssetValue, mcrEth);
 
     return priceFeedOracle.getAssetForEth(asset, tokenSpotPriceEth);
@@ -670,7 +673,7 @@ contract Pool is MasterAware, ReentrancyGuard {
 
   function getMCRRatio() public view returns (uint) {
     uint totalAssetValue = getPoolValueInEth();
-    uint mcrEth = mcr.getLastMCREther();
+    uint mcrEth = mcr.getMCR();
     return calculateMCRRatio(totalAssetValue, mcrEth);
   }
 

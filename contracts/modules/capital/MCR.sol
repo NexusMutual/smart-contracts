@@ -41,14 +41,10 @@ contract MCR is Iupgradable {
   uint public maxMCRIncrement = 500;
   uint public gearingFactor = 48000;
 
-  event MCREvent(
-    uint indexed date,
-    uint blockNumber,
-    bytes4[] allCurr,
-    uint[] allCurrRates,
-    uint mcrEtherx100,
-    uint mcrPercx100,
-    uint vFull
+  event MCRUpdated(
+    uint mcr,
+    uint mcrFloor,
+    uint timestamp
   );
 
   constructor (address masterAddress) public {
@@ -66,8 +62,12 @@ contract MCR is Iupgradable {
 
     // fetch MCR parameters from previous contract
     mcrFloor = previousMCR.mcrFloor();
+    mcr = previousMCR.getLastMCREther();
     dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
     dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
+
+    // set last updated time to now
+    lastUpdateTime = now;
   }
 
   // proxying this call through mcr contract to get rid of pd from pool
@@ -142,9 +142,15 @@ contract MCR is Iupgradable {
     mcr = _mcr;
     mcrFloor = _mcrFloor;
     lastUpdateTime = now;
+
+    emit MCRUpdated(mcr, mcrFloor, lastUpdateTime);
   }
 
-  function getMCR() public view returns (uint) {
+  function getMCR() public view returns (uint _mcr) {
+    (_mcr, ) = calculateMCR(pool.getPoolValueInEth());
+  }
+
+  function calculateMCR(uint poolValueInEth) public view returns (uint, uint) {
     uint mcrFloor = getMCRFloor();
     uint totalSumAssured = getAllSumAssurance();
 
@@ -155,7 +161,7 @@ contract MCR is Iupgradable {
     percentageAdjustment = min(percentageAdjustment, 1);
 
     uint mcr = min(mcr + mcr * percentageAdjustment / 100, desiredMCREth);
-    return mcr;
+    return (mcr, mcrFloor);
   }
 
   function getMCRFloor() public view returns (uint) {

@@ -19,8 +19,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../capital/Pool.sol";
 import "../cover/QuotationData.sol";
-import "../governance/MemberRoles.sol";
-import "../governance/ProposalCategory.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
@@ -30,19 +28,13 @@ contract MCR is Iupgradable {
   using SafeMath for uint;
 
   Pool public pool;
-  PoolData public pd;
-  NXMToken public tk;
   QuotationData public qd;
-  MemberRoles public mr;
-  TokenData public td;
-  ProposalCategory public proposalCategory;
 
   uint private constant minCapFactor = uint(10) ** 21;
 
   uint public mcr;
   uint public mcrFloor;
   uint public lastUpdateTime = 0;
-
 
   uint public dynamicMincapThresholdx100 = 13000;
   uint public dynamicMincapIncrementx100 = 100;
@@ -77,10 +69,10 @@ contract MCR is Iupgradable {
     dynamicMincapThresholdx100 = previousMCR.dynamicMincapThresholdx100();
     dynamicMincapIncrementx100 = previousMCR.dynamicMincapIncrementx100();
   }
-  
+
   // proxying this call through mcr contract to get rid of pd from pool
   function getLastMCREther() external view returns (uint) {
-    return pd.getLastMCREther();
+    return getMCR();
   }
 
   /**
@@ -89,11 +81,6 @@ contract MCR is Iupgradable {
   function changeDependentContractAddress() public {
     qd = QuotationData(ms.getLatestAddress("QD"));
     pool = Pool(ms.getLatestAddress("P1"));
-    pd = PoolData(ms.getLatestAddress("PD"));
-    tk = NXMToken(ms.tokenAddress());
-    mr = MemberRoles(ms.getLatestAddress("MR"));
-    td = TokenData(ms.getLatestAddress("TD"));
-    proposalCategory = ProposalCategory(ms.getLatestAddress("PC"));
   }
 
   /**
@@ -126,11 +113,8 @@ contract MCR is Iupgradable {
       val = dynamicMincapThresholdx100;
 
     } else if (code == "DMCI") {
-
       val = dynamicMincapIncrementx100;
-
     }
-
   }
 
   /**

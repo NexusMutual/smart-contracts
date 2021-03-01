@@ -22,4 +22,6 @@ describe('INTEGRATION TESTS', function () {
   require('./MCR');
   require('./MemberRoles');
   require('./Claims');
+  require('./TokenController');
+
 });

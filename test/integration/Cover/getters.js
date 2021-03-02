@@ -2,7 +2,7 @@ const { accounts, web3, artifacts } = require('hardhat');
 const { assert } = require('chai');
 const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
-const { buyCover, ethCoverTemplate, getBuyCoverDataParameter, voteOnClaim } = require('./utils');
+const { buyCover, ethCoverTemplate, daiCoverTemplate, getBuyCoverDataParameter, voteOnClaim } = require('./utils');
 const { ether, time, expectRevert } = require('@openzeppelin/test-helpers');
 const { Assets: { ETH } } = require('../utils').constants;
 const { toBN } = web3.utils;
@@ -83,7 +83,7 @@ describe('getters', function () {
       assert.equal(coverAsset, ETH);
     });
 
-    it('returns the payout outcome for an accepted claim', async function () {
+    it('returns the payout outcome for an accepted ETH claim', async function () {
       const { cover } = this.contracts;
       const member = member1;
       const coverData = { ...ethCoverTemplate };
@@ -98,6 +98,42 @@ describe('getters', function () {
       assert.equal(status.toString(), ClaimStatus.ACCEPTED);
       assert.equal(amountPaid.toString(), coverData.amount.toString());
       assert.equal(coverAsset, ETH);
+    });
+
+    it('returns the payout outcome for an accepted ETH claim and an accepted DAI claim', async function () {
+      const { cover, dai, ps } = this.contracts;
+      const member = member1;
+      const coverData = { ...ethCoverTemplate };
+
+      {
+        await buyCover({ ...this.contracts, coverData, coverHolder: member });
+        const expectedCoverId = 1;
+        await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+        const expectedClaimId = 1;
+        await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member2 });
+
+        const {status, amountPaid, coverAsset} = await cover.getPayoutOutcome(expectedClaimId);
+        assert.equal(status.toString(), ClaimStatus.ACCEPTED);
+        assert.equal(amountPaid.toString(), coverData.amount.toString());
+        assert.equal(coverAsset, ETH);
+      }
+
+      await ps.processPendingActions('1000');
+
+      {
+        await dai.mint(member, ether('25000'));
+        const coverData = { ...daiCoverTemplate, asset: dai.address };
+        await buyCover({ ...this.contracts, coverData, coverHolder: member });
+        const expectedCoverId = 2;
+        await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 });
+        const expectedClaimId = 2;
+        await voteOnClaim({ ...this.contracts, claimId: expectedClaimId, verdict: '1', voter: member2 });
+
+        const { status, amountPaid, coverAsset } = await cover.getPayoutOutcome(expectedClaimId);
+        assert.equal(status.toString(), ClaimStatus.ACCEPTED);
+        assert.equal(amountPaid.toString(), coverData.amount.toString());
+        assert.equal(coverAsset, dai.address);
+      }
     });
 
     it('returns the payout outcome for a rejected claim', async function () {

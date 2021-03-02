@@ -24,7 +24,7 @@ const daiCoverTemplate = {
   price: 1e19.toString(), // 10 dai
   priceNXM: '10000000000000000000', // 10 nxm
   expireTime: '8000000000',
-  generationTime: '1600000000000',
+  generationTime: '1600000000001',
   currency: hex('DAI'),
   period: 60,
   contractAddress: '0xC0FfEec0ffeeC0FfEec0fFEec0FfeEc0fFEe0000',

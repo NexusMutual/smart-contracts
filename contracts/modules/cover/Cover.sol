@@ -165,18 +165,16 @@ contract Cover is MasterAware {
     view
     returns (ClaimStatus status, uint amountPaid, address coverAsset)
   {
-    uint sumAssured;
-    ( /* claimId */, uint256 claimInternalStatus, int8 finalVerdict, /* claimOwner */, uint coverId) = claims.getClaimbyIndex(claimId);
-    (
-    /* status */, sumAssured, /* coverPeriod */, /* validUntil */, /* contractAddress */,
-    coverAsset, /* premiumNXM */, /* memberAddress */
-    ) = getCover(coverId);
+    (, uint coverId) = claimsData.getClaimCoverId(claimId);
+    (, uint internalClaimStatus) = claimsData.getClaimStatusNumber(claimId);
 
-    amountPaid = claimInternalStatus == 14 ? sumAssured : 0;
+    coverAsset = getCurrencyAssetAddress(quotationData.getCurrencyOfCover(coverId));
+    uint sumAssured = quotationData.getCoverSumAssured(coverId).mul(10 ** assetDecimals(coverAsset));
+    amountPaid = internalClaimStatus == 14 ? sumAssured : 0;
 
-    if (finalVerdict == -1) {
+    if (internalClaimStatus == 6 || internalClaimStatus == 9 || internalClaimStatus == 11) {
       status = ClaimStatus.REJECTED;
-    } else if (claimInternalStatus == 13 || claimInternalStatus == 14) {
+    } else if (internalClaimStatus == 13 || internalClaimStatus == 14) {
       status = ClaimStatus.ACCEPTED;
     } else {
       status = ClaimStatus.IN_PROGRESS;

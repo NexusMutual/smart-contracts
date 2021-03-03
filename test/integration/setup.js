@@ -289,7 +289,7 @@ async function setup () {
   const mcrRatio = calculateMCRRatio(poolValueInEth, mcrEth);
   const mcrFloor = mcrEth.sub(ether('10000'));
 
-  const latestBlock = await web3.getBlock('latest');
+  const latestBlock = await web3.eth.getBlock('latest');
   const lastUpdateTime = latestBlock.timestamp;
   const mcrFloorIncrementThreshold = 13000;
   const maxMCRFloorIncrement = 100;
@@ -297,7 +297,6 @@ async function setup () {
   const gearingFactor = 48000;
 
   await mc.initialize(
-    master,
     mcrEth,
     mcrFloor,
     lastUpdateTime,

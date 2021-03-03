@@ -30,7 +30,7 @@ const coverTemplate = {
 
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-describe('Token price functions', function () {
+describe.only('Token price functions', function () {
 
   beforeEach(async function () {
     await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
@@ -45,14 +45,14 @@ describe('Token price functions', function () {
   });
 
   it('getTokenPrice returns spot price for all assets', async function () {
-    const { p1: pool, dai, pd: poolData } = this.contracts;
+    const { p1: pool, dai, pd: poolData, mcr } = this.contracts;
     const { ethToDaiRate } = this.rates;
 
     const ethTokenPrice = await pool.getTokenPrice(ETH);
     const daiTokenPrice = await pool.getTokenPrice(dai.address);
 
     const totalAssetValue = await pool.getPoolValueInEth();
-    const mcrEth = await poolData.getLastMCREther();
+    const mcrEth = await mcr.getMCR();
     const expectedEthTokenPrice = toBN(getTokenSpotPrice(totalAssetValue, mcrEth).toString());
 
     const ethPriceDiff = ethTokenPrice.sub(expectedEthTokenPrice).abs();
@@ -98,17 +98,18 @@ describe('Token price functions', function () {
     );
   });
 
-  it.only('buyNXM mints tokens for member in exchange of ETH', async function () {
-    const { tk: token, p1: pool, pd: poolData } = this.contracts;
+  it('buyNXM mints tokens for member in exchange of ETH', async function () {
+    const { tk: token, p1: pool, pd: poolData, mcr } = this.contracts;
 
     const buyValue = ether('1000');
     const expectedTokensReceived = await pool.getNXMForEth(buyValue);
     const totalAssetValue = await pool.getPoolValueInEth();
-    const mcrEth = await poolData.getLastMCREther();
+    const mcrEth = await mcr.getMCR();
 
     const member = member1;
     const preBuyBalance = await token.balanceOf(member);
     await pool.buyNXM(expectedTokensReceived, { from: member, value: buyValue });
+
     const postBuyBalance = await token.balanceOf(member);
     const tokensReceived = postBuyBalance.sub(preBuyBalance);
 
@@ -165,31 +166,28 @@ describe('Token price functions', function () {
     const spotTokenPricePreMCRPosting = await pool.getTokenPrice(ETH);
     const currentPoolValue = await pool.getPoolValueInEth();
 
-    // post a higher MCR raising the price
-    const lastMCREther = await pd.getLastMCREther();
-    const latestMCReth = lastMCREther.add(ether('2'));
-    const latestMCRRatio = calculateMCRRatio(currentPoolValue, latestMCReth);
+    const lastMCREther = await mcr.getMCR();
 
-    // add new mcr
-    await mcr.addMCRData(
-      latestMCRRatio,
-      latestMCReth,
-      currentPoolValue,
-      [hex('ETH'), hex('DAI')],
-      [ethEthRate, ethToDaiRate],
-      20200103,
-    );
+    // trigger an MCR update and post a lower MCR since lowering the price (higher MCR percentage)
+    const minUpdateTime = await mcr.minUpdateTime();
+    await time.increase(minUpdateTime.addn(1));
+
+    // perform a buy with a negligible amount of ETH
+    await pool.buyNXM('0', { from: member1, value: '1' });
+
+    const latestMCReth = await mcr.getMCR();
+    const latestMCRRatio = calculateMCRRatio(currentPoolValue, latestMCReth);
 
     const spotTokenPricePostMCRPosting = await pool.getTokenPrice(ETH);
     const expectedNXMOutPostMCRPosting = await pool.getNXMForEth(buyValue);
 
     assert(
-      spotTokenPricePostMCRPosting.lt(spotTokenPricePreMCRPosting),
+      spotTokenPricePostMCRPosting.gt(spotTokenPricePreMCRPosting),
       `Expected token price to be lower than ${spotTokenPricePreMCRPosting.toString()} at a higher mcrEth.
        Price: ${spotTokenPricePostMCRPosting.toString()}`,
     );
     assert(
-      expectedNXMOutPostMCRPosting.gt(expectedNXMOutPreMCRPosting),
+      expectedNXMOutPostMCRPosting.lt(expectedNXMOutPreMCRPosting),
       `Expected to receive more tokens than ${expectedNXMOutPreMCRPosting.toString()} at a higher mcrEth.
        Receiving: ${expectedNXMOutPostMCRPosting.toString()}`,
     );

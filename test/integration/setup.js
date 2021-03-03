@@ -302,6 +302,8 @@ async function setup () {
     gearingFactor,
   );
 
+  await mc.setPoolDataCapReached(pd.address);
+
   const external = { chainlinkDAI, dai, factory, router, weth };
   const nonUpgradable = { cp, qd, td, cd, pd };
   const instances = { tk, qt, tf, cl, cr, p1, mcr: mc };

@@ -137,24 +137,9 @@ contract MCR is Iupgradable {
 
   }
 
-  function updateMCR(uint _mcr, uint _mcrFloor) external onlyInternal {
+  function updateMCR(uint poolValueInEth) external onlyInternal {
     if (lastUpdateTime + minUpdateTime > now) {
       return;
-    }
-    mcr = _mcr;
-    mcrFloor = _mcrFloor;
-    lastUpdateTime = now;
-
-    emit MCRUpdated(mcr, mcrFloor, lastUpdateTime);
-  }
-
-  function getMCR() public view returns (uint _mcr) {
-    (_mcr, , ) = calculateMCR(pool.getPoolValueInEth());
-  }
-
-  function calculateMCR(uint poolValueInEth) public view returns (uint, uint, bool) {
-    if (lastUpdateTime + minUpdateTime > now) {
-      return (mcr, mcrFloor, false);
     }
     uint mcrFloor = getMCRFloor();
     uint totalSumAssured = getAllSumAssurance();
@@ -166,7 +151,12 @@ contract MCR is Iupgradable {
     percentageAdjustment = min(percentageAdjustment, 1);
 
     uint mcr = min(mcr + mcr * percentageAdjustment / 100, desiredMCREth);
-    return (mcr, mcrFloor, true);
+
+    emit MCRUpdated(mcr, mcrFloor, lastUpdateTime);
+  }
+
+  function getMCR() public view returns (uint) {
+    return mcr;
   }
 
   function getMCRFloor() public view returns (uint) {

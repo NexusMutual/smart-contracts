@@ -156,9 +156,8 @@ describe.only('Token price functions', function () {
     );
   });
 
-  it('buyNXM token price reflects the latest MCR posting (higher MCReth -> lower price)', async function () {
+  it('buyNXM token price reflects the latest MCR posting (lower MCReth -> higher price)', async function () {
     const { p1: pool, mcr, pd } = this.contracts;
-    const { ethEthRate, ethToDaiRate } = this.rates;
 
     const ETH = await pool.ETH();
     const buyValue = ether('1000');
@@ -183,12 +182,12 @@ describe.only('Token price functions', function () {
 
     assert(
       spotTokenPricePostMCRPosting.gt(spotTokenPricePreMCRPosting),
-      `Expected token price to be lower than ${spotTokenPricePreMCRPosting.toString()} at a higher mcrEth.
+      `Expected token price to be higher than ${spotTokenPricePreMCRPosting.toString()} at a lower mcrEth.
        Price: ${spotTokenPricePostMCRPosting.toString()}`,
     );
     assert(
       expectedNXMOutPostMCRPosting.lt(expectedNXMOutPreMCRPosting),
-      `Expected to receive more tokens than ${expectedNXMOutPreMCRPosting.toString()} at a higher mcrEth.
+      `Expected to receive less tokens than ${expectedNXMOutPreMCRPosting.toString()} at a lower mcrEth.
        Receiving: ${expectedNXMOutPostMCRPosting.toString()}`,
     );
   });

@@ -23,6 +23,7 @@ import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
 import "./PoolData.sol";
+import "hardhat/console.sol";
 
 contract MCR is Iupgradable {
   using SafeMath for uint;
@@ -43,6 +44,8 @@ contract MCR is Iupgradable {
   event MCRUpdated(
     uint mcr,
     uint mcrFloor,
+    uint mcrETHWithGear,
+    uint totalSumAssured,
     uint timestamp
   );
 
@@ -138,6 +141,7 @@ contract MCR is Iupgradable {
   }
 
   function updateMCR(uint poolValueInEth) external onlyInternal {
+
     if (lastUpdateTime + minUpdateTime > now) {
       return;
     }
@@ -147,12 +151,17 @@ contract MCR is Iupgradable {
     uint mcrETHWithGear = totalSumAssured.mul(10000).div(gearingFactor);
 
     uint desiredMCREth = max(mcrETHWithGear, mcrFloor);
-    uint percentageAdjustment = (now - lastUpdateTime) / 1 days * maxMCRIncrement;
-    percentageAdjustment = min(percentageAdjustment, 1);
+    uint maxPercentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRIncrement).div(10000);
+    maxPercentageAdjustment = min(maxPercentageAdjustment, 100);
 
-    uint mcr = min(mcr + mcr * percentageAdjustment / 100, desiredMCREth);
-
-    emit MCRUpdated(mcr, mcrFloor, lastUpdateTime);
+    if (desiredMCREth > mcr) {
+      mcr = min(mcr.mul(maxPercentageAdjustment.add(10000)).div(10000), desiredMCREth);
+    }
+    if (desiredMCREth < mcr) {
+      mcr = max(mcr.mul(10000 - maxPercentageAdjustment).div(10000), desiredMCREth);
+    }
+    lastUpdateTime = now;
+    emit MCRUpdated(mcr, mcrFloor, mcrETHWithGear, totalSumAssured, lastUpdateTime);
   }
 
   function getMCR() public view returns (uint) {

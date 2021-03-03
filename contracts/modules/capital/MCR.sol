@@ -145,7 +145,11 @@ contract MCR is Iupgradable {
     if (lastUpdateTime + minUpdateTime > now) {
       return;
     }
-    uint mcrFloor = getMCRFloor();
+    if (pool.calculateMCRRatio(poolValueInEth, mcr) > mcrFloorIncrementThreshold) {
+      uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRFloorIncrement).div(10000);
+      mcrFloor = mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
+    }
+
     uint totalSumAssured = getAllSumAssurance();
 
     uint mcrETHWithGear = totalSumAssured.mul(10000).div(gearingFactor);
@@ -166,11 +170,6 @@ contract MCR is Iupgradable {
 
   function getMCR() public view returns (uint) {
     return mcr;
-  }
-
-  function getMCRFloor() public view returns (uint) {
-    uint percentageAdjustment = (now - lastUpdateTime) / 1 days * maxMCRFloorIncrement;
-    return mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
   }
 
   function min(uint x, uint y) pure internal returns (uint) {

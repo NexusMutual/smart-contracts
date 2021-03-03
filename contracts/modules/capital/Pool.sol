@@ -460,7 +460,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     require(ethIn > 0, "Pool: ethIn > 0");
 
     uint totalAssetValue = getPoolValueInEth().sub(ethIn);
-    (uint mcrEth, uint mcrFloor) = mcr.calculateMCR(totalAssetValue);
+    (uint mcrEth, uint mcrFloor, bool mcrShouldUpdate) = mcr.calculateMCR(totalAssetValue);
     uint mcrRatio = calculateMCRRatio(totalAssetValue, mcrEth);
 
     require(mcrRatio <= MAX_MCR_RATIO, "Pool: Cannot purchase if MCR% > 400%");
@@ -468,7 +468,9 @@ contract Pool is MasterAware, ReentrancyGuard {
     require(tokensOut >= minTokensOut, "Pool: tokensOut is less than minTokensOut");
     tokenController.mint(msg.sender, tokensOut);
 
-    mcr.updateMCR(mcrEth, mcrFloor);
+    if (mcrShouldUpdate) {
+      mcr.updateMCR(mcrEth, mcrFloor);
+    }
     emit NXMBought(msg.sender, ethIn, tokensOut);
   }
 
@@ -484,7 +486,7 @@ contract Pool is MasterAware, ReentrancyGuard {
     require(nxmToken.isLockedForMV(msg.sender) <= now, "Pool: NXM tokens are locked for voting");
 
     uint currentTotalAssetValue = getPoolValueInEth();
-    (uint mcrEth, uint mcrFloor) = mcr.calculateMCR(currentTotalAssetValue);
+    (uint mcrEth, uint mcrFloor, bool mcrShouldUpdate) = mcr.calculateMCR(currentTotalAssetValue);
     uint ethOut = calculateEthForNXM(tokenAmount, currentTotalAssetValue, mcrEth);
     require(currentTotalAssetValue.sub(ethOut) >= mcrEth, "Pool: MCR% cannot fall below 100%");
     require(ethOut >= minEthOut, "Pool: ethOut < minEthOut");
@@ -493,7 +495,9 @@ contract Pool is MasterAware, ReentrancyGuard {
     (bool ok, /* data */) = msg.sender.call.value(ethOut)("");
     require(ok, "Pool: Sell transfer failed");
 
-    mcr.updateMCR(mcrEth, mcrFloor);
+    if (mcrShouldUpdate) {
+      mcr.updateMCR(mcrEth, mcrFloor);
+    }
     emit NXMSold(msg.sender, tokenAmount, ethOut);
   }
 

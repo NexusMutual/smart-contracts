@@ -4,8 +4,10 @@ import "../../modules/capital/MCR.sol";
 
 contract DisposableMCR is MCR {
 
+    constructor(address masterAddress) public MCR(masterAddress) {
+    }
+
     function initialize(
-        address master,
         uint _mcr,
         uint _mcrFloor,
         uint _lastUpdateTime,
@@ -15,7 +17,6 @@ contract DisposableMCR is MCR {
         uint _gearingFactor
     ) external {
         require(_lastUpdateTime < now, "_lastUpdateTime is in the future");
-        changeMasterAddress(master);
         mcr = _mcr;
         mcrFloor = _mcrFloor;
         lastUpdateTime = _lastUpdateTime;

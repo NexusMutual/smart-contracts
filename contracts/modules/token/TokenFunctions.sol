@@ -165,7 +165,8 @@ contract TokenFunctions is Iupgradable {
   public
   onlyInternal
   {
-    uint validity = (coverPeriod * 1 days).add(td.lockTokenTimeAfterCoverExp());
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint validity = (coverPeriod * 1 days).add(gracePeriod);
     bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
     td.setDepositCNAmount(coverId, coverNoteAmount);
     tc.lockOf(_of, reason, coverNoteAmount, validity);

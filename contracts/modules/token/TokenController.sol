@@ -583,21 +583,14 @@ contract TokenController is IERC1132, Iupgradable {
     require(_members.length == _reasons.length, "TokenController: members and reasons array lengths differ");
     require(_reasons.length == _indexes.length, "TokenController: reasons and indexes array lengths differ");
 
-    for (uint i = 0; i < _members.length; i++) {
-      for (uint j = 0; j < i; j++) {
-        require(_members[i] != _members[j], "TokenController: members array should not contain duplicates");
-      }
+    for (uint i = _members.length; i >= 0; i--) {
       _removeEmptyReason(_members[i], _reasons[i], _indexes[i]);
     }
   }
 
   function _removeEmptyReason(address _of, bytes32 _reason, uint _index) internal {
 
-    uint reasonCount = lockReason[_of].length;
-    require(reasonCount > 0, "TokenController: lockReason is empty");
-
-    uint lastReasonIndex = reasonCount.sub(1);
-    require(_index <= lastReasonIndex, "TokenController: index out of array bounds");
+    uint lastReasonIndex = lockReason[_of].length.sub(1);
 
     require(lockReason[_of][_index] == _reason, "TokenController: bad reason index");
     require(locked[_of][_reason].amount == 0, "TokenController: reason amount is not zero");

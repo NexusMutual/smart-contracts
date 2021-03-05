@@ -111,13 +111,22 @@ contract TokenFunctions is Iupgradable {
    * @return the status of the successful burning
    */
   function burnDepositCN(uint coverId) public onlyInternal returns (bool success) {
+
     address _of = qd.getCoverMemberAddress(coverId);
-    uint amount;
-    (amount,) = td.depositedCN(coverId);
-    amount = (amount.mul(50)).div(100);
     bytes32 reason = keccak256(abi.encodePacked("CN", _of, coverId));
-    tc.burnLockedTokens(_of, reason, amount);
-    success = true;
+    uint lockedAmount = tc.tokensLocked(_of, reason);
+
+    (uint amount,) = td.depositedCN(coverId);
+    amount = amount.div(2);
+
+    // limit burn amount to actual amount locked
+    uint burnAmount = lockedAmount < amount ? lockedAmount : amount;
+
+    if (burnAmount > 0) {
+      tc.burnLockedTokens(_of, reason, amount);
+    }
+
+    return true;
   }
 
   /**

@@ -316,7 +316,7 @@ contract ClaimsReward is Iupgradable {
     // denied
     if (status == 6 || status == 9 || status == 11) {
 
-      cd.changeFinalVerdict(claimid, - 1);
+      cd.changeFinalVerdict(claimid, -1);
       td.setDepositCN(coverid, false); // Unset flag
       tf.burnDepositCN(coverid); // burn Deposited CN
 

@@ -53,8 +53,8 @@ contract Cover is MasterAware {
   );
 
   event ClaimSubmitted(
-    uint claimId,
-    uint coverId,
+    uint indexed claimId,
+    uint indexed coverId,
     address indexed submitter,
     bytes data
   );
@@ -160,12 +160,13 @@ contract Cover is MasterAware {
     return claimId;
   }
 
-  function getPayoutOutcome(uint claimId)
+  function getPayoutOutcome(uint coverId, uint claimId)
     external
     view
     returns (ClaimStatus status, uint amountPaid, address coverAsset)
   {
-    (, uint coverId) = claimsData.getClaimCoverId(claimId);
+    (, uint storedCoverId) = claimsData.getClaimCoverId(claimId);
+    require(storedCoverId == coverId, "Cover: cover and claim ids don't match");
     (, uint internalClaimStatus) = claimsData.getClaimStatusNumber(claimId);
 
     coverAsset = getCurrencyAssetAddress(quotationData.getCurrencyOfCover(coverId));
@@ -213,7 +214,7 @@ contract Cover is MasterAware {
   payable
   returns (bytes memory, uint)
   {
-    revert("Unsupported action");
+    revert("Cover: Unsupported action");
   }
 
   function convertToLegacyQuote(uint sumAssured, bytes memory data, address asset)

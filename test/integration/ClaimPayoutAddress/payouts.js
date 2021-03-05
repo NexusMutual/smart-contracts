@@ -85,50 +85,7 @@ describe('send claim payout to the payout address', function () {
 
     assert(actualPayout.eq(expectedPayout), 'should have transfered the cover amount');
   });
-
-  it('[A1, status: 0, 7, 14] CA accept, closed with closeClaim()', async function () {
-
-    const { cd, cl, qd, mr, master } = this.contracts;
-    const cover = { ...coverTemplate };
-
-    const balanceBefore = toBN(await web3.eth.getBalance(payoutAddress));
-
-    await mr.setClaimPayoutAddress(payoutAddress, { from: coverHolder });
-    assert.strictEqual(
-      await mr.getClaimPayoutAddress(coverHolder),
-      payoutAddress,
-      'should have set the claim payout address',
-    );
-
-    await buyCover({ ...this.contracts, cover, coverHolder });
-    const [coverId] = await qd.getAllCoversOfUser(coverHolder);
-    await cl.submitClaim(coverId, { from: coverHolder });
-    const claimId = (await cd.actualClaimLength()).subn(1);
-    await cl.submitCAVote(claimId, '-1', { from: member1 });
-
-    claim = await cl.getClaimbyIndex(claimId);
-    console.log(claim);
-
-    const minVotingTime = await cd.minVotingTime();
-    await time.increase(minVotingTime.addn(1));
-
-    const voteStatusBefore = await cl.checkVoteClosing(claimId);
-    assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
-
-    claim = await cl.getClaimbyIndex(claimId);
-    console.log(claim);
-
-    await master.closeClaim(claimId);
-    const voteStatusAfter = await cl.checkVoteClosing(claimId);
-    assert(voteStatusAfter.eqn(-1), 'voting should be closed');
-
-    const { statno: claimStatus } = await cd.getClaimStatusNumber(claimId);
-    assert.strictEqual(claimStatus.toNumber(), 6, 'claim status should be 14 (accepted, payout done)');
-
-    claim = await cl.getClaimbyIndex(claimId);
-    console.log(claim);
-  });
-
+  
   it('[A1, status: 0, 7, 14] CA accept, closed on the last vote', async function () {
 
     const { cd, cl, qd, mr } = this.contracts;

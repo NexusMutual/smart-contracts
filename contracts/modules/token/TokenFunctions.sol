@@ -87,9 +87,8 @@ contract TokenFunctions is Iupgradable {
    * @param coverId Cover Id.
    */
   function depositCN(uint coverId) public onlyInternal returns (bool success) {
-    require(_getLockedCNAgainstCover(coverId) > 0, "No cover note available");
     td.setDepositCN(coverId, true);
-    success = true;
+    return true;
   }
 
   /**

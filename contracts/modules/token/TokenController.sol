@@ -28,8 +28,21 @@ contract TokenController is IERC1132, Iupgradable {
 
   NXMToken public token;
   IPooledStaking public pooledStaking;
-  uint public minCALockTime = uint(30).mul(1 days);
+
+  uint public minCALockTime;
+  uint public claimSubmissionGracePeriod;
+
   bytes32 private constant CLA = bytes32("CLA");
+
+  modifier onlyGovernance {
+    require(msg.sender == ms.getLatestAddress("GV"), 'TokenController: caller is not governance');
+    _;
+  }
+
+  function initialize() external {
+    require(claimSubmissionGracePeriod == 0, "TokenController: already initialized");
+    claimSubmissionGracePeriod = 120 days;
+  }
 
   /**
   * @dev Just for interface
@@ -240,15 +253,23 @@ contract TokenController is IERC1132, Iupgradable {
   /**
    * @dev Updates Uint Parameters of a code
    * @param code whose details we want to update
-   * @param val value to set
+   * @param value value to set
    */
-  function updateUintParameters(bytes8 code, uint val) public {
+  function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
+
     require(ms.checkIsAuthToGoverned(msg.sender));
+
     if (code == "MNCLT") {
-      minCALockTime = val.mul(1 days);
-    } else {
-      revert("Invalid param code");
+      minCALockTime = value.mul(1 days);
+      return;
     }
+
+    if (code == "GRACEPER") {
+      claimSubmissionGracePeriod = value;
+      return;
+    }
+
+    revert("TokenController: invalid param code");
   }
 
   /**

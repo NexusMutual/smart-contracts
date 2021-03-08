@@ -160,13 +160,17 @@ contract Cover is MasterAware {
     return claimId;
   }
 
-  function getPayoutOutcome(uint coverId, uint claimId)
+  function getClaimCoverId(uint claimId) public view returns (uint) {
+    (, uint coverId) = claimsData.getClaimCoverId(claimId);
+    return coverId;
+  }
+
+  function getPayoutOutcome(uint claimId)
     external
     view
     returns (ClaimStatus status, uint amountPaid, address coverAsset)
   {
-    (, uint storedCoverId) = claimsData.getClaimCoverId(claimId);
-    require(storedCoverId == coverId, "Cover: cover and claim ids don't match");
+    (, uint coverId) = claimsData.getClaimCoverId(claimId);
     (, uint internalClaimStatus) = claimsData.getClaimStatusNumber(claimId);
 
     coverAsset = getCurrencyAssetAddress(quotationData.getCurrencyOfCover(coverId));

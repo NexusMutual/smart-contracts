@@ -177,9 +177,20 @@ describe('getters', function () {
       assert.equal(coverAsset, ETH);
     });
 
-    it('reverts if claim does not exist', async function () {
+    it('reverts if cover does not exist', async function () {
       const { cover } = this.contracts;
-      const claimId = 10;
+      const coverId = 1;
+      const claimId = 1;
+      await expectRevert(cover.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
+    });
+
+    it('reverts if claim does not exist', async function () {
+      const { cover, cl, cd } = this.contracts;
+      const member = member1;
+      const coverData = { ...ethCoverTemplate };
+      await buyCover({ ...this.contracts, coverData, coverHolder: member });
+      const coverId = 1;
+      const claimId = 1;
       await expectRevert(cover.getPayoutOutcome(claimId), 'VM Exception while processing transaction: invalid opcode');
     });
 
@@ -237,5 +248,29 @@ describe('getters', function () {
       assert.equal(stored.memberAddress, member);
       assert.equal(stored.status.toString(), '0');
     });
+  });
+
+  describe('getClaimCoverId', async function () {
+
+    it('returns cover data', async function () {
+
+      const { cover, cl } = this.contracts;
+      const member = member1;
+      const coverData = {...ethCoverTemplate};
+
+      await buyCover({...this.contracts, coverData, coverHolder: member});
+      await buyCover({
+        ...this.contracts,
+        coverData: {...coverData, generationTime: ethCoverTemplate.generationTime + 1},
+        coverHolder: member
+      });
+
+      const expectedCoverId = 2;
+      await cl.submitClaim(expectedCoverId, { from: member });
+      const expectedClaimId = 1;
+      const coverId = await cover.getClaimCoverId(expectedClaimId);
+      assert.equal(coverId.toString(), expectedCoverId.toString());
+    });
+
   });
 });

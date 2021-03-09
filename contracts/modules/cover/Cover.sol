@@ -53,8 +53,8 @@ contract Cover is MasterAware {
   );
 
   event ClaimSubmitted(
-    uint claimId,
-    uint coverId,
+    uint indexed claimId,
+    uint indexed coverId,
     address indexed submitter,
     bytes data
   );
@@ -160,6 +160,11 @@ contract Cover is MasterAware {
     return claimId;
   }
 
+  function getClaimCoverId(uint claimId) public view returns (uint) {
+    (, uint coverId) = claimsData.getClaimCoverId(claimId);
+    return coverId;
+  }
+
   function getPayoutOutcome(uint claimId)
     external
     view
@@ -213,7 +218,7 @@ contract Cover is MasterAware {
   payable
   returns (bytes memory, uint)
   {
-    revert("Unsupported action");
+    revert("Cover: Unsupported action");
   }
 
   function convertToLegacyQuote(uint sumAssured, bytes memory data, address asset)

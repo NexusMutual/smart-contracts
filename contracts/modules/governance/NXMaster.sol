@@ -109,16 +109,10 @@ contract NXMaster is Governed {
   function getOwnerParameters(bytes8 code) external view returns (bytes8 codeVal, address val) {
     codeVal = code;
     QuotationData qd;
-    PoolData pd;
     if (code == "MSWALLET") {
       TokenData td;
       td = TokenData(getLatestAddress("TD"));
       val = td.walletAddress();
-
-    } else if (code == "MCRNOTA") {
-
-      pd = PoolData(getLatestAddress("PD"));
-      val = pd.notariseMCR();
 
     } else if (code == "OWNER") {
 
@@ -330,16 +324,10 @@ contract NXMaster is Governed {
    */
   function updateOwnerParameters(bytes8 code, address payable val) public onlyAuthorizedToGovern {
     QuotationData qd;
-    PoolData pd;
     if (code == "MSWALLET") {
       TokenData td;
       td = TokenData(getLatestAddress("TD"));
       td.changeWalletAddress(val);
-
-    } else if (code == "MCRNOTA") {
-
-      pd = PoolData(getLatestAddress("PD"));
-      pd.changeNotariseAddress(val);
 
     } else if (code == "OWNER") {
 

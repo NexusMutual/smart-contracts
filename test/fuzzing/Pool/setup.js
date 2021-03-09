@@ -7,7 +7,6 @@ const { Role } = require('../../unit/utils').constants;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const MasterMock = artifacts.require('MasterMock');
-const PoolData = artifacts.require('P1MockPoolData');
 const TokenData = artifacts.require('TokenData');
 const TokenController = artifacts.require('TokenControllerMock');
 const TokenMock = artifacts.require('NXMTokenMock');
@@ -25,7 +24,6 @@ async function setup ({ MCR, Pool }) {
   const chainlinkDAI = await P1MockChainlinkAggregator.new();
   const priceFeedOracle = await PriceFeedOracle.new([dai.address], [chainlinkDAI.address], dai.address);
 
-  const poolData = await PoolData.new();
   const tokenData = await TokenData.new(accounts.notariseAddress);
   const pool = await Pool.new(
     [dai.address],
@@ -47,7 +45,6 @@ async function setup ({ MCR, Pool }) {
   // set contract addresses
   await master.setTokenAddress(token.address);
   await master.setLatestAddress(hex('P1'), pool.address);
-  await master.setLatestAddress(hex('PD'), poolData.address);
   await master.setLatestAddress(hex('TD'), tokenData.address);
   await master.setLatestAddress(hex('MC'), mcr.address);
   await master.setLatestAddress(hex('TC'), tokenController.address);
@@ -88,7 +85,6 @@ async function setup ({ MCR, Pool }) {
     token,
     pool,
     mcr,
-    poolData,
     tokenData,
     tokenController,
     chainlinkDAI,

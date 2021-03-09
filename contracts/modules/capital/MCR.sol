@@ -22,8 +22,8 @@ import "../cover/QuotationData.sol";
 import "../oracles/PriceFeedOracle.sol";
 import "../token/NXMToken.sol";
 import "../token/TokenData.sol";
-import "./PoolData.sol";
 import "hardhat/console.sol";
+import "./LegacyMCR.sol";
 
 contract MCR is Iupgradable {
   using SafeMath for uint;
@@ -60,13 +60,13 @@ contract MCR is Iupgradable {
     }
 
     address mcrAddress = ms.getLatestAddress("MC");
-    MCR previousMCR = MCR(mcrAddress);
+    LegacyMCR previousMCR = LegacyMCR(mcrAddress);
 
     // fetch MCR parameters from previous contract
-    mcrFloor = previousMCR.mcrFloor();
+    mcrFloor = previousMCR.variableMincap();
     mcr = previousMCR.getLastMCREther();
-    mcrFloorIncrementThreshold = previousMCR.mcrFloorIncrementThreshold();
-    maxMCRFloorIncrement = previousMCR.maxMCRFloorIncrement();
+    mcrFloorIncrementThreshold = previousMCR.dynamicMincapThresholdx100();
+    maxMCRFloorIncrement = previousMCR.dynamicMincapIncrementx100();
 
     // set last updated time to now
     lastUpdateTime = now;

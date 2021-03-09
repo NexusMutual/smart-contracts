@@ -1,7 +1,6 @@
 pragma solidity ^0.5.0;
 
 import "../../modules/capital/MCR.sol";
-import "../../modules/capital/PoolData.sol";
 
 contract DisposableMCR is MCR {
 
@@ -25,10 +24,5 @@ contract DisposableMCR is MCR {
         maxMCRFloorIncrement = _maxMCRFloorIncrement;
         maxMCRIncrement = _maxMCRIncrement;
         gearingFactor = _gearingFactor;
-    }
-
-    function setPoolDataCapReached(address poolDataAddress) public {
-
-        PoolData(poolDataAddress).setCapReached(1);
     }
 }

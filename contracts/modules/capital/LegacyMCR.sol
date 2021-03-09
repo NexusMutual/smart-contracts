@@ -18,4 +18,6 @@ interface LegacyMCR {
   function variableMincap() external view returns (uint);
   function dynamicMincapThresholdx100() external view returns (uint);
   function dynamicMincapIncrementx100() external view returns (uint);
+
+  function getLastMCREther() external view returns (uint);
 }

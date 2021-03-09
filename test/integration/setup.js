@@ -27,7 +27,6 @@ async function setup () {
   const TokenData = artifacts.require('TokenData');
   const TokenFunctions = artifacts.require('TokenFunctions');
   const Pool = artifacts.require('Pool');
-  const PoolData = artifacts.require('PoolData');
   const Quotation = artifacts.require('Quotation');
   const QuotationData = artifacts.require('QuotationData');
   const ClaimProofs = artifacts.require('ClaimProofs');
@@ -150,7 +149,6 @@ async function setup () {
   const cr = await ClaimsReward.new(master.address, dai.address);
 
   const mc = await MCR.new(ZERO_ADDRESS);
-  const pd = await PoolData.new(owner, ZERO_ADDRESS, dai.address);
   const p1 = await Pool.new(
     [dai.address], // assets
     [0], // min amounts
@@ -184,8 +182,8 @@ async function setup () {
     return 0;
   };
 
-  const codes = ['QD', 'TD', 'CD', 'PD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW'];
-  const addresses = [qd, td, cd, pd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, gateway].map(c => c.address);
+  const codes = ['QD', 'TD', 'CD', 'QT', 'TF', 'TC', 'CL', 'CR', 'P1', 'MC', 'GV', 'PC', 'MR', 'PS', 'GW'];
+  const addresses = [qd, td, cd, qt, tf, tc, cl, cr, p1, mc, { address: owner }, pc, mr, ps, gateway].map(c => c.address);
 
   await master.initialize(
     owner,
@@ -235,11 +233,6 @@ async function setup () {
     10, // max exposure
     90 * 24 * 3600, // unstake lock time
   );
-
-  await pd.changeMasterAddress(master.address);
-  await pd.updateUintParameters(hex('MCRMIN'), new BN('50')); // minimum capital in eth
-  await pd.updateUintParameters(hex('MCRSHOCK'), 50); // mcr shock parameter
-  await pd.updateUintParameters(hex('MCRCAPL'), 20); // capacityLimit 10: seemingly unused parameter
 
   await cd.changeMasterAddress(master.address);
   await cd.updateUintParameters(hex('CAMINVT'), 36); // min voting time 36h
@@ -306,10 +299,8 @@ async function setup () {
     gearingFactor,
   );
 
-  await mc.setPoolDataCapReached(pd.address);
-
   const external = { chainlinkDAI, dai, factory, router, weth };
-  const nonUpgradable = { cp, qd, td, cd, pd };
+  const nonUpgradable = { cp, qd, td, cd };
   const instances = { tk, qt, tf, cl, cr, p1, mcr: mc };
 
   // we upgraded them, get non-disposable instances because

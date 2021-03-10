@@ -27,6 +27,15 @@ describe('getters', function () {
     await enrollClaimAssessor(this.contracts, [member2]);
   });
 
+  describe('DAI', function () {
+    it('stores DAI address correctly', async function () {
+      const { cover, dai } = this.contracts;
+
+      const storedDaiAddress = await cover.DAI();
+      assert.equal(storedDaiAddress, dai.address);
+    });
+  });
+
   describe('getCoverPrice', function () {
 
     it('retrieves the signed quote price', async function () {

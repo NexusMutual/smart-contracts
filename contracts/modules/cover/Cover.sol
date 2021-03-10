@@ -26,6 +26,7 @@ import "../token/TokenData.sol";
 import "../capital/PoolData.sol";
 import "../token/TokenFunctions.sol";
 import "./QuotationData.sol";
+import "../claims/ClaimsReward.sol";
 
 contract Cover is MasterAware {
   using SafeMath for uint;
@@ -68,11 +69,6 @@ contract Cover is MasterAware {
 
   enum ClaimStatus { IN_PROGRESS, ACCEPTED, REJECTED }
 
-  function initialize (address masterAddress, address _daiAddress) public {
-    changeMasterAddress(masterAddress);
-    DAI = _daiAddress;
-  }
-
   function changeDependentContractAddress() public {
     quotation = Quotation(master.getLatestAddress("QT"));
     nxmToken = NXMToken(master.tokenAddress());
@@ -80,9 +76,10 @@ contract Cover is MasterAware {
     quotationData = QuotationData(master.getLatestAddress("QD"));
     claimsData = ClaimsData(master.getLatestAddress("CD"));
     claims = Claims(master.getLatestAddress("CL"));
-    MCR(master.getLatestAddress("MC"));
     pool = Pool(master.getLatestAddress("P1"));
     memberRoles = MemberRoles(master.getLatestAddress("MR"));
+    ClaimsReward claimsReward = ClaimsReward(master.getLatestAddress("CR"));
+    DAI = claimsReward.DAI();
   }
 
   function getCoverPrice (

@@ -78,8 +78,10 @@ contract Cover is MasterAware {
     claims = Claims(master.getLatestAddress("CL"));
     pool = Pool(master.getLatestAddress("P1"));
     memberRoles = MemberRoles(master.getLatestAddress("MR"));
-    ClaimsReward claimsReward = ClaimsReward(master.getLatestAddress("CR"));
-    DAI = claimsReward.DAI();
+    if (DAI == address(0)) {
+      ClaimsReward claimsReward = ClaimsReward(master.getLatestAddress("CR"));
+      DAI = claimsReward.DAI();
+    }
   }
 
   function getCoverPrice (

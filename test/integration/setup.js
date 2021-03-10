@@ -230,11 +230,6 @@ async function setup () {
     90 * 24 * 3600, // unstake lock time
   );
 
-  await cover.initialize(
-    master.address,
-    dai.address,
-  );
-
   await pd.changeMasterAddress(master.address);
   await pd.updateUintParameters(hex('MCRMIN'), new BN('50')); // minimum capital in eth
   await pd.updateUintParameters(hex('MCRSHOCK'), 50); // mcr shock parameter

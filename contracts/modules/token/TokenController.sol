@@ -48,6 +48,9 @@ contract TokenController is Iupgradable {
   uint public minCALockTime;
   uint public claimSubmissionGracePeriod;
 
+  // coverId => CoverInfo
+  mapping(uint => CoverInfo) public coverInfo;
+
   bytes32 private constant CLA = bytes32("CLA");
 
   event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
@@ -72,6 +75,42 @@ contract TokenController is Iupgradable {
   function changeDependentContractAddress() public {
     token = NXMToken(ms.tokenAddress());
     pooledStaking = IPooledStaking(ms.getLatestAddress("PS"));
+  }
+
+  function markCoverClaimOpen(uint coverId) external onlyInternal {
+
+    CoverInfo storage info = coverInfo[coverId];
+
+    uint16 claimCount;
+    bool hasOpenClaim;
+    bool hasAcceptedClaim;
+
+    // reads all of them using a single SLOAD
+    (claimCount, hasOpenClaim, hasAcceptedClaim) = (info.claimCount, info.hasOpenClaim, info.hasAcceptedClaim);
+
+    // no safemath for uint16 but should be safe from
+    // overflows as there're max 2 claims per cover
+    claimCount = claimCount + 1;
+
+    require(claimCount <= 2, "TokenController: max claim count exceeded");
+    require(hasOpenClaim == false, "TokenController: cover already has an open claim");
+    require(hasAcceptedClaim == false, "TokenController: cover already has accepted claims");
+
+    // should use a single SSTORE for both
+    (info.claimCount, info.hasOpenClaim) = (claimCount, true);
+  }
+
+  /**
+   * @param coverId cover id (careful, not claim id!)
+   * @param isAccepted claim verdict
+   */
+  function markCoverClaimClosed(uint coverId, bool isAccepted) external onlyInternal {
+
+    CoverInfo storage info = coverInfo[coverId];
+    require(info.hasOpenClaim == true, "TokenController: cover claim is not marked as open");
+
+    // should use a single SSTORE for both
+    (info.hasOpenClaim, info.hasAcceptedClaim) = (false, isAccepted);
   }
 
   /**

@@ -384,15 +384,13 @@ contract TokenController is Iupgradable {
   returns (uint256 amount, uint256 validity)
   {
 
-    uint amount = locked[_of][_reason].amount;
-    uint validity = locked[_of][_reason].validity;
     bool claimed = locked[_of][_reason].claimed;
+    amount = locked[_of][_reason].amount;
+    validity = locked[_of][_reason].validity;
 
     if (claimed) {
       amount = 0;
     }
-
-    return (amount, validity);
   }
 
   /**

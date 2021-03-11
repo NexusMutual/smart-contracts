@@ -101,7 +101,7 @@ contract Quotation is Iupgradable {
     for (uint i = 0; i < coverIds.length; i++) {
 
       uint expirationDate = qd.getValidityOfCover(coverIds[i]);
-      require(expirationDate.add(gracePeriod) < now, "Quotation: can't withdraw during grace period");
+      require(expirationDate.add(gracePeriod) < now, "Quotation: cannot withdraw before grace period expiration");
 
       // note: cover owner is implicitly checked using the reason hash
       reasons[i] = keccak256(abi.encodePacked("CN", coverOwner, coverIds[i]));

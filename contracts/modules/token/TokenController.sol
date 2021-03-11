@@ -19,12 +19,28 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../abstract/Iupgradable.sol";
 import "../../interfaces/IPooledStaking.sol";
 import "./NXMToken.sol";
-import "./external/IERC1132.sol";
 
-contract TokenController is IERC1132, Iupgradable {
+contract TokenController is Iupgradable {
   using SafeMath for uint256;
 
-  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
+  struct LockToken {
+    uint256 amount;
+    uint256 validity;
+    bool claimed;
+  }
+
+  struct CoverInfo {
+    uint16 claimCount;
+    bool hasOpenClaim;
+    bool hasAcceptedClaim;
+    // note: still 224 bits available here, can be used later
+  }
+
+  // _of => reason
+  mapping(address => bytes32[]) public lockReason;
+
+  // _of => reason => LockToken
+  mapping(address => mapping(bytes32 => LockToken)) public locked;
 
   NXMToken public token;
   IPooledStaking public pooledStaking;
@@ -33,6 +49,12 @@ contract TokenController is IERC1132, Iupgradable {
   uint public claimSubmissionGracePeriod;
 
   bytes32 private constant CLA = bytes32("CLA");
+
+  event Locked(address indexed _of, bytes32 indexed _reason, uint256 _amount, uint256 _validity);
+
+  event Unlocked(address indexed _of, bytes32 indexed _reason, uint256 _amount);
+
+  event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
   modifier onlyGovernance {
     require(msg.sender == ms.getLatestAddress("GV"), 'TokenController: caller is not governance');

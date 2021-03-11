@@ -318,10 +318,8 @@ contract TokenController is Iupgradable {
    */
   function updateUintParameters(bytes8 code, uint value) external onlyGovernance {
 
-    require(ms.checkIsAuthToGoverned(msg.sender));
-
     if (code == "MNCLT") {
-      minCALockTime = value.mul(1 days);
+      minCALockTime = value;
       return;
     }
 
@@ -666,8 +664,9 @@ contract TokenController is Iupgradable {
     require(_members.length == _reasons.length, "TokenController: members and reasons array lengths differ");
     require(_reasons.length == _indexes.length, "TokenController: reasons and indexes array lengths differ");
 
-    for (uint i = _members.length; i >= 0; i--) {
-      _removeEmptyReason(_members[i], _reasons[i], _indexes[i]);
+    for (uint i = _members.length; i > 0; i--) {
+      uint idx = i - 1;
+      _removeEmptyReason(_members[idx], _reasons[idx], _indexes[idx]);
     }
   }
 

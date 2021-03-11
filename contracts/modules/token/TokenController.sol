@@ -272,16 +272,16 @@ contract TokenController is IERC1132, Iupgradable {
     revert("TokenController: invalid param code");
   }
 
+  function getLockReasons(address _of) external view returns (bytes32[] memory reasons) {
+    return lockReason[_of];
+  }
+
   /**
   * @dev Gets the validity of locked tokens of a specified address
   * @param _of The address to query the validity
   * @param reason reason for which tokens were locked
   */
-  function getLockedTokensValidity(address _of, bytes32 reason)
-  public
-  view
-  returns (uint256 validity)
-  {
+  function getLockedTokensValidity(address _of, bytes32 reason) public view returns (uint256 validity) {
     validity = locked[_of][reason].validity;
   }
 
@@ -312,6 +312,28 @@ contract TokenController is IERC1132, Iupgradable {
   returns (uint256 amount)
   {
     return _tokensLocked(_of, _reason);
+  }
+
+  /**
+  * @dev Returns tokens locked and validity for a specified address and reason
+  * @param _of The address whose tokens are locked
+  * @param _reason The reason to query the lock tokens for
+  */
+  function tokensLockedWithValidity(address _of, bytes32 _reason)
+  public
+  view
+  returns (uint256 amount, uint256 validity)
+  {
+
+    uint amount = locked[_of][_reason].amount;
+    uint validity = locked[_of][_reason].validity;
+    bool claimed = locked[_of][_reason].claimed;
+
+    if (claimed) {
+      amount = 0;
+    }
+
+    return (amount, validity);
   }
 
   /**

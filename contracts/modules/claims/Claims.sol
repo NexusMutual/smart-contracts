@@ -179,19 +179,16 @@ contract Claims is Iupgradable {
     address coverOwner = qd.getCoverMemberAddress(coverId);
     require(coverOwner == msg.sender, 'Claims: Not cover owner');
 
-    uint coverStatus = qd.getCoverStatusNo(coverId);
-    require(coverStatus != uint8(QuotationData.CoverStatus.ClaimSubmitted), "Claim already submitted");
-
     uint expirationDate = qd.getValidityOfCover(coverId);
     uint gracePeriod = tc.claimSubmissionGracePeriod();
     require(expirationDate.add(gracePeriod) < now, 'Claims: Grace period has expired');
 
-    tf.depositCN(coverId);
-    uint claimId = cd.actualClaimLength();
+    tc.markCoverClaimOpen(coverId);
+    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
 
+    uint claimId = cd.actualClaimLength();
     cd.addClaim(claimId, coverId, coverOwner, now);
     cd.callClaimEvent(coverId, coverOwner, claimId, now);
-    qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));
   }
 
   function submitClaimAfterEPOff() external pure {

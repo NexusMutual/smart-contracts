@@ -181,7 +181,7 @@ contract Claims is Iupgradable {
 
     uint expirationDate = qd.getValidityOfCover(coverId);
     uint gracePeriod = tc.claimSubmissionGracePeriod();
-    require(expirationDate.add(gracePeriod) < now, 'Claims: Grace period has expired');
+    require(expirationDate.add(gracePeriod) > now, 'Claims: Grace period has expired');
 
     tc.markCoverClaimOpen(coverId);
     qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.ClaimSubmitted));

@@ -17,16 +17,6 @@ const getReason = async (tc, member, index) => {
 
 describe('removeEmptyReason', function () {
 
-  it('reverts when lockReason array is empty', async function () {
-
-    const { tokenController } = this;
-
-    await expectRevert(
-      tokenController.removeEmptyReason(member, '0x', '0'),
-      'TokenController: lockReason is empty',
-    );
-  });
-
   it('reverts when index is out of bounds', async function () {
 
     const { token, tokenController } = this;
@@ -36,9 +26,8 @@ describe('removeEmptyReason', function () {
     await token.approve(tokenController.address, ether('100'), { from: member });
     await tokenController.lockOf(member, R0, ether('100'), lockPeriod, { from: internal });
 
-    await expectRevert(
+    await expectRevert.assertion(
       tokenController.removeEmptyReason(member, '0x', '1'),
-      'TokenController: index out of array bounds',
     );
   });
 

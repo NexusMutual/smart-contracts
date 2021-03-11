@@ -643,9 +643,12 @@ contract TokenController is Iupgradable {
       }
 
       lockReason[_of].pop();
-      lastReasonIndex = lastReasonIndex.sub(1);
-
       emit Unlocked(_of, _reason, amount);
+
+      if (i > 1) {
+        // if i > 1 then the input has more entries but there are none left in the lockReason array
+        lastReasonIndex = lastReasonIndex.sub(1, "TokenController: reason count mismatch");
+      }
     }
 
     token.transfer(_of, totalAmount);

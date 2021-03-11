@@ -199,6 +199,7 @@ async function setup () {
     tk.address,
     ps.address,
     30 * 24 * 3600, // minCALockTime
+    120 * 24 * 3600, // claimSubmissionGracePeriod
   );
 
   await mr.initialize(

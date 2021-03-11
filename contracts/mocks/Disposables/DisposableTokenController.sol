@@ -9,7 +9,8 @@ contract DisposableTokenController is TokenController {
     address _masterAddress,
     address _tokenAddress,
     address _pooledStakingAddress,
-    uint _claimsAssessmentLockTime
+    uint _claimsAssessmentLockTime,
+    uint _claimSubmissionGracePeriod
   ) external {
 
     token = NXMToken(_tokenAddress);
@@ -18,6 +19,7 @@ contract DisposableTokenController is TokenController {
     changeMasterAddress(_masterAddress);
     pooledStaking = IPooledStaking(_pooledStakingAddress);
     minCALockTime = _claimsAssessmentLockTime;
+    claimSubmissionGracePeriod = _claimSubmissionGracePeriod;
 
   }
 

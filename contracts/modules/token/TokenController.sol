@@ -672,7 +672,7 @@ contract TokenController is Iupgradable {
 
   function _removeEmptyReason(address _of, bytes32 _reason, uint _index) internal {
 
-    uint lastReasonIndex = lockReason[_of].length.sub(1);
+    uint lastReasonIndex = lockReason[_of].length.sub(1, "TokenController: lockReason is empty");
 
     require(lockReason[_of][_index] == _reason, "TokenController: bad reason index");
     require(locked[_of][_reason].amount == 0, "TokenController: reason amount is not zero");

@@ -17,6 +17,16 @@ const getReason = async (tc, member, index) => {
 
 describe('removeEmptyReason', function () {
 
+  it('reverts when lockReason array is empty', async function () {
+
+    const { tokenController } = this;
+
+    await expectRevert(
+      tokenController.removeEmptyReason(member, '0x', '0'),
+      'TokenController: lockReason is empty',
+    );
+  });
+
   it('reverts when index is out of bounds', async function () {
 
     const { token, tokenController } = this;

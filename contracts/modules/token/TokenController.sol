@@ -539,26 +539,26 @@ contract TokenController is IERC1132, Iupgradable {
     require(reasonCount > 0, "TokenController: no locked cover notes found");
 
     uint lastReasonIndex = reasonCount.sub(1);
-    uint total = 0;
+    uint totalAmount = 0;
 
     // The iteration is done from the last to first to prevent reason indexes from
     // changing due to the way we delete the items (copy last to current and pop last).
     // The provided indexes array must be ordered, otherwise reason index checks will fail.
 
-    for (uint i = _reasons.length; i >= 0; i--) {
+    for (uint i = _reasons.length; i > 0; i--) {
 
-      bytes32 _reason = _reasons[i];
-      uint _index = _indexes[i];
-      require(lockReason[_of][_index] == _reason, "TokenController: bad reason index");
+      bytes32 _reason = _reasons[i - 1];
+      uint _resonIndex = _indexes[i - 1];
+      require(lockReason[_of][_resonIndex] == _reason, "TokenController: bad reason index");
 
       uint amount = locked[_of][_reason].amount;
       require(amount != 0, "TokenController: amount is zero");
 
-      total = total.add(amount);
+      totalAmount = totalAmount.add(amount);
       locked[_of][_reason].amount = 0;
 
-      if (lastReasonIndex != _index) {
-        lockReason[_of][_index] = lockReason[_of][lastReasonIndex];
+      if (lastReasonIndex != _resonIndex) {
+        lockReason[_of][_resonIndex] = lockReason[_of][lastReasonIndex];
       }
 
       lockReason[_of].pop();
@@ -567,7 +567,7 @@ contract TokenController is IERC1132, Iupgradable {
       emit Unlocked(_of, _reason, amount);
     }
 
-    token.transfer(_of, total);
+    token.transfer(_of, totalAmount);
   }
 
   function removeEmptyReason(address _of, bytes32 _reason, uint _index) external {

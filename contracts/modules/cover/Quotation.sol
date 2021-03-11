@@ -90,7 +90,7 @@ contract Quotation is Iupgradable {
     qd.changeCoverStatusNo(coverId, uint8(QuotationData.CoverStatus.CoverExpired));
   }
 
-  function withdrawCoverNote(uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
+  function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
 
     uint gracePeriod = tc.claimSubmissionGracePeriod();
     bytes32[] memory reasons = new bytes32[](reasonIndexes.length);
@@ -101,10 +101,10 @@ contract Quotation is Iupgradable {
       require(expirationDate.add(gracePeriod) < now, "Quotation: can't withdraw during grace period");
 
       // note: cover owner is implicitly checked using the reason hash
-      reasons[i] = keccak256(abi.encodePacked("CN", msg.sender, coverIds[i]));
+      reasons[i] = keccak256(abi.encodePacked("CN", coverOwner, coverIds[i]));
     }
 
-    tc.withdrawCoverNote(msg.sender, reasons, reasonIndexes);
+    tc.withdrawCoverNote(coverOwner, reasons, reasonIndexes);
   }
 
   /**

@@ -81,6 +81,9 @@ contract Quotation is Iupgradable {
     uint coverStatus = qd.getCoverStatusNo(coverId);
     require(coverStatus != uint(QuotationData.CoverStatus.CoverExpired), "Quotation: cover already expired");
 
+    (/* claim count */, bool hasOpenClaim, /* accepted */) = tc.coverInfo(coverId);
+    require(!hasOpenClaim, "Quotation: cover has an open claim");
+
     if (coverStatus != uint(QuotationData.CoverStatus.ClaimAccepted)) {
       (,, address contractAddress, bytes4 currency, uint amount,) = qd.getCoverDetailsByCoverID1(coverId);
       qd.subFromTotalSumAssured(currency, amount);

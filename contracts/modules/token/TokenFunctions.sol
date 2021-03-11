@@ -83,15 +83,6 @@ contract TokenFunctions is Iupgradable {
   }
 
   /**
-   * @dev Set the flag to check if cover note is deposited against the cover id
-   * @param coverId Cover Id.
-   */
-  function depositCN(uint coverId) public onlyInternal returns (bool success) {
-    td.setDepositCN(coverId, true);
-    return true;
-  }
-
-  /**
    * @param _of address of Member
    * @param _coverId Cover Id
    * @param _lockTime Pending Time + Cover Period 7*1 days
@@ -134,12 +125,10 @@ contract TokenFunctions is Iupgradable {
    * @param coverId id of cover
    */
   function unlockCN(uint coverId) public onlyInternal {
-    (, bool isDeposited) = td.depositedCN(coverId);
-    require(!isDeposited, "Cover note is deposited and can not be released");
-    uint lockedCN = _getLockedCNAgainstCover(coverId);
+    address coverHolder = qd.getCoverMemberAddress(coverId);
+    bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
+    uint lockedCN = tc.tokensLockedAtTime(coverHolder, reason, now);
     if (lockedCN != 0) {
-      address coverHolder = qd.getCoverMemberAddress(coverId);
-      bytes32 reason = keccak256(abi.encodePacked("CN", coverHolder, coverId));
       tc.releaseLockedTokens(coverHolder, reason, lockedCN);
     }
   }

@@ -140,7 +140,7 @@ contract TokenController is Iupgradable {
   * @param _amount Number of tokens to be locked
   * @param _time Lock time in seconds
   */
-  function lockClaimAssessmentTokens(uint256 _amount, uint256 _time) public checkPause returns (bool)
+  function lockClaimAssessmentTokens(uint256 _amount, uint256 _time) external checkPause returns (bool)
   {
     require(minCALockTime <= _time, "Should lock for minimum time");
     require(_time <= 180 days, "Tokens should be locked for 180 days maximum");

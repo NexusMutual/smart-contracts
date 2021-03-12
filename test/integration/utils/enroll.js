@@ -23,7 +23,7 @@ async function enrollClaimAssessor ({ tc }, assessors, options = {}) {
   } = options;
 
   for (const member of assessors) {
-    await tc.lock(hex('CLA'), toBN(lockTokens), toBN(validity), { from: member });
+    await tc.lockClaimAssessmentTokens(toBN(lockTokens), toBN(validity), { from: member });
   }
 }
 

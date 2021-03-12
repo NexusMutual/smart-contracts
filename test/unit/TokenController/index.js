@@ -1,7 +1,7 @@
 const { takeSnapshot, revertToSnapshot, reset } = require('../utils').evm;
 const setup = require('./setup');
 
-describe('TokenController', function () {
+describe.only('TokenController', function () {
 
   before(reset);
   before(setup);
@@ -14,6 +14,8 @@ describe('TokenController', function () {
     await revertToSnapshot(this.snapshotId);
   });
 
+  require('./lockClaimAssessmentTokens');
+  require('./extendClaimAssessmentLock');
   require('./removeEmptyReason');
   require('./removeMultipleEmptyReasons');
 

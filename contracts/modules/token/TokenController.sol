@@ -137,17 +137,16 @@ contract TokenController is Iupgradable {
   /**
   * @dev Locks a specified amount of tokens,
   *    for CLA reason and for a specified time
-  * @param _reason The reason to lock tokens, currently restricted to CLA
   * @param _amount Number of tokens to be locked
   * @param _time Lock time in seconds
   */
-  function lock(bytes32 _reason, uint256 _amount, uint256 _time) public checkPause returns (bool)
+  function lockClaimAssessmentTokens(uint256 _amount, uint256 _time) public checkPause returns (bool)
   {
-    require(_reason == CLA, "Restricted to reason CLA");
     require(minCALockTime <= _time, "Should lock for minimum time");
+    require(_time <= 180 days, "Tokens should be locked for 180 days maximum");
     // If tokens are already locked, then functions extendLock or
     // increaseLockAmount should be used to make any changes
-    _lock(msg.sender, _reason, _amount, _time);
+    _lock(msg.sender, CLA, _amount, _time);
     return true;
   }
 
@@ -172,16 +171,13 @@ contract TokenController is Iupgradable {
 
   /**
   * @dev Extends lock for reason CLA for a specified time
-  * @param _reason The reason to lock tokens, currently restricted to CLA
   * @param _time Lock extension time in seconds
   */
-  function extendLock(bytes32 _reason, uint256 _time)
-  public
-  checkPause
-  returns (bool)
+  function extendClaimAssessmentLock(uint256 _time) external checkPause returns (bool)
   {
-    require(_reason == CLA, "Restricted to reason CLA");
-    _extendLock(msg.sender, _reason, _time);
+    uint256 validity = getLockedTokensValidity(msg.sender, CLA);
+    require(validity.add(_time).sub(block.timestamp) <= 180 days, "Tokens should be locked for 180 days maximum");
+    _extendLock(msg.sender, CLA, _time);
     return true;
   }
 

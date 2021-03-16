@@ -30,16 +30,20 @@ contract MCR is Iupgradable {
 
   Pool public pool;
   QuotationData public qd;
+  uint96 _unused;
 
-  uint public mcr;
-  uint public mcrFloor;
-  uint public lastUpdateTime = 0;
+  uint256 constant UINT24_MAX = ~uint24(0);
 
-  uint public mcrFloorIncrementThreshold = 13000;
-  uint public maxMCRFloorIncrement = 100;
-  uint public maxMCRIncrement = 500;
-  uint public gearingFactor = 48000;
-  uint public minUpdateTime = 3600;
+  uint24 public mcrFloorIncrementThreshold = 13000;
+  uint24 public maxMCRFloorIncrement = 100;
+  uint24 public maxMCRIncrement = 500;
+  uint24 public gearingFactor = 48000;
+  uint24 public minUpdateTime = 3600;
+  uint112 public mcrFloor;
+
+  uint112 public mcr;
+  uint112 public desiredMCR;
+  uint32 public lastUpdateTime = 0;
 
   event MCRUpdated(
     uint mcr,
@@ -63,18 +67,13 @@ contract MCR is Iupgradable {
     LegacyMCR previousMCR = LegacyMCR(mcrAddress);
 
     // fetch MCR parameters from previous contract
-    mcrFloor = previousMCR.variableMincap();
-    mcr = previousMCR.getLastMCREther();
-    mcrFloorIncrementThreshold = previousMCR.dynamicMincapThresholdx100();
-    maxMCRFloorIncrement = previousMCR.dynamicMincapIncrementx100();
+    mcrFloor = uint112(previousMCR.variableMincap());
+    mcr = uint112(previousMCR.getLastMCREther());
+    mcrFloorIncrementThreshold = uint24(previousMCR.dynamicMincapThresholdx100());
+    maxMCRFloorIncrement = uint24(previousMCR.dynamicMincapIncrementx100());
 
     // set last updated time to now
-    lastUpdateTime = now;
-  }
-
-  // proxying this call through mcr contract to get rid of pd from pool
-  function getLastMCREther() external view returns (uint) {
-    return getMCR();
+    lastUpdateTime = uint32(now);
   }
 
   /**
@@ -112,10 +111,10 @@ contract MCR is Iupgradable {
   function getUintParameters(bytes8 code) external view returns (bytes8 codeVal, uint val) {
     codeVal = code;
     if (code == "DMCT") {
-      val = mcrFloorIncrementThreshold;
+      val = uint(mcrFloorIncrementThreshold);
 
     } else if (code == "DMCI") {
-      val = maxMCRFloorIncrement;
+      val = uint(maxMCRFloorIncrement);
     }
   }
 
@@ -127,11 +126,14 @@ contract MCR is Iupgradable {
   function updateUintParameters(bytes8 code, uint val) public {
     require(ms.checkIsAuthToGoverned(msg.sender));
     if (code == "DMCT") {
-      mcrFloorIncrementThreshold = val;
+
+      require(val <= UINT24_MAX, "MCR: DMCT value too large");
+      mcrFloorIncrementThreshold = uint24(val);
 
     } else if (code == "DMCI") {
 
-      maxMCRFloorIncrement = val;
+      require(val <= UINT24_MAX, "MCR: DMCI value too large");
+      maxMCRFloorIncrement = uint24(val);
 
     }
     else {
@@ -147,7 +149,7 @@ contract MCR is Iupgradable {
     }
     if (pool.calculateMCRRatio(poolValueInEth, mcr) > mcrFloorIncrementThreshold) {
       uint percentageAdjustment = (now - lastUpdateTime).mul(10000).div(1 days).mul(maxMCRFloorIncrement).div(10000);
-      mcrFloor = mcrFloor.mul(percentageAdjustment.add(10000)).div(10000);
+      mcrFloor = uint112(uint(mcrFloor).mul(percentageAdjustment.add(10000)).div(10000));
     }
 
     uint totalSumAssured = getAllSumAssurance();
@@ -159,12 +161,12 @@ contract MCR is Iupgradable {
     maxPercentageAdjustment = min(maxPercentageAdjustment, 100);
 
     if (desiredMCREth > mcr) {
-      mcr = min(mcr.mul(maxPercentageAdjustment.add(10000)).div(10000), desiredMCREth);
+      mcr = uint112(min(uint(mcr).mul(maxPercentageAdjustment.add(10000)).div(10000), desiredMCREth));
     }
     if (desiredMCREth < mcr) {
-      mcr = max(mcr.mul(10000 - maxPercentageAdjustment).div(10000), desiredMCREth);
+      mcr = uint112(max(uint(mcr).mul(10000 - maxPercentageAdjustment).div(10000), desiredMCREth));
     }
-    lastUpdateTime = now;
+    lastUpdateTime = uint32(now);
     emit MCRUpdated(mcr, mcrFloor, mcrETHWithGear, totalSumAssured, lastUpdateTime);
   }
 

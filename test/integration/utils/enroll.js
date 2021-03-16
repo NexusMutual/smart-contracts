@@ -19,7 +19,7 @@ async function enrollClaimAssessor ({ tc }, assessors, options = {}) {
 
   const {
     lockTokens = ether('2000'),
-    validity = 365 * 24 * 60 * 60,
+    validity = 180 * 24 * 60 * 60,
   } = options;
 
   for (const member of assessors) {

@@ -33,7 +33,7 @@ describe('lockClaimAssessmentTokens', function () {
       const [member, duration] = call;
       await tokenController.mint(member, ether('100'), { from: internal });
       await token.approve(tokenController.address, ether('100'), { from: member });
-      return await tokenController.lockClaimAssessmentTokens(ether('50'), toBN(days(duration)), { from: member });
+      await tokenController.lockClaimAssessmentTokens(ether('50'), toBN(days(duration)), { from: member });
     }
   });
 

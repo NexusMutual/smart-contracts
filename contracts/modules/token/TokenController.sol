@@ -299,7 +299,7 @@ contract TokenController is Iupgradable {
     if (unlockableTokens > 0) {
       locked[_of][CLA].claimed = true;
       emit Unlocked(_of, CLA, unlockableTokens);
-      require(token.transfer(_of, unlockableTokens), "TokenController: Internal transfer failed");
+      require(token.transfer(_of, unlockableTokens), "TokenController: Transfer failed");
     }
   }
 
@@ -596,7 +596,7 @@ contract TokenController is Iupgradable {
 
     // lock reason removal is skipped here: needs to be done from offchain
 
-    require(token.transfer(_of, _amount), "TokenController: Internal transfer failed");
+    require(token.transfer(_of, _amount), "TokenController: Transfer failed");
     emit Unlocked(_of, _reason, _amount);
   }
 

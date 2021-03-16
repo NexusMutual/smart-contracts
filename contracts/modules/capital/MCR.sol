@@ -144,6 +144,12 @@ contract MCR is Iupgradable {
 
   function updateMCR(uint poolValueInEth) external onlyInternal {
 
+    (uint24 mcrFloorIncrementThreshold,
+    uint24 maxMCRFloorIncrement,
+    uint24 maxMCRIncrement,
+    uint24 gearingFactor,
+    uint24 minUpdateTime,
+    uint112 mcrFloor ) = (mcrFloorIncrementThreshold, maxMCRFloorIncrement, maxMCRIncrement, gearingFactor, minUpdateTime, minUpdateTime);
     if (lastUpdateTime + minUpdateTime > now) {
       return;
     }

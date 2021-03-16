@@ -8,7 +8,7 @@ const { toBN } = web3.utils;
 
 const days = n => 3600 * 24 * n;
 
-describe.only('extendClaimAssessmentLock', function () {
+describe('extendClaimAssessmentLock', function () {
 
   it('reverts if locking past 180 days from current block time', async function () {
 
@@ -22,7 +22,7 @@ describe.only('extendClaimAssessmentLock', function () {
     await tokenController.lockClaimAssessmentTokens(ether('50'), initalLockTime, { from: member });
     await expectRevert(
       tokenController.extendClaimAssessmentLock(extendClaimAssessmentLockTime, { from: member }),
-      'Tokens should be locked for 180 days maximum',
+      'TokenController: Tokens can be locked for 180 days maximum',
     );
   });
 
@@ -33,18 +33,13 @@ describe.only('extendClaimAssessmentLock', function () {
     const initalLockTime = toBN(days(30));
     const extendClaimAssessmentLockTime = toBN(days(1));
 
-    const minCALockTime = await tokenController.minCALockTime();
     await tokenController.mint(member, ether('100'), { from: internal });
     await token.approve(tokenController.address, ether('100'), { from: member });
     await tokenController.lockClaimAssessmentTokens(ether('50'), initalLockTime, { from: member });
 
-    const res1 = await tokenController.extendClaimAssessmentLock(extendClaimAssessmentLockTime, { from: member });
-    const res2 = await tokenController.extendClaimAssessmentLock(extendClaimAssessmentLockTime, { from: member });
-    const res3 = await tokenController.extendClaimAssessmentLock(extendClaimAssessmentLockTime, { from: member });
-
-    assert(res1.receipt.status);
-    assert(res2.receipt.status);
-    assert(res3.receipt.status);
+    await tokenController.extendClaimAssessmentLock(extendClaimAssessmentLockTime, { from: member });
+    await tokenController.extendClaimAssessmentLock(extendClaimAssessmentLockTime, { from: member });
+    await tokenController.extendClaimAssessmentLock(extendClaimAssessmentLockTime, { from: member });
   });
 
 });

@@ -8,13 +8,13 @@ contract DisposableMCR is MCR {
     }
 
     function initialize(
-        uint _mcr,
-        uint _mcrFloor,
-        uint _lastUpdateTime,
-        uint _mcrFloorIncrementThreshold,
-        uint _maxMCRFloorIncrement,
-        uint _maxMCRIncrement,
-        uint _gearingFactor
+        uint112 _mcr,
+        uint112 _mcrFloor,
+        uint32 _lastUpdateTime,
+        uint24 _mcrFloorIncrementThreshold,
+        uint24 _maxMCRFloorIncrement,
+        uint24 _maxMCRIncrement,
+        uint24 _gearingFactor
     ) external {
         require(_lastUpdateTime < now, "_lastUpdateTime is in the future");
         mcr = _mcr;

@@ -1,18 +1,33 @@
 const { accounts, web3 } = require('hardhat');
 const { expectRevert, expectEvent, time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const { enrollMember } = require('../utils/enroll');
+const { enrollMember, enrollClaimAssessor } = require('../utils/enroll');
 const { hex } = require('../utils').helpers;
 const { buyCover, ethCoverTemplate, daiCoverTemplate } = require('./utils');
 
-const [, member1, member2, nonMember1] = accounts;
+const [, member1, member2, member3, coverHolder, nonMember1] = accounts;
 
 const EMPTY_DATA = web3.eth.abi.encodeParameters([], []);
+
+async function voteOnClaim({ verdict, claimId, master, cd, cl }) {
+
+  await cl.submitCAVote(claimId, verdict, { from: member1 });
+
+  const minVotingTime = await cd.minVotingTime();
+  await time.increase(minVotingTime.addn(1));
+
+  const voteStatusBefore = await cl.checkVoteClosing(claimId);
+  assert.equal(voteStatusBefore.toString(), '1', 'should allow vote closing');
+
+  await master.closeClaim(claimId);
+  const voteStatusAfter = await cl.checkVoteClosing(claimId);
+  assert(voteStatusAfter.eqn(-1), 'voting should be closed');
+}
 
 describe('submitClaim', function () {
 
   beforeEach(async function () {
-    await enrollMember(this.contracts, [member1, member2]);
+    await enrollMember(this.contracts, [member1, member2, member3, coverHolder]);
   });
 
   it('reverts for non-existant cover id', async function () {
@@ -97,6 +112,33 @@ describe('submitClaim', function () {
     await expectRevert(
       cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: member1 }),
       'TokenController: Cover already has an open claim',
+    );
+  });
+
+  it('creates 2 claims for cover and reverts on the 3rd attempt', async function () {
+    const { cover, cd: claimsData, cl } = this.contracts;
+
+    await enrollClaimAssessor(this.contracts, [member1, member2, member3]);
+
+    const coverData = { ...ethCoverTemplate };
+
+    await buyCover({ ...this.contracts, coverData, coverHolder: coverHolder });
+    const expectedCoverId = 1;
+    {
+      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
+      const claimId = 1;
+      await voteOnClaim({...this.contracts, claimId, verdict: '-1' });
+    }
+
+    {
+      await cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder });
+      const claimId = 2;
+      await voteOnClaim({...this.contracts, claimId, verdict: '-1' });
+    }
+
+    await expectRevert(
+      cover.submitClaim(expectedCoverId, EMPTY_DATA, { from: coverHolder }),
+      'VM Exception while processing transaction: revert No cover note available'
     );
   });
 });

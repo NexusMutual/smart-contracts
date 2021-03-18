@@ -322,9 +322,14 @@ contract Quotation is Iupgradable {
       coverDetails[2]
     );
 
-    uint coverNoteAmount = (coverDetails[2].mul(qd.tokensRetained())).div(100);
-    tc.mint(from, coverNoteAmount);
-    tf.lockCN(coverNoteAmount, coverPeriod, cid, from);
+    uint coverNoteAmount = coverDetails[2].mul(qd.tokensRetained()).div(100);
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint claimSubmissionPeriod = uint(coverPeriod).mul(1 days).add(gracePeriod);
+    bytes32 reason = keccak256(abi.encodePacked("CN", from, cid));
+
+    td.setDepositCNAmount(cid, coverNoteAmount);
+    tc.mintCoverNote(from, reason, coverNoteAmount, claimSubmissionPeriod);
+
     qd.addInTotalSumAssured(coverCurr, coverDetails[0]);
     qd.addInTotalSumAssuredSC(scAddress, coverCurr, coverDetails[0]);
 

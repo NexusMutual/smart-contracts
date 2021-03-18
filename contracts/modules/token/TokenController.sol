@@ -60,7 +60,7 @@ contract TokenController is Iupgradable {
   event Burned(address indexed member, bytes32 lockedUnder, uint256 amount);
 
   modifier onlyGovernance {
-    require(msg.sender == ms.getLatestAddress("GV"), 'TokenController: Caller is not governance');
+    require(msg.sender == ms.getLatestAddress("GV"), "TokenController: Caller is not governance");
     _;
   }
 
@@ -127,7 +127,7 @@ contract TokenController is Iupgradable {
    * @param _to     Destination address
    * @param _value  Amount to transfer
    */
-  function operatorTransfer(address _from, address _to, uint _value) onlyInternal external returns (bool) {
+  function operatorTransfer(address _from, address _to, uint _value) external onlyInternal returns (bool) {
     require(msg.sender == address(pooledStaking), "TokenController: Call is only allowed from PooledStaking address");
     require(token.operatorTransfer(_from, _value), "TokenController: Operator transfer failed");
     require(token.transfer(_to, _value), "TokenController: Internal transfer failed");
@@ -165,6 +165,36 @@ contract TokenController is Iupgradable {
     // increaseLockAmount should be used to make any changes
     _lock(_of, _reason, _amount, _time);
     return true;
+  }
+
+  /**
+  * @dev Mints and locks a specified amount of tokens against an address,
+  *      for a CN reason and time
+  * @param _of address whose tokens are to be locked
+  * @param _reason The reason to lock tokens
+  * @param _amount Number of tokens to be locked
+  * @param _time Lock time in seconds
+  */
+  function mintCoverNote(
+    address _of,
+    bytes32 _reason,
+    uint256 _amount,
+    uint256 _time
+  ) external onlyInternal {
+
+    require(_tokensLocked(_of, _reason) == 0, "TokenController: An amount of tokens is already locked");
+    require(_amount != 0, "TokenController: Amount shouldn't be zero");
+
+    if (locked[_of][_reason].amount == 0) {
+      lockReason[_of].push(_reason);
+    }
+
+    token.mint(address(this), _amount);
+
+    uint256 lockedUntil = now.add(_time);
+    locked[_of][_reason] = LockToken(_amount, lockedUntil, false);
+
+    emit Locked(_of, _reason, _amount, lockedUntil);
   }
 
   /**
@@ -477,7 +507,7 @@ contract TokenController is Iupgradable {
 
     require(token.operatorTransfer(_of, _amount), "TokenController: Operator transfer failed");
 
-    uint256 validUntil = now.add(_time); // solhint-disable-line
+    uint256 validUntil = now.add(_time);
     locked[_of][_reason] = LockToken(_amount, validUntil, false);
     emit Locked(_of, _reason, _amount, validUntil);
   }

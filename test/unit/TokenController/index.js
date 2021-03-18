@@ -18,5 +18,6 @@ describe('TokenController', function () {
   require('./extendClaimAssessmentLock');
   require('./removeEmptyReason');
   require('./removeMultipleEmptyReasons');
+  require('./markCoverClaim');
 
 });

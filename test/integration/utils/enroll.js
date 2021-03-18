@@ -1,7 +1,6 @@
 const { web3 } = require('hardhat');
 const { ether } = require('@openzeppelin/test-helpers');
 const { toBN } = web3.utils;
-const { hex } = require('./index').helpers;
 
 async function enrollMember ({ mr, tk, tc }, members, options = {}) {
 

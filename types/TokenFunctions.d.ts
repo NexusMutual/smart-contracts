@@ -98,25 +98,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
     ): Promise<number>;
   };
 
-  depositCN: {
-    (
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<Truffle.TransactionResponse<AllEvents>>;
-    call(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<boolean>;
-    sendTransaction(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<string>;
-    estimateGas(
-      coverId: number | BN | string,
-      txDetails?: Truffle.TransactionDetails
-    ): Promise<number>;
-  };
-
   extendCNEPOff: {
     (
       _of: string,
@@ -322,25 +303,6 @@ export interface TokenFunctionsInstance extends Truffle.ContractInstance {
       ): Promise<string>;
       estimateGas(
         _masterAddress: string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<number>;
-    };
-
-    depositCN: {
-      (
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<Truffle.TransactionResponse<AllEvents>>;
-      call(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<boolean>;
-      sendTransaction(
-        coverId: number | BN | string,
-        txDetails?: Truffle.TransactionDetails
-      ): Promise<string>;
-      estimateGas(
-        coverId: number | BN | string,
         txDetails?: Truffle.TransactionDetails
       ): Promise<number>;
     };

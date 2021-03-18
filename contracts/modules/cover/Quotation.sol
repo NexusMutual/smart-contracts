@@ -96,18 +96,46 @@ contract Quotation is Iupgradable {
   function withdrawCoverNote(address coverOwner, uint[] calldata coverIds, uint[] calldata reasonIndexes) external {
 
     uint gracePeriod = tc.claimSubmissionGracePeriod();
-    bytes32[] memory reasons = new bytes32[](reasonIndexes.length);
+
+    for (uint i = 0; i < coverIds.length; i++) {
+      uint expirationDate = qd.getValidityOfCover(coverIds[i]);
+      require(expirationDate.add(gracePeriod) < now, "Quotation: cannot withdraw before grace period expiration");
+    }
+
+    tc.withdrawCoverNote(coverOwner, coverIds, reasonIndexes);
+  }
+
+  function getWithdrawableCoverNoteCoverIds(
+    address coverOwner
+  ) external view returns (
+    uint[] memory expiredCoverIds,
+    bytes32[] memory lockReasons
+  ) {
+
+    uint[] memory coverIds = qd.getAllCoversOfUser(coverOwner);
+    uint[] memory expiredIdsQueue = new uint[](coverIds.length);
+    uint gracePeriod = tc.claimSubmissionGracePeriod();
+    uint expiredQueueLength = 0;
 
     for (uint i = 0; i < coverIds.length; i++) {
 
-      uint expirationDate = qd.getValidityOfCover(coverIds[i]);
-      require(expirationDate.add(gracePeriod) < now, "Quotation: cannot withdraw before grace period expiration");
+      uint coverExpirationDate = qd.getValidityOfCover(coverIds[i]);
+      uint gracePeriodExpirationDate = coverExpirationDate.add(gracePeriod);
+      (/* claimCount */, bool hasOpenClaim, /* hasAcceptedClaim */) = tc.coverInfo(coverIds[i]);
 
-      // note: cover owner is implicitly checked using the reason hash
-      reasons[i] = keccak256(abi.encodePacked("CN", coverOwner, coverIds[i]));
+      if (!hasOpenClaim && gracePeriodExpirationDate < now) {
+        expiredIdsQueue[expiredQueueLength] = coverIds[i];
+        expiredQueueLength++;
+      }
     }
 
-    tc.withdrawCoverNote(coverOwner, reasons, reasonIndexes);
+    expiredCoverIds = new uint[](expiredQueueLength);
+    lockReasons = new bytes32[](expiredQueueLength);
+
+    for (uint i = 0; i < expiredQueueLength; i++) {
+      expiredCoverIds[i] = expiredIdsQueue[i];
+      lockReasons[i] = keccak256(abi.encodePacked("CN", coverOwner, expiredIdsQueue[i]));
+    }
   }
 
   /**

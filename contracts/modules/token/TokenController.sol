@@ -602,34 +602,36 @@ contract TokenController is Iupgradable {
 
   function withdrawCoverNote(
     address _of,
-    bytes32[] calldata _reasons,
+    uint[] calldata _coverIds,
     uint[] calldata _indexes
   ) external onlyInternal {
 
     uint reasonCount = lockReason[_of].length;
-    require(reasonCount > 0, "TokenController: No locked cover notes found");
-
-    uint lastReasonIndex = reasonCount.sub(1);
+    uint lastReasonIndex = reasonCount.sub(1, "TokenController: No locked cover notes found");
     uint totalAmount = 0;
 
     // The iteration is done from the last to first to prevent reason indexes from
     // changing due to the way we delete the items (copy last to current and pop last).
     // The provided indexes array must be ordered, otherwise reason index checks will fail.
 
-    for (uint i = _reasons.length; i > 0; i--) {
+    for (uint i = _coverIds.length; i > 0; i--) {
 
-      bytes32 _reason = _reasons[i - 1];
-      uint _resonIndex = _indexes[i - 1];
-      require(lockReason[_of][_resonIndex] == _reason, "TokenController: Bad reason index");
+      bool hasOpenClaim = coverInfo[_coverIds[i - 1]].hasOpenClaim;
+      require(hasOpenClaim == false, "TokenController: Cannot withdraw for cover with an open claim");
+
+      // note: cover owner is implicitly checked using the reason hash
+      bytes32 _reason = keccak256(abi.encodePacked("CN", _of, _coverIds[i - 1]));
+      uint _reasonIndex = _indexes[i - 1];
+      require(lockReason[_of][_reasonIndex] == _reason, "TokenController: Bad reason index");
 
       uint amount = locked[_of][_reason].amount;
       require(amount != 0, "TokenController: Locked amount is zero");
 
       totalAmount = totalAmount.add(amount);
-      locked[_of][_reason].amount = 0;
+      delete locked[_of][_reason];
 
-      if (lastReasonIndex != _resonIndex) {
-        lockReason[_of][_resonIndex] = lockReason[_of][lastReasonIndex];
+      if (lastReasonIndex != _reasonIndex) {
+        lockReason[_of][_reasonIndex] = lockReason[_of][lastReasonIndex];
       }
 
       lockReason[_of].pop();
